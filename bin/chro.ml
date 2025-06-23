@@ -28,6 +28,7 @@ module Conv = struct
       match v with
       | True -> `Ir Ir.true_
       | Int d -> `Eia (Ir.Eia.sum Map.empty, d, [])
+      | False -> `Ir (Ir.Lnot (Ir.true_))
       | _ -> failwith "err"
     end
     (* Variables. *)
