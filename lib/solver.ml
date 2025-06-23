@@ -123,9 +123,22 @@ let algebraic =
       end
       | ir -> ir)
   in
+  let simpl_mul_by_zero =
+    Ir.map (function
+      | Ir.Eia (Ir.Eia.Eq (Ir.Eia.Sum term, c) as eia)
+      | Ir.Eia (Ir.Eia.Leq (Ir.Eia.Sum term, c) as eia) ->
+        let build =
+          match eia with
+          | Ir.Eia.Eq _ -> Ir.Eia.eq
+          | Ir.Eia.Leq _ -> Ir.Eia.leq
+        in
+        let term = Map.filter term ~f:(fun v -> v <> 0) in
+        Ir.eia (build (Ir.Eia.sum term) c)
+      | ir -> ir)
+  in
   Ir.map (fun ir ->
     let bounds = infer_bounds ir in
-    apply_bounds bounds ir)
+    apply_bounds bounds ir |> simpl_mul_by_zero)
 ;;
 
 let simpl_ir ir =
@@ -338,37 +351,53 @@ module Eia = struct
 end
 
 module Bv = struct
-  (*open Ir.Bv*)
+  open Ir.Bv
 
-  (*
-     let rec eval_ir vars ir =
+  let eval vars ir =
+    let internal_counter = ref 0 in
+    let internal () =
+      internal_counter := !internal_counter + 1;
+      !internal_counter + (vars |> Map.data |> List.fold_left Int.max 0)
+    in
+    let rec eval_ir vars ir =
+      match ir with
+      | Atom atom -> Map.find_exn vars atom, NfaCollection.Msb.n ()
+      | (And terms | Or terms) as op ->
+        let vars = List.map (eval_ir vars) terms in
+        let build =
+          match op with
+          | And _ -> NfaCollection.Msb.bvand
+          | Or _ -> NfaCollection.Msb.bvor
+          | _ -> failwith "unimplemented"
+        in
+        (match vars with
+         | (idx', nfa') :: tl ->
+           List.fold_left
+             (fun (idx', nfa') (idx'', nfa'') ->
+                let idx = internal () in
+                let nfa =
+                  build ~lhs:idx' ~rhs:idx'' ~res:idx
+                  |> Nfa.Msb.intersect nfa'
+                  |> Nfa.Msb.intersect nfa''
+                in
+                idx, nfa)
+             (idx', nfa')
+             tl
+         | _ -> failwith "Unable to eval an operation over an empty list of bitwise terms")
+    in
     match ir with
-    | And terms -> failwith "", failwith ""
-    | Or terms -> failwith "", failwith ""
-    | Xor (term1, term22) -> failwith "", failwith ""
-  ;;*)
-
-  let eval _vars _ir =
-    (*let var_count = Map.length vars in
-    match ir with
-    | (Eq [ lhs; rhs ] | Geq (lhs, rhs) | Leq (lhs, rhs) | Lt (lhs, rhs) | Gt (lhs, rhs))
-      as ir ->
+    | Eq [ lhs; rhs ] ->
       let lhs_idx, lhs_nfa = eval_ir vars lhs in
       let rhs_idx, rhs_nfa = eval_ir vars rhs in
       let build_nfa =
         match ir with
-        | Eq _ -> NfaCollection.eq
-        | Leq (_, _) -> NfaCollection.leq
-        | Geq (_, _) -> NfaCollection.geq
-        | Lt (_, _) -> NfaCollection.lt
-        | Gt (_, _) -> NfaCollection.gt
+        | Eq _ -> NfaCollection.Msb.eq
       in
       build_nfa lhs_idx rhs_idx
-      |> Nfa.intersect rhs_nfa
-      |> Nfa.intersect lhs_nfa
-      |> Nfa.truncate var_count
-    *)
-    failwith "unimplemented"
+      |> Nfa.Msb.intersect rhs_nfa
+      |> Nfa.Msb.intersect lhs_nfa
+      |> Nfa.Msb.truncate (Map.length vars)
+    | _ -> failwith "unimplemented"
   ;;
 end
 
@@ -406,7 +435,7 @@ let eval ir =
     | Ir.Bv bv_ir -> Bv.eval vars bv_ir
     | Ir.Exists (atoms, ir) ->
       eval ir |> Nfa.project (List.map (Map.find_exn vars) atoms) |> Nfa.minimize
-    | Ir.Pred _ -> failwith "fuck"
+    | Ir.Pred _ -> failwith ""
     | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith
   in
   eval ir
@@ -731,8 +760,8 @@ let eval_semenov return next formula =
        formulas might be undecidable. We still try to evaluate them though to try out the \
        limitations of the algorithm.\n\
        %!"; *)
-  let vars = collect_vars formula in
-  let formula =
+  (*let vars = collect_vars formula in*)
+  (*let formula =
     formula
     |> (fun ir ->
     Ir.exists
@@ -741,7 +770,7 @@ let eval_semenov return next formula =
        |> List.filter (fun var -> (not (is_exp var)) && not (Map.mem vars (to_exp var))))
       ir)
     |> simpl_ir
-  in
+  in*)
   let nfa, vars = eval formula in
   let nfa = Nfa.Msb.minimize nfa in
   Debug.dump_nfa
@@ -761,7 +790,7 @@ let eval_semenov return next formula =
     ~vars:(Map.to_alist vars)
     Nfa.Msb.format_nfa
     nfa;
-  let nfa =
+  (*let nfa =
     Map.fold
       ~f:(fun ~key:k ~data:v acc ->
         if is_exp k
@@ -771,7 +800,7 @@ let eval_semenov return next formula =
         else acc)
       ~init:nfa
       vars
-  in
+  in*)
   Debug.dump_nfa
     ~msg:"Minimized raw3 original nfa: %s"
     ~vars:(Map.to_alist vars)
@@ -806,6 +835,7 @@ let eval_semenov return next formula =
 ;;
 
 let proof_semenov f =
+  Debug.printf "Testing2 %a" Ir.pp f;
   match
     f
     |> eval_semenov
@@ -906,8 +936,9 @@ let proof ir =
   else (
     (*let f = Optimizer.optimize f in
     Debug.printfln "optimized formula: %a" Ast.pp_formula f;*)
-    let free_vars = collect_free ir in
-    let ir = Ir.exists (free_vars |> Set.to_list) ir in
+    (*let free_vars = collect_free ir in*)
+    (*let ir = Ir.exists (free_vars |> Set.to_list) ir in*)
+    Debug.printf "Testing %a" Ir.pp ir;
     let nfa, _ = ir |> eval in
     Debug.dump_nfa ~msg:"resulting nfa: %s" Nfa.Msb.format_nfa nfa;
     if Nfa.Msb.run nfa then `Sat else `Unsat)

@@ -41,7 +41,7 @@ module MsbNat : sig
   val add : lhs:varpos -> rhs:varpos -> res:varpos -> Nfa.MsbNat.t
   val eq : varpos -> varpos -> Nfa.MsbNat.t
   val eq_const : varpos -> int -> Nfa.MsbNat.t
-  val geq : varpos -> varpos ->  Nfa.MsbNat.t
+  val geq : varpos -> varpos -> Nfa.MsbNat.t
   val mul : res:varpos -> lhs:int -> rhs:varpos -> Nfa.MsbNat.t
   val torename : varpos -> int -> int -> Nfa.MsbNat.t
   val torename2 : int -> int -> Nfa.MsbNat.t

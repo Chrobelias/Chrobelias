@@ -9,7 +9,7 @@ type atom =
   | Pow2 of string
 [@@deriving variants]
 
-let internal () = internal (Random.int (Int.max_int / 2) |> string_of_int)
+let internal () = internal (Random.int 1073741822 |> string_of_int)
 
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var
@@ -68,16 +68,12 @@ end
 (** Bitvectors. *)
 module Bv = struct
   type t =
-    | Const of Bitv.t
     | Atom of atom
     | And of t list
     | Or of t list
-    | Xor of t * t
-    | Neg of t
   [@@deriving variants]
 
   let rec pp fmt = function
-    | Const bv -> Format.fprintf fmt "%a" Bitv.L.print bv
     | Atom atom -> Format.fprintf fmt "%a" pp_atom atom
     | And terms ->
       Format.fprintf
@@ -91,17 +87,9 @@ module Bv = struct
         "(%a)"
         (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " | ") pp)
         terms
-    | Xor (a, b) -> Format.fprintf fmt "%a ^ %a" pp a pp b
-    | Neg term -> Format.fprintf fmt "~%a" pp term
   ;;
 
-  type ir =
-    | Eq of t list
-    | Leq of t * t
-    | Geq of t * t
-    | Gt of t * t
-    | Lt of t * t
-  [@@deriving variants]
+  type ir = Eq of t list [@@deriving variants]
 
   let pp_ir fmt = function
     | Eq terms ->
@@ -110,10 +98,6 @@ module Bv = struct
         "(%a)"
         (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " = ") pp)
         terms
-    | Leq (a, b) -> Format.fprintf fmt "%a <= %a" pp a pp b
-    | Lt (a, b) -> Format.fprintf fmt "%a <= %a" pp a pp b
-    | Geq (a, b) -> Format.fprintf fmt "%a >= %a" pp a pp b
-    | Gt (a, b) -> Format.fprintf fmt "%a > %a" pp a pp b
   ;;
 
   let equal = ( = )

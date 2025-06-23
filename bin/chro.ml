@@ -11,7 +11,23 @@ module Conv = struct
     let expect_eia expr =
       match expr |> _to_ir with
       | `Eia (Ir.Eia.Sum term, c, assertions) -> term, c, assertions
+      | `Bv (bv, assertions) ->
+        let internal = Ir.internal () in
+        let assertion = Ir.bv (Ir.Bv.eq [ Ir.Bv.atom internal; bv ]) in
+        Map.singleton internal 1, 0, assertion :: assertions
       | `Symbol var -> Map.singleton (Ir.var var) 1, 0, []
+      | _ -> failwith "Expected EIA term"
+    in
+    let expect_bv expr =
+      match expr |> _to_ir with
+      | `Eia (Ir.Eia.Sum term, c, assertions) ->
+        let internal = Ir.internal () in
+        let assertion =
+          Ir.eia (Ir.Eia.eq (Ir.Eia.sum (Map.add_exn ~key:internal ~data:(-1) term)) (-c))
+        in
+        Ir.Bv.atom internal, assertion :: assertions
+      | `Bv (bv, assertions) -> bv, assertions
+      | `Symbol var -> Ir.Bv.atom (Ir.var var), []
       | _ -> failwith "Expected EIA term"
     in
     let expect_ir expr =
@@ -20,7 +36,6 @@ module Conv = struct
       | `Symbol ir -> Ir.pred ir []
       | _ -> failwith "Expected boolean term"
     in
-    (* Format.printf "%a\n%!" Expr.pp orig_expr; *)
     let expr = Expr.view orig_expr in
     match expr with
     (* Constants. *)
@@ -28,7 +43,7 @@ module Conv = struct
       match v with
       | True -> `Ir Ir.true_
       | Int d -> `Eia (Ir.Eia.sum Map.empty, d, [])
-      | False -> `Ir (Ir.Lnot (Ir.true_))
+      | False -> `Ir (Ir.Lnot Ir.true_)
       | _ -> failwith "err"
     end
     (* Variables. *)
@@ -127,6 +142,17 @@ module Conv = struct
       | `Symbol pred -> `Ir (Ir.lnot (Ir.pred pred []))
       | _ -> failwith "Couldn't convert the statement within not to the supported one"
     end
+    (* Custom bitwise operations *)
+    | Expr.App ({ name = Symbol.Simple ("bwand" as op); _ }, terms)
+    | Expr.App ({ name = Symbol.Simple ("bwor" as op); _ }, terms) ->
+      let build =
+        match op with
+        | "bwor" -> Ir.Bv.or_
+        | "bwand" -> Ir.Bv.and_
+        | _ -> failwith "unreachable"
+      in
+      let terms = List.map expect_bv terms in
+      `Bv (build (List.map fst terms), List.map snd terms |> List.concat)
     (* Binary and arbitrary and *)
     | Expr.Binop (_ty, Ty.Binop.And, lhs, rhs) ->
       `Ir (Ir.land_ [ expect_ir lhs; expect_ir rhs ])
