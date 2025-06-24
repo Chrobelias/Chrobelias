@@ -760,8 +760,8 @@ let eval_semenov return next formula =
        formulas might be undecidable. We still try to evaluate them though to try out the \
        limitations of the algorithm.\n\
        %!"; *)
-  (*let vars = collect_vars formula in*)
-  (*let formula =
+  let vars = collect_vars formula in
+  let formula =
     formula
     |> (fun ir ->
     Ir.exists
@@ -770,7 +770,7 @@ let eval_semenov return next formula =
        |> List.filter (fun var -> (not (is_exp var)) && not (Map.mem vars (to_exp var))))
       ir)
     |> simpl_ir
-  in*)
+  in
   let nfa, vars = eval formula in
   let nfa = Nfa.Msb.minimize nfa in
   Debug.dump_nfa
@@ -790,7 +790,7 @@ let eval_semenov return next formula =
     ~vars:(Map.to_alist vars)
     Nfa.Msb.format_nfa
     nfa;
-  (*let nfa =
+  let nfa =
     Map.fold
       ~f:(fun ~key:k ~data:v acc ->
         if is_exp k
@@ -800,7 +800,7 @@ let eval_semenov return next formula =
         else acc)
       ~init:nfa
       vars
-  in*)
+  in
   Debug.dump_nfa
     ~msg:"Minimized raw3 original nfa: %s"
     ~vars:(Map.to_alist vars)
