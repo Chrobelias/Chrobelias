@@ -4,22 +4,42 @@ module Map = Base.Map.Poly
 (* different theories. But it requires a lot more complex parsing due to *)
 (* the state that should be stored. So let's stick with simpler stuff now. *)
 type atom =
-  | Var of string
-  | Internal of string
-  | Pow2 of string
+  [ `Var of string
+  | `Internal of string
+  | `Pow2 of string
+  ]
 [@@deriving variants]
+
+type poly_atom =
+  [ `Var of string
+  | `Internal of string
+  | `Pow2 of string
+  | `Poly of (atom, int) Map.t
+  ]
 
 let internal () = internal (Random.int 1073741822 |> string_of_int)
 
 let pp_atom fmt = function
-  | Var var -> Format.fprintf fmt "%s" var
-  | Internal var -> Format.fprintf fmt "[%s]" var
-  | Pow2 var -> Format.fprintf fmt "pow2(%s)" var
+  | `Var var -> Format.fprintf fmt "%s" var
+  | `Internal var -> Format.fprintf fmt "[%s]" var
+  | `Pow2 var -> Format.fprintf fmt "pow2(%s)" var
+;;
+
+let pp_poly_atom fmt = function
+  | #atom as atom -> pp_atom fmt atom
+  | `Poly poly ->
+    Format.fprintf
+      fmt
+      "(%a)"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt " * ")
+         (fun fmt (var, exp) -> Format.fprintf fmt "%a^%d" pp_atom var exp))
+      (poly |> Map.to_alist)
 ;;
 
 (** Exponential integer arithmetic, i.e. LIA with exponents.*)
 module Eia = struct
-  type t = Sum of (atom, int) Map.t [@@deriving variants]
+  type 'atom t = Sum of ('atom, int) Map.t [@@deriving variants]
 
   let pp fmt = function
     | Sum term ->
@@ -28,16 +48,16 @@ module Eia = struct
         "%a"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ")
-           (fun fmt (a, b) -> Format.fprintf fmt "%d%a" b pp_atom a))
+           (fun fmt (a, b) -> Format.fprintf fmt "%d%a" b pp_poly_atom a))
         (Map.to_alist term)
   ;;
 
   let neg (Sum sum) = Sum (Map.map ~f:( ~- ) sum)
 
-  type ir =
-    | Eq of t * int
-    | Leq of t * int
-  [@@deriving variants, show]
+  type 'atom ir =
+    | Eq of 'atom t * int
+    | Leq of 'atom t * int
+  [@@deriving variants (* , show *)]
 
   let map_ir f = function
     | Eq (term, c) ->
@@ -103,17 +123,17 @@ module Bv = struct
   let equal = ( = )
 end
 
-type t =
+type 'atom t =
   | True
   (* Theories. *)
-  | Eia of Eia.ir
+  | Eia of 'atom Eia.ir
   | Bv of Bv.ir
   (* Logical operations. *)
-  | Lnot of t
-  | Land of t list
-  | Lor of t list
-  | Exists of atom list * t
-  | Pred of string * Eia.t list
+  | Lnot of 'atom t
+  | Land of 'atom t list
+  | Lor of 'atom t list
+  | Exists of atom list * 'atom t
+  | Pred of string * 'atom Eia.t list
 [@@deriving variants]
 
 let rec pp fmt = function
@@ -163,14 +183,16 @@ let rec equal ir ir' =
   | _, _ -> false
 ;;
 
-let rec map f ir =
+let rec map2 f fleaf ir =
   match ir with
-  | True | Eia _ | Bv _ | Pred _ -> f ir
-  | Lnot ir' -> f (lnot (map f ir'))
-  | Land irs -> f (land_ (List.map (map f) irs))
-  | Lor irs -> f (lor_ (List.map (map f) irs))
-  | Exists (atoms, ir') -> f (exists atoms (map f ir'))
+  | True | Eia _ | Bv _ | Pred _ -> fleaf ir
+  | Lnot ir' -> f (lnot (map2 f fleaf ir'))
+  | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
+  | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
+  | Exists (atoms, ir') -> f (exists atoms (map2 f fleaf ir'))
 ;;
+
+let map f ir = map2 f f ir
 
 let rec fold f acc ir =
   match ir with

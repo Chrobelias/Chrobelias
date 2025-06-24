@@ -106,7 +106,49 @@ module Conv = struct
         let c = lhs_c * rhs_c in
         let assertions = lhs_assertions @ rhs_assertions in
         `Eia (Ir.Eia.sum atoms, c, assertions))
-      else failwith "Only multiplying by constant is supported"
+      else (
+        let lhs_term, lhs_c, lhs_assertions = expect_eia lhs in
+        let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
+        let assertions = lhs_assertions @ rhs_assertions in
+        let ( + ) =
+          Map.fold2 ~init:Map.empty ~f:(fun ~key ~data acc ->
+            Map.add_exn
+              acc
+              ~key
+              ~data:
+                (match data with
+                 | `Right x -> x
+                 | `Left y -> y
+                 | `Both (x, y) -> x + y))
+        in
+        let mul_var (term : (Ir.poly_atom * int) list) ((var, c) : Ir.poly_atom * int)
+          : (Ir.poly_atom * int) list
+          =
+          let map_of_atom = function
+            | `Poly x -> x
+            | #Ir.atom as x -> Map.singleton x 1
+          in
+          let var = map_of_atom var in
+          term
+          |> List.map (fun (x, a) ->
+            let x = map_of_atom x in
+            `Poly (var + x), a * c)
+        in
+        let mul_const c = Map.map ~f:(( * ) c) in
+        let mul term1 term2 =
+          let term2 = Map.to_alist term2 in
+          Map.to_alist term1
+          |> List.concat_map (mul_var term2)
+          |> Map.of_alist_fold ~init:1 ~f:Int.add
+        in
+        let ( ~- ) sum = Map.map ~f:( ~- ) sum in
+        `Eia
+          ( Sum
+              (mul lhs_term rhs_term
+               + ~-(mul_const rhs_c lhs_term)
+               + ~-(mul_const lhs_c rhs_term))
+          , lhs_c * rhs_c
+          , assertions ))
     end
     | Expr.Binop (_ty, Ty.Binop.Add, lhs, rhs) -> begin
       let lhs_term, lhs_c, lhs_assertions = expect_eia lhs in
@@ -236,7 +278,7 @@ module Conv = struct
                  match Expr.view binding with
                  | Expr.App (symbol, [ expr ]) ->
                    let symbol = Symbol.to_string symbol in
-                   let var = Ir.Var symbol in
+                   let var = `Var symbol in
                    begin
                      match expr |> _to_ir with
                      | `Eia (Ir.Eia.Sum term, c, assertions) ->
@@ -276,7 +318,7 @@ module Conv = struct
 end
 
 type state =
-  { asserts : Lib.Ir.t list
+  { asserts : Lib.Ir.poly_atom Lib.Ir.t list
   ; prev : state option
   }
 

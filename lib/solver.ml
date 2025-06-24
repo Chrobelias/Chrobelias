@@ -17,6 +17,7 @@ type t =
 (*let default_s () = { (*preds = []; rpreds = []; *)vars = Map.empty(*; total = 0; progress = 0*) }
 let s = ref (default_s ())*)
 
+let pow base n = List.init n (Fun.const base) |> List.fold_left ( * ) 1
 let internal_counter = ref 0
 
 let internal s =
@@ -38,11 +39,17 @@ let collect_vars ir =
   |> Map.of_alist_exn
 ;;
 
-let collect_free ir =
+let collect_free (ir : [< Ir.poly_atom ] Ir.t) =
   Ir.fold
     (fun acc -> function
        | Ir.Eia (Ir.Eia.Eq (Ir.Eia.Sum term, _) | Ir.Eia.Leq (Ir.Eia.Sum term, _)) ->
-         Set.union acc (Set.of_list (Map.keys term))
+         term
+         |> Map.keys
+         |> List.concat_map (function
+           | `Poly x -> Map.keys x
+           | #Ir.atom as x -> [ x ])
+         |> Set.of_list
+         |> Set.union acc
        | Ir.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
     Set.empty
@@ -51,8 +58,8 @@ let collect_free ir =
 
 type bound = EqConst of Ir.atom * int
 
-let algebraic =
-  let rec infer_bounds = function
+let algebraic : Ir.poly_atom Ir.t -> Ir.poly_atom Ir.t =
+  let rec infer_bounds : Ir.poly_atom Ir.t -> _ = function
     | Ir.Land irs ->
       let bounds = List.map infer_bounds irs in
       Set.union_list bounds
@@ -68,8 +75,11 @@ let algebraic =
       match eia with
       | Ir.Eia.Eq (Ir.Eia.Sum term, c)
         when Map.length term = 1 && Map.nth_exn term 0 |> snd = 1 && c < 256 ->
-        let bound = EqConst (Map.nth_exn term 0 |> fst, c) in
-        Set.singleton bound
+        (match Map.nth_exn term 0 |> fst with
+         | `Poly _ -> Set.empty
+         | #Ir.atom as x ->
+           let bound = EqConst (x, c) in
+           Set.singleton bound)
       | _ -> Set.empty
     end
     | Bv _ -> Set.empty
@@ -77,49 +87,87 @@ let algebraic =
     | Exists _ -> Set.empty
     | Pred _ -> Set.empty
   in
-  let apply_bounds bounds =
+  let apply_bounds bounds : Ir.poly_atom Ir.t -> Ir.poly_atom Ir.t =
     Ir.map (function
       | Ir.Eia (Ir.Eia.Eq (Ir.Eia.Sum term, c) as eia)
       | Ir.Eia (Ir.Eia.Leq (Ir.Eia.Sum term, c) as eia)
         when Map.length term <> 1 -> begin
-        let atoms = Map.keys term in
+        (* let atoms : Ir.poly_atom list = Map.keys term in *)
         let bounded_atoms =
-          List.filter_map
-            (fun atom ->
-               let atom_bound =
-                 Set.find
-                   ~f:(fun bound ->
-                     match bound with
-                     | EqConst (atom', _) when atom = atom' -> true
-                     | _ -> false)
-                   bounds
-               in
-               begin
-                 match atom_bound with
-                 | Some (EqConst (atom, c)) -> Some (atom, c)
-                 | None -> None
-               end)
-            atoms
+          bounds
+          |> Set.to_list
+          |> List.map (fun (EqConst (atom, c)) -> atom, c)
           |> Map.of_alist_exn
+          (* List.filter_map *)
+          (*   (function *)
+          (*     | `Poly _ -> None *)
+          (*     | #Ir.atom as atom -> *)
+          (*       let atom_bound = *)
+          (*         Set.find *)
+          (*           ~f:(fun bound -> *)
+          (*             match bound with *)
+          (*             | EqConst (atom', _) when atom = atom' -> true *)
+          (*             | _ -> false) *)
+          (*           bounds *)
+          (*       in *)
+          (*       begin *)
+          (*         match atom_bound with *)
+          (*         | Some (EqConst (atom, c)) -> Some (atom, c) *)
+          (*         | None -> None *)
+          (*       end) *)
+          (*   atoms *)
+          (* |> Map.of_alist_exn *)
         in
         let build =
           match eia with
           | Ir.Eia.Eq _ -> Ir.Eia.eq
           | Ir.Eia.Leq _ -> Ir.Eia.leq
         in
+        let c_of_poly poly =
+          poly
+          |> Map.filter_keys ~f:(Map.mem bounded_atoms)
+          |> Map.fold ~init:1 ~f:(fun ~key ~data acc ->
+            acc * pow (Map.find_exn bounded_atoms key) data)
+        in
         let c =
           Map.to_alist term
           |> List.fold_left
-               (fun acc (atom, a) ->
-                  match Map.find bounded_atoms atom with
-                  | Some c' -> acc - (c' * a)
-                  | None -> acc)
+               (fun acc -> function
+                  | `Poly poly, a ->
+                    if
+                      Map.for_alli ~f:(fun ~key ~data:_ -> Map.mem bounded_atoms key) poly
+                    then acc - (a * c_of_poly poly)
+                    else acc
+                  | (#Ir.atom as atom), a ->
+                    (match Map.find bounded_atoms atom with
+                     | Some c' -> acc - (c' * a)
+                     | None -> acc))
                c
         in
         let term =
-          Map.filter_keys ~f:(fun atom -> Map.mem bounded_atoms atom |> not) term
+          term
+          |> Map.to_alist
+          |> List.filter_map (fun (key, data) ->
+            match key with
+            | #Ir.atom as atom ->
+              if Map.mem bounded_atoms atom |> not then Some (key, data) else None
+            | `Poly poly ->
+              let c = data * c_of_poly poly in
+              let poly =
+                poly |> Map.filter_keys ~f:(Fun.negate (Map.mem bounded_atoms))
+              in
+              (match Map.length poly with
+               | 0 -> None
+               | 1 when Map.nth_exn poly 0 |> snd = 1 ->
+                 Some ((Map.nth_exn poly 0 |> fst :> Ir.poly_atom), c)
+               | _ -> Some (`Poly poly, c)))
+          |> Map.of_alist_fold ~init:0 ~f:( + )
         in
-        build (Ir.Eia.sum term) c |> Ir.eia
+        build (Ir.Eia.sum term) c
+        |> Ir.eia
+        |> fun x ->
+        Debug.printfln "Applying bounds to (%a). Result: (%a)" Ir.Eia.pp_ir eia Ir.pp x;
+        x
       end
       | ir -> ir)
   in
@@ -138,10 +186,16 @@ let algebraic =
   in
   Ir.map (fun ir ->
     let bounds = infer_bounds ir in
+    Debug.printfln
+      "bounds:[%a]"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt (atom, c) -> Format.fprintf fmt "(%a = %d)" Ir.pp_atom atom c))
+      (bounds |> Set.to_list |> List.map (fun (EqConst (atom, c)) -> atom, c));
     apply_bounds bounds ir |> simpl_mul_by_zero)
 ;;
 
-let simpl_ir ir =
+let simpl_ir (ir : Ir.poly_atom Ir.t) : Ir.atom Ir.t =
   let simpl_negation =
     Ir.map (function
       | Ir.Lnot (Ir.Lnot ir) -> ir
@@ -154,7 +208,23 @@ let simpl_ir ir =
       | Ir.Lnot (Ir.Eia (Ir.Eia.Leq (term, c))) -> Ir.eia (Ir.Eia.gt term c)
       | ir -> ir)
   in
-  let quantifiers_closer =
+  let fold_ops =
+    Ir.map (function
+      | Ir.Land lst ->
+        Ir.Land
+          (lst
+           |> List.concat_map (function
+             | Ir.Land lst -> lst
+             | ir -> [ ir ]))
+      | Ir.Lor lst ->
+        Ir.Lor
+          (lst
+           |> List.concat_map (function
+             | Ir.Lor lst -> lst
+             | ir -> [ ir ]))
+      | ir -> ir)
+  in
+  let quantifiers_closer : Ir.poly_atom Ir.t -> Ir.poly_atom Ir.t =
     Ir.map (function
       | Ir.Exists ([], ir) -> ir
       | Ir.Exists (atoms, Ir.Exists (atoms', ir)) -> Ir.exists (atoms @ atoms') ir
@@ -210,11 +280,35 @@ let simpl_ir ir =
       | ir -> ir)
   in
   let rec simpl ir =
-    let ir' = ir |> simpl_ops |> simpl_negation |> quantifiers_closer |> algebraic in
+    let ir' =
+      ir |> simpl_ops |> simpl_negation |> fold_ops |> quantifiers_closer |> algebraic
+    in
     Debug.printf "Simplify step: %a\n" Ir.pp ir';
     if Ir.equal ir' ir then ir' else simpl ir'
   in
   simpl ir
+  |> Ir.map2 Fun.id (function
+    | Ir.Eia (Ir.Eia.Eq (Sum term, c)) ->
+      Ir.Eia
+        (Ir.Eia.Eq
+           ( Sum
+               (term
+                |> Map.map_keys_exn ~f:(function
+                  | #Ir.atom as atom -> atom
+                  | `Poly _ -> failwith "Only multiplying by constant is supported"))
+           , c ))
+    | Ir.Eia (Ir.Eia.Leq (Sum term, c)) ->
+      Ir.Eia
+        (Ir.Eia.Leq
+           ( Sum
+               (term
+                |> Map.map_keys_exn ~f:(function
+                  | #Ir.atom as atom -> atom
+                  | `Poly _ -> failwith "Only multiplying by constant is supported"))
+           , c ))
+    | (True | Bv _) as x -> x
+    | Pred _ -> failwith "TODO"
+    | Lnot _ | Land _ | Lor _ | Exists _ -> failwith "unexpected")
   |> fun x ->
   Debug.printf "Simplified expression: %a\n" Ir.pp x;
   x
@@ -404,7 +498,6 @@ end
 let eval ir =
   let module Nfa = Nfa.Msb in
   let module NfaCollection = NfaCollection.Msb in
-  let ir = simpl_ir ir in
   let vars = collect_vars ir in
   let rec eval = function
     | Ir.True -> NfaCollection.n ()
@@ -446,13 +539,14 @@ let eval ir =
 
 let dump f =
   let module Nfa = Nfa.Msb in
+  let f = simpl_ir f in
   let nfa, _ = eval f in
   Format.asprintf "%a" Nfa.format_nfa (nfa |> Nfa.minimize)
 ;;
 
 let is_exp = function
-  | Ir.Pow2 _ -> true
-  | Ir.Var _ | Ir.Internal _ -> false
+  | `Pow2 _ -> true
+  | `Var _ | `Internal _ -> false
 ;;
 
 let log2 n =
@@ -474,13 +568,13 @@ let gen_list_n n =
 ;;
 
 let get_exp = function
-  | Ir.Pow2 var -> Ir.var var
-  | Ir.Var _ | Ir.Internal _ -> failwith "Expected exponent, found var"
+  | `Pow2 var -> Ir.var var
+  | `Var _ | `Internal _ -> failwith "Expected exponent, found var"
 ;;
 
 let to_exp = function
-  | Ir.Pow2 _ -> failwith "Expected var"
-  | Ir.Var var | Ir.Internal var -> Ir.pow2 var
+  | `Pow2 _ -> failwith "Expected var"
+  | `Var var | `Internal var -> Ir.pow2 var
 ;;
 
 let decide_order vars =
@@ -763,13 +857,11 @@ let eval_semenov return next formula =
   let vars = collect_vars formula in
   let formula =
     formula
-    |> (fun ir ->
-    Ir.exists
-      (vars
-       |> Map.keys
-       |> List.filter (fun var -> (not (is_exp var)) && not (Map.mem vars (to_exp var))))
-      ir)
-    |> simpl_ir
+    |> Ir.exists
+         (vars
+          |> Map.keys
+          |> List.filter (fun var ->
+            (not (is_exp var)) && not (Map.mem vars (to_exp var))))
   in
   let nfa, vars = eval formula in
   let nfa = Nfa.Msb.minimize nfa in
@@ -894,9 +986,9 @@ let get_model_semenov f =
             let filter =
               fun k ->
               match k with
-              | Ir.Pow2 _ -> true
-              | Ir.Var _ -> Map.mem map k
-              | Ir.Internal _ -> failwith "Unexpected"
+              | `Pow2 _ -> true
+              | `Var _ -> Map.mem map k
+              | `Internal _ -> failwith "Unexpected"
             in
             let c =
               term
@@ -906,9 +998,9 @@ let get_model_semenov f =
                 v
                 *
                   match k with
-                  | Ir.Pow2 x -> pow2 (Map.find_exn map (Ir.Var x))
-                  | Ir.Var _ -> Map.find_exn map k
-                  | Ir.Internal _ -> failwith "Unexpected")
+                  | `Pow2 x -> pow2 (Map.find_exn map (`Var x))
+                  | `Var _ -> Map.find_exn map k
+                  | `Internal _ -> failwith "Unexpected")
               |> Base.Sequence.fold ~init:c ~f:( + )
             in
             let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
@@ -930,6 +1022,7 @@ let get_model_semenov f =
 ;;
 
 let proof ir =
+  let ir = simpl_ir ir in
   let run_semenov = collect_vars ir |> Map.keys |> List.exists is_exp in
   if run_semenov
   then proof_semenov ir
@@ -945,6 +1038,7 @@ let proof ir =
 ;;
 
 let get_model f =
+  let f = simpl_ir f in
   let run_semenov = collect_vars f |> Map.keys |> List.exists is_exp in
   if run_semenov then get_model_semenov f else get_model_normal f
 ;;
