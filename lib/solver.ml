@@ -97,7 +97,7 @@ let algebraic : Ir.poly_atom Ir.t -> Ir.poly_atom Ir.t =
           bounds
           |> Set.to_list
           |> List.map (fun (EqConst (atom, c)) -> atom, c)
-          |> Map.of_alist_exn
+          |> Map.of_alist_reduce ~f:(fun v1 _v2 -> v1)
           (* List.filter_map *)
           (*   (function *)
           (*     | `Poly _ -> None *)
