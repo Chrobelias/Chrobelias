@@ -36,6 +36,61 @@ module Conv = struct
       | `Symbol ir -> Ir.pred ir []
       | _ -> failwith "Expected boolean term"
     in
+    let eval_mul lhs rhs =
+      let lhs_term, lhs_c, lhs_assertions = lhs in
+      let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
+      if Map.is_empty lhs_term || Map.is_empty rhs_term
+      then (
+        let atoms, multiplier =
+          if Map.is_empty rhs_term then lhs_term, rhs_c else rhs_term, lhs_c
+        in
+        let atoms = atoms |> Map.map ~f:(fun a -> a * multiplier) in
+        let c = lhs_c * rhs_c in
+        let assertions = lhs_assertions @ rhs_assertions in
+        Ir.Eia.sum atoms, c, assertions)
+      else (
+        let lhs_term, lhs_c, lhs_assertions = lhs in
+        let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
+        let assertions = lhs_assertions @ rhs_assertions in
+        let ( + ) =
+          Map.fold2 ~init:Map.empty ~f:(fun ~key ~data acc ->
+            Map.add_exn
+              acc
+              ~key
+              ~data:
+                (match data with
+                 | `Right x -> x
+                 | `Left y -> y
+                 | `Both (x, y) -> x + y))
+        in
+        let mul_var (term : (Ir.poly_atom * int) list) ((var, c) : Ir.poly_atom * int)
+          : (Ir.poly_atom * int) list
+          =
+          let map_of_atom = function
+            | `Poly x -> x
+            | #Ir.atom as x -> Map.singleton x 1
+          in
+          let var = map_of_atom var in
+          term
+          |> List.map (fun (x, a) ->
+            let x = map_of_atom x in
+            `Poly (var + x), a * c)
+        in
+        let mul_const c = Map.map ~f:(( * ) c) in
+        let mul term1 term2 =
+          let term2 = Map.to_alist term2 in
+          Map.to_alist term1
+          |> List.concat_map (mul_var term2)
+          |> Map.of_alist_fold ~init:1 ~f:Int.add
+        in
+        let ( ~- ) sum = Map.map ~f:( ~- ) sum in
+        ( Sum
+            (mul lhs_term rhs_term
+             + ~-(mul_const rhs_c lhs_term)
+             + ~-(mul_const lhs_c rhs_term))
+        , lhs_c * rhs_c
+        , assertions ))
+    in
     let expr = Expr.view orig_expr in
     match expr with
     (* Constants. *)
@@ -94,62 +149,15 @@ module Conv = struct
         `Eia (term, c, assertions)
       | _ -> failwith "Unimplemented "
     end
-    | Expr.Binop (_ty, Ty.Binop.Mul, lhs, rhs) -> begin
-      let lhs_term, lhs_c, lhs_assertions = expect_eia lhs in
-      let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
-      if Map.is_empty lhs_term || Map.is_empty rhs_term
-      then (
-        let atoms, multiplier =
-          if Map.is_empty rhs_term then lhs_term, rhs_c else rhs_term, lhs_c
-        in
-        let atoms = atoms |> Map.map ~f:(fun a -> a * multiplier) in
-        let c = lhs_c * rhs_c in
-        let assertions = lhs_assertions @ rhs_assertions in
-        `Eia (Ir.Eia.sum atoms, c, assertions))
-      else (
-        let lhs_term, lhs_c, lhs_assertions = expect_eia lhs in
-        let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
-        let assertions = lhs_assertions @ rhs_assertions in
-        let ( + ) =
-          Map.fold2 ~init:Map.empty ~f:(fun ~key ~data acc ->
-            Map.add_exn
-              acc
-              ~key
-              ~data:
-                (match data with
-                 | `Right x -> x
-                 | `Left y -> y
-                 | `Both (x, y) -> x + y))
-        in
-        let mul_var (term : (Ir.poly_atom * int) list) ((var, c) : Ir.poly_atom * int)
-          : (Ir.poly_atom * int) list
-          =
-          let map_of_atom = function
-            | `Poly x -> x
-            | #Ir.atom as x -> Map.singleton x 1
-          in
-          let var = map_of_atom var in
-          term
-          |> List.map (fun (x, a) ->
-            let x = map_of_atom x in
-            `Poly (var + x), a * c)
-        in
-        let mul_const c = Map.map ~f:(( * ) c) in
-        let mul term1 term2 =
-          let term2 = Map.to_alist term2 in
-          Map.to_alist term1
-          |> List.concat_map (mul_var term2)
-          |> Map.of_alist_fold ~init:1 ~f:Int.add
-        in
-        let ( ~- ) sum = Map.map ~f:( ~- ) sum in
-        `Eia
-          ( Sum
-              (mul lhs_term rhs_term
-               + ~-(mul_const rhs_c lhs_term)
-               + ~-(mul_const lhs_c rhs_term))
-          , lhs_c * rhs_c
-          , assertions ))
-    end
+    | Expr.Binop (_ty, Ty.Binop.Mul, lhs, rhs) -> `Eia (eval_mul (expect_eia lhs) rhs)
+    | Expr.App ({ name = Symbol.Simple "*"; _ }, hd :: hd' :: tl) ->
+      let r =
+        (List.fold_left
+           (fun (Ir.Eia.Sum term, c, assertions) a -> eval_mul (term, c, assertions) a)
+           (eval_mul (expect_eia hd) hd'))
+          tl
+      in
+      `Eia r
     | Expr.Binop (_ty, Ty.Binop.Add, lhs, rhs) -> begin
       let lhs_term, lhs_c, lhs_assertions = expect_eia lhs in
       let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
