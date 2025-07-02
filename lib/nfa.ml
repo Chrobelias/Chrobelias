@@ -948,7 +948,7 @@ module MsbNat = struct
   ;;
 
   let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg) : t =
-    Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;
+    (*Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;*)
     let mask = Bitv.init 32 (fun x -> x = res || x = temp) in
     let zero_lbl = Bitv.init 32 (Fun.const false), mask in
     let res_lbl = Bitv.init 32 (( = ) res), mask in
@@ -1015,12 +1015,12 @@ module MsbNat = struct
     let result =
       { transitions; final = nfa.start; start = final; deg = nfa.deg; is_dfa = false }
     in
-    Debug.dump_nfa ~msg:"Exponent sub_nfa output: %s" format_nfa result;
+    (*Debug.dump_nfa ~msg:"Exponent sub_nfa output: %s" format_nfa result;*)
     result
   ;;
 
   let chrobak (nfa : t) =
-    Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa nfa;
+    (*Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa nfa;*)
     let important =
       Graph.find_important_verticies nfa.transitions
       |> List.filter (fun (_, b) -> b <> 0)
@@ -1029,12 +1029,12 @@ module MsbNat = struct
     (* important *)
     (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
     let result = find_c_d nfa important in
-    Debug.printf "Chrobak output:";
-    Format.pp_print_list
+    (*Debug.printf "Chrobak output:";*)
+    (*Format.pp_print_list
       (fun fmt (a, b) -> Format.fprintf fmt " (%d, %d)" a b)
       Debug.fmt
-      result;
-    Debug.printfln "";
+      result;*)
+    (*Debug.printfln "";*)
     result
   ;;
 

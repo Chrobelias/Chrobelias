@@ -2,7 +2,7 @@
 (* Copyright 2024-2025, Chrobelias. *)
 
 module Map = Base.Map.Poly
-module Nfa = Nfa.Lsb
+(*module Nfa = Nfa.Lsb*)
 
 type t =
   | Empty
@@ -122,7 +122,7 @@ let to_nfa r =
         delta)
   in
   let deg = symbols r |> List.fold_left (fun acc v -> max acc (Bitv.length v)) 0 in
-  Nfa.create_nfa
+  Nfa.Msb.create_nfa
     ~transitions
     ~start:[ regex_to_state r ]
     ~final:(finals |> List.map regex_to_state)
@@ -222,7 +222,7 @@ let%expect_test "To nfa basic" =
   of_string "[00]/[10]|[00]/[01]"
   |> Result.get_ok
   |> to_nfa
-  |> Format.printf "%a@." Nfa.format_nfa;
+  |> Format.printf "%a@." Nfa.Msb.format_nfa;
   [%expect
     {|
     digraph {
@@ -243,7 +243,7 @@ let%expect_test "To nfa and predicate" =
   of_string "*([000]|[100]|[010]|[111])"
   |> Result.get_ok
   |> to_nfa
-  |> Format.printf "%a@." Nfa.format_nfa;
+  |> Format.printf "%a@." Nfa.Msb.format_nfa;
   [%expect
     {|
     digraph {
@@ -255,4 +255,27 @@ let%expect_test "To nfa and predicate" =
     (000)"]
     }
     |}]
+;;
+
+let s = Bitv.of_int_us
+
+let bwand =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b100)) (symbol (s 0b010))) (symbol (s 0b000)))
+       (symbol (s 0b111)))
+;;
+
+let bwor =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b000)) (symbol (s 0b011))) (symbol (s 0b101)))
+       (symbol (s 0b111)))
+;;
+
+let bwxor =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b000)) (symbol (s 0b011))) (symbol (s 0b101)))
+       (symbol (s 0b110)))
 ;;

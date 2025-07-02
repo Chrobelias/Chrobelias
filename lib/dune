@@ -1,7 +1,7 @@
 (library
  (name lib)
- (modules Optimizer Nfa NfaCollection Ir Regex Solver Debug)
- (libraries base angstrom bitv smtml unix)
+ (modules Ast Nfa NfaCollection Ir Regex Solver Debug Fe Me)
+ (libraries base angstrom hashcons bitv smtml unix iter)
  (inline_tests)
  (preprocess
   (pps

@@ -3,330 +3,8 @@
 
 module Map = Base.Map.Poly
 
-module Conv = struct
-  open Lib
-  open Smtml
-
-  let rec _to_ir orig_expr =
-    let expect_eia expr =
-      match expr |> _to_ir with
-      | `Eia (Ir.Eia.Sum term, c, assertions) -> term, c, assertions
-      | `Bv (bv, assertions) ->
-        let internal = Ir.internal () in
-        let assertion = Ir.bv (Ir.Bv.eq [ Ir.Bv.atom internal; bv ]) in
-        Map.singleton internal 1, 0, assertion :: assertions
-      | `Symbol var -> Map.singleton (Ir.var var) 1, 0, []
-      | _ -> failwith "Expected EIA term"
-    in
-    let expect_bv expr =
-      match expr |> _to_ir with
-      | `Eia (Ir.Eia.Sum term, c, assertions) ->
-        let internal = Ir.internal () in
-        let assertion =
-          Ir.eia (Ir.Eia.eq (Ir.Eia.sum (Map.add_exn ~key:internal ~data:(-1) term)) (-c))
-        in
-        Ir.Bv.atom internal, assertion :: assertions
-      | `Bv (bv, assertions) -> bv, assertions
-      | `Symbol var -> Ir.Bv.atom (Ir.var var), []
-      | _ -> failwith "Expected EIA term"
-    in
-    let expect_ir expr =
-      match expr |> _to_ir with
-      | `Ir ir -> ir
-      | `Symbol ir -> Ir.pred ir []
-      | _ -> failwith "Expected boolean term"
-    in
-    let eval_mul lhs rhs =
-      let lhs_term, lhs_c, lhs_assertions = lhs in
-      let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
-      if Map.is_empty lhs_term || Map.is_empty rhs_term
-      then (
-        let atoms, multiplier =
-          if Map.is_empty rhs_term then lhs_term, rhs_c else rhs_term, lhs_c
-        in
-        let atoms = atoms |> Map.map ~f:(fun a -> a * multiplier) in
-        let c = lhs_c * rhs_c in
-        let assertions = lhs_assertions @ rhs_assertions in
-        Ir.Eia.sum atoms, c, assertions)
-      else (
-        let lhs_term, lhs_c, lhs_assertions = lhs in
-        let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
-        let assertions = lhs_assertions @ rhs_assertions in
-        let ( + ) =
-          Map.fold2 ~init:Map.empty ~f:(fun ~key ~data acc ->
-            Map.add_exn
-              acc
-              ~key
-              ~data:
-                (match data with
-                 | `Right x -> x
-                 | `Left y -> y
-                 | `Both (x, y) -> x + y))
-        in
-        let mul_var (term : (Ir.poly_atom * int) list) ((var, c) : Ir.poly_atom * int)
-          : (Ir.poly_atom * int) list
-          =
-          let map_of_atom = function
-            | `Poly x -> x
-            | #Ir.atom as x -> Map.singleton x 1
-          in
-          let var = map_of_atom var in
-          term
-          |> List.map (fun (x, a) ->
-            let x = map_of_atom x in
-            `Poly (var + x), a * c)
-        in
-        let mul_const c = Map.map ~f:(( * ) c) in
-        let mul term1 term2 =
-          let term2 = Map.to_alist term2 in
-          Map.to_alist term1
-          |> List.concat_map (mul_var term2)
-          |> Map.of_alist_fold ~init:1 ~f:Int.add
-        in
-        let ( ~- ) sum = Map.map ~f:( ~- ) sum in
-        ( Sum
-            (mul lhs_term rhs_term
-             + ~-(mul_const rhs_c lhs_term)
-             + ~-(mul_const lhs_c rhs_term))
-        , lhs_c * rhs_c
-        , assertions ))
-    in
-    let expr = Expr.view orig_expr in
-    match expr with
-    (* Constants. *)
-    | Expr.Val v -> begin
-      match v with
-      | True -> `Ir Ir.true_
-      | Int d -> `Eia (Ir.Eia.sum Map.empty, d, [])
-      | False -> `Ir (Ir.Lnot Ir.true_)
-      | _ -> failwith "err"
-    end
-    (* Variables. *)
-    | Expr.Symbol symbol ->
-      let var = Symbol.to_string symbol in
-      `Symbol var
-    (* Yes, probably this stuff is kinda over-engineered. *)
-    | Expr.App (symbol, [ expr ])
-      when match Expr.view expr with
-           | Symbol { name = Symbol.Simple "Int"; _ } -> true
-           | _ -> false ->
-      let var = Symbol.to_string symbol in
-      `Symbol var
-    (* Semenov arithmetic, i.e. 2**x operators. *)
-    | Expr.App ({ name = Symbol.Simple "pow2"; _ }, [ expr ]) ->
-      let atom, assertions =
-        match expr |> _to_ir with
-        | `Symbol symbol -> symbol, []
-        | `Eia (Ir.Eia.Sum term, c, assertions) ->
-          let varname = String.concat "" [ "[I"; Random.bits () |> Int.to_string; "]" ] in
-          let var = Ir.var varname in
-          let term = Map.add_exn ~key:var ~data:(-1) term in
-          let eia_formula = Ir.Eia.eq (Ir.Eia.sum term) (-c) in
-          varname, Ir.eia eia_formula :: assertions
-        | _ -> failwith "Semenov now only supports vars as an exponent"
-      in
-      `Eia (Ir.Eia.sum (Map.singleton (Ir.pow2 atom) 1), 0, assertions)
-    | Expr.App ({ name = Symbol.Simple "exp"; _ }, [ base; expr ])
-      when base = Expr.value (Value.Int 2) ->
-      let atom, assertions =
-        match expr |> _to_ir with
-        | `Symbol symbol -> symbol, []
-        | `Eia (Ir.Eia.Sum term, c, assertions) ->
-          let varname = String.concat "" [ "[I"; Random.bits () |> Int.to_string; "]" ] in
-          let var = Ir.var varname in
-          let term = Map.add_exn ~key:var ~data:(-1) term in
-          let eia_formula = Ir.Eia.eq (Ir.Eia.sum term) (-c) in
-          varname, Ir.eia eia_formula :: assertions
-        | _ -> failwith "Semenov now only supports vars as an exponent"
-      in
-      `Eia (Ir.Eia.sum (Map.singleton (Ir.pow2 atom) 1), 0, assertions)
-    (* Arithmetic operations. *)
-    | Expr.Unop (_ty, Ty.Unop.Neg, expr) -> begin
-      match expr |> _to_ir with
-      | `Eia (Ir.Eia.Sum atoms, c, assertions) ->
-        let term = atoms |> Map.map ~f:(fun a -> -a) |> Ir.Eia.sum in
-        let c = -c in
-        `Eia (term, c, assertions)
-      | _ -> failwith "Unimplemented "
-    end
-    | Expr.Binop (_ty, Ty.Binop.Mul, lhs, rhs) -> `Eia (eval_mul (expect_eia lhs) rhs)
-    | Expr.App ({ name = Symbol.Simple "*"; _ }, hd :: hd' :: tl) ->
-      let r =
-        (List.fold_left
-           (fun (Ir.Eia.Sum term, c, assertions) a -> eval_mul (term, c, assertions) a)
-           (eval_mul (expect_eia hd) hd'))
-          tl
-      in
-      `Eia r
-    | Expr.Binop (_ty, Ty.Binop.Add, lhs, rhs) -> begin
-      let lhs_term, lhs_c, lhs_assertions = expect_eia lhs in
-      let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
-      let term =
-        Map.merge lhs_term rhs_term ~f:(fun ~key:_ vs ->
-          match vs with
-          | `Left a | `Right a -> Some a
-          | `Both (a, b) -> Some (a + b))
-      in
-      let c = lhs_c + rhs_c in
-      let assertions = lhs_assertions @ rhs_assertions in
-      `Eia (Ir.Eia.sum term, c, assertions)
-    end
-    | Expr.Binop (_ty, Ty.Binop.Sub, lhs, rhs) ->
-      let lhs_term, lhs_c, lhs_assertions = expect_eia lhs in
-      let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
-      let atoms =
-        Map.merge lhs_term rhs_term ~f:(fun ~key:_ vs ->
-          match vs with
-          | `Left a -> Some a
-          | `Right a -> Some (-a)
-          | `Both (a, b) -> Some (a - b))
-      in
-      let c = lhs_c - rhs_c in
-      let assertions = lhs_assertions @ rhs_assertions in
-      `Eia (Ir.Eia.Sum atoms, c, assertions)
-    (* Logical operations. *)
-    (* Not. *)
-    | Expr.Unop (_ty, Ty.Unop.Not, expr) -> begin
-      match expr |> _to_ir with
-      | `Ir expr -> `Ir (Ir.lnot expr)
-      | `Symbol pred -> `Ir (Ir.lnot (Ir.pred pred []))
-      | _ -> failwith "Couldn't convert the statement within not to the supported one"
-    end
-    (* Custom bitwise operations *)
-    | Expr.App ({ name = Symbol.Simple ("bwand" as op); _ }, terms)
-    | Expr.App ({ name = Symbol.Simple ("bwor" as op); _ }, terms) ->
-      let build =
-        match op with
-        | "bwor" -> Ir.Bv.or_
-        | "bwand" -> Ir.Bv.and_
-        | _ -> failwith "unreachable"
-      in
-      let terms = List.map expect_bv terms in
-      `Bv (build (List.map fst terms), List.map snd terms |> List.concat)
-    (* Binary and arbitrary and *)
-    | Expr.Binop (_ty, Ty.Binop.And, lhs, rhs) ->
-      `Ir (Ir.land_ [ expect_ir lhs; expect_ir rhs ])
-    | Expr.Naryop (_ty, Ty.Naryop.Logand, exprs) ->
-      let exprs = List.map expect_ir exprs in
-      `Ir (Ir.land_ exprs)
-    (* Binary and arbitrary or *)
-    | Expr.Binop (_ty, Ty.Binop.Or, lhs, rhs) -> begin
-      `Ir (Ir.lor_ [ expect_ir lhs; expect_ir rhs ])
-    end
-    | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) ->
-      let exprs = List.map expect_ir exprs in
-      `Ir (Ir.lor_ exprs)
-    (* Implication *)
-    | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) -> begin
-      match lhs |> _to_ir, rhs |> _to_ir with
-      | `Ir lhs, `Ir rhs -> `Ir (Ir.lor_ [ Ir.lnot lhs; rhs ])
-      | _ ->
-        failwith
-          "Couldn't convert all the statements connected within or to the supported ones"
-    end
-    (* Integer comparisons. *)
-    | Expr.Relop (_ty, rel, lhs, rhs) ->
-      let rel =
-        match rel with
-        | Ty.Relop.Eq -> fun t c -> Ir.eia (Ir.Eia.eq t c)
-        | Ty.Relop.Ne -> fun t c -> Ir.lnot (Ir.eia (Ir.Eia.eq t c))
-        | Ty.Relop.Le -> fun t c -> Ir.eia (Ir.Eia.leq t c)
-        | Ty.Relop.Lt -> fun t c -> Ir.eia (Ir.Eia.lt t c)
-        | Ty.Relop.Ge -> fun t c -> Ir.eia (Ir.Eia.geq t c)
-        | Ty.Relop.Gt -> fun t c -> Ir.eia (Ir.Eia.gt t c)
-        | _ -> failwith "Unsupported relational operator in EIA"
-      in
-      let lhs_term, lhs_c, lhs_assertions = expect_eia lhs in
-      let rhs_term, rhs_c, rhs_assertions = expect_eia rhs in
-      let assertions = lhs_assertions @ rhs_assertions in
-      let atoms =
-        Map.merge lhs_term rhs_term ~f:(fun ~key:_ vs ->
-          match vs with
-          | `Both (v1, v2) -> Some (v1 - v2)
-          | `Left v -> Some v
-          | `Right v -> Some (-v))
-      in
-      let c = rhs_c - lhs_c in
-      let term = Ir.Eia.sum atoms in
-      let ir = rel term c in
-      let ir = Ir.land_ (ir :: assertions) in
-      `Ir ir
-    (* Quantifiers and binders. *)
-    | Expr.Binder (((Binder.Forall | Binder.Exists) as q), atoms, formula) ->
-      let binder =
-        match q with
-        | Binder.Forall -> fun l f -> Ir.lnot (Ir.exists l (Ir.lnot f))
-        | Binder.Exists -> Ir.exists
-        | _ -> failwith "Unreachable"
-      in
-      let atoms =
-        List.map
-          begin
-            fun atom ->
-              match atom |> _to_ir with
-              | `Symbol symbol -> Ir.var symbol
-              | _ -> failwith "Unexpected value in quantifier"
-          end
-          atoms
-      in
-      begin
-        match formula |> _to_ir with
-        | `Ir formula -> `Ir (binder atoms formula)
-        | _ ->
-          failwith
-            "Unable to convert the variable under the quantifier to the supported formula"
-      end
-    | Expr.Binder (Binder.Let_in, bindings, ir) -> begin
-      match ir |> _to_ir with
-      | `Ir ir ->
-        `Ir
-          (List.fold_left
-             begin
-               fun acc binding ->
-                 match Expr.view binding with
-                 | Expr.App (symbol, [ expr ]) ->
-                   let symbol = Symbol.to_string symbol in
-                   let var = `Var symbol in
-                   begin
-                     match expr |> _to_ir with
-                     | `Eia (Ir.Eia.Sum term, c, assertions) ->
-                       assert (not (Map.mem term var));
-                       let term = Map.add_exn ~key:var ~data:(-1) term in
-                       let eia_formula = Ir.Eia.eq (Ir.Eia.sum term) (-c) in
-                       Ir.land_ (acc :: Ir.eia eia_formula :: assertions)
-                     | `Ir ir' ->
-                       Ir.map
-                         begin
-                           function
-                           | Pred (name, _) when name = symbol -> ir'
-                           | ir -> ir
-                         end
-                         ir
-                     | _ ->
-                       Format.asprintf
-                         "Unimplemented theory in let-in binding: %a"
-                         Expr.pp
-                         expr
-                       |> failwith
-                   end
-                 | _ -> failwith "Unexpected construction in let-in binding"
-             end
-             ir
-             bindings)
-      | `Eia (Ir.Eia.Sum _term, _c, _assertions) -> failwith ""
-      | _ ->
-        Format.asprintf
-          "Unsupported expression %a within 'in' construction in 'let-in'"
-          Expr.pp
-          ir
-        |> failwith
-    end
-    | _ -> Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr |> failwith
-  ;;
-end
-
 type state =
-  { asserts : Lib.Ir.poly_atom Lib.Ir.t list
+  { asserts : Lib.Ast.t list
   ; prev : state option
   }
 
@@ -343,10 +21,7 @@ let () =
       let expr_irs =
         List.map
           begin
-            fun expr ->
-              match Conv._to_ir expr with
-              | `Ir ir -> ir
-              | _ -> failwith "Expected boolean formula"
+            fun expr -> expr |> Lib.Fe._to_ir
           end
           exprs
       in
@@ -355,9 +30,9 @@ let () =
         | Some state -> asserts @ get_irs state
         | None -> asserts
       in
-      let ir = Lib.Ir.land_ (expr_irs @ get_irs state) in
+      let ir = Lib.Ast.land_ (expr_irs @ get_irs state) in
       begin
-        match Lib.Solver.proof ir with
+        match Lib.Solver.proof (Lib.Me.ir_of_ast ir) with
         | `Sat -> Format.printf "sat\n%!"
         | `Unsat -> Format.printf "unsat\n%!"
         | `Unknown -> Format.printf "unknown\n%!"
@@ -369,9 +44,9 @@ let () =
         | Some state -> asserts @ get_irs state
         | None -> asserts
       in
-      let ir = Lib.Ir.land_ (get_irs state) in
+      let ir = Lib.Ast.land_ (get_irs state) in
       begin
-        match Lib.Solver.get_model ir with
+        match Lib.Solver.get_model (Lib.Me.ir_of_ast ir) with
         | Some model ->
           Map.iteri
             ~f:(fun ~key:k ~data:v -> Format.printf "%a = %d; " Lib.Ir.pp_atom k v)
@@ -385,9 +60,8 @@ let () =
       consts := var :: !consts;
       acc*)
     | Smtml.Ast.Assert expr -> begin
-      match Conv._to_ir expr with
-      | `Ir ir -> { state with asserts = ir :: state.asserts }
-      | _ -> failwith "Expected boolean formula"
+      let ast = expr |> Lib.Fe._to_ir in
+      { state with asserts = ast :: state.asserts }
     end
     | _ -> state
   in
