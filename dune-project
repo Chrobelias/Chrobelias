@@ -21,9 +21,11 @@
   dune
   angstrom
   bitv
+  iter
   ppx_regexp
   ppx_deriving
   ppx_variants_conv
+  smtml
   (ppx_expect :with-test)
   (ppx_inline_test :with-test)
   (ocamlformat :dev))
