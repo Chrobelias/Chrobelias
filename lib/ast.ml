@@ -48,13 +48,13 @@ module Eia = struct
     | Add terms ->
       Format.fprintf
         ppf
-        "(%a)"
+        "(+ %a)"
         (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ") pp_term)
         terms
     | Mul terms ->
       Format.fprintf
         ppf
-        "(%a)"
+        "(* %a)"
         (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " * ") pp_term)
         terms
     | Bwor (a, b) -> Format.fprintf ppf "(%a | %a)" pp_term a pp_term b

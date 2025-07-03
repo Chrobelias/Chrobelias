@@ -120,7 +120,7 @@ and _to_ir orig_expr =
                   (function
                     | Ast.Pred symbol' when symbol = symbol' -> ast'
                     | ast -> ast)
-                  ast
+                  acc
               | exception _ -> begin
                 match expr |> to_eia_term with
                 | eia' ->
@@ -135,7 +135,7 @@ and _to_ir orig_expr =
                                | term -> term)
                              eia)
                       | ast -> ast)
-                    ast'
+                    acc
                 | exception _ -> failwith "Unexpected construction in let-in binding"
               end
             end

@@ -1,6 +1,8 @@
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
+let failf fmt = Format.kasprintf failwith fmt
+
 let collect_free (ir : Ast.t) =
   Ast.fold
     (fun acc -> function
@@ -9,7 +11,7 @@ let collect_free (ir : Ast.t) =
            (fun acc _ -> acc)
            (fun acc -> function
               | Ast.Eia.Atom (Ast.Var v) -> Set.union acc (Set.singleton (Ast.var v))
-              | _ -> Set.empty)
+              | _ -> acc)
            acc
            eia
        | Ast.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
@@ -101,7 +103,7 @@ let of_eia (eia : Ast.Eia.t) =
       let c = c * d in
       let sups = sups @ sups' in
       `Poly (poly, c, sups)
-    | _ -> failwith "TBD"
+    | _ -> failf "unimplemented %a" Ast.Eia.pp eia
   in
   match eia with
   | Eq (lhs, rhs) | Leq (lhs, rhs) ->
@@ -142,6 +144,21 @@ let algebraic : Ast.t -> Ast.t =
     | Eia (Ast.Eia.Eq (Ast.Eia.Atom v, Ast.Eia.Atom (Ast.Const c))) ->
       let bound = EqConst (v, c) in
       Set.singleton bound
+    | Eia
+        (Ast.Eia.Eq
+           ( Ast.Eia.Add [ Ast.Eia.Atom (Ast.Const d); Ast.Eia.Atom v ]
+           , Ast.Eia.Atom (Ast.Const c) )) ->
+      let bound = EqConst (v, c - d) in
+      Set.singleton bound
+    | Eia
+        (Ast.Eia.Eq
+           ( Ast.Eia.Add
+               [ Ast.Eia.Atom (Ast.Const d)
+               ; Ast.Eia.Mul [ Ast.Eia.Atom (Ast.Const -1); Ast.Eia.Atom v ]
+               ]
+           , Ast.Eia.Atom (Ast.Const c) )) ->
+      let bound = EqConst (v, d - c) in
+      Set.singleton bound
     | _ -> Set.empty
   in
   let mapt f =
@@ -156,16 +173,27 @@ let algebraic : Ast.t -> Ast.t =
       |> List.map (fun (EqConst (atom, c)) -> atom, c)
       |> Map.of_alist_reduce ~f:(fun v1 _v2 -> v1)
     in
-    mapt (function
-      | Ast.Eia.Atom v as term -> begin
-        match Map.find bounded_atoms v with
-        | Some bind -> Ast.Eia.atom (Ast.const bind)
-        | None -> term
-      end
-      | term -> term)
+    Ast.map (function
+      | Ast.Eia eia as ast when Set.length (collect_free ast) > 1 ->
+        Ast.eia
+          (Ast.Eia.map2
+             Fun.id
+             (function
+               | Ast.Eia.Atom v as term -> begin
+                 match Map.find bounded_atoms v with
+                 | Some bind -> Ast.Eia.atom (Ast.const bind)
+                 | None -> term
+               end
+               | term -> term)
+             eia)
+      | ir -> ir)
   in
   let flatten =
     mapt (function
+      | Ast.Eia.Add [] -> Ast.Eia.atom (Ast.const 0)
+      | Ast.Eia.Mul [] -> Ast.Eia.atom (Ast.const 1)
+      | Ast.Eia.Add [ term ] -> term
+      | Ast.Eia.Mul [ term ] -> term
       | Ast.Eia.Add terms ->
         let flattened =
           List.map
@@ -196,19 +224,31 @@ let algebraic : Ast.t -> Ast.t =
              Fun.id
              (function
                | Ast.Eia.Mul terms ->
-                 let terms, c =
-                   List.fold_left
-                     (fun (acc, c) -> function
-                        | Ast.Eia.Atom (Ast.Const c') -> acc, c * c'
-                        | term -> term :: acc, c)
-                     ([], 1)
+                 let terms, cs =
+                   List.partition_map
+                     (function
+                       | Ast.Eia.Atom (Ast.Const c') -> Either.right c'
+                       | term -> Either.left term)
                      terms
                  in
+                 let c = List.fold_left Int.mul 1 cs in
                  if c = 0
                  then Ast.Eia.Atom (Ast.const 0)
                  else if c = 1
                  then Ast.Eia.mul terms
                  else Ast.Eia.mul (Ast.Eia.atom (Ast.const c) :: terms)
+               | Ast.Eia.Add terms ->
+                 let terms, cs =
+                   List.partition_map
+                     (function
+                       | Ast.Eia.Atom (Ast.Const c') -> Either.right c'
+                       | term -> Either.left term)
+                     terms
+                 in
+                 let c = List.fold_left ( + ) 0 cs in
+                 if c = 0
+                 then Ast.Eia.add terms
+                 else Ast.Eia.add (Ast.Eia.atom (Ast.const c) :: terms)
                | term -> term)
              eia)
       | ast -> ast)
@@ -230,11 +270,6 @@ let simpl_ir (ir : Ast.t) : Ast.t =
       | Ast.Lnot (Ast.Lnot ir) -> ir
       | Ast.Lnot (Ast.Lor irs) -> Ast.land_ (List.map Ast.lnot irs)
       | Ast.Lnot (Ast.Land irs) -> Ast.lor_ (List.map Ast.lnot irs)
-      | ir -> ir)
-  in
-  let simpl_ops =
-    Ast.map (function
-      | Ast.Lnot (Ast.Eia (Ast.Eia.Leq (term, c))) -> Ast.eia (Ast.Eia.gt term c)
       | ir -> ir)
   in
   let fold_ops =
@@ -309,9 +344,7 @@ let simpl_ir (ir : Ast.t) : Ast.t =
       | ir -> ir)
   in
   let rec simpl ir =
-    let ir' =
-      ir |> simpl_ops |> simpl_negation |> fold_ops |> quantifiers_closer |> algebraic
-    in
+    let ir' = ir |> simpl_negation |> fold_ops |> quantifiers_closer |> algebraic in
     Debug.printf "Simplify step: %a\n" Ast.pp ir';
     if Ast.equal ir' ir then ir' else simpl ir'
   in
@@ -321,21 +354,24 @@ let simpl_ir (ir : Ast.t) : Ast.t =
   x
 ;;
 
-let rec ir_of_ast (ast : Ast.t) =
-  match ast with
-  | True -> Ir.true_
-  | Lnot ast -> Ir.lnot (ir_of_ast ast)
-  | Land asts -> List.map ir_of_ast asts |> Ir.land_
-  | Lor asts -> List.map ir_of_ast asts |> Ir.lor_
-  | Exists (atoms, ast) ->
-    let atoms =
-      List.map
-        (function
-          | Ast.Var v -> Ir.var v
-          | Const _ -> failwith "unreachable (I hope)")
-        atoms
-    in
-    Ir.exists atoms (ir_of_ast ast)
-  | Eia eia -> of_eia eia
-  | Pred _ -> failwith "TBD"
+let ir_of_ast ir =
+  let rec ir_of_ast (ast : Ast.t) =
+    match ast with
+    | True -> Ir.true_
+    | Lnot ast -> Ir.lnot (ir_of_ast ast)
+    | Land asts -> List.map ir_of_ast asts |> Ir.land_
+    | Lor asts -> List.map ir_of_ast asts |> Ir.lor_
+    | Exists (atoms, ast) ->
+      let atoms =
+        List.map
+          (function
+            | Ast.Var v -> Ir.var v
+            | Const _ -> failwith "unreachable (I hope)")
+          atoms
+      in
+      Ir.exists atoms (ir_of_ast ast)
+    | Eia eia -> of_eia eia
+    | Pred s -> failf "Unexpected %s" s
+  in
+  simpl_ir ir |> ir_of_ast
 ;;

@@ -18,6 +18,7 @@ let collect_vars ir =
   Ir.fold
     (fun acc -> function
        | Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)
+       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Rel (_, term, _) -> Set.union acc (Set.of_list (Map.keys term))
        | _ -> acc)
     Set.empty
@@ -31,6 +32,7 @@ let collect_free (ir : Ir.t) =
   Ir.fold
     (fun acc -> function
        | Ir.Rel (_, term, _) -> term |> Map.keys |> Set.of_list |> Set.union acc
+       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
     Set.empty

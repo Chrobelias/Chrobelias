@@ -21,6 +21,7 @@
   dune
   angstrom
   bitv
+  iter
   ppx_regexp
   ppx_deriving
   ppx_variants_conv

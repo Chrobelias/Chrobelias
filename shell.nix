@@ -3,5 +3,6 @@ pkgs.mkShell {
     name = "Chrobelias";
     packages = with pkgs; [ 
       gmp
+      opam
     ];
 }
