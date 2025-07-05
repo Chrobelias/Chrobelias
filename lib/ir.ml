@@ -51,6 +51,7 @@ type t =
   | Exists of atom list * t (*| Pred of string * 'atom Eia.t list*)
 [@@deriving variants]
 
+let false_ = lnot true_
 let neg term = Map.map ~f:( ~- ) term
 let eq = rel eq
 let leq = rel leq
@@ -68,7 +69,8 @@ let rec equal ir ir' =
   | Rel (rel, term, c), Rel (rel', term', c') ->
     rel = rel' && c = c' && Map.equal Int.equal term term'
   | Lnot ir, Lnot ir' -> equal ir ir'
-  | Land irs, Land irs' | Lor irs, Lor irs' -> List.for_all2 equal irs irs'
+  | Land irs, Land irs' | Lor irs, Lor irs' ->
+    List.length irs = List.length irs' && List.for_all2 equal irs irs'
   | Exists (atoms, ir), Exists (atoms', ir') ->
     List.equal ( = ) atoms atoms' && equal ir ir'
   | _, _ -> false
