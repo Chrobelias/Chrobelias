@@ -42,7 +42,21 @@ module type Type = sig
   val format_nfa : Format.formatter -> t -> unit
 end
 
-module Lsb : Type
+module Lsb : sig
+  include Type
+
+  val find_c_d : t -> (int, int) Map.t -> (int * int) list
+  val get_exponent_sub_nfa : t -> res:int -> temp:int -> t
+  val chrobak : t -> (int * int) list
+
+  val get_chrobaks_sub_nfas
+    :  t
+    -> res:deg
+    -> temp:deg
+    -> vars:int list
+    -> (t * (int * int) list * (int list * int)) list
+end
+
 module Msb : Type
 
 val lsb_of_msb : Msb.t -> Lsb.t

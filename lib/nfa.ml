@@ -27,6 +27,17 @@ let rec pow a = function
     b * b * if n mod 2 = 0 then 1 else a
 ;;
 
+let bv_get v i = Z.logand v (Z.shift_left Z.one i) |> Z.equal Z.zero |> not
+
+let bv_init deg f =
+  List.fold_left
+    (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
+    Z.zero
+    (0 -- (deg - 1))
+;;
+
+let bv_of_list = List.fold_left (fun acc v -> Z.logor acc (Z.shift_left Z.one v)) Z.zero
+
 let stretch vec mask_list deg =
   let m =
     mask_list
@@ -37,15 +48,15 @@ let stretch vec mask_list deg =
     0 -- deg
     |> List.for_all (fun j ->
       let js = Map.find m j |> Option.value ~default:Set.empty in
-      Set.for_all ~f:(fun j -> Bitv.get vec j) js
-      || Set.for_all ~f:(fun j -> Bitv.get vec j |> not) js)
+      Set.for_all ~f:(fun j -> bv_get vec j) js
+      || Set.for_all ~f:(fun j -> bv_get vec j |> not) js)
   in
   match ok with
   | true ->
-    Bitv.init deg (fun i ->
+    bv_init deg (fun i ->
       (let* js = Map.find m i in
        let* j = Set.nth js 0 in
-       let v = Bitv.get vec j in
+       let v = bv_get vec j in
        match v with
        | true -> Option.some true
        | false -> Option.none)
@@ -54,68 +65,60 @@ let stretch vec mask_list deg =
   | false -> Option.none
 ;;
 
+let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v) + 1
+
+let bv_to_list =
+  let rec aux acc z =
+    if Z.equal z Z.zero
+    then acc
+    else (
+      let v = Z.log2 z in
+      aux (v :: acc) (Z.sub z (Z.shift_left Z.one v)))
+  in
+  aux []
+;;
+
 module Label = struct
-  type t = Bitv.t * Bitv.t
+  type t = Z.t * Z.t
 
   let equal (vec1, mask1) (vec2, mask2) =
-    let len = max (Bitv.length mask1) (Bitv.length mask2) in
-    let extend v =
-      let vl = Bitv.length v in
-      assert (vl <= len);
-      if vl = len then v else Bitv.append v (Bitv.create (len - vl) false)
-    in
-    let vec1 = extend vec1 in
-    let vec2 = extend vec2 in
-    let mask1 = extend mask1 in
-    let mask2 = extend mask2 in
-    let mask = Bitv.bw_and mask1 mask2 in
-    Bitv.equal (Bitv.bw_and vec1 mask) (Bitv.bw_and vec2 mask)
+    let mask = Z.logand mask1 mask2 in
+    Z.equal (Z.logand vec1 mask) (Z.logand vec2 mask)
   ;;
 
-  let combine (vec1, mask1) (vec2, mask2) =
-    let len = max (Bitv.length mask1) (Bitv.length mask2) in
-    let extend v =
-      let vl = Bitv.length v in
-      assert (vl <= len);
-      if vl = len then v else Bitv.append v (Bitv.create (len - vl) false)
-    in
-    let vec1 = extend vec1 in
-    let vec2 = extend vec2 in
-    let mask1 = extend mask1 in
-    let mask2 = extend mask2 in
-    Bitv.bw_or vec1 vec2, Bitv.bw_or mask1 mask2
-  ;;
+  let combine (vec1, mask1) (vec2, mask2) = Z.logor vec1 vec2, Z.logor mask1 mask2
 
   let project proj (vec, mask) =
-    let len = Bitv.length mask in
-    let proj =
-      Bitv.create len true
-      |> Bitv.bw_xor
-           (Bitv.of_list_with_length (proj |> List.filter (fun x -> x < len)) len)
-    in
-    Bitv.bw_and vec proj, Bitv.bw_and mask proj
+    let proj = (bv_of_list proj) in
+    Z.sub vec (Z.logand vec proj), Z.sub mask (Z.logand mask proj)
   ;;
 
   let truncate len (vec, mask) =
-    ( Bitv.init len (fun i -> if i < Bitv.length vec then Bitv.get vec i else false)
-    , Bitv.init len (fun i -> if i < Bitv.length mask then Bitv.get mask i else false) )
+    let proj = Z.sub (Z.shift_left Z.one len) Z.one in
+    Z.logand vec proj, Z.logand mask proj
   ;;
 
-  let is_zero (vec, mask) = Bitv.bw_and vec mask |> Bitv.all_zeros
+  let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
 
   let variations (_, mask) =
-    let mask_list = mask |> Bitv.to_list in
-    0 -- (pow 2 (List.length mask_list) - 1)
-    |> List.map Bitv.of_int_us
-    |> List.map (fun x -> stretch x mask_list (Bitv.length mask) |> Option.get)
-    |> List.map (fun x -> x, mask)
+    (*Format.printf "Running variations for mask %a\n" Z.pp_print mask;*)
+    let mask_list = mask |> bv_to_list in
+    (*List.iter (fun x -> Format.printf "mask: %d\n" x) mask_list;*)
+    let length = bv_len mask in
+    (*Format.printf "length: %d\n" length;*)
+    Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
+    |> Iter.map Z.of_int
+    |> Iter.map (fun x -> stretch x mask_list length |> Option.get (*|> (fun x -> Format.printf "intrm: %a\n" Z.pp_print x; x)*))
+    |> Iter.map (fun x -> x, mask)
+    |> Iter.to_list
+    (*|> List.map (fun (x, y) -> Format.printf "%a, %a%!\n" Z.pp_print x Z.pp_print y; (x, y))*)
   ;;
 
-  let z deg = Bitv.init deg (fun _ -> false), Bitv.init deg (fun _ -> false)
+  let z _deg = (Z.zero, Z.zero)
 
   let pp_label ppf (vec, mask) =
-    let vec = Bitv.L.to_string vec |> String.to_seq in
-    let mask = Bitv.L.to_string mask |> String.to_seq in
+    let vec = bv_to_list vec |> Bitv.of_list |> Bitv.L.to_string |> String.to_seq in
+    let mask = bv_to_list mask |> Bitv.of_list |> Bitv.L.to_string |> String.to_seq in
     Seq.zip vec mask
     |> Seq.map (function
       | _, '0' -> '_'
@@ -125,19 +128,17 @@ module Label = struct
   ;;
 
   let reenumerate map (vec, mask) =
-    let length =
-      max (Bitv.length vec) ((map |> Map.keys |> List.fold_left max min_int) + 1)
-    in
+    let length = max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1) in
     let vec =
-      Bitv.init length (fun i ->
+      bv_init length (fun i ->
         match Map.find map i with
-        | Some j -> Bitv.get vec j
+        | Some j -> bv_get vec j
         | None -> false)
     in
     let mask =
-      Bitv.init length (fun i ->
+      bv_init length (fun i ->
         match Map.find map i with
-        | Some j -> Bitv.get mask j
+        | Some j -> bv_get mask j
         | None -> false)
     in
     vec, mask
@@ -382,8 +383,9 @@ module Make (Invariants : NfaInvariants) = struct
     let vars = List.rev vars in
     let max =
       transitions
-      |> List.map (fun (fst, _, snd) -> max fst snd)
-      |> List.fold_left max (List.fold_left max (List.fold_left max 0 final) start)
+      |> Iter.of_list
+      |> Iter.map (fun (fst, _, snd) -> max fst snd)
+      |> Iter.fold max (List.fold_left max (List.fold_left max 0 final) start)
     in
     let transitions =
       transitions
@@ -395,8 +397,8 @@ module Make (Invariants : NfaInvariants) = struct
       |> Array.map (fun delta ->
         List.filter_map
           (fun (label, q') ->
-             let* vec = stretch (Bitv.of_int_us label) vars deg in
-             ((vec, Bitv.of_list_with_length vars deg), q') |> return)
+             let* vec = stretch (Z.of_int label) vars deg in
+             ((vec, bv_of_list vars), q') |> return)
           delta)
     in
     { transitions
@@ -417,7 +419,10 @@ module Make (Invariants : NfaInvariants) = struct
     =
     let vars = List.rev vars in
     let max =
-      transitions |> List.map (fun (fst, _, snd) -> max fst snd) |> List.fold_left max 0
+      transitions
+      |> Iter.of_list
+      |> Iter.map (fun (fst, _, snd) -> max fst snd)
+      |> Iter.fold max 0
     in
     (* TODO: ensure transitions are actually deterministic. *)
     let transitions =
@@ -430,8 +435,8 @@ module Make (Invariants : NfaInvariants) = struct
       |> Array.map (fun delta ->
         List.filter_map
           (fun (label, q') ->
-             let* vec = stretch (Bitv.of_int_us label) vars deg in
-             ((vec, Bitv.of_list_with_length vars deg), q') |> return)
+             let* vec = stretch (Z.of_int label) vars deg in
+             ((vec, bv_of_list vars), q') |> return)
           delta)
     in
     { transitions
@@ -464,12 +469,12 @@ module Make (Invariants : NfaInvariants) = struct
       then transitions
       else (
         let q1, q2 = Queue.pop queue in
-        let delta1 = nfa1.transitions.(q1) in
-        let delta2 = nfa2.transitions.(q2) in
+        let delta1 = nfa1.transitions.(q1) |> Iter.of_list in
+        let delta2 = nfa2.transitions.(q2) |> Iter.of_list in
         let delta =
-          List.fold_left
+          Iter.fold
             (fun acc_delta (label1, q1') ->
-               List.fold_left
+               Iter.fold
                  (fun acc_delta (label2, q2') ->
                     let equal = Label.equal label1 label2 in
                     match equal with
@@ -775,14 +780,162 @@ module Lsb = struct
       Some
         ( List.map
             (fun var ->
-               Bitv.init length (fun i -> Bitv.get (List.nth p i |> fst) var)
-               |> Bitv.to_int_s)
+               bv_init length (fun i -> bv_get (List.nth p i |> fst) var) |> Z.to_int)
             vars
         , len )
     | None -> None
   ;;
 
   let run nfa = Set.are_disjoint nfa.start nfa.final |> not
+
+  let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg) : t =
+    let _, _2 = res, temp in
+    let _mask = failwith "TBD" (*Bitv.init 32 (fun x -> x = res || x = temp)*) in
+    let zero_lbl = failwith "TBD" (*Bitv.init 32 (Fun.const false), mask *) in
+    let res_lbl = failwith "TBD" (*Bitv.init 32 (( = ) res), mask *) in
+    let pow_lbl = failwith "TBD" (*Bitv.init 32 (( = ) temp), mask *) in
+    let one_lbl = failwith "TBD" (*Bitv.init 32 (Fun.const true), mask *) in
+    let reversed_transitions = nfa.transitions |> Graph.reverse in
+    let end_transitions =
+      reversed_transitions
+      |> Array.mapi (fun src list ->
+        if Set.mem nfa.final src
+        then list |> List.filter (fun (lbl, _) -> Label.equal lbl res_lbl)
+        else [])
+    in
+    let pre_final =
+      end_transitions |> Array.to_list |> List.concat |> List.map snd |> Set.of_list
+    in
+    let zero_transitions, states =
+      let all_zero_transitions =
+        reversed_transitions
+        |> Array.map (List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl))
+      in
+      let rec helper acc visited cur =
+        if Set.is_empty cur
+        then acc, visited
+        else (
+          let next_transitions =
+            all_zero_transitions
+            |> Base.Array.mapi ~f:(fun i x -> if Set.mem cur i then x else [])
+          in
+          next_transitions
+          |> Base.Array.iteri ~f:(fun i list -> acc.(i) <- list @ acc.(i));
+          let visited = Set.union visited cur in
+          let next =
+            Set.diff
+              (next_transitions
+               |> Array.to_list
+               |> List.concat_map (List.map snd)
+               |> Set.of_list)
+              visited
+          in
+          helper acc visited next)
+      in
+      helper (Array.map (Fun.const []) all_zero_transitions) Set.empty pre_final
+    in
+    let start =
+      states
+      |> Set.filter ~f:(fun i ->
+        reversed_transitions.(i)
+        |> List.filter (fun (lbl, _) -> Label.equal lbl pow_lbl)
+        |> List.is_empty
+        |> not)
+    in
+    let start_final =
+      nfa.final
+      |> Set.filter ~f:(fun i ->
+        reversed_transitions.(i)
+        |> List.filter (fun (lbl, _) -> Label.equal lbl one_lbl)
+        |> List.is_empty
+        |> not)
+    in
+    let start = Set.union start start_final in
+    let transitions =
+      Graph.union_list [ end_transitions; zero_transitions ] |> Graph.reverse
+    in
+    let result =
+      { transitions; final = nfa.final; start; deg = nfa.deg; is_dfa = false }
+    in
+    result
+  ;;
+
+  let find_c_d (nfa : t) (imp : (int, int) Map.t) =
+    assert (Set.length nfa.start = 1);
+    let n = length nfa in
+    let reachable_in_range = Graph.reachable_in_range nfa.transitions in
+    let reachable_in n init = reachable_in_range n n init |> List.hd in
+    let r1 =
+      0 -- ((n * n) - 1) (* TODO: do not map, collect thing *)
+      |> List.filter (fun i ->
+        reachable_in i nfa.start |> Set.are_disjoint nfa.final |> not)
+      |> Set.of_list
+    in
+    let states = reachable_in (n - 1) nfa.start in
+    let states =
+      states
+      |> Set.to_sequence
+      |> Sequence.filter_map ~f:(fun state ->
+        Map.find imp state |> Option.map (fun d -> state, d))
+    in
+    let r2 =
+      states
+      |> Sequence.concat_map ~f:(fun (state, d) ->
+        let first = (n * n) - n - d in
+        let last = (n * n) - n - 1 in
+        reachable_in_range first last (Set.singleton state)
+        |> List.map (fun set -> not (Set.are_disjoint nfa.final set))
+        |> Base.List.zip_exn (first -- last)
+        |> List.filter snd
+        |> List.map fst
+        |> List.map (fun c -> c + n, d)
+        |> Sequence.of_list)
+      |> Sequence.map ~f:(fun (c, d) ->
+        let rec helper c = if Set.mem r1 (c - d) then helper (c - d) else c in
+        helper c, d)
+      |> Sequence.to_list
+    in
+    let r1 =
+      r1
+      |> Set.to_list
+      |> List.filter (fun c ->
+        not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
+      |> List.map (fun c -> c, 0)
+    in
+    r2 @ r1
+  ;;
+
+  let chrobak (nfa : t) =
+    let important =
+      Graph.find_important_verticies nfa.transitions
+      |> List.filter (fun (_, b) -> b <> 0)
+      |> Map.of_alist_exn
+    in
+    (* important *)
+    (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
+    let result = find_c_d nfa important in
+    result
+  ;;
+
+  let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
+    let mask = failwith "TBD" (* Bitv.init 32 (( = ) temp) *) in
+    let temp_lbl = mask, mask in
+    let exp_nfa = get_exponent_sub_nfa nfa ~res:res ~temp:temp in
+    exp_nfa.start
+    |> Set.to_list
+    |> List.filter_map (fun mid ->
+      let* path = any_path { nfa with start = Set.singleton mid } vars in
+      ( { nfa with
+          final = Set.singleton mid
+        ; transitions =
+            nfa.transitions
+            |> Array.map
+                 (List.filter (fun (lbl, fin) -> fin <> mid || Label.equal lbl temp_lbl))
+        }
+      , chrobak { exp_nfa with start = Set.singleton mid }
+      , path )
+      |> return)
+  ;;
 end
 
 let update_invariants_msb nfa =
@@ -849,11 +1002,10 @@ module Msb = struct
       let length = List.length p in
       ( List.map
           (fun var ->
-             let sign = Bitv.get (fst sign) var in
+             let sign = bv_get (fst sign) var in
              (if sign then -pow2 length else 0)
-             + (Bitv.init length (fun i ->
-                  Bitv.get (List.nth p (length - 1 - i) |> fst) var)
-                |> Bitv.to_int_s))
+             + (bv_init length (fun i -> bv_get (List.nth p (length - 1 - i) |> fst) var)
+                |> Z.to_int))
           vars
       , len )
       |> Option.some
@@ -949,11 +1101,27 @@ module MsbNat = struct
 
   let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg) : t =
     (*Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;*)
-    let mask = Bitv.init 32 (fun x -> x = res || x = temp) in
-    let zero_lbl = Bitv.init 32 (Fun.const false), mask in
-    let res_lbl = Bitv.init 32 (( = ) res), mask in
-    let pow_lbl = Bitv.init 32 (( = ) temp), mask in
-    let one_lbl = Bitv.init 32 (Fun.const true), mask in
+    let _, _2 = res, temp in
+    let _mask =
+      failwith "TBD"
+      (* Bitv.init 32 (fun x -> x = res || x = temp) *)
+    in
+    let zero_lbl =
+      failwith "TBD"
+      (* Bitv.init 32 (Fun.const false), mask *)
+    in
+    let res_lbl =
+      failwith "TBD"
+      (* Bitv.init 32 (( = ) res), mask *)
+    in
+    let pow_lbl =
+      failwith "TBD"
+      (* Bitv.init 32 (( = ) temp), mask *)
+    in
+    let one_lbl =
+      failwith "TBD"
+      (* Bitv.init 32 (Fun.const true), mask *)
+    in
     let end_transitions =
       nfa.transitions
       |> Array.mapi (fun src list ->
@@ -1039,9 +1207,12 @@ module MsbNat = struct
   ;;
 
   let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
-    let mask = Bitv.init 32 (( = ) temp) in
+    let mask =
+      failwith "TBD"
+      (*Bitv.init 32 (( = ) temp) *)
+    in
     let temp_lbl = mask, mask in
-    let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
+    let exp_nfa = get_exponent_sub_nfa nfa ~res:res ~temp:temp in
     exp_nfa.start
     |> Set.to_list
     |> List.filter_map (fun mid ->
@@ -1061,7 +1232,9 @@ end
 
 let to_nat (nfa : Msb.t) : MsbNat.t =
   let zero_lbl =
-    Bitv.init nfa.deg (Fun.const false), Bitv.init nfa.deg (Fun.const true)
+    failwith "TBD"
+    (*
+       Bitv.init nfa.deg (Fun.const false), Bitv.init nfa.deg (Fun.const true)*)
   in
   let start =
     nfa.start
