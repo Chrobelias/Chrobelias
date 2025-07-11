@@ -265,6 +265,14 @@ let algebraic : Ast.t -> Ast.t =
 ;;
 
 let simpl_ir (ir : Ast.t) : Ast.t =
+  let simply =
+    Ast.map (function
+      | Ast.Land [] -> Ast.true_
+      | Ast.Lor [] -> Ast.false_
+      | Ast.Land [ ast ] -> ast
+      | Ast.Lor [ ast ] -> ast
+      | ast -> ast)
+  in
   let simpl_negation =
     Ast.map (function
       | Ast.Lnot (Ast.Lnot ir) -> ir
@@ -288,63 +296,8 @@ let simpl_ir (ir : Ast.t) : Ast.t =
              | ir -> [ ir ]))
       | ir -> ir)
   in
-  let quantifiers_closer : Ast.t -> Ast.t =
-    Ast.map (function
-      | Ast.Exists ([], ir) -> ir
-      | Ast.Exists (atoms, Ast.Exists (atoms', ir)) -> Ast.exists (atoms @ atoms') ir
-      | Ast.Exists (atoms, (Ast.Land irs as ir'))
-      | Ast.Exists (atoms, (Ast.Lor irs as ir')) ->
-        let op =
-          match ir' with
-          | Ast.Land _ -> Ast.land_
-          | Ast.Lor _ -> Ast.lor_
-          | _ -> assert false
-        in
-        let atoms_set = atoms |> Set.of_list in
-        let irs_using_var =
-          List.mapi
-            begin
-              fun i ir ->
-                let free_vars = collect_free ir in
-                let used_vars = Set.inter atoms_set free_vars in
-                i, used_vars
-            end
-            irs
-        in
-        let var_is_used_in =
-          List.map
-            begin
-              fun atom ->
-                ( atom
-                , List.filter_map
-                    (fun (i, s) -> if Set.mem s atom then Some i else None)
-                    irs_using_var )
-            end
-            atoms
-          |> Map.of_alist_exn
-        in
-        let atoms, irs =
-          Map.fold
-            ~f:
-              begin
-                fun ~key:atom ~data:used_in (atoms, irs) ->
-                  match used_in with
-                  | [] -> atoms, irs
-                  | [ i ] ->
-                    ( atoms
-                    , List.mapi
-                        (fun j ir -> if i = j then Ast.exists [ atom ] ir else ir)
-                        irs )
-                  | _ -> atom :: atoms, irs
-              end
-            ~init:([], irs)
-            var_is_used_in
-        in
-        Ast.exists atoms (op irs)
-      | ir -> ir)
-  in
   let rec simpl ir =
-    let ir' = ir |> simpl_negation |> fold_ops |> quantifiers_closer |> algebraic in
+    let ir' = ir |> simply |> simpl_negation |> fold_ops |> algebraic in
     Debug.printf "Simplify step: %a\n" Ast.pp ir';
     if Ast.equal ir' ir then ir' else simpl ir'
   in

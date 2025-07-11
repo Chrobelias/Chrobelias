@@ -151,6 +151,7 @@ type t =
 
 let limpl a b = lor_ [ lnot a; b ]
 let any atoms ast = lnot (exists atoms (lnot ast))
+let false_ = lnot true_
 
 let rec pp ppf = function
   | True -> Format.fprintf ppf "True"

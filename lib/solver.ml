@@ -87,12 +87,12 @@ let eval_rel vars rel term c =
   else (
     let thing = powerset term in
     (* Debug.printfln "IR %a" Ir.Eia ir;*)
-    Debug.printfln
+    (*Debug.printfln
       "thing:[%a]"
       (Format.pp_print_list
          ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
          (fun fmt (b, c) -> Format.fprintf fmt "(%d, %d)" b c))
-      thing;
+      thing;*)
     let states = ref Set.empty in
     let transitions = ref [] in
     let rec lp front =
@@ -112,13 +112,13 @@ let eval_rel vars rel term c =
               thing
               |> List.map (fun (bits, sum) -> gcd * div (hd - sum) (2 * gcd), bits, hd)
           in
-          Debug.printfln
+          (*Debug.printfln
             "hd:%d, t:[%a]"
             hd
             (Format.pp_print_list
                ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
                (fun fmt (a, b, c) -> Format.fprintf fmt "(%d, %d, %d)" a b c))
-            t;
+            t;*)
           states := Set.add !states hd;
           transitions := t @ !transitions;
           lp (List.map (fun (x, _, _) -> x) t @ tl)
@@ -126,12 +126,12 @@ let eval_rel vars rel term c =
     in
     lp [ c ];
     let states = Set.to_list !states in
-    Debug.printfln
+    (*Debug.printfln
       "states:[%a]"
       (Format.pp_print_list
          ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
          (fun fmt a -> Format.fprintf fmt "%d" a))
-      states;
+      states;*)
     let start = List.length states in
     let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
     let idx c = Map.find states c |> Option.get in
@@ -162,11 +162,7 @@ let eval_rel vars rel term c =
       ~vars:(List.map fst term)
       ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
     |> fun x ->
-    Debug.dump_nfa
-      ~msg:"Build (L)Eq Nfa: %s"
-      ~vars:(Map.to_alist vars)
-      Nfa.Msb.format_nfa
-      x;
+    (*Debug.dump_nfa ~msg:"Build (L)Eq Nfa: %s" Nfa.Msb.format_nfa x;*)
     x)
 ;;
 
@@ -328,6 +324,57 @@ let trivial ir =
         if c' < c then Ir.true_ else ir
       | ir -> ir)
   in
+  let quantifiers_closer : Ir.t -> Ir.t =
+    Ir.map (function
+      | Ir.Exists ([], ir) -> ir
+      | Ir.Exists (atoms, Ir.Exists (atoms', ir)) -> Ir.exists (atoms @ atoms') ir
+      | Ir.Exists (atoms, Ir.Land irs) ->
+        let atoms_set = atoms |> Set.of_list in
+        let irs_using_var =
+          List.mapi
+            begin
+              fun i ir ->
+                let free_vars = collect_free ir in
+                let used_vars = Set.inter atoms_set free_vars in
+                i, used_vars
+            end
+            irs
+        in
+        let var_is_used_in =
+          List.map
+            begin
+              fun atom ->
+                ( atom
+                , List.filter_map
+                    (fun (i, s) -> if Set.mem s atom then Some i else None)
+                    irs_using_var )
+            end
+            atoms
+          |> Map.of_alist_exn
+        in
+        let atoms, irs =
+          List.fold_left
+            begin
+              fun (atoms, irs) (atom, used_in) ->
+                match used_in with
+                | [] -> atoms, irs
+                | [ i ] ->
+                  ( atoms
+                  , List.mapi
+                      (fun j ir -> if i = j then Ir.exists [ atom ] ir else ir)
+                      irs )
+                | _ -> atom :: atoms, irs
+            end
+            ([], irs)
+            (var_is_used_in
+             |> Map.to_alist
+             |> List.sort (fun (_, used_in) (_, used_in') ->
+               List.length used_in' - List.length used_in))
+        in
+        Ir.exists atoms (Ir.land_ irs)
+      | Ir.Exists (atoms, Ir.Lor irs) -> Ir.lor_ (List.map (Ir.exists atoms) irs)
+      | ir -> ir)
+  in
   let simpl ir =
     ir
     |> Ir.map (function
@@ -339,6 +386,8 @@ let trivial ir =
     |> Ir.map (function
       | Ir.Lor [] -> Ir.false_
       | Ir.Land [] -> Ir.true_
+      | Ir.Land [ ir ] -> ir
+      | Ir.Lor [ ir ] -> ir
       | Ir.Land irs
         when List.exists
                (function
@@ -366,6 +415,20 @@ let trivial ir =
                | ir' -> Some ir')
              irs)
       | ir -> ir)
+    |> Ir.map (function
+      | Ir.Land lst ->
+        Ir.Land
+          (lst
+           |> List.concat_map (function
+             | Ir.Land lst -> lst
+             | ir -> [ ir ]))
+      | Ir.Lor lst ->
+        Ir.Lor
+          (lst
+           |> List.concat_map (function
+             | Ir.Lor lst -> lst
+             | ir -> [ ir ]))
+      | ir -> ir)
   in
   let aux ir =
     Ir.map
@@ -387,57 +450,64 @@ let trivial ir =
       ir
   in
   let rec aux2 ir =
-    let ir' = aux ir in
+    let ir' = aux ir |> quantifiers_closer in
     if Ir.equal ir ir' then ir' else aux2 ir'
   in
   aux2 ir
 ;;
 
+let level = ref 0
+
 let eval ir =
   let module Nfa = Nfa.Msb in
   let module NfaCollection = NfaCollection.Msb in
   let ir = trivial ir in
-  Debug.printfln "Trivial solution %a\n" Ir.pp ir;
+  (*Debug.printfln "Trivial solution %a\n" Ir.pp ir;*)
   let vars = collect_vars ir in
   let rec eval ir =
-    Format.printf "%a\n%!" Ir.pp ir;
-    match ir with
-    | Ir.True -> NfaCollection.n ()
-    | Ir.Lnot ir -> eval ir |> Nfa.invert
-    (*
-       | Ir.Land (hd :: tl) ->
+    (* Format.printf "%d Running %a\n%!" !level Ir.pp ir; *)
+    level := !level + 1;
+    (match ir with
+     | Ir.True -> NfaCollection.n ()
+     | Ir.Lnot ir -> eval ir |> Nfa.invert
+     (*
+        | Ir.Land (hd :: tl) ->
       List.fold_left (fun nfa ir -> eval ir |> Nfa.intersect nfa) (eval hd) tl
-    *)
-    | Ir.Land irs ->
-      let nfas =
-        List.map
-          (fun ir ->
-             let nfa = eval ir in
-             Format.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
-             nfa)
-          irs
-        |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa2 - Nfa.length nfa1)
-      in
-      let rec eval_and = function
-        | hd :: [] -> hd
-        | hd :: hd' :: tl ->
-          Format.printf "Intersecting %d %d\n%!" (Nfa.length hd) (Nfa.length hd');
-          let nfa = Nfa.intersect hd hd' in
-          Debug.dump_nfa Nfa.format_nfa nfa;
-          let nfas =
-            nfa :: tl |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa2 - Nfa.length nfa1)
-          in
-          eval_and nfas
-        | [] -> failwith ""
-      in
-      eval_and nfas
-    | Ir.Lor (hd :: tl) ->
-      List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
-    | Ir.Rel (rel, term, c) -> eval_rel vars rel term c
-    | Ir.Reg (reg, atoms) -> eval_reg vars reg atoms
-    | Ir.Exists (atoms, ir) ->
-      eval ir |> Nfa.project (List.filter_map (Map.find vars) atoms) |> Nfa.minimize
-    | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith
+     *)
+     | Ir.Land irs ->
+       let nfas =
+         List.map
+           (fun ir ->
+              let nfa = eval ir in
+              (*Format.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);*)
+              nfa)
+           irs
+         |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
+       in
+       let rec eval_and = function
+         | hd :: [] -> hd
+         | hd :: hd' :: tl ->
+           (* Format.printf "Intersecting %d %d\n%!" (Nfa.length hd) (Nfa.length hd');*)
+           let nfa = Nfa.intersect hd hd' in
+           Debug.dump_nfa Nfa.format_nfa nfa;
+           let nfas =
+             nfa :: tl |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
+           in
+           eval_and nfas
+         | [] -> failwith ""
+       in
+       eval_and nfas
+     | Ir.Lor (hd :: tl) ->
+       List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
+     | Ir.Rel (rel, term, c) -> eval_rel vars rel term c
+     | Ir.Reg (reg, atoms) -> eval_reg vars reg atoms
+     | Ir.Exists (atoms, ir) ->
+       eval ir |> Nfa.project (List.filter_map (Map.find vars) atoms) |> Nfa.minimize
+     | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
+    |> fun nfa ->
+    level := !level - 1;
+    (*Format.printf "%d Dno %a\n%!" !level Ir.pp ir;*)
+    nfa
   in
   eval ir
   |> fun x ->

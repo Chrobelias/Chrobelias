@@ -20,7 +20,10 @@
   ocaml
   dune
   angstrom
+  hashcons
+  zarith
   bitv
+  bitvec
   iter
   ppx_regexp
   ppx_deriving

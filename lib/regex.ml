@@ -2,7 +2,7 @@
 (* Copyright 2024-2025, Chrobelias. *)
 
 module Map = Base.Map.Poly
-(*module Nfa = Nfa.Lsb*)
+(*module Nfa = Nfa.Msb*)
 
 type t =
   | Empty

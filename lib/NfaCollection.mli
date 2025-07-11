@@ -38,6 +38,9 @@ module Msb : sig
 end
 
 module MsbNat : sig
+  val n : unit -> Nfa.MsbNat.t
+  val z : unit -> Nfa.MsbNat.t
+  val power_of_two : int -> Nfa.MsbNat.t
   val add : lhs:varpos -> rhs:varpos -> res:varpos -> Nfa.MsbNat.t
   val eq : varpos -> varpos -> Nfa.MsbNat.t
   val eq_const : varpos -> int -> Nfa.MsbNat.t

@@ -388,6 +388,16 @@ module Msb = struct
 end
 
 module MsbNat = struct
+  let n () =
+    Nfa.MsbNat.create_nfa
+      ~transitions:[ 0, 0, 0 ]
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[]
+      ~deg:1
+  ;;
+
+  let z () = Nfa.MsbNat.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
   let eq lhs rhs = Msb.eq lhs rhs |> Nfa.to_nat
   let add ~lhs ~rhs ~res = Msb.add ~res ~lhs ~rhs |> Nfa.to_nat
   let eq_const res n = Msb.eq_const res n |> Nfa.to_nat
@@ -444,5 +454,14 @@ module MsbNat = struct
       ~final:[ 0 ]
       ~vars:[ var; exp ]
       ~deg:(max var exp + 1)
+  ;;
+
+  let power_of_two exp =
+    Nfa.MsbNat.create_nfa
+      ~transitions:[ 0, 0b0, 0; 0, 0b1, 1; 1, 0b0, 1; 2, 0b0, 0 ]
+      ~start:[ 2 ]
+      ~final:[ 1 ]
+      ~vars:[ exp ]
+      ~deg:(exp + 1)
   ;;
 end

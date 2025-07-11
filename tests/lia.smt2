@@ -56,3 +56,12 @@
   (assert (forall ((x Int) (y Int)) (=> (> x y) (not (<= x y)))))
   (check-sat) ; sat
 (pop 1)
+
+(push 1)
+  (assert (not (exists ((x Int) (y Int)) (and (> x 5) (>= y 3) (< (+ x y) 9)))))
+  (assert (exists ((x Int) (y Int)) (and (> x 5) (>= y 3) (<= (+ x y) 9))))
+  (assert (exists ((x Int) (y Int)) (and (> x 5) (>= y 3) (> (+ x y) 9))))
+  (assert (exists ((x Int) (y Int)) (and (> x 5) (>= y 3) (>= (+ x y) 8))))
+  (assert (exists ((x Int) (y Int)) (and (> x 5) (>= y 3) (= (+ x y) 9))))
+  (check-sat) ; sat
+(pop 1)

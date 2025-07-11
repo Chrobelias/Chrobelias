@@ -1,4 +1,5 @@
 (* SPDX-License-Identifier: MIT *)
+
 (* Copyright 2024-2025, Chrobelias. *)
 
 open Format
@@ -65,7 +66,7 @@ let stretch vec mask_list deg =
   | false -> Option.none
 ;;
 
-let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v) + 1
+let bv_len v = if Z.equal v Z.zero then 0 else Z.log2 v + 1
 
 let bv_to_list =
   let rec aux acc z =
@@ -89,13 +90,13 @@ module Label = struct
   let combine (vec1, mask1) (vec2, mask2) = Z.logor vec1 vec2, Z.logor mask1 mask2
 
   let project proj (vec, mask) =
-    let proj = (bv_of_list proj) in
-    Z.sub vec (Z.logand vec proj), Z.sub mask (Z.logand mask proj)
+    let proj = bv_of_list proj in
+    vec, Z.sub mask (Z.logand mask proj)
   ;;
 
   let truncate len (vec, mask) =
     let proj = Z.sub (Z.shift_left Z.one len) Z.one in
-    Z.logand vec proj, Z.logand mask proj
+    vec, Z.logand mask proj
   ;;
 
   let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
@@ -108,13 +109,23 @@ module Label = struct
     (*Format.printf "length: %d\n" length;*)
     Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
     |> Iter.map Z.of_int
-    |> Iter.map (fun x -> stretch x mask_list length |> Option.get (*|> (fun x -> Format.printf "intrm: %a\n" Z.pp_print x; x)*))
+    |> Iter.map (fun x ->
+      stretch x mask_list length
+      |> Option.get (*|> (fun x -> Format.printf "intrm: %a\n" Z.pp_print x; x)*))
     |> Iter.map (fun x -> x, mask)
     |> Iter.to_list
-    (*|> List.map (fun (x, y) -> Format.printf "%a, %a%!\n" Z.pp_print x Z.pp_print y; (x, y))*)
   ;;
 
-  let z _deg = (Z.zero, Z.zero)
+  (*|> List.map (fun (x, y) -> Format.printf "%a, %a%!\n" Z.pp_print x Z.pp_print y; (x, y))*)
+
+  (*Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
+    |> Iter.map Z.of_int
+    |> Iter.map (fun x ->
+      stretch x mask_list length
+      |> Option.get (*|> (fun x -> Format.printf "intrm: %a\n" Z.pp_print x; x)*))
+    |> Iter.map (fun x -> x, mask)
+    |> Iter.to_list*)
+  let z _deg = Z.zero, Z.zero
 
   let pp_label ppf (vec, mask) =
     let vec = bv_to_list vec |> Bitv.of_list |> Bitv.L.to_string |> String.to_seq in
@@ -128,7 +139,9 @@ module Label = struct
   ;;
 
   let reenumerate map (vec, mask) =
-    let length = max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1) in
+    let length =
+      max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1)
+    in
     let vec =
       bv_init length (fun i ->
         match Map.find map i with
@@ -326,6 +339,7 @@ module Make (Invariants : NfaInvariants) = struct
   let length = length
 
   let remove_unreachable nfa =
+    (* Format.printf "Runinng remove_unreachable\n%!"; *)
     let reversed_transitions = nfa.transitions |> Graph.reverse in
     let reachable =
       let visited = Array.make (length nfa) false in
@@ -341,7 +355,9 @@ module Make (Invariants : NfaInvariants) = struct
             let qs = (delta |> List.map snd) @ tl in
             bfs reachable qs)
       in
-      bfs Set.empty (nfa.final |> Set.to_list)
+      let ans = bfs Set.empty (nfa.final |> Set.to_list) in
+      (* Format.printf "End remove_unreachable\n%!"; *)
+      ans
     in
     let map_new_old =
       reachable
@@ -550,14 +566,23 @@ module Make (Invariants : NfaInvariants) = struct
   ;;
 
   let project to_remove nfa =
-    let transitions = Array.copy nfa.transitions in
-    Array.iteri
-      (fun q delta ->
-         let project (label, q') = Label.project to_remove label, q' in
-         Array.set transitions q (List.map project delta))
-      transitions;
-    { final = nfa.final; start = nfa.start; transitions; deg = nfa.deg; is_dfa = false }
-    |> Invariants.update_invariants
+    (* Format.printf "Runining project\n%!"; *)
+    let res =
+      Array.iteri
+        (fun q delta ->
+           let project (label, q') = Label.project to_remove label, q' in
+           Array.set nfa.transitions q (List.map project delta))
+        nfa.transitions;
+      { final = nfa.final
+      ; start = nfa.start
+      ; transitions = nfa.transitions
+      ; deg = nfa.deg
+      ; is_dfa = false
+      }
+      |> Invariants.update_invariants
+    in
+    (* Format.printf "End project\n%!"; *)
+    res
   ;;
 
   let truncate l nfa =
@@ -614,6 +639,7 @@ module Make (Invariants : NfaInvariants) = struct
   ;;
 
   let to_dfa nfa =
+    (* Format.printf "Runinng to_dfa\n%!"; *)
     if nfa.is_dfa
     then nfa
     else (
@@ -697,6 +723,7 @@ module Make (Invariants : NfaInvariants) = struct
       Queue.add nfa.start queue;
       let transitions, final = aux [] Set.empty queue in
       let transitions = Array.of_list transitions in
+      (* Format.printf "End to_dfa\n%!"; *)
       { final; start = Set.singleton 0; transitions; deg = nfa.deg; is_dfa = true })
   ;;
 
@@ -790,11 +817,11 @@ module Lsb = struct
 
   let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg) : t =
     let _, _2 = res, temp in
-    let _mask = failwith "TBD" (*Bitv.init 32 (fun x -> x = res || x = temp)*) in
-    let zero_lbl = failwith "TBD" (*Bitv.init 32 (Fun.const false), mask *) in
-    let res_lbl = failwith "TBD" (*Bitv.init 32 (( = ) res), mask *) in
-    let pow_lbl = failwith "TBD" (*Bitv.init 32 (( = ) temp), mask *) in
-    let one_lbl = failwith "TBD" (*Bitv.init 32 (Fun.const true), mask *) in
+    let mask = bv_init 32 (fun x -> x = res || x = temp) in
+    let zero_lbl = bv_init 32 (Fun.const false), mask in
+    let res_lbl = bv_init 32 (( = ) res), mask in
+    let pow_lbl = bv_init 32 (( = ) temp), mask in
+    let one_lbl = bv_init 32 (Fun.const true), mask in
     let reversed_transitions = nfa.transitions |> Graph.reverse in
     let end_transitions =
       reversed_transitions
@@ -918,9 +945,9 @@ module Lsb = struct
   ;;
 
   let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
-    let mask = failwith "TBD" (* Bitv.init 32 (( = ) temp) *) in
+    let mask = bv_init 32 (( = ) temp) in
     let temp_lbl = mask, mask in
-    let exp_nfa = get_exponent_sub_nfa nfa ~res:res ~temp:temp in
+    let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
     exp_nfa.start
     |> Set.to_list
     |> List.filter_map (fun mid ->
@@ -1101,27 +1128,11 @@ module MsbNat = struct
 
   let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg) : t =
     (*Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;*)
-    let _, _2 = res, temp in
-    let _mask =
-      failwith "TBD"
-      (* Bitv.init 32 (fun x -> x = res || x = temp) *)
-    in
-    let zero_lbl =
-      failwith "TBD"
-      (* Bitv.init 32 (Fun.const false), mask *)
-    in
-    let res_lbl =
-      failwith "TBD"
-      (* Bitv.init 32 (( = ) res), mask *)
-    in
-    let pow_lbl =
-      failwith "TBD"
-      (* Bitv.init 32 (( = ) temp), mask *)
-    in
-    let one_lbl =
-      failwith "TBD"
-      (* Bitv.init 32 (Fun.const true), mask *)
-    in
+    let mask = bv_init 32 (fun x -> x = res || x = temp) in
+    let zero_lbl = bv_init 32 (Fun.const false), mask in
+    let res_lbl = bv_init 32 (( = ) res), mask in
+    let pow_lbl = bv_init 32 (( = ) temp), mask in
+    let one_lbl = bv_init 32 (Fun.const true), mask in
     let end_transitions =
       nfa.transitions
       |> Array.mapi (fun src list ->
@@ -1207,12 +1218,9 @@ module MsbNat = struct
   ;;
 
   let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
-    let mask =
-      failwith "TBD"
-      (*Bitv.init 32 (( = ) temp) *)
-    in
+    let mask = bv_init 32 (( = ) temp) in
     let temp_lbl = mask, mask in
-    let exp_nfa = get_exponent_sub_nfa nfa ~res:res ~temp:temp in
+    let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
     exp_nfa.start
     |> Set.to_list
     |> List.filter_map (fun mid ->
@@ -1231,11 +1239,7 @@ module MsbNat = struct
 end
 
 let to_nat (nfa : Msb.t) : MsbNat.t =
-  let zero_lbl =
-    failwith "TBD"
-    (*
-       Bitv.init nfa.deg (Fun.const false), Bitv.init nfa.deg (Fun.const true)*)
-  in
+  let zero_lbl = bv_init nfa.deg (Fun.const false), bv_init nfa.deg (Fun.const true) in
   let start =
     nfa.start
     |> Set.to_list
