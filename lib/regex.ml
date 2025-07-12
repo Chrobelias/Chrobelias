@@ -2,7 +2,7 @@
 (* Copyright 2024-2025, Chrobelias. *)
 
 module Map = Base.Map.Poly
-(*module Nfa = Nfa.Msb*)
+module Nfa = Nfa.Lsb
 
 type t =
   | Empty
@@ -122,7 +122,7 @@ let to_nfa r =
         delta)
   in
   let deg = symbols r |> List.fold_left (fun acc v -> max acc (Bitv.length v)) 0 in
-  Nfa.Msb.create_nfa
+  Nfa.create_nfa
     ~transitions
     ~start:[ regex_to_state r ]
     ~final:(finals |> List.map regex_to_state)
@@ -222,7 +222,7 @@ let%expect_test "To nfa basic" =
   of_string "[00]/[10]|[00]/[01]"
   |> Result.get_ok
   |> to_nfa
-  |> Format.printf "%a@." Nfa.Msb.format_nfa;
+  |> Format.printf "%a@." Nfa.format_nfa;
   [%expect
     {|
     digraph {
@@ -243,7 +243,7 @@ let%expect_test "To nfa and predicate" =
   of_string "*([000]|[100]|[010]|[111])"
   |> Result.get_ok
   |> to_nfa
-  |> Format.printf "%a@." Nfa.Msb.format_nfa;
+  |> Format.printf "%a@." Nfa.format_nfa;
   [%expect
     {|
     digraph {

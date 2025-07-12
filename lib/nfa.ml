@@ -88,11 +88,7 @@ module Label = struct
   ;;
 
   let combine (vec1, mask1) (vec2, mask2) = Z.logor vec1 vec2, Z.logor mask1 mask2
-
-  let project proj (vec, mask) =
-    let proj = bv_of_list proj in
-    vec, Z.sub mask (Z.logand mask proj)
-  ;;
+  let project proj (vec, mask) = vec, Z.sub mask (Z.logand mask proj)
 
   let truncate len (vec, mask) =
     let proj = Z.sub (Z.shift_left Z.one len) Z.one in
@@ -575,10 +571,11 @@ module Make (Invariants : NfaInvariants) = struct
 
   let project to_remove nfa =
     (* Format.printf "Runining project\n%!"; *)
+    let proj = bv_of_list to_remove in
     let res =
       Array.iteri
         (fun q delta ->
-           let project (label, q') = Label.project to_remove label, q' in
+           let project (label, q') = Label.project proj label, q' in
            Array.set nfa.transitions q (List.map project delta))
         nfa.transitions;
       { final = nfa.final
