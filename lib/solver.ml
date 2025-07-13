@@ -17,9 +17,17 @@ let internal s =
 let collect_vars ir =
   Ir.fold
     (fun acc -> function
-       | Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)
+       (*| Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
-       | Ir.Rel (_, term, _) -> Set.union acc (Set.of_list (Map.keys term))
+       | Ir.Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function
+              | Ir.Var _ as ir -> [ ir ]
+              | Ir.Pow2 a as ir -> [ ir; Ir.var a ]
+              | Ir.Internal _ as ir -> [ ir ])
+            |> Set.of_list)
        | _ -> acc)
     Set.empty
     ir
