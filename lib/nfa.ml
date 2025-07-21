@@ -128,8 +128,16 @@ module Label = struct
   let z _deg = Z.zero, Z.zero
 
   let pp_label ppf (vec, mask) =
-    let vec = bv_to_list vec |> Bitv.of_list |> Bitv.L.to_string |> String.to_seq in
-    let mask = bv_to_list mask |> Bitv.of_list |> Bitv.L.to_string |> String.to_seq in
+    let vec =
+      Bitv.of_list_with_length (bv_to_list vec) (bv_len mask)
+      |> Bitv.L.to_string
+      |> String.to_seq
+    in
+    let mask =
+      Bitv.of_list_with_length (bv_to_list mask) (bv_len mask)
+      |> Bitv.L.to_string
+      |> String.to_seq
+    in
     Seq.zip vec mask
     |> Seq.map (function
       | _, '0' -> '_'
@@ -386,7 +394,7 @@ module Make (Invariants : NfaInvariants) = struct
              else Option.none)
           delta)
     in
-    { transitions; start; final; deg = nfa.deg; is_dfa = nfa.is_dfa }
+    { transitions; start; final; deg = nfa.deg; is_dfa = false }
   ;;
 
   let create_nfa
@@ -526,7 +534,7 @@ module Make (Invariants : NfaInvariants) = struct
     in
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
-    { final; start; transitions; deg; is_dfa }
+    { final; start; transitions; deg; is_dfa } |> remove_unreachable
   ;;
 
   let unite nfa1 nfa2 =

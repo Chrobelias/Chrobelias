@@ -487,7 +487,7 @@ let eval ir =
        let rec eval_and = function
          | hd :: [] -> hd
          | hd :: hd' :: tl ->
-           (* Format.printf "Intersecting %d %d\n%!" (Nfa.length hd) (Nfa.length hd');*)
+           (* Format.printf "Intersecting %d %d\n%!" (Nfa.length hd) (Nfa.length hd'); *)
            let nfa = Nfa.intersect hd hd' in
            Debug.dump_nfa Nfa.format_nfa nfa;
            let nfas =
