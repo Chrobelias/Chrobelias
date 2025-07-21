@@ -59,8 +59,6 @@ let lt t c = leq t (pred c)
 let geq t c = leq (neg t) (-c)
 let gt t c = leq (neg t) (pred ~-c)
 
-type ir = t Hashcons.hash_consed
-
 (* Structural equivalence of the IR formulas. *)
 let rec equal ir ir' =
   match ir, ir' with
@@ -105,8 +103,6 @@ module X = struct
     | Reg (regex, atoms) -> Hashtbl.hash regex + hashl Hashtbl.hash atoms
   ;;
 end
-
-module H = Hashcons.Make (X)
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
