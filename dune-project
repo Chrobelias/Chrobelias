@@ -27,9 +27,9 @@
   ppx_deriving
   ppx_variants_conv
   smtml
-  (ppx_expect :with-test)
-  (ppx_inline_test :with-test)
+  ounit2
+  ppx_expect
+  ppx_inline_test
   (ocamlformat :dev))
  (tags
   (solver theorem)))
-
