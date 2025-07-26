@@ -488,7 +488,8 @@ let eval ir =
   let module Nfa = Nfa.Msb in
   let module NfaCollection = NfaCollection.Msb in
   let ir = trivial ir in
-  if config.dump_simpl then Format.printf "%a\n" Ir.pp_smtlib ir;
+  let ir = Ir.simpl_monotonicty ir in
+  if config.dump_simpl then Format.printf "%a\n" Ir.pp_smtlib2 ir;
   if config.stop_after = `Simpl then exit 0;
   let vars = collect_vars ir in
   let rec eval ir =
