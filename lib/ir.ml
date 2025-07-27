@@ -174,3 +174,75 @@ let rec fold f acc ir =
 
 let for_all f ir = fold (fun acc ir -> f ir |> ( && ) acc) true ir
 let for_some f ir = fold (fun acc ir -> f ir |> ( || ) acc) false ir
+
+[@@@ocaml.warnerror "-26"]
+
+(** An attempt to implement pretty-printer via conversion to Smtml *)
+let pp_smtlib ppf (ir : t) =
+  let open Smtml in
+  let of_atom = function
+    | Var s -> Expr.symbol (Symbol.make Ty.Ty_int s)
+    | Pow2 s ->
+      Expr.binop
+        Ty.Ty_int
+        Ty.Binop.Pow
+        (Expr.value (Value.Int 2))
+        (Expr.symbol (Symbol.make Ty.Ty_int s))
+    | rez ->
+      Format.eprintf "\n@[%a@]\n\n%!" pp_atom rez;
+      Printf.eprintf "%s %d\n" __FILE__ __LINE__;
+      exit 1
+  in
+  let rec expr_of_ir : t -> Smtml.Expr.t = function
+    | True ->
+      Expr.symbol (Symbol.make Ty.Ty_bool "TRUE")
+      (* Expr.relop
+        Ty.Ty_int
+        Ty.Relop.Eq
+        (Expr.value (Value.Int 42))
+        (Expr.value (Value.Int 42)) *)
+    | Land [ x ] -> expr_of_ir x
+    | Land (x :: xs) -> Expr.Bool.and_ (expr_of_ir x) (expr_of_ir (Land xs))
+    | Rel (op, args, rhs) ->
+      let op =
+        match op with
+        | Leq -> Ty.Relop.Le
+        | Eq -> Ty.Relop.Eq
+      in
+      let open Smtml.Expr in
+      let polynom =
+        let linear = Map.to_sequence ~order:`Increasing_key args in
+        match Base.Sequence.hd linear with
+        | None -> failwith "bad empty polynome"
+        | Some h ->
+          let ( + ) = Expr.binop Ty.Ty_int Ty.Binop.Add in
+          let ( * ) = Expr.binop Ty.Ty_int Ty.Binop.Mul in
+          let combine (key, data) =
+            if data = 1 then of_atom key else value (Value.Int data) * of_atom key
+          in
+          Base.Sequence.fold
+            (Base.Sequence.tl_eagerly_exn linear)
+            ~init:(combine h)
+            ~f:(fun acc item -> acc + combine item)
+      in
+      relop Smtml.Ty.Ty_int op polynom (value (Smtml.Value.Int rhs))
+    | Exists (atoms, rhs) -> Smtml.Expr.exists (List.map of_atom atoms) (expr_of_ir rhs)
+    | rez ->
+      Format.eprintf "\n@[%a@]\n\n%!" pp rez;
+      Printf.eprintf "%s %d\n" __FILE__ __LINE__;
+      exit 1
+  in
+  let smtml_ir =
+    match ir with
+    | Land xs ->
+      Printf.eprintf "%s %d\n" __FILE__ __LINE__;
+      exit 1
+    | Exists (atoms, xs) ->
+      Smtml.Ast.Assert (Smtml.Expr.exists (List.map of_atom atoms) (expr_of_ir xs))
+    | _ ->
+      Printf.eprintf "%s %d\n" __FILE__ __LINE__;
+      exit 1
+  in
+  let open Smtml.Ast in
+  pp ppf smtml_ir
+;;
