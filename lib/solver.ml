@@ -456,13 +456,40 @@ let trivial ir =
   aux2 ir
 ;;
 
+type config =
+  { mutable stop_after : [ `Simpl | `Solving ]
+  ; mutable dump_simpl : bool
+  ; mutable input_file : string
+  }
+
+let config = { stop_after = `Solving; dump_simpl = false; input_file = "" }
+
+let parse_args () =
+  (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
+  Arg.parse
+    [ ( "-stop-after"
+      , Arg.String
+          (function
+            | "simpl" -> config.stop_after <- `Simpl
+            | _ -> failwith "Bad argument")
+      , "" )
+    ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), ""
+    ]
+    (fun s ->
+       if Sys.file_exists s
+       then config.input_file <- s
+       else Printf.eprintf "File %S doesn't exist\n" s)
+    "help"
+;;
+
 let level = ref 0
 
 let eval ir =
   let module Nfa = Nfa.Msb in
   let module NfaCollection = NfaCollection.Msb in
   let ir = trivial ir in
-  (*Debug.printfln "Trivial solution %a\n" Ir.pp ir;*)
+  if config.dump_simpl then Format.printf "%a\n" Ir.pp_smtlib ir;
+  if config.stop_after = `Simpl then exit 0;
   let vars = collect_vars ir in
   let rec eval ir =
     (* Format.printf "%d Running %a\n%!" !level Ir.pp ir; *)
@@ -557,7 +584,7 @@ let to_exp = function
 let decide_order vars =
   let rec perms list =
     let a =
-      if List.length list <> 0
+      if list <> []
       then
         List.mapi
           (fun i el ->

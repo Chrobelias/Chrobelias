@@ -1,3 +1,8 @@
+(env
+ (dev
+  (flags
+   (:standard -w -unused-var-strict))))
+
 (library
  (name lib)
  (modules Ast Nfa NfaCollection Ir Regex Solver Debug Fe Me)

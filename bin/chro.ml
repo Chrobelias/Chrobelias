@@ -3,13 +3,20 @@
 
 module Map = Base.Map.Poly
 
+let () = Lib.Solver.parse_args ()
+
 type state =
   { asserts : Lib.Ast.t list
   ; prev : state option
   }
 
 let () =
-  let f = Sys.argv.(1) |> Fpath.of_string |> Result.get_ok |> Smtml.Parse.from_file in
+  let f =
+    Lib.Solver.config.input_file
+    |> Fpath.of_string
+    |> Result.get_ok
+    |> Smtml.Parse.from_file
+  in
   let exec ({ prev; _ } as state) = function
     | Smtml.Ast.Push _ -> { asserts = []; prev = Some state }
     | Smtml.Ast.Pop _ -> begin
