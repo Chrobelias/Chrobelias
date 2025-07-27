@@ -12,10 +12,11 @@ type state =
 
 let () =
   let f =
-    Lib.Solver.config.input_file
-    |> Fpath.of_string
-    |> Result.get_ok
-    |> Smtml.Parse.from_file
+    match Fpath.of_string Lib.Solver.config.input_file with
+    | Result.Error (`Msg msg) ->
+      Format.eprintf "%s\n%!" msg;
+      exit 1
+    | Ok file -> Smtml.Parse.from_file file
   in
   let exec ({ prev; _ } as state) = function
     | Smtml.Ast.Push _ -> { asserts = []; prev = Some state }
