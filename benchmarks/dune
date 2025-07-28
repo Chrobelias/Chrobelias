@@ -1,0 +1,7 @@
+(executable
+ (name gen)
+ (libraries unix str))
+
+(cram
+ (applies_to gen)
+ (deps ./gen.exe))
