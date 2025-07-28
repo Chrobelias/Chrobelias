@@ -85,7 +85,9 @@ let of_eia (eia : Ast.Eia.t) =
           | Var v | Internal v -> Map.singleton (Ir.pow2 v) 1
           | _ -> failwith "unreachable"
         end
-        else failwith "only base 2 is supported in exponents"
+        else
+          failwith
+            (Printf.sprintf "only base 2 is supported in exponents (got %d)" base_c)
       in
       let sups = base_sups @ exp_sups in
       `Poly (poly, 0, sups)
