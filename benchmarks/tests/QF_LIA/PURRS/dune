@@ -1,0 +1,148 @@
+(cram
+  (applies_to purrs10)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs10.smt2))
+
+(cram
+  (applies_to purrs09)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs09.smt2))
+
+(cram
+  (applies_to purrs32)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs32.smt2))
+
+(cram
+  (applies_to purrs18)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs18.smt2))
+
+(cram
+  (applies_to purrs21)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs21.smt2))
+
+(cram
+  (applies_to purrs14)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs14.smt2))
+
+(cram
+  (applies_to purrs33)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs33.smt2))
+
+(cram
+  (applies_to purrs05)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs05.smt2))
+
+(cram
+  (applies_to purrs03)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs03.smt2))
+
+(cram
+  (applies_to purrs36)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs36.smt2))
+
+(cram
+  (applies_to purrs06)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs06.smt2))
+
+(cram
+  (applies_to purrs34)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs34.smt2))
+
+(cram
+  (applies_to purrs08)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs08.smt2))
+
+(cram
+  (applies_to purrs01)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs01.smt2))
+
+(cram
+  (applies_to purrs12)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs12.smt2))
+
+(cram
+  (applies_to purrs04)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs04.smt2))
+
+(cram
+  (applies_to purrs07)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs07.smt2))
+
+(cram
+  (applies_to purrs16)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs16.smt2))
+
+(cram
+  (applies_to purrs15)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs15.smt2))
+
+(cram
+  (applies_to purrs20)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs20.smt2))
+
+(cram
+  (applies_to purrs25)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs25.smt2))
+
+(cram
+  (applies_to purrs17)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs17.smt2))
+
+(cram
+  (applies_to purrs28)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs28.smt2))
+
+(cram
+  (applies_to purrs24)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs24.smt2))
+
+(cram
+  (applies_to purrs30)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs30.smt2))
+
+(cram
+  (applies_to purrs11)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs11.smt2))
+
+(cram
+  (applies_to purrs13)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs13.smt2))
+
+(cram
+  (applies_to purrs02)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs02.smt2))
+
+(cram
+  (applies_to purrs19)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs19.smt2))
+
+(cram
+  (applies_to purrs35)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs35.smt2))
+
+(cram
+  (applies_to purrs22)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs22.smt2))
+
+(cram
+  (applies_to purrs23)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs23.smt2))
+
+(cram
+  (applies_to purrs37)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs37.smt2))
+
+(cram
+  (applies_to purrs26)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs26.smt2))
+
+(cram
+  (applies_to purrs31)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs31.smt2))
+
+(cram
+  (applies_to purrs29)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs29.smt2))
+
+(cram
+  (applies_to purrs27)
+  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs27.smt2))
+
