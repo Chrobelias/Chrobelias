@@ -485,6 +485,7 @@ let parse_args () =
 let level = ref 0
 
 let eval ir =
+  let module NfaO = Nfa in
   let module Nfa = Nfa.Msb in
   let module NfaCollection = NfaCollection.Msb in
   let ir = trivial ir in
@@ -507,7 +508,7 @@ let eval ir =
          List.map
            (fun ir ->
               let nfa = eval ir in
-              (*Format.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);*)
+              (* Format.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);*)
               nfa)
            irs
          |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
@@ -530,7 +531,11 @@ let eval ir =
      | Ir.Rel (rel, term, c) -> eval_rel vars rel term c
      | Ir.Reg (reg, atoms) -> eval_reg vars reg atoms
      | Ir.Exists (atoms, ir) ->
-       eval ir |> Nfa.project (List.filter_map (Map.find vars) atoms) |> Nfa.minimize
+       eval ir
+       |> Nfa.project (List.filter_map (Map.find vars) atoms)
+       |> NfaO.lsb_of_msb
+       |> NfaO.Lsb.minimize
+       |> NfaO.msb_of_lsb
      | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
     |> fun nfa ->
     level := !level - 1;

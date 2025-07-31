@@ -1055,7 +1055,16 @@ let lsb_of_msb (nfa : Msb.t) : Lsb.t =
   { transitions = Graph.reverse nfa.transitions
   ; start = nfa.final
   ; deg = nfa.deg
-  ; final = failwith "TODO"
+  ; final = nfa.start
+  ; is_dfa = false
+  }
+;;
+
+let msb_of_lsb (nfa : Lsb.t) : Msb.t =
+  { transitions = Graph.reverse nfa.transitions
+  ; start = nfa.final
+  ; deg = nfa.deg
+  ; final = nfa.start
   ; is_dfa = false
   }
 ;;
