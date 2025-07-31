@@ -59,6 +59,7 @@ end
 
 module Msb : Type
 
+val msb_of_lsb : Lsb.t -> Msb.t
 val lsb_of_msb : Msb.t -> Lsb.t
 
 module MsbNat : sig
