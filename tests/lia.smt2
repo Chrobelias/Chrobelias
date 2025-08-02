@@ -3,6 +3,9 @@
 (declare-const x Int)
 (declare-const y Int)
 (declare-const z Int)
+(declare-const a Int)
+(declare-const b Int)
+(declare-const c Int)
 
 (push 1)
   (assert (= (+ 2 6) 8))
@@ -63,5 +66,70 @@
   (assert (exists ((x Int) (y Int)) (and (> x 5) (>= y 3) (> (+ x y) 9))))
   (assert (exists ((x Int) (y Int)) (and (> x 5) (>= y 3) (>= (+ x y) 8))))
   (assert (exists ((x Int) (y Int)) (and (> x 5) (>= y 3) (= (+ x y) 9))))
+  (check-sat) ; sat
+(pop 1)
+
+(push 1)
+  (assert (> x 4))
+  (assert (< y 12))
+  (assert (>= z 8))
+  (assert (< z x))
+  (assert (<= x y))
+  (check-sat) ; sat
+(pop 1)
+
+(push 1)
+  (assert (> x 4))
+  (assert (< y 12))
+  (assert (>= z 8))
+  (assert (< z x))
+  (assert (<= x y))
+  (assert (not (= x 9)))
+  (assert (not (= x 10)))
+  (assert (not (= x 11)))
+  (check-sat) ; unsat
+(pop 1)
+
+(push 1)
+  (assert (> x 4))
+  (assert (< y 12))
+  (assert (>= z 8))
+  (assert (< z x))
+  (assert (<= x y))
+  (assert (not (= x 9)))
+  (assert (not (= x 11)))
+  (check-sat) ; sat
+(pop 1)
+
+(push 1)
+  (assert (= z 3))
+  (assert (= a z))
+  (assert (= b a))
+  (assert (= b 4))
+  (check-sat) ; unsat
+(pop 1)
+
+(push 1)
+  (assert (= z 3))
+  (assert (= a z))
+  (assert (= b a))
+  (assert (>= b c))
+  (assert (<= b c))
+  (assert (= 17 c))
+  (check-sat) ; unsat
+(pop 1)
+
+(push 1)
+  (assert (forall ((x Int) (y Int)) (and (=> (= x y) (and (<= x y) (<= y x))) (=> (and (<= x y) (<= y x)) (= x y)))))
+  (check-sat) ; sat
+(pop 1)
+
+(push 1)
+  (assert (forall ((x Int)) (exists ((y Int)) (or (= x (* 3 y)) (= x (+ (* 3 y) 1)) (= x (+ (* 3 y) 2))))))
+  (check-sat) ; sat
+(pop 1)
+
+(push 1)
+  (assert (forall ((x Int)) (exists ((y Int)) (or (= x (* 3 y)) (= x (+ (* 3 y) 2))))))
   (check-sat) ; sat
 (pop 1)

@@ -6,7 +6,6 @@ module Map = Base.Map.Poly
 
 type t = { vars : (Ir.atom, int) Map.t }
 
-(*let pow base n = List.init n (Fun.const base) |> List.fold_left ( * ) 1*)
 let internal_counter = ref 0
 
 let internal s =
@@ -86,7 +85,7 @@ let eval_rel vars rel term c =
     else NfaCollection.Msb.z ()
   else (
     let thing = powerset term in
-    (* Debug.printfln "IR %a" Ir.Eia ir;*)
+    (*Debug.printfln "IR %a" Ir.Eia ir;*)
     (*Debug.printfln
       "thing:[%a]"
       (Format.pp_print_list
@@ -531,11 +530,10 @@ let eval ir =
      | Ir.Rel (rel, term, c) -> eval_rel vars rel term c
      | Ir.Reg (reg, atoms) -> eval_reg vars reg atoms
      | Ir.Exists (atoms, ir) ->
-       eval ir
-       |> Nfa.project (List.filter_map (Map.find vars) atoms)
-       |> NfaO.lsb_of_msb
+       eval ir |> Nfa.project (List.filter_map (Map.find vars) atoms)
+       (*|> NfaO.lsb_of_msb
        |> NfaO.Lsb.minimize
-       |> NfaO.msb_of_lsb
+       |> NfaO.msb_of_lsb*)
      | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
     |> fun nfa ->
     level := !level - 1;
@@ -646,7 +644,11 @@ let nfa_for_exponent2 s var var2 chrob =
     let var2_plus_a = internal s in
     let t = internal s in
     let c_mul_t = internal s in
-    Debug.printfln "nfa_for_exponent2: internal_counter=%d" !internal_counter;
+    Debug.printfln
+      "nfa_for_exponent2: internal_counter=%d var=%d var2=%d"
+      !internal_counter
+      var
+      var2;
     Debug.printfln "[ var2_plus_a; c_mul_t; t ] = [%d; %d; %d]" var2_plus_a c_mul_t t;
     let nfa =
       Nfa.project
@@ -738,7 +740,11 @@ let%expect_test "Useless quantifier remove" =
 let project_exp s nfa x next =
   let module Nfa = Nfa.MsbNat in
   let module NfaCollection = NfaCollection.MsbNat in
-  Debug.dump_nfa ~msg:"Nfa inside project_exp: %s" Nfa.format_nfa nfa;
+  Debug.dump_nfa
+    ~msg:"Nfa inside project_exp: %s"
+    ~vars:(Map.to_alist s.vars)
+    Nfa.format_nfa
+    nfa;
   let get_deg = Map.find_exn s.vars in
   let x' = get_exp x in
   if is_exp next
@@ -784,7 +790,11 @@ let proof_order return project s nfa order =
   let module NfaCollection = NfaCollection.MsbNat in
   let get_deg = Map.find_exn s.vars in
   let rec helper nfa order model =
-    Debug.dump_nfa ~msg:"Nfa inside proof_order: %s" Nfa.format_nfa nfa;
+    Debug.dump_nfa
+      ~msg:"Nfa inside proof_order: %s"
+      ~vars:(Map.to_alist s.vars)
+      Nfa.format_nfa
+      nfa;
     match order with
     | [] -> return s nfa model
     | x :: [] -> return s (project (get_deg x) nfa) model
@@ -921,12 +931,12 @@ let eval_semenov return next formula =
   decide_order powered_vars
   |> List.to_seq
   |> Seq.map (prepare_order s nfa)
-  |> Seq.filter (function order, nfa ->
+  (*|> Seq.filter (function order, nfa ->
       let nfa =
         nfa |> Nfa.MsbNat.project (order |> List.map (fun str -> Map.find_exn s.vars str))
       in
       Debug.dump_nfa ~msg:"Checking if solvable: %s" Nfa.MsbNat.format_nfa nfa;
-      nfa |> Nfa.MsbNat.run)
+      nfa |> Nfa.MsbNat.run)*)
   |> Seq.map (fun (order, nfa) -> proof_order return next s nfa order)
   |> Seq.find (function
     | Some _ -> true
@@ -937,7 +947,7 @@ let eval_semenov return next formula =
 ;;
 
 let proof_semenov f =
-  Debug.printf "Testing2 %a" Ir.pp f;
+  Debug.printf "Trying to use Semenov deciding procedure over %a" Ir.pp f;
   match
     f
     |> eval_semenov
@@ -1036,9 +1046,9 @@ let proof ir =
     Debug.printfln "optimized formula: %a" Ast.pp_formula f;*)
     (*let free_vars = collect_free ir in*)
     (*let ir = Ir.exists (free_vars |> Set.to_list) ir in*)
-    Debug.printf "Testing %a" Ir.pp ir;
+    Debug.printf "Trying to use PrA deciding procedure over  %a" Ir.pp ir;
     let nfa, _ = ir |> eval in
-    Debug.dump_nfa ~msg:"resulting nfa: %s" Nfa.Msb.format_nfa nfa;
+    Debug.dump_nfa ~msg:"Resulting nfa: %s" Nfa.Msb.format_nfa nfa;
     if Nfa.Msb.run nfa then `Sat else `Unsat)
 ;;
 

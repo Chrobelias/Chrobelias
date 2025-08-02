@@ -11,6 +11,14 @@ Basic LIA tests
   unsat
   sat
   sat
+  sat
+  unsat
+  sat
+  unsat
+  unsat
+  sat
+  sat
+  unsat
 
 Test Frobenious coin problem for 7 and 11
 

@@ -18,18 +18,6 @@ let pp_atom fmt = function
   | Pow2 var -> Format.fprintf fmt "pow2(%s)" var
 ;;
 
-(* let pp_poly_atom fmt = function
-  | #atom as atom -> pp_atom fmt atom
-  | `Poly poly ->
-    Format.fprintf
-      fmt
-      "(%a)"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt " * ")
-         (fun fmt (var, exp) -> Format.fprintf fmt "%a^%d" pp_atom var exp))
-      (poly |> Map.to_alist)
-;; *)
-
 type rel =
   | Leq
   | Eq

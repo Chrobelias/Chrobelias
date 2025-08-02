@@ -102,11 +102,8 @@ module Label = struct
   let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
 
   let variations (_, mask) =
-    (*Format.printf "Running variations for mask %a\n" Z.pp_print mask;*)
     let mask_list = mask |> bv_to_list in
-    (*List.iter (fun x -> Format.printf "mask: %d\n" x) mask_list;*)
     let length = bv_len mask in
-    (*Format.printf "length: %d\n" length;*)
     Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
     |> Iter.map Z.of_int
     |> Iter.map (fun x ->
@@ -116,25 +113,17 @@ module Label = struct
     |> Iter.to_list
   ;;
 
-  (*|> List.map (fun (x, y) -> Format.printf "%a, %a%!\n" Z.pp_print x Z.pp_print y; (x, y))*)
-
-  (*Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
-    |> Iter.map Z.of_int
-    |> Iter.map (fun x ->
-      stretch x mask_list length
-      |> Option.get (*|> (fun x -> Format.printf "intrm: %a\n" Z.pp_print x; x)*))
-    |> Iter.map (fun x -> x, mask)
-    |> Iter.to_list*)
   let z _deg = Z.zero, Z.zero
 
   let pp_label ppf (vec, mask) =
+    let mask_len = bv_len mask in
     let vec =
-      Bitv.of_list_with_length (bv_to_list vec) (bv_len mask)
+      Bitv.of_list_with_length (bv_to_list vec |> List.filter (( > ) mask_len)) mask_len
       |> Bitv.L.to_string
       |> String.to_seq
     in
     let mask =
-      Bitv.of_list_with_length (bv_to_list mask) (bv_len mask)
+      Bitv.of_list_with_length (bv_to_list mask |> List.filter (( > ) mask_len)) mask_len
       |> Bitv.L.to_string
       |> String.to_seq
     in
