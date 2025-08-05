@@ -813,7 +813,7 @@ struct
   ;;
 
   let proof_semenov f =
-    Debug.printf "Trying to use Semenov deciding procedure over %a" Ir.pp f;
+    Debug.printf "Trying to use Semenov deciding procedure over %a\n" Ir.pp f;
     match
       f
       |> eval_semenov
@@ -910,7 +910,7 @@ struct
       Debug.printfln "optimized formula: %a" Ast.pp_formula f;*)
       let free_vars = collect_free ir in
       let ir = Ir.exists (free_vars |> Set.to_list) ir in
-      Debug.printf "Trying to use PrA deciding procedure over  %a" Ir.pp ir;
+      Debug.printf "Trying to use PrA deciding procedure over  %a\n" Ir.pp ir;
       if ir |> eval |> fst |> Nfa.run then `Sat else `Unsat)
   ;;
 
