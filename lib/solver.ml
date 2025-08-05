@@ -587,18 +587,25 @@ struct
       let n =
         List.init (a + 2) (( + ) a) |> List.filter (fun x -> x - log2 x >= a) |> List.hd
       in
+      Debug.printfln "nfa_for_exponent: a=%d, d=%d, c=%d, n=%d" a d c n;
+      Debug.dump_nfa ~msg:"nfa_for_exponent var nfa: %s" Nfa.format_nfa nfa;
       let newvar_nfa = NfaCollection.torename newvar d c in
+      Debug.dump_nfa ~msg:"nfa_for_exponent newvar nfa: %s" Nfa.format_nfa newvar_nfa;
       let geq_nfa =
         NfaCollection.geq var internal
         |> Nfa.intersect (NfaCollection.eq_const internal n)
-      in
-      let nfa =
-        nfa
-        |> Nfa.intersect newvar_nfa
-        |> Nfa.minimize
-        |> Nfa.intersect geq_nfa
         |> Nfa.project [ internal ]
       in
+      Debug.dump_nfa ~msg:"nfa_for_exponent geq_nfa: %s" Nfa.format_nfa geq_nfa;
+      let nfa =
+        nfa |> Nfa.intersect geq_nfa |> Nfa.intersect newvar_nfa
+        (* |> Nfa.minimize *)
+      in
+      Debug.dump_nfa
+        ~msg:"nfa_for_exponent output nfa: %s"
+        Nfa.format_nfa
+        nfa
+        ~vars:[ Ir.var "var", var; Ir.var "newvar", newvar ];
       internal_counter := old_internal_counter;
       nfa)
   ;;
@@ -683,6 +690,7 @@ struct
           match helper zero_nfa tl model with
           | Some _ as res -> res
           | None ->
+            Debug.printfln "%a > 1:" Ir.pp_atom x;
             project_exp s nfa x next
             |> Seq.map (fun (nfa, model_part) ->
               helper (Nfa.minimize (project (get_deg x) nfa)) tl (model_part :: model))

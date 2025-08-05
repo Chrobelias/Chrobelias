@@ -9,6 +9,9 @@ Basic QF_EIA tests
   sat
   unsat
   unsat
+  unsat
+  sat
+  unsat
   sat
   unsat
 
