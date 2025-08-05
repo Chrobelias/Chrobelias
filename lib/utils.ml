@@ -11,3 +11,11 @@ let option_map_to_map_option (map : ('a, 'b option) Map.t) : ('a, 'b) Map.t opti
     let* data = data in
     Some (Map.set ~key ~data acc))
 ;;
+
+let rec pow ~base:a = function
+  | 0 -> 1
+  | 1 -> a
+  | n ->
+    let b = pow ~base:a (n / 2) in
+    b * b * if n mod 2 = 0 then 1 else a
+;;

@@ -64,14 +64,7 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let rec pow a = function
-  | 0 -> 1
-  | 1 -> a
-  | n ->
-    let b = pow a (n / 2) in
-    b * b * if n mod 2 = 0 then 1 else a
-;;
-
+let pow base = Utils.pow ~base
 let bv_get v i = Z.logand v (Z.shift_left Z.one i) |> Z.equal Z.zero |> not
 
 let bv_init deg f =
