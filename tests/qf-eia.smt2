@@ -38,11 +38,11 @@
   (check-sat) ; unsat
 (pop 1)
 
-;(push 1)
-;  (assert (= x y))
-;  (assert (not (= (exp 2 x) (exp 2 y))))
-;  (check-sat) ; Should be unsat, but sat! (fix me, please)
-;(pop 1)
+(push 1)
+  (assert (= x y))
+  (assert (not (= (exp 2 x) (exp 2 y))))
+  (check-sat) ; unsat
+(pop 1)
 
 (push 1)
   (assert (not (= x y)))
@@ -60,5 +60,17 @@
 
 (push 1)
   (assert (= (exp 2 x) (+ (exp 2 y) 5)))
+  (check-sat) ; unsat
+(pop 1)
+
+(push 1)
+    (assert (> x 10))
+    (assert (= (exp 2 x) (exp 2 y)))
+    (check-sat) ; sat
+(pop 1)
+
+(push 1)
+  (assert (= x (+ y 1)))
+  (assert (not (= (exp 2 x) (* 2 (exp 2 y)))))
   (check-sat) ; unsat
 (pop 1)

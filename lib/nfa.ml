@@ -38,8 +38,8 @@ module Debug = struct
       let supdir = "debugs" in
       Sys.command (!<{|mkdir -p "%s"/"%s"|} supdir subdir) |> ignore;
       let dir = !<"%s/%s" supdir subdir in
-      let dot_file = !<"%s/%s.dot" dir name in
-      let svg_file = !<"%s/%s.svg" dir name in
+      let dot_file = !<"%s/n%s.dot" dir name in
+      let svg_file = !<"%s/n%s.svg" dir name in
       let oc = open_out dot_file in
       let command = Format.sprintf {|dot -Tsvg "%s" > "%s"|} dot_file svg_file in
       Format.asprintf "%a" format_nfa nfa |> Printf.fprintf oc "%s";
@@ -131,7 +131,9 @@ module Label = struct
     Z.equal (Z.logand vec1 mask) (Z.logand vec2 mask)
   ;;
 
-  let combine (vec1, mask1) (vec2, mask2) = Z.logor vec1 vec2, Z.logor mask1 mask2
+  let combine (vec1, mask1) (vec2, mask2) =
+    Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
+  ;;
 
   let project proj (vec, mask) =
     let proj = bv_of_list proj in
@@ -380,7 +382,6 @@ module type NatType = sig
   include Type
 
   val find_c_d : t -> (int, int) Map.t -> (int * int) list
-  val get_exponent_sub_nfa : t -> res:int -> temp:int -> t
   val chrobak : t -> (int * int) list
 
   val get_chrobaks_sub_nfas
@@ -1130,7 +1131,9 @@ module MsbNat = struct
     r2 @ r1
   ;;
 
-  let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg) : t =
+  let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg)
+    : t * (state, Label.t list) Map.t
+    =
     Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;
     let mask = bv_init 32 (fun x -> x = res || x = temp) in
     let zero_lbl = bv_init 32 (Fun.const false), mask in
@@ -1175,31 +1178,45 @@ module MsbNat = struct
       in
       helper (Array.map (Fun.const []) all_zero_transitions) Set.empty pre_final
     in
-    let final =
-      states
-      |> Set.filter ~f:(fun i ->
-        nfa.transitions.(i)
-        |> List.filter (fun (lbl, _) -> Label.equal lbl pow_lbl)
-        |> List.is_empty
-        |> not)
+    let start_transitions =
+      nfa.transitions
+      |> Array.mapi (fun src list ->
+        if Set.mem states src
+        then list |> List.filter (fun (lbl, _) -> Label.equal lbl pow_lbl)
+        else [])
+    in
+    let start =
+      start_transitions
+      |> Array.to_list
+      |> List.concat_map (List.map (fun (lbl, dst) -> dst, lbl))
+    in
+    let start_final_transitions =
+      nfa.transitions
+      |> Array.mapi (fun src list ->
+        if Set.mem nfa.start src
+        then list |> List.filter (fun (lbl, _) -> Label.equal lbl one_lbl)
+        else [])
     in
     let start_final =
-      nfa.start
-      |> Set.filter ~f:(fun i ->
-        nfa.transitions.(i)
-        |> List.filter (fun (lbl, _) -> Label.equal lbl one_lbl)
-        |> List.is_empty
-        |> not)
+      start_final_transitions
+      |> Array.to_list
+      |> List.concat_map (List.map (fun (lbl, dst) -> dst, lbl))
     in
-    let final = Set.union final start_final in
+    let start = List.concat [ start; start_final ] |> Map.of_alist_multi in
     let transitions =
-      Graph.union_list [ end_transitions; zero_transitions ] |> Graph.reverse
+      Graph.union_list [ start_transitions; start_final_transitions; zero_transitions ]
+      |> Graph.reverse
     in
     let result =
-      { transitions; final = nfa.start; start = final; deg = nfa.deg; is_dfa = false }
+      { transitions
+      ; final = Set.union pre_final (start_final |> List.map fst |> Set.of_list)
+      ; start = Set.empty
+      ; deg = nfa.deg
+      ; is_dfa = false
+      }
     in
     (*Debug.dump_nfa ~msg:"Exponent sub_nfa output: %s" format_nfa result;*)
-    result
+    result, start
   ;;
 
   let chrobak (nfa : t) =
@@ -1212,33 +1229,33 @@ module MsbNat = struct
     (* important *)
     (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
     let result = find_c_d nfa important in
-    (*Debug.printf "Chrobak output:";*)
-    (*Format.pp_print_list
+    Debug.printfln "Chrobak output:";
+    Format.pp_print_list
       (fun fmt (a, b) -> Format.fprintf fmt " (%d, %d)" a b)
       Debug.fmt
-      result;*)
-    (*Debug.printfln "";*)
+      result;
+    Debug.printfln "";
     result
   ;;
 
   let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
-    let mask = bv_init 32 (( = ) temp) in
-    let temp_lbl = mask, mask in
-    let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
-    exp_nfa.start
-    |> Set.to_list
-    |> List.filter_map (fun mid ->
+    let exp_nfa, start = get_exponent_sub_nfa nfa ~res ~temp in
+    Debug.dump_nfa ~msg:"exp_nfa: %s" format_nfa exp_nfa;
+    start
+    |> Map.to_alist
+    |> List.filter_map (fun (mid, lbls) ->
+      let chrobak_nfa = { exp_nfa with start = Set.singleton mid } in
       let* path = any_path { nfa with start = Set.singleton mid } vars in
-      ( { nfa with
-          start = Set.singleton mid
+      let nfa =
+        { nfa with
+          start = Set.singleton (Array.length nfa.transitions)
         ; transitions =
-            nfa.transitions
-            |> Array.map
-                 (List.filter (fun (lbl, fin) -> fin <> mid || Label.equal lbl temp_lbl))
+            Array.append nfa.transitions [| lbls |> List.map (fun lbl -> lbl, mid) |]
         }
-      , chrobak { exp_nfa with start = Set.singleton mid }
-      , path )
-      |> return)
+      in
+      Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
+      Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
+      (nfa, chrobak chrobak_nfa, path) |> return)
   ;;
 
   let to_nat (nfa : t) : u =
