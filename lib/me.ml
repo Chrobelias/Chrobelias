@@ -32,13 +32,9 @@ let of_eia (eia : Ast.Eia.t) =
       let sup = Ir.eq (Map.add_exn ~key:var ~data:(-1) poly) (-c) in
       var, sup :: sups
     | `Symbol (symbol, sups) -> symbol, sups
-  and of_term (term : Ast.Eia.term) =
-    match term with
-    | Atom v -> begin
-      match v with
-      | Var v -> `Symbol (Ir.var v, [])
-      | Const c -> `Poly (Map.empty, c, [])
-    end
+  and of_term : Ast.Eia.term -> _ = function
+    | Atom (Var v) -> `Symbol (Ir.var v, [])
+    | Atom (Const c) -> `Poly (Map.empty, c, [])
     | Add (hd :: tl) ->
       let hd = hd |> as_poly in
       let tl = List.map as_poly tl in
@@ -105,7 +101,9 @@ let of_eia (eia : Ast.Eia.t) =
       let c = c * d in
       let sups = sups @ sups' in
       `Poly (poly, c, sups)
-    | _ -> failf "unimplemented %a" Ast.Eia.pp eia
+    | other ->
+      Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other;
+      failf "unimplemented: %a" Ast.Eia.pp eia
   in
   match eia with
   | Eq (lhs, rhs) | Leq (lhs, rhs) ->
