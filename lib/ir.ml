@@ -9,6 +9,7 @@ type atom =
   | Pow2 of string
 [@@deriving variants]
 
+let eq_atom : atom -> atom -> bool = Stdlib.( = )
 let internalc = ref 0
 
 let internal () =
@@ -334,7 +335,7 @@ let log ppf =
 
 (** Habermehl's 2024 monotonicity simplification  *)
 let simpl_monotonicty ir =
-  log "ir = %a" pp ir;
+  log "ir = @[%a@]" pp ir;
   let is_bounded qvar ir =
     match ir with
     | Rel (Leq, map, rhs) when Map.length map = 1 ->

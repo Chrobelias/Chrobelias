@@ -1,9 +1,11 @@
+(** Middle-end *)
+
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
 let failf fmt = Format.kasprintf failwith fmt
 
-let collect_free (ir : Ast.t) =
+let collect_free =
   Ast.fold
     (fun acc -> function
        | Ast.Eia eia ->
@@ -17,7 +19,199 @@ let collect_free (ir : Ast.t) =
        | Ast.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
     Set.empty
-    ir
+;;
+
+type sup_binop =
+  | Bwand
+  | Bwor
+  | Bwxor
+
+(** Final-tagless style for building our representation  *)
+module type S = sig
+  type t
+  type repr
+
+  val symbol : string -> t
+  val poly_of_const : int -> t
+  val minus : t -> t -> t
+  val add : t -> t -> t
+  val mul : t -> t -> t
+  val bwop : sup_binop -> t -> t -> t
+  val pow : base:t -> t -> t
+  val prj : t -> repr
+end
+
+[@@@warnerror "-32-37-39"]
+
+module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = struct
+  type repr = (Ir.atom, int) Map.t * int * Ir.t list
+
+  type t =
+    | Poly of repr
+    | Symbol of Ir.atom * Ir.t list
+
+  let pp ppf =
+    let open Format in
+    function
+    | Poly _ -> fprintf ppf "Poly"
+    | Symbol (a, _) -> fprintf ppf "Symbol (%a,_)" Ir.pp_atom a
+  ;;
+
+  let as_poly = function
+    | Poly (poly, c, sups) as x -> x
+    | Symbol (symbol, sups) -> Poly (Map.singleton symbol 1, 0, sups)
+  ;;
+
+  let as_symbol = function
+    | Poly (poly, c, sups) ->
+      let var = Ir.internal () in
+      let sup = Ir.eq (Map.add_exn ~key:var ~data:(-1) poly) (-c) in
+      Symbol (var, sup :: sups)
+    | Symbol _ as s -> s
+  ;;
+
+  let prj = function
+    | Poly arg -> arg
+    | Symbol (symbol, sups) -> Map.singleton symbol 1, 0, sups
+  ;;
+
+  let symbol s = Symbol (Ir.var s, [])
+  let poly_of_const c = Poly (Map.empty, c, [])
+
+  let rec bwop : sup_binop -> t -> t -> t =
+    fun op l r ->
+    match l, r with
+    | Symbol (lhs, sups), Symbol (rhs, sups2) ->
+      let regex =
+        match op with
+        | Bwand -> Regex.bwand
+        | Bwor -> Regex.bwor
+        | Bwxor -> Regex.bwxor
+      in
+      let var = Ir.internal () in
+      let sup = Ir.reg regex [ var; lhs; rhs ] in
+      let sups = sups @ sups2 in
+      Symbol (var, sup :: sups)
+    | Poly _, _ -> bwop op (as_symbol l) r
+    | _, Poly _ -> bwop op l (as_symbol r)
+  ;;
+
+  let rec minus l r =
+    match l, r with
+    | (Symbol _ as s), (Poly _ as p) -> minus (as_poly s) p
+    | (Poly _ as p), (Symbol _ as s) -> minus p (as_poly s)
+    | Poly (poly, c, sups), Poly (poly', c', sups') ->
+      let poly =
+        Map.merge poly poly' ~f:(fun ~key:_ vs ->
+          match vs with
+          | `Left a -> Some a
+          | `Right a -> Some (-a)
+          | `Both (a, b) -> Some (a - b))
+      in
+      let c = c' - c in
+      let sups = sups @ sups' in
+      Poly (poly, c, sups)
+    | Symbol (_, _), Symbol (_, _) -> minus (as_poly l) (as_poly r)
+  ;;
+
+  let rec add l r =
+    match l, r with
+    | (Poly _ as p), (Symbol _ as s) | (Symbol _ as s), (Poly _ as p) -> add p (as_poly s)
+    | Poly (poly, c, sups), Poly (poly', c', sups') ->
+      let poly =
+        Map.merge poly poly' ~f:(fun ~key:_ vs ->
+          match vs with
+          | `Left a | `Right a -> Some a
+          | `Both (a, b) -> Some (a + b))
+      in
+      let c = c' + c in
+      let sups = sups @ sups' in
+      Poly (poly, c, sups)
+    | Symbol (l, sup1), Symbol (r, sup2) ->
+      if Ir.eq_atom l r
+      then Poly (Map.singleton l 2, 0, sup1 @ sup2)
+      else Poly (Map.add_exn ~key:r ~data:1 (Map.singleton l 1), 0, sup1 @ sup2)
+  ;;
+
+  let rec mul l r =
+    match l, r with
+    | (Poly _ as p), (Symbol _ as s) | (Symbol _ as s), (Poly _ as p) -> mul p (as_poly s)
+    | Poly (poly, c, sups), Poly (poly', c', sups') ->
+      let poly, c, d =
+        if Map.length poly' = 0
+        then poly, c, c'
+        else if Map.length poly = 0
+        then poly', c', c
+        else failwith "unable to multiply var by var"
+      in
+      let poly = poly |> Map.map ~f:(fun a -> a * d) in
+      let c = c * d in
+      let sups = sups @ sups' in
+      Poly (poly, c, sups)
+    | _ -> failf "not implemented: %s. l = %a, r = %a" __FUNCTION__ pp l pp r
+  ;;
+
+  let pow ~base exp =
+    match base, exp with
+    | Poly (base_poly, 2, base_sups), Poly (exp_map, exp_c, exp_sups)
+      when Map.is_empty base_poly ->
+      (match Map.length exp_map with
+       | 0 -> Poly (base_poly, Utils.pow ~base:2 exp_c, base_sups @ exp_sups)
+       | 1 ->
+         let c = Utils.pow ~base:2 exp_c in
+         (* TODO: negative c  *)
+         let var = Ir.internal () in
+         let sup1 = Ir.eq (Map.add_exn ~key:var ~data:(-1) exp_map) 0 in
+         Poly (Map.singleton var c, 0, (sup1 :: base_sups) @ exp_sups)
+       | _ -> assert false)
+    | Poly (base_poly, base_c, base_sups), Symbol (exp_symbol, exp_sups)
+      when Map.length base_poly = 0 && base_c = 2 ->
+      let poly =
+        match exp_symbol with
+        | Var v -> Map.singleton (Ir.pow2 v) 1
+        | _ -> failwith "unreachable"
+      in
+      let sups = base_sups @ exp_sups in
+      Poly (poly, 0, sups)
+    | Poly (base_poly, base_c, base_sups), Symbol (exp_symbol, exp_sups) ->
+      failwith (Printf.sprintf "only base 2 is supported in exponents (got %d)" base_c)
+    | _ -> failf "not implemented: %s. base = %a, r = %a" __FUNCTION__ pp base pp exp
+  ;;
+end
+
+let of_eia2 : Ast.Eia.t -> Ir.t =
+  fun eia ->
+  let rec helper = function
+    | Ast.Eia.Atom (Var v) -> Symantics.symbol v
+    | Atom (Const c) -> Symantics.poly_of_const c
+    | Add (hd :: tl) ->
+      List.fold_left (fun acc x -> Symantics.add acc (helper x)) (helper hd) tl
+    | Mul [ lhs; rhs ] -> Symantics.mul (helper lhs) (helper rhs)
+    | Pow (base, exp) -> Symantics.pow ~base:(helper base) (helper exp)
+    | (Bwand (lhs, rhs) | Bwor (lhs, rhs) | Bwxor (lhs, rhs)) as eia ->
+      let lhs = helper lhs in
+      let rhs = helper rhs in
+      let regex =
+        match eia with
+        | Bwand _ -> Symantics.bwop Bwand
+        | Bwor _ -> Symantics.bwop Bwor
+        | Bwxor _ -> Symantics.bwop Bwxor
+        | _ -> failwith "unreachable"
+      in
+      regex lhs rhs
+    | other ->
+      Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other;
+      failf "%s unimplemented: %a" __FUNCTION__ Ast.Eia.pp eia
+  in
+  match eia with
+  | Eq (lhs, rhs) | Leq (lhs, rhs) ->
+    let poly, c, sups = Symantics.prj (Symantics.minus (helper lhs) (helper rhs)) in
+    let build =
+      match eia with
+      | Eq _ -> Ir.eq
+      | Leq _ -> Ir.leq
+    in
+    Ir.land_ (build poly c :: sups)
 ;;
 
 let of_eia (eia : Ast.Eia.t) =
@@ -323,7 +517,11 @@ let ir_of_ast ir =
           atoms
       in
       Ir.exists atoms (ir_of_ast ast)
-    | Eia eia -> of_eia eia
+    | Eia eia ->
+      (match Sys.getenv_opt "CHRO_EIA" with
+       | Some "old" -> of_eia
+       | _ -> of_eia2)
+        eia
     | Pred s -> failf "Unexpected %s" s
   in
   simpl_ir ir |> ir_of_ast
