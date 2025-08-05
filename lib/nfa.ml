@@ -342,6 +342,7 @@ end
 
 module type Type = sig
   type t
+  type u
 
   val length : t -> int
 
@@ -372,6 +373,22 @@ module type Type = sig
   val minimize : t -> t
   val invert : t -> t
   val format_nfa : Format.formatter -> t -> unit
+  val to_nat : t -> u
+end
+
+module type NatType = sig
+  include Type
+
+  val find_c_d : t -> (int, int) Map.t -> (int * int) list
+  val get_exponent_sub_nfa : t -> res:int -> temp:int -> t
+  val chrobak : t -> (int * int) list
+
+  val get_chrobaks_sub_nfas
+    :  t
+    -> res:deg
+    -> temp:deg
+    -> vars:int list
+    -> (t * (int * int) list * (int list * int)) list
 end
 
 module Make (Invariants : NfaInvariants) = struct
@@ -820,6 +837,8 @@ module Lsb = struct
       let update_invariants = update_invariants_lsb
     end)
 
+  type u = t
+
   let any_path nfa vars =
     let transitions = nfa.transitions in
     let p =
@@ -1004,6 +1023,8 @@ module Lsb = struct
       , path )
       |> return)
   ;;
+
+  let to_nat (nfa : t) : u = nfa
 end
 
 let update_invariants_msb nfa =
@@ -1033,75 +1054,6 @@ let update_invariants_msb nfa =
   | None -> nfa
 ;;
 
-module Msb = struct
-  include Make (struct
-      let update_invariants = update_invariants_msb
-    end)
-
-  let any_path nfa vars =
-    let transitions = nfa.transitions in
-    let p =
-      let visited = Array.make (length nfa) false in
-      let rec dfs len q =
-        if visited.(q)
-        then None
-        else if Set.mem nfa.final q
-        then Some ([], q, len)
-        else (
-          visited.(q) <- true;
-          let delta = Array.get transitions q in
-          let qs = delta |> List.map snd in
-          match List.find_map (fun q -> dfs (len + 1) q) qs with
-          | Some (path, q', len) ->
-            Some ((List.find (fun (_, q'') -> q' = q'') delta |> fst) :: path, q, len)
-          | None ->
-            visited.(q) <- false;
-            None)
-      in
-      nfa.start
-      |> Set.to_list
-      |> List.concat_map (fun i -> transitions.(i))
-      |> List.find_map (fun (lbl, state) ->
-        let* path, _, len = dfs 0 state in
-        return (lbl :: path, len))
-    in
-    match p with
-    | Some (sign :: p, len) ->
-      let length = List.length p in
-      ( List.map
-          (fun var ->
-             let sign = bv_get (fst sign) var in
-             (if sign then -pow2 length else 0)
-             + (bv_init length (fun i -> bv_get (List.nth p (length - 1 - i) |> fst) var)
-                |> Z.to_int))
-          vars
-      , len )
-      |> Option.some
-    | Some ([], len) -> Some ([], len)
-    | None -> None
-  ;;
-
-  let run nfa = any_path nfa [] |> Option.is_some
-end
-
-let lsb_of_msb (nfa : Msb.t) : Lsb.t =
-  { transitions = Graph.reverse nfa.transitions
-  ; start = nfa.final
-  ; deg = nfa.deg
-  ; final = nfa.start
-  ; is_dfa = false
-  }
-;;
-
-let msb_of_lsb (nfa : Lsb.t) : Msb.t =
-  { transitions = Graph.reverse nfa.transitions
-  ; start = nfa.final
-  ; deg = nfa.deg
-  ; final = nfa.start
-  ; is_dfa = false
-  }
-;;
-
 let update_invariants_msb_nat nfa =
   let filter = fun (lbl, _) -> Label.is_zero lbl in
   let rec helper front visited =
@@ -1127,6 +1079,8 @@ module MsbNat = struct
   include Make (struct
       let update_invariants = update_invariants_msb_nat
     end)
+
+  type u = t
 
   let any_path = Lsb.any_path
   let run nfa = Set.are_disjoint nfa.start nfa.final |> not
@@ -1286,18 +1240,104 @@ module MsbNat = struct
       , path )
       |> return)
   ;;
+
+  let to_nat (nfa : t) : u =
+    let zero_lbl = bv_init nfa.deg (Fun.const false), bv_init nfa.deg (Fun.const true) in
+    let start =
+      nfa.start
+      |> Set.to_list
+      |> List.concat_map (fun state ->
+        nfa.transitions.(state)
+        |> List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl)
+        |> List.map snd)
+      |> Set.of_list
+    in
+    { nfa with start }
+  ;;
 end
 
-let to_nat (nfa : Msb.t) : MsbNat.t =
-  let zero_lbl = bv_init nfa.deg (Fun.const false), bv_init nfa.deg (Fun.const true) in
-  let start =
-    nfa.start
-    |> Set.to_list
-    |> List.concat_map (fun state ->
-      nfa.transitions.(state)
-      |> List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl)
-      |> List.map snd)
-    |> Set.of_list
-  in
-  { nfa with start }
+module Msb = struct
+  include Make (struct
+      let update_invariants = update_invariants_msb
+    end)
+
+  type u = MsbNat.t
+
+  let any_path nfa vars =
+    let transitions = nfa.transitions in
+    let p =
+      let visited = Array.make (length nfa) false in
+      let rec dfs len q =
+        if visited.(q)
+        then None
+        else if Set.mem nfa.final q
+        then Some ([], q, len)
+        else (
+          visited.(q) <- true;
+          let delta = Array.get transitions q in
+          let qs = delta |> List.map snd in
+          match List.find_map (fun q -> dfs (len + 1) q) qs with
+          | Some (path, q', len) ->
+            Some ((List.find (fun (_, q'') -> q' = q'') delta |> fst) :: path, q, len)
+          | None ->
+            visited.(q) <- false;
+            None)
+      in
+      nfa.start
+      |> Set.to_list
+      |> List.concat_map (fun i -> transitions.(i))
+      |> List.find_map (fun (lbl, state) ->
+        let* path, _, len = dfs 0 state in
+        return (lbl :: path, len))
+    in
+    match p with
+    | Some (sign :: p, len) ->
+      let length = List.length p in
+      ( List.map
+          (fun var ->
+             let sign = bv_get (fst sign) var in
+             (if sign then -pow2 length else 0)
+             + (bv_init length (fun i -> bv_get (List.nth p (length - 1 - i) |> fst) var)
+                |> Z.to_int))
+          vars
+      , len )
+      |> Option.some
+    | Some ([], len) -> Some ([], len)
+    | None -> None
+  ;;
+
+  let run nfa = any_path nfa [] |> Option.is_some
+
+  let to_nat (nfa : t) : u =
+    let zero_lbl = bv_init nfa.deg (Fun.const false), bv_init nfa.deg (Fun.const true) in
+    let start =
+      nfa.start
+      |> Set.to_list
+      |> List.concat_map (fun state ->
+        nfa.transitions.(state)
+        |> List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl)
+        |> List.map snd)
+      |> Set.of_list
+    in
+    { nfa with start }
+  ;;
+end
+(*
+   let lsb_of_msb (nfa : Msb.t) : Lsb.t =
+  { transitions = Graph.reverse nfa.transitions
+  ; start = nfa.final
+  ; deg = nfa.deg
+  ; final = nfa.start
+  ; is_dfa = false
+  }
 ;;
+
+let msb_of_lsb (nfa : Lsb.t) : Msb.t =
+  { transitions = Graph.reverse nfa.transitions
+  ; start = nfa.final
+  ; deg = nfa.deg
+  ; final = nfa.start
+  ; is_dfa = false
+  }
+;;
+*)

@@ -2,7 +2,6 @@
 (* Copyright 2024-2025, Chrobelias. *)
 
 module Map = Base.Map.Poly
-(*module Nfa = Nfa.Msb*)
 
 type t =
   | Empty
@@ -95,7 +94,7 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let to_nfa r =
+let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r =
   let rec traverse visited = function
     | [] -> []
     | r :: tl ->
@@ -122,7 +121,7 @@ let to_nfa r =
         delta)
   in
   let deg = symbols r |> List.fold_left (fun acc v -> max acc (Bitv.length v)) 0 in
-  Nfa.Msb.create_nfa
+  Nfa.create_nfa
     ~transitions
     ~start:[ regex_to_state r ]
     ~final:(finals |> List.map regex_to_state)
@@ -221,7 +220,7 @@ let%expect_test "Basic derivatives" =
 let%expect_test "To nfa basic" =
   of_string "[00]/[10]|[00]/[01]"
   |> Result.get_ok
-  |> to_nfa
+  |> to_nfa (module Nfa.Msb)
   |> Format.printf "%a@." Nfa.Msb.format_nfa;
   [%expect
     {|
@@ -242,7 +241,7 @@ let%expect_test "To nfa basic" =
 let%expect_test "To nfa and predicate" =
   of_string "*([000]|[100]|[010]|[111])"
   |> Result.get_ok
-  |> to_nfa
+  |> to_nfa (module Nfa.Msb)
   |> Format.printf "%a@." Nfa.Msb.format_nfa;
   [%expect
     {|

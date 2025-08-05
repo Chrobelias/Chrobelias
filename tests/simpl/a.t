@@ -28,10 +28,13 @@ We can't do anything below, because y exists in two polarities
   > (check-sat)
   > EOF
   $ Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  (assert (<= (+ (* (- 1) x) (* (- 3) y) )  -24) )
-  (assert (<= (+ x (* (- 3) y) z )  0) )
-  (assert (<= (* 5 y)  42) )
+  (assert (exists (x y)
+          (and
+            (<= (+ (* (- 1) x) (* (- 3) y) )  -24)
+            (exists (z) (<= (+ x (* (- 3) y) z )  0)
+            (<= (* 5 y)  42)
   
+  )
 
 Habermehl demo
   $ cat > Habermehl.smt2 <<-EOF

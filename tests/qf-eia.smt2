@@ -57,3 +57,8 @@
   (assert (= (exp 2 x) (exp 2 y)))
   (check-sat) ; sat
 (pop 1)
+
+(push 1)
+  (assert (= (exp 2 x) (+ (exp 2 y) 5)))
+  (check-sat) ; unsat
+(pop 1)

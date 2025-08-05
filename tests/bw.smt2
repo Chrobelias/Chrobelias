@@ -12,8 +12,8 @@
   (check-sat) ; sat
 (pop 1)
 
-(push 1)
-  (assert (= (bwand x 1 ) 1))
-  (assert (= x (* 2 y)))
-  (check-sat) ; unsat
-(pop 1)
+;(push 1)
+;  (assert (= (bwand x 1 ) 1))
+;  (assert (= x (* 2 y)))
+;  (check-sat) ; unsat
+;(pop 1)

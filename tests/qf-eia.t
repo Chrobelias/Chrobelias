@@ -10,6 +10,7 @@ Basic QF_EIA tests
   unsat
   unsat
   sat
+  unsat
 
 Test ExEy y >=0 x & 2**y = x & x > 4
 
