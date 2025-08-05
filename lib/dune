@@ -5,7 +5,7 @@
 
 (library
  (name lib)
- (modules Ast Nfa NfaCollection Ir Regex Solver Debug Fe Me)
+ (modules Ast Nfa NfaCollection Ir Regex Solver Debug Fe Me Utils)
  (libraries base angstrom bitv smtml unix iter zarith)
  (inline_tests)
  (preprocess
