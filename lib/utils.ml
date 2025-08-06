@@ -13,6 +13,7 @@ let option_map_to_map_option (map : ('a, 'b option) Map.t) : ('a, 'b) Map.t opti
 ;;
 
 let rec pow ~base:a = function
+  | n when n < 0 -> failwith "Bad argument"
   | 0 -> 1
   | 1 -> a
   | n ->
