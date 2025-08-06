@@ -47,7 +47,7 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
   type repr = (Ir.atom, int) Map.t * int * Ir.t list
 
   type t =
-    | Poly of repr
+    | Poly of (Ir.atom, Q.t) Map.t * int * Ir.t list
     | Symbol of Ir.atom * Ir.t list
 
   let pp ppf =
@@ -59,19 +59,30 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
 
   let as_poly = function
     | Poly (poly, c, sups) as x -> x
-    | Symbol (symbol, sups) -> Poly (Map.singleton symbol 1, 0, sups)
+    | Symbol (symbol, sups) -> Poly (Map.singleton symbol Q.one, 0, sups)
+  ;;
+
+  let from_rat : (Ir.atom, Q.t) Map.t -> int -> (Ir.atom, int) Map.t * int =
+    fun mapa c ->
+    let lcmz = Map.fold mapa ~init:Z.one ~f:(fun ~key:_ ~data -> Z.lcm (Q.den data)) in
+    let mapa = Map.map mapa ~f:(fun q -> Z.(lcmz / Q.den q * Q.num q |> to_int)) in
+    let c = c * Z.to_int lcmz in
+    mapa, c
   ;;
 
   let as_symbol = function
     | Poly (poly, c, sups) ->
       let var = Ir.internal () in
+      let poly, c = from_rat poly c in
       let sup = Ir.eq (Map.add_exn ~key:var ~data:(-1) poly) (-c) in
       Symbol (var, sup :: sups)
     | Symbol _ as s -> s
   ;;
 
   let prj = function
-    | Poly arg -> arg
+    | Poly (mapa, c, sups) ->
+      let mapa, c = from_rat mapa c in
+      mapa, c, sups
     | Symbol (symbol, sups) -> Map.singleton symbol 1, 0, sups
   ;;
 
@@ -105,8 +116,8 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
         Map.merge poly poly' ~f:(fun ~key:_ vs ->
           match vs with
           | `Left a -> Some a
-          | `Right a -> Some (-a)
-          | `Both (a, b) -> Some (a - b))
+          | `Right a -> Some Q.(zero - a)
+          | `Both (a, b) -> Some Q.(a - b))
       in
       let c = c' - c in
       let sups = sups @ sups' in
@@ -122,15 +133,15 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
         Map.merge poly poly' ~f:(fun ~key:_ vs ->
           match vs with
           | `Left a | `Right a -> Some a
-          | `Both (a, b) -> Some (a + b))
+          | `Both (a, b) -> Some Q.(a + b))
       in
       let c = c' + c in
       let sups = sups @ sups' in
       Poly (poly, c, sups)
     | Symbol (l, sup1), Symbol (r, sup2) ->
       if Ir.eq_atom l r
-      then Poly (Map.singleton l 2, 0, sup1 @ sup2)
-      else Poly (Map.add_exn ~key:r ~data:1 (Map.singleton l 1), 0, sup1 @ sup2)
+      then Poly (Map.singleton l (Q.of_int 2), 0, sup1 @ sup2)
+      else Poly (Map.add_exn ~key:r ~data:Q.one (Map.singleton l Q.one), 0, sup1 @ sup2)
   ;;
 
   let rec mul l r =
@@ -144,7 +155,7 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
         then poly', c', c
         else failwith "unable to multiply var by var"
       in
-      let poly = poly |> Map.map ~f:(fun a -> a * d) in
+      let poly = poly |> Map.map ~f:Q.(fun a -> a * Q.of_int d) in
       let c = c * d in
       let sups = sups @ sups' in
       Poly (poly, c, sups)
@@ -158,17 +169,25 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
       (match Map.length exp_map with
        | 0 -> Poly (base_poly, Utils.pow ~base:2 exp_c, base_sups @ exp_sups)
        | 1 ->
-         let c = Utils.pow ~base:2 exp_c in
-         (* TODO: negative c  *)
          let var = Ir.internal () in
-         let sup1 = Ir.eq (Map.add_exn ~key:var ~data:(-1) exp_map) 0 in
-         Poly (Map.singleton var c, 0, (sup1 :: base_sups) @ exp_sups)
+         let coeff =
+           if exp_c > 0
+           then Q.of_int (Utils.pow ~base:2 exp_c)
+           else (
+             let c = Utils.pow ~base:2 (-exp_c) in
+             Q.(one / of_int c))
+         in
+         let sup1 =
+           let mapa, c = from_rat (Map.add_exn ~key:var ~data:Q.(zero - one) exp_map) 0 in
+           Ir.eq mapa c
+         in
+         Poly (Map.singleton var coeff, 0, (sup1 :: base_sups) @ exp_sups)
        | _ -> assert false)
-    | Poly (base_poly, base_c, base_sups), Symbol (exp_symbol, exp_sups)
-      when Map.length base_poly = 0 && base_c = 2 ->
+    | Poly (base_poly, 2, base_sups), Symbol (exp_symbol, exp_sups)
+      when Map.length base_poly = 0 ->
       let poly =
         match exp_symbol with
-        | Var v -> Map.singleton (Ir.pow2 v) 1
+        | Var v -> Map.singleton (Ir.pow2 v) Q.one
         | _ -> failwith "unreachable"
       in
       let sups = base_sups @ exp_sups in
