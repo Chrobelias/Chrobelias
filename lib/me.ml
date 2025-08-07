@@ -169,6 +169,20 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
       (match Map.length exp_map with
        | 0 -> Poly (base_poly, Utils.pow ~base:2 exp_c, base_sups @ exp_sups)
        | 1 ->
+         let coeff =
+           if exp_c > 0
+           then Q.of_int (Utils.pow ~base:2 exp_c)
+           else (
+             let c = Utils.pow ~base:2 (-exp_c) in
+             Q.(one / of_int c))
+         in
+         let var =
+           match fst (Map.min_elt_exn exp_map) with
+           | Var s -> Ir.pow2 s
+           | _ -> failwith "not implemented"
+         in
+         Poly (Map.singleton var coeff, 0, base_sups @ exp_sups)
+       | _ ->
          let var = Ir.internal () in
          let coeff =
            if exp_c > 0
@@ -181,8 +195,8 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
            let mapa, c = from_rat (Map.add_exn ~key:var ~data:Q.(zero - one) exp_map) 0 in
            Ir.eq mapa c
          in
-         Poly (Map.singleton var coeff, 0, (sup1 :: base_sups) @ exp_sups)
-       | _ -> assert false)
+         (* Debug.printfln "new variable %a for " Ir.pp_atom var; *)
+         Poly (Map.singleton var coeff, 0, (sup1 :: base_sups) @ exp_sups))
     | Poly (base_poly, 2, base_sups), Symbol (exp_symbol, exp_sups)
       when Map.length base_poly = 0 ->
       let poly =
