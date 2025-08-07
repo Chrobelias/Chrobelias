@@ -3,7 +3,6 @@ $ export CHRO_DEBUG=1
   (assert (exists (it199 it208 it198)
           (and
             (<= (* (- 1) it208)  -1)
-            (exists (it179) T
             (<= (* (- 1) it192)  -1)
             (<= (* (- 1) it199)  -1)
             (<= (+ it192 (* (- 1) it199) )  0)
