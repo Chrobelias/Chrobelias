@@ -44,6 +44,11 @@ type t =
   | Exists of atom list * t (*| Pred of string * 'atom Eia.t list*)
 [@@deriving variants]
 
+let exists vars = function
+  | True -> True
+  | ph -> Exists (vars, ph)
+;;
+
 let false_ = lnot true_
 let neg term = Map.map ~f:( ~- ) term
 let eq = rel eq

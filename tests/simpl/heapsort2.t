@@ -57,7 +57,6 @@ $ export CHRO_DEBUG=1
             (exists (it4) (<= (* (- 1) it4)  -1) 
             (exists (it2) (<= it2  0) 
             (<= (* (- 1) it147)  -1)
-            (exists (it14) T
             (exists (i2) (= (+ (* (- 1) i2) it6 )  12) 
             
   )
@@ -105,7 +104,6 @@ $ export CHRO_DEBUG=1
             (= (+ it147 (* (- 1) [862765034]) )  1)
             (exists (it2) (<= it2  0) 
             (<= (* (- 1) it147)  -1)
-            (exists (it14) T
             (exists (i2) (= (+ (* (- 1) i2) it6 )  12) 
             
   )
