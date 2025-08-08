@@ -12,8 +12,8 @@
   (assert (exists (z x)
           (and
             (<= (+ (* (- 5) x) (* (- 7) z) (* (- 8) pow2(y)) )  -14)
-            (= (+ y z )  52)
             (<= (* (- 5) x)  13)
+            (= (+ y z )  52)
   
   )
 We can't do anything below, because y exists in two polarities
@@ -31,8 +31,8 @@ We can't do anything below, because y exists in two polarities
   (assert (exists (x y)
           (and
             (<= (+ (* (- 1) x) (* (- 3) y) )  -24)
-            (exists (z) (<= (+ x (* (- 3) y) z )  0)
             (<= (* 5 y)  42)
+            (exists (z) (<= (+ x (* (- 3) y) z )  0)
   
   )
 
