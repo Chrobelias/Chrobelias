@@ -29,23 +29,32 @@ module type NatType = sig
   val mul : res:varpos -> lhs:int -> rhs:varpos -> t
 end
 
+let o = false
+let i = true
+
 module Lsb = struct
-  module Nfa = Nfa.Lsb
+  module Nfa = Nfa.Lsb (Nfa.Bv)
 
   type t = Nfa.t
+  (*
+     :'<,'>s/0b0/[o; 1b/g | '<,'>s/0b1/[i; 1b/g | '<,'>s/1b0/o; 2b/g |'<,'>s/1b1/i; 2b/g | '<,'>s/2b0/o]/g | '<,'>s/2b1/i]/g
+  :'<,'>s/0b0/[o; 2b/g | '<,'>s/0b1/[i; 2b/g | '<,'>s/2b0/o]/g | '<,'>s/2b1/i]/g
+  :'<,'>s/0b0/[o]/g | '<,'>s/0b1/[i]/g
+  *)
 
   let add ~lhs ~rhs ~res =
     Nfa.create_nfa
       ~transitions:
-        [ 0, 0b000, 0
-        ; 0, 0b101, 0
-        ; 0, 0b110, 0
-        ; 0, 0b011, 1
-        ; 1, 0b111, 1
-        ; 1, 0b010, 1
-        ; 1, 0b001, 1
-        ; 1, 0b100, 0
-        ]
+        ([ 0, [ o; o; o ], 0
+         ; 0, [ i; o; i ], 0
+         ; 0, [ i; i; o ], 0
+         ; 0, [ o; i; i ], 1
+         ; 1, [ i; i; i ], 1
+         ; 1, [ o; i; o ], 1
+         ; 1, [ o; o; i ], 1
+         ; 1, [ i; o; o ], 0
+         ]
+         |> List.map (fun (a, b, c) -> a, b, c))
       ~start:[ 0 ]
       ~final:[ 0 ]
       ~vars:[ res; rhs; lhs ]
@@ -54,7 +63,7 @@ module Lsb = struct
 
   let eq lhs rhs =
     Nfa.create_nfa
-      ~transitions:[ 0, 0b00, 0; 0, 0b11, 0 ]
+      ~transitions:[ 0, [ o; o ], 0; 0, [ i; i ], 0 ]
       ~start:[ 0 ]
       ~final:[ 0 ]
       ~vars:[ lhs; rhs ]
@@ -66,15 +75,15 @@ module Lsb = struct
     let max = Bitv.length vec in
     let transitions =
       Bitv.foldi_right
-        (fun i bit acc -> (i, (if bit then 1 else 0), i + 1) :: acc)
+        (fun i bit acc -> (i, [ bit ], i + 1) :: acc)
         vec
-        [ max, 0, max ]
+        [ max, [ o ], max ]
     in
     Nfa.create_nfa ~start:[ 0 ] ~final:[ max ] ~transitions ~vars:[ var ] ~deg:(var + 1)
   ;;
 
   let n () =
-    Nfa.create_nfa ~transitions:[ 0, 0, 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
+    Nfa.create_nfa ~transitions:[ 0, [], 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
   ;;
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
@@ -82,15 +91,16 @@ module Lsb = struct
   let leq lhs rhs =
     Nfa.create_nfa
       ~transitions:
-        [ 0, 0b00, 0
-        ; 0, 0b11, 0
-        ; 0, 0b10, 0
-        ; 0, 0b01, 1
-        ; 1, 0b11, 1
-        ; 1, 0b00, 1
-        ; 1, 0b01, 1
-        ; 1, 0b10, 0
-        ]
+        ([ 0, [ o; o ], 0
+         ; 0, [ i; i ], 0
+         ; 0, [ i; o ], 0
+         ; 0, [ o; i ], 1
+         ; 1, [ i; i ], 1
+         ; 1, [ o; o ], 1
+         ; 1, [ o; i ], 1
+         ; 1, [ i; o ], 0
+         ]
+         |> List.map (fun (a, b, c) -> a, b, c))
       ~start:[ 0 ]
       ~final:[ 0 ]
       ~vars:[ rhs; lhs ]
@@ -102,15 +112,16 @@ module Lsb = struct
   let lt lhs rhs =
     Nfa.create_nfa
       ~transitions:
-        [ 0, 0b01, 1
-        ; 0, 0b11, 0
-        ; 0, 0b10, 0
-        ; 0, 0b00, 0
-        ; 1, 0b11, 1
-        ; 1, 0b01, 1
-        ; 1, 0b00, 1
-        ; 1, 0b10, 0
-        ]
+        ([ 0, [ o; i ], 1
+         ; 0, [ i; i ], 0
+         ; 0, [ i; o ], 0
+         ; 0, [ o; o ], 0
+         ; 1, [ i; i ], 1
+         ; 1, [ o; i ], 1
+         ; 1, [ o; o ], 1
+         ; 1, [ i; o ], 0
+         ]
+         |> List.map (fun (a, b, c) -> a, b, c))
       ~start:[ 0 ]
       ~final:[ 1 ]
       ~vars:[ lhs; rhs ]
@@ -122,17 +133,18 @@ module Lsb = struct
   let torename var a c =
     if c = 0
     then (
-      let trans1 = List.init a Fun.id |> List.map (fun x -> x, 0b0, x + 1) in
+      let trans1 = List.init a Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
       Nfa.create_nfa
-        ~transitions:([ a, 0b1, a + 1; a + 1, 0b0, a + 1 ] @ trans1)
+        ~transitions:([ a, [ i ], a + 1; a + 1, [ o ], a + 1 ] @ trans1)
         ~start:[ 0 ]
         ~final:[ a + 1 ]
         ~vars:[ var ]
         ~deg:(var + 1))
     else (
-      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x, 0b0, x + 1) in
+      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
       Nfa.create_nfa
-        ~transitions:([ a + c - 1, 0b0, a; a, 0b1, a + c; a + c, 0b0, a + c ] @ trans1)
+        ~transitions:
+          ([ a + c - 1, [ o ], a; a, [ i ], a + c; a + c, [ o ], a + c ] @ trans1)
         ~start:[ 0 ]
         ~final:[ a + c ]
         ~vars:[ var ]
@@ -141,7 +153,7 @@ module Lsb = struct
 
   let torename2 var exp =
     Nfa.create_nfa
-      ~transitions:[ 0, 0b10, 0; 0, 0b00, 0; 0, 0b11, 1; 1, 0b00, 1 ]
+      ~transitions:[ 0, [ i; o ], 0; 0, [ o; o ], 0; 0, [ i; i ], 1; 1, [ o; o ], 1 ]
       ~start:[ 0 ]
       ~final:[ 1 ]
       ~vars:[ var; exp ]
@@ -150,7 +162,7 @@ module Lsb = struct
 
   let power_of_two exp =
     Nfa.create_nfa
-      ~transitions:[ 0, 0b0, 0; 0, 0b1, 1; 1, 0b0, 1 ]
+      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
       ~start:[ 0 ]
       ~final:[ 1 ]
       ~vars:[ exp ]
@@ -179,12 +191,12 @@ module Lsb = struct
   let powerset term =
     let rec helper = function
       | [] -> []
-      | [ x ] -> [ 0, [ 0 ]; 1, [ x ] ]
+      | [ x ] -> [ [ o ], [ 0 ]; [ i ], [ x ] ]
       | hd :: tl ->
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
-        [ n, 0 :: thing; n + Int.shift_left 1 (List.length thing), hd :: thing ]
+        [ o :: n, 0 :: thing; i :: n, hd :: thing ]
     in
     term
     |> List.map snd
@@ -234,6 +246,9 @@ module Lsb = struct
       ~final:(idxs 0)
       ~vars:(List.map fst term)
       ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+    |> fun nfa ->
+    Debug.dump_nfa ~msg:"dump nfa %s" Nfa.format_nfa nfa;
+    nfa
   ;;
 
   let leq vars term c =
@@ -284,27 +299,27 @@ module Lsb = struct
 end
 
 module Msb = struct
-  module Nfa = Nfa.Msb
+  module Nfa = Nfa.Msb (Nfa.Bv)
 
   type t = Nfa.t
 
   let add ~lhs ~rhs ~res =
     Nfa.create_nfa
       ~transitions:
-        [ 0, 0b000, 0
-        ; 0, 0b101, 0
-        ; 0, 0b001, 1
-        ; 0, 0b011, 0
-        ; 1, 0b111, 1
-        ; 1, 0b010, 1
-        ; 1, 0b100, 1
-        ; 1, 0b110, 0
-        ; 2, 0b000, 0
-        ; 2, 0b011, 0
-        ; 2, 0b101, 0
-        ; 2, 0b100, 1
-        ; 2, 0b010, 1
-        ; 2, 0b111, 1
+        [ 0, [ o; o; o ], 0
+        ; 0, [ i; o; i ], 0
+        ; 0, [ o; o; i ], 1
+        ; 0, [ o; i; i ], 0
+        ; 1, [ i; i; i ], 1
+        ; 1, [ o; i; o ], 1
+        ; 1, [ i; o; o ], 1
+        ; 1, [ i; i; o ], 0
+        ; 2, [ o; o; o ], 0
+        ; 2, [ o; i; i ], 0
+        ; 2, [ i; o; i ], 0
+        ; 2, [ i; o; o ], 1
+        ; 2, [ o; i; o ], 1
+        ; 2, [ i; i; i ], 1
         ]
       ~start:[ 2 ]
       ~final:[ 0 ]
@@ -318,14 +333,14 @@ module Msb = struct
         let d = if v mod 2 = 0 then 0 else 1 in
         let v' = (v - d) / 2 in
         if v' = v
-        then (cnt, d, cnt) :: acc, cnt
+        then (cnt, [ d > 0 ], cnt) :: acc, cnt
         else (
           let nxt = succ cnt in
-          helper ((nxt, d, cnt) :: acc) nxt v')
+          helper ((nxt, [ d > 0 ], cnt) :: acc) nxt v')
       in
       helper [] 0 n
     in
-    let transitions = (max + 1, (if n >= 0 then 0 else 1), max) :: transitions in
+    let transitions = (max + 1, [ n < 0 ], max) :: transitions in
     Nfa.create_nfa
       ~start:[ max + 1 ]
       ~final:[ 0 ]
@@ -335,7 +350,7 @@ module Msb = struct
   ;;
 
   let n () =
-    Nfa.create_nfa ~transitions:[ 0, 0, 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
+    Nfa.create_nfa ~transitions:[ 0, [], 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
   ;;
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
@@ -343,18 +358,18 @@ module Msb = struct
   let leq lhs rhs =
     Nfa.create_nfa
       ~transitions:
-        [ 0, 0b00, 0
-        ; 0, 0b11, 0
-        ; 0, 0b01, 0
-        ; 1, 0b10, 0
-        ; 1, 0b11, 1
-        ; 1, 0b00, 1
-        ; 1, 0b10, 1
-        ; 0, 0b01, 1
-        ; 2, 0b11, 0
-        ; 2, 0b00, 0
-        ; 2, 0b10, 0
-        ; 2, 0b10, 1
+        [ 0, [ o; o ], 0
+        ; 0, [ i; i ], 0
+        ; 0, [ o; i ], 0
+        ; 1, [ i; o ], 0
+        ; 1, [ i; i ], 1
+        ; 1, [ o; o ], 1
+        ; 1, [ i; o ], 1
+        ; 0, [ o; i ], 1
+        ; 2, [ i; i ], 0
+        ; 2, [ o; o ], 0
+        ; 2, [ i; o ], 0
+        ; 2, [ i; o ], 1
         ]
       ~start:[ 2 ]
       ~final:[ 0 ]
@@ -367,16 +382,16 @@ module Msb = struct
   let lt lhs rhs =
     Nfa.create_nfa
       ~transitions:
-        [ 0, 0b11, 0
-        ; 0, 0b00, 0
-        ; 0, 0b01, 1
-        ; 1, 0b11, 1
-        ; 1, 0b01, 1
-        ; 1, 0b00, 1
-        ; 1, 0b10, 1
-        ; 2, 0b10, 1
-        ; 2, 0b00, 0
-        ; 2, 0b11, 0
+        [ 0, [ i; i ], 0
+        ; 0, [ o; o ], 0
+        ; 0, [ o; i ], 1
+        ; 1, [ i; i ], 1
+        ; 1, [ o; i ], 1
+        ; 1, [ o; o ], 1
+        ; 1, [ i; o ], 1
+        ; 2, [ i; o ], 1
+        ; 2, [ o; o ], 0
+        ; 2, [ i; i ], 0
         ]
       ~start:[ 2 ]
       ~final:[ 1 ]
@@ -388,7 +403,7 @@ module Msb = struct
 
   let power_of_two exp =
     Nfa.create_nfa
-      ~transitions:[ 0, 0b0, 0; 0, 0b1, 1; 1, 0b0, 1; 2, 0b0, 0 ]
+      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 2, [ o ], 0 ]
       ~start:[ 2 ]
       ~final:[ 1 ]
       ~vars:[ exp ]
@@ -404,12 +419,12 @@ module Msb = struct
   let powerset term =
     let rec helper = function
       | [] -> []
-      | [ x ] -> [ 0, [ 0 ]; 1, [ x ] ]
+      | [ x ] -> [ [ o ], [ 0 ]; [ i ], [ x ] ]
       | hd :: tl ->
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
-        [ n, 0 :: thing; n + Int.shift_left 1 (List.length thing), hd :: thing ]
+        [ o :: n, 0 :: thing; i :: n, hd :: thing ]
     in
     term
     |> List.map snd
@@ -524,21 +539,24 @@ module Msb = struct
 end
 
 module MsbNat = struct
-  type t = Nfa.MsbNat.t
+  module NfaMsb = Nfa.Msb (Nfa.Bv)
+  module NfaMsbNat = Nfa.MsbNat (Nfa.Bv)
+
+  type t = NfaMsbNat.t
 
   let n () =
-    Nfa.MsbNat.create_nfa
-      ~transitions:[ 0, 0, 0 ]
+    NfaMsbNat.create_nfa
+      ~transitions:[ 0, [], 0 ]
       ~start:[ 0 ]
       ~final:[ 0 ]
       ~vars:[]
       ~deg:1
   ;;
 
-  let z () = Nfa.MsbNat.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
-  let add ~lhs ~rhs ~res = Msb.add ~res ~lhs ~rhs |> Nfa.Msb.to_nat
-  let eq_const res n = Msb.eq_const res n |> Nfa.Msb.to_nat
-  let geq lhs rhs = Msb.geq lhs rhs |> Nfa.Msb.to_nat
+  let z () = NfaMsbNat.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
+  let add ~lhs ~rhs ~res = Msb.add ~res ~lhs ~rhs |> NfaMsb.to_nat
+  let eq_const res n = Msb.eq_const res n |> NfaMsb.to_nat
+  let geq lhs rhs = Msb.geq lhs rhs |> NfaMsb.to_nat
 
   let mul ~res ~lhs ~rhs =
     let rec helper ~res ~lhs ~rhs =
@@ -549,35 +567,36 @@ module MsbNat = struct
         let newvar = max (max res lhs) rhs + 1 in
         let a = helper ~res:newvar ~lhs:(lhs / 2) ~rhs in
         let b = add ~res ~lhs:newvar ~rhs:newvar in
-        Nfa.MsbNat.intersect a b |> Nfa.MsbNat.project [ newvar ]
+        NfaMsbNat.intersect a b |> NfaMsbNat.project [ newvar ]
       | _ ->
         let newvar = max (max res lhs) rhs + 1 in
         let a = helper ~res:newvar ~lhs:(lhs - 1) ~rhs in
         let b = add ~res ~lhs:newvar ~rhs in
-        Nfa.MsbNat.intersect a b |> Nfa.MsbNat.project [ newvar ]
+        NfaMsbNat.intersect a b |> NfaMsbNat.project [ newvar ]
     in
-    helper ~res ~lhs ~rhs |> Nfa.MsbNat.minimize
+    helper ~res ~lhs ~rhs |> NfaMsbNat.minimize
   ;;
 
   let torename var a c =
     if c = 0
     then (
-      let trans1 = List.init a Fun.id |> List.map (fun x -> x + 1, 0b0, x) in
+      let trans1 = List.init a Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
       let nfa =
-        Nfa.MsbNat.create_nfa
-          ~transitions:([ a + 1, 0b1, a; a + 1, 0b0, a + 1 ] @ trans1)
+        NfaMsbNat.create_nfa
+          ~transitions:([ a + 1, [ i ], a; a + 1, [ o ], a + 1 ] @ trans1)
           ~start:[ a + 1 ]
           ~final:[ 0 ]
           ~vars:[ var ]
           ~deg:(var + 1)
       in
       Debug.printfln "Building torename nfa: var=%d, a=%d, c=%d" var a c;
-      Debug.dump_nfa ~msg:"Nfa: %s" Nfa.MsbNat.format_nfa nfa;
+      Debug.dump_nfa ~msg:"Nfa: %s" NfaMsbNat.format_nfa nfa;
       nfa)
     else (
-      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x, 0b0, x + 1) in
-      Nfa.MsbNat.create_nfa
-        ~transitions:([ a + c - 1, 0b0, a; a, 0b1, a + c; a + c, 0b0, a + c ] @ trans1)
+      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
+      NfaMsbNat.create_nfa
+        ~transitions:
+          ([ a + c - 1, [ o ], a; a, [ i ], a + c; a + c, [ o ], a + c ] @ trans1)
         ~start:[ 0 ]
         ~final:[ a + c ]
         ~vars:[ var ]
@@ -585,8 +604,8 @@ module MsbNat = struct
   ;;
 
   let torename2 var exp =
-    Nfa.MsbNat.create_nfa
-      ~transitions:[ 0, 0b10, 0; 0, 0b00, 0; 1, 0b11, 0; 1, 0b00, 1 ]
+    NfaMsbNat.create_nfa
+      ~transitions:[ 0, [ i; o ], 0; 0, [ o; o ], 0; 1, [ i; i ], 0; 1, [ o; o ], 1 ]
       ~start:[ 1 ]
       ~final:[ 0 ]
       ~vars:[ var; exp ]
@@ -594,16 +613,16 @@ module MsbNat = struct
   ;;
 
   let power_of_two exp =
-    Nfa.MsbNat.create_nfa
-      ~transitions:[ 0, 0b0, 0; 0, 0b1, 1; 1, 0b0, 1; 2, 0b0, 0 ]
+    NfaMsbNat.create_nfa
+      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 2, [ o ], 0 ]
       ~start:[ 2 ]
       ~final:[ 1 ]
       ~vars:[ exp ]
       ~deg:(exp + 1)
   ;;
 
-  let lt lhs rhs = Msb.lt lhs rhs |> Nfa.Msb.to_nat
-  let gt lhs rhs = Msb.gt lhs rhs |> Nfa.Msb.to_nat
-  let eq vars term c = Msb.eq vars term c |> Nfa.Msb.to_nat
-  let leq vars term c = Msb.leq vars term c |> Nfa.Msb.to_nat
+  let lt lhs rhs = Msb.lt lhs rhs |> NfaMsb.to_nat
+  let gt lhs rhs = Msb.gt lhs rhs |> NfaMsb.to_nat
+  let eq vars term c = Msb.eq vars term c |> NfaMsb.to_nat
+  let leq vars term c = Msb.leq vars term c |> NfaMsb.to_nat
 end

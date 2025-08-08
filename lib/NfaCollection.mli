@@ -29,13 +29,13 @@ module type NatType = sig
 end
 
 module Lsb : sig
-  include NatType with type t = Nfa.Lsb.t
+  include NatType with type t = Nfa.Lsb(Nfa.Bv).t
 end
 
 module Msb : sig
-  include Type with type t = Nfa.Msb.t
+  include Type with type t = Nfa.Msb(Nfa.Bv).t
 end
 
 module MsbNat : sig
-  include NatType with type t = Nfa.MsbNat.t
+  include NatType with type t = Nfa.MsbNat(Nfa.Bv).t
 end

@@ -61,7 +61,7 @@ let of_eia (eia : Ast.Eia.t) =
           tl
       in
       `Poly (poly, c, sups)
-    | (Bwand (lhs, rhs) | Bwor (lhs, rhs) | Bwxor (lhs, rhs)) as eia ->
+    (*| (Bwand (lhs, rhs) | Bwor (lhs, rhs) | Bwxor (lhs, rhs)) as eia ->
       let lhs, sups = as_symbol lhs in
       let rhs, sups' = as_symbol rhs in
       let regex =
@@ -74,7 +74,7 @@ let of_eia (eia : Ast.Eia.t) =
       let var = Ir.internal () in
       let sup = Ir.reg regex [ var; lhs; rhs ] in
       let sups = sups @ sups' in
-      `Symbol (var, sup :: sups)
+      `Symbol (var, sup :: sups)*)
     | Pow (base, exp) ->
       let base_poly, base_c, base_sups = as_poly base in
       let exp_symbol, exp_sups = as_symbol exp in

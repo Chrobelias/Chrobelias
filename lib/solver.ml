@@ -409,7 +409,6 @@ struct
            | hd :: hd' :: tl ->
              (* Format.printf "Intersecting %d %d\n%!" (Nfa.length hd) (Nfa.length hd'); *)
              let nfa = Nfa.intersect hd hd' in
-             Debug.dump_nfa Nfa.format_nfa nfa;
              let nfas =
                nfa :: tl |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
              in
@@ -432,14 +431,12 @@ struct
          |> NfaO.msb_of_lsb*)
        | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
       |> fun nfa ->
+      Debug.printfln "Done %a\n%!" Ir.pp ir;
+      Debug.dump_nfa ~msg:"Evaluated %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
       level := !level - 1;
-      (*Format.printf "%d Dno %a\n%!" !level Ir.pp ir;*)
       nfa
     in
-    eval ir
-    |> fun x ->
-    Debug.dump_nfa ~msg:"evaluating %s" Nfa.format_nfa x;
-    x, vars
+    eval ir |> fun x -> x, vars
   ;;
 
   let is_exp = function
@@ -455,7 +452,7 @@ struct
     helper (-1) n
   ;;
 
-  let pow2 n = List.init n (Fun.const 2) |> List.fold_left ( * ) 1
+  let _pow2 n = List.init n (Fun.const 2) |> List.fold_left ( * ) 1
 
   let gen_list_n n =
     let rec helper acc = function
@@ -672,8 +669,14 @@ struct
           let x' = get_exp x in
           let zero_nfa =
             Nfa.intersect
-              (NfaCollection.eq_const (get_deg x) 1)
-              (NfaCollection.eq_const (get_deg x') 0)
+              (NfaCollection.eq_const (get_deg x) 1
+               |> fun nfa ->
+               Debug.dump_nfa ~msg:"eq_const 1 %s" Nfa.format_nfa nfa;
+               nfa)
+              (NfaCollection.eq_const (get_deg x') 0
+               |> fun nfa ->
+               Debug.dump_nfa ~msg:"eq_const 0 %s" Nfa.format_nfa nfa;
+               nfa)
             |> Nfa.truncate deg
             |> Nfa.intersect nfa
             |> project (get_deg x)
@@ -832,8 +835,8 @@ struct
       model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
   ;;
 
-  let get_model_semenov f =
-    let res =
+  let get_model_semenov f = failwith "TBD"
+  (*let res =
       f
       |> eval_semenov
            (fun s nfa model ->
@@ -901,7 +904,7 @@ struct
         | `Both _ -> failwith "Should be unreachable")
       |> Option.some
     | None -> None
-  ;;
+  *)
 
   let proof ir =
     let run_semenov = collect_vars ir |> Map.keys |> List.exists is_exp in
@@ -922,8 +925,11 @@ struct
   ;;
 end
 
-module Lsb = Make (Nfa.Lsb) (NfaCollection.Lsb) (Nfa.Lsb) (NfaCollection.Lsb)
-module Msb = Make (Nfa.MsbNat) (NfaCollection.MsbNat) (Nfa.Msb) (NfaCollection.Msb)
+module Lsb =
+  Make (Nfa.Lsb (Nfa.Bv)) (NfaCollection.Lsb) (Nfa.Lsb (Nfa.Bv)) (NfaCollection.Lsb)
+
+module Msb =
+  Make (Nfa.MsbNat (Nfa.Bv)) (NfaCollection.MsbNat) (Nfa.Msb (Nfa.Bv)) (NfaCollection.Msb)
 
 let proof ir =
   match config.mode with

@@ -30,7 +30,7 @@ let pp_rel fmt = function
 
 type t =
   | True
-  | Reg of Regex.t * atom list
+  | Reg of string Regex.t * atom list
   | Rel of rel * (atom, int) Map.t * int
   (* Logical operations. *)
   | Lnot of t
@@ -105,13 +105,16 @@ let rec pp fmt = function
       rel
       c
   | Reg (regex, atoms) ->
-    Format.fprintf
+    failwith "TBD"
+    (*
+       Format.fprintf
       fmt
       "(%a %a)"
       Regex.pp
       regex
       (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ") pp_atom)
       atoms
+    *)
   | Lnot ir -> Format.fprintf fmt "~%a" pp ir
   | Land irs ->
     Format.fprintf

@@ -3,15 +3,15 @@
 
 module Map = Base.Map.Poly
 
-type t =
+type 'a t =
   | Empty
   | Epsilon
-  | Symbol of Bitv.t [@printer fun fmt -> fprintf fmt "%a" Bitv.L.print]
-  | Mand of t * t
-  | Mor of t * t
-  | Concat of t * t
-  | Kleene of t
-  | Mnot of t
+  | Symbol of 'a
+  | Mand of 'a t * 'a t
+  | Mor of 'a t * 'a t
+  | Concat of 'a t * 'a t
+  | Kleene of 'a t
+  | Mnot of 'a t
 [@@deriving variants, show]
 
 let all = mnot empty
@@ -74,7 +74,7 @@ let rec v = function
 let rec deriv a = function
   | Empty -> Empty
   | Epsilon -> Empty
-  | Symbol b -> if Bitv.equal a b then Epsilon else Empty
+  | Symbol b -> if a = b then Epsilon else Empty
   | Concat (r, s) -> if v r then deriv a r <*> s <|> deriv a s else deriv a r <*> s
   | Mor (r, s) -> deriv a r <|> deriv a s
   | Mand (r, s) -> deriv a r <&> deriv a s
@@ -94,8 +94,9 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r =
-  let rec traverse visited = function
+let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r = failwith ""
+(*
+   let rec traverse visited = function
     | [] -> []
     | r :: tl ->
       if List.exists (fun r' -> r' = r) visited
@@ -127,12 +128,13 @@ let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r =
     ~final:(finals |> List.map regex_to_state)
     ~vars:(0 -- (deg - 1) |> List.rev)
     ~deg
-;;
+*)
 
-open Angstrom
+(*open Angstrom*)
 
-let of_string =
-  let is_whitespace = function
+let of_string symbol = failwith symbol
+(*
+   let is_whitespace = function
     | ' ' | '\t' | '\n' | '\r' -> true
     | _ -> false
   in
@@ -165,9 +167,10 @@ let of_string =
       |> bin_op mor "|")
   in
   parse_string ~consume:Prefix regex
-;;
+*)
 
-let%expect_test "Basic parsing" =
+(*
+   let%expect_test "Basic parsing" =
   of_string "[01]/*([10]|[11]/[01])" |> Result.get_ok |> Format.printf "%a@." pp;
   [%expect
     {| (Regex.Concat (01, (Regex.Kleene (Regex.Mor (10, (Regex.Concat (11, 01))))))) |}]
@@ -278,3 +281,4 @@ let bwxor =
        (mor (mor (symbol (s 0b000)) (symbol (s 0b011))) (symbol (s 0b101)))
        (symbol (s 0b110)))
 ;;
+*)

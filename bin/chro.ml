@@ -10,6 +10,15 @@ type state =
   ; prev : state option
   }
 
+let z_of_list l =
+  List.fold_left
+    (fun acc v ->
+       let base = Z.shift_left acc 1 in
+       if v then Z.add base Z.one else base)
+    Z.zero
+    (List.rev l)
+;;
+
 let () =
   let f =
     match Fpath.of_string Lib.Solver.config.input_file with
@@ -57,7 +66,8 @@ let () =
         match Lib.Solver.get_model (Lib.Me.ir_of_ast ir) with
         | Some model ->
           Map.iteri
-            ~f:(fun ~key:k ~data:v -> Format.printf "%a = %d; " Lib.Ir.pp_atom k v)
+            ~f:(fun ~key:k ~data:v ->
+              Format.printf "%a = %a; " Lib.Ir.pp_atom k Z.pp_print (z_of_list v))
             model;
           Format.printf "\n%!"
         | None -> Format.printf "no model\n%!"
