@@ -1,10 +1,13 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
+let compare_string = String.compare
+let compare_int = Int.compare
+let compare_list f = Base.List.compare f
 
 type atom =
   | Var of string
   | Const of int
-[@@deriving variants]
+[@@deriving variants, compare]
 
 let pp_atom ppf = function
   | Var n -> Format.fprintf ppf "%s" n
@@ -21,7 +24,7 @@ module Eia = struct
     | Bwor of term * term
     | Bwxor of term * term
     | Pow of term * term
-  [@@deriving variants]
+  [@@deriving variants, compare]
 
   let rec map_term f = function
     | Atom _ as term -> f term
@@ -66,7 +69,7 @@ module Eia = struct
   type t =
     | Eq of term * term
     | Leq of term * term
-  [@@deriving variants (* , show *)]
+  [@@deriving variants, compare (* , show *)]
 
   let geq a b = leq b a
   let lt a b = leq (add [ a; atom (const 1) ]) b
@@ -147,7 +150,7 @@ type t =
   | Lor of t list
   | Exists of atom list * t
   | Pred of string
-[@@deriving variants]
+[@@deriving variants, compare]
 
 let limpl a b = lor_ [ lnot a; b ]
 let any atoms ast = lnot (exists atoms (lnot ast))
