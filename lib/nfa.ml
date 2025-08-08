@@ -236,6 +236,132 @@ module Bv = struct
   let get (vec, _mask) = bv_get vec
 end
 
+module Str = struct
+  type t = char array
+  type u = char
+
+  let u_zero = '0'
+  let u_null = Char.chr 0
+  let unsafe_get = Array.get
+  let safe_get arr i = if Array.length arr <= i then u_null else Array.get arr i
+
+  let stretch vec mask_list deg =
+    let m =
+      mask_list
+      |> List.mapi (fun i k -> k, Set.singleton i)
+      |> Map.of_alist_reduce ~f:Set.union
+    in
+    (*let ok =
+      0 -- deg
+      |> List.for_all (fun j ->
+        let js = Map.find m j |> Option.value ~default:Set.empty in
+        Set.for_all ~f:(fun j -> bv_get vec j) js
+        || Set.for_all ~f:(fun j -> bv_get vec j |> not) js)
+    in
+    match ok with
+    | true ->*)
+    Array.init deg (fun i ->
+      (let* js = Map.find m i in
+       let* j = Set.nth js 0 in
+       let v = safe_get vec j in
+       v |> return)
+      |> Option.value ~default:u_null)
+    |> return
+  ;;
+
+  (*| false -> Option.none*)
+
+  let equal vec1 vec2 =
+    let len = max (Array.length vec1) (Array.length vec2) in
+    0 -- (len - 1)
+    |> List.for_all (fun i ->
+      let v1 = safe_get vec1 i in
+      let v2 = safe_get vec2 i in
+      Char.equal v1 u_null || Char.equal v2 u_null || Char.equal v1 v2)
+  ;;
+
+  let combine vec1 vec2 =
+    let vec1, vec2 =
+      if Array.length vec2 > Array.length vec1 then vec2, vec1 else vec1, vec2
+    in
+    let len = Array.length vec1 in
+    Array.init len (fun i ->
+      let c1 = safe_get vec1 i in
+      if Char.equal c1 u_null then safe_get vec2 i else c1)
+  ;;
+
+  let project proj vec =
+    Array.init (Array.length vec) (fun i ->
+      if List.mem i proj then u_null else unsafe_get vec i)
+  ;;
+
+  let truncate len vec =
+    Array.init (Array.length vec) (fun i -> if i < len then unsafe_get vec i else u_null)
+  ;;
+
+  let is_zero vec = Array.for_all (fun v -> Char.equal v u_null || Char.equal v '0') vec
+
+  let variations vec =
+    (*let mask_list = mask |> bv_to_list in
+    let length = bv_len mask in
+    Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
+    |> Iter.map Z.of_int
+    |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
+    |> Iter.map (fun x -> x, mask)
+    |> Iter.to_list*)
+    failwith "TBD"
+  ;;
+
+  let zero deg = Array.init deg (fun _i -> u_null)
+
+  let zero_with_mask mask =
+    let len = List.fold_left max 0 mask in
+    Array.init len (fun i -> if List.mem i mask then '0' else u_null)
+  ;;
+
+  let singleton_with_mask c mask =
+    let len = max (List.fold_left max 0 mask) c in
+    Array.init len (fun i ->
+      if i = c then '1' else if List.mem i mask then '0' else u_null)
+  ;;
+
+  let one_with_mask mask =
+    let len = List.fold_left max 0 mask in
+    Array.init len (fun i -> if List.mem i mask then '1' else u_null)
+  ;;
+
+  let pp ppf (vec : t) =
+    Array.to_seq vec
+    |> Seq.map (function
+      | x when Char.code x = 0 -> '_'
+      | x -> x)
+    |> String.of_seq
+    |> Format.fprintf ppf "(%s)"
+  ;;
+
+  let reenumerate map vec =
+    let len = Array.length vec in
+    let vec =
+      Array.init len (fun i ->
+        match Map.find map i with
+        | Some j -> unsafe_get vec j
+        | None -> u_null)
+    in
+    vec
+  ;;
+
+  let of_list l =
+    let label = List.map snd l in
+    let vars = List.map fst l in
+    let bv = Array.init (List.length l) (fun i -> List.nth label i) in
+    let deg = List.fold_left max 0 vars + 1 in
+    let vec = stretch bv vars deg |> Option.get in
+    vec
+  ;;
+
+  let get = safe_get
+end
+
 module Graph (Label : L) = struct
   type t = (Label.t * state) list array
 
@@ -397,6 +523,7 @@ module type Type = sig
   val invert : t -> t
   val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
+  val of_regex : v list Regex.t -> t
 end
 
 module type NatType = sig
@@ -434,6 +561,7 @@ struct
   module Graph = Graph (Label)
 
   type t = Graph.t _t
+  type v = Label.u
 
   let length = length
 
@@ -830,6 +958,41 @@ struct
     ; is_dfa = true
     }
   ;;
+
+  let of_regex (r : Label.u list Regex.t) =
+    let rec traverse visited = function
+      | [] -> []
+      | r :: tl ->
+        if List.exists (fun r' -> r' = r) visited
+        then traverse visited tl
+        else (
+          let visited = r :: visited in
+          let symbols = Regex.symbols r in
+          let delta = List.map (fun symbol -> symbol, Regex.deriv symbol r) symbols in
+          let tl = List.append (List.map snd delta) tl in
+          (r, delta) :: traverse visited tl)
+    in
+    let transitions = traverse [] [ r ] in
+    let regex_to_state =
+      transitions |> List.map fst |> List.mapi (fun i r -> r, i) |> Map.of_alist_exn
+    in
+    let finals = Map.keys regex_to_state |> List.filter Regex.v in
+    let regex_to_state = Map.find_exn regex_to_state in
+    let transitions =
+      transitions
+      |> List.concat_map (fun (q, delta) ->
+        List.map (fun (l, q') -> regex_to_state q, l, regex_to_state q') delta)
+    in
+    let deg =
+      Regex.symbols r |> List.fold_left (fun acc v -> max acc (List.length v)) 0
+    in
+    create_nfa
+      ~transitions
+      ~start:[ regex_to_state r ]
+      ~final:(finals |> List.map regex_to_state)
+      ~vars:(0 -- (deg - 1) |> List.rev)
+      ~deg
+  ;;
 end
 
 module Lsb (Label : L) = struct
@@ -869,7 +1032,6 @@ module Lsb (Label : L) = struct
       end)
 
   type u = t
-  type v = Label.u
 
   let any_path nfa vars =
     let transitions = nfa.transitions in
@@ -1085,7 +1247,6 @@ module MsbNat (Label : L) = struct
   module Lsb = Lsb (Label)
 
   type u = t
-  type v = Label.u
 
   let any_path = Lsb.any_path
   let run nfa = Set.are_disjoint nfa.start nfa.final |> not
@@ -1285,7 +1446,6 @@ module Msb (Label : L) = struct
   module MsbNat = MsbNat (Label)
 
   type u = MsbNat.t
-  type v = Label.u
 
   let any_path nfa vars =
     let transitions = nfa.transitions in
@@ -1355,3 +1515,26 @@ module Msb (Label : L) = struct
     nfa
   ;;
 end
+
+let%expect_test "test" =
+  let module NfaStr = Lsb (Str) in
+  let nfa1 =
+    NfaStr.create_nfa
+      ~start:[ 0 ]
+      ~final:[ 2 ]
+      ~transitions:[ 0, [ 'a' ], 1; 1, [ 'b' ], 2 ]
+      ~vars:[ 0 ]
+      ~deg:2
+  in
+  let nfa2 =
+    NfaStr.create_nfa
+      ~start:[ 0 ]
+      ~final:[ 2 ]
+      ~transitions:[ 0, [ 'a' ], 1; 1, [ 'd' ], 2 ]
+      ~vars:[ 0 ]
+      ~deg:2
+  in
+  let nfa = NfaStr.intersect nfa1 nfa2 |> NfaStr.project [ 0; 1 ] in
+  Format.printf "%a %b" NfaStr.format_nfa nfa (NfaStr.run nfa);
+  [%expect {||}]
+;;

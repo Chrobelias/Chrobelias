@@ -24,8 +24,7 @@ let collect_vars ir =
            (Map.keys term
             |> List.concat_map (function
               | Ir.Var _ as ir -> [ ir ]
-              | Ir.Pow2 a as ir -> [ ir; Ir.var a ]
-              | Ir.Internal _ as ir -> [ ir ])
+              | Ir.Pow2 a as ir -> [ ir; Ir.var a ])
             |> Set.of_list)
        | _ -> acc)
     Set.empty
@@ -49,16 +48,6 @@ let collect_free (ir : Ir.t) =
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
   aux j []
-;;
-
-let eval_reg (type a) (module Nfa : Nfa.Type with type t = a) vars reg atoms =
-  let nfa = reg |> Regex.to_nfa (module Nfa) in
-  let reenum =
-    0 -- (List.length atoms - 1)
-    |> Map.of_list_with_key_exn ~get_key:Fun.id
-    |> Map.map_keys_exn ~f:(fun k -> Map.find_exn vars (List.nth atoms k))
-  in
-  Nfa.reenumerate reenum nfa
 ;;
 
 type bound =
@@ -375,9 +364,19 @@ let level = ref 0
 module Make
     (NfaNat : Nfa.NatType)
     (NfaCollectionNat : NfaCollection.NatType with type t = NfaNat.t)
-    (Nfa : Nfa.Type with type u = NfaNat.t)
+    (Nfa : Nfa.Type with type u = NfaNat.t and type v = bool)
     (NfaCollection : NfaCollection.Type with type t = Nfa.t) =
 struct
+  let eval_reg vars reg atoms =
+    let nfa = reg |> Nfa.of_regex in
+    let reenum =
+      0 -- (List.length atoms - 1)
+      |> Map.of_list_with_key_exn ~get_key:Fun.id
+      |> Map.map_keys_exn ~f:(fun k -> Map.find_exn vars (List.nth atoms k))
+    in
+    Nfa.reenumerate reenum nfa
+  ;;
+
   let eval ir =
     let ir = trivial ir in
     let ir = Ir.simpl_monotonicty ir in
@@ -423,7 +422,7 @@ struct
          | Ir.Eq -> NfaCollection.eq vars term c
          | Ir.Leq -> NfaCollection.leq vars term c
        end
-       | Ir.Reg (reg, atoms) -> eval_reg (module Nfa) vars reg atoms
+       | Ir.Reg (reg, atoms) -> eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
          eval ir |> Nfa.project (List.filter_map (Map.find vars) atoms)
          (*|> NfaO.lsb_of_msb
@@ -441,7 +440,7 @@ struct
 
   let is_exp = function
     | Ir.Pow2 _ -> true
-    | Ir.Var _ | Ir.Internal _ -> false
+    | Ir.Var _ -> false
   ;;
 
   let log2 n =
@@ -464,12 +463,12 @@ struct
 
   let get_exp = function
     | Ir.Pow2 var -> Ir.var var
-    | Ir.Var _ | Ir.Internal _ -> failwith "Expected exponent, found var"
+    | Ir.Var _ -> failwith "Expected exponent, found var"
   ;;
 
   let to_exp = function
     | Ir.Pow2 _ -> failwith "Expected var"
-    | Ir.Var var | Ir.Internal var -> Ir.pow2 var
+    | Ir.Var var -> Ir.pow2 var
   ;;
 
   let decide_order vars =

@@ -94,8 +94,7 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r = failwith ""
-(*
+(*let to_nfa (type a) (module Nfa : Nfa.Type with type v = a) (r: (a list) t) =
    let rec traverse visited = function
     | [] -> []
     | r :: tl ->
@@ -118,10 +117,10 @@ let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r = failwith ""
     transitions
     |> List.concat_map (fun (q, delta) ->
       List.map
-        (fun (l, q') -> regex_to_state q, l |> Bitv.to_int_us, regex_to_state q')
+        (fun (l, q') -> regex_to_state q, l, regex_to_state q')
         delta)
   in
-  let deg = symbols r |> List.fold_left (fun acc v -> max acc (Bitv.length v)) 0 in
+  let deg = symbols r |> List.fold_left (fun acc v -> max acc (List.length v)) 0 in
   Nfa.create_nfa
     ~transitions
     ~start:[ regex_to_state r ]

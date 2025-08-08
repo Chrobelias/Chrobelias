@@ -67,6 +67,7 @@ module type Type = sig
   val invert : t -> t
   val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
+  val of_regex : v list Regex.t -> t
 end
 
 module type NatType = sig
@@ -129,6 +130,8 @@ module Lsb (Label : L) : sig
     -> temp:deg
     -> vars:int list
     -> (t * (int * int) list * (v list list * int)) list
+
+  val of_regex : v list Regex.t -> t
 end
 
 module MsbNat (Label : L) : sig

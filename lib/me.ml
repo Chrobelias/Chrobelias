@@ -82,7 +82,7 @@ let of_eia (eia : Ast.Eia.t) =
         if Map.length base_poly = 0 && base_c = 2
         then begin
           match exp_symbol with
-          | Var v | Internal v -> Map.singleton (Ir.pow2 v) 1
+          | Var v -> Map.singleton (Ir.pow2 v) 1
           | _ -> failwith "unreachable"
         end
         else failwith "only base 2 is supported in exponents"

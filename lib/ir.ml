@@ -6,15 +6,13 @@ module Set = Base.Set.Poly
 (* the state that should be stored. So let's stick with simpler stuff now. *)
 type atom =
   | Var of string
-  | Internal of string
   | Pow2 of string
 [@@deriving variants]
 
-let internal () = internal (Random.int 1073741822 |> string_of_int)
+let internal () = var (String.concat "" [ "%"; Random.int 1073741822 |> string_of_int ])
 
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var
-  | Internal var -> Format.fprintf fmt "[%s]" var
   | Pow2 var -> Format.fprintf fmt "pow2(%s)" var
 ;;
 
@@ -30,7 +28,7 @@ let pp_rel fmt = function
 
 type t =
   | True
-  | Reg of string Regex.t * atom list
+  | Reg of bool list Regex.t * atom list
   | Rel of rel * (atom, int) Map.t * int
   (* Logical operations. *)
   | Lnot of t
@@ -192,10 +190,6 @@ let pp_smtlib ppf (ir : t) =
         Ty.Binop.Pow
         (Expr.value (Value.Int 2))
         (Expr.symbol (Symbol.make Ty.Ty_int s))
-    | rez ->
-      Format.eprintf "\n@[%a@]\n\n%!" pp_atom rez;
-      Printf.eprintf "%s %d\n" __FILE__ __LINE__;
-      exit 1
   in
   let rec expr_of_ir : t -> Smtml.Expr.t = function
     | True ->
