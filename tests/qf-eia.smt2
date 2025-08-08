@@ -74,3 +74,17 @@
   (assert (not (= (exp 2 x) (* 2 (exp 2 y)))))
   (check-sat) ; unsat
 (pop 1)
+
+(push 1)
+  (assert (= x 10))
+  (assert (= y (exp 2 x)))
+  (assert (<= y 10000))
+  (check-sat) ; sat
+(pop 1)
+
+(push 1)
+  (assert (= x 1000))
+  (assert (= y (exp 2 x)))
+  (assert (<= y 10000))
+  (check-sat) ; unsat
+(pop 1)

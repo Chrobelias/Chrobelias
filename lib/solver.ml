@@ -24,8 +24,7 @@ let collect_vars ir =
            (Map.keys term
             |> List.concat_map (function
               | Ir.Var _ as ir -> [ ir ]
-              | Ir.Pow2 a as ir -> [ ir; Ir.var a ]
-              | Ir.Internal _ as ir -> [ ir ])
+              | Ir.Pow2 a as ir -> [ ir; Ir.var a ])
             |> Set.of_list)
        | _ -> acc)
     Set.empty
@@ -444,7 +443,7 @@ struct
 
   let is_exp = function
     | Ir.Pow2 _ -> true
-    | Ir.Var _ | Ir.Internal _ -> false
+    | Ir.Var _ -> false
   ;;
 
   let log2 n =
@@ -467,12 +466,12 @@ struct
 
   let get_exp = function
     | Ir.Pow2 var -> Ir.var var
-    | Ir.Var _ | Ir.Internal _ -> failwith "Expected exponent, found var"
+    | Ir.Var _ -> failwith "Expected exponent, found var"
   ;;
 
   let to_exp = function
     | Ir.Pow2 _ -> failwith "Expected var"
-    | Ir.Var var | Ir.Internal var -> Ir.pow2 var
+    | Ir.Var var -> Ir.pow2 var
   ;;
 
   let decide_order vars =
@@ -879,7 +878,6 @@ struct
               match k with
               | Ir.Pow2 _ -> true
               | Ir.Var _ -> Map.mem map k
-              | Ir.Internal _ -> failwith "Unexpected"
             in
             let c =
               term
@@ -890,8 +888,7 @@ struct
                 *
                   match k with
                   | Ir.Pow2 x -> pow2 (Map.find_exn map (Var x))
-                  | Ir.Var _ -> Map.find_exn map k
-                  | Ir.Internal _ -> failwith "Unexpected")
+                  | Ir.Var _ -> Map.find_exn map k)
               |> Base.Sequence.fold ~init:c ~f:( + )
             in
             let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
