@@ -7,6 +7,7 @@ type config =
   { mutable stop_after : [ `Simpl | `Solving ]
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
+  ; mutable simpl_alpha : bool
   ; mutable input_file : string
   }
 
