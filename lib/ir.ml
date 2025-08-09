@@ -261,7 +261,7 @@ let pp_smtlib2 ppf ir =
     | Exists (atoms, rhs) ->
       fprintf
         ppf
-        "@[(exists (%a)@ %a@]@ "
+        "@[(exists (%a)@ %a)@]@ "
         (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_atom)
         atoms
         helper
@@ -300,6 +300,7 @@ let pp_smtlib2 ppf ir =
         pp_map
         poly
         rhs
+    | Lnot ph -> fprintf ppf "@[(not %a)@]" helper ph
     | _ ->
       Printf.eprintf "%s %d\n" __FILE__ __LINE__;
       exit 1
