@@ -341,6 +341,7 @@ type config =
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
   ; mutable simpl_alpha : bool
+  ; mutable simpl_mono : bool
   ; mutable input_file : string
   }
 
@@ -349,6 +350,7 @@ let config =
   ; mode = `Msb
   ; dump_simpl = false
   ; simpl_alpha = true
+  ; simpl_mono = true
   ; input_file = ""
   }
 ;;
@@ -365,6 +367,7 @@ let parse_args () =
     ; ( "--no-simpl-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , " Don't try simplifications based on alpha-equivalence" )
+    ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
@@ -391,7 +394,7 @@ module Make
 struct
   let eval ir =
     let ir = trivial ir in
-    let ir = Ir.simpl_monotonicty ir in
+    let ir = if config.simpl_mono then Ir.simpl_monotonicty ir else ir in
     let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
     if config.dump_simpl then Format.printf "%a\n" Ir.pp_smtlib2 ir;
     if config.stop_after = `Simpl then exit 0;
