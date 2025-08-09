@@ -32,6 +32,10 @@ module Bv : sig
   include L with type u = bool
 end
 
+module Str : sig
+  include L with type u = char
+end
+
 module type Type = sig
   type t
   type u

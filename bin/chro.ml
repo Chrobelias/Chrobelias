@@ -10,7 +10,7 @@ type state =
   ; prev : state option
   }
 
-let z_of_list l =
+let _z_of_list l =
   List.fold_left
     (fun acc v ->
        let base = Z.shift_left acc 1 in
@@ -67,7 +67,14 @@ let () =
         | Some model ->
           Map.iteri
             ~f:(fun ~key:k ~data:v ->
-              Format.printf "%a = %a; " Lib.Ir.pp_atom k Z.pp_print (z_of_list v))
+              Format.printf
+                "%a = %a; "
+                Lib.Ir.pp_atom
+                k
+                (Format.pp_print_list
+                   ~pp_sep:(fun ppf () -> Format.fprintf ppf "")
+                   Format.pp_print_char)
+                v (*Z.pp_print (z_of_list v)*))
             model;
           Format.printf "\n%!"
         | None -> Format.printf "no model\n%!"

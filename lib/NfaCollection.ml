@@ -626,3 +626,272 @@ module MsbNat = struct
   let eq vars term c = Msb.eq vars term c |> NfaMsb.to_nat
   let leq vars term c = Msb.leq vars term c |> NfaMsb.to_nat
 end
+
+module Str = struct
+  module Nfa = Nfa.Lsb (Nfa.Str)
+
+  type t = Nfa.t
+  (*
+     :'<,'>s/0b0/[o; 1b/g | '<,'>s/0b1/[i; 1b/g | '<,'>s/1b0/o; 2b/g |'<,'>s/1b1/i; 2b/g | '<,'>s/2b0/o]/g | '<,'>s/2b1/i]/g
+  :'<,'>s/0b0/[o; 2b/g | '<,'>s/0b1/[i; 2b/g | '<,'>s/2b0/o]/g | '<,'>s/2b1/i]/g
+  :'<,'>s/0b0/[o]/g | '<,'>s/0b1/[i]/g
+  *)
+
+  let o = '0'
+  let i = '1'
+
+  let add ~lhs ~rhs ~res =
+    Nfa.create_nfa
+      ~transitions:
+        ([ 0, [ o; o; o ], 0
+         ; 0, [ i; o; i ], 0
+         ; 0, [ i; i; o ], 0
+         ; 0, [ o; i; i ], 1
+         ; 1, [ i; i; i ], 1
+         ; 1, [ o; i; o ], 1
+         ; 1, [ o; o; i ], 1
+         ; 1, [ i; o; o ], 0
+         ]
+         |> List.map (fun (a, b, c) -> a, b, c))
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ res; rhs; lhs ]
+      ~deg:((max lhs rhs |> max res) + 1)
+  ;;
+
+  let eq lhs rhs =
+    Nfa.create_nfa
+      ~transitions:[ 0, [ o; o ], 0; 0, [ i; i ], 0 ]
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ lhs; rhs ]
+      ~deg:(max lhs rhs + 1)
+  ;;
+
+  let eq_const var (n : int) =
+    let vec = Bitv.of_int_us n |> Bitv.to_list |> Bitv.of_list in
+    let max = Bitv.length vec in
+    let transitions =
+      Bitv.foldi_right
+        (fun j bit acc -> (j, [ (if bit then i else o) ], j + 1) :: acc)
+        vec
+        [ max, [ o ], max ]
+    in
+    Nfa.create_nfa ~start:[ 0 ] ~final:[ max ] ~transitions ~vars:[ var ] ~deg:(var + 1)
+  ;;
+
+  let n () =
+    Nfa.create_nfa ~transitions:[ 0, [], 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
+  ;;
+
+  let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
+
+  let leq lhs rhs =
+    Nfa.create_nfa
+      ~transitions:
+        ([ 0, [ o; o ], 0
+         ; 0, [ i; i ], 0
+         ; 0, [ i; o ], 0
+         ; 0, [ o; i ], 1
+         ; 1, [ i; i ], 1
+         ; 1, [ o; o ], 1
+         ; 1, [ o; i ], 1
+         ; 1, [ i; o ], 0
+         ]
+         |> List.map (fun (a, b, c) -> a, b, c))
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ rhs; lhs ]
+      ~deg:(max lhs rhs + 1)
+  ;;
+
+  let geq x y = leq y x
+
+  let lt lhs rhs =
+    Nfa.create_nfa
+      ~transitions:
+        ([ 0, [ o; i ], 1
+         ; 0, [ i; i ], 0
+         ; 0, [ i; o ], 0
+         ; 0, [ o; o ], 0
+         ; 1, [ i; i ], 1
+         ; 1, [ o; i ], 1
+         ; 1, [ o; o ], 1
+         ; 1, [ i; o ], 0
+         ]
+         |> List.map (fun (a, b, c) -> a, b, c))
+      ~start:[ 0 ]
+      ~final:[ 1 ]
+      ~vars:[ lhs; rhs ]
+      ~deg:(max lhs rhs + 1)
+  ;;
+
+  let gt x y = lt y x
+
+  let torename var a c =
+    if c = 0
+    then (
+      let trans1 = List.init a Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
+      Nfa.create_nfa
+        ~transitions:([ a, [ i ], a + 1; a + 1, [ o ], a + 1 ] @ trans1)
+        ~start:[ 0 ]
+        ~final:[ a + 1 ]
+        ~vars:[ var ]
+        ~deg:(var + 1))
+    else (
+      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
+      Nfa.create_nfa
+        ~transitions:
+          ([ a + c - 1, [ o ], a; a, [ i ], a + c; a + c, [ o ], a + c ] @ trans1)
+        ~start:[ 0 ]
+        ~final:[ a + c ]
+        ~vars:[ var ]
+        ~deg:(var + 1))
+  ;;
+
+  let torename2 var exp =
+    Nfa.create_nfa
+      ~transitions:[ 0, [ i; o ], 0; 0, [ o; o ], 0; 0, [ i; i ], 1; 1, [ o; o ], 1 ]
+      ~start:[ 0 ]
+      ~final:[ 1 ]
+      ~vars:[ var; exp ]
+      ~deg:(max var exp + 1)
+  ;;
+
+  let power_of_two exp =
+    Nfa.create_nfa
+      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
+      ~start:[ 0 ]
+      ~final:[ 1 ]
+      ~vars:[ exp ]
+      ~deg:(exp + 1)
+  ;;
+
+  let mul ~res ~lhs ~rhs =
+    let rec helper ~res ~lhs ~rhs =
+      match lhs with
+      | 0 -> eq_const res 0
+      | 1 -> eq res rhs
+      | _ when lhs mod 2 = 0 ->
+        let newvar = max (max res lhs) rhs + 1 in
+        let a = helper ~res:newvar ~lhs:(lhs / 2) ~rhs in
+        let b = add ~res ~lhs:newvar ~rhs:newvar in
+        Nfa.intersect a b |> Nfa.project [ newvar ]
+      | _ ->
+        let newvar = max (max res lhs) rhs + 1 in
+        let a = helper ~res:newvar ~lhs:(lhs - 1) ~rhs in
+        let b = add ~res ~lhs:newvar ~rhs in
+        Nfa.intersect a b |> Nfa.project [ newvar ]
+    in
+    helper ~res ~lhs ~rhs |> Nfa.minimize
+  ;;
+
+  let powerset term =
+    let rec helper = function
+      | [] -> []
+      | [ x ] -> [ [ o ], [ 0 ]; [ i ], [ x ] ]
+      | hd :: tl ->
+        let open Base.List.Let_syntax in
+        let ( let* ) = ( >>= ) in
+        let* n, thing = helper tl in
+        [ o :: n, 0 :: thing; i :: n, hd :: thing ]
+    in
+    term
+    |> List.map snd
+    |> helper
+    |> List.map (fun (a, x) -> a, Base.List.sum (module Base.Int) ~f:Fun.id x)
+  ;;
+
+  let eq vars term c =
+    let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
+    let thing = powerset term in
+    let states = ref Set.empty in
+    let transitions = ref [] in
+    let rec lp front =
+      match front with
+      | [] -> ()
+      | hd :: tl ->
+        if Set.mem !states hd
+        then lp tl
+        else begin
+          let t =
+            thing
+            |> List.filter (fun (_, sum) -> (hd - sum) mod 2 = 0)
+            |> List.map (fun (bits, sum) -> hd, bits, (hd - sum) / 2)
+          in
+          states := Set.add !states hd;
+          transitions := t @ !transitions;
+          lp (List.map (fun (_, _, x) -> x) t @ tl)
+        end
+    in
+    lp [ c ];
+    let states = Set.to_list !states in
+    Debug.printfln
+      "states:[%a]"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt a -> Format.fprintf fmt "%d" a))
+      states;
+    let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+    let idx c = Map.find states c |> Option.get in
+    let idxs c =
+      Map.find states c |> Option.map (fun c -> [ c ]) |> Option.value ~default:[]
+    in
+    let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+    Nfa.create_nfa
+      ~transitions
+      ~start:(idxs c)
+      ~final:(idxs 0)
+      ~vars:(List.map fst term)
+      ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+    |> fun nfa ->
+    Debug.dump_nfa ~msg:"dump nfa %s" Nfa.format_nfa nfa;
+    nfa
+  ;;
+
+  let leq vars term c =
+    let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
+    let thing = powerset term in
+    let states = ref Set.empty in
+    let transitions = ref [] in
+    let rec lp front =
+      match front with
+      | [] -> ()
+      | hd :: tl ->
+        if Set.mem !states hd
+        then lp tl
+        else begin
+          let t =
+            thing
+            |> List.map (fun (bits, sum) ->
+              ( hd
+              , bits
+              , match (hd - sum) mod 2 with
+                | 0 | 1 -> (hd - sum) / 2
+                | -1 -> ((hd - sum) / 2) - 1
+                | _ -> failwith "Should be unreachable" ))
+          in
+          states := Set.add !states hd;
+          transitions := t @ !transitions;
+          lp (List.map (fun (_, _, x) -> x) t @ tl)
+        end
+    in
+    lp [ c ];
+    let states = Set.to_list !states in
+    Debug.printfln
+      "states:[%a]"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt a -> Format.fprintf fmt "%d" a))
+      states;
+    let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+    let idx c = Map.find states c |> Option.get in
+    let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ idx c ]
+      ~final:(states |> Map.filter_keys ~f:(fun x -> x >= 0) |> Map.data)
+      ~vars:(List.map fst term)
+      ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+  ;;
+end

@@ -18,6 +18,7 @@ let collect_vars ir =
     (fun acc -> function
        (*| Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | Ir.SReg (atom, _) -> Set.add acc atom
        | Ir.Rel (_, term, _) ->
          Set.union
            acc
@@ -38,6 +39,7 @@ let collect_free (ir : Ir.t) =
   Ir.fold
     (fun acc -> function
        | Ir.Rel (_, term, _) -> term |> Map.keys |> Set.of_list |> Set.union acc
+       | Ir.SReg (atom, _) -> Set.add acc atom
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
@@ -332,7 +334,7 @@ type config =
   ; mutable input_file : string
   }
 
-let config = { stop_after = `Solving; mode = `Msb; dump_simpl = false; input_file = "" }
+let config = { stop_after = `Solving; mode = `Lsb; dump_simpl = false; input_file = "" }
 
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -364,27 +366,25 @@ let level = ref 0
 module Make
     (NfaNat : Nfa.NatType)
     (NfaCollectionNat : NfaCollection.NatType with type t = NfaNat.t)
-    (Nfa : Nfa.Type with type u = NfaNat.t and type v = bool)
+    (Nfa : Nfa.Type with type u = NfaNat.t and type v = char (*bool*))
     (NfaCollection : NfaCollection.Type with type t = Nfa.t) =
 struct
-  let eval_reg vars reg atoms =
-    let nfa = reg |> Nfa.of_regex in
+  let eval_reg vars reg atoms = failwith ""
+  (*let nfa = reg |> Nfa.of_regex in
     let reenum =
       0 -- (List.length atoms - 1)
       |> Map.of_list_with_key_exn ~get_key:Fun.id
       |> Map.map_keys_exn ~f:(fun k -> Map.find_exn vars (List.nth atoms k))
     in
-    Nfa.reenumerate reenum nfa
-  ;;
+    Nfa.reenumerate reenum nfa*)
 
   let eval ir =
     let ir = trivial ir in
     let ir = Ir.simpl_monotonicty ir in
-    if config.dump_simpl then Format.printf "%a\n" Ir.pp_smtlib2 ir;
+    if config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
     if config.stop_after = `Simpl then exit 0;
     let vars = collect_vars ir in
     let rec eval ir =
-      (* Format.printf "%d Running %a\n%!" !level Ir.pp ir; *)
       level := !level + 1;
       (match ir with
        | Ir.True -> NfaCollection.n ()
@@ -425,9 +425,19 @@ struct
        | Ir.Reg (reg, atoms) -> eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
          eval ir |> Nfa.project (List.filter_map (Map.find vars) atoms)
-         (*|> NfaO.lsb_of_msb
-         |> NfaO.Lsb.minimize
-         |> NfaO.msb_of_lsb*)
+         (* APOHZ technique legacy.
+           |> NfaO.lsb_of_msb
+           |> NfaO.Lsb.minimize
+           |> NfaO.msb_of_lsb
+         *)
+       | Ir.SReg (atom, reg) ->
+         let nfa = reg |> Nfa.of_regex in
+         let reenum =
+           0 -- (List.length [ atom ] - 1)
+           |> Map.of_list_with_key_exn ~get_key:Fun.id
+           |> Map.map_keys_exn ~f:(fun k -> Map.find_exn vars atom)
+         in
+         Nfa.reenumerate reenum nfa
        | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;
@@ -591,7 +601,7 @@ struct
       let nfa =
         nfa
         |> Nfa.intersect newvar_nfa
-        |> Nfa.minimize
+        (*|> Nfa.minimize*)
         |> Nfa.intersect geq_nfa
         |> Nfa.project [ internal ]
       in
@@ -687,7 +697,7 @@ struct
           | None ->
             project_exp s nfa x next
             |> Seq.map (fun (nfa, model_part) ->
-              helper (Nfa.minimize (project (get_deg x) nfa)) tl (model_part :: model))
+              helper ((*Nfa.minimize *) project (get_deg x) nfa) tl (model_part :: model))
             |> Seq.find_map Fun.id)
     in
     helper nfa order []
@@ -722,7 +732,7 @@ struct
           |> NfaNat.reenumerate
                (order_vars |> Map.map_keys_exn ~f:(fun k -> Map.find_exn s.vars k))
         in
-        NfaNat.intersect nfa order_nfa |> NfaNat.minimize)
+        NfaNat.intersect nfa order_nfa (*|> NfaNat.minimize*))
     in
     Debug.dump_nfa ~msg:"NFA taking order into account: %s" NfaNat.format_nfa nfa;
     order, nfa
@@ -752,7 +762,7 @@ struct
               (not (is_exp var)) && not (Map.mem vars (to_exp var))))
     in
     let nfa, vars = eval formula in
-    let nfa = Nfa.minimize nfa in
+    (*let nfa = Nfa.minimize nfa in*)
     Debug.dump_nfa
       ~msg:"Minimized raw original nfa: %s"
       ~vars:(Map.to_alist vars)
@@ -786,7 +796,10 @@ struct
       ~vars:(Map.to_alist vars)
       Nfa.format_nfa
       nfa;
-    let nfa = nfa |> Nfa.to_nat |> NfaNat.minimize in
+    let nfa =
+      nfa |> Nfa.to_nat
+      (*|> NfaNat.minimize*)
+    in
     Debug.dump_nfa
       ~msg:"Minimized original nfa: %s"
       ~vars:(Map.to_alist vars)
@@ -925,19 +938,56 @@ struct
 end
 
 module Lsb =
-  Make (Nfa.Lsb (Nfa.Bv)) (NfaCollection.Lsb) (Nfa.Lsb (Nfa.Bv)) (NfaCollection.Lsb)
+  Make (Nfa.Lsb (Nfa.Str)) (NfaCollection.Str) (Nfa.Lsb (Nfa.Str)) (NfaCollection.Str)
 
-module Msb =
+(*module Msb =
   Make (Nfa.MsbNat (Nfa.Bv)) (NfaCollection.MsbNat) (Nfa.Msb (Nfa.Bv)) (NfaCollection.Msb)
-
+*)
 let proof ir =
   match config.mode with
   | `Lsb -> Lsb.proof ir
-  | `Msb -> Msb.proof ir
+  | `Msb -> failwith "TBD" (* Msb.proof ir*)
 ;;
 
 let get_model ir =
   match config.mode with
   | `Lsb -> Lsb.get_model ir
-  | `Msb -> Msb.get_model ir
+  | `Msb -> failwith "TBD" (*Msb.get_model ir*)
+;;
+
+let%expect_test "test" =
+  let module Nfa = Nfa.Lsb (Nfa.Str) in
+  let ir =
+    Ir.land_
+      [ Ir.sreg
+          (Ir.var "x")
+          (Regex.plus (Regex.mor (Regex.symbol [ '1' ]) (Regex.symbol [ '0' ])))
+      ; Me.ir_of_ast
+          (Ast.eia
+             (Ast.Eia.leq
+                (Ast.Eia.pow (Ast.Eia.atom (Ast.const 2)) (Ast.Eia.Atom (Ast.var "y")))
+                (Ast.Eia.atom (Ast.var "x"))))
+      ; Me.ir_of_ast
+          (Ast.eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.var "y")) (Ast.Eia.Atom (Ast.const 4))))
+      ]
+  in
+  let nfa, _ = Lsb.eval ir in
+  Format.printf "%a" Nfa.format_nfa nfa;
+  match Lsb.get_model ir with
+  | Some model ->
+    Map.iteri
+      ~f:(fun ~key:k ~data:v ->
+        Format.printf
+          "%a = %a; "
+          Ir.pp_atom
+          k
+          (Format.pp_print_list
+             ~pp_sep:(fun ppf () -> Format.fprintf ppf "")
+             Format.pp_print_char)
+          v (*Z.pp_print (z_of_list v)*))
+      model;
+    Format.printf "\n%!"
+  | None ->
+    Format.printf "no model\n%!";
+    [%expect {||}]
 ;;

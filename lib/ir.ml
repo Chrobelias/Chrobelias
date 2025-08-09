@@ -29,6 +29,7 @@ let pp_rel fmt = function
 type t =
   | True
   | Reg of bool list Regex.t * atom list
+  | SReg of atom * char list Regex.t
   | Rel of rel * (atom, int) Map.t * int
   (* Logical operations. *)
   | Lnot of t
@@ -57,6 +58,7 @@ let rec equal ir ir' =
     List.length irs = List.length irs' && List.for_all2 equal irs irs'
   | Exists (atoms, ir), Exists (atoms', ir') ->
     List.equal ( = ) atoms atoms' && equal ir ir'
+  | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
   | _, _ -> false
 ;;
 
@@ -73,6 +75,7 @@ module X = struct
     | Land irs, Land irs' | Lor irs, Lor irs' -> List.for_all2 equal irs irs'
     | Exists (atoms, ir), Exists (atoms', ir') ->
       Set.equal (Set.of_list atoms) (Set.of_list atoms') && equal ir ir'
+    | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
     | _, _ -> false
   ;;
 
@@ -86,11 +89,20 @@ module X = struct
     | Rel (rel, term, c) ->
       Hashtbl.hash c + Hashtbl.hash rel + (Map.data term |> List.fold_left ( + ) 0)
     | Reg (regex, atoms) -> Hashtbl.hash regex + hashl Hashtbl.hash atoms
+    | SReg (atom, regex) -> Hashtbl.hash regex + Hashtbl.hash atom
   ;;
 end
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
+  | SReg (atom, _regex) ->
+    Format.fprintf
+      fmt
+      "(str.in.re %a %a)"
+      pp_atom
+      atom
+      pp_atom
+      atom (* TODO: print regex *)
   | Rel (rel, term, c) ->
     Format.fprintf
       fmt
@@ -103,7 +115,7 @@ let rec pp fmt = function
       rel
       c
   | Reg (regex, atoms) ->
-    failwith "TBD"
+    failwith "FIXME"
     (*
        Format.fprintf
       fmt
@@ -141,6 +153,7 @@ let rec map2 f fleaf ir =
   | True -> fleaf ir
   | Rel (_, _, _) -> fleaf ir
   | Reg (_, _) -> fleaf ir
+  | SReg (_, _) -> fleaf ir
   | Lnot ir' -> f (lnot (map2 f fleaf ir'))
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
   | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
@@ -154,6 +167,7 @@ let rec fold f acc ir =
   | True -> f acc ir
   | Rel _ -> f acc ir
   | Reg (_, _) -> f acc ir
+  | SReg (_, _) -> f acc ir
   | Lnot ir' -> f (fold f acc ir') ir
   | Land irs -> f (List.fold_left (fold f) acc irs) ir
   | Lor irs -> f (List.fold_left (fold f) acc irs) ir

@@ -56,6 +56,7 @@ let mnot = function
   | r -> mnot r
 ;;
 
+let plus r = concat r (kleene r)
 let ( <|> ) = mor
 let ( <&> ) = mand
 let ( <*> ) = concat

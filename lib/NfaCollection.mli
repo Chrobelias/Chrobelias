@@ -39,3 +39,7 @@ end
 module MsbNat : sig
   include NatType with type t = Nfa.MsbNat(Nfa.Bv).t
 end
+
+module Str : sig
+  include NatType with type t = Nfa.Lsb(Nfa.Str).t
+end

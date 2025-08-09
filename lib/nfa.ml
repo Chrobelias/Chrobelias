@@ -722,7 +722,13 @@ struct
                       let is_visited = is_visited (q1', q2') in
                       visit (q1', q2');
                       let q' = q (q1', q2') in
-                      let acc_delta = (label, q') :: acc_delta in
+                      let acc_delta =
+                        if
+                          List.exists (fun x -> x |> fst |> Label.equal label) acc_delta
+                          |> not
+                        then (label, q') :: acc_delta
+                        else acc_delta
+                      in
                       if is_visited |> not then Queue.add (q1', q2') queue;
                       acc_delta
                     | false -> acc_delta)
@@ -1066,7 +1072,7 @@ module Lsb (Label : L) = struct
     | None -> None
   ;;
 
-  let run nfa = Set.are_disjoint nfa.start nfa.final |> not
+  let run nfa = any_path nfa [] |> Option.is_some
 
   let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
     let zero_lbl = Label.zero_with_mask [ res; temp ] in
@@ -1249,7 +1255,7 @@ module MsbNat (Label : L) = struct
   type u = t
 
   let any_path = Lsb.any_path
-  let run nfa = Set.are_disjoint nfa.start nfa.final |> not
+  let run nfa = any_path nfa [] |> Option.is_some
 
   let find_c_d nfa (imp : (int, int) Map.t) =
     assert (Set.length nfa.start = 1);
