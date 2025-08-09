@@ -3,6 +3,12 @@
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
+let log ppf =
+  match Sys.getenv "CHRO_DEBUG" with
+  | exception Not_found -> Format.ifprintf Format.std_formatter ppf
+  | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
+;;
+
 let failf fmt = Format.kasprintf failwith fmt
 
 let collect_free =
@@ -206,14 +212,17 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
       in
       let sups = base_sups @ exp_sups in
       Poly (poly, 0, sups)
-    | Poly (base_poly, base_c, base_sups), Symbol (exp_symbol, exp_sups) ->
+    | Symbol (a, _), _ ->
+      failwith
+        (Format.asprintf "only base 2 is supported in exponents (got %a)" Ir.pp_atom a)
+    | Poly (base_poly, base_c, base_sups), _ ->
       failwith (Printf.sprintf "only base 2 is supported in exponents (got %d)" base_c)
-    | _ -> failf "not implemented: %s. base = %a, r = %a" __FUNCTION__ pp base pp exp
   ;;
 end
 
 let of_eia2 : Ast.Eia.t -> Ir.t =
   fun eia ->
+  (* log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
   let rec helper = function
     | Ast.Eia.Atom (Var v) -> Symantics.symbol v
     | Atom (Const c) -> Symantics.poly_of_const c
@@ -233,8 +242,8 @@ let of_eia2 : Ast.Eia.t -> Ir.t =
       in
       regex lhs rhs
     | other ->
-      Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other;
-      failf "%s unimplemented: %a" __FUNCTION__ Ast.Eia.pp eia
+      (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
+      failf "unimplemented %a" Ast.Eia.pp eia
   in
   match eia with
   | Eq (lhs, rhs) | Leq (lhs, rhs) ->
@@ -244,10 +253,13 @@ let of_eia2 : Ast.Eia.t -> Ir.t =
       | Eq _ -> Ir.eq
       | Leq _ -> Ir.leq
     in
-    Ir.land_ (build poly c :: sups)
+    let ans = Ir.land_ (build poly c :: sups) in
+    (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+    ans
 ;;
 
 let of_eia (eia : Ast.Eia.t) =
+  (* log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
   let rec as_poly term =
     match of_term term with
     | `Poly (poly, c, sups) -> poly, c, sups
