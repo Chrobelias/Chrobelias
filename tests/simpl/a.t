@@ -14,7 +14,7 @@
             (<= (+ (* (- 5) x) (* (- 7) z) (* (- 8) pow2(y)) )  -14)
             (<= (* (- 5) x)  13)
             (= (+ y z )  52)
-  
+            )
   )
 We can't do anything below, because y exists in two polarities
   $ cat > test.smt2 <<-EOF
@@ -32,8 +32,8 @@ We can't do anything below, because y exists in two polarities
           (and
             (<= (+ (* (- 1) x) (* (- 3) y) )  -24)
             (<= (* 5 y)  42)
-            (exists (z) (<= (+ x (* (- 3) y) z )  0)
-  
+            (exists (z) (<= (+ x (* (- 3) y) z )  0) )
+            )
   )
 
 Habermehl demo
@@ -51,6 +51,6 @@ Habermehl demo
   (assert (exists (x) (and
                         (<= (+ x z )  24)
                         (= (+ x pow2(z) )  52)
-  
+                        )
   )
 
