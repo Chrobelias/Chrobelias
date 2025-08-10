@@ -5,3 +5,22 @@
   lib
   ;memtrace
   ))
+
+(rule
+ (targets swine)
+ (action
+  (progn
+   (run
+    wget
+    https://github.com/ffrohn/swine-z3/releases/download/nightly/swine-z3-linux-static-d59b8d5cbc5f2321efa4485efa1a02e05a6696be.zip
+    -O
+    swine-z3-linux-static.zip)
+   (run unzip swine-z3-linux-static.zip)
+   (run
+    cp
+    -i
+    swine-z3-linux-static-d59b8d5cbc5f2321efa4485efa1a02e05a6696be/swine-z3
+    swine)
+   (run chmod +x ./swine)
+   ;
+   )))
