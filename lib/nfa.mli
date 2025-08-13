@@ -54,7 +54,7 @@ module type NatType = sig
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (int list * int)) list
+    -> (t * (int * int) list * (int list * int)) Seq.t
 end
 
 module Lsb : sig
@@ -100,7 +100,7 @@ module Lsb : sig
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (int list * int)) list
+    -> (t * (int * int) list * (int list * int)) Seq.t
 end
 
 module MsbNat : NatType

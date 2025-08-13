@@ -4,13 +4,14 @@
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 
-type t = { vars : (Ir.atom, int) Map.t }
-
-let internal_counter = ref 0
+type t =
+  { vars : (Ir.atom, int) Map.t
+  ; internal_counter : int
+  }
 
 let internal s =
-  internal_counter := !internal_counter + 1;
-  !internal_counter + (s.vars |> Map.data |> List.fold_left Int.max 0)
+  let s = { s with internal_counter = s.internal_counter + 1 } in
+  s.internal_counter + (s.vars |> Map.data |> List.fold_left Int.max 0), s
 ;;
 
 let collect_vars ir =
@@ -527,15 +528,15 @@ struct
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
     chrob
-    |> List.map (fun (a, c) ->
-      let old_internal_counter = !internal_counter in
-      let a_var = internal s in
-      let var2_plus_a = internal s in
-      let t = internal s in
-      let c_mul_t = internal s in
+    |> List.to_seq
+    |> Seq.map (fun (a, c) ->
+      let a_var, s = internal s in
+      let var2_plus_a, s = internal s in
+      let t, s = internal s in
+      let c_mul_t, s = internal s in
       Debug.printfln
         "nfa_for_exponent2: internal_counter=%d var=%d var2=%d"
-        !internal_counter
+        s.internal_counter
         var
         var2;
       Debug.printfln "[ var2_plus_a; c_mul_t; t ] = [%d; %d; %d]" var2_plus_a c_mul_t t;
@@ -551,7 +552,6 @@ struct
                 (NfaCollection.mul ~res:c_mul_t ~lhs:c ~rhs:t)))
       in
       Debug.dump_nfa ~msg:"nfa_for_exponent2 output nfa: %s" Nfa.format_nfa nfa;
-      internal_counter := old_internal_counter;
       nfa)
   ;;
 
@@ -559,21 +559,21 @@ struct
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
     chrob
-    |> List.concat_map (fun (a, c) ->
+    |> List.to_seq
+    |> Seq.concat_map (fun (a, c) ->
       if c = 0
       then
-        List.init (a + 10) (( + ) a)
-        |> List.map (fun x ->
+        Seq.init (a + 10) (( + ) a)
+        |> Seq.map (fun x ->
           let log = log2 x in
           x - log, log, 0)
-        |> List.filter (fun (t, _, _) -> t = a)
-      else c |> gen_list_n |> List.map (fun d -> a, d, c))
-    |> List.map (fun (a, d, c) ->
-      let old_internal_counter = !internal_counter in
-      let a_plus_d = internal s in
-      let t = internal s in
-      let c_mul_t = internal s in
-      let internal = internal s in
+        |> Seq.filter (fun (t, _, _) -> t = a)
+      else c |> gen_list_n |> List.map (fun d -> a, d, c) |> List.to_seq)
+    |> Seq.map (fun (a, d, c) ->
+      let a_plus_d, s = internal s in
+      let t, s = internal s in
+      let c_mul_t, s = internal s in
+      let internal, s = internal s in
       let nfa =
         Nfa.project
           [ a_plus_d; c_mul_t; t ]
@@ -605,7 +605,6 @@ struct
         Nfa.format_nfa
         nfa
         ~vars:[ Ir.var "var", var; Ir.var "newvar", newvar ];
-      internal_counter := old_internal_counter;
       nfa)
   ;;
 
@@ -626,7 +625,6 @@ struct
            ~res:(get_deg x)
            ~temp:(get_deg next)
            ~vars:(Map.data s.vars)
-      |> List.to_seq
       |> Seq.flat_map (fun (nfa, chrobak, model_part) ->
         (let y = get_exp next in
          Debug.dump_nfa
@@ -634,26 +632,21 @@ struct
            Nfa.format_nfa
            nfa;
          nfa_for_exponent2 s (get_deg x') (get_deg y) chrobak)
-        |> List.map (Nfa.intersect nfa)
-        |> List.map (fun nfa -> nfa, model_part)
-        |> List.to_seq)
+        |> Seq.map (Nfa.intersect nfa)
+        |> Seq.map (fun nfa -> nfa, model_part))
     else (
-      let old_counter = !internal_counter in
-      let inter = internal s in
+      let inter, s = internal s in
       let nfa = nfa |> Nfa.intersect (NfaCollection.torename2 (get_deg x') inter) in
       Debug.dump_nfa ~msg:"Nfa intersected with torename2: %s" Nfa.format_nfa nfa;
       let ans =
         nfa
         |> Nfa.get_chrobaks_sub_nfas ~res:(get_deg x) ~temp:inter ~vars:(Map.data s.vars)
-        |> List.to_seq
         |> Seq.flat_map (fun (nfa, chrobak, model_part) ->
           nfa_for_exponent s (get_deg x') inter chrobak
-          |> List.map (Nfa.intersect nfa)
-          |> List.map (fun nfa -> nfa, model_part)
-          |> List.to_seq)
+          |> Seq.map (Nfa.intersect nfa)
+          |> Seq.map (fun nfa -> nfa, model_part))
         |> Seq.map (fun (nfa, model_part) -> Nfa.project [ inter ] nfa, model_part)
       in
-      internal_counter := old_counter;
       ans)
   ;;
 
@@ -800,7 +793,7 @@ struct
     let powered_vars =
       Map.filteri ~f:(fun ~key:k ~data:_ -> is_exp k || Map.mem vars (to_exp k)) vars
     in
-    let s = { vars = powered_vars } in
+    let s = { vars = powered_vars; internal_counter = 0 } in
     decide_order powered_vars
     |> List.to_seq
     |> Seq.map (prepare_order s nfa)

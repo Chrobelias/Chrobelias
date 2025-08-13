@@ -389,7 +389,7 @@ module type NatType = sig
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (int list * int)) list
+    -> (t * (int * int) list * (int list * int)) Seq.t
 end
 
 module Make (Invariants : NfaInvariants) = struct
@@ -1010,8 +1010,9 @@ module Lsb = struct
     let temp_lbl = mask, mask in
     let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
     exp_nfa.start
-    |> Set.to_list
-    |> List.filter_map (fun mid ->
+    |> Set.to_sequence
+    |> Sequence.to_seq
+    |> Seq.filter_map (fun mid ->
       let* path = any_path { nfa with start = Set.singleton mid } vars in
       ( { nfa with
           final = Set.singleton mid
@@ -1239,23 +1240,25 @@ module MsbNat = struct
   ;;
 
   let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
-    let exp_nfa, start = get_exponent_sub_nfa nfa ~res ~temp in
-    Debug.dump_nfa ~msg:"exp_nfa: %s" format_nfa exp_nfa;
-    start
-    |> Map.to_alist
-    |> List.filter_map (fun (mid, lbls) ->
-      let chrobak_nfa = { exp_nfa with start = Set.singleton mid } in
-      let* path = any_path { nfa with start = Set.singleton mid } vars in
-      let nfa =
-        { nfa with
-          start = Set.singleton (Array.length nfa.transitions)
-        ; transitions =
-            Array.append nfa.transitions [| lbls |> List.map (fun lbl -> lbl, mid) |]
-        }
-      in
-      Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
-      Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
-      (nfa, chrobak chrobak_nfa, path) |> return)
+    match nfa.start |> Set.find ~f:(Fun.const true) with
+    | None -> Seq.empty
+    | Some nfa_start ->
+      let exp_nfa, start = get_exponent_sub_nfa nfa ~res ~temp in
+      Debug.dump_nfa ~msg:"exp_nfa: %s" format_nfa exp_nfa;
+      start
+      |> Map.to_sequence
+      |> Sequence.to_seq
+      |> Seq.filter_map (fun (mid, lbls) ->
+        let chrobak_nfa = { exp_nfa with start = Set.singleton mid } in
+        let* path = any_path { nfa with start = Set.singleton mid } vars in
+        let transitions = Array.copy nfa.transitions in
+        transitions.(nfa_start) <- lbls |> List.map (fun lbl -> lbl, mid);
+        let nfa =
+          { nfa with start = Set.singleton nfa_start; transitions } |> remove_unreachable
+        in
+        Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
+        Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
+        (nfa, chrobak chrobak_nfa, path) |> return)
   ;;
 
   let to_nat (nfa : t) : u =
