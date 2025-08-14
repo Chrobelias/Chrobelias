@@ -2,7 +2,7 @@
 ; /media/work2/asp/Chrobelias/_build/default/benchmarks/gen.exe-ddc4benchmarks/QF_LIA/PURRS-obenchmarks/tests/QF_LIA/PURRS
 
 (cram
-  (deps %{bin:Chro}))
+ (deps %{bin:Chro}))
 
 (cram
  (applies_to purrs01)
@@ -225,4 +225,3 @@
  (enabled_if
   (= benchmark %{profile}))
  (deps ../../../../benchmarks/QF_LIA/PURRS/purrs37.smt2))
-
