@@ -7,15 +7,15 @@
 (source
  (github Chrobelias/Chrobelias))
 
-(authors "Georgiy Belyanin, Timofey Frolov, Ignat Sergeev")
+(authors "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev")
 
-(maintainers "Georgiy Belyanin, Timofey Frolov, Ignat Sergeev")
+(maintainers "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev")
 
 (license LICENSE)
 
 (package
  (name Chrobelias)
- (synopsis "Chrobak existential linear integer arithmetic solver")
+ (synopsis "Chrobak normal form in exp-linear integer arithmetic solver")
  (depends
   ocaml
   dune
