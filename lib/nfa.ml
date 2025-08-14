@@ -702,14 +702,12 @@ module Make (Invariants : NfaInvariants) = struct
   ;;
 
   let reverse nfa =
-    let transitions = Array.make (length nfa) [] in
-    Array.iteri
-      (fun q delta ->
-         List.iter
-           (fun (label, q') -> transitions.(q') <- (label, q) :: transitions.(q'))
-           delta)
-      nfa.transitions;
-    { final = nfa.start; start = nfa.final; transitions; deg = nfa.deg; is_dfa = false }
+    { final = nfa.start
+    ; start = nfa.final
+    ; transitions = Graph.reverse nfa.transitions
+    ; deg = nfa.deg
+    ; is_dfa = false
+    }
   ;;
 
   let to_dfa nfa =
@@ -801,16 +799,6 @@ module Make (Invariants : NfaInvariants) = struct
       { final; start = Set.singleton 0; transitions; deg = nfa.deg; is_dfa = true })
   ;;
 
-  let minimize nfa =
-    nfa
-    |> remove_unreachable_from_final
-    |> to_dfa
-    |> reverse
-    |> to_dfa
-    |> reverse
-    |> to_dfa
-  ;;
-
   let invert nfa =
     (* We need complete DFA here, to_dfa() makes a complete DFA thus we're using it. *)
     let dfa = nfa |> to_dfa in
@@ -860,6 +848,17 @@ module Lsb = struct
     end)
 
   type u = t
+  type _t = t
+
+  let minimize nfa =
+    nfa
+    |> remove_unreachable_from_final
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+  ;;
 
   let any_path nfa vars =
     let transitions = nfa.transitions in
@@ -1105,6 +1104,7 @@ module MsbNat = struct
 
   type u = t
 
+  let minimize nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa
   let any_path = Lsb.any_path
   let run nfa = Set.are_disjoint nfa.start nfa.final |> not
 
@@ -1305,6 +1305,8 @@ module Msb = struct
     end)
 
   type u = MsbNat.t
+
+  let minimize nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa
 
   let any_path nfa vars =
     let transitions = nfa.transitions in

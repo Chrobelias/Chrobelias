@@ -426,7 +426,7 @@ struct
        end
        | Ir.Reg (reg, atoms) -> eval_reg (module Nfa) vars reg atoms
        | Ir.Exists (atoms, ir) ->
-         eval ir |> Nfa.project (List.filter_map (Map.find vars) atoms)
+         eval ir |> Nfa.project (List.filter_map (Map.find vars) atoms) |> Nfa.minimize
          (*|> NfaO.lsb_of_msb
          |> NfaO.Lsb.minimize
          |> NfaO.msb_of_lsb*)
