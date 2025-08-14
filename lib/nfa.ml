@@ -397,35 +397,15 @@ module Make (Invariants : NfaInvariants) = struct
 
   let length = length
 
-  let remove_unreachable nfa =
-    (* Format.printf "Runinng remove_unreachable\n%!"; *)
-    let reversed_transitions = nfa.transitions |> Graph.reverse in
-    let reachable =
-      let visited = Array.make (length nfa) false in
-      let rec bfs reachable = function
-        | [] -> reachable
-        | q :: tl ->
-          if visited.(q)
-          then bfs reachable tl
-          else (
-            visited.(q) <- true;
-            let reachable = Set.add reachable q in
-            let delta = Array.get reversed_transitions q in
-            let qs = (delta |> List.map snd) @ tl in
-            bfs reachable qs)
-      in
-      let ans = bfs Set.empty (nfa.final |> Set.to_list) in
-      (* Format.printf "End remove_unreachable\n%!"; *)
-      ans
-    in
+  let project_verticies nfa verticies =
     let map_new_old =
-      reachable
+      verticies
       |> Set.to_sequence
       |> Sequence.mapi ~f:(fun i v -> i, v)
       |> Map.of_sequence_exn
     in
     let map_old_new =
-      reachable
+      verticies
       |> Set.to_sequence
       |> Sequence.mapi ~f:(fun i v -> v, i)
       |> Map.of_sequence_exn
@@ -433,12 +413,12 @@ module Make (Invariants : NfaInvariants) = struct
     let start = nfa.start |> Set.filter_map ~f:(Map.find map_old_new) in
     let final = nfa.final |> Set.filter_map ~f:(Map.find map_old_new) in
     let transitions =
-      Array.init (Set.length reachable) (fun q ->
+      Array.init (Set.length verticies) (fun q ->
         let old_q = Map.find_exn map_new_old q in
         let delta = nfa.transitions.(old_q) in
         List.filter_map
           (fun (label, old_q') ->
-             if Set.mem reachable old_q'
+             if Set.mem verticies old_q'
              then (
                let q' = Map.find_exn map_old_new old_q' in
                Option.some (label, q'))
@@ -446,6 +426,41 @@ module Make (Invariants : NfaInvariants) = struct
           delta)
     in
     { transitions; start; final; deg = nfa.deg; is_dfa = false }
+  ;;
+
+  let remove_unreachable_from_start nfa =
+    let visited = Array.make (length nfa) false in
+    let rec bfs reachable = function
+      | [] -> reachable
+      | q :: tl ->
+        if visited.(q)
+        then bfs reachable tl
+        else (
+          visited.(q) <- true;
+          let reachable = Set.add reachable q in
+          let delta = Array.get nfa.transitions q in
+          let qs = (delta |> List.map snd) @ tl in
+          bfs reachable qs)
+    in
+    bfs Set.empty (nfa.start |> Set.to_list) |> project_verticies nfa
+  ;;
+
+  let remove_unreachable_from_final nfa =
+    let reversed_transitions = nfa.transitions |> Graph.reverse in
+    let visited = Array.make (length nfa) false in
+    let rec bfs reachable = function
+      | [] -> reachable
+      | q :: tl ->
+        if visited.(q)
+        then bfs reachable tl
+        else (
+          visited.(q) <- true;
+          let reachable = Set.add reachable q in
+          let delta = Array.get reversed_transitions q in
+          let qs = (delta |> List.map snd) @ tl in
+          bfs reachable qs)
+    in
+    bfs Set.empty (nfa.final |> Set.to_list) |> project_verticies nfa
   ;;
 
   let create_nfa
@@ -585,7 +600,7 @@ module Make (Invariants : NfaInvariants) = struct
     in
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
-    { final; start; transitions; deg; is_dfa } |> remove_unreachable
+    { final; start; transitions; deg; is_dfa } |> remove_unreachable_from_final
   ;;
 
   let unite nfa1 nfa2 =
@@ -787,7 +802,13 @@ module Make (Invariants : NfaInvariants) = struct
   ;;
 
   let minimize nfa =
-    nfa |> remove_unreachable |> to_dfa |> reverse |> to_dfa |> reverse |> to_dfa
+    nfa
+    |> remove_unreachable_from_final
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+    |> reverse
+    |> to_dfa
   ;;
 
   let invert nfa =
@@ -1254,8 +1275,10 @@ module MsbNat = struct
         let transitions = Array.copy nfa.transitions in
         transitions.(nfa_start) <- lbls |> List.map (fun lbl -> lbl, mid);
         let nfa =
-          { nfa with start = Set.singleton nfa_start; transitions } |> remove_unreachable
+          { nfa with start = Set.singleton nfa_start; transitions }
+          |> remove_unreachable_from_start
         in
+        Debug.printfln "Calculating chrobak for var %d" res;
         Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
         Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
         (nfa, chrobak chrobak_nfa, path) |> return)
