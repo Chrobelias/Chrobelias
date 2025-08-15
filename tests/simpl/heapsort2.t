@@ -103,6 +103,7 @@ $ export CHRO_DEBUG=1
   )
 
 Run solver
-  $ unset CHRO_EIA
-  $ Chro -lsb ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2
-  sat
+$ unset CHRO_EIA
+$ Chro -lsb ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2
+sat
+
