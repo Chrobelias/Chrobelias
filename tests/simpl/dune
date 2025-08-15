@@ -4,3 +4,12 @@
 (cram
  (applies_to myst)
  (deps %{project_root}/benchmarks/MysteriousProgram.jar-obl-12.smt2_9.smt2))
+
+(cram
+ (applies_to heapsort2)
+ (deps
+  %{project_root}/benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2))
+
+(cram
+ (applies_to alpha)
+ (deps %{project_root}/benchmarks/MysteriousProgram.jar-obl-12.smt2_9.smt2))

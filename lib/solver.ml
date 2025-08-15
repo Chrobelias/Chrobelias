@@ -340,10 +340,20 @@ type config =
   { mutable stop_after : [ `Simpl | `Solving ]
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
+  ; mutable simpl_alpha : bool
+  ; mutable simpl_mono : bool
   ; mutable input_file : string
   }
 
-let config = { stop_after = `Solving; mode = `Msb; dump_simpl = false; input_file = "" }
+let config =
+  { stop_after = `Solving
+  ; mode = `Msb
+  ; dump_simpl = false
+  ; simpl_alpha = true
+  ; simpl_mono = true
+  ; input_file = ""
+  }
+;;
 
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -354,6 +364,10 @@ let parse_args () =
             | "simpl" -> config.stop_after <- `Simpl
             | _ -> failwith "Bad argument")
       , " Stop after step" )
+    ; ( "--no-simpl-alpha"
+      , Arg.Unit (fun () -> config.simpl_alpha <- false)
+      , " Don't try simplifications based on alpha-equivalence" )
+    ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
@@ -380,7 +394,8 @@ module Make
 struct
   let eval ir =
     let ir = trivial ir in
-    let ir = Ir.simpl_monotonicty ir in
+    let ir = if config.simpl_mono then Ir.simpl_monotonicty ir else ir in
+    let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
     if config.dump_simpl then Format.printf "%a\n" Ir.pp_smtlib2 ir;
     if config.stop_after = `Simpl then exit 0;
     let vars = collect_vars ir in
@@ -813,7 +828,7 @@ struct
   ;;
 
   let proof_semenov f =
-    Debug.printf "Trying to use Semenov deciding procedure over %a" Ir.pp f;
+    Debug.printf "Trying to use Semenov deciding procedure over %a\n" Ir.pp f;
     match
       f
       |> eval_semenov
@@ -910,7 +925,7 @@ struct
       Debug.printfln "optimized formula: %a" Ast.pp_formula f;*)
       let free_vars = collect_free ir in
       let ir = Ir.exists (free_vars |> Set.to_list) ir in
-      Debug.printf "Trying to use PrA deciding procedure over  %a" Ir.pp ir;
+      Debug.printf "Trying to use PrA deciding procedure over  %a\n" Ir.pp ir;
       if ir |> eval |> fst |> Nfa.run then `Sat else `Unsat)
   ;;
 

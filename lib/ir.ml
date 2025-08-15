@@ -9,6 +9,7 @@ type atom =
   | Pow2 of string
 [@@deriving variants]
 
+let eq_atom : atom -> atom -> bool = Stdlib.( = )
 let internalc = ref 0
 
 let internal () =
@@ -42,6 +43,11 @@ type t =
   | Lor of t list
   | Exists of atom list * t (*| Pred of string * 'atom Eia.t list*)
 [@@deriving variants]
+
+let exists vars = function
+  | True -> True
+  | ph -> Exists (vars, ph)
+;;
 
 let false_ = lnot true_
 let neg term = Map.map ~f:( ~- ) term
@@ -255,7 +261,7 @@ let pp_smtlib2 ppf ir =
     | Exists (atoms, rhs) ->
       fprintf
         ppf
-        "@[(exists (%a)@ %a@]@ "
+        "@[(exists (%a)@ %a)@]@ "
         (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_atom)
         atoms
         helper
@@ -294,6 +300,7 @@ let pp_smtlib2 ppf ir =
         pp_map
         poly
         rhs
+    | Lnot ph -> fprintf ppf "@[(not %a)@]" helper ph
     | _ ->
       Printf.eprintf "%s %d\n" __FILE__ __LINE__;
       exit 1
@@ -334,7 +341,7 @@ let log ppf =
 
 (** Habermehl's 2024 monotonicity simplification  *)
 let simpl_monotonicty ir =
-  log "ir = %a" pp ir;
+  log "ir = @[%a@]" pp ir;
   let is_bounded qvar ir =
     match ir with
     | Rel (Leq, map, rhs) when Map.length map = 1 ->

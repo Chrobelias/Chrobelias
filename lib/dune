@@ -5,12 +5,24 @@
 
 (library
  (name lib)
- (modules Ast Nfa NfaCollection Ir Regex Solver Debug Fe Me)
+ (modules
+  Ast
+  Nfa
+  NfaCollection
+  Ir
+  Simpl_alpha
+  Regex
+  Solver
+  Debug
+  Fe
+  Me
+  Utils)
  (libraries base angstrom bitv smtml unix iter zarith)
  (inline_tests)
  (preprocess
   (pps
    ppx_deriving.show
+   ppx_compare
    ppx_variants_conv
    ppx_inline_test
    ppx_assert
