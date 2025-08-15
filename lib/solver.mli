@@ -9,6 +9,7 @@ type config =
   ; mutable dump_simpl : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
+  ; mutable over_approx : bool
   ; mutable input_file : string
   }
 
