@@ -342,6 +342,7 @@ type config =
   ; mutable dump_simpl : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
+  ; mutable over_approx : bool
   ; mutable input_file : string
   }
 
@@ -351,6 +352,7 @@ let config =
   ; dump_simpl = false
   ; simpl_alpha = true
   ; simpl_mono = true
+  ; over_approx = false
   ; input_file = ""
   }
 ;;
@@ -369,6 +371,9 @@ let parse_args () =
       , " Don't try simplifications based on alpha-equivalence" )
     ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
+    ; ( "-over-approx"
+      , Arg.Unit (fun () -> config.over_approx <- true)
+      , " Simple overapproximation (issue #75)" )
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , " Use least-significant-bit first representation (only supports nats)" )

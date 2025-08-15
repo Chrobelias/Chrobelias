@@ -11,6 +11,7 @@
   NfaCollection
   Ir
   Simpl_alpha
+  Overapprox
   Regex
   Solver
   Debug
