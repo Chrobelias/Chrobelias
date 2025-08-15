@@ -1,0 +1,6 @@
+[submodule "vendor/smtml"]
+	path = vendor/smtml
+	url = https://github.com/Chrobelias/smtml.git
+[submodule "benchmarks/QF_LIA"]
+	path = benchmarks/QF_LIA
+	url = https://github.com/ffrohn/QF_EIA.git

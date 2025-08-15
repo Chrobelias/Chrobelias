@@ -94,7 +94,7 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let to_nfa r =
+let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r =
   let rec traverse visited = function
     | [] -> []
     | r :: tl ->
@@ -220,8 +220,8 @@ let%expect_test "Basic derivatives" =
 let%expect_test "To nfa basic" =
   of_string "[00]/[10]|[00]/[01]"
   |> Result.get_ok
-  |> to_nfa
-  |> Format.printf "%a@." Nfa.format_nfa;
+  |> to_nfa (module Nfa.Msb)
+  |> Format.printf "%a@." Nfa.Msb.format_nfa;
   [%expect
     {|
     digraph {
@@ -241,8 +241,8 @@ let%expect_test "To nfa basic" =
 let%expect_test "To nfa and predicate" =
   of_string "*([000]|[100]|[010]|[111])"
   |> Result.get_ok
-  |> to_nfa
-  |> Format.printf "%a@." Nfa.format_nfa;
+  |> to_nfa (module Nfa.Msb)
+  |> Format.printf "%a@." Nfa.Msb.format_nfa;
   [%expect
     {|
     digraph {
@@ -254,4 +254,27 @@ let%expect_test "To nfa and predicate" =
     (000)"]
     }
     |}]
+;;
+
+let s = Bitv.of_int_us
+
+let bwand =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b100)) (symbol (s 0b010))) (symbol (s 0b000)))
+       (symbol (s 0b111)))
+;;
+
+let bwor =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b000)) (symbol (s 0b011))) (symbol (s 0b101)))
+       (symbol (s 0b111)))
+;;
+
+let bwxor =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b000)) (symbol (s 0b011))) (symbol (s 0b101)))
+       (symbol (s 0b110)))
 ;;
