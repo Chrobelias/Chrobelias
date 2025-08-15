@@ -7,8 +7,7 @@
 
 (cram
  (applies_to heapsort2)
- (deps
-  %{project_root}/benchmarks/heapsort.c.koat_2.smt2))
+ (deps %{project_root}/benchmarks/heapsort.c.koat_2.smt2))
 
 (cram
  (applies_to alpha)
