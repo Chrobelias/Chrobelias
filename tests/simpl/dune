@@ -8,7 +8,7 @@
 (cram
  (applies_to heapsort2)
  (deps
-  %{project_root}/benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2))
+  %{project_root}/benchmarks/heapsort.c.koat_2.smt2))
 
 (cram
  (applies_to alpha)

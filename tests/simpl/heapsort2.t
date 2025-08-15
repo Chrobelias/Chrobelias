@@ -45,7 +45,7 @@ $ export CHRO_DEBUG=1
   )
 
 $ export CHRO_DEBUG=1
-  $ Chro -dsimpl -stop-after simpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (it6 it160)
           (and
             (<= (* (- 1) it160)  -3)
@@ -64,7 +64,7 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_DEBUG
   $ export CHRO_EIA=old
-  $ Chro -dsimpl -stop-after simpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2
+  $ Chro -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
   (assert (exists (it6 it160)
           (and
             (<= (* (- 1) it160)  -3)
@@ -103,7 +103,7 @@ $ export CHRO_DEBUG=1
   )
 
 Run solver
-$ unset CHRO_EIA
-$ Chro -lsb ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2
-sat
+  $ unset CHRO_EIA
+  $ Chro ../../benchmarks/heapsort.c.koat_2.smt2
+  sat
 
