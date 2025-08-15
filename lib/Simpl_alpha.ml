@@ -34,6 +34,8 @@ let alpha_compare =
     | Rel _, Land _
     | Lor _, Rel _
     | Rel _, Lor _
+    | Lnot _, (True | Reg (_, _) | Land _ | Lor _ | Exists _)
+    | Rel (_, _, _), (True | Reg (_, _))
     (* Multiple variables are postponed for later *)
     | Exists (_ :: _ :: _, _), _
     | _, Exists (_ :: _ :: _, _) -> Stdlib.compare l r
