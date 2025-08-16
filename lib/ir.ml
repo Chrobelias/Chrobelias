@@ -19,8 +19,8 @@ let internal () =
 ;;
 
 let pp_atom fmt = function
-  | Var var -> Format.fprintf fmt "%s" var
-  | Pow2 var -> Format.fprintf fmt "pow2(%s)" var
+  | Var var -> Format.fprintf fmt "@[%s@]" var
+  | Pow2 var -> Format.fprintf fmt "@[pow2(%s)@]" var
 ;;
 
 type rel =
@@ -33,10 +33,14 @@ let pp_rel fmt = function
   | Eq -> Format.fprintf fmt "="
 ;;
 
+type polynom = (atom, int) Map.t
+
+let pp_polynom ppf m = Format.fprintf ppf "<polynom>"
+
 type t =
   | True
   | Reg of Regex.t * atom list
-  | Rel of rel * (atom, int) Map.t * int
+  | Rel of rel * polynom * int
   (* Logical operations. *)
   | Lnot of t
   | Land of t list
@@ -50,9 +54,23 @@ let exists vars = function
 ;;
 
 let false_ = lnot true_
+
+let of_bool = function
+  | true -> True
+  | false -> false_
+;;
+
 let neg term = Map.map ~f:( ~- ) term
+
+let is_zero_lhs (map : (atom, int) Map.t) =
+  match Map.length map with
+  | 0 -> true
+  | 1 -> snd (Map.min_elt_exn map) = 0
+  | _ -> false
+;;
+
 let eq = rel eq
-let leq = rel leq
+let leq m rhs = if is_zero_lhs m then of_bool (0 <= rhs) else rel leq m rhs
 let lt t c = leq t (pred c)
 let geq t c = leq (neg t) (-c)
 let gt t c = leq (neg t) (pred ~-c)
@@ -256,21 +274,44 @@ let pp_smtlib ppf (ir : t) =
 (** A manually implemented printer to SMTLIB2-like format *)
 let pp_smtlib2 ppf ir =
   let open Format in
+  (* https://microsoft.github.io/z3guide/docs/theories/Regular%20Expressions *)
+  let rec pp_regex ppf = function
+    (* TODO(Kakadu): Understand which encoding is right  *)
+    | Regex.Kleene r -> fprintf ppf "@[(re.star %a )@]" pp_regex r
+    | Mor (l, r) -> fprintf ppf "@[(mor %a %a)@]" pp_regex l pp_regex r
+    | Mand (l, r) -> fprintf ppf "@[(mand %a %a)@]" pp_regex l pp_regex r
+    | Mnot l -> fprintf ppf "@[(mnot %a)@]" pp_regex l
+    | Concat (l, r) -> fprintf ppf "@[(re.++ %a %a)@]" pp_regex l pp_regex r
+    | Empty -> fprintf ppf "empty"
+    | Epsilon -> fprintf ppf "epsilon"
+    | Symbol bv ->
+      if Bitv.length bv < 64
+      then fprintf ppf "%d" (Bitv.to_int_s bv)
+      else Bitv.L.print ppf bv
+    (* | x -> fprintf ppf "%a" Regex.pp x *)
+  in
   let rec helper ppf = function
     | True -> fprintf ppf "T"
     | Exists (atoms, rhs) ->
+      fprintf ppf "@[<v 2>";
       fprintf
         ppf
-        "@[(exists (%a)@ %a)@]@ "
-        (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_atom)
+        "@[(exists (%a)@ @]@ @[%a@])@]@ "
+        (Format.pp_print_list ~pp_sep:pp_print_space pp_atom)
         atoms
         helper
-        rhs
+        rhs;
+      (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
+      fprintf ppf ")@]"
     | Land [ x ] ->
       (* TODO: should be eliminated in simplifier *)
       helper ppf x
     | Land xs ->
       fprintf ppf "@[<v 2>@[(and@]@ ";
+      List.iter (helper ppf) xs;
+      fprintf ppf "@]"
+    | Lor xs ->
+      fprintf ppf "@[<v 2>@[(or@]@ ";
       List.iter (helper ppf) xs;
       fprintf ppf "@]"
     | Rel (op, poly, rhs) ->
@@ -301,9 +342,10 @@ let pp_smtlib2 ppf ir =
         poly
         rhs
     | Lnot ph -> fprintf ppf "@[(not %a)@]" helper ph
-    | _ ->
-      Printf.eprintf "%s %d\n" __FILE__ __LINE__;
-      exit 1
+    | Reg (r, atoms) ->
+      fprintf ppf "@[(%a" pp_regex r;
+      (* List.iter (fprintf ppf " %a" pp_atom) atoms; *)
+      fprintf ppf ")@]"
   in
   match ir with
   | Land xs ->
@@ -341,7 +383,7 @@ let log ppf =
 
 (** Habermehl's 2024 monotonicity simplification  *)
 let simpl_monotonicty ir =
-  log "ir = @[%a@]" pp ir;
+  log "ir = @[%a@]\n" pp ir;
   let is_bounded qvar ir =
     match ir with
     | Rel (Leq, map, rhs) when Map.length map = 1 ->
