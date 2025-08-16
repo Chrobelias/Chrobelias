@@ -4,6 +4,7 @@ module type s_term = sig
   type term
 
   val pow : term -> term -> term
+  val mul : term list -> term
   val add : term list -> term
   val const : int -> term
   val var : string -> term
@@ -30,7 +31,7 @@ end
 
 let cache : Smtml.Expr.t list ref = ref []
 
-module Symantics : sig
+module Semantics : sig
   include s_term with type term := Smtml.Expr.t
   include s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
   include s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
@@ -43,6 +44,11 @@ end = struct
   let const n = Smtml.Expr.value (Value.Int n)
   let var s = Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
   let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
+
+  let mul = function
+    | [] -> failwith "bad argument"
+    | x :: xs -> List.fold_left (Expr.binop Ty.Ty_int Ty.Binop.Mul) x xs
+  ;;
 
   let add = function
     | [] -> failwith "bad argument"
@@ -75,30 +81,31 @@ let check ast =
   cache := [];
   let extend ph = cache := ph :: !cache in
   let rec helper = function
-    | Ast.Land xs -> Symantics.land_ (List.map helper xs)
+    | Ast.Land xs -> Semantics.land_ (List.map helper xs)
     | Eia e -> helper_eia e
     | other ->
       Format.eprintf "Unsupported: %a\n%!" Ast.pp other;
       exit 2
   and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> Symantics.const n
-    | Atom (Ast.Var s) -> Symantics.var s
-    | Add terms -> Symantics.add (List.map helperT terms)
+    | Ast.Eia.Atom (Ast.Const n) -> Semantics.const n
+    | Atom (Ast.Var s) -> Semantics.var s
+    | Add terms -> Semantics.add (List.map helperT terms)
+    | Mul terms -> Semantics.mul (List.map helperT terms)
     | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) ->
-      let fv = Symantics.var (gensym ~prefix:"exp_2_" ()) in
+      let fv = Semantics.var (gensym ~prefix:"exp_2_" ()) in
       (* TODO: duplicates? *)
-      extend Symantics.(var x < fv);
+      extend Semantics.(var x < fv);
       fv
-    | Pow (base, p) -> Symantics.pow (helperT base) (helperT p)
+    | Pow (base, p) -> Semantics.pow (helperT base) (helperT p)
     | other ->
       Format.eprintf "Unsupported term: %a\n%!" Ast.Eia.pp_term other;
       exit 2
   and helper_eia = function
-    | Ast.Eia.Eq (l, r) -> Symantics.(helperT l = helperT r)
-    | Leq (l, r) -> Symantics.(helperT l <= helperT r)
+    | Ast.Eia.Eq (l, r) -> Semantics.(helperT l = helperT r)
+    | Leq (l, r) -> Semantics.(helperT l <= helperT r)
   in
   let _repr = helper ast in
-  let whole = Symantics.land_ (_repr :: !cache) in
+  let whole = Semantics.land_ (_repr :: !cache) in
   log "whole: %a\n%!" Smtml.Expr.pp whole;
   let solver = Smtml.Z3_mappings.Solver.make () in
   Smtml.Z3_mappings.Solver.reset solver;
