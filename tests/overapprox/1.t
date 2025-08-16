@@ -20,9 +20,8 @@ $ export CHRO_DEBUG=1
 $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
   $ Chro  -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (x1  %0)
-            ((re.star (mor (mor (mor 4 2) 0) 7) )))
-  ))
+  (assert (exists (x1  %0) ((re.star (mor (mor (mor 4 2) 0) 7) )))
+  )
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
