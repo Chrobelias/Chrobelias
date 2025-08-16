@@ -33,7 +33,7 @@ struct
   let ( <= ) = S.leq
 end
 
-let make_sym bound =
+let make_sym onvar bound =
   let module M = struct
     open Smtml
 
@@ -79,6 +79,7 @@ let make_sym bound =
     ;;
 
     let pow2var str : term =
+      onvar str;
       List.concat @@ List.init bound (fun i -> pow (const 2) (const i))
     ;;
 
@@ -123,7 +124,10 @@ let apply_symnatics (module S : SYM) =
 let log = Debug.printfln
 
 let check bound ast =
-  let ((module S : SYM) as sym) = make_sym bound in
+  let vars = ref (Base.Set.empty (module Base.String)) in
+  let ((module S : SYM) as sym) =
+    make_sym (fun s -> vars := Base.Set.add !vars s) bound
+  in
   let phs = apply_symnatics sym ast in
   log "There are %d choices \n%!" (List.length phs);
   try
@@ -137,8 +141,14 @@ let check bound ast =
          | _ -> ())
       phs;
     (* TODO: if all Unsat, add a constraints (x>bound) *)
+    let newast =
+      let vars = Base.Set.to_list !vars in
+      let b = Ast.Eia.Atom (Ast.Const bound) in
+      let extend = fun v -> Ast.eia (Ast.Eia.lt b (Ast.Eia.atom (Ast.var v))) in
+      Ast.land_ (ast :: List.map extend vars)
+    in
     log "Can't decide in %s" __FILE__;
-    `Unknown
+    `Unknown newast
   with
   | Exit -> `Sat
 ;;

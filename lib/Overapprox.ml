@@ -152,7 +152,7 @@ let check ast =
     `Unsat
   | `Unknown ->
     if tracing_on then Format.printf "`Unknown  in %s\n%!" __FILE__;
-    `Unknown
+    `Unknown ast
   | `Sat when tracing_on ->
     Format.printf "Early SAT in %s ~~> Unknown\n%!" __FILE__;
     let () =
@@ -163,6 +163,6 @@ let check ast =
         ()
       | None -> ()
     in
-    `Unknown
-  | `Sat -> `Unknown
+    `Unknown ast
+  | `Sat -> `Unknown ast
 ;;
