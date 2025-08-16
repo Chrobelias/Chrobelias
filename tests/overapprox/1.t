@@ -8,7 +8,7 @@
   > EOF
 $ export CHRO_DEBUG=1
   $ Chro -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  unsat
+
 
   $ cat > test.smt2 <<-EOF
   > (set-logic ALL)

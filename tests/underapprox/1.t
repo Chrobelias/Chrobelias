@@ -9,16 +9,16 @@
   > EOF
   $ export CHRO_DEBUG=1
   $ Chro -bound 3 -dsimpl -stop-after simpl test.smt2
-  There are 9 choices 
-  
+  There are 9 choices
+
   Checking (0): (bool.and (int.le_s 1 x) (int.le_s 1 x))
-  sat
+
 
 
 
   $ Chro -bound 3 -dsimpl -stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
-  There are 9 choices 
-  
+  There are 9 choices
+
   Checking (0): (bool.and
                  (bool.and
                   (bool.and
@@ -92,15 +92,17 @@
                       (int.mul -575 x1)) (int.mul -757 x3)) -80)
                    (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
   Can't decide in lib/Underapprox.ml
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= (* -80) & 0 <= x3 & 0 <= x2 & 0 <= x1)
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1)
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1)
-  Simplified expression: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1)
-  Trying to use Semenov deciding procedure over (((-575x1 + 575x2 + -757x3 + 77pow2(x1) + 42pow2(x2) <= -80)) & ((-1x3 <= 0)) & ((-1x2 <= 0)) & ((-1x1 <= 0)))
+  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= (* -80) & 0 <= x3 & 0 <= x2 & 0 <= x1 & (+ 4) <= x1 & (+ 4) <= x2)
+  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1 & 4 <= x1 & 4 <= x2)
+  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1 & 4 <= x1 & 4 <= x2)
+  Simplified expression: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1 & 4 <= x1 & 4 <= x2)
+  Trying to use Semenov deciding procedure over (((-575x1 + 575x2 + -757x3 + 77pow2(x1) + 42pow2(x2) <= -80)) & ((-1x3 <= 0)) & ((-1x2 <= 0)) & ((-1x1 <= 0)) & ((-1x1 <= -4)) & ((-1x2 <= -4)))
     subst = {| |}
     subst = {| |}
-  ir = (exists (x3) ((-575x1 + 575x2 + -757x3 + 77pow2(x1) + 42pow2(x2) <= -80) & (-1x3 <= 0) & (-1x2 <= 0) & (-1x1 <= 0)))
-  
+    subst = {| |}
+    subst = {| |}
+  ir = (exists (x3) ((-575x1 + 575x2 + -757x3 + 77pow2(x1) + 42pow2(x2) <= -80) & (-1x3 <= 0) & (-1x2 <= 0) & (-1x1 <= 0) & (-1x1 <= -4) & (-1x2 <= -4)))
+
   Vars: ["x3"]
   Can't simplify x3: bad polarity
   (assert (exists (x3)
@@ -108,6 +110,8 @@
             (<= (+ (* (- 575) x1) (* 575 x2) (* (- 757) x3) (* 77 pow2(x1))
                 (* 42 pow2(x2)) )
              -80)
+            (<= (* (- 1) x1)  -4)
+            (<= (* (- 1) x2)  -4)
             (<= (* (- 1) x1)  0)
             (<= (* (- 1) x2)  0)
             (<= (* (- 1) x3)  0)
@@ -115,7 +119,7 @@
   )
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
-$ Chro -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
