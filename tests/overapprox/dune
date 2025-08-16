@@ -3,3 +3,7 @@
 
 (cram
  (applies_to 1))
+
+(cram
+ (deps NIA2334test1.smt2)
+ (applies_to nia))
