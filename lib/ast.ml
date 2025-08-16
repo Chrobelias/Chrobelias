@@ -26,6 +26,39 @@ module Eia = struct
     | Pow of term * term
   [@@deriving variants, compare]
 
+  let is_constant_term =
+    let exception Early of int in
+    let rec helper = function
+      | Atom (Var _) -> None
+      | Atom (Const n) -> Some n
+      | Add ts ->
+        (try
+           List.fold_left
+             (fun acc x ->
+                match helper x with
+                | None -> None
+                | Some m -> Option.map (( + ) m) acc)
+             (Some 0)
+             ts
+         with
+         | Early n -> Some n)
+      | Mul ts ->
+        (try
+           List.fold_left
+             (fun acc x ->
+                match helper x with
+                | None -> None
+                | Some 0 -> raise (Early 0)
+                | Some m -> Option.map (( * ) m) acc)
+             (Some 1)
+             ts
+         with
+         | Early n -> Some n)
+      | _ -> None
+    in
+    helper
+  ;;
+
   let rec map_term f = function
     | Atom _ as term -> f term
     | Add terms -> f (add (List.map (map_term f) terms))
@@ -102,6 +135,11 @@ module Eia = struct
     | _ -> false
   ;;
 end
+
+let%test _ = Eia.(is_constant_term (atom (const 4))) = Some 4
+let%test _ = Eia.(is_constant_term (atom (var "s"))) = None
+let%test _ = Eia.(is_constant_term (mul [ atom (const 4); atom (const 1) ])) = Some 4
+let%test _ = Eia.(is_constant_term (add [ atom (const 4); atom (const 1) ])) = Some 5
 
 (** Bitvectors. *)
 (*Emodule Bv = struct
