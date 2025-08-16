@@ -49,6 +49,9 @@ let () =
           `Unknown
           <+> (fun () ->
           if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown)
+          <+> (fun () ->
+          let bound = Lib.Solver.config.under_approx in
+          if bound > 0 then Lib.Underapprox.check bound ast else `Unknown)
           <+> fun () -> Lib.Solver.proof (Lib.Me.ir_of_ast ast)
         in
         match rez with

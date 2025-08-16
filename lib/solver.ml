@@ -343,6 +343,7 @@ type config =
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
+  ; mutable under_approx : int
   ; mutable input_file : string
   }
 
@@ -353,6 +354,7 @@ let config =
   ; simpl_alpha = true
   ; simpl_mono = true
   ; over_approx = false
+  ; under_approx = 0
   ; input_file = ""
   }
 ;;
@@ -371,6 +373,12 @@ let parse_args () =
       , " Don't try simplifications based on alpha-equivalence" )
     ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
+    ; ( "-bound"
+      , Arg.Int
+          (fun n ->
+            assert (n > 0);
+            config.under_approx <- n)
+      , "" )
     ; ( "-over-approx"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , " Simple overapproximation (issue #75)" )
