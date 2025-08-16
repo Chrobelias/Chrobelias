@@ -100,6 +100,7 @@ let gensym =
 ;;
 
 let check ast =
+  let exception Bitwise_inside in
   cache := [];
   let extend ph = cache := ph :: !cache in
   let rec helper = function
@@ -123,15 +124,17 @@ let check ast =
       extend Symantics.(var x < fv);
       fv
     | Pow (base, p) -> Symantics.pow (helperT base) (helperT p)
-    | Bwand (l, r) -> Symantics.bw Me.Bwand (helperT l) (helperT r)
-    | Bwor (l, r) -> Symantics.bw Me.Bwor (helperT l) (helperT r)
-    | Bwxor (l, r) -> Symantics.bw Me.Bwxor (helperT l) (helperT r)
+    | Bwand _ | Bwor _ | Bwxor _ -> raise_notrace Bitwise_inside
   (* | other ->
       Format.eprintf "Unsupported term: %a\n%!" Ast.Eia.pp_term other;
       exit 2 *)
-  and helper_eia = function
-    | Ast.Eia.Eq (l, r) -> Symantics.(helperT l = helperT r)
-    | Leq (l, r) -> Symantics.(helperT l <= helperT r)
+  and helper_eia eia =
+    try
+      match eia with
+      | Ast.Eia.Eq (l, r) -> Symantics.(helperT l = helperT r)
+      | Leq (l, r) -> Symantics.(helperT l <= helperT r)
+    with
+    | Bitwise_inside -> Symantics.true_
   in
   let _repr = helper ast in
   let whole = Symantics.land_ (_repr :: !cache) in
@@ -145,11 +148,13 @@ let check ast =
   | `Unknown -> `Unknown
   | `Sat ->
     log "Early SAT in %s ~~> Unknown" __FILE__;
-    (match Smtml.Z3_mappings.Solver.model solver with
-     | Some m ->
-       let m = Smtml.Z3_mappings.values_of_model m in
-       log "%a\n" (Smtml.Model.pp ~no_values:false) m;
-       ()
-     | None -> ());
+    let _printing_module_disabled () =
+      match Smtml.Z3_mappings.Solver.model solver with
+      | Some m ->
+        let m = Smtml.Z3_mappings.values_of_model m in
+        log "%a\n" (Smtml.Model.pp ~no_values:false) m;
+        ()
+      | None -> ()
+    in
     `Unknown
 ;;

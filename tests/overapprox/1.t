@@ -10,7 +10,15 @@ $ export CHRO_DEBUG=1
   $ Chro -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   unsat
 
-
+$ cat > test.smt2 <<-EOF
+> (set-logic ALL)
+> (declare-fun x1 () (_ BitVec 8))
+> (assert (not (distinct x1 (bvand x1 x1) )))
+> (assert (<= x1 x1))
+> (check-sat)
+> EOF
+$ export CHRO_DEBUG=1
+$ Chro -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
