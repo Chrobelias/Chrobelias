@@ -19,8 +19,8 @@ let internal () =
 ;;
 
 let pp_atom fmt = function
-  | Var var -> Format.fprintf fmt "@[%s@]" var
-  | Pow2 var -> Format.fprintf fmt "@[pow2(%s)@]" var
+  | Var var -> Format.fprintf fmt "%s" var
+  | Pow2 var -> Format.fprintf fmt "pow2(%s)" var
 ;;
 
 type rel =
@@ -293,7 +293,14 @@ let pp_smtlib2 ppf ir =
   let rec helper ppf = function
     | True -> fprintf ppf "T"
     | Exists (atoms, rhs) ->
-      fprintf ppf "@[<v 2>";
+      fprintf
+        ppf
+        "@[(exists (%a)@ %a)@]@ "
+        (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_atom)
+        atoms
+        helper
+        rhs
+      (* fprintf ppf "@[<v 2>";
       fprintf
         ppf
         "@[(exists (%a)@ @]@ @[%a@])@]@ "
@@ -302,7 +309,7 @@ let pp_smtlib2 ppf ir =
         helper
         rhs;
       (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
-      fprintf ppf ")@]"
+      fprintf ppf ")@]" *)
     | Land [ x ] ->
       (* TODO: should be eliminated in simplifier *)
       helper ppf x
