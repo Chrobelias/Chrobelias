@@ -1,0 +1,6 @@
+(cram
+ (deps %{bin:Chro}))
+
+(cram
+ (deps smoke1.smt2)
+ (applies_to 1))
