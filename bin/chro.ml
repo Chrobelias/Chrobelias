@@ -40,24 +40,33 @@ let () =
       in
       let ast = Lib.Ast.land_ (expr_irs @ get_ast state) in
       begin
-        let ( <+> ) rez f =
+        let ( <+> ) =
+          fun rez f ->
           match rez with
-          | `Unknown -> f ()
+          | `Unknown ast -> f ast
           | `Sat | `Unsat -> rez
         in
-        let rez =
-          `Unknown
-          <+> (fun () ->
-          if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown)
-          <+> (fun () ->
+        let _ =
+          `Unknown ast
+          <+> (fun ast ->
+          if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)
+          <+> (fun ast ->
           let bound = Lib.Solver.config.under_approx in
-          if bound > 0 then Lib.Underapprox.check bound ast else `Unknown)
-          <+> fun () -> Lib.Solver.proof (Lib.Me.ir_of_ast ast)
+          if bound > 0 then Lib.Underapprox.check bound ast else `Unknown ast)
+          <+> fun ast ->
+          match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
+          | `Sat ->
+            (* print_endline "sat"; *)
+            Format.printf "sat\n%!";
+            `Sat
+          | `Unsat ->
+            Format.printf "unsat\n%!";
+            `Unsat
+          | `Unknown _ ->
+            Format.printf "unknown\n%!";
+            `Unknown ast
         in
-        match rez with
-        | `Sat -> Format.printf "sat\n%!"
-        | `Unsat -> Format.printf "unsat\n%!"
-        | `Unknown -> Format.printf "unknown\n%!"
+        ()
       end;
       state
     | Smtml.Ast.Get_model ->
