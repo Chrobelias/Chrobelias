@@ -10,15 +10,19 @@ $ export CHRO_DEBUG=1
   $ Chro -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   unsat
 
-$ cat > test.smt2 <<-EOF
-> (set-logic ALL)
-> (declare-fun x1 () (_ BitVec 8))
-> (assert (not (distinct x1 (bvand x1 x1) )))
-> (assert (<= x1 x1))
-> (check-sat)
-> EOF
+  $ cat > test.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun x1 () Int)
+  > (assert (not (distinct x1 (bwand x1 x1) )))
+  > (assert (<= x1 x1))
+  > (check-sat)
+  > EOF
 $ export CHRO_DEBUG=1
-$ Chro -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ export CHRO_TRACE_OPT=1
+  $ Chro  -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  (assert (exists (x1  %0)
+            ((re.star (mor (mor (mor 4 2) 0) 7) )))
+  ))
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
