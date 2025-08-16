@@ -36,12 +36,14 @@ end
 
 let cache : Smtml.Expr.t list ref = ref []
 
-(** SYntax + seMANTICS *)
-module Symantics : sig
+module type Smtml_symantics = sig
   include s_term with type term := Smtml.Expr.t
   include s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
   include s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
-end = struct
+end
+
+(** SYntax + seMANTICS *)
+module Symantics : Smtml_symantics = struct
   open Smtml
 
   type term = Expr.t

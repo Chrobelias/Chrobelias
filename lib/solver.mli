@@ -10,6 +10,7 @@ type config =
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
+  ; mutable under_approx : int
   ; mutable input_file : string
   }
 
