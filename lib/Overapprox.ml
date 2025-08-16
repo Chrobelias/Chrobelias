@@ -100,6 +100,12 @@ let gensym =
 ;;
 
 let check ast =
+  let tracing_on =
+    match Sys.getenv "CHRO_TRACE_OPT" with
+    | exception Not_found -> false
+    | "1" -> true
+    | _ -> false
+  in
   let exception Bitwise_inside in
   cache := [];
   let extend ph = cache := ph :: !cache in
@@ -125,9 +131,6 @@ let check ast =
       fv
     | Pow (base, p) -> Symantics.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise_notrace Bitwise_inside
-  (* | other ->
-      Format.eprintf "Unsupported term: %a\n%!" Ast.Eia.pp_term other;
-      exit 2 *)
   and helper_eia eia =
     try
       match eia with
@@ -143,18 +146,21 @@ let check ast =
   Smtml.Z3_mappings.Solver.reset solver;
   match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ whole ] with
   | `Unsat ->
-    log "Early Unsat in %s" __FILE__;
+    if tracing_on then Format.printf "Early Unsat in %s\n%!" __FILE__;
     `Unsat
-  | `Unknown -> `Unknown
-  | `Sat ->
-    log "Early SAT in %s ~~> Unknown" __FILE__;
-    let _printing_module_disabled () =
+  | `Unknown ->
+    if tracing_on then Format.printf "`Unknown  in %s\n%!" __FILE__;
+    `Unknown
+  | `Sat when tracing_on ->
+    Format.printf "Early SAT in %s ~~> Unknown\n%!" __FILE__;
+    let () =
       match Smtml.Z3_mappings.Solver.model solver with
       | Some m ->
         let m = Smtml.Z3_mappings.values_of_model m in
-        log "%a\n" (Smtml.Model.pp ~no_values:false) m;
+        Format.printf "%a\n%!" (Smtml.Model.pp ~no_values:false) m;
         ()
       | None -> ()
     in
     `Unknown
+  | `Sat -> `Unknown
 ;;
