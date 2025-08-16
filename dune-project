@@ -28,6 +28,7 @@
   ppx_variants_conv
   smtml
   ounit2
+  z3
   ppx_expect
   ppx_inline_test
   (mdx :with-tests)
