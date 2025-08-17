@@ -34,8 +34,6 @@ module type s_extra = sig
   val ( = ) : term -> term -> ph
 end
 
-let cache : Smtml.Expr.t list ref = ref []
-
 module type Smtml_symantics = sig
   include s_term with type term := Smtml.Expr.t
   include s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
@@ -92,13 +90,26 @@ module Symantics : Smtml_symantics = struct
   let ( <= ) = leq
 end
 
+let cache : (string, string, _) Base.Map.t ref = ref (Base.Map.empty (module Base.String))
+let extend vk vv = cache := Base.Map.add_exn !cache ~key:vk ~data:vv
+
+let formulas_of_cache () =
+  Base.Map.to_sequence !cache
+  |> Base.Sequence.map ~f:(fun (x, fv) -> Symantics.(var x < var fv))
+  |> Base.Sequence.to_list
+;;
+
 let gensym =
   let n = ref 0 in
-  fun ?prefix () ->
-    incr n;
-    match prefix with
-    | Some p -> Printf.sprintf "%s%d" p !n
-    | None -> Printf.sprintf "__%d" !n
+  let prefix = "exp_2_" in
+  fun name ->
+    match Base.Map.find_exn !cache name with
+    | exception Base.Not_found_s _ ->
+      incr n;
+      let ans = Printf.sprintf "%s%d" prefix !n in
+      extend name ans;
+      ans
+    | x -> x
 ;;
 
 let check ast =
@@ -109,8 +120,7 @@ let check ast =
     | _ -> false
   in
   let exception Bitwise_inside in
-  cache := [];
-  let extend ph = cache := ph :: !cache in
+  cache := Base.Map.empty (module Base.String);
   let rec helper = function
     | Ast.Land xs -> Symantics.land_ (List.map helper xs)
     | Lor xs -> Symantics.lor_ (List.map helper xs)
@@ -119,6 +129,7 @@ let check ast =
     | Eia e -> helper_eia e
     | Pred s -> Symantics.var s
     | Exists (vs, ph) as other ->
+      (* TODO(Kakadu): Not implemented *)
       Format.eprintf "Unsupported: %a\n%!" Ast.pp other;
       exit 2
   and helperT = function
@@ -126,11 +137,7 @@ let check ast =
     | Atom (Ast.Var s) -> Symantics.var s
     | Add terms -> Symantics.add (List.map helperT terms)
     | Mul terms -> Symantics.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) ->
-      let fv = Symantics.var (gensym ~prefix:"exp_2_" ()) in
-      (* TODO: duplicates? *)
-      extend Symantics.(var x < fv);
-      fv
+    | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> Symantics.var (gensym x)
     | Pow (base, p) -> Symantics.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise_notrace Bitwise_inside
   and helper_eia eia =
@@ -142,11 +149,11 @@ let check ast =
     | Bitwise_inside -> Symantics.true_
   in
   let _repr = helper ast in
-  let whole = Symantics.land_ (_repr :: !cache) in
-  log "whole: %a\n%!" Smtml.Expr.pp whole;
+  let whole = _repr :: formulas_of_cache () in
+  log "whole: @[<v>%a@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
   let solver = Smtml.Z3_mappings.Solver.make () in
   Smtml.Z3_mappings.Solver.reset solver;
-  match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ whole ] with
+  match Smtml.Z3_mappings.Solver.check solver ~assumptions:whole with
   | `Unsat ->
     if tracing_on then Format.printf "Early Unsat in %s\n%!" __FILE__;
     `Unsat
