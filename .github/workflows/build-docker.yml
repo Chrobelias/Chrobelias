@@ -1,0 +1,72 @@
+name: Build in Docker
+
+on:
+  push:
+    paths-ignore:
+      - README.md
+    branches:
+      - 'main'
+  pull_request:
+
+  #schedule:
+  #  - cron: "0 13 * * 1"
+    # https://jasonet.co/posts/scheduled-actions/
+
+env:
+  OPAMROOT: /home/user/.opam
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: kakadu18/ocaml:chrobelias
+      options: --user user
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - run: opam --version
+      - run: opam exec -- ocamlopt --version
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: List installed packages
+        run: opam list
+
+      - run: opam update
+
+      - name: Install dependencies
+        run: opam install . --yes --deps-only --with-test --with-doc
+
+      - name: List installed packages
+        run: opam list
+
+      - name: Build
+        run: opam exec -- dune build @check @all
+
+      - name: Tests
+        run: opam exec -- dune runtest
+
+      - name: Format
+        run: opam exec -- dune fmt
+
+      - name: Install
+        run: |
+          opam install . --yes # --with-test --with-doc
+          opam show Chrobelias --list-files
+
+      #### API documentation
+      # - name: Build API documentation
+      #   run: opam exec -- dune build @doc
+
+      # - name: Deploy API documentation
+      #   if: ${{ github.event.pull_request.head.repo.full_name == 'Chrobelias/Chrobelias' }} # We do not deploy in forks
+
+      #   uses: peaceiris/actions-gh-pages@v4
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./_build/default/_doc/_html
+      #     destination_dir: api
