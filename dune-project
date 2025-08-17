@@ -11,7 +11,7 @@
 
 (maintainers "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev")
 
-(license LICENSE)
+(license MIT)
 
 (package
  (name Chrobelias)
@@ -30,6 +30,7 @@
   ounit2
   ppx_expect
   ppx_inline_test
+  (mdx :with-tests)
   (ocamlformat :dev))
  (tags
   (solver theorem)))
