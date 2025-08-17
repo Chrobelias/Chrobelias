@@ -4,3 +4,7 @@
 (cram
  (deps smoke1.smt2)
  (applies_to 1))
+
+(cram
+ (deps sum3exp.smt2)
+ (applies_to sum3exp))
