@@ -53,7 +53,7 @@ let make_sym onvar bound =
     let false_ = return Expr.Bool.false_
     let not x = return Expr.Bool.not <*> x
     let mul2 a b = return (Expr.binop Ty.Ty_int Ty.Binop.Mul) <*> a <*> b
-    let add2 a b = return (Expr.binop Ty.Ty_int Ty.Binop.Mul) <*> a <*> b
+    let add2 a b = return (Expr.binop Ty.Ty_int Ty.Binop.Add) <*> a <*> b
     let land2 a b = return Expr.Bool.and_ <*> a <*> b
     let lor2 a b = return Expr.Bool.or_ <*> a <*> b
 
