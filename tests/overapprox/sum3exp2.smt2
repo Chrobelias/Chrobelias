@@ -1,0 +1,8 @@
+(set-logic ALL)
+(declare-fun x1 () Int)
+(declare-fun x2 () Int)
+(declare-fun x3 () Int)
+(assert (>= x1 0))
+(assert (<= (+ (exp 2 x1) (exp 2 x2) (exp 2 x3)) (+ x1 x2 x3 3)))
+(assert (<= (+ 2 x1) (exp 2 x1)))
+(check-sat)
