@@ -3,7 +3,7 @@ opam-version: "2.0"
 synopsis: "Chrobak normal form in exp-linear integer arithmetic solver"
 maintainer: ["Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev"]
 authors: ["Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev"]
-license: "LICENSE"
+license: "MIT"
 tags: ["solver" "theorem"]
 homepage: "https://github.com/Chrobelias/Chrobelias"
 bug-reports: "https://github.com/Chrobelias/Chrobelias/issues"
@@ -21,6 +21,7 @@ depends: [
   "ounit2"
   "ppx_expect"
   "ppx_inline_test"
+  "mdx" {with-tests}
   "ocamlformat" {dev}
   "odoc" {with-doc}
 ]
