@@ -82,7 +82,7 @@ module Symantics : Smtml_symantics = struct
     | h :: tl -> List.fold_left Expr.Bool.or_ h tl
   ;;
 
-  let eq _ = assert false
+  let eq l r = Expr.relop Ty.Ty_real Ty.Relop.Eq l r (*assert false*)
   let leq l r = Expr.relop Ty.Ty_int Ty.Relop.Le l r
   let lt l r = Expr.relop Ty.Ty_int Ty.Relop.Lt l r
   let ( = ) = eq
