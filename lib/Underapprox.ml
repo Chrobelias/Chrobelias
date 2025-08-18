@@ -16,7 +16,7 @@ module type SYM = sig
 
   type repr
 
-  val prj : ph -> Smtml.Expr.t list
+  val prj : ph -> repr
 end
 
 module Sugar (S : sig
@@ -33,68 +33,87 @@ struct
   let ( <= ) = S.leq
 end
 
-let make_sym onvar bound =
+type env = (string, int) Base.Map.Poly.t
+
+let pp_env ppf env =
+  Format.fprintf ppf "@[{|";
+  Base.Map.Poly.iteri env ~f:(fun ~key ~data ->
+    Format.fprintf ppf "@ @[%s->%d@]@," key data);
+  Format.fprintf ppf " |}@]"
+;;
+
+let make_sym (env : env) onvar bound =
   let module M = struct
-    open Smtml
+    include Overapprox.Symantics
 
-    type term = Smtml.Expr.t list
     type ph = term
+    type repr = term
 
-    (* let ( let* ) xs f = List.concat_map f xs *)
-    let return x = [ x ]
-
-    let ( <*> ) : 'a 'b. ('a -> 'b) list -> 'a list -> 'b list =
-      fun fs xs -> List.concat_map (fun f -> List.map (fun x -> f x) xs) fs
+    let var s =
+      match Base.Map.Poly.find env s with
+      | None -> Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
+      | Some c -> const c
     ;;
 
-    let const n = return (Smtml.Expr.value (Value.Int n))
-    let var s = return (Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s))
-    let true_ = return Expr.Bool.true_
-    let false_ = return Expr.Bool.false_
-    let not x = return Expr.Bool.not <*> x
-    let mul2 a b = return (Expr.binop Ty.Ty_int Ty.Binop.Mul) <*> a <*> b
-    let add2 a b = return (Expr.binop Ty.Ty_int Ty.Binop.Add) <*> a <*> b
-    let land2 a b = return Expr.Bool.and_ <*> a <*> b
-    let lor2 a b = return Expr.Bool.or_ <*> a <*> b
-
-    let manyarg f = function
-      | [] -> assert false
-      | h :: tl -> List.fold_left f h tl
-    ;;
-
-    let mul = manyarg mul2
-    let add = manyarg add2
-    let land_ = manyarg land2
-    let lor_ = manyarg lor2
-    let leq a b = return (Expr.relop Ty.Ty_int Ty.Relop.Le) <*> a <*> b
-    let lt a b = return (Expr.relop Ty.Ty_int Ty.Relop.Lt) <*> a <*> b
-    let eq a b = return (Expr.relop Ty.Ty_int Ty.Relop.Eq) <*> a <*> b
-    let pow base p = return (Expr.binop Ty.Ty_int Ty.Binop.Pow) <*> base <*> p
-
-    let bw op l r =
-      match op with
-      | Me.Bwand -> return (Expr.binop Ty.Ty_int Ty.Binop.And) <*> l <*> r
-      | Bwor -> return (Expr.binop Ty.Ty_int Ty.Binop.Or) <*> l <*> r
-      | Bwxor -> return (Expr.binop Ty.Ty_int Ty.Binop.Xor) <*> l <*> r
-    ;;
-
-    let pow2var str : term =
-      onvar str;
-      List.concat @@ List.init bound (fun i -> pow (const 2) (const i))
-    ;;
-
-    type repr = Smtml.Expr.t list
-
+    let pow2var s = pow (const 2) (var s)
     let prj = Fun.id
+
+    let leq l r =
+      let open Smtml in
+      (* Format.printf
+        "Called %s with l = %a and r = %a\n%!"
+        __FUNCTION__
+        Smtml.Expr.pp
+        l
+        Smtml.Expr.pp
+        r; *)
+      Expr.relop Ty.Ty_int Ty.Relop.Le l r
+    ;;
   end
   in
   (module struct
     include M
     include Sugar (M)
-  end : SYM)
+  end : SYM
+    with type repr = Smtml.Expr.t)
 ;;
 
-let apply_symnatics (module S : SYM) =
+let make_collector () =
+  let module M = struct
+    type term = string list
+    type ph = term
+    type repr = ph
+
+    let ( ++ ) = List.append
+    let empty = []
+    let const _ = empty
+    let var _ = empty
+    let mul = List.fold_left ( ++ ) []
+    let add = List.fold_left ( ++ ) []
+    let bw _ = ( ++ )
+    let pow = ( ++ )
+    let true_ = empty
+    let false_ = empty
+
+    (* phormulas  *)
+    let not = Fun.id
+    let lor_ = List.fold_left ( ++ ) []
+    let land_ = List.fold_left ( ++ ) []
+    let eq = ( ++ )
+    let lt = ( ++ )
+    let leq = ( ++ )
+    let prj xs = Base.List.dedup_and_sort xs ~compare:String.compare
+    let pow2var x = [ x ]
+  end
+  in
+  (module struct
+    include M
+    include Sugar (M)
+  end : SYM
+    with type repr = string list)
+;;
+
+let apply_symnatics (type a) (module S : SYM with type repr = a) =
   let rec helper = function
     | Ast.Land xs -> S.land_ (List.map helper xs)
     | Lor xs -> S.lor_ (List.map helper xs)
@@ -125,21 +144,38 @@ let log = Debug.printfln
 
 let check bound ast =
   let vars = ref (Base.Set.empty (module Base.String)) in
-  let ((module S : SYM) as sym) =
-    make_sym (fun s -> vars := Base.Set.add !vars s) bound
+  let interestring_vars = apply_symnatics (make_collector ()) ast in
+  log "Interesting: %s\n" (String.concat " " interestring_vars);
+  log
+    "Expecting %d choices ...\n%!"
+    (Utils.pow ~base:bound (List.length interestring_vars));
+  let all_choices =
+    let ( let* ) xs f = List.concat_map f xs in
+    let choice1 = List.init bound Fun.id in
+    List.fold_left
+      (fun acc name ->
+         let* v = choice1 in
+         let* acc = acc in
+         [ Base.Map.Poly.add_exn acc ~key:name ~data:v ])
+      [ Base.Map.Poly.empty ]
+      interestring_vars
   in
-  let phs = apply_symnatics sym ast in
-  log "There are %d choices \n%!" (List.length phs);
+  let exception Early of env in
   try
     List.iteri
-      (fun i ph ->
+      (fun i env ->
+         let ((module S : SYM with type repr = Smtml.Expr.t) as sym) =
+           make_sym env (fun s -> vars := Base.Set.add !vars s) bound
+         in
+         let ph = apply_symnatics sym ast in
          let solver = Smtml.Z3_mappings.Solver.make () in
          Smtml.Z3_mappings.Solver.reset solver;
-         log "Checking (%d): @[%a@]" i Smtml.Expr.pp ph;
-         match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
-         | `Sat -> raise Exit
-         | _ -> ())
-      phs;
+         (* log "Checking (%d): @[%a@]" i Smtml.Expr.pp ph; *)
+         (* log "env: %a" pp_env env; *)
+           match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
+           | `Sat -> raise (Early env)
+           | _ -> ())
+      all_choices;
     (* TODO: if all Unsat, add a constraints (x>bound) *)
     let newast =
       let vars = Base.Set.to_list !vars in
@@ -150,5 +186,8 @@ let check bound ast =
     log "Can't decide in %s" __FILE__;
     `Unknown newast
   with
-  | Exit -> `Sat
+  | Early env ->
+    log "%s gives early Sat." __FILE__;
+    log "env = %a" pp_env env;
+    `Sat
 ;;

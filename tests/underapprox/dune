@@ -8,3 +8,15 @@
 (cram
  (deps sum3exp.smt2)
  (applies_to sum3exp))
+
+(cram
+ (deps ../overapprox/NIA2334test1.smt2)
+ (applies_to NIA2334test1))
+
+(cram
+ (deps ../overapprox/NIA2334test33.smt2)
+ (applies_to NIA2334test33))
+
+(cram
+ (deps ../overapprox/NIA2334test5.smt2)
+ (applies_to NIA2334test5))

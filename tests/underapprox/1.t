@@ -9,114 +9,32 @@
   > EOF
   $ export CHRO_DEBUG=1
   $ Chro -bound 3 -dsimpl -stop-after simpl test.smt2
-  There are 9 choices
-
-  Checking (0): (bool.and (int.le_s 1 x) (int.le_s 1 x))
+  Interesting: x y
+  
+  Expecting 9 choices ...
+  
+  Can't decide in lib/Underapprox.ml
+  Simplify step: ((2 ** y) <= x & (2 ** x) <= x)
+  Simplify step: ((2 ** y) <= x & (2 ** x) <= x)
+  Simplified expression: ((2 ** y) <= x & (2 ** x) <= x)
+  Trying to use Semenov deciding procedure over (((-1x + 1pow2(y) <= 0)) & ((-1x + 1pow2(x) <= 0)))
+  ir = ((-1x + 1pow2(y) <= 0) & (-1x + 1pow2(x) <= 0))
+  
+    subst = {| |}
+  (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
+  (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
+  
 
 
 
 
   $ Chro -bound 3 -dsimpl -stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
-  There are 9 choices
-
-  Checking (0): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 3234 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Checking (1): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 6468 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Checking (2): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 12936 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Checking (3): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 6468 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Checking (4): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 12936 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Checking (5): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 25872 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Checking (6): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 12936 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Checking (7): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 25872 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Checking (8): (bool.and
-                 (bool.and
-                  (bool.and
-                   (int.le_s
-                    (int.mul
-                     (int.mul (int.mul 51744 (int.mul 575 x2))
-                      (int.mul -575 x1)) (int.mul -757 x3)) -80)
-                   (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
-  Can't decide in lib/Underapprox.ml
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= (* -80) & 0 <= x3 & 0 <= x2 & 0 <= x1 & (+ 4) <= x1 & (+ 4) <= x2)
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1 & 4 <= x1 & 4 <= x2)
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1 & 4 <= x1 & 4 <= x2)
-  Simplified expression: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1) + (* -757 * x3)) <= -80 & 0 <= x3 & 0 <= x2 & 0 <= x1 & 4 <= x1 & 4 <= x2)
-  Trying to use Semenov deciding procedure over (((-575x1 + 575x2 + -757x3 + 77pow2(x1) + 42pow2(x2) <= -80)) & ((-1x3 <= 0)) & ((-1x2 <= 0)) & ((-1x1 <= 0)) & ((-1x1 <= -4)) & ((-1x2 <= -4)))
-    subst = {| |}
-    subst = {| |}
-    subst = {| |}
-    subst = {| |}
-  ir = (exists (x3) ((-575x1 + 575x2 + -757x3 + 77pow2(x1) + 42pow2(x2) <= -80) & (-1x3 <= 0) & (-1x2 <= 0) & (-1x1 <= 0) & (-1x1 <= -4) & (-1x2 <= -4)))
-
-  Vars: ["x3"]
-  Can't simplify x3: bad polarity
-  (assert (exists (x3)
-          (and
-            (<= (+ (* (- 575) x1) (* 575 x2) (* (- 757) x3) (* 77 pow2(x1))
-                (* 42 pow2(x2)) )
-             -80)
-            (<= (* (- 1) x1)  -4)
-            (<= (* (- 1) x2)  -4)
-            (<= (* (- 1) x1)  0)
-            (<= (* (- 1) x2)  0)
-            (<= (* (- 1) x3)  0)
-            )
-  )
+  Interesting: x1 x2
+  
+  Expecting 9 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| x1->0 x2->0 |}
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
   $ Chro -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
