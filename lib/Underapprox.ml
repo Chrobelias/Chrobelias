@@ -9,6 +9,7 @@ module type SYM0 = sig
   include Overapprox.s_extra with type ph := ph and type term := term
 
   val pow2var : string -> term
+  val exists : string list -> ph -> ph
 end
 
 module type SYM = sig
@@ -58,6 +59,13 @@ let make_sym (env : env) onvar bound =
     let pow2var s = pow (const 2) (var s)
     let prj = Fun.id
 
+    let exists vars x =
+      let vars = List.filter (fun s -> Stdlib.not (Base.Map.Poly.mem env s)) vars in
+      match vars with
+      | [] -> x
+      | _ -> Smtml.Expr.exists (List.map var vars) x
+    ;;
+
     let leq l r =
       let open Smtml in
       (* Format.printf
@@ -104,6 +112,7 @@ let make_collector () =
     let leq = ( ++ )
     let prj xs = Base.List.dedup_and_sort xs ~compare:String.compare
     let pow2var x = [ x ]
+    let exists vs ivars = List.filter (fun n -> not (List.mem n vs)) ivars
   end
   in
   (module struct
@@ -121,9 +130,15 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | True -> S.true_
     | Eia e -> helper_eia e
     | Pred s -> assert false
-    | Exists (vs, ph) as other ->
-      Format.eprintf "Unsupported: %a\n%!" Ast.pp other;
-      exit 2
+    | Exists (vs, ph) ->
+      let vs =
+        List.filter_map
+          (function
+            | Ast.Var s -> Some s
+            | Ast.Const _ -> None)
+          vs
+      in
+      S.exists vs (helper ph)
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const n
     | Atom (Ast.Var s) -> S.var s
@@ -131,7 +146,9 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
-    | Bwand _ | Bwor _ | Bwxor _ -> failwith "not implemented"
+    | Bwand (l, r) -> S.bw Me.Bwand (helperT l) (helperT r)
+    | Bwor (l, r) -> S.bw Me.Bwor (helperT l) (helperT r)
+    | Bwxor (l, r) -> S.bw Me.Bwxor (helperT l) (helperT r)
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
@@ -145,6 +162,10 @@ let log = Debug.printfln
 let check bound ast =
   let vars = ref (Base.Set.empty (module Base.String)) in
   let interestring_vars = apply_symnatics (make_collector ()) ast in
+  (* TODO: collecting of interesting variables could be buggy. For example, what if
+      (exists (x) (...) (exists (x) (= (exp 2 x) 128)))
+    ??
+  *)
   log "Interesting: %s\n" (String.concat " " interestring_vars);
   log
     "Expecting %d choices ...\n%!"
