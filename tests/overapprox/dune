@@ -7,3 +7,7 @@
 (cram
  (deps NIA2334test1.smt2)
  (applies_to nia))
+
+(cram
+ (deps ../overapprox/NIA2334test5.smt2)
+ (applies_to NIA2334test5))
