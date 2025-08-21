@@ -337,7 +337,7 @@ let trivial ir =
 ;;
 
 type config =
-  { mutable stop_after : [ `Simpl | `Solving ]
+  { mutable stop_after : [ `Simpl | `Simpl2 | `Solving ]
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
   ; mutable simpl_alpha : bool
@@ -366,6 +366,7 @@ let parse_args () =
       , Arg.String
           (function
             | "simpl" -> config.stop_after <- `Simpl
+            | "simpl2" -> config.stop_after <- `Simpl2
             | _ -> failwith "Bad argument")
       , " Stop after step" )
     ; ( "--no-simpl-alpha"
