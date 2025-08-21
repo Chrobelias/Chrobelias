@@ -859,24 +859,19 @@ struct
     in
     match res with
     | Some (s, model, models) ->
-      let rec thing = function
-        | [] -> failwith "unreachable"
-        | [ (model, _) ] -> model
-        | (model, len1) :: (model2, len2) :: tl ->
-          ( Base.List.zip_exn model model2
-            |> List.map (fun (x, y) ->
-              Debug.printfln "x=%d,y=%d,len1=%d,len2=%d" x y len1 len2;
-              (y * pow2 len1) + x)
-          , len1 + len2 )
-          :: tl
-          |> thing
-      in
       let map =
-        thing (model :: models)
+        NfaNat.combine_model_pieces (model :: models)
         |> List.mapi (fun i v -> List.nth (Map.keys s.vars) i, v)
         |> Map.of_alist_exn
       in
       let map = Map.filter_keys map ~f:(fun key -> not (is_exp key)) in
+      Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
+      Debug.printfln
+        "Variable map: %a"
+        (Format.pp_print_list
+           ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
+           (fun fmt (a, b) -> Format.fprintf fmt "%a -> %d" Ir.pp_atom a b))
+        (Map.to_alist map);
       let f =
         f
         |> Ir.map (function
@@ -897,7 +892,7 @@ struct
                   match k with
                   | Ir.Pow2 x -> pow2 (Map.find_exn map (Var x))
                   | Ir.Var _ -> Map.find_exn map k)
-              |> Base.Sequence.fold ~init:c ~f:( + )
+              |> Base.Sequence.fold ~init:c ~f:( - )
             in
             let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
             Ir.rel rel term c
@@ -907,6 +902,7 @@ struct
           (* | Ast.Pow _ as t -> failwith (Format.asprintf "unimplemented: %a" Ast.pp_term t) *)
           | x -> x)
       in
+      Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
       let model = get_model_normal f in
       Map.merge map (Option.get model) ~f:(fun ~key:_ -> function
         | `Left x -> Some x

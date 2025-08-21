@@ -55,12 +55,14 @@ module type NatType = sig
     -> temp:deg
     -> vars:int list
     -> (t * (int * int) list * (int list * int)) Seq.t
+
+  val combine_model_pieces : (int list * int) list -> int list
 end
 
 module Lsb : sig
-  type _t
+  type t
 
-  include NatType with type u = _t with type t = _t
+  include NatType with type u = t and type t := t
 end
 
 module MsbNat : NatType

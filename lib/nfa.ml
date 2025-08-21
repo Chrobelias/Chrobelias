@@ -383,6 +383,8 @@ module type NatType = sig
     -> temp:deg
     -> vars:int list
     -> (t * (int * int) list * (int list * int)) Seq.t
+
+  val combine_model_pieces : (int list * int) list -> int list
 end
 
 module Make (Invariants : NfaInvariants) = struct
@@ -841,7 +843,6 @@ module Lsb = struct
     end)
 
   type u = t
-  type _t = t
 
   let minimize nfa =
     nfa
@@ -1040,6 +1041,17 @@ module Lsb = struct
   ;;
 
   let to_nat (nfa : t) : u = nfa
+
+  let rec combine_model_pieces = function
+    | [] -> []
+    | [ (model, _) ] -> model
+    | (model, len1) :: (model2, len2) :: tl ->
+      ( Base.List.zip_exn model model2
+        |> List.map (fun (x, y) -> Int.shift_left y len1 + x)
+      , len1 + len2 )
+      :: tl
+      |> combine_model_pieces
+  ;;
 end
 
 let update_invariants_msb nfa =
@@ -1289,6 +1301,17 @@ module MsbNat = struct
       |> Set.of_list
     in
     { nfa with start }
+  ;;
+
+  let rec combine_model_pieces = function
+    | [] -> []
+    | [ (model, _) ] -> model
+    | (model, len1) :: (model2, len2) :: tl ->
+      ( Base.List.zip_exn model model2
+        |> List.map (fun (x, y) -> Int.shift_left x len2 + y)
+      , len1 + len2 )
+      :: tl
+      |> combine_model_pieces
   ;;
 end
 
