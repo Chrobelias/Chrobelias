@@ -5,6 +5,39 @@ module Map = Base.Map.Poly
 
 let () = Lib.Solver.parse_args ()
 
+let check_sat ast =
+  (*Try? |> Lib.Me.simpl_ir in *)
+  begin
+    let ( <+> ) =
+      fun rez f ->
+      match rez with
+      | `Unknown ast -> f ast
+      | `Sat | `Unsat -> rez
+    in
+    let _ =
+      `Unknown ast
+      <+> (fun ast ->
+      if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)
+      <+> (fun ast ->
+      let bound = Lib.Solver.config.under_approx in
+      if bound > 0 then Lib.Underapprox.check bound ast else `Unknown ast)
+      <+> fun ast ->
+      match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
+      | `Sat ->
+        (* print_endline "sat"; *)
+        Format.printf "sat\n%!";
+        `Sat
+      | `Unsat ->
+        Format.printf "unsat\n%!";
+        `Unsat
+      | `Unknown _ ->
+        Format.printf "unknown\n%!";
+        `Unknown ast
+    in
+    ()
+  end
+;;
+
 type state =
   { asserts : Lib.Ast.t list
   ; prev : state option
@@ -26,49 +59,14 @@ let () =
       | None -> failwith "Nothing to pop"
     end
     | Smtml.Ast.Check_sat exprs ->
-      let expr_irs =
-        List.map
-          begin
-            fun expr -> expr |> Lib.Fe._to_ir
-          end
-          exprs
-      in
+      let expr_irs = List.map Lib.Fe._to_ir exprs in
       let rec get_ast { asserts; prev; _ } =
         match prev with
         | Some state -> asserts @ get_ast state
         | None -> asserts
       in
       let ast = Lib.Ast.land_ (expr_irs @ get_ast state) in
-      (*Try? |> Lib.Me.simpl_ir in *)
-      begin
-        let ( <+> ) =
-          fun rez f ->
-          match rez with
-          | `Unknown ast -> f ast
-          | `Sat | `Unsat -> rez
-        in
-        let _ =
-          `Unknown ast
-          <+> (fun ast ->
-          if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)
-          <+> (fun ast ->
-          let bound = Lib.Solver.config.under_approx in
-          if bound > 0 then Lib.Underapprox.check bound ast else `Unknown ast)
-          <+> fun ast ->
-          match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
-          | `Sat ->
-            (* print_endline "sat"; *)
-            Format.printf "sat\n%!";
-            `Sat
-          | `Unsat ->
-            Format.printf "unsat\n%!";
-            `Unsat
-          | `Unknown _ ->
-            Format.printf "unknown\n%!";
-            `Unknown ast
-        in
-        ()
-      end;
+      check_sat ast;
       state
     | Smtml.Ast.Get_model ->
       let rec get_irs { asserts; prev; _ } =
