@@ -27,11 +27,6 @@ let collect_free =
     Set.empty
 ;;
 
-type sup_binop =
-  | Bwand
-  | Bwor
-  | Bwxor
-
 (** Final-tagless style for building our representation  *)
 module type S = sig
   type t
@@ -42,7 +37,7 @@ module type S = sig
   val minus : t -> t -> t
   val add : t -> t -> t
   val mul : t -> t -> t
-  val bwop : sup_binop -> t -> t -> t
+  val bwop : FT_SIG.sup_binop -> t -> t -> t
   val pow : base:t -> t -> t
   val prj : t -> repr
 end
@@ -95,7 +90,7 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
   let symbol s = Symbol (Ir.var s, [])
   let poly_of_const c = Poly (Map.empty, c, [])
 
-  let rec bwop : sup_binop -> t -> t -> t =
+  let rec bwop : FT_SIG.sup_binop -> t -> t -> t =
     fun op l r ->
     match l, r with
     | Symbol (lhs, sups), Symbol (rhs, sups2) ->

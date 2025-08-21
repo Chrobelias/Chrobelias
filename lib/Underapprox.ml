@@ -2,9 +2,9 @@ module type SYM0 = sig
   type term
   type ph
 
-  include Overapprox.s_term with type term := term
-  include Overapprox.s_ph with type ph := ph and type term := term
-  include Overapprox.s_extra with type ph := ph and type term := term
+  include FT_SIG.s_term with type term := term
+  include FT_SIG.s_ph with type ph := ph and type term := term
+  include FT_SIG.s_extra with type ph := ph and type term := term
 
   val pow2var : string -> term
   val exists : string list -> ph -> ph
@@ -16,20 +16,6 @@ module type SYM = sig
   type repr
 
   val prj : ph -> repr
-end
-
-module Sugar (S : sig
-    type term
-    type ph
-
-    val eq : term -> term -> ph
-    val leq : term -> term -> ph
-    val lt : term -> term -> ph
-  end) =
-struct
-  let ( = ) = S.eq
-  let ( < ) = S.lt
-  let ( <= ) = S.leq
 end
 
 type env = (string, int) Base.Map.Poly.t
@@ -79,7 +65,7 @@ let make_sym (env : env) onvar bound =
   in
   (module struct
     include M
-    include Sugar (M)
+    include FT_SIG.Sugar (M)
   end : SYM
     with type repr = Smtml.Expr.t)
 ;;
@@ -115,7 +101,7 @@ let make_collector () =
   in
   (module struct
     include M
-    include Sugar (M)
+    include FT_SIG.Sugar (M)
   end : SYM
     with type repr = string list)
 ;;

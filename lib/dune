@@ -17,6 +17,8 @@
   Solver
   Debug
   Fe
+  FT_SIG
+  SimplII
   Me
   Utils)
  (libraries base angstrom bitv smtml unix iter zarith)
