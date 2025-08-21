@@ -39,6 +39,7 @@ let () =
         | None -> asserts
       in
       let ast = Lib.Ast.land_ (expr_irs @ get_ast state) in
+      (*Try? |> Lib.Me.simpl_ir in *)
       begin
         let ( <+> ) =
           fun rez f ->
