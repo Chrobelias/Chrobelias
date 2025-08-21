@@ -8,7 +8,7 @@
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=1
-  $ Chro -bound 3 -dsimpl -stop-after simpl test.smt2
+  $ Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl test.smt2
   Interesting: x y
   
   Expecting 9 choices ...
@@ -23,3 +23,4 @@
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   (assert (exists (x) (<= (+ (* (- 1) x) pow2(x) )  0) ) )
   
+

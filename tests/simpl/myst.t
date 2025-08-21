@@ -1,5 +1,5 @@
 $ export CHRO_DEBUG=1
-  $ Chro -dsimpl -stop-after simpl ../../benchmarks/MysteriousProgram.jar-obl-12.smt2_9.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -dsimpl -stop-after simpl ../../benchmarks/MysteriousProgram.jar-obl-12.smt2_9.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (it199 it208 it198)
           (and
             (<= (* (- 1) it192)  -1)

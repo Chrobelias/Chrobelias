@@ -29,5 +29,5 @@ Test Ex x > 2**x
 
 Test Frobenius coin problem with exponential restrictions
 
-  $ Chro ./examples/fcp_7_11_with_exps.smt2
+  $ Chro -bound 0 -no-over-approx ./examples/fcp_7_11_with_exps.smt2
   sat

@@ -8,7 +8,7 @@
   > (assert (> (+ (* x 5) (* (pow2 y) 8) (* z 7) ) 13))
   > (check-sat)
   > EOF
-  $ Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (z x)
           (and
             (<= (+ (* (- 5) x) (* (- 7) z) (* (- 8) pow2(y)) )  -14)
@@ -27,7 +27,7 @@ We can't do anything below, because y exists in two polarities
   > (assert (> (+ x (* 3 y)) 23))
   > (check-sat)
   > EOF
-  $ Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (x y)
           (and
             (<= (+ (* (- 1) x) (* (- 3) y) )  -24)
@@ -47,7 +47,7 @@ Habermehl demo
   > (assert (<= (+ x (- 0 (* 3 y)) z ) 0))
   > (check-sat)
   > EOF
-  $ Chro -dsimpl -stop-after simpl Habermehl.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -dsimpl -stop-after simpl Habermehl.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (x) (and
                         (<= (+ x z )  24)
                         (= (+ x pow2(z) )  52)
