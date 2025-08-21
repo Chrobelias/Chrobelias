@@ -14,27 +14,28 @@ let check_sat ast =
       | `Unknown ast -> f ast
       | `Sat | `Unsat -> rez
     in
-    let _ =
+    let ast =
       `Unknown ast
       <+> (fun ast ->
       if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)
-      <+> (fun ast ->
-      let bound = Lib.Solver.config.under_approx in
-      if bound > 0 then Lib.Underapprox.check bound ast else `Unknown ast)
       <+> fun ast ->
-      match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
-      | `Sat ->
-        (* print_endline "sat"; *)
-        Format.printf "sat\n%!";
-        `Sat
-      | `Unsat ->
-        Format.printf "unsat\n%!";
-        `Unsat
-      | `Unknown _ ->
-        Format.printf "unknown\n%!";
-        `Unknown ast
+      let bound = Lib.Solver.config.under_approx in
+      if bound > 0 then Lib.Underapprox.check bound ast else `Unknown ast
     in
-    ()
+    let ast =
+      match ast with
+      | `Sat -> `Sat
+      | `Unsat -> `Unsat
+      | `Unknown ast ->
+        (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
+         | `Sat -> `Sat
+         | `Unsat -> `Unsat
+         | `Unknown _ir -> `Unknown)
+    in
+    match ast with
+    | `Sat -> Format.printf "sat\n%!"
+    | `Unsat -> Format.printf "unsat\n%!"
+    | `Unknown -> Format.printf "unknown\n%!"
   end
 ;;
 
