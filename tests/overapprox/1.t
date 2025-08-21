@@ -7,7 +7,8 @@
   > (check-sat)
   > EOF
 $ export CHRO_DEBUG=1
-  $ Chro -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  unsat
 
 
   $ cat > test.smt2 <<-EOF
@@ -19,7 +20,10 @@ $ export CHRO_DEBUG=1
   > EOF
 $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
-  $ Chro  -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  Early SAT in lib/Overapprox.ml ~~> Unknown
+  (model
+    (x1 int 0))
   (assert (exists (x1  %0) ((re.star (mor (mor (mor 4 2) 0) 7) )))
   )
 

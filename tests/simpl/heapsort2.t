@@ -27,6 +27,7 @@ $ export CHRO_DEBUG=1
 
 
 
+
   $ cat > test.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun it1 () Int)
@@ -40,12 +41,12 @@ $ export CHRO_DEBUG=1
   > EOF
 $ export CHRO_DEBUG=1
   $ unset CHRO_EIA
-  $ Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (it1) (= (+ (* 2 it1) (* 7 pow2(it2)) )  30) )
   )
 
 $ export CHRO_DEBUG=1
-  $ Chro -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (it6 it160)
           (and
             (<= (* (- 1) it160)  -3)
@@ -64,7 +65,7 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_DEBUG
   $ export CHRO_EIA=old
-  $ Chro -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
+  $ Chro -bound 0 -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
   (assert (exists (it6 it160)
           (and
             (<= (* (- 1) it160)  -3)

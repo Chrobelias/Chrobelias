@@ -8,7 +8,7 @@
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=1
-  $ Chro -bound 3 -dsimpl -stop-after simpl test.smt2
+  $ Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl test.smt2
   Interesting: x y
   
   Expecting 9 choices ...
@@ -28,16 +28,19 @@
 
 
 
-  $ Chro -bound 3 -dsimpl -stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
+
+  $ Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
   Interesting: x1 x2
   
   Expecting 9 choices ...
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->1 x2->0 |}
+  sat
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
-  $ Chro -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over-approx -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
+  sat
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)

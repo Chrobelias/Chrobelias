@@ -1,7 +1,7 @@
 
   $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
-  $ Chro -bound 3  -dsimpl -stop-after simpl ../overapprox/NIA2334test1.smt2
+  $ Chro -no-over-approx -bound 3  -dsimpl -stop-after simpl ../overapprox/NIA2334test1.smt2
   Interesting: x1 x2
   
   Expecting 9 choices ...
