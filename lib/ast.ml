@@ -221,6 +221,42 @@ let rec pp ppf = function
   | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
 ;;
 
+let pp_smtlib2 =
+  let open Format in
+  let rec pp ppf = function
+    | True -> Format.fprintf ppf "True"
+    | Pred a -> Format.fprintf ppf "(P %s)" a
+    | Lnot a -> Format.fprintf ppf "(not %a)" pp a
+    | Land irs ->
+      Format.fprintf ppf "@[<v 2>(and";
+      List.iter (fprintf ppf "@ @[%a@]" pp) irs;
+      fprintf ppf ")@]"
+    | Lor irs ->
+      Format.fprintf
+        ppf
+        "(%a)"
+        (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " | ") pp)
+        irs
+    | Exists (a, b) ->
+      Format.fprintf
+        ppf
+        "(E%a %a)"
+        (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") pp_atom)
+        a
+        pp
+        b
+    | Eia (Eia.Eq (l, r)) -> fprintf ppf "(= %a %a)" pp_eia l pp_eia r
+    | Eia (Eia.Leq (l, r)) -> fprintf ppf "(<= %a %a)" pp_eia l pp_eia r
+  and pp_eia ppf = function
+    | Eia.Atom a -> fprintf ppf "%a" pp_atom a
+    | Add xs -> fprintf ppf "(+ %a)" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+    | Mul xs -> fprintf ppf "(* %a)" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+    | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
+    | x -> Eia.pp_term ppf x
+  in
+  pp
+;;
+
 (*
    let tfold ft acc t =
   let rec foldt acc = function

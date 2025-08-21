@@ -4,7 +4,7 @@
 module Map = Base.Map.Poly
 
 type config =
-  { mutable stop_after : [ `Simpl | `Solving ]
+  { mutable stop_after : [ `Simpl | `Simpl2 | `Solving ]
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
   ; mutable simpl_alpha : bool
