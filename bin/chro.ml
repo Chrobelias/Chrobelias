@@ -16,6 +16,7 @@ let check_sat ast =
     in
     let ast =
       `Unknown ast
+      <+> Lib.SimplII.simpl
       <+> (fun ast ->
       if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)
       <+> fun ast ->

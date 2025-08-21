@@ -1,43 +1,9 @@
 let log = Debug.printfln
 
-module type s_term = sig
-  type term
-
-  val pow : term -> term -> term
-  val mul : term list -> term
-  val add : term list -> term
-  val bw : Me.sup_binop -> term -> term -> term
-  val const : int -> term
-  val var : string -> term
-end
-
-module type s_ph = sig
-  type ph
-  type term
-
-  val land_ : ph list -> ph
-  val lor_ : ph list -> ph
-  val not : ph -> ph
-  val true_ : ph
-  val false_ : ph
-  val eq : term -> term -> ph
-  val leq : term -> term -> ph
-  val lt : term -> term -> ph
-end
-
-module type s_extra = sig
-  type term
-  type ph
-
-  val ( <= ) : term -> term -> ph
-  val ( < ) : term -> term -> ph
-  val ( = ) : term -> term -> ph
-end
-
 module type Smtml_symantics = sig
-  include s_term with type term := Smtml.Expr.t
-  include s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
-  include s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
+  include FT_SIG.s_term with type term := Smtml.Expr.t
+  include FT_SIG.s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
+  include FT_SIG.s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 
   val exists : string list -> Smtml.Expr.t -> Smtml.Expr.t
 end
@@ -65,7 +31,7 @@ module Symantics : Smtml_symantics = struct
 
   let bw op l r =
     match op with
-    | Me.Bwand -> Expr.binop Ty.Ty_int Ty.Binop.And l r
+    | FT_SIG.Bwand -> Expr.binop Ty.Ty_int Ty.Binop.And l r
     | Bwor -> Expr.binop Ty.Ty_int Ty.Binop.Or l r
     | Bwxor -> Expr.binop Ty.Ty_int Ty.Binop.Xor l r
   ;;

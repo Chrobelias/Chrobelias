@@ -248,7 +248,8 @@ let pp_smtlib2 =
     | Eia (Eia.Eq (l, r)) -> fprintf ppf "(= %a %a)" pp_eia l pp_eia r
     | Eia (Eia.Leq (l, r)) -> fprintf ppf "(<= %a %a)" pp_eia l pp_eia r
   and pp_eia ppf = function
-    | Eia.Atom a -> fprintf ppf "%a" pp_atom a
+    | Eia.Atom (Const c) when c < 0 -> fprintf ppf "(- %d)" (-c)
+    | Atom a -> fprintf ppf "%a" pp_atom a
     | Add xs -> fprintf ppf "(+ %a)" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
     | Mul xs -> fprintf ppf "(* %a)" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
     | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
