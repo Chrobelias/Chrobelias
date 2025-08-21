@@ -29,6 +29,10 @@ module type NatType = sig
   val mul : res:varpos -> lhs:int -> rhs:varpos -> t
 end
 
+let rec gcd a b =
+  if a < 0 || b < 0 then gcd (abs a) (abs b) else if b = 0 then a else gcd b (a mod b)
+;;
+
 module Lsb = struct
   module Nfa = Nfa.Lsb
 
@@ -193,93 +197,105 @@ module Lsb = struct
   ;;
 
   let eq vars term c =
-    let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
-    let thing = powerset term in
-    let states = ref Set.empty in
-    let transitions = ref [] in
-    let rec lp front =
-      match front with
-      | [] -> ()
-      | hd :: tl ->
-        if Set.mem !states hd
-        then lp tl
-        else begin
-          let t =
-            thing
-            |> List.filter (fun (_, sum) -> (hd - sum) mod 2 = 0)
-            |> List.map (fun (bits, sum) -> hd, bits, (hd - sum) / 2)
-          in
-          states := Set.add !states hd;
-          transitions := t @ !transitions;
-          lp (List.map (fun (_, _, x) -> x) t @ tl)
-        end
+    let term =
+      Map.map_keys_exn ~f:(Map.find_exn vars) term
+      |> Map.to_alist
+      |> List.filter (fun (_, v) -> v <> 0)
     in
-    lp [ c ];
-    let states = Set.to_list !states in
-    Debug.printfln
-      "states:[%a]"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-         (fun fmt a -> Format.fprintf fmt "%d" a))
-      states;
-    let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
-    let idx c = Map.find states c |> Option.get in
-    let idxs c =
-      Map.find states c |> Option.map (fun c -> [ c ]) |> Option.value ~default:[]
-    in
-    let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
-    Nfa.create_nfa
-      ~transitions
-      ~start:(idxs c)
-      ~final:(idxs 0)
-      ~vars:(List.map fst term)
-      ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) 0 term in
+    if gcd = 0
+    then if 0 = c then n () else z ()
+    else (
+      let thing = powerset term in
+      let states = ref Set.empty in
+      let transitions = ref [] in
+      let rec lp front =
+        match front with
+        | [] -> ()
+        | hd :: tl ->
+          if Set.mem !states hd
+          then lp tl
+          else begin
+            let t =
+              thing
+              |> List.filter (fun (_, sum) -> (hd - sum) mod 2 = 0)
+              |> List.map (fun (bits, sum) -> hd, bits, (hd - sum) / 2)
+            in
+            states := Set.add !states hd;
+            transitions := t @ !transitions;
+            lp (List.map (fun (_, _, x) -> x) t @ tl)
+          end
+      in
+      lp [ c ];
+      let states = Set.to_list !states in
+      Debug.printfln
+        "states:[%a]"
+        (Format.pp_print_list
+           ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+           (fun fmt a -> Format.fprintf fmt "%d" a))
+        states;
+      let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+      let idx c = Map.find states c |> Option.get in
+      let idxs c =
+        Map.find states c |> Option.map (fun c -> [ c ]) |> Option.value ~default:[]
+      in
+      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+      Nfa.create_nfa
+        ~transitions
+        ~start:(idxs c)
+        ~final:(idxs 0)
+        ~vars:(List.map fst term)
+        ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
   let leq vars term c =
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
-    let thing = powerset term in
-    let states = ref Set.empty in
-    let transitions = ref [] in
-    let rec lp front =
-      match front with
-      | [] -> ()
-      | hd :: tl ->
-        if Set.mem !states hd
-        then lp tl
-        else begin
-          let t =
-            thing
-            |> List.map (fun (bits, sum) ->
-              ( hd
-              , bits
-              , match (hd - sum) mod 2 with
-                | 0 | 1 -> (hd - sum) / 2
-                | -1 -> ((hd - sum) / 2) - 1
-                | _ -> failwith "Should be unreachable" ))
-          in
-          states := Set.add !states hd;
-          transitions := t @ !transitions;
-          lp (List.map (fun (_, _, x) -> x) t @ tl)
-        end
-    in
-    lp [ c ];
-    let states = Set.to_list !states in
-    Debug.printfln
-      "states:[%a]"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-         (fun fmt a -> Format.fprintf fmt "%d" a))
-      states;
-    let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
-    let idx c = Map.find states c |> Option.get in
-    let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
-    Nfa.create_nfa
-      ~transitions
-      ~start:[ idx c ]
-      ~final:(states |> Map.filter_keys ~f:(fun x -> x >= 0) |> Map.data)
-      ~vars:(List.map fst term)
-      ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) 0 term in
+    if gcd = 0
+    then if 0 <= c then n () else z ()
+    else (
+      let thing = powerset term in
+      let states = ref Set.empty in
+      let transitions = ref [] in
+      let rec lp front =
+        match front with
+        | [] -> ()
+        | hd :: tl ->
+          if Set.mem !states hd
+          then lp tl
+          else begin
+            let t =
+              thing
+              |> List.map (fun (bits, sum) ->
+                ( hd
+                , bits
+                , match (hd - sum) mod 2 with
+                  | 0 | 1 -> (hd - sum) / 2
+                  | -1 -> ((hd - sum) / 2) - 1
+                  | _ -> failwith "Should be unreachable" ))
+            in
+            states := Set.add !states hd;
+            transitions := t @ !transitions;
+            lp (List.map (fun (_, _, x) -> x) t @ tl)
+          end
+      in
+      lp [ c ];
+      let states = Set.to_list !states in
+      Debug.printfln
+        "states:[%a]"
+        (Format.pp_print_list
+           ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+           (fun fmt a -> Format.fprintf fmt "%d" a))
+        states;
+      let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+      let idx c = Map.find states c |> Option.get in
+      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+      Nfa.create_nfa
+        ~transitions
+        ~start:[ idx c ]
+        ~final:(states |> Map.filter_keys ~f:(fun x -> x >= 0) |> Map.data)
+        ~vars:(List.map fst term)
+        ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 end
 
@@ -393,10 +409,6 @@ module Msb = struct
       ~final:[ 1 ]
       ~vars:[ exp ]
       ~deg:(exp + 1)
-  ;;
-
-  let rec gcd a b =
-    if a < 0 || b < 0 then gcd (abs a) (abs b) else if b = 0 then a else gcd b (a mod b)
   ;;
 
   let div a b = if a mod b >= 0 then a / b else (a / b) - 1
