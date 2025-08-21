@@ -353,8 +353,8 @@ let config =
   ; dump_simpl = false
   ; simpl_alpha = true
   ; simpl_mono = true
-  ; over_approx = false
-  ; under_approx = 0
+  ; over_approx = true
+  ; under_approx = 3
   ; input_file = ""
   }
 ;;
@@ -376,12 +376,15 @@ let parse_args () =
     ; ( "-bound"
       , Arg.Int
           (fun n ->
-            assert (n > 0);
+            assert (n >= 0);
             config.under_approx <- n)
-      , "" )
+      , " Set underapprox. bound (zero disables)" )
     ; ( "-over-approx"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , " Simple overapproximation (issue #75)" )
+    ; ( "-no-over-approx"
+      , Arg.Unit (fun () -> config.over_approx <- false)
+      , " Disable simple overapproximation (issue #75)" )
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , " Use least-significant-bit first representation (only supports nats)" )
@@ -409,7 +412,8 @@ struct
     let ir = trivial ir in
     let ir = if config.simpl_mono then Ir.simpl_monotonicty ir else ir in
     let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
-    if config.dump_simpl then Format.printf "%a\n" Ir.pp_smtlib2 ir;
+    (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
+    if config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
     if config.stop_after = `Simpl then exit 0;
     let vars = collect_vars ir in
     let rec eval ir =

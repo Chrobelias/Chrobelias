@@ -38,6 +38,8 @@ module type Smtml_symantics = sig
   include s_term with type term := Smtml.Expr.t
   include s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
   include s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
+
+  val exists : string list -> Smtml.Expr.t -> Smtml.Expr.t
 end
 
 (** SYntax + seMANTICS *)
@@ -66,6 +68,10 @@ module Symantics : Smtml_symantics = struct
     | Me.Bwand -> Expr.binop Ty.Ty_int Ty.Binop.And l r
     | Bwor -> Expr.binop Ty.Ty_int Ty.Binop.Or l r
     | Bwxor -> Expr.binop Ty.Ty_int Ty.Binop.Xor l r
+  ;;
+
+  let exists vs ph =
+    Smtml.Expr.exists (List.map (fun s -> Smtml.Expr.symbol (Symbol.make Ty_int s)) vs) ph
   ;;
 
   let true_ = Expr.Bool.true_
@@ -128,10 +134,15 @@ let check ast =
     | True -> Symantics.true_
     | Eia e -> helper_eia e
     | Pred s -> Symantics.var s
-    | Exists (vs, ph) as other ->
-      (* TODO(Kakadu): Not implemented *)
-      Format.eprintf "Unsupported: %a\n%!" Ast.pp other;
-      exit 2
+    | Exists (vs, ph) ->
+      let vs =
+        List.filter_map
+          (function
+            | Ast.Var s -> Some s
+            | Ast.Const _ -> None)
+          vs
+      in
+      Symantics.exists vs (helper ph)
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> Symantics.const n
     | Atom (Ast.Var s) -> Symantics.var s
