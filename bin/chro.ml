@@ -6,7 +6,14 @@ module Map = Base.Map.Poly
 let () = Lib.Solver.parse_args ()
 
 let check_sat ast =
-  (*Try? |> Lib.Me.simpl_ir in *)
+  let () =
+    if Lib.Solver.config.stop_after = `Simpl2
+    then (
+      match Lib.SimplII.simpl ast with
+      | `Unknown ast ->
+        Format.printf "%a\n%!" Lib.Ast.pp_smtlib2 ast;
+        exit 0)
+  in
   begin
     let ( <+> ) =
       fun rez f ->
