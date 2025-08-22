@@ -20,6 +20,14 @@ let internal_name () =
 
 let internal () = var (internal_name ())
 
+let internal_pow () =
+  let name = String.concat "" [ "%"; !internalc |> Int.to_string ] in
+  let r = pow2 name in
+  let log_r = var name in
+  internalc := !internalc + 1;
+  r, log_r
+;;
+
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var
   | Pow2 var -> Format.fprintf fmt "pow2(%s)" var
@@ -41,7 +49,10 @@ let pp_polynom ppf m = Format.fprintf ppf "<polynom>"
 
 type t =
   | True
-  | Reg of Regex.t * atom list
+  | Reg of bool list Regex.t * atom list
+  | SReg of atom * char list Regex.t
+  | SLen of atom * atom
+  | Stoi of atom * atom
   | Rel of rel * polynom * int
   (* Logical operations. *)
   | Lnot of t
@@ -89,6 +100,9 @@ let rec equal ir ir' =
     List.length irs = List.length irs' && List.for_all2 equal irs irs'
   | Exists (atoms, ir), Exists (atoms', ir') ->
     List.equal ( = ) atoms atoms' && equal ir ir'
+  | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
+  | SLen (atom, atom'), SLen (atom'', atom''') | Stoi (atom, atom'), Stoi (atom'', atom''')
+    -> atom = atom'' && atom' = atom'''
   | _, _ -> false
 ;;
 
@@ -105,6 +119,9 @@ module X = struct
     | Land irs, Land irs' | Lor irs, Lor irs' -> List.for_all2 equal irs irs'
     | Exists (atoms, ir), Exists (atoms', ir') ->
       Set.equal (Set.of_list atoms) (Set.of_list atoms') && equal ir ir'
+    | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
+    | Stoi (atom, atom'), Stoi (atom'', atom''')
+    | SLen (atom, atom'), SLen (atom'', atom''') -> atom = atom'' && atom' = atom'''
     | _, _ -> false
   ;;
 
@@ -118,11 +135,26 @@ module X = struct
     | Rel (rel, term, c) ->
       Hashtbl.hash c + Hashtbl.hash rel + (Map.data term |> List.fold_left ( + ) 0)
     | Reg (regex, atoms) -> Hashtbl.hash regex + hashl Hashtbl.hash atoms
+    | SReg (atom, regex) -> Hashtbl.hash regex + Hashtbl.hash atom
+    | Stoi (atom, atom') | SLen (atom, atom') -> Hashtbl.hash atom + Hashtbl.hash atom'
   ;;
 end
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
+  | SReg (atom, re) ->
+    Format.fprintf
+      fmt
+      "(str.in.re %a %a)"
+      pp_atom
+      atom
+      (Regex.pp (fun ppf bv ->
+         Format.fprintf ppf "%a" (Format.pp_print_list Format.pp_print_char) bv))
+      re (* TODO: print regex *)
+  | SLen (atom, atom') ->
+    Format.fprintf fmt "(= %a (str.len %a))" pp_atom atom pp_atom atom'
+  | Stoi (atom, atom') ->
+    Format.fprintf fmt "(= %a (str.to.int %a))" pp_atom atom pp_atom atom'
   | Rel (rel, term, c) ->
     Format.fprintf
       fmt
@@ -138,7 +170,13 @@ let rec pp fmt = function
     Format.fprintf
       fmt
       "(%a %a)"
-      Regex.pp
+      (Regex.pp (fun ppf bv ->
+         Format.fprintf
+           ppf
+           "%a"
+           (Format.pp_print_list (fun ppf b ->
+              Format.fprintf ppf (if b then "1" else "0")))
+           bv))
       regex
       (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ") pp_atom)
       atoms
@@ -170,6 +208,9 @@ let rec map2 f fleaf ir =
   | True -> fleaf ir
   | Rel (_, _, _) -> fleaf ir
   | Reg (_, _) -> fleaf ir
+  | SReg (_, _) -> fleaf ir
+  | SLen (_, _) -> fleaf ir
+  | Stoi (_, _) -> fleaf ir
   | Lnot ir' -> f (lnot (map2 f fleaf ir'))
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
   | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
@@ -183,6 +224,9 @@ let rec fold f acc ir =
   | True -> f acc ir
   | Rel _ -> f acc ir
   | Reg (_, _) -> f acc ir
+  | SReg (_, _) -> f acc ir
+  | SLen (_, _) -> f acc ir
+  | Stoi (_, _) -> f acc ir
   | Lnot ir' -> f (fold f acc ir') ir
   | Land irs -> f (List.fold_left (fold f) acc irs) ir
   | Lor irs -> f (List.fold_left (fold f) acc irs) ir
@@ -277,21 +321,21 @@ let pp_smtlib ppf (ir : t) =
 let pp_smtlib2 ppf ir =
   let open Format in
   (* https://microsoft.github.io/z3guide/docs/theories/Regular%20Expressions *)
-  let rec pp_regex ppf = function
-    (* TODO(Kakadu): Understand which encoding is right  *)
-    | Regex.Kleene r -> fprintf ppf "@[(re.star %a )@]" pp_regex r
-    | Mor (l, r) -> fprintf ppf "@[(mor %a %a)@]" pp_regex l pp_regex r
-    | Mand (l, r) -> fprintf ppf "@[(mand %a %a)@]" pp_regex l pp_regex r
-    | Mnot l -> fprintf ppf "@[(mnot %a)@]" pp_regex l
-    | Concat (l, r) -> fprintf ppf "@[(re.++ %a %a)@]" pp_regex l pp_regex r
-    | Empty -> fprintf ppf "empty"
-    | Epsilon -> fprintf ppf "epsilon"
-    | Symbol bv ->
-      if Bitv.length bv < 64
-      then fprintf ppf "%d" (Bitv.to_int_s bv)
-      else Bitv.L.print ppf bv
-    (* | x -> fprintf ppf "%a" Regex.pp x *)
+  let ( -- ) i j =
+    let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+    aux j []
   in
+  let z_of_list_msb p =
+    let length = List.length p in
+    let bv_init deg f =
+      List.fold_left
+        (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
+        Z.zero
+        (0 -- (deg - 1))
+    in
+    bv_init length (fun i -> List.nth p i) |> Z.to_int
+  in
+  let pp_sym ppf bv = Format.fprintf ppf "%d" (z_of_list_msb bv) in
   let rec helper ppf = function
     | True -> fprintf ppf "T"
     | Exists (atoms, rhs) ->
@@ -312,6 +356,7 @@ let pp_smtlib2 ppf ir =
         rhs;
       (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
       fprintf ppf ")@]" *)
+    | (SLen _ | Stoi _ | SReg _) as ir -> Format.fprintf ppf "%a" pp ir
     | Land [ x ] ->
       (* TODO: should be eliminated in simplifier *)
       helper ppf x
@@ -352,7 +397,7 @@ let pp_smtlib2 ppf ir =
         rhs
     | Lnot ph -> fprintf ppf "@[(not %a)@]" helper ph
     | Reg (r, atoms) ->
-      fprintf ppf "@[(%a" pp_regex r;
+      fprintf ppf "@[(%a" (Regex.pp pp_sym) r;
       (* List.iter (fprintf ppf " %a" pp_atom) atoms; *)
       fprintf ppf ")@]"
   in

@@ -2,17 +2,29 @@
 (* Copyright 2024-2025, Chrobelias. *)
 
 module Map = Base.Map.Poly
+module Set = Base.Set.Poly
 
-type t =
+type 'a t =
   | Empty
   | Epsilon
-  | Symbol of Bitv.t [@printer fun fmt -> fprintf fmt "%a" Bitv.L.print]
-  | Mand of t * t
-  | Mor of t * t
-  | Concat of t * t
-  | Kleene of t
-  | Mnot of t
-[@@deriving variants, show]
+  | Symbol of 'a
+  | Mand of 'a t * 'a t
+  | Mor of 'a t * 'a t
+  | Concat of 'a t * 'a t
+  | Kleene of 'a t
+  | Mnot of 'a t
+[@@deriving variants, compare]
+
+let rec pp pp_sym ppf = function
+  | Empty -> Format.fprintf ppf "(re.nostr)"
+  | Epsilon -> Format.fprintf ppf "(re.empty)"
+  | Mand (r1, r2) -> Format.fprintf ppf "(re.inter %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
+  | Mor (r1, r2) -> Format.fprintf ppf "(re.union %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
+  | Concat (r1, r2) -> Format.fprintf ppf "(re.++ %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
+  | Kleene r -> Format.fprintf ppf "(re.* %a)" (pp pp_sym) r
+  | Mnot r -> Format.fprintf ppf "(re.* %a)" (pp pp_sym) r
+  | Symbol r -> Format.fprintf ppf "(str.to.re \"%a\")" pp_sym r
+;;
 
 let all = mnot empty
 
@@ -56,6 +68,8 @@ let mnot = function
   | r -> mnot r
 ;;
 
+let plus r = concat r (kleene r)
+let opt r = mor r empty
 let ( <|> ) = mor
 let ( <&> ) = mand
 let ( <*> ) = concat
@@ -74,7 +88,7 @@ let rec v = function
 let rec deriv a = function
   | Empty -> Empty
   | Epsilon -> Empty
-  | Symbol b -> if Bitv.equal a b then Epsilon else Empty
+  | Symbol b -> if a = b then Epsilon else Empty
   | Concat (r, s) -> if v r then deriv a r <*> s <|> deriv a s else deriv a r <*> s
   | Mor (r, s) -> deriv a r <|> deriv a s
   | Mand (r, s) -> deriv a r <&> deriv a s
@@ -82,11 +96,14 @@ let rec deriv a = function
   | Mnot r -> mnot (deriv a r)
 ;;
 
-let rec symbols = function
-  | Empty | Epsilon -> []
-  | Symbol a -> [ a ]
-  | Concat (r, s) | Mor (r, s) | Mand (r, s) -> List.append (symbols r) (symbols s)
-  | Kleene r | Mnot r -> symbols r
+let symbols r =
+  let rec aux = function
+    | Empty | Epsilon -> Set.empty
+    | Symbol a -> Set.singleton a
+    | Concat (r, s) | Mor (r, s) | Mand (r, s) -> Set.union (aux r) (aux s)
+    | Kleene r | Mnot r -> aux r
+  in
+  aux r |> Set.to_list
 ;;
 
 let ( -- ) i j =
@@ -94,8 +111,8 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r =
-  let rec traverse visited = function
+(*let to_nfa (type a) (module Nfa : Nfa.Type with type v = a) (r: (a list) t) =
+   let rec traverse visited = function
     | [] -> []
     | r :: tl ->
       if List.exists (fun r' -> r' = r) visited
@@ -117,22 +134,23 @@ let to_nfa (type a) (module Nfa : Nfa.Type with type t = a) r =
     transitions
     |> List.concat_map (fun (q, delta) ->
       List.map
-        (fun (l, q') -> regex_to_state q, l |> Bitv.to_int_us, regex_to_state q')
+        (fun (l, q') -> regex_to_state q, l, regex_to_state q')
         delta)
   in
-  let deg = symbols r |> List.fold_left (fun acc v -> max acc (Bitv.length v)) 0 in
+  let deg = symbols r |> List.fold_left (fun acc v -> max acc (List.length v)) 0 in
   Nfa.create_nfa
     ~transitions
     ~start:[ regex_to_state r ]
     ~final:(finals |> List.map regex_to_state)
     ~vars:(0 -- (deg - 1) |> List.rev)
     ~deg
-;;
+*)
 
-open Angstrom
+(*open Angstrom*)
 
-let of_string =
-  let is_whitespace = function
+let of_string symbol = failwith symbol
+(*
+   let is_whitespace = function
     | ' ' | '\t' | '\n' | '\r' -> true
     | _ -> false
   in
@@ -165,9 +183,10 @@ let of_string =
       |> bin_op mor "|")
   in
   parse_string ~consume:Prefix regex
-;;
+*)
 
-let%expect_test "Basic parsing" =
+(*
+   let%expect_test "Basic parsing" =
   of_string "[01]/*([10]|[11]/[01])" |> Result.get_ok |> Format.printf "%a@." pp;
   [%expect
     {| (Regex.Concat (01, (Regex.Kleene (Regex.Mor (10, (Regex.Concat (11, 01))))))) |}]
@@ -255,8 +274,9 @@ let%expect_test "To nfa and predicate" =
     }
     |}]
 ;;
+*)
 
-let s = Bitv.of_int_us
+let s bv = Bitv.fold_right (fun b acc -> b :: acc) (Bitv.of_int_us bv) []
 
 let bwand =
   kleene

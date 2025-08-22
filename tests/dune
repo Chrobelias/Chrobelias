@@ -3,6 +3,7 @@
   %{bin:Chro}
   ./qf-eia.smt2
   ./qf-eia-model.smt2
+  ./qf-s.smt2
   ./lia.smt2
   ./bw.smt2
   ./examples/LIA/fcp_2_4.smt2
