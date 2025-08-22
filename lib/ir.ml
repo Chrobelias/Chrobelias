@@ -23,7 +23,7 @@ let pp_atom fmt = function
   | Pow2 var -> Format.fprintf fmt "pow2(%s)" var
 ;;
 
-type rel =
+type rel = SimplII.relop =
   | Leq
   | Eq
 [@@deriving variants]
