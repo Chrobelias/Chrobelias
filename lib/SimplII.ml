@@ -16,10 +16,10 @@ module type SYM = sig
 
   type repr
 
-  val prj : ph -> repr
+  val prj : ph -> repr [@@warning "-32"]
 end
 
-module Main_symantics_ : SYM with type repr = Ast.t = struct
+module Main_symantics_ (*: SYM with type repr = Ast.t*) = struct
   open Ast
 
   type term = Ast.Eia.term
@@ -43,10 +43,19 @@ module Main_symantics_ : SYM with type repr = Ast.t = struct
         (fun (cacc, phacc) -> function
            | Eia.Atom (Const c) -> op c cacc, phacc
            | ph -> cacc, ph :: phacc)
-        (1, [])
+        (init, [])
         xs
     in
     c, List.sort compare_term xs
+  ;;
+
+  let distribute xs =
+    List.fold_left
+      (fun acc -> function
+         | Eia.Add ys -> List.concat_map (fun zs -> List.map (fun h -> h :: zs) ys) acc
+         | other -> List.map (fun x -> other :: x) acc)
+      ([ [] ] : term list list)
+      xs
   ;;
 
   let mul xs =
@@ -87,7 +96,7 @@ module type SYM_SUGAR = sig
   include FT_SIG.s_extra with type ph := ph and type term := term
 end
 
-let apply_symnatics (type a) (module S : SYM_SUGAR with type repr = a) =
+let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
   let rec helper = function
     | Ast.Land xs -> S.land_ (List.map helper xs)
     | Lor xs -> S.lor_ (List.map helper xs)
@@ -119,11 +128,48 @@ let apply_symnatics (type a) (module S : SYM_SUGAR with type repr = a) =
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
     | Leq (l, r) -> S.(helperT l <= helperT r)
   in
-  fun x -> S.prj (helper x)
+  fun x -> helper x
 ;;
 
 let simpl ast =
   log "%s %d" __FILE__ __LINE__;
-  let _ast : Ast.t = apply_symnatics (module Main_symantics) ast in
+  let rec loop step ast =
+    if step > 5 then exit 1;
+    Printf.printf "iteration %d\n" step;
+    Format.printf "ast(%d) = @[%a@]\n%!" step Ast.pp_smtlib2 ast;
+    let rez = apply_symnatics (module Main_symantics) ast in
+    let ast2 = Main_symantics.prj rez in
+    if Stdlib.(ast2 = ast)
+    then (
+      let () = Printf.printf "Fixpoint after %d steps\n" step in
+      ast)
+    else loop (step + 1) ast2
+  in
+  let _ast = loop 1 ast in
+  (* let _ast : Ast.t = apply_symnatics (module Main_symantics) ast in *)
   `Unknown _ast
+;;
+
+let test_distr xs =
+  let ans =
+    Main_symantics.(distribute xs) |> List.map Main_symantics.mul |> Main_symantics.add
+  in
+  Format.printf "@[%a@]\n%!" Ast.pp_term_smtlib2 ans
+;;
+
+let%expect_test _ =
+  test_distr Main_symantics.[ const 5; add [ var "x"; var "y" ] ];
+  [%expect "(+ (* 5 x) (* 5 y))"]
+;;
+
+let%expect_test _ =
+  test_distr
+    Main_symantics.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; var "u" ] ];
+  [%expect "(+ (* 5 u x) (* 5 u y) (* 5 x z) (* 5 y z))"]
+;;
+
+let%expect_test _ =
+  test_distr
+    Main_symantics.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; const 2 ] ];
+  [%expect "(+ (* 5 x z) (* 5 y z) (* 10 x) (* 10 y))"]
 ;;
