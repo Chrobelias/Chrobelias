@@ -1,5 +1,9 @@
 let log fmt = Format.kasprintf print_endline fmt
 
+type relop =
+  | Leq
+  | Eq
+
 module type SYM0 = sig
   type term
   type ph
@@ -27,15 +31,20 @@ module Main_symantics_ (*: SYM with type repr = Ast.t*) = struct
   type repr = Ast.t
 
   let compare_term = Eia.compare_term
-  let exists var ph = Ast.Exists (List.map Ast.var var, ph)
-  let not x = Ast.Lnot x
-  let land_ x = Ast.Land x
-  let lor_ x = Ast.Lor x
-  let true_ = Ast.true_
-  let false_ = Ast.false_
-  let lt l r = Eia (Eia.lt l r)
-  let leq l r = Eia (Ast.Eia.leq l r)
-  let eq l r = Eia (Ast.Eia.eq l r)
+
+  (** Terms *)
+
+  let bw k a b =
+    match k with
+    | FT_SIG.Bwand -> Ast.Eia.bwand a b
+    | FT_SIG.Bwor -> Ast.Eia.bwor a b
+    | FT_SIG.Bwxor -> Ast.Eia.bwxor a b
+  ;;
+
+  let var s = Eia.atom (Ast.var s)
+  let const c = Ast.Eia.Atom (Ast.const c)
+  let pow base xs = Ast.Eia.Pow (base, xs)
+  let pow2var v = Ast.Eia.Pow (const 2, var v)
 
   let fold_and_sort init op xs =
     let c, xs =
@@ -59,6 +68,13 @@ module Main_symantics_ (*: SYM with type repr = Ast.t*) = struct
   ;;
 
   let mul xs =
+    let xs =
+      List.concat_map
+        (function
+          | Eia.Mul xs -> xs
+          | x -> [ x ])
+        xs
+    in
     match fold_and_sort 1 ( * ) xs with
     | 1, xs -> Ast.Eia.mul (List.sort compare_term xs)
     | c, [] -> Eia.atom (Const c)
@@ -66,23 +82,57 @@ module Main_symantics_ (*: SYM with type repr = Ast.t*) = struct
   ;;
 
   let add xs =
+    let xs =
+      List.concat_map
+        (function
+          | Eia.Add xs -> xs
+          | x -> [ x ])
+        xs
+    in
     match fold_and_sort 0 ( + ) xs with
     | 0, xs -> Ast.Eia.add (List.sort compare_term xs)
     | c, [] -> Eia.atom (Const c)
     | c, xs -> Ast.Eia.add (Eia.atom (Const c) :: List.sort compare_term xs)
   ;;
 
-  let bw k a b =
-    match k with
-    | FT_SIG.Bwand -> Ast.Eia.bwand a b
-    | FT_SIG.Bwor -> Ast.Eia.bwor a b
-    | FT_SIG.Bwxor -> Ast.Eia.bwxor a b
+  let rec negate = function
+    | Eia.Add xs -> add (List.map negate xs)
+    | x -> mul [ const (-1); x ]
   ;;
 
-  let var s = Eia.atom (Ast.var s)
-  let const c = Ast.Eia.Atom (Ast.const c)
-  let pow base xs = Ast.Eia.Pow (base, xs)
-  let pow2var v = Ast.Eia.Pow (const 2, var v)
+  (** Formulas *)
+  let exists var ph = Ast.Exists (List.map Ast.var var, ph)
+
+  let rec not = function
+    | Ast.Lnot x -> x
+    | Land xs -> Ast.Lor (List.map not xs)
+    | Lor xs -> Ast.Land (List.map not xs)
+    | x -> x
+  ;;
+
+  let land_ x = Ast.Land x
+  let lor_ x = Ast.Lor x
+  let true_ = Ast.true_
+  let false_ = Ast.false_
+
+  let relop op l r =
+    let ofop =
+      match op with
+      | Leq -> fun x y -> Eia (Eia.leq x y)
+      | Eq -> fun x y -> Eia (Eia.eq x y)
+    in
+    match l, r with
+    | Eia.Add ls, Eia.Add rs -> ofop (add (ls @ List.map negate rs)) (const 0)
+    | Eia.Add (Atom (Const c) :: tl), Atom (Const n) -> ofop (Eia.Add tl) (const (n - c))
+    | Atom (Const c), Add (Atom (Const n) :: tl) ->
+      ofop (add (List.map negate tl)) (const (n - c))
+    | Atom (Const c), Add xs -> ofop (add (List.map negate xs)) (const (-c))
+    | _ -> ofop l r
+  ;;
+
+  let lt l r = relop Leq (add [ const 1; l ]) r
+  let leq l r = relop Leq l r
+  let eq l r = relop Eq l r
   let prj x = x
 end
 
