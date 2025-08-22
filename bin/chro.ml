@@ -5,6 +5,8 @@ module Map = Base.Map.Poly
 
 let () = Lib.Solver.parse_args ()
 
+(*let c = ref(0)*)
+
 let check_sat ast =
   let __ () =
     if Lib.Solver.config.stop_after = `Pre_simplify
@@ -50,10 +52,12 @@ let check_sat ast =
          | `Unsat -> `Unsat
          | `Unknown _ir -> `Unknown)
     in
-    match ast with
-    | `Sat -> Format.printf "sat\n%!"
-    | `Unsat -> Format.printf "unsat\n%!"
-    | `Unknown -> Format.printf "unknown\n%!"
+    (*c := !c + 1;
+    Format.printf "%d " !c;*)
+      match ast with
+      | `Sat -> Format.printf "sat\n%!"
+      | `Unsat -> Format.printf "unsat\n%!"
+      | `Unknown -> Format.printf "unknown\n%!"
   end
 ;;
 
@@ -71,6 +75,15 @@ let () =
     | Ok file -> Smtml.Parse.from_file file
   in
   let exec ({ prev; _ } as state) = function
+    | Smtml.Ast.Set_logic Smtml.Logic.QF_S ->
+      Lib.Solver.config.logic <- `Str;
+      Lib.Solver.config.mode <- `Lsb;
+      Lib.Solver.config.under_approx <- 0;
+      Lib.Solver.config.over_approx <- false;
+      Lib.Solver.config.simpl_alpha <- false;
+      Lib.Solver.config.simpl_mono <- false;
+      Lib.Solver.config.pre_simpl <- false;
+      state
     | Smtml.Ast.Push _ -> { asserts = []; prev = Some state }
     | Smtml.Ast.Pop _ -> begin
       match prev with
@@ -98,7 +111,12 @@ let () =
         match Lib.Solver.get_model (Lib.Me.ir_of_ast ir) with
         | Some model ->
           Map.iteri
-            ~f:(fun ~key:k ~data:v -> Format.printf "%a = %d; " Lib.Ir.pp_atom k v)
+            ~f:(fun ~key:k ~data:v ->
+              Format.printf "%a = " Lib.Ir.pp_atom k;
+              (match v with
+               | `Int v -> Format.printf "%d" v
+               | `Str v -> Format.printf "%s" v);
+              Format.printf "; ")
             model;
           Format.printf "\n%!"
         | None -> Format.printf "no model\n%!"

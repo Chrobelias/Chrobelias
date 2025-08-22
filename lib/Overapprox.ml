@@ -94,6 +94,7 @@ let check ast =
     | _ -> false
   in
   let exception Bitwise_inside in
+  let exception String_inside in
   cache := Base.Map.empty (module Base.String);
   let rec helper = function
     | Ast.Land xs -> Symantics.land_ (List.map helper xs)
@@ -111,6 +112,7 @@ let check ast =
           vs
       in
       Symantics.exists vs (helper ph)
+    | Str _ -> raise_notrace String_inside
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> Symantics.const n
     | Atom (Ast.Var s) -> Symantics.var s
@@ -119,6 +121,7 @@ let check ast =
     | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> Symantics.var (gensym x)
     | Pow (base, p) -> Symantics.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise_notrace Bitwise_inside
+    | Len _ | Stoi _ -> raise_notrace String_inside
   and helper_eia eia =
     try
       match eia with

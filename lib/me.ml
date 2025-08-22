@@ -13,10 +13,32 @@ let collect_free =
          Ast.Eia.fold2
            (fun acc _ -> acc)
            (fun acc -> function
-              | Ast.Eia.Atom (Ast.Var v) -> Set.union acc (Set.singleton (Ast.var v))
+              | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+              | Ast.Eia.Stoi str ->
+                Ast.Str.fold_term
+                  (fun acc -> function
+                     | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+                     | _ -> acc)
+                  acc
+                  str
+              | Ast.Eia.Len str ->
+                Ast.Str.fold_term
+                  (fun acc -> function
+                     | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+                     | _ -> acc)
+                  acc
+                  str
               | _ -> acc)
            acc
            eia
+       | Ast.Str str ->
+         Ast.Str.fold2
+           (fun acc _ -> acc)
+           (fun acc -> function
+              | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+              | _ -> acc)
+           acc
+           str
        | Ast.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
     Set.empty
@@ -35,9 +57,21 @@ module type S = sig
   val bwop : FT_SIG.sup_binop -> t -> t -> t
   val pow : base:t -> t -> t
   val prj : t -> repr
+  val len : Ast.Str.term -> t
+  val stoi : Ast.Str.term -> t
 end
 
 [@@@warnerror "-32-37-39"]
+
+let of_str : Ast.Str.t -> Ir.t = function
+  | Ast.Str.InRe (str, re) ->
+    let str =
+      match str with
+      | Ast.Str.Atom (Var atom) -> Ir.var atom
+      | _ -> failwith "expected atom"
+    in
+    Ir.sreg str re
+;;
 
 module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = struct
   type repr = (Ir.atom, int) Map.t * int * Ir.t list
@@ -215,6 +249,32 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
     | Poly (base_poly, base_c, base_sups), _ ->
       failwith (Printf.sprintf "only base 2 is supported in exponents (got %d)" base_c)
   ;;
+
+  let len (v : Ast.Str.term) =
+    let pow_r, r = Ir.internal_pow () in
+    let u = Ir.internal () in
+    let v =
+      match v with
+      | Ast.Str.Atom (Var v) -> v
+      | _ -> failwith "unreachable"
+    in
+    (* u ~ v && u = 2**r - 1 *)
+    Symbol
+      ( r
+      , [ Ir.slen u (Ir.var v)
+        ; Ir.eq (Map.singleton pow_r 1 |> Map.add_exn ~key:u ~data:(-1)) 1
+        ] )
+  ;;
+
+  let stoi (v : Ast.Str.term) =
+    let u = Ir.internal () in
+    let v =
+      match v with
+      | Ast.Str.Atom (Var v) -> v
+      | _ -> failwith "TBD"
+    in
+    Symbol (u, [ Ir.stoi u (Ir.var v) ])
+  ;;
 end
 
 let of_eia2 : Ast.Eia.t -> Ir.t =
@@ -238,6 +298,8 @@ let of_eia2 : Ast.Eia.t -> Ir.t =
         | _ -> failwith "unreachable"
       in
       regex lhs rhs
+    | Stoi v -> Symantics.stoi v
+    | Len v -> Symantics.len v
     | other ->
       (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
       failf "unimplemented %a" Ast.Eia.pp eia
@@ -559,6 +621,7 @@ let ir_of_ast ir =
           atoms
       in
       Ir.exists atoms (ir_of_ast ast)
+    | Str str -> of_str str
     | Eia eia ->
       (match Sys.getenv_opt "CHRO_EIA" with
        | Some "old" -> of_eia

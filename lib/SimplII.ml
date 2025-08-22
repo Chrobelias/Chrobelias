@@ -470,6 +470,7 @@ let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
           vs
       in
       S.exists vs (helper ph)
+    | Str _ -> failwith "TBD"
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const n
     | Atom (Ast.Var s) -> S.var s
@@ -480,6 +481,8 @@ let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
     | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
+    | Len _ -> failwith "TBD"
+    | Stoi _ -> failwith "TBD"
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)

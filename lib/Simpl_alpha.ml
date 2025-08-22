@@ -24,7 +24,6 @@ let alpha_compare =
     | Lnot l, Lnot r -> helper subst (l, r)
     | Rel (Eq, _, _), Rel (Leq, _, _)
     | Rel (Leq, _, _), Rel (Eq, _, _)
-    (* *)
     | Exists _, Rel _
     | Rel _, Exists _
     | Lnot _, Rel _
@@ -89,6 +88,9 @@ let rec simplify : Ir.t -> Ir.t = function
   | Reg _ as x -> x
   | Rel _ as x -> x
   | Lor _ as x -> x
+  | SReg _ as x -> x
+  | SLen _ as x -> x
+  | Stoi _ as x -> x
   | Land xs ->
     (* We simplify only conjuncts because interesting test needs it.
       benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2

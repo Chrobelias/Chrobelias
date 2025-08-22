@@ -107,6 +107,7 @@ let make_collector () =
 ;;
 
 exception Bitwise_op
+exception String_op
 
 let apply_symnatics (type a) (module S : SYM with type repr = a) =
   let rec helper = function
@@ -125,6 +126,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
           vs
       in
       S.exists vs (helper ph)
+    | Str _ -> raise String_op
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const n
     | Atom (Ast.Var s) -> S.var s
@@ -133,6 +135,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
+    | Len _ | Stoi _ -> raise String_op
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)

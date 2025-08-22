@@ -3,9 +3,11 @@
 let compare_string = String.compare
 let compare_int = Int.compare
 let compare_list f = Base.List.compare f
+let compare_char = Char.compare
 
 type atom =
   | Var of string
+  (* TODO: such constants should be in the EIA theory. *)
   | Const of int
 [@@deriving variants, compare]
 
@@ -14,10 +16,49 @@ let pp_atom ppf = function
   | Const n -> Format.fprintf ppf "%d" n
 ;;
 
+(** String theory. *)
+module Str = struct
+  type term =
+    | Atom of atom
+    | Const of string
+  [@@deriving variants, compare]
+
+  let fold_term f acc term = f acc term
+
+  let pp_term ppf = function
+    | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
+    | Const s -> Format.fprintf ppf "\"%s\"" s
+  ;;
+
+  type t = InRe of term * char list Regex.t [@@deriving variants, compare (* , show *)]
+
+  let pp fmt = function
+    | InRe (str, re) ->
+      Format.fprintf
+        fmt
+        "(str.in_re %a %a)"
+        pp_term
+        str
+        (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
+        re
+  ;;
+
+  let equal str str' =
+    match str, str' with
+    | InRe (str, re), InRe (str', re') -> str = str' && re = re'
+  ;;
+
+  let fold2 f fterm acc = function
+    | InRe (term, re) as ast -> f (fold_term fterm acc term) ast
+  ;;
+end
+
 (** Exponential integer arithmetic, i.e. LIA with exponents.*)
 module Eia = struct
   type term =
     | Atom of atom
+    | Len of Str.term
+    | Stoi of Str.term
     | Add of term list
     | Mul of term list
     | Bwand of term * term
@@ -60,7 +101,7 @@ module Eia = struct
   ;;
 
   let rec map_term f = function
-    | Atom _ as term -> f term
+    | (Atom _ | Len _ | Stoi _) as term -> f term
     | Add terms -> f (add (List.map (map_term f) terms))
     | Mul terms -> f (mul (List.map (map_term f) terms))
     | Bwand (term, term') -> f (bwand (map_term f term) (map_term f term'))
@@ -71,7 +112,7 @@ module Eia = struct
 
   let rec fold_term f acc term =
     match term with
-    | Atom _ -> f acc term
+    | Atom _ | Len _ | Stoi _ -> f acc term
     | Add terms | Mul terms -> f (List.fold_left (fold_term f) acc terms) term
     | Bwand (term', term'')
     | Bwor (term', term'')
@@ -81,6 +122,8 @@ module Eia = struct
 
   let rec pp_term ppf = function
     | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
+    | Len s -> Format.fprintf ppf "(str.len %a)" Str.pp_term s
+    | Stoi s -> Format.fprintf ppf "(str.to.int %a)" Str.pp_term s
     | Add terms ->
       Format.fprintf
         ppf
@@ -183,6 +226,7 @@ type t =
   | True
   (*| Pred of predname * term list*)
   | Eia of Eia.t
+  | Str of Str.t
   | Lnot of t
   | Land of t list
   | Lor of t list
@@ -219,6 +263,7 @@ let rec pp ppf = function
       pp
       b
   | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
+  | Str str -> Format.fprintf ppf "%a" Str.pp str
 ;;
 
 let pp_term_smtlib2 =
@@ -260,6 +305,7 @@ let pp_smtlib2 =
         b
     | Eia (Eia.Eq (l, r)) -> fprintf ppf "(= %a %a)" pp_eia l pp_eia r
     | Eia (Eia.Leq (l, r)) -> fprintf ppf "(<= %a %a)" pp_eia l pp_eia r
+    | Str s -> fprintf ppf "%a" Str.pp s
   and pp_eia = pp_term_smtlib2 in
   pp
 ;;
@@ -327,6 +373,7 @@ let rec fold f acc ast =
   match ast with
   | True -> f acc ast
   | Eia _ -> f acc ast
+  | Str _ -> f acc ast
   | Lnot ast -> f (fold f acc ast) ast
   | Land asts -> f (List.fold_left (fold f) acc asts) ast
   | Lor asts -> f (List.fold_left (fold f) acc asts) ast
@@ -340,6 +387,7 @@ let forsome f = fold (fun acc ast -> acc || f ast) false
 let rec map f = function
   | True as ast -> f ast
   | Eia _ as ast -> f ast
+  | Str _ as ast -> f ast
   | Lnot ast -> f (lnot (map f ast))
   | Land asts -> f (land_ (List.map (map f) asts))
   | Lor asts -> f (lor_ (List.map (map f) asts))
@@ -356,5 +404,6 @@ let rec equal ast ast' =
   | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
   | Pred name, Pred name' -> name = name'
   | Eia eia, Eia eia' -> Eia.equal eia eia'
+  | Str str, Str str' -> Str.equal str str'
   | _ -> false
 ;;

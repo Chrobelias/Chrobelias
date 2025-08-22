@@ -5,7 +5,52 @@ module Binder = Smtml.Binder
 
 let failf fmt = Format.kasprintf failwith fmt
 
-let rec to_eia_term orig_expr =
+let rec to_string orig_expr =
+  let expr = Expr.view orig_expr in
+  match expr with
+  | Expr.Symbol symbol ->
+    let var = Symbol.to_string symbol in
+    Ast.Str.Atom (Ast.var var)
+  | Expr.Val v -> begin
+    match v with
+    | Str s -> Ast.Str.Const s
+    | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
+  end
+  | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
+
+and to_regex orig_expr =
+  let expr = Expr.view orig_expr in
+  match expr with
+  | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
+  | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
+    let str =
+      match to_string expr with
+      | Ast.Str.Const s -> s
+      | _ -> failf "unable to create regex dynamically in %a" Expr.pp expr
+    in
+    Regex.concat
+      (str
+       |> String.to_seq
+       |> Seq.map (fun c -> Regex.symbol [ c ])
+       |> Seq.fold_left
+            (fun acc a ->
+               (* String constraints use LSB representation, we intentionally reverse the concat. *)
+               Regex.concat a acc)
+            Regex.epsilon)
+      (Regex.kleene (Regex.symbol [ Char.chr 0 ]))
+  | Expr.Naryop (_ty, Ty.Naryop.Concat, exprs) ->
+    (* String constraints use LSB representation, we intentionally reverse the concat. *)
+    List.map to_regex exprs |> List.rev |> List.fold_left Regex.concat Regex.epsilon
+  | Expr.Naryop (_ty, Ty.Naryop.Regexp_union, exprs) ->
+    List.map to_regex exprs |> List.fold_left Regex.mor Regex.empty
+  | Expr.Unop (_ty, Ty.Unop.Regexp_opt, expr) -> to_regex expr |> Regex.opt
+  | Expr.Unop (_ty, Ty.Unop.Regexp_plus, expr) -> to_regex expr |> Regex.plus
+  | Expr.Unop (_ty, Ty.Unop.Regexp_star, expr) -> to_regex expr |> Regex.kleene
+  | Expr.Unop (_ty, Ty.Unop.Regexp_comp, expr) ->
+    failwith "complements are not implemented yet since they would explode NFAs"
+  | _ -> failf "unable to handle %a as regex" Expr.pp orig_expr
+
+and to_eia_term orig_expr =
   let neg eia_term = Ast.Eia.mul [ Ast.Eia.atom (Ast.const (-1)); eia_term ] in
   let expr = Expr.view orig_expr in
   match expr with
@@ -14,6 +59,10 @@ let rec to_eia_term orig_expr =
     | Int d -> Ast.Eia.atom (Ast.const d)
     | _ -> failf "unable to handle %a as integer term" Expr.pp orig_expr
   end
+  | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ expr ])
+  | Expr.Cvtop (_, Ty.Cvtop.String_to_int, expr) ->
+    let str = to_string expr in
+    Ast.Eia.stoi str
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
     Ast.Eia.atom (Ast.var var)
@@ -39,9 +88,10 @@ let rec to_eia_term orig_expr =
     Ast.Eia.mul [ to_eia_term lhs; to_eia_term rhs ]
   | Expr.App ({ name = Symbol.Simple "*"; _ }, exprs) ->
     Ast.Eia.mul (List.map to_eia_term exprs)
-  | _ ->
-    (* Printf.eprintf "%s %d\n%!" __FILE__ __LINE__; *)
-    failf "expected term, in %a" Expr.pp orig_expr
+  | Expr.Unop (_ty, Ty.Unop.Length, expr) ->
+    let str = to_string expr in
+    Ast.Eia.len str
+  | _ -> failf "expected term, in %a" Expr.pp orig_expr
 
 and _to_ir orig_expr =
   let expr = Expr.view orig_expr in
@@ -83,6 +133,12 @@ and _to_ir orig_expr =
     let lhs = to_eia_term lhs in
     let rhs = to_eia_term rhs in
     build lhs rhs
+  (* Strings. *)
+  | Expr.App ({ name = Symbol.Simple "str.in.re"; _ }, [ str; re ])
+  | Expr.Binop (_, Ty.Binop.String_in_re, str, re) ->
+    let str = to_string str in
+    let re = to_regex re in
+    Ast.Str (Ast.Str.inre str re)
   (* Quantifiers and binders. *)
   | Expr.Binder (((Binder.Forall | Binder.Exists) as q), atoms, formula) ->
     let binder =
