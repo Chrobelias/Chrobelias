@@ -2,4 +2,4 @@ type relop =
   | Leq
   | Eq
 
-val simpl : Ast.t -> [> `Unknown of Ast.t ]
+val simpl : Ast.t -> [> `Unknown of Ast.t | `Unsat ]

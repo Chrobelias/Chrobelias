@@ -10,6 +10,9 @@ let check_sat ast =
     if Lib.Solver.config.stop_after = `Simpl2
     then (
       match Lib.SimplII.simpl ast with
+      | `Unsat ->
+        Format.eprintf "Unsat\n%!";
+        exit 0
       | `Unknown ast ->
         Format.printf "%a\n%!" Lib.Ast.pp_smtlib2 ast;
         exit 0)
