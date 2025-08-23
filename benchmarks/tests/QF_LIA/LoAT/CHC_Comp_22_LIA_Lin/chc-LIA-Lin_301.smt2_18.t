@@ -1,5 +1,4 @@
 chc-LIA-Lin_301.smt2_18
   $ export OCAMLRUNPARAM='b=0'
-  $ Chro ../../../../../benchmarks/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_18.smt2
-  Fatal error: exception Failure("only base 2 is supported in exponents (got it142)")
-  [2]
+  $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_18.smt2 || echo TIMEOUT
+  sat

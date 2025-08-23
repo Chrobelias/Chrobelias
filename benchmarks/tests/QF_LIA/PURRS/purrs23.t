@@ -1,5 +1,5 @@
 purrs23
   $ export OCAMLRUNPARAM='b=0'
-  $ Chro ../../../../benchmarks/QF_LIA/PURRS/purrs23.smt2
+  $ timeout 2 Chro ../../../../benchmarks/QF_LIA/PURRS/purrs23.smt2 || echo TIMEOUT
   Fatal error: exception Failure("unable to multiply var by var")
-  [2]
+  TIMEOUT

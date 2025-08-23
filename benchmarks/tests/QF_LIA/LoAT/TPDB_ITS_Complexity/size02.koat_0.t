@@ -1,5 +1,4 @@
 size02.koat_0
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_0.smt2 || echo TIMEOUT
-  Fatal error: exception Failure("unimplemented (+ (* 12 * it3 * (it13 ** 0)) + (* -8 * (it13 ** 3)) + (* 6 * (it13 ** 0)) + (* -6 * it3 * it13) + (* -3 * it6) + (* -6 * (it3 ** 0) * it13) + (* 3 * it19) + (* -1 * it13)) = 0")
-  TIMEOUT
+  unsat
