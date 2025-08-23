@@ -1,4 +1,4 @@
-  $ cat > test.smt2 <<-EOF
+  $ cat > testU.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun y () Int)
@@ -8,7 +8,7 @@
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=1
-  $ Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl test.smt2
+  $ timeout 2 Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl testU.smt2 | sed 's/[[:space:]]*$//'
   Interesting: x y
   
   Expecting 9 choices ...
@@ -23,4 +23,5 @@
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   (assert (exists (x) (<= (+ (* (- 1) x) pow2(x) )  0) ) )
   
+
 

@@ -1,4 +1,4 @@
-  $ cat > test.smt2 <<-EOF
+  $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun y () Int)
@@ -8,7 +8,7 @@
   > (assert (> (+ (* x 5) (* (pow2 y) 8) (* z 7) ) 13))
   > (check-sat)
   > EOF
-  $ Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (z x)
           (and
             (<= (+ (* (- 5) x) (* (- 7) z) (* (- 8) pow2(y)) )  -14)
@@ -17,7 +17,7 @@
             )
   )
 We can't do anything below, because y exists in two polarities
-  $ cat > test.smt2 <<-EOF
+  $ cat > testS2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun y () Int)
@@ -27,7 +27,7 @@ We can't do anything below, because y exists in two polarities
   > (assert (> (+ x (* 3 y)) 23))
   > (check-sat)
   > EOF
-  $ Chro -bound 0 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -bound 0 -dsimpl -stop-after simpl testS2.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (x y)
           (and
             (<= (+ (* (- 1) x) (* (- 3) y) )  -24)

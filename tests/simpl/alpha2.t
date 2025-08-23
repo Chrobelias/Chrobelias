@@ -1,4 +1,4 @@
-  $ cat > test.smt2 <<-EOF
+  $ cat > testA2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun P () Int)
   > (declare-fun Q () Int)
@@ -14,7 +14,7 @@
 $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
-  $ Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -no-over-approx -dsimpl -stop-after simpl testA2.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (P)
           (and
             (<= (* (- 1) P)  0)

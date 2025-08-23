@@ -1,4 +1,4 @@
-  $ cat > test.smt2 <<-EOF
+  $ cat > testO1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun y () Int)
@@ -7,11 +7,11 @@
   > (check-sat)
   > EOF
 $ export CHRO_DEBUG=1
-  $ Chro -bound 0 -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -over-approx -dsimpl -stop-after simpl testO1.smt2 | sed 's/[[:space:]]*$//'
   unsat
 
 
-  $ cat > test.smt2 <<-EOF
+  $ cat > testO2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x1 () Int)
   > (assert (not (distinct x1 (bwand x1 x1) )))
@@ -20,7 +20,7 @@ $ export CHRO_DEBUG=1
   > EOF
 $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
-  $ Chro -bound 0 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -dsimpl -stop-after simpl testO2.smt2 | sed 's/[[:space:]]*$//'
   Early SAT in lib/Overapprox.ml ~~> Unknown
   (model
     (x1 int 0))

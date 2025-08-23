@@ -1,4 +1,4 @@
-  $ cat > test.smt2 <<-EOF
+  $ cat > testA.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun it147 () Int)
   > (assert (exists ((it6 Int) (it160 Int))
@@ -24,6 +24,6 @@
 $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
-  $ Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -dsimpl -stop-after simpl testA.smt2 | sed 's/[[:space:]]*$//'
   Fatal error: exception ("Map.of_alist_exn: duplicate key" _)
 This is TODO. It is not related to alpha-equivalence simplifications.

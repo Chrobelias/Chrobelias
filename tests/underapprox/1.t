@@ -8,7 +8,7 @@
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=1
-  $ Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl test.smt2
+  $ timeout 2 Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   Interesting: x y
   
   Expecting 9 choices ...
@@ -18,12 +18,13 @@
   Simplify step: ((2 ** y) <= x & (2 ** x) <= x)
   Simplified expression: ((2 ** y) <= x & (2 ** x) <= x)
   Trying to use Semenov deciding procedure over (((-1x + 1pow2(y) <= 0)) & ((-1x + 1pow2(x) <= 0)))
+    subst = {| |}
   ir = ((-1x + 1pow2(y) <= 0) & (-1x + 1pow2(x) <= 0))
   
-    subst = {| |}
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   
+
 
 
 
