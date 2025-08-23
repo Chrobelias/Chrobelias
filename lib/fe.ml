@@ -40,7 +40,7 @@ let rec to_eia_term orig_expr =
   | Expr.App ({ name = Symbol.Simple "*"; _ }, exprs) ->
     Ast.Eia.mul (List.map to_eia_term exprs)
   | _ ->
-    Printf.eprintf "%s %d\n%!" __FILE__ __LINE__;
+    (* Printf.eprintf "%s %d\n%!" __FILE__ __LINE__; *)
     failf "expected term, in %a" Expr.pp orig_expr
 
 and _to_ir orig_expr =
