@@ -1,5 +1,3 @@
-[@@@ocaml.warnerror "-26-32"]
-
 module type SYM0 = sig
   type term
   type ph
@@ -122,6 +120,8 @@ let make_collector () =
     with type repr = string list)
 ;;
 
+exception Bitwise_op
+
 let apply_symnatics (type a) (module S : SYM with type repr = a) =
   let rec helper = function
     | Ast.Land xs -> S.land_ (List.map helper xs)
@@ -146,9 +146,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
-    | Bwand (l, r) -> S.bw Me.Bwand (helperT l) (helperT r)
-    | Bwor (l, r) -> S.bw Me.Bwor (helperT l) (helperT r)
-    | Bwxor (l, r) -> S.bw Me.Bwxor (helperT l) (helperT r)
+    | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
@@ -160,55 +158,56 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
 let log = Debug.printfln
 
 let check bound ast =
-  let vars = ref (Base.Set.empty (module Base.String)) in
-  let interestring_vars = apply_symnatics (make_collector ()) ast in
-  (* TODO: collecting of interesting variables could be buggy. For example, what if
+  try
+    let vars = ref (Base.Set.empty (module Base.String)) in
+    let interestring_vars = apply_symnatics (make_collector ()) ast in
+    (* TODO: collecting of interesting variables could be buggy. For example, what if
       (exists (x) (...) (exists (x) (= (exp 2 x) 128)))
     ??
-  *)
-  log "Interesting: %s\n" (String.concat " " interestring_vars);
-  log
-    "Expecting %d choices ...\n%!"
-    (Utils.pow ~base:bound (List.length interestring_vars));
-  let all_choices =
-    let ( let* ) xs f = List.concat_map f xs in
-    let choice1 = List.init bound Fun.id in
-    List.fold_left
-      (fun acc name ->
-         let* v = choice1 in
-         let* acc = acc in
-         [ Base.Map.Poly.add_exn acc ~key:name ~data:v ])
-      [ Base.Map.Poly.empty ]
-      interestring_vars
-  in
-  let exception Early of env in
-  try
-    List.iteri
-      (fun i env ->
-         let ((module S : SYM with type repr = Smtml.Expr.t) as sym) =
-           make_sym env (fun s -> vars := Base.Set.add !vars s) bound
-         in
-         let ph = apply_symnatics sym ast in
-         let solver = Smtml.Z3_mappings.Solver.make () in
-         Smtml.Z3_mappings.Solver.reset solver;
-         (* log "Checking (%d): @[%a@]" i Smtml.Expr.pp ph; *)
-         (* log "env: %a" pp_env env; *)
+    *)
+    log "Interesting: %s\n" (String.concat " " interestring_vars);
+    log
+      "Expecting %d choices ...\n%!"
+      (Utils.pow ~base:bound (List.length interestring_vars));
+    let all_choices =
+      let ( let* ) xs f = List.concat_map f xs in
+      let choice1 = List.init bound Fun.id in
+      List.fold_left
+        (fun acc name ->
+           let* v = choice1 in
+           let* acc = acc in
+           [ Base.Map.Poly.add_exn acc ~key:name ~data:v ])
+        [ Base.Map.Poly.empty ]
+        interestring_vars
+    in
+    let exception Early of env in
+    try
+      List.iteri
+        (fun i env ->
+           let ((module S : SYM with type repr = Smtml.Expr.t) as sym) =
+             make_sym env (fun s -> vars := Base.Set.add !vars s) bound
+           in
+           let ph = apply_symnatics sym ast in
+           let solver = Smtml.Z3_mappings.Solver.make () in
+           Smtml.Z3_mappings.Solver.reset solver;
            match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
            | `Sat -> raise (Early env)
            | _ -> ())
-      all_choices;
-    (* TODO: if all Unsat, add a constraints (x>bound) *)
-    let newast =
-      let vars = Base.Set.to_list !vars in
-      let b = Ast.Eia.Atom (Ast.Const bound) in
-      let extend = fun v -> Ast.eia (Ast.Eia.lt b (Ast.Eia.atom (Ast.var v))) in
-      Ast.land_ (ast :: List.map extend vars)
-    in
-    log "Can't decide in %s" __FILE__;
-    `Unknown newast
+        all_choices;
+      (* TODO: if all Unsat, add a constraints (x>bound) *)
+      let newast =
+        let vars = Base.Set.to_list !vars in
+        let b = Ast.Eia.Atom (Ast.Const bound) in
+        let extend = fun v -> Ast.eia (Ast.Eia.lt b (Ast.Eia.atom (Ast.var v))) in
+        Ast.land_ (ast :: List.map extend vars)
+      in
+      log "Can't decide in %s" __FILE__;
+      `Unknown newast
+    with
+    | Early env ->
+      log "%s gives early Sat." __FILE__;
+      log "env = %a" pp_env env;
+      `Sat
   with
-  | Early env ->
-    log "%s gives early Sat." __FILE__;
-    log "env = %a" pp_env env;
-    `Sat
+  | Bitwise_op -> `Unknown ast
 ;;
