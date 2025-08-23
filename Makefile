@@ -10,7 +10,7 @@ gentests: genCHCcomp22lia genTPDB_ITS_Termination genTPDB_ITS_Complexity genPURR
 genCHCcomp22lia: DIR = QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
 genCHCcomp22lia:
 	mkdir -p benchmarks/tests/$(DIR)
-	dune exec benchmarks/gen.exe -- -ddc 5 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
 	dune b @benchmarks/tests/$(DIR)/fmt --au
 
 genTPDB_ITS_Termination: DIR = QF_LIA/LoAT/TPDB_ITS_Termination
@@ -28,14 +28,14 @@ genTPDB_ITS_Complexity:
 genPURRS: DIR = QF_LIA/PURRS
 genPURRS:
 	mkdir -p benchmarks/tests/$(DIR)
-	dune exec benchmarks/gen.exe -- -ddc 4 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
+	dune exec benchmarks/gen.exe -- -ddc 4 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
 	dune b @benchmarks/tests/$(DIR)/fmt --au
 
 promote_benchmarks:
-	$(MAKE) -C benchmarks/tests/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
-	$(MAKE) -C benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity
-	$(MAKE) -C benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Termination
-	$(MAKE) -C benchmarks/tests/QF_LIA/PURRS
+	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
+	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity
+	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Termination
+	$(MAKE) fast -C benchmarks/tests/QF_LIA/PURRS
 
 clean:
 	dune clean

@@ -187,3 +187,16 @@ all: purrs37
 purrs37:
 	dune b --profile=benchmark @purrs37 --au || exit 0
 
+
+.PHONY: fast
+fast:
+	dune build --no-print-directory --au --profile=benchmark @purrs01 @purrs02 @purrs03 @purrs04 @purrs05 || exit 0
+	dune build --no-print-directory --au --profile=benchmark @purrs06 @purrs07 @purrs08 @purrs09 @purrs10 || exit 0
+	dune build --no-print-directory --au --profile=benchmark @purrs11 @purrs12 @purrs13 @purrs14 @purrs15 || exit 0
+	dune build --no-print-directory --au --profile=benchmark @purrs16 @purrs17 @purrs18 @purrs19 @purrs20 || exit 0
+	dune build --no-print-directory --au --profile=benchmark @purrs21 @purrs22 @purrs23 @purrs24 @purrs25 || exit 0
+	dune build --no-print-directory --au --profile=benchmark @purrs26 @purrs27 @purrs28 @purrs29 @purrs30 || exit 0
+	dune build --no-print-directory --au --profile=benchmark @purrs31 @purrs32 @purrs33 @purrs34 @purrs35 || exit 0
+	dune build --no-print-directory --au --profile=benchmark @purrs36 @purrs37 || exit 0
+
+
