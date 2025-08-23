@@ -1,5 +1,4 @@
 realheapsort_step2.koat_275
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_275.smt2 || echo TIMEOUT
-  Fatal error: exception Division_by_zero
-  TIMEOUT
+  unsat
