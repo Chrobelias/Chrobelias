@@ -14,15 +14,16 @@ $ export OCAMLRUNPARAM='b=0'
 $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
-  $ Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (it159) (= (+ it159 (* (- 4) pow2(it147)) )  0) )
   )
 
   $ export CHRO_EIA=old
-  $ Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (it147) (= (+ (* (- 1)  %0) it147 )  -1) ) )
   (assert (exists (it159) (= (+ it159 (* (- 2) pow2( %0)) )  0) ) )
   
+
 
 
 
