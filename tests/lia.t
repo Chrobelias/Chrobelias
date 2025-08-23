@@ -22,13 +22,13 @@ Basic LIA tests
 
 Test Frobenious coin problem for 7 and 11
 
-  $ Chro -bound 0  -no-over-approx ./examples/LIA/fcp_7_11.smt2
+  $ Chro -bound 0  -no-over-approx ./examples/LIA/fcp_7_11.smt2 | sed 's/[[:space:]]*$//'
   sat
   P = 59;
 
 Test Frobenious coin problem for 7, 11, and 13
 
-  $ Chro -bound 0  -no-over-approx  ./examples/LIA/fcp_7_11_13.smt2
+  $ Chro -bound 0  -no-over-approx  ./examples/LIA/fcp_7_11_13.smt2 | sed 's/[[:space:]]*$//'
   sat
   P = 30;
 
