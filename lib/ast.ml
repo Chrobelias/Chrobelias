@@ -253,7 +253,7 @@ let pp_smtlib2 =
     | Exists (a, b) ->
       Format.fprintf
         ppf
-        "(E%a %a)"
+        "(exists (%a) %a)"
         (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") pp_atom)
         a
         pp

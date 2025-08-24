@@ -1,6 +1,6 @@
 [@@@warning "-unused-value-declaration"]
 
-let log fmt = Format.kasprintf print_endline fmt
+let log = Utils.log
 
 type relop =
   | Leq
@@ -155,7 +155,7 @@ let make_main_symantics env =
       | Ast.Lnot x -> x
       | Land xs -> Ast.Lor (List.map not xs)
       | Lor xs -> Ast.Land (List.map not xs)
-      | x -> x
+      | x -> Ast.lnot x
     ;;
 
     let land_ xs =
@@ -163,14 +163,17 @@ let make_main_symantics env =
         List.concat_map
           (function
             | Ast.Land xs -> xs
-            | True -> []
             | x -> [ x ])
           xs
       in
+      let flat = List.sort Ast.compare flat in
       match flat with
       | [] -> false_
       | [ h ] -> h
-      | xs -> Ast.Land (List.sort Ast.compare xs)
+      | _ ->
+        (match List.drop_while (( = ) Ast.True) flat with
+         | [] -> true_
+         | xs -> Ast.Land xs)
     ;;
 
     let lor_ x = Ast.Lor x
@@ -184,7 +187,7 @@ let make_main_symantics env =
       match l, r with
       | Eia.Atom (Const l), Eia.Atom (Const r) ->
         (match op with
-         | Eq when l = r -> true_
+         | Eq when Int.equal l r -> true_
          | Eq -> false_
          | Leq when l <= r -> true_
          | Leq -> false_)
@@ -199,8 +202,8 @@ let make_main_symantics env =
     ;;
 
     let lt l r = relop Leq (add [ const 1; l ]) r
-    let leq l r = relop Leq l r
-    let eq l r = relop Eq l r
+    let leq = relop Leq
+    let eq = relop Eq
     let prj : ph -> repr = Fun.id
   end
   in
@@ -411,7 +414,6 @@ let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
 
 let simpl ast =
   let rec loop step (env : Env.t) ast =
-    if step > 5 then exit 1;
     log "iteration %d" step;
     log "ast(%d) = @[%a@]" step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
