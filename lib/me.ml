@@ -3,12 +3,7 @@
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
-let log ppf =
-  match Sys.getenv "CHRO_DEBUG" with
-  | exception Not_found -> Format.ifprintf Format.std_formatter ppf
-  | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
-;;
-
+let log = Utils.log
 let failf fmt = Format.kasprintf failwith fmt
 
 let collect_free =

@@ -264,7 +264,7 @@ let pp_smtlib ppf (ir : t) =
     | Exists (atoms, xs) ->
       Smtml.Ast.Assert (Smtml.Expr.exists (List.map of_atom atoms) (expr_of_ir xs))
     | _ ->
-      Printf.eprintf "%s %d\n" __FILE__ __LINE__;
+      Printf.eprintf "Error: %s %d\n" __FILE__ __LINE__;
       exit 1
   in
   let open Smtml.Ast in

@@ -20,3 +20,9 @@ let rec pow ~base:a = function
     let b = pow ~base:a (n / 2) in
     b * b * if n mod 2 = 0 then 1 else a
 ;;
+
+let log ppf =
+  match Sys.getenv "CHRO_DEBUG" with
+  | exception Not_found -> Format.ifprintf Format.std_formatter ppf
+  | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
+;;

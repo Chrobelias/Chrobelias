@@ -29,6 +29,10 @@ let check_sat ast =
       <+> (fun ast ->
       if Lib.Solver.config.pre_simpl then Lib.SimplII.simpl ast else `Unknown ast)
       <+> (fun ast ->
+      if Lib.Solver.config.dump_pre_simpl
+      then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+      `Unknown ast)
+      <+> (fun ast ->
       if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else `Unknown ast)
       <+> (fun ast ->
       if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)

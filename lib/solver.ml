@@ -340,6 +340,7 @@ type config =
   { mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
+  ; mutable dump_pre_simpl : bool
   ; mutable pre_simpl : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
@@ -352,7 +353,8 @@ let config =
   { stop_after = `Solving
   ; mode = `Msb
   ; dump_simpl = false
-  ; pre_simpl = false
+  ; dump_pre_simpl = false
+  ; pre_simpl = true
   ; simpl_alpha = true
   ; simpl_mono = true
   ; over_approx = true
@@ -378,6 +380,9 @@ let parse_args () =
       , " Don't try simplifications based on alpha-equivalence" )
     ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
+    ; ( "-dpresimpl"
+      , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
+      , " Dump AST simplifications" )
     ; ( "-bound"
       , Arg.Int
           (fun n ->

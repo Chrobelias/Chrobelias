@@ -7,6 +7,7 @@ type config =
   { mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
+  ; mutable dump_pre_simpl : bool
   ; mutable pre_simpl : bool (** Simplify the AST *)
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
