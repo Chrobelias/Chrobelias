@@ -14,6 +14,19 @@
  (applies_to heapsort))
 
 (cram
+ (deps
+  ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_29.smt2)
+ (applies_to heapsort29))
+
+(cram
+ (deps ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_748.smt2)
+ (applies_to koat748))
+
+(cram
+ (deps koat748_mini.smt2)
+ (applies_to koat748_mini))
+
+(cram
  (deps ../overapprox/NIA2334test1.smt2)
  (applies_to NIA2334test1))
 
