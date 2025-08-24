@@ -51,7 +51,17 @@ module Env = struct
   let is_empty = Base.Map.Poly.is_empty
   let length = Base.Map.Poly.length [@@warning "-32"]
   let lookup k map = Base.Map.Poly.find map k
-  let merge : t -> t -> t = Base.Map.Poly.merge_disjoint_exn
+  let is_absent_key k map = not (Base.Map.Poly.mem map k)
+
+  let merge : t -> t -> t =
+    Base.Map.Poly.merge_skewed ~combine:(fun ~key v1 v2 ->
+      if Stdlib.(v1 = v2)
+      then v1
+      else (
+        Format.eprintf "v1 = %a\n%!" Ast.pp_term_smtlib2 v1;
+        Format.eprintf "v2 = %a\n%!" Ast.pp_term_smtlib2 v2;
+        failwith "We tried to subtitute a varible by two different terms"))
+  ;;
 
   let pp : Format.formatter -> t -> unit =
     fun ppf s ->
@@ -166,7 +176,7 @@ let make_main_symantics env =
             | x -> [ x ])
           xs
       in
-      let flat = List.sort Ast.compare flat in
+      let flat = Base.List.dedup_and_sort ~compare:Ast.compare flat in
       match flat with
       | [] -> false_
       | [ h ] -> h
@@ -191,9 +201,10 @@ let make_main_symantics env =
          | Eq -> false_
          | Leq when l <= r -> true_
          | Leq -> false_)
+      | Eia.(Add (Atom (Var v1) :: Mul [ Atom (Const -1); Atom (Var v2) ] :: tl)), rhs
+        when String.equal v1 v2 -> ofop (Eia.Add tl) rhs
       | Eia.Add ls, Eia.Add rs -> ofop (add (ls @ List.map negate rs)) (const 0)
-      | Eia.Add (Atom (Const c) :: tl), Atom (Const n) ->
-        ofop (Eia.Add tl) (const (n - c))
+      | Eia.Add (Atom (Const c) :: tl), Atom (Const n) -> ofop (add tl) (const (n - c))
       | Atom (Const c), Add (Atom (Const n) :: tl) ->
         ofop (add (List.map negate tl)) (const (n - c))
       | Atom (Const c), Add xs -> ofop (add (List.map negate xs)) (const (-c))
@@ -203,7 +214,7 @@ let make_main_symantics env =
 
     let lt l r = relop Leq (add [ const 1; l ]) r
     let leq = relop Leq
-    let eq = relop Eq
+    let eq x y = relop Eq x y
     let prj : ph -> repr = Fun.id
   end
   in
@@ -327,17 +338,16 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let single info env c1 v1 c2 v2 rhs =
     match c1, Info.is_in_expo v1 info, c2, Info.is_in_expo v2 info with
-    | 1, false, _, _ ->
-      (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+    | 1, false, _, _ when Env.is_absent_key v1 env ->
       Env.extend env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
-    | _, _, 1, false ->
-      (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+    | _, _, 1, false when Env.is_absent_key v2 env ->
       Env.extend env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
-    | _ ->
-      (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
-      env
+    | _ -> env
+    (* Note: presence of key means we already simplified this variable in another equality *)
   in
   let helper info env = function
+    | Eia (Eia.Eq (Atom (Var v), (Atom (Const c) as rhs))) when Env.is_absent_key v env ->
+      Env.extend env v rhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) ->
       single info env 1 v1 1 v2 rhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs)) ->
@@ -419,29 +429,18 @@ let simpl ast =
     let (module Symantics) = make_main_symantics env in
     let rez = apply_symnatics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
-    if Stdlib.(ast2 = ast)
-    then (
-      let var_info = apply_symnatics (module Who_in_exponents) ast in
-      (* Format.printf "info: %a\n%!" Who_in_exponents_.pp_info var_info; *)
-      let env2 = eq_propagation var_info env ast in
-      if Env.length env2 = Env.length env
-      then (
-        let () = log "Fixpoint after %d steps" step in
-        (* Format.printf
-          "all = %a\n%!"
-          Who_in_exponents_.pp_set
-          (Base.Set.Poly.to_list var_info.Who_in_exponents_.all); *)
-        ast)
-      else (
-        let () = log "Something ready to substitute: %a" Env.pp env2 in
-        (* TODO: substiture somewhere *)
-        loop (step + 1) (Env.merge env2 env) ast))
-    else loop (step + 1) env ast2
+    let var_info = apply_symnatics (module Who_in_exponents) ast in
+    let env2 = eq_propagation var_info env ast in
+    match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
+    | true, other ->
+      let () = log "Something ready to substitute: %a" Env.pp env2 in
+      loop (step + 1) (Env.merge env2 env) ast2
+    | false, false -> loop (step + 1) env ast2
+    | false, true ->
+      let () = log "Fixpoint after %d steps" step in
+      ast2
   in
-  try
-    let _ast = loop 1 Env.empty ast in
-    `Unknown _ast
-  with
+  try `Unknown (loop 1 Env.empty ast) with
   | Unsat -> `Unsat
 ;;
 
