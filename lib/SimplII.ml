@@ -1,3 +1,5 @@
+[@@@warning "-unused-value-declaration"]
+
 let log fmt = Format.kasprintf print_endline fmt
 
 type relop =
@@ -42,9 +44,9 @@ let distribute xs =
 ;;
 
 module Env = struct
-  type t = (string, int) Base.Map.Poly.t
+  type t = (string, Ast.Eia.term) Base.Map.Poly.t
 
-  let extend m key data = Base.Map.Poly.add_exn m ~key ~data
+  let extend : t -> _ -> _ -> t = fun m key data -> Base.Map.Poly.add_exn m ~key ~data
   let empty : t = Base.Map.Poly.empty
   let is_empty = Base.Map.Poly.is_empty
   let length = Base.Map.Poly.length [@@warning "-32"]
@@ -53,14 +55,16 @@ module Env = struct
 
   let pp : Format.formatter -> t -> unit =
     fun ppf s ->
-    Format.fprintf ppf "@[{| ";
-    Base.Map.iteri s ~f:(fun ~key ~data -> Format.fprintf ppf "%s -> %d; " key data);
-    Format.fprintf ppf "|}@]"
+    Format.fprintf ppf "@[ ";
+    Base.Map.iteri s ~f:(fun ~key ~data ->
+      Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data);
+    Format.fprintf ppf "@]"
   [@@ocaml.warning "-32"]
   ;;
 end
 
 let make_main_symantics env =
+  let _ : Env.t = env in
   let module Main_symantics_ (*: SYM with type repr = Ast.t*) = struct
     open Ast
 
@@ -81,10 +85,10 @@ let make_main_symantics env =
 
     let const c = Ast.Eia.Atom (Ast.const c)
 
-    let var s =
+    let var s : term =
       match Env.lookup s env with
-      | None -> Eia.atom (Ast.var s)
-      | Some c -> const c
+      | None -> Eia.Atom (Ast.var s)
+      | Some c -> c
     ;;
 
     let pow base xs = Ast.Eia.Pow (base, xs)
@@ -114,6 +118,7 @@ let make_main_symantics env =
       | 1, [ h ] -> h
       | 1, xs -> Ast.Eia.mul (List.sort compare_term xs)
       | c, [] -> Eia.atom (Const c)
+      | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ const c; x ]) ss)
       | c, xs -> Ast.Eia.mul (Eia.atom (Const c) :: List.sort compare_term xs)
     ;;
 
@@ -126,6 +131,8 @@ let make_main_symantics env =
           xs
       in
       match fold_and_sort 0 ( + ) xs with
+      | 0, [ Eia.Atom (Var x); Mul [ Eia.Atom (Const -1); Eia.Atom (Var x2) ] ]
+        when x = x2 -> const 0
       | 0, [ h ] -> h
       | 0, [] -> const 0
       | 0, xs -> Ast.Eia.add (List.sort compare_term xs)
@@ -187,6 +194,7 @@ let make_main_symantics env =
       | Atom (Const c), Add (Atom (Const n) :: tl) ->
         ofop (add (List.map negate tl)) (const (n - c))
       | Atom (Const c), Add xs -> ofop (add (List.map negate xs)) (const (-c))
+      | Pow (basel, powl), Pow (baser, powr) when basel = baser -> ofop powl powr
       | _ -> ofop l r
     ;;
 
@@ -209,24 +217,10 @@ let make_main_symantics env =
 
 exception Unsat
 
-(* module Const_prop_sym_ = struct
-  type ph = Env.t * Ast.t
-
-  open Ast
-
-  let eq l r : ph =
-    match l, r with
-    | Ast.Eia.Mul [ Eia.Atom (Ast.Const c); Eia.Atom (Var v) ], Eia.Atom (Const r) ->
-      if r mod c = 0 then Env.extend Env.empty v (r / c), Ast.True else raise Unsat
-    | _ -> Env.empty, Eia (Eia.eq l r)
-  ;;
-end *)
-
 let try_propagate : Ast.t -> Env.t * Ast.t =
   let open Ast in
   let helper = function
     | Ast.Land xs ->
-      (* log "%s %d xs.length = %d" __FILE__ __LINE__ (List.length xs); *)
       let env, xs =
         List.fold_left
           (fun (env, rest) -> function
@@ -234,46 +228,150 @@ let try_propagate : Ast.t -> Env.t * Ast.t =
                  (Eia.Eq
                     (Eia.Mul [ Atom (Const coeff); Atom (Var v) ], Eia.Atom (Ast.Const r)))
                ->
-               if r mod coeff = 0 then Env.extend env v (r / coeff), rest else raise Unsat
+               if r mod coeff = 0
+               then Env.extend env v (Eia.Atom (const (r / coeff))), rest
+               else raise Unsat
              | Eia Eia.(Eq (Atom (Var v), Atom (Const r)))
-             | Eia Eia.(Eq (Atom (Const r), Atom (Var v))) -> Env.extend env v r, rest
+             | Eia Eia.(Eq (Atom (Const r), Atom (Var v))) ->
+               Env.extend env v (Eia.Atom (const r)), rest
              | other -> env, other :: rest)
           (Env.empty, [])
           xs
       in
-      (* log
-        "%s %d xs.length = %d, env.length = %d"
-        __FILE__
-        __LINE__
-        (List.length xs)
-        (Env.length env); *)
       env, Ast.land_ xs
     | ast -> Env.empty, ast
   in
-  fun ast ->
-    (* log "%s %d" __FILE__ __LINE__; *)
-    helper ast
+  helper
+;;
+
+module Info = struct
+  type t =
+    { exp : string Base.Set.Poly.t
+    ; all : string Base.Set.Poly.t
+    }
+
+  let is_in_expo name { exp; _ } = Base.Set.Poly.mem exp name
+
+  let make ~exp ~all =
+    (* TODO: check subsumtion *)
+    { exp = Base.Set.Poly.of_list exp; all = Base.Set.Poly.of_list all }
+  ;;
+end
+
+module Who_in_exponents_ = struct
+  module S = Base.Set.Poly
+
+  type term = Info.t
+
+  open Info
+
+  let pp_set ppf xs =
+    Format.(fprintf ppf "@[%a@]" (pp_print_list pp_print_string ~pp_sep:pp_print_space))
+      xs
+  ;;
+
+  let pp_info ppf { Info.exp; all } =
+    Format.printf
+      "@[{ all = @[%a@];@ exp  = @[%a@] }@]"
+      pp_set
+      (Base.Set.Poly.to_list all)
+      pp_set
+      (Base.Set.Poly.to_list exp)
+  [@@warning "-32"]
+  ;;
+
+  let ( ++ ) e1 e2 = { Info.exp = S.union e1.exp e2.exp; all = S.union e1.all e2.all }
+  let empty = { Info.exp = S.empty; all = S.empty }
+
+  type ph = term
+  type repr = ph
+
+  let const _ = empty
+  let var s = { empty with all = S.singleton s }
+  let mul = List.fold_left ( ++ ) empty
+  let add = List.fold_left ( ++ ) empty
+  let bw _ = ( ++ )
+  let true_ = empty
+  let false_ = empty
+  let land_ = List.fold_left ( ++ ) empty
+  let lor_ = List.fold_left ( ++ ) empty
+  let not = Fun.id
+  let eq = ( ++ )
+  let leq = ( ++ )
+  let lt = ( ++ )
+
+  let exists _ info =
+    (* This place could be buggy when name clashes  *)
+    info
+  ;;
+
+  let pow2var v = { all = S.singleton v; exp = S.singleton v }
+  let pow base e = { e with all = S.union base.all e.all }
+  let prj = Fun.id
+end
+
+module _ : SYM = Who_in_exponents_
+
+module Who_in_exponents :
+  SYM_SUGAR with type repr = Who_in_exponents_.repr and type ph = Who_in_exponents_.repr =
+struct
+  include Who_in_exponents_
+  include FT_SIG.Sugar (Who_in_exponents_)
+end
+
+let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
+  let open Ast in
+  let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  let single info env c1 v1 c2 v2 rhs =
+    match c1, Info.is_in_expo v1 info, c2, Info.is_in_expo v2 info with
+    | 1, false, _, _ ->
+      (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+      Env.extend env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
+    | _, _, 1, false ->
+      (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+      Env.extend env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
+    | _ ->
+      (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+      env
+  in
+  let helper info env = function
+    | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) ->
+      single info env 1 v1 1 v2 rhs
+    | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs)) ->
+      single info env 1 v1 c2 v2 rhs
+    | Eia (Eia.Eq (Add [ Mul [ Atom (Const c1); Atom (Var v1) ]; Atom (Var v2) ], rhs)) ->
+      single info env c1 v1 1 v2 rhs
+    | Eia
+        (Eia.Eq
+           ( Add
+               [ Mul [ Atom (Const c1); Atom (Var v1) ]
+               ; Mul [ Atom (Const c2); Atom (Var v2) ]
+               ]
+           , rhs )) -> single info env c1 v1 c2 v2 rhs
+    | x -> env
+  in
+  fun info env ast ->
+    (* log "ast = %a\n%!" Ast.pp_smtlib2 ast; *)
+      match ast with
+      | Land xs -> List.fold_left (fun acc x -> helper info acc x) env xs
+      | Eia _ -> helper info env ast
+      | _ -> env
 ;;
 
 let%expect_test _ =
-  let (module Main_symantics) = make_main_symantics Env.empty in
-  let wrap ph =
-    let e, ast = try_propagate ph in
-    Format.printf "@[<v>";
-    Format.printf "@[rest ast: @[%a@]@]@ " Ast.pp_smtlib2 ast;
-    Format.printf "@[env:      @[%a@]@]" Env.pp e;
-    Format.printf "@]%!"
+  let (module TS) = make_main_symantics Env.empty in
+  let test ?(env = [ "x"; "y"; "z" ]) ?(exp = []) ph =
+    let info = Info.make ~all:env ~exp in
+    let env2 = eq_propagation info Env.empty ph in
+    Format.printf "@[%a@]\n%!" Env.pp env2
   in
-  wrap Main_symantics.(land_ [ eq (mul [ const 5; var "x" ]) (const 50) ]);
-  [%expect "\n rest ast: (= (* 5 x) 50)\n env:      {| |}\n "];
-  wrap
-    Main_symantics.(
-      land_
-        [ eq (mul [ const 5; var "x" ]) (const 50)
-        ; eq (mul [ const 3; var "y" ]) (const 60)
-        ; leq (mul [ const 5; var "z" ]) (const 50)
-        ]);
-  [%expect "\n rest ast: (<= (* 5 z) 50)\n env:      {| x -> 10; y -> 20; |}\n "]
+  test TS.(add [ mul [ const 1; var "x" ]; mul [ const 2; var "y" ] ] = var "z");
+  [%expect "x -> (+ z (* (- 2) y));"];
+  test TS.(add [ var "x"; mul [ const 2; var "y" ] ] = mul [ var "z"; var "z" ]);
+  [%expect "x -> (+ (* z z) (* (- 2) y));"];
+  test ~exp:[ "x" ] TS.(add [ var "x"; var "y" ] = mul [ var "z"; var "z" ]);
+  [%expect "y -> (+ (* z z) (* (- 1) x));"];
+  ()
 ;;
 
 let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
@@ -312,25 +410,30 @@ let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
 ;;
 
 let simpl ast =
-  let rec loop step env ast =
+  let rec loop step (env : Env.t) ast =
     if step > 5 then exit 1;
-    Printf.printf "iteration %d\n" step;
-    Format.printf "ast(%d) = @[%a@]\n%!" step Ast.pp_smtlib2 ast;
+    log "iteration %d" step;
+    log "ast(%d) = @[%a@]" step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
     let rez = apply_symnatics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
     if Stdlib.(ast2 = ast)
     then (
-      (* *)
-      let env2, ast3 = try_propagate ast2 in
-      if Env.is_empty env2
+      let var_info = apply_symnatics (module Who_in_exponents) ast in
+      (* Format.printf "info: %a\n%!" Who_in_exponents_.pp_info var_info; *)
+      let env2 = eq_propagation var_info env ast in
+      if Env.length env2 = Env.length env
       then (
-        let () = Printf.printf "Fixpoint after %d steps\n" step in
+        let () = log "Fixpoint after %d steps" step in
+        (* Format.printf
+          "all = %a\n%!"
+          Who_in_exponents_.pp_set
+          (Base.Set.Poly.to_list var_info.Who_in_exponents_.all); *)
         ast)
       else (
         let () = log "Something ready to substitute: %a" Env.pp env2 in
         (* TODO: substiture somewhere *)
-        loop (step + 1) (Env.merge env2 env) ast3))
+        loop (step + 1) (Env.merge env2 env) ast))
     else loop (step + 1) env ast2
   in
   try
@@ -362,4 +465,26 @@ let%expect_test _ =
   let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; const 2 ] ];
   [%expect "(+ (* 5 x z) (* 5 y z) (* 10 x) (* 10 y))"]
+;;
+
+let%expect_test _ =
+  let (module Main_symantics) = make_main_symantics Env.empty in
+  let wrap ph =
+    let e, ast = try_propagate ph in
+    Format.printf "@[<v>";
+    Format.printf "@[rest ast: @[%a@]@]@ " Ast.pp_smtlib2 ast;
+    Format.printf "@[env:      @[%a@]@]" Env.pp e;
+    Format.printf "@]%!"
+  in
+  wrap Main_symantics.(land_ [ eq (mul [ const 5; var "x" ]) (const 50) ]);
+  [%expect "\n rest ast: (= (* 5 x) 50)\n env:\n "];
+  wrap
+    Main_symantics.(
+      land_
+        [ eq (mul [ const 5; var "x" ]) (const 50)
+        ; eq (mul [ const 3; var "y" ]) (const 60)
+        ; leq (mul [ const 5; var "z" ]) (const 50)
+        ]);
+  [%expect
+    "\n rest ast: (and\n             (<= (* 5 z) 50))\n env:       x -> 10; y -> 20;\n "]
 ;;

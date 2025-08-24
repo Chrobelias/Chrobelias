@@ -337,9 +337,10 @@ let trivial ir =
 ;;
 
 type config =
-  { mutable stop_after : [ `Simpl | `Simpl2 | `Solving ]
+  { mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
+  ; mutable pre_simpl : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
@@ -351,6 +352,7 @@ let config =
   { stop_after = `Solving
   ; mode = `Msb
   ; dump_simpl = false
+  ; pre_simpl = false
   ; simpl_alpha = true
   ; simpl_mono = true
   ; over_approx = true
@@ -366,9 +368,11 @@ let parse_args () =
       , Arg.String
           (function
             | "simpl" -> config.stop_after <- `Simpl
-            | "simpl2" -> config.stop_after <- `Simpl2
+            | "pre_simpl" | "pre-simpl" | "simpl2" -> config.stop_after <- `Pre_simplify
             | _ -> failwith "Bad argument")
       , " Stop after step" )
+    ; "-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), " "
+    ; "-no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), " "
     ; ( "--no-simpl-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , " Don't try simplifications based on alpha-equivalence" )
