@@ -10,6 +10,10 @@
  (deps test2exp.smt2))
 
 (cram
+ (deps ../../benchmarks/heapsort.c.koat_2.smt2)
+ (applies_to heapsort))
+
+(cram
  (deps ../overapprox/NIA2334test1.smt2)
  (applies_to NIA2334test1))
 

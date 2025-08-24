@@ -9,11 +9,10 @@
   > (check-sat)
   > EOF
   $ timeout 2 Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (z x)
+  (assert (exists (x)
           (and
-            (<= (+ (* (- 5) x) (* (- 7) z) (* (- 8) pow2(y)) )  -14)
             (<= (* (- 5) x)  13)
-            (= (+ y z )  52)
+            (<= (+ (* (- 5) x) (* 7 y) (* (- 8) pow2(y)) )  350)
             )
   )
 We can't do anything below, because y exists in two polarities

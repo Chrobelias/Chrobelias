@@ -1,4 +1,4 @@
-  $ Chro -pre-simpl -dsimpl -stop-after pre-simpl test2exp.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test2exp.smt2 | sed 's/[[:space:]]*$//'
   iteration 1
   ast(1) = (and
              (<= (exp 2 (+ x y)) (exp 2 z)))
