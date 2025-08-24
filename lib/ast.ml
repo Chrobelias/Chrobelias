@@ -226,8 +226,8 @@ let pp_term_smtlib2 =
   let rec pp_eia ppf = function
     | Eia.Atom (Const c) when c < 0 -> fprintf ppf "(- %d)" (-c)
     | Atom a -> fprintf ppf "%a" pp_atom a
-    | Add xs -> fprintf ppf "(+ %a)" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
-    | Mul xs -> fprintf ppf "(* %a)" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+    | Add xs -> fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+    | Mul xs -> fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
     | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
     | x -> Eia.pp_term ppf x
   in
