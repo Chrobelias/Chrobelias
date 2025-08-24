@@ -20,12 +20,14 @@ module Symantics : Smtml_symantics = struct
   let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
 
   let mul = function
-    | [] -> failwith "bad argument"
+    | [] -> const 1
     | x :: xs -> List.fold_left (Expr.binop Ty.Ty_int Ty.Binop.Mul) x xs
   ;;
 
   let add = function
-    | [] -> failwith "bad argument"
+    | [] ->
+      (* const 0 ??? *)
+      failwith (Printf.sprintf "Bad argument: %s" __FUNCTION__)
     | x :: xs -> List.fold_left (Expr.binop Ty.Ty_int Ty.Binop.Add) x xs
   ;;
 
