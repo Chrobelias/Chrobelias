@@ -5,10 +5,18 @@
  (applies_to a)
  (deps test1.smt2))
 
-; (cram
-;  (applies_to heapsort2)
-;  (deps %{project_root}/benchmarks/heapsort.c.koat_2.smt2))
+(cram
+ (applies_to test2)
+ (deps test2exp.smt2))
 
-; (cram
-;  (applies_to alpha)
-;  (deps %{project_root}/benchmarks/MysteriousProgram.jar-obl-12.smt2_9.smt2))
+(cram
+ (deps ../overapprox/NIA2334test1.smt2)
+ (applies_to NIA2334test1))
+
+(cram
+ (deps ../overapprox/NIA2334test5.smt2)
+ (applies_to NIA2334test5))
+
+(cram
+ (deps ../overapprox/NIA2334test33.smt2)
+ (applies_to NIA2334test33))

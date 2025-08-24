@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-fun x () Int)
+(declare-fun y () Int)
+(declare-fun z () Int)
+(assert (<= (exp 2 (+ x y)) (exp 2 z)))
+(check-sat)
