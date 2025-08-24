@@ -36,6 +36,7 @@ let alpha_compare =
     | Rel _, Lor _
     | Lnot _, (True | Reg (_, _) | Land _ | Lor _ | Exists _)
     | Rel (_, _, _), (True | Reg (_, _))
+    | Exists _, Lnot _
     (* Multiple variables are postponed for later *)
     | Exists (_ :: _ :: _, _), _
     | _, Exists (_ :: _ :: _, _) -> Stdlib.compare l r
@@ -46,7 +47,7 @@ let alpha_compare =
       if rez = 0 then helper_polyn subst l r else rez
     | Land xs, Land ys | Lor xs, Lor ys -> helper_lists subst (xs, ys)
     | l, r ->
-      Format.eprintf "Not implemented:\n\t%a\n\t%a\n%!" Ir.pp l Ir.pp r;
+      Format.eprintf "Not implemented comparison:\n\t%a\n\t%a\n%!" Ir.pp l Ir.pp r;
       assert false
   and helper_lists subst = function
     | h1 :: tl1, h2 :: tl2 ->
