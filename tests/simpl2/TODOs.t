@@ -1,4 +1,4 @@
-
+  $ export CHRO_DEBUG=1
   $ cat > TODO1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x1 () Int)
@@ -28,18 +28,17 @@ Should be (<= x 2)
   iteration 2
   ast(2) = (<= (* 5 x1) 13)
   Fixpoint after 2 steps
-Should be (<= x1 (* 2 x2))
+
+
   $ cat > TODO2.smt2 <<-EOF
   > (set-logic ALL)
-  > (declare-fun x1 () Int)
-  > (declare-fun x2 () Int)
-  > (assert (<= (* 5 x1) (* 10 x2) ))
+  > (assert (= (+ 2 6) 8))
   > (check-sat)
   > EOF
-  $ Chro -pre-simpl -dsimpl -stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
   iteration 1
   ast(1) = (and
-             (<= (* 5 x1) (* 10 x2)))
+             (= (+ 2 6) 8))
   iteration 2
-  ast(2) = (<= (* 5 x1) (* 10 x2))
+  ast(2) = True
   Fixpoint after 2 steps

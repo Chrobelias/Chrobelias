@@ -18,6 +18,11 @@
   Simplify step: ((2 ** y) <= x & (Ex (2 ** x) <= x))
   Simplified expression: ((2 ** y) <= x & (Ex (2 ** x) <= x))
   Trying to use Semenov deciding procedure over (((-1x + 1pow2(y) <= 0)) & (exists (x) ((-1x + 1pow2(x) <= 0))))
+  iteration 1
+  ast(1) = (and
+             (<= (exp 2 y) x)
+             (exists (x) (<= (exp 2 x) x)))
+  Fixpoint after 1 steps
   ir = ((-1x + 1pow2(y) <= 0) & (exists (x) (-1x + 1pow2(x) <= 0)))
   
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
