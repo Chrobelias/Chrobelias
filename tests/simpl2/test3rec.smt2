@@ -4,6 +4,4 @@
 (declare-fun z () Int)
 (assert (= (+ x y) 13))
 (assert (= (+ y x) 13))
-;(assert (= (+ z y) 52))
-;(assert (> (+ (* x 5) (* (pow2 y) 8) (* z 7) ) 13))
 (check-sat)

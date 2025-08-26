@@ -27,6 +27,10 @@
  (applies_to koat748_mini))
 
 (cram
+ (deps test3rec.smt2 test4rec.smt2)
+ (applies_to test_occurs))
+
+(cram
  (deps ../overapprox/NIA2334test1.smt2)
  (applies_to NIA2334test1))
 
