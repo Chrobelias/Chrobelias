@@ -135,3 +135,21 @@ Fold exps
 
 
 $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's/[[:space:]]*$//'
+
+  $ cat > it646.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun it646 () Int)
+  > (assert (<= (+ it646
+  >                (* (- 2) it646)
+  >                (* (- 1) it646))
+  >             (- 2)) )
+  > (check-sat)
+  > EOF
+  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl it646.smt2 | sed 's/[[:space:]]*$//'
+  iteration 1
+  ast(1) = (and
+             (<= (+ (+ it646 (* (* (- 1) 2) it646)) (* (* (- 1) 1) it646))
+             (* (- 1) 2)))
+  iteration 2
+  ast(2) = (<= (+ it646 (* (- 2) it646) (* (- 1) it646)) (- 2))
+  Fixpoint after 2 steps
