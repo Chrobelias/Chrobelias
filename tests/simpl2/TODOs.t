@@ -102,3 +102,36 @@ Should be (<= x 2)
              (= (+ (* (- 2) i3) (* 2 i3)) 0)
              (<= (* (- 1) i3) (- 2)))
   Fixpoint after 5 steps
+Fold exps
+  $ cat > i3.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun it134 () Int)
+  > (declare-fun it1095 () Int)
+  > (assert (<= (* (exp 2 (+ (- 1) it134)) (exp 2 it134)) 2))
+  > (check-sat)
+  > EOF
+  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
+  iteration 1
+  ast(1) = (and
+             (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 it134)) 2))
+  iteration 2
+  ast(2) = (<= (* (exp 2 it134) (exp 2 (+ (- 1) it134))) 2)
+  Fixpoint after 2 steps
+
+  $ cat > i3.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun it134 () Int)
+  > (declare-fun it1095 () Int)
+  > (assert (<= (* (exp 2 (+ (- 1) it134)) (exp 2 it134)) 2))
+  > (check-sat)
+  > EOF
+  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
+  iteration 1
+  ast(1) = (and
+             (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 it134)) 2))
+  iteration 2
+  ast(2) = (<= (* (exp 2 it134) (exp 2 (+ (- 1) it134))) 2)
+  Fixpoint after 2 steps
+
+
+$ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's/[[:space:]]*$//'

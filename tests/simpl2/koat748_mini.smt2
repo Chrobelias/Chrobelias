@@ -18,7 +18,7 @@
 (assert (= (+ it1126 (* it1118 (- 1))) 0)) ;
 (assert (= (+ (* it1126 (- 2)) it1143) 0)) ;
 (assert
-  (and (>= (+ it57 (- 1)) 0) ; commenting this gives crash without pre-simpl
+  (and ;(>= (+ it57 (- 1)) 0) ; commenting this gives crash without pre-simpl
        (>= (+ it1141 (* it1143 (exp 2 (- it57 1)) (- 1)) (- 1)) 0) ;
        ))
 (check-sat)
