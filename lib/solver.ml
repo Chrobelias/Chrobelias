@@ -99,14 +99,26 @@ let trivial ir =
     | Rel (Ir.Eq, term, 0)
       when Map.length term = 2
            && Map.nth_exn term 0 |> snd = -1
-           && Map.nth_exn term 1 |> snd = 1 ->
+           && Map.nth_exn term 1 |> snd = 1
+           && Map.for_alli
+                ~f:(fun ~key ~data:_ ->
+                  match key with
+                  | Ir.Var _ -> true
+                  | Ir.Pow2 _ -> false)
+                term (* TODO: without the last assert it breaks get_model_semenov *) ->
       let v1 = Map.nth_exn term 0 |> fst in
       let v2 = Map.nth_exn term 1 |> fst in
       Set.singleton (EqVar (v1, v2))
     | Rel (Ir.Eq, term, 0)
       when Map.length term = 2
            && Map.nth_exn term 0 |> snd = 1
-           && Map.nth_exn term 1 |> snd = -1 ->
+           && Map.nth_exn term 1 |> snd = -1
+           && Map.for_alli
+                ~f:(fun ~key ~data:_ ->
+                  match key with
+                  | Ir.Var _ -> true
+                  | Ir.Pow2 _ -> false)
+                term (* TODO: without the last assert it breaks get_model_semenov *) ->
       let v1 = Map.nth_exn term 0 |> fst in
       let v2 = Map.nth_exn term 1 |> fst in
       Set.singleton (EqVar (v1, v2))
