@@ -118,6 +118,15 @@ let make_main_symantics env =
 
     let mul xs =
       let xs =
+        (* List.fold_right
+          (fun x acc ->
+             match x, acc with
+             | Eia.Mul ys, _ -> ys @ acc
+             | Pow (base1, e1), Eia.Pow (base2, e2) :: tl when Stdlib.(base1 = base2) ->
+               Eia.Pow (base1, Eia.Add [ e1; e2 ]) :: tl
+             | x, _ -> x :: acc)
+          xs
+          [] *)
         List.concat_map
           (function
             | Eia.Mul xs -> xs
@@ -125,9 +134,9 @@ let make_main_symantics env =
           xs
       in
       match fold_and_sort 1 ( * ) xs with
+      | c, [] -> Eia.atom (Const c)
       | 1, [ h ] -> h
       | 1, xs -> Ast.Eia.mul (List.sort compare_term xs)
-      | c, [] -> Eia.atom (Const c)
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ const c; x ]) ss)
       | c, xs -> Ast.Eia.mul (Eia.atom (Const c) :: List.sort compare_term xs)
     ;;
@@ -338,11 +347,12 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let single info env c1 v1 c2 v2 rhs =
     match c1, Info.is_in_expo v1 info, c2, Info.is_in_expo v2 info with
-    | 1, false, _, _ when Env.is_absent_key v1 env ->
+    | 1, false, _, _ when Env.is_absent_key v1 env && Env.is_absent_key v2 env ->
       Env.extend env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
-    | _, _, 1, false when Env.is_absent_key v2 env ->
+    | _, _, 1, false when Env.is_absent_key v2 env && Env.is_absent_key v2 env ->
       Env.extend env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
     | _ -> env
+    (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
     (* Note: presence of key means we already simplified this variable in another equality *)
   in
   let helper info env = function
