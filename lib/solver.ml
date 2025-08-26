@@ -341,6 +341,7 @@ type config =
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
+  ; mutable dump_ir : bool
   ; mutable pre_simpl : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
@@ -354,6 +355,7 @@ let config =
   ; mode = `Msb
   ; dump_simpl = false
   ; dump_pre_simpl = false
+  ; dump_ir = false
   ; pre_simpl = true
   ; simpl_alpha = true
   ; simpl_mono = true
@@ -380,6 +382,7 @@ let parse_args () =
       , " Don't try simplifications based on alpha-equivalence" )
     ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
+    ; "-dir", Arg.Unit (fun () -> config.dump_ir <- true), " Dump IR"
     ; ( "-dpresimpl"
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , " Dump AST simplifications" )
@@ -427,7 +430,7 @@ struct
     if config.stop_after = `Simpl then exit 0;
     let vars = collect_vars ir in
     let rec eval ir =
-      (* Format.printf "%d Running %a\n%!" !level Ir.pp ir; *)
+      if config.dump_ir then Format.printf "%d Running %a\n%!" !level Ir.pp ir;
       level := !level + 1;
       (match ir with
        | Ir.True -> NfaCollection.n ()
