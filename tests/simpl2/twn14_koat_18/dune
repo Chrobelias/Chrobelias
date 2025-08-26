@@ -1,4 +1,7 @@
 (cram
+ (deps %{bin:Chro}))
+
+(cram
  (applies_to 1)
  (deps input1.smt2))
 
