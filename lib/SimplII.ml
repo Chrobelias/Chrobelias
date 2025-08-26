@@ -46,7 +46,38 @@ let distribute xs =
 module Env = struct
   type t = (string, Ast.Eia.term) Base.Map.Poly.t
 
-  let extend : t -> _ -> _ -> t = fun m key data -> Base.Map.Poly.add_exn m ~key ~data
+  let walk : t -> Ast.Eia.term -> Ast.Eia.term =
+    fun env ->
+    Ast.Eia.map_term (function
+      | Ast.Eia.Atom (Ast.Var s) as orig ->
+        (match Base.Map.Poly.find_exn env s with
+         | exception Base.Not_found_s _ -> orig
+         | t -> t)
+      | t -> t)
+  ;;
+
+  let occurs_var : string -> Ast.Eia.term -> bool =
+    fun v term ->
+    try
+      Ast.Eia.fold_term
+        (fun () -> function
+           | Ast.(Eia.Atom (Var v2)) when String.equal v v2 -> raise Exit
+           | _ -> ())
+        ()
+        term;
+      false
+    with
+    | Exit -> true
+  ;;
+
+  exception Occurs
+
+  let extend_exn : t -> _ -> _ -> t =
+    fun m key data ->
+    let data = walk m data in
+    if occurs_var key data then raise Occurs else Base.Map.Poly.add_exn m ~key ~data
+  ;;
+
   let empty : t = Base.Map.Poly.empty
   let is_empty = Base.Map.Poly.is_empty
   let length = Base.Map.Poly.length [@@warning "-32"]
@@ -252,11 +283,11 @@ let try_propagate : Ast.t -> Env.t * Ast.t =
                     (Eia.Mul [ Atom (Const coeff); Atom (Var v) ], Eia.Atom (Ast.Const r)))
                ->
                if r mod coeff = 0
-               then Env.extend env v (Eia.Atom (const (r / coeff))), rest
+               then Env.extend_exn env v (Eia.Atom (const (r / coeff))), rest
                else raise Unsat
              | Eia Eia.(Eq (Atom (Var v), Atom (Const r)))
              | Eia Eia.(Eq (Atom (Const r), Atom (Var v))) ->
-               Env.extend env v (Eia.Atom (const r)), rest
+               Env.extend_exn env v (Eia.Atom (const r)), rest
              | other -> env, other :: rest)
           (Env.empty, [])
           xs
@@ -346,18 +377,21 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let single info env c1 v1 c2 v2 rhs =
-    match c1, Info.is_in_expo v1 info, c2, Info.is_in_expo v2 info with
-    | 1, false, _, _ when Env.is_absent_key v1 env && Env.is_absent_key v2 env ->
-      Env.extend env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
-    | _, _, 1, false when Env.is_absent_key v2 env && Env.is_absent_key v2 env ->
-      Env.extend env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
-    | _ -> env
-    (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
-    (* Note: presence of key means we already simplified this variable in another equality *)
+    try
+      match c1, Info.is_in_expo v1 info, c2, Info.is_in_expo v2 info with
+      | 1, false, _, _ when Env.is_absent_key v1 env && Env.is_absent_key v2 env ->
+        Env.extend_exn env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
+      | _, _, 1, false when Env.is_absent_key v2 env && Env.is_absent_key v2 env ->
+        Env.extend_exn env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
+      | _ -> env
+      (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
+      (* Note: presence of key means we already simplified this variable in another equality *)
+    with
+    | Env.Occurs -> env
   in
   let helper info env = function
     | Eia (Eia.Eq (Atom (Var v), (Atom (Const c) as rhs))) when Env.is_absent_key v env ->
-      Env.extend env v rhs
+      Env.extend_exn env v rhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) ->
       single info env 1 v1 1 v2 rhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs)) ->
