@@ -543,6 +543,12 @@ let%expect_test " -2x <= -8" =
   [%expect "(<= (* (- 1) x) (- 4))"]
 ;;
 
+let%expect_test " -2x <= -1" =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-1));
+  [%expect "(<= (* (- 1) x) (- 1))"]
+;;
+
 let%expect_test _ =
   let (module Main_symantics) = make_main_symantics Env.empty in
   let wrap ph =
