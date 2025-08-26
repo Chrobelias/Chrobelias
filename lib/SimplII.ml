@@ -132,7 +132,12 @@ let make_main_symantics env =
       | Some c -> c
     ;;
 
-    let pow base xs = Ast.Eia.Pow (base, xs)
+    let pow base xs =
+      match base, xs with
+      | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
+      | _ -> Ast.Eia.Pow (base, xs)
+    ;;
+
     let pow2var v = Ast.Eia.Pow (const 2, var v)
 
     let fold_and_sort init op xs =
