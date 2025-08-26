@@ -38,25 +38,64 @@ $ cat input4.smt2
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp (* (- 2) i3) 2) (exp (exp 4 (+ (- 1) it140)) 2))
+                 (* 4 (exp 4 (* (+ (- 1) it140) 2)) (exp (* (- 2) i3) 2))
                  (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it376) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
              (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp (* (- 2) i3) 2) (exp (exp 4 (+ (- 1) it140)) 2))
+                 (* (exp 4 (* (+ (- 1) it140) 2)) (exp (* (- 2) i3) 2))
                  (exp i6 5)) (- 1))
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
-  Fixpoint after 2 steps
+  iteration 3
+  ast(3) = (and
+             (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+             (= (+ (* (- 2) i3) (* 2 i3)) 0)
+             (<= i6 5)
+             (<= 1 i3)
+             (<= 1 (* 2 i3))
+             (<= 1 (* 4 i3))
+             (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
+                 (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
+                 (* 4 (exp 4 (+ (* 2 (- 1)) (* 2 it140))) (exp (* (- 2) i3) 2))
+                 (exp i6 5)) (- 1))
+             (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+             (<= (+ (* (- 1) it376) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
+                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
+                 (* (exp 4 (+ (* 2 (- 1)) (* 2 it140))) (exp (* (- 2) i3) 2))
+                 (exp i6 5)) (- 1))
+             (<= (* (- 1) i6) 5)
+             (<= (* (- 1) it140) (- 1)))
+  iteration 4
+  ast(4) = (and
+             (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+             (= (+ (* (- 2) i3) (* 2 i3)) 0)
+             (<= i6 5)
+             (<= 1 i3)
+             (<= 1 (* 2 i3))
+             (<= 1 (* 4 i3))
+             (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
+                 (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
+                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
+                 (exp i6 5)) (- 1))
+             (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+             (<= (+ (* (- 1) it376) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
+                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
+                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
+                 (exp i6 5)) (- 1))
+             (<= (* (- 1) i6) 5)
+             (<= (* (- 1) it140) (- 1)))
+  Fixpoint after 4 steps
 
   $ /usr/bin/time -f "TIME: %U" timeout 5 Chro -pre-simpl input4.smt2 || echo "timeout"
-  Command exited with non-zero status 124
-  TIME: 4.99
-  timeout
+  sat
+  TIME: 0.01
 
   $ export CHRO_DEBUG=1
-  $ /usr/bin/time -f "TIME: %U" Chro -no-pre-simpl input4.smt2 -dsimpl 2>&1 | nl -ba | sed 's/[[:space:]]*$//'
+  $ /usr/bin/time -f "TIME: %U" Chro -no-pre-simpl input4.smt2 -dir -dsimpl 2>&1 | nl -ba | sed 's/[[:space:]]*$//'
        1	whole: (bool.and
        2	        (bool.and
        3	         (bool.and
@@ -112,6 +151,6 @@ $ cat input4.smt2
       53	lib/Underapprox.ml gives early Sat.
       54	env = {| |}
       55	sat
-      56	TIME: 27.44
+      56	TIME: 27.41
 
 
