@@ -1110,7 +1110,42 @@ module MsbNat = struct
   type u = t
 
   let minimize nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa
-  let any_path = Lsb.any_path
+
+  let any_path nfa vars =
+    let transitions = nfa.transitions in
+    let p =
+      let visited = Array.make (length nfa) false in
+      let rec dfs len q =
+        if visited.(q)
+        then None
+        else if Set.mem nfa.final q
+        then Some ([], q, len)
+        else (
+          visited.(q) <- true;
+          let delta = Array.get transitions q in
+          let qs = delta |> List.map snd in
+          match List.find_map (fun q -> dfs (len + 1) q) qs with
+          | Some (path, q', len) ->
+            Some ((List.find (fun (_, q'') -> q' = q'') delta |> fst) :: path, q, len)
+          | None ->
+            visited.(q) <- false;
+            None)
+      in
+      nfa.start |> Set.to_list |> List.find_map (dfs 0)
+    in
+    match p with
+    | Some (p, _, len) ->
+      let length = List.length p in
+      let p = List.rev p in
+      Some
+        ( List.map
+            (fun var ->
+               bv_init length (fun i -> bv_get (List.nth p i |> fst) var) |> Z.to_int)
+            vars
+        , len )
+    | None -> None
+  ;;
+
   let run nfa = Set.are_disjoint nfa.start nfa.final |> not
 
   let find_c_d (nfa : t) (imp : (int, int) Map.t) =
@@ -1158,9 +1193,7 @@ module MsbNat = struct
     r2 @ r1
   ;;
 
-  let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg)
-    : t * (state, Label.t list) Map.t
-    =
+  let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg) =
     Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;
     let mask = bv_init 32 (fun x -> x = res || x = temp) in
     let zero_lbl = bv_init 32 (Fun.const false), mask in
@@ -1215,7 +1248,8 @@ module MsbNat = struct
     let start =
       start_transitions
       |> Array.to_list
-      |> List.concat_map (List.map (fun (lbl, dst) -> dst, lbl))
+      |> List.mapi (fun src list -> list |> List.map (fun (lbl, dst) -> dst, (src, lbl)))
+      |> List.concat
     in
     let start_final_transitions =
       nfa.transitions
@@ -1227,7 +1261,8 @@ module MsbNat = struct
     let start_final =
       start_final_transitions
       |> Array.to_list
-      |> List.concat_map (List.map (fun (lbl, dst) -> dst, lbl))
+      |> List.mapi (fun src list -> list |> List.map (fun (lbl, dst) -> dst, (src, lbl)))
+      |> List.concat
     in
     let start = List.concat [ start; start_final ] |> Map.of_alist_multi in
     let transitions =
@@ -1242,8 +1277,16 @@ module MsbNat = struct
       ; is_dfa = false
       }
     in
+    let path_nfa =
+      { transitions = Graph.union_list [ zero_transitions; end_transitions ]
+      ; start = nfa.start
+      ; final = Set.empty
+      ; deg = nfa.deg
+      ; is_dfa = false
+      }
+    in
     (*Debug.dump_nfa ~msg:"Exponent sub_nfa output: %s" format_nfa result;*)
-    result, start
+    result, start, path_nfa
   ;;
 
   let chrobak (nfa : t) =
@@ -1269,16 +1312,18 @@ module MsbNat = struct
     match nfa.start |> Set.find ~f:(Fun.const true) with
     | None -> Seq.empty
     | Some nfa_start ->
-      let exp_nfa, start = get_exponent_sub_nfa nfa ~res ~temp in
+      let exp_nfa, start, path_nfa = get_exponent_sub_nfa nfa ~res ~temp in
       Debug.dump_nfa ~msg:"exp_nfa: %s" format_nfa exp_nfa;
       start
       |> Map.to_sequence
       |> Sequence.to_seq
       |> Seq.filter_map (fun (mid, lbls) ->
         let chrobak_nfa = { exp_nfa with start = Set.singleton mid } in
-        let* path = any_path { nfa with start = Set.singleton mid } vars in
+        let* path =
+          any_path { path_nfa with final = lbls |> List.map fst |> Set.of_list } vars
+        in
         let transitions = Array.copy nfa.transitions in
-        transitions.(nfa_start) <- lbls |> List.map (fun lbl -> lbl, mid);
+        transitions.(nfa_start) <- lbls |> List.map (fun (_, lbl) -> lbl, mid);
         let nfa =
           { nfa with start = Set.singleton nfa_start; transitions }
           |> remove_unreachable_from_start
@@ -1286,6 +1331,7 @@ module MsbNat = struct
         Debug.printfln "Calculating chrobak for var %d" res;
         Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
         Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
+        Debug.dump_nfa ~msg:"Corresponding path_nfa: %s" format_nfa path_nfa;
         (nfa, chrobak chrobak_nfa, path) |> return)
   ;;
 
