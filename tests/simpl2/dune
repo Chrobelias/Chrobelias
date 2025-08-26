@@ -23,6 +23,11 @@
  (applies_to koat748))
 
 (cram
+ (deps
+  ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_311.smt2)
+ (applies_to realheapsort311))
+
+(cram
  (deps koat748_mini.smt2)
  (applies_to koat748_mini))
 

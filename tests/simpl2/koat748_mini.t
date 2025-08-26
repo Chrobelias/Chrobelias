@@ -46,7 +46,7 @@
   iteration 6
   ast(6) = (and
              (<= (+ (* it1095 (exp 2 (+ (- 1) it134))) (exp 2 it134)) 2)
-             (<= (+ (* (- 1) it1141) (* 2 (exp 2 (+ (- 1) it57)))) (- 1)))
+             (<= (+ (* (- 1) it1141) (exp 2 it57)) (- 1)))
   Fixpoint after 6 steps
 
 
@@ -56,7 +56,6 @@
   [2]
 
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
-  Fatal error: exception Failure("unable to multiply var by var")
-  [2]
+  sat
 
 
