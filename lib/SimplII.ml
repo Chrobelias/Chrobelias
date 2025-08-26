@@ -165,9 +165,11 @@ let make_main_symantics env =
           xs
       in
       match fold_and_sort 1 ( * ) xs with
+      | 0, _ -> Eia.atom (Const 0)
       | c, [] -> Eia.atom (Const c)
       | 1, [ h ] -> h
       | 1, xs -> Ast.Eia.mul (List.sort compare_term xs)
+      | 2, [ Pow ((Atom (Const 2) as base), Add [ Atom (Const -1); v ]) ] -> pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ const c; x ]) ss)
       | c, xs -> Ast.Eia.mul (Eia.atom (Const c) :: List.sort compare_term xs)
     ;;
@@ -249,6 +251,17 @@ let make_main_symantics env =
         ofop (add (List.map negate tl)) (const (n - c))
       | Atom (Const c), Add xs -> ofop (add (List.map negate xs)) (const (-c))
       | Pow (basel, powl), Pow (baser, powr) when basel = baser -> ofop powl powr
+      | Eia.Mul [ Atom (Const c); Atom (Var v) ], Eia.Atom (Const rhs)
+        when op = Leq && abs c <> 1 ->
+        (* optimizing single bounds *)
+        if c < 0 && rhs < 0
+        then
+          ofop
+            Eia.(Mul [ Atom (Const (-1)); Atom (Var v) ])
+            (mul [ Atom (Const (-1)); Atom (Const ((abs rhs + 1) / abs c)) ])
+        else
+          (* TODO(Kakadu): Support other three cases *)
+          ofop l r
       | _ -> ofop l r
     ;;
 
@@ -510,6 +523,24 @@ let%expect_test _ =
   let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; const 2 ] ];
   [%expect "(+ (* 5 x z) (* 5 y z) (* 10 x) (* 10 y))"]
+;;
+
+let leq_simpl l r =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  let ans = TS.prj TS.(l <= r) in
+  Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 ans
+;;
+
+let%expect_test " -2x <= -7" =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-7));
+  [%expect "(<= (* (- 1) x) (- 4))"]
+;;
+
+let%expect_test " -2x <= -8" =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-8));
+  [%expect "(<= (* (- 1) x) (- 4))"]
 ;;
 
 let%expect_test _ =
