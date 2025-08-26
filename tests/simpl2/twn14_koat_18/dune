@@ -1,0 +1,15 @@
+(cram
+ (applies_to 1)
+ (deps input1.smt2))
+
+(cram
+ (applies_to 2)
+ (deps input2.smt2))
+
+(cram
+ (applies_to 3)
+ (deps input3.smt2))
+
+(cram
+ (applies_to 4)
+ (deps input4.smt2))
