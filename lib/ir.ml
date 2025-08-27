@@ -12,11 +12,13 @@ type atom =
 let eq_atom : atom -> atom -> bool = Stdlib.( = )
 let internalc = ref 0
 
-let internal () =
-  let r = var (String.concat "" [ " %"; !internalc |> Int.to_string ]) in
+let internal_name () =
+  let r = String.concat "" [ " %"; !internalc |> Int.to_string ] in
   internalc := !internalc + 1;
   r
 ;;
+
+let internal () = var (internal_name ())
 
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var

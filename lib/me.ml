@@ -162,6 +162,7 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
     match base, exp with
     | Poly (base_poly, 2, base_sups), Poly (exp_map, exp_c, exp_sups)
       when Map.is_empty base_poly ->
+      let merged_sups = base_sups @ exp_sups in
       (match Map.length exp_map with
        | 0 -> Poly (base_poly, Utils.pow ~base:2 exp_c, base_sups @ exp_sups)
        | 1 ->
@@ -172,12 +173,16 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
              let c = Utils.pow ~base:2 (-exp_c) in
              Q.(one / of_int c))
          in
-         let var =
+         let merged_sups, var =
            match fst (Map.min_elt_exn exp_map) with
-           | Var s -> Ir.pow2 s
-           | _ -> failwith "not implemented"
+           | Var s -> merged_sups, Ir.pow2 s
+           | Pow2 s when exp_c = 0 ->
+             let newv : string = Ir.internal_name () in
+             ( Ir.eq (Map.of_alist_exn [ Ir.Var newv, -1; Pow2 s, 1 ]) 0 :: merged_sups
+             , Ir.pow2 newv )
+           | x -> failf "not implemented: %a\n%!" Ir.pp_atom x
          in
-         Poly (Map.singleton var coeff, 0, base_sups @ exp_sups)
+         Poly (Map.singleton var coeff, 0, merged_sups)
        | _ ->
          let var = Ir.internal () in
          let coeff =
@@ -560,4 +565,19 @@ let ir_of_ast ir =
     | Pred s -> failf "Unexpected %s" s
   in
   simpl_ir ir |> ir_of_ast
+;;
+
+let%expect_test _ =
+  let open Ast in
+  let wrap ast =
+    Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 (Eia ast);
+    let ir1 = of_eia ast in
+    Format.printf "@[IR1: %a@]\n%!" Ir.pp_smtlib2 ir1;
+    let ir2 = of_eia2 ast in
+    Format.printf "@[IR2: %a@]\n%!" Ir.pp_smtlib2 ir2
+  in
+  wrap
+    (Ast.Eia.leq
+       Eia.(pow (atom (const 2)) (Eia.pow (atom @@ const 2) (atom @@ var "z")))
+       (Eia.atom (Const 1)))
 ;;
