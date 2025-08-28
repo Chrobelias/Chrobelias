@@ -374,6 +374,8 @@ end
 module type NatType = sig
   include Type
 
+  type model_part
+
   val find_c_d : t -> (int, int) Map.t -> (int * int) list
   val chrobak : t -> (int * int) list
 
@@ -382,9 +384,14 @@ module type NatType = sig
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (int list * int)) Seq.t
+    -> (t * (int * int) list * model_part) Seq.t
 
-  val combine_model_pieces : (int list * int) list -> int list
+  val combine_model_pieces
+    :  (deg * [< `Exp | `Lin ]) list
+    -> (deg, int) Map.t
+    -> int
+    -> model_part list
+    -> int list
 end
 
 module Make (Invariants : NfaInvariants) = struct
@@ -1042,16 +1049,20 @@ module Lsb = struct
 
   let to_nat (nfa : t) : u = nfa
 
-  let rec combine_model_pieces = function
-    | [] -> []
-    | [ (model, _) ] -> model
-    | (model, len1) :: (model2, len2) :: tl ->
-      ( Base.List.zip_exn model model2
-        |> List.map (fun (x, y) -> Int.shift_left y len1 + x)
-      , len1 + len2 )
-      :: tl
-      |> combine_model_pieces
-  ;;
+  type model_part = int list * int
+
+  let combine_model_pieces _ _ x l = failwith "TODO"
+  (* let rec helper = function *)
+  (*   | [] -> [] *)
+  (*   | [ (model, _) ] -> model *)
+  (*   | (model, len1) :: (model2, len2) :: tl -> *)
+  (*     ( Base.List.zip_exn model model2 *)
+  (*       |> List.map (fun (x, y) -> Int.shift_left y len1 + x) *)
+  (*     , len1 + len2 ) *)
+  (*     :: tl *)
+  (*     |> helper *)
+  (* in *)
+  (* helper (x :: l) *)
 end
 
 let update_invariants_msb nfa =
@@ -1200,6 +1211,11 @@ module MsbNat = struct
     let res_lbl = bv_init 32 (( = ) res), mask in
     let pow_lbl = bv_init 32 (( = ) temp), mask in
     let one_lbl = bv_init 32 (Fun.const true), mask in
+    let () =
+      failwith
+        "TODO(timafrolov): consider the case where there are some 0s in res before the \
+         first 1"
+    in
     let end_transitions =
       nfa.transitions
       |> Array.mapi (fun src list ->
@@ -1317,11 +1333,8 @@ module MsbNat = struct
       start
       |> Map.to_sequence
       |> Sequence.to_seq
-      |> Seq.filter_map (fun (mid, lbls) ->
+      |> Seq.map (fun (mid, lbls) ->
         let chrobak_nfa = { exp_nfa with start = Set.singleton mid } in
-        let* path =
-          any_path { path_nfa with final = lbls |> List.map fst |> Set.of_list } vars
-        in
         let transitions = Array.copy nfa.transitions in
         transitions.(nfa_start) <- lbls |> List.map (fun (_, lbl) -> lbl, mid);
         let nfa =
@@ -1332,7 +1345,9 @@ module MsbNat = struct
         Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
         Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
         Debug.dump_nfa ~msg:"Corresponding path_nfa: %s" format_nfa path_nfa;
-        (nfa, chrobak chrobak_nfa, path) |> return)
+        ( nfa
+        , chrobak chrobak_nfa
+        , { path_nfa with final = lbls |> List.map fst |> Set.of_list } ))
   ;;
 
   let to_nat (nfa : t) : u =
@@ -1349,16 +1364,46 @@ module MsbNat = struct
     { nfa with start }
   ;;
 
-  let rec combine_model_pieces = function
-    | [] -> []
-    | [ (model, _) ] -> model
-    | (model, len1) :: (model2, len2) :: tl ->
-      ( Base.List.zip_exn model model2
-        |> List.map (fun (x, y) -> Int.shift_left y len1 + x)
-      , len1 + len2 )
-      :: tl
-      |> combine_model_pieces
+  (* len is the length of path between 1 in exp and 1 in var *)
+  let path_of_len nfa len ~var ~exp : (int list * int) option = failwith "TODO"
+
+  let combine_model_pieces order map len list =
+    let rec helper mapVals order past_order parts =
+      match order with
+      | [] -> mapVals
+      | (`Lin var as v) :: tl -> helper mapVals tl (v :: past_order) parts
+      | (`Exp (var, exp) as v) :: tl ->
+        (match parts with
+         | [] -> failwith "TODO(timafrolov): write error message"
+         | part :: parts ->
+           let prev_len = past_order |> fun _ -> failwith "TODO" in
+           let path_len =
+             Map.find_exn mapVals var, prev_len |> fun (_, _) -> failwith "TODO"
+           in
+           let model2, len2 = path_of_len part path_len ~var ~exp |> Option.get in
+           let mapVals =
+             Base.List.zip_exn (mapVals |> fun _ -> failwith "TODO") model2
+             |> List.map (fun (x, y) -> Int.shift_left y len + x)
+             |> fun _ -> failwith "TODO"
+           in
+           helper mapVals tl (v :: past_order) parts)
+    in
+    helper Map.empty map order
   ;;
+
+  (* let rec helper order list = function *)
+  (*   | [] -> [] *)
+  (*   | [ (model, _) ] -> model *)
+  (*   | (model, len1) :: (model2, len2) :: tl -> *)
+  (*     ( Base.List.zip_exn model model2 *)
+  (*       |> List.map (fun (x, y) -> Int.shift_left y len1 + x) *)
+  (*     , len1 + len2 ) *)
+  (*     :: tl *)
+  (*     |> helper *)
+  (* in *)
+  (* helper (x :: l) *)
+
+  type model_part = t
 end
 
 module Msb = struct

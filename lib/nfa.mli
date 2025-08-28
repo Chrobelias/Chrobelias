@@ -46,6 +46,8 @@ end
 module type NatType = sig
   include Type
 
+  type model_part
+
   val find_c_d : t -> (int, int) Map.t -> (int * int) list
   val chrobak : t -> (int * int) list
 
@@ -54,9 +56,14 @@ module type NatType = sig
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (int list * int)) Seq.t
+    -> (t * (int * int) list * model_part) Seq.t
 
-  val combine_model_pieces : (int list * int) list -> int list
+  val combine_model_pieces
+    :  [< `Lin of deg | `Exp of deg * deg ] list
+    -> (deg, int) Map.t
+    -> int
+    -> model_part list
+    -> int list
 end
 
 module Lsb : sig
