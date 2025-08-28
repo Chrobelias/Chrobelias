@@ -189,7 +189,9 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
       let c = c * d in
       let sups = sups @ sups' in
       Poly (poly, c, sups)
-    | _ -> failf "not implemented: %s. l = %a, r = %a" __FUNCTION__ pp l pp r
+    | _ ->
+      Format.print_flush ();
+      failf "not implemented: %s. l = %a, r = %a%!" __FUNCTION__ pp l pp r
   ;;
 
   let rec pow ~base exp =

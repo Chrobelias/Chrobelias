@@ -12,6 +12,7 @@ let check_sat ast =
     if Lib.Solver.config.stop_after = `Pre_simplify
     then (
       match Lib.SimplII.simpl ast with
+      | `Error _ -> failwith "not implemented"
       | `Unsat ->
         Format.eprintf "Unsat\n%!";
         exit 0
@@ -29,7 +30,16 @@ let check_sat ast =
     let ast =
       `Unknown ast
       <+> (fun ast ->
-      if Lib.Solver.config.pre_simpl then Lib.SimplII.simpl ast else `Unknown ast)
+      if not Lib.Solver.config.pre_simpl
+      then `Unknown ast
+      else (
+        match Lib.SimplII.simpl ast with
+        | `Error es ->
+          Format.printf "%!";
+          Format.eprintf "%!Error after simplification.\n%!";
+          Format.eprintf "@[<v 2>%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
+          exit 0
+        | (`Unsat | `Unknown _) as other -> other))
       <+> (fun ast ->
       if Lib.Solver.config.dump_pre_simpl
       then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
