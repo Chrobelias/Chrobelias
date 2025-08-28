@@ -158,8 +158,10 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
     | _ -> failf "not implemented: %s. l = %a, r = %a" __FUNCTION__ pp l pp r
   ;;
 
-  let pow ~base exp =
+  let rec pow ~base exp =
     match base, exp with
+    | Poly (base_poly, 4, base_sups), _ when Map.is_empty base_poly ->
+      pow ~base:(Poly (base_poly, 2, base_sups)) (mul (poly_of_const 2) exp)
     | Poly (base_poly, 2, base_sups), Poly (exp_map, exp_c, exp_sups)
       when Map.is_empty base_poly ->
       let merged_sups = base_sups @ exp_sups in
