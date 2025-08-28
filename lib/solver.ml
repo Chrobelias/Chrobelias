@@ -94,14 +94,26 @@ let trivial ir =
     | Rel (Ir.Eq, term, 0)
       when Map.length term = 2
            && Map.nth_exn term 0 |> snd = -1
-           && Map.nth_exn term 1 |> snd = 1 ->
+           && Map.nth_exn term 1 |> snd = 1
+           && Map.for_alli
+                ~f:(fun ~key ~data:_ ->
+                  match key with
+                  | Ir.Var _ -> true
+                  | Ir.Pow2 _ -> false)
+                term (* TODO: without the last assert it breaks get_model_semenov *) ->
       let v1 = Map.nth_exn term 0 |> fst in
       let v2 = Map.nth_exn term 1 |> fst in
       Set.singleton (EqVar (v1, v2))
     | Rel (Ir.Eq, term, 0)
       when Map.length term = 2
            && Map.nth_exn term 0 |> snd = 1
-           && Map.nth_exn term 1 |> snd = -1 ->
+           && Map.nth_exn term 1 |> snd = -1
+           && Map.for_alli
+                ~f:(fun ~key ~data:_ ->
+                  match key with
+                  | Ir.Var _ -> true
+                  | Ir.Pow2 _ -> false)
+                term (* TODO: without the last assert it breaks get_model_semenov *) ->
       let v1 = Map.nth_exn term 0 |> fst in
       let v2 = Map.nth_exn term 1 |> fst in
       Set.singleton (EqVar (v1, v2))
@@ -686,15 +698,15 @@ struct
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
     let get_deg = Map.find_exn s.vars in
-    let rec helper nfa order model =
+    let rec helper nfa remaining_order model =
       Debug.dump_nfa
         ~msg:"Nfa inside proof_order: %s"
         ~vars:(Map.to_alist s.vars)
         Nfa.format_nfa
         nfa;
-      match order with
-      | [] -> return s nfa model
-      | x :: [] -> return s (project (get_deg x) nfa) model
+      match remaining_order with
+      | [] -> return s order nfa model
+      | x :: [] -> return s order (project (get_deg x) nfa) model
       | x :: (next :: _ as tl) ->
         if not (is_exp x)
         then helper (project (get_deg x) nfa) tl model
@@ -849,7 +861,7 @@ struct
     match
       f
       |> eval_semenov
-           (fun _ nfa _ -> if NfaNat.run nfa then Some () else None)
+           (fun _ _ nfa _ -> if NfaNat.run nfa then Some () else None)
            (fun x nfa -> NfaNat.project [ x ] nfa)
     with
     | Some _ -> `Sat
@@ -868,16 +880,20 @@ struct
     let res =
       f
       |> eval_semenov
-           (fun s nfa model ->
+           (fun s order nfa model ->
               match NfaNat.any_path nfa (Map.data s.vars) with
-              | Some path -> Some (s, path, model)
+              | Some path -> Some (s, order, path, model)
               | None -> None)
            (fun _ nfa -> nfa)
     in
     match res with
-    | Some (s, model, models) ->
+    | Some (s, order, (model, len), models) ->
       let map =
-        NfaNat.combine_model_pieces (model :: models)
+        NfaNat.combine_model_pieces
+          (order |> List.map (Map.find s.vars) |> List.map Option.get)
+          (model |> failwith "TODO")
+          len
+          models
         |> List.mapi (fun i v -> List.nth (Map.keys s.vars) i, v)
         |> Map.of_alist_exn
       in
