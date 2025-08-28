@@ -19,8 +19,12 @@ let check_errors ph =
     | _ -> true
   in
   let on_term acc = function
-    | Mul ((Atom (Var _) as l) :: (Atom (Var _) as r) :: _) ->
-      Non_linear_arith [ l; r ] :: acc
+    | Mul xs ->
+      let xs = List.filter not_a_const xs in
+      (match xs with
+       | [ Atom (Const _) ] -> assert false
+       | [ Atom (Var _) ] | [] -> acc
+       | xs -> Non_linear_arith xs :: acc)
     | Pow (base, Atom (Const _)) as ans when not_a_const base ->
       Non_linear_arith [ ans ] :: acc
     | _ -> acc

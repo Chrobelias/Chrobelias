@@ -38,6 +38,7 @@ let check_sat ast =
           Format.printf "%!";
           Format.printf "%!@[<v 2>@[Error after simplification.@]@ ";
           Format.printf "%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
+          Format.printf "Leftover formula:\n@[%a@]\n%!" Lib.Ast.pp_smtlib2 _ast;
           exit 1
         | (`Unsat | `Unknown _) as other -> other))
       <+> (fun ast ->
