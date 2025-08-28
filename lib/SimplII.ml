@@ -2,6 +2,36 @@
 
 let log = Utils.log
 
+type error = Non_linear_arith of Ast.Eia.term list
+
+let pp_error ppf = function
+  | Non_linear_arith ts ->
+    Format.fprintf ppf "@[<v 2>@[Non linear arithmetic between@]@,";
+    List.iteri (fun i -> Format.fprintf ppf "@[%d) %a@]@," i Ast.pp_term_smtlib2) ts;
+    Format.fprintf ppf "@]"
+;;
+
+let check_errors ph =
+  let open Ast.Eia in
+  let not_a_const = function
+    | Atom (Const _) -> false
+    | _ -> true
+  in
+  let on_term acc = function
+    | Mul ((Atom (Var _) as l) :: (Atom (Var _) as r) :: _) ->
+      Non_linear_arith [ l; r ] :: acc
+    | Pow (base, Atom (Const _)) as ans when not_a_const base ->
+      Non_linear_arith [ ans ] :: acc
+    | _ -> acc
+  in
+  Ast.fold
+    (fun errs -> function
+       | Ast.Eia eia -> Ast.Eia.fold2 (fun acc _ -> acc) on_term errs eia
+       | _ -> errs)
+    []
+    ph
+;;
+
 type relop =
   | Leq
   | Eq
@@ -506,10 +536,15 @@ let simpl ast =
       loop (step + 1) (Env.merge env2 env) ast2
     | false, false -> loop (step + 1) env ast2
     | false, true ->
-      let () = log "Fixpoint after %d steps" step in
+      let () = log "Fixpoint after %d steps%!" step in
       ast2
   in
-  try `Unknown (loop 1 Env.empty ast) with
+  try
+    let ast = loop 1 Env.empty ast in
+    match check_errors ast with
+    | [] -> `Unknown ast
+    | errrs -> `Error errrs
+  with
   | Unsat -> `Unsat
 ;;
 
