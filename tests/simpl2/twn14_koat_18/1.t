@@ -301,12 +301,11 @@ $ cat input1.smt2
              (<= (* (- 1) it140) (- 1)))
   Fixpoint after 8 steps
 
-  $ /usr/bin/time -f "TIME: %U" timeout 5 Chro -pre-simpl input1.smt2 | echo "timeout"
+$ /usr/bin/time -f "TIME: %U"
+  $ timeout 5 Chro -pre-simpl input1.smt2 | echo "timeout"
   timeout
-  Command terminated by signal 13
-  TIME: 0.01
 
-  $ /usr/bin/time -f "TIME: %U" Chro -no-pre-simpl input1.smt2 | sed 's/[[:space:]]*$//'
-  TIME: 0.05
+$ /usr/bin/time -f "TIME: %U"
+  $ Chro -no-pre-simpl input1.smt2 | sed 's/[[:space:]]*$//'
   sat
 
