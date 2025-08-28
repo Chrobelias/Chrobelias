@@ -34,11 +34,11 @@ let check_sat ast =
       then `Unknown ast
       else (
         match Lib.SimplII.simpl ast with
-        | `Error es ->
+        | `Error (_ast, es) ->
           Format.printf "%!";
-          Format.eprintf "%!Error after simplification.\n%!";
-          Format.eprintf "@[<v 2>%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
-          exit 0
+          Format.printf "%!@[<v 2>@[Error after simplification.@]@ ";
+          Format.printf "%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
+          exit 1
         | (`Unsat | `Unknown _) as other -> other))
       <+> (fun ast ->
       if Lib.Solver.config.dump_pre_simpl
