@@ -284,13 +284,13 @@ $ cat input2.smt2
              (<= (* (- 1) it140) (- 1)))
   Fixpoint after 8 steps
 
-  $ /usr/bin/time -f "TIME: %U" timeout 5 Chro -pre-simpl input2.smt2 || echo "timeout"
+$ /usr/bin/time -f "TIME: %U"
+  $ timeout 5 Chro -pre-simpl input2.smt2 || echo "timeout"
   sat
-  TIME: 0.01
 
 $ CHRO_DEBUG=1
-  $ /usr/bin/time -f "TIME: %U" Chro -no-pre-simpl input2.smt2 | sed 's/[[:space:]]*$//'
-  TIME: 0.08
+$ /usr/bin/time -f "TIME: %U"
+  $ Chro -no-pre-simpl input2.smt2 | sed 's/[[:space:]]*$//'
   sat
 
 

@@ -90,9 +90,9 @@ $ cat input4.smt2
              (<= (* (- 1) it140) (- 1)))
   Fixpoint after 4 steps
 
-  $ /usr/bin/time -f "TIME: %U" timeout 5 Chro -pre-simpl input4.smt2 || echo "timeout"
+$ /usr/bin/time -f "TIME: %U"
+  $ timeout 5 Chro -pre-simpl input4.smt2 || echo "timeout"
   sat
-  TIME: 0.01
 
   $ export CHRO_DEBUG=1
 $ /usr/bin/time -f "TIME: %U" Chro -no-pre-simpl input4.smt2 -dir -dsimpl 2>&1 | nl -ba | sed 's/[[:space:]]*$//'
