@@ -225,7 +225,7 @@ module Graph = struct
           |> Set.of_sequence
         in
         let next, amount = helper (n - 1) states in
-        if amount < diff then states :: next, amount + 1 else next, amount
+        if amount < diff then cur :: next, amount + 1 else next, amount
     in
     helper last init |> fst
   ;;
@@ -309,16 +309,55 @@ module Graph = struct
   ;;
 
   let find_important_verticies graph =
-    let components = find_strongly_connected_components graph in
-    List.filter_map
-      (fun vs ->
-         List.nth_opt
-           (List.map (fun v -> v, find_shortest_cycle graph v) vs
-            |> List.sort (fun x y -> snd x - snd y))
-           0)
-      components
+    find_strongly_connected_components graph
+    |> List.concat_map (fun vs ->
+      let list = List.map (fun v -> v, find_shortest_cycle graph v) vs in
+      let min = list |> List.map snd |> List.fold_left Int.min (verticies graph) in
+      list |> List.find_all (fun (_, len) -> len = min))
   ;;
 end
+
+let%expect_test "Reachable in range smoke test" =
+  let reachable_in_range = Graph.reachable_in_range in
+  let print x =
+    Format.printf
+      "%a\n"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (Format.pp_print_list
+            ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ")
+            Format.pp_print_int))
+      (List.map Set.to_list x)
+  in
+  let graph =
+    [| [ 1; 2 ]; [ 0 ]; [] |] |> Array.map (List.map (fun x -> (Z.zero, Z.zero), x))
+  in
+  print (reachable_in_range graph 0 0 (Set.singleton 0));
+  print (reachable_in_range graph 0 1 (Set.singleton 0));
+  print (reachable_in_range graph 2 3 (Set.singleton 1));
+  [%expect
+    {|
+    0
+    0; 1, 2
+    1, 2; 0
+    |}]
+;;
+
+let%expect_test "Important verticies smoke test" =
+  let find_important_verticies = Graph.find_important_verticies in
+  let print =
+    Format.printf
+      "%a\n"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt (a, b) -> Format.fprintf fmt "%d, %d" a b))
+  in
+  let graph =
+    [| [ 1; 2 ]; [ 0 ]; [] |] |> Array.map (List.map (fun x -> (Z.zero, Z.zero), x))
+  in
+  print (find_important_verticies graph);
+  [%expect {|0, 2; 1, 2; 2, 0|}]
+;;
 
 type _t =
   { transitions : Graph.t
@@ -806,6 +845,51 @@ module Make (Invariants : NfaInvariants) = struct
     ; is_dfa = true
     }
   ;;
+
+  let find_c_d nfa (imp : (int, int) Map.t) =
+    assert (Set.length nfa.start = 1);
+    let n = length nfa in
+    let reachable_in_range = Graph.reachable_in_range nfa.transitions in
+    let reachable_in n init = reachable_in_range n n init |> List.hd in
+    let r1 =
+      0 -- ((n * n) - 1) (* TODO: do not map, collect thing *)
+      |> List.filter (fun i ->
+        reachable_in i nfa.start |> Set.are_disjoint nfa.final |> not)
+      |> Set.of_list
+    in
+    let states = reachable_in (n - 1) nfa.start in
+    let states =
+      states
+      |> Set.to_sequence
+      |> Sequence.filter_map ~f:(fun state ->
+        Map.find imp state |> Option.map (fun d -> state, d))
+    in
+    let r2 =
+      states
+      |> Sequence.concat_map ~f:(fun (state, d) ->
+        let first = (n * n) - n - d in
+        let last = (n * n) - n - 1 in
+        reachable_in_range first last (Set.singleton state)
+        |> List.map (fun set -> not (Set.are_disjoint nfa.final set))
+        |> Base.List.zip_exn (first -- last)
+        |> List.filter snd
+        |> List.map fst
+        |> List.map (fun c -> c + n - 1, d)
+        |> Sequence.of_list)
+      |> Sequence.map ~f:(fun (c, d) ->
+        let rec helper c = if Set.mem r1 (c - d) then helper (c - d) else c in
+        helper c, d)
+      |> Sequence.to_list
+    in
+    let r1 =
+      r1
+      |> Set.to_list
+      |> List.filter (fun c ->
+        not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
+      |> List.map (fun c -> c, 0)
+    in
+    r2 @ r1
+  ;;
 end
 
 let update_invariants_lsb nfa =
@@ -962,51 +1046,6 @@ module Lsb = struct
     result
   ;;
 
-  let find_c_d (nfa : t) (imp : (int, int) Map.t) =
-    assert (Set.length nfa.start = 1);
-    let n = length nfa in
-    let reachable_in_range = Graph.reachable_in_range nfa.transitions in
-    let reachable_in n init = reachable_in_range n n init |> List.hd in
-    let r1 =
-      0 -- ((n * n) - 1) (* TODO: do not map, collect thing *)
-      |> List.filter (fun i ->
-        reachable_in i nfa.start |> Set.are_disjoint nfa.final |> not)
-      |> Set.of_list
-    in
-    let states = reachable_in (n - 1) nfa.start in
-    let states =
-      states
-      |> Set.to_sequence
-      |> Sequence.filter_map ~f:(fun state ->
-        Map.find imp state |> Option.map (fun d -> state, d))
-    in
-    let r2 =
-      states
-      |> Sequence.concat_map ~f:(fun (state, d) ->
-        let first = (n * n) - n - d in
-        let last = (n * n) - n - 1 in
-        reachable_in_range first last (Set.singleton state)
-        |> List.map (fun set -> not (Set.are_disjoint nfa.final set))
-        |> Base.List.zip_exn (first -- last)
-        |> List.filter snd
-        |> List.map fst
-        |> List.map (fun c -> c + n, d)
-        |> Sequence.of_list)
-      |> Sequence.map ~f:(fun (c, d) ->
-        let rec helper c = if Set.mem r1 (c - d) then helper (c - d) else c in
-        helper c, d)
-      |> Sequence.to_list
-    in
-    let r1 =
-      r1
-      |> Set.to_list
-      |> List.filter (fun c ->
-        not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
-      |> List.map (fun c -> c, 0)
-    in
-    r2 @ r1
-  ;;
-
   let chrobak (nfa : t) =
     let important =
       Graph.find_important_verticies nfa.transitions
@@ -1028,16 +1067,20 @@ module Lsb = struct
     |> Sequence.to_seq
     |> Seq.filter_map (fun mid ->
       let* path = any_path { nfa with start = Set.singleton mid } vars in
-      ( { nfa with
+      let chrobak_nfa = { exp_nfa with start = Set.singleton mid } in
+      let nfa =
+        { nfa with
           final = Set.singleton mid
         ; transitions =
             nfa.transitions
             |> Array.map
                  (List.filter (fun (lbl, fin) -> fin <> mid || Label.equal lbl temp_lbl))
         }
-      , chrobak { exp_nfa with start = Set.singleton mid }
-      , path )
-      |> return)
+      in
+      Debug.printfln "Calculating chrobak for var %d" res;
+      Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
+      Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
+      return (nfa, chrobak chrobak_nfa, path))
   ;;
 
   let to_nat (nfa : t) : u = nfa
@@ -1112,51 +1155,6 @@ module MsbNat = struct
   let minimize nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa
   let any_path = Lsb.any_path
   let run nfa = Set.are_disjoint nfa.start nfa.final |> not
-
-  let find_c_d (nfa : t) (imp : (int, int) Map.t) =
-    assert (Set.length nfa.start = 1);
-    let n = length nfa in
-    let reachable_in_range = Graph.reachable_in_range nfa.transitions in
-    let reachable_in n init = reachable_in_range n n init |> List.hd in
-    let r1 =
-      0 -- ((n * n) - 1) (* TODO: do not map, collect thing *)
-      |> List.filter (fun i ->
-        reachable_in i nfa.start |> Set.are_disjoint nfa.final |> not)
-      |> Set.of_list
-    in
-    let states = reachable_in (n - 1) nfa.start in
-    let states =
-      states
-      |> Set.to_sequence
-      |> Sequence.filter_map ~f:(fun state ->
-        Map.find imp state |> Option.map (fun d -> state, d))
-    in
-    let r2 =
-      states
-      |> Sequence.concat_map ~f:(fun (state, d) ->
-        let first = (n * n) - n - d in
-        let last = (n * n) - n - 1 in
-        reachable_in_range first last (Set.singleton state)
-        |> List.map (fun set -> not (Set.are_disjoint nfa.final set))
-        |> Base.List.zip_exn (first -- last)
-        |> List.filter snd
-        |> List.map fst
-        |> List.map (fun c -> c + n, d)
-        |> Sequence.of_list)
-      |> Sequence.map ~f:(fun (c, d) ->
-        let rec helper c = if Set.mem r1 (c - d) then helper (c - d) else c in
-        helper c, d)
-      |> Sequence.to_list
-    in
-    let r1 =
-      r1
-      |> Set.to_list
-      |> List.filter (fun c ->
-        not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
-      |> List.map (fun c -> c, 0)
-    in
-    r2 @ r1
-  ;;
 
   let get_exponent_sub_nfa (nfa : t) ~(res : deg) ~(temp : deg)
     : t * (state, Label.t list) Map.t
@@ -1314,6 +1312,29 @@ module MsbNat = struct
       |> combine_model_pieces
   ;;
 end
+
+let%expect_test "find_c_d smoke test" =
+  let find_c_d = MsbNat.find_c_d in
+  let print =
+    Format.printf
+      "%a\n"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt (a, b) -> Format.fprintf fmt "%d, %d" a b))
+  in
+  let nfa =
+    { transitions =
+        [| [ 1; 2 ]; [ 0 ]; [] |] |> Array.map (List.map (fun x -> (Z.zero, Z.zero), x))
+    ; start = Set.singleton 0
+    ; final = Set.singleton 2
+    ; deg = 0
+    ; is_dfa = false
+    }
+  in
+  let imp = Map.of_alist_exn [ 0, 2; 1, 2 ] in
+  print (find_c_d nfa imp);
+  [%expect {|1, 2|}]
+;;
 
 module Msb = struct
   include Make (struct
