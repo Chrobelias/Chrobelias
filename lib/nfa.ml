@@ -1354,7 +1354,7 @@ module MsbNat = struct
     | [ (model, _) ] -> model
     | (model, len1) :: (model2, len2) :: tl ->
       ( Base.List.zip_exn model model2
-        |> List.map (fun (x, y) -> Int.shift_left x len2 + y)
+        |> List.map (fun (x, y) -> Int.shift_left y len1 + x)
       , len1 + len2 )
       :: tl
       |> combine_model_pieces
