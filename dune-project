@@ -31,7 +31,7 @@
   z3
   ppx_expect
   ppx_inline_test
-  (mdx :with-tests)
+  mdx
   (ocamlformat :dev))
  (tags
   (solver theorem)))
