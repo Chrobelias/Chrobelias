@@ -179,7 +179,7 @@ let make_main_symantics env =
       | c, xs -> Ast.Eia.mul (Eia.atom (Const c) :: List.sort compare_term xs)
     ;;
 
-    let add xs =
+    let rec add xs =
       let xs =
         List.concat_map
           (function
@@ -190,6 +190,10 @@ let make_main_symantics env =
       match fold_and_sort 0 ( + ) xs with
       | 0, [ Eia.Atom (Var x); Mul [ Eia.Atom (Const -1); Eia.Atom (Var x2) ] ]
         when x = x2 -> const 0
+      | c, Mul [ Eia.Atom (Const c1); t1 ] :: Mul [ Eia.Atom (Const c2); t2 ] :: tl
+        when c1 = -1 * c2 && Stdlib.(t1 = t2) ->
+        (* TODO(Kakadu): Do c1+c2 instead *)
+        add (Atom (Const c) :: tl)
       | 0, [ h ] -> h
       | 0, [] -> const 0
       | 0, xs -> Ast.Eia.add (List.sort compare_term xs)
