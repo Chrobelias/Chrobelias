@@ -10,6 +10,14 @@
  (deps test2exp.smt2))
 
 (cram
+ (applies_to bad)
+ (deps ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2))
+
+(cram
+ (applies_to koat83mini)
+ (deps koat83mini.smt2))
+
+(cram
  (deps ../../benchmarks/heapsort.c.koat_2.smt2)
  (applies_to heapsort))
 

@@ -288,6 +288,19 @@
                  (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
   Fixpoint after 8 steps
+  Error after simplification.
+    Non linear arithmetic between
+      0) (exp i3 2)
+  
+    Non linear arithmetic between
+      0) (exp i6 3)
+  
+    Non linear arithmetic between
+      0) (exp i6 5)
+  
+    Non linear arithmetic between
+      0) (exp (* (- 2) i3) 2)
+  
 $ time -f "%U"
 
   $ CHRO_DEBUG=1 timeout 5 Chro -pre-simpl input.smt2  -bound 0
@@ -578,54 +591,20 @@ $ time -f "%U"
                  (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
   Fixpoint after 8 steps
-  whole: (bool.and
-          (bool.and
-           (bool.and
-            (bool.and
-             (bool.and
-              (bool.and
-               (bool.and
-                (bool.and
-                 (bool.and
-                  (bool.eq
-                   (int.add (int.add it553 (int.mul -3 i7))
-                    (int.mul 2 (int.pow i6 3))) 0) (int.le_s 1 i3))
-                 (int.le_s 1 i6)) (int.le_s 1 (int.mul 2 i3)))
-               (int.le_s 1 (int.mul 4 i3)))
-              (int.le_s
-               (int.add
-                (int.add
-                 (int.add
-                  (int.add
-                   (int.mul (int.mul -3 it553) (int.pow 9 (int.add -1 it140)))
-                   (int.mul -1 (int.pow i6 3)))
-                  (int.mul (int.mul 3 (int.pow i6 3))
-                   (int.pow 9 (int.add -1 it140))))
-                 (int.mul
-                  (int.mul 4 (int.pow 4 (int.add -2 (int.mul 2 it140))))
-                  (int.pow (int.mul -2 i3) 2))) (int.pow i6 5)) -1))
-             (int.le_s
-              (int.add (int.add (int.mul -1 i7) (int.pow i3 2)) (int.pow i6 5))
-              -1))
-            (int.le_s
-             (int.add (int.add (int.mul -1 it553) (int.pow i6 5))
-              (int.pow (int.mul -2 i3) 2)) -1))
-           (int.le_s
-            (int.add
-             (int.add
-              (int.add
-               (int.add
-                (int.mul (int.mul -1 it553) (int.pow 9 (int.add -1 it140)))
-                (int.mul -1 (int.pow i6 3)))
-               (int.mul (int.pow i6 3) (int.pow 9 (int.add -1 it140))))
-              (int.mul (int.pow 4 (int.add -2 (int.mul 2 it140)))
-               (int.pow (int.mul -2 i3) 2))) (int.pow i6 5)) -1))
-          (int.le_s (int.mul -1 it140) -1))
-  
-  Simplify step: ((+ it553 + (* -3 * i7) + (* 2 * (i6 ** 3))) = 0 & 1 <= i3 & 1 <= i6 & 1 <= (* 2 * i3) & 1 <= (* 4 * i3) & (+ (* -3 * it553 * (9 ** (+ -1 + it140))) + (* -1 * (i6 ** 3)) + (* 3 * (i6 ** 3) * (9 ** (+ -1 + it140))) + (* 4 * (4 ** (+ -2 + (* 2 * it140))) * ((* -2 * i3) ** 2)) + (i6 ** 5)) <= -1 & (+ (* -1 * i7) + (i3 ** 2) + (i6 ** 5)) <= -1 & (+ (* -1 * it553) + (i6 ** 5) + ((* -2 * i3) ** 2)) <= -1 & (+ (* -1 * it553 * (9 ** (+ -1 + it140))) + (* -1 * (i6 ** 3)) + (* (i6 ** 3) * (9 ** (+ -1 + it140))) + (* (4 ** (+ -2 + (* 2 * it140))) * ((* -2 * i3) ** 2)) + (i6 ** 5)) <= -1 & (* -1 * it140) <= -1)
-  Simplified expression: ((+ it553 + (* -3 * i7) + (* 2 * (i6 ** 3))) = 0 & 1 <= i3 & 1 <= i6 & 1 <= (* 2 * i3) & 1 <= (* 4 * i3) & (+ (* -3 * it553 * (9 ** (+ -1 + it140))) + (* -1 * (i6 ** 3)) + (* 3 * (i6 ** 3) * (9 ** (+ -1 + it140))) + (* 4 * (4 ** (+ -2 + (* 2 * it140))) * ((* -2 * i3) ** 2)) + (i6 ** 5)) <= -1 & (+ (* -1 * i7) + (i3 ** 2) + (i6 ** 5)) <= -1 & (+ (* -1 * it553) + (i6 ** 5) + ((* -2 * i3) ** 2)) <= -1 & (+ (* -1 * it553 * (9 ** (+ -1 + it140))) + (* -1 * (i6 ** 3)) + (* (i6 ** 3) * (9 ** (+ -1 + it140))) + (* (4 ** (+ -2 + (* 2 * it140))) * ((* -2 * i3) ** 2)) + (i6 ** 5)) <= -1 & (* -1 * it140) <= -1)
-  Fatal error: exception Failure("only base 2 is supported in exponents (got i6)")
-  [2]
+  Error after simplification.
+    Non linear arithmetic between
+      0) (exp i3 2)
+      
+    Non linear arithmetic between
+      0) (exp i6 3)
+      
+    Non linear arithmetic between
+      0) (exp i6 5)
+      
+    Non linear arithmetic between
+      0) (exp (* (- 2) i3) 2)
+      
+  [1]
 
 $ time -f "%U"
 It's luck that Z3 gives an answer. If we add
