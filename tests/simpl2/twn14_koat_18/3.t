@@ -135,10 +135,36 @@ $ cat input3.smt2
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
   Fixpoint after 5 steps
+  Error after simplification.
+    Non linear arithmetic between
+      0) (exp i3 2)
+  
+    Non linear arithmetic between
+      0) (exp i6 3)
+  
+    Non linear arithmetic between
+      0) (exp i6 5)
+  
+    Non linear arithmetic between
+      0) (exp (* (- 2) i3) 2)
+  
 
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 5 Chro -pre-simpl input3.smt2 || echo "timeout"
-  sat
+  Error after simplification.
+    Non linear arithmetic between
+      0) (exp i3 2)
+      
+    Non linear arithmetic between
+      0) (exp i6 3)
+      
+    Non linear arithmetic between
+      0) (exp i6 5)
+      
+    Non linear arithmetic between
+      0) (exp (* (- 2) i3) 2)
+      
+  timeout
 
 $ export CHRO_DEBUG=1
 $ /usr/bin/time -f "TIME: %U"
