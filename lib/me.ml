@@ -582,7 +582,8 @@ let%expect_test _ =
     (Ast.Eia.leq
        Eia.(pow (atom (const 2)) (Eia.pow (atom @@ const 2) (atom @@ var "z")))
        (Eia.atom (Const 1)));
-  [%expect {|
+  [%expect
+    {|
     (<= (exp 2 (exp 2 z)) 1)
     IR1: (assert (<= pow2( %0)  1) )
          (assert (= (+ (* (- 1)  %0) pow2(z) )  0) )
