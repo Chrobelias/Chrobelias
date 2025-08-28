@@ -1,4 +1,28 @@
 realheapsort_step2.koat_484
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_484.smt2 || echo TIMEOUT
-  unsat
+  Leftover formula:
+  (and
+                      (= eee1 (+ (- 1) it87))
+                      (= (+ it1018 (* (- 9) i3) (* (- 1) i2)) (- 26))
+                      (<= (+ i3 i3) 0)
+                      (<= (+ i3 (* (- 6) (exp 2 eee1))
+                          (* (- 2) i3 (exp 2 eee1)) (* (- 1) i3)
+                          (* (- 1) (exp 2 it87)) (* 6 (exp 2 eee1))) (- 2))
+                      (<= (+ i3 (* (- 6) (exp 2 eee1)) (* (- 1) i3)
+                          (* 2 i3 (exp 2 eee1)) (* 6 (exp 2 eee1))
+                          (exp 2 it87)) 2)
+                      (<= (+ i3 (* (- 3) i3)) (- 2))
+                      (<= (+ i3 (* (- 3) i3)) 0)
+                      (<= (+ i3 (* (- 2) i3)) 2)
+                      (<= (* (- 1) i3) (- 5))
+                      (<= (* (- 1) i3) (- 4))
+                      (<= (* (- 1) i3) (- 3))
+                      (<= (* (- 1) i3) (- 2))
+                      (<= (* (- 1) it87) (- 1)))
+  Non linear arithmetic between
+    0) i3
+    1) (exp 2 eee1)
+    
+  UNKNOWN (Errors after simplification)
+  TIMEOUT

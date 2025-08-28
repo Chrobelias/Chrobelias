@@ -1,5 +1,86 @@
 size01.koat_9
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size01.koat_9.smt2 || echo TIMEOUT
-  Fatal error: exception Failure("unimplemented (+ it17 + (* -1 * i4 * (-1 ** it13))) = 0")
+  Leftover formula:
+  (and
+                      (= (+ it15 (* (- 2) it13) (* (- 1) i2)) 1)
+                      (= (+ it16 (* (- 1) i3) (* 2 it13)) 0)
+                      (= (+ it17 (* (- 1) i4 (exp (- 1) it13))) 0)
+                      (= (+ it18 (* (- 1) i5 (exp (- 1) it13))) 0)
+                      (= (+ it50 (* (- 2) it48) (* (- 1) it15)) 0)
+                      (= (+ it51 (* (- 1) it16) (* 2 it48)) 0)
+                      (= (+ it52 (* (- 1) it17 (exp (- 1) it48))) 0)
+                      (= (+ it53 (* (- 1) it18 (exp (- 1) it48))) 0)
+                      (= (+ (* (- 8) (exp it13 3)) (* (- 6) i3 it13)
+                         (* (- 6) it13 (exp i3 2)) (* (- 3) i6) (* (- 1) it13)
+                         (* 3 it19) (* 6 (exp it13 2)) (* 12 i3 (exp it13 2))) 0)
+                      (= (+ (* (- 8) (exp it48 3)) (* (- 6) it16 it48)
+                         (* (- 6) it48 (exp it16 2)) (* (- 3) it19)
+                         (* (- 1) it48) (* 3 it54) (* 6 (exp it48 2))
+                         (* 12 it16 (exp it48 2))) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13)) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13)) 1)
+                      (<= (+ (* (- 1) it16) (* 2 it48)) 0)
+                      (<= (+ (* (- 1) it16) (* 2 it48)) 1)
+                      (<= (* (- 1) it13) (- 1))
+                      (<= (* (- 1) it48) (- 1)))
+  Non linear arithmetic between
+    0) i3
+    1) it13
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) i4
+    1) (exp (- 1) it13)
+    
+  Non linear arithmetic between
+    0) i5
+    1) (exp (- 1) it13)
+    
+  Non linear arithmetic between
+    0) it13
+    1) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) it16
+    1) it48
+    
+  Non linear arithmetic between
+    0) it16
+    1) (exp it48 2)
+    
+  Non linear arithmetic between
+    0) it17
+    1) (exp (- 1) it48)
+    
+  Non linear arithmetic between
+    0) it18
+    1) (exp (- 1) it48)
+    
+  Non linear arithmetic between
+    0) it48
+    1) (exp it16 2)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    
+  Non linear arithmetic between
+    0) (exp it16 2)
+    
+  Non linear arithmetic between
+    0) (exp it48 2)
+    
+  Non linear arithmetic between
+    0) (exp it48 3)
+    
+  UNKNOWN (Errors after simplification)
   TIMEOUT

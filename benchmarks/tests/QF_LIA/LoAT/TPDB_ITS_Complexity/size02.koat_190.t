@@ -1,5 +1,52 @@
 size02.koat_190
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_190.smt2 || echo TIMEOUT
-  Fatal error: exception Failure("unimplemented (+ it869 + (* -1 * i4 * (-1 ** it13))) = 0")
+  Leftover formula:
+  (and
+                      (= (+ it56 it907 (* (- 1) it869)) 0)
+                      (= (+ it56 it908 (* (- 1) it870)) 0)
+                      (= (+ it867 (* (- 2) it13) (* (- 1) i2)) 1)
+                      (= (+ it868 (* (- 1) i3) (* 2 it13)) 0)
+                      (= (+ it869 (* (- 1) i4 (exp (- 1) it13))) 0)
+                      (= (+ it870 (* (- 1) i5 (exp (- 1) it13))) 0)
+                      (= (+ it905 (* (- 1) it56) (* (- 1) it867)) 1)
+                      (= (+ (* (- 8) (exp it13 3)) (* (- 6) i3 it13)
+                         (* (- 6) it13 (exp i3 2)) (* (- 3) i6) (* (- 1) it13)
+                         (* 3 it871) (* 6 (exp it13 2)) (* 12 i3 (exp it13 2))) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13)) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13)) 1)
+                      (<= (+ (* (- 1) it869) (* (- 1) it870) (* 2 it56)) 1)
+                      (<= (+ (* (- 1) it907) (* (- 1) it908)) (- 1))
+                      (<= (* (- 1) it13) (- 1))
+                      (<= (* (- 1) it56) (- 1)))
+  Non linear arithmetic between
+    0) i3
+    1) it13
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) i4
+    1) (exp (- 1) it13)
+    
+  Non linear arithmetic between
+    0) i5
+    1) (exp (- 1) it13)
+    
+  Non linear arithmetic between
+    0) it13
+    1) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    
+  UNKNOWN (Errors after simplification)
   TIMEOUT
