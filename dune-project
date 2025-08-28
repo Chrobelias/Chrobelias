@@ -32,6 +32,7 @@
   ppx_expect
   ppx_inline_test
   mdx
+  (mdx :with-tests)
   (ocamlformat :dev))
  (tags
   (solver theorem)))
