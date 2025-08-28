@@ -95,13 +95,13 @@ Should be (<= x 2)
   iteration 4
   ast(4) = (and
              (= 0 0)
-             (= (+ (* (- 2) i3) (* 2 i3)) 0)
              (<= (* (- 1) i3) (- 2)))
   iteration 5
   ast(5) = (and
-             (= (+ (* (- 2) i3) (* 2 i3)) 0)
              (<= (* (- 1) i3) (- 2)))
-  Fixpoint after 5 steps
+  iteration 6
+  ast(6) = (<= (* (- 1) i3) (- 2))
+  Fixpoint after 6 steps
 Fold exps
   $ cat > i3.smt2 <<-EOF
   > (set-logic ALL)
