@@ -176,6 +176,7 @@ let check bound ast =
            let ph = apply_symnatics sym ast in
            let solver = Smtml.Z3_mappings.Solver.make () in
            Smtml.Z3_mappings.Solver.reset solver;
+           let __ () = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
            match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
            | `Sat -> raise (Early env)
            | _ -> ())
