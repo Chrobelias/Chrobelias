@@ -6,7 +6,8 @@ type error = Non_linear_arith of Ast.Eia.term list
 
 let pp_error ppf = function
   | Non_linear_arith ts ->
-    Format.fprintf ppf "@[<v 2>@[Non linear arithmetic between@]@,";
+    Format.fprintf ppf "@[<v 2>";
+    Format.fprintf ppf "@[Non linear arithmetic between@]@,";
     List.iteri (fun i -> Format.fprintf ppf "@[%d) %a@]@," i Ast.pp_term_smtlib2) ts;
     Format.fprintf ppf "@]"
 ;;
@@ -162,12 +163,6 @@ let make_main_symantics env =
       | Some c -> c
     ;;
 
-    let pow base xs =
-      match base, xs with
-      | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
-      | _ -> Ast.Eia.Pow (base, xs)
-    ;;
-
     let pow2var v = Ast.Eia.Pow (const 2, var v)
 
     let fold_and_sort init op xs =
@@ -182,7 +177,7 @@ let make_main_symantics env =
       c, List.sort compare_term xs
     ;;
 
-    let mul xs =
+    let rec mul xs =
       let xs =
         (* List.fold_right
           (fun x acc ->
@@ -207,6 +202,13 @@ let make_main_symantics env =
       | 2, [ Pow ((Atom (Const 2) as base), Add [ Atom (Const -1); v ]) ] -> pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ const c; x ]) ss)
       | c, xs -> Ast.Eia.mul (Eia.atom (Const c) :: List.sort compare_term xs)
+
+    and pow base xs =
+      match base, xs with
+      | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
+      | Mul ((Atom (Const c) as base0) :: tl), Eia.Atom (Const e) ->
+        mul [ pow base0 xs; pow (Mul tl) xs ]
+      | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
     let rec add xs =
@@ -543,7 +545,7 @@ let simpl ast =
     let ast = loop 1 Env.empty ast in
     match check_errors ast with
     | [] -> `Unknown ast
-    | errrs -> `Error errrs
+    | errrs -> `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
   with
   | Unsat -> `Unsat
 ;;

@@ -10,6 +10,7 @@ type config =
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
   ; mutable pre_simpl : bool (** Simplify the AST *)
+  ; mutable error_check : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool

@@ -345,6 +345,7 @@ type config =
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
   ; mutable pre_simpl : bool
+  ; mutable error_check : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
@@ -360,6 +361,7 @@ let config =
   ; dump_pre_simpl = false
   ; dump_ir = false
   ; pre_simpl = true
+  ; error_check = true
   ; simpl_alpha = true
   ; simpl_mono = true
   ; over_approx = true
@@ -379,6 +381,8 @@ let parse_args () =
             | "pre_simpl" | "pre-simpl" | "simpl2" -> config.stop_after <- `Pre_simplify
             | _ -> failwith "Bad argument")
       , " Stop after step" )
+    ; "-error-check", Arg.Unit (fun () -> config.error_check <- true), " "
+    ; "-no-error-check", Arg.Unit (fun () -> config.error_check <- false), " "
     ; "-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), " "
     ; "-no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), " "
     ; ( "--no-simpl-alpha"
