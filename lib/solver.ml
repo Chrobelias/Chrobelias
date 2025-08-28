@@ -447,6 +447,7 @@ module Make
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
        val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
        val model_to_int : Nfa.v list -> Z.t
+       val nat_model_to_int : NfaNat.v list -> Z.t
      end) =
 struct
   let is_exp = function
@@ -628,6 +629,12 @@ struct
     helper (-1) n
   ;;
 
+  let logBaseZ n =
+    let base = Z.of_int NfaCollection.base in
+    let rec helper acc n = if n = Z.zero then acc else helper (acc + 1) Z.(n / base) in
+    helper (-1) n
+  ;;
+
   let pow2z n =
     List.init (Z.to_int n) (Fun.const (NfaCollection.base |> Z.of_int))
     |> List.fold_left Z.( * ) Z.one
@@ -782,16 +789,18 @@ struct
       ~vars:(Map.to_alist s.vars)
       Nfa.format_nfa
       nfa;
+    let vars = s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data in
     let inter, s = internal s in
     let get_deg = Map.find_exn s.vars in
     let x' = get_exp x in
+    Debug.printfln
+      "vars: [%a]"
+      (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_int)
+      vars;
     if is_exp next
     then
       nfa
-      |> Nfa.get_chrobaks_sub_nfas
-           ~res:(get_deg x)
-           ~temp:(get_deg next)
-           ~vars:(Map.data s.vars)
+      |> Nfa.get_chrobaks_sub_nfas ~res:(get_deg x) ~temp:(get_deg next) ~vars
       |> Seq.flat_map (fun (nfa, chrobak, model_part) ->
         (let y = get_exp next in
          Debug.dump_nfa
@@ -812,10 +821,7 @@ struct
       in
       Debug.dump_nfa ~msg:"Nfa intersected with pow_of_log_var: %s" Nfa.format_nfa nfa;
       nfa
-      |> Nfa.get_chrobaks_sub_nfas
-           ~res:(get_deg x)
-           ~temp:(get_deg inter)
-           ~vars:(Map.data s.vars)
+      |> Nfa.get_chrobaks_sub_nfas ~res:(get_deg x) ~temp:(get_deg inter) ~vars
       |> Seq.flat_map (fun (nfa, chrobak, model_part) ->
         nfa_for_exponent s x' (get_deg inter) chrobak
         |> Seq.map (Nfa.intersect nfa)
@@ -827,15 +833,15 @@ struct
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
     let get_deg = Map.find_exn s.vars in
-    let rec helper nfa order model =
+    let rec helper nfa remaining_order model =
       Debug.dump_nfa
         ~msg:"Nfa inside proof_order: %s"
         ~vars:(Map.to_alist s.vars)
         Nfa.format_nfa
         nfa;
-      match order with
-      | [] -> return s nfa model
-      | x :: [] -> return s (project (get_deg x) nfa) model
+      match remaining_order with
+      | [] -> return s order nfa model
+      | x :: [] -> return s order (project (get_deg x) nfa) model
       | x :: (next :: _ as tl) ->
         if not (is_exp x)
         then helper (project (get_deg x) nfa) tl model
@@ -852,7 +858,7 @@ struct
           in
           Debug.printf "Zero nfa for %a: " Ir.pp_atom x;
           Debug.dump_nfa ~msg:"%s" Nfa.format_nfa zero_nfa;
-          match helper zero_nfa tl model with
+          match helper zero_nfa tl ((fun _ -> Some ([], 0)) :: model) with
           | Some _ as res -> res
           | None ->
             Debug.printfln "%a > 1:" Ir.pp_atom x;
@@ -1019,7 +1025,7 @@ struct
     match
       f
       |> eval_semenov
-           (fun _ nfa _ -> if NfaNat.run nfa then Some () else None)
+           (fun _ _ nfa _ -> if NfaNat.run nfa then Some () else None)
            (fun x nfa -> NfaNat.project [ x ] nfa)
     with
     | Some _ -> `Sat
@@ -1034,29 +1040,68 @@ struct
       model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
   ;;
 
+  let combine_model_pieces s order (model, len) models =
+    let vars = Map.keys s.vars |> List.filter_map Ir.var_val in
+    Debug.printfln
+      "vars: [%a]"
+      (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_string)
+      vars;
+    let rec helper mapVals len order past_order parts =
+      let len_of_var = function
+        | Ir.Var var -> Map.find_exn mapVals var |> Extra.nat_model_to_int |> logBaseZ
+        | Ir.Pow2 var -> Map.find_exn mapVals var |> Extra.nat_model_to_int |> Z.to_int
+      in
+      match order with
+      | [] -> mapVals
+      | (Ir.Var _ as v) :: tl -> helper mapVals len tl (v :: past_order) parts
+      | (Ir.Pow2 var as exp) :: tl ->
+        (match parts with
+         | [] ->
+           failwith
+             "Internal error occured: not enough model parts to construct full model"
+         | part :: parts ->
+           let prev_var =
+             past_order
+             |> List.find (function
+               | Ir.Var var2 when var2 = var -> true
+               | Ir.Pow2 _ -> true
+               | _ -> false)
+           in
+           Debug.printfln
+             "inside combine_model_pieces: exp=%a, prev_var=%a"
+             Ir.pp_atom
+             exp
+             Ir.pp_atom
+             prev_var;
+           let path_len = len_of_var exp - len_of_var prev_var in
+           let model2 = part path_len |> Option.get in
+           let new_model, new_len =
+             NfaNat.combine_model_pieces
+               (List.map (Map.find_exn mapVals) vars, len)
+               model2
+           in
+           let mapVals = new_model |> Base.List.zip_exn vars |> Map.of_alist_exn in
+           helper mapVals new_len tl (exp :: past_order) parts)
+    in
+    let mapVals = Base.List.zip_exn vars model |> Map.of_alist_exn in
+    helper mapVals len order [] models |> Map.map_keys_exn ~f:Ir.var
+  ;;
+
   let get_model_semenov f =
     let res =
       f
       |> eval_semenov
-           (fun s nfa model ->
-              match NfaNat.any_path nfa (Map.data s.vars) with
-              | Some path -> Some (s, path, model)
+           (fun s order nfa model ->
+              match
+                NfaNat.any_path nfa (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
+              with
+              | Some path -> Some (s, order, path, model)
               | None -> None)
            (fun _ nfa -> nfa)
     in
     match res with
-    | Some (s, model, models) ->
-      let ( let* ) = Option.bind in
-      let map =
-        NfaNat.combine_model_pieces (model :: models)
-        |> List.mapi (fun i v -> i, v)
-        |> List.filter_map (fun (i, v) ->
-          let* sup = List.nth_opt (Map.keys s.vars) i in
-          Option.some (sup, v))
-        |> List.mapi (fun i (atom, v) -> atom, v)
-        |> Map.of_alist_exn
-      in
-      let map = Map.filter_keys map ~f:(fun key -> not (is_exp key)) in
+    | Some (s, order, (model, len), models) ->
+      let map = combine_model_pieces s (List.rev order) (model, len) models in
       Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
       Debug.printfln
         "Variable map: %a"
@@ -1156,6 +1201,8 @@ module LsbStr =
         |> String.of_seq
         |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
       ;;
+
+      let nat_model_to_int = model_to_int
     end)
 
 let z_of_list_lsb p =
@@ -1189,6 +1236,7 @@ module Lsb =
       ;;
 
       let model_to_int c = z_of_list_lsb c
+      let nat_model_to_int = model_to_int
     end)
 
 let z_of_list_msb p =
@@ -1206,6 +1254,18 @@ let z_of_list_msb p =
       (0 -- (deg - 1))
   in
   Z.mul (bv_init length (fun i -> List.nth p i)) sign
+;;
+
+let z_of_list_msb_nat p =
+  let p = List.rev p in
+  let length = List.length p in
+  let bv_init deg f =
+    List.fold_left
+      (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
+      Z.zero
+      (0 -- (deg - 1))
+  in
+  bv_init length (fun i -> List.nth p i)
 ;;
 
 module Msb =
@@ -1228,6 +1288,7 @@ module Msb =
       ;;
 
       let model_to_int c = z_of_list_msb c
+      let nat_model_to_int = z_of_list_msb_nat
     end)
 
 let proof ir =
