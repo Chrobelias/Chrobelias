@@ -89,6 +89,7 @@ module type L = sig
   val singleton_with_mask : int -> int list -> t
   val one_with_mask : int list -> t
   val pp : formatter -> t -> unit
+  val pp_u : formatter -> u -> unit
   val of_list : (int * u) list -> t
   val get : t -> int -> u
   val alpha : t -> u Set.t
@@ -205,6 +206,11 @@ module Bv = struct
       | x, _ -> x)
     |> String.of_seq
     |> Format.fprintf ppf "(%s)"
+  ;;
+
+  let pp_u fmt = function
+    | true -> Format.fprintf fmt "1"
+    | false -> Format.fprintf fmt "0"
   ;;
 
   let reenumerate map (vec, mask) =
@@ -344,6 +350,8 @@ module Str = struct
     let len = List.fold_left max 0 mask + 1 in
     Array.init len (fun i -> if List.mem i mask then '1' else u_null)
   ;;
+
+  let pp_u = Format.pp_print_char
 
   (* FIXME: this should support different bases and symbols. *)
   let variations _alpha vec =
@@ -621,9 +629,9 @@ module type NatType = sig
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (v list list * int)) Seq.t
+    -> (t * (int * int) list * (int -> (v list list * int) option)) Seq.t
 
-  val combine_model_pieces : (v list list * int) list -> v list list
+  val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
 end
 
 type 'a _t =
@@ -1386,32 +1394,27 @@ module Lsb (Label : L) = struct
       Debug.printfln "Calculating chrobak for var %d" res;
       Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
       Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
-      return (nfa, chrobak chrobak_nfa, path))
+      return (nfa, chrobak chrobak_nfa, fun len -> failwith "TODO"))
   ;;
 
   let to_nat (nfa : t) : u = nfa
 
-  let rec combine_model_pieces : (v list list * int) list -> v list list = function
-    | [] -> []
-    | [ (model, _) ] -> model
-    | (model, len1) :: (model2, len2) :: tl ->
-      (*let len = max len1 len2 in
+  let combine_model_pieces (model, len1) (model2, len2) =
+    (*let len = max len1 len2 in
       let model = List.init len (fun i -> List.nth_opt model i |> Option.value ~default:[]) in
       let model2 = List.init len (fun i -> List.nth_opt model2 i |> Option.value ~default:[]) in*)
-      let len = max (List.length model) (List.length model2) in
-      let model =
-        List.init len (fun i ->
-          List.nth_opt model i
-          |> Option.value ~default:(List.init len1 (Fun.const Label.u_zero)))
-      in
-      let model2 =
-        List.init len (fun i ->
-          List.nth_opt model2 i
-          |> Option.value ~default:(List.init len2 (Fun.const Label.u_zero)))
-      in
-      (Base.List.zip_exn model model2 |> List.map (fun (x, y) -> x @ y), len1 + len2)
-      :: tl
-      |> combine_model_pieces
+    let len = max (List.length model) (List.length model2) in
+    let model =
+      List.init len (fun i ->
+        List.nth_opt model i
+        |> Option.value ~default:(List.init len1 (Fun.const Label.u_zero)))
+    in
+    let model2 =
+      List.init len (fun i ->
+        List.nth_opt model2 i
+        |> Option.value ~default:(List.init len2 (Fun.const Label.u_zero)))
+    in
+    Base.List.zip_exn model model2 |> List.map (fun (x, y) -> y @ x), len1 + len2
   ;;
 
   (*let len = max (List.length model) (List.length model2) in
@@ -1485,28 +1488,17 @@ module MsbNat (Label : L) = struct
     let res_lbl = Label.singleton_with_mask res [ res; temp ] in
     let pow_lbl = Label.singleton_with_mask temp [ res; temp ] in
     let one_lbl = Label.one_with_mask [ res; temp ] in
-    let end_transitions =
+    let all_zero_transitions =
       nfa.transitions
-      |> Array.mapi (fun src list ->
-        if Set.mem nfa.start src
-        then list |> List.filter (fun (lbl, _) -> Label.equal lbl res_lbl)
-        else [])
+      |> Array.map (List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl))
     in
-    let pre_final =
-      end_transitions |> Array.to_list |> List.concat |> List.map snd |> Set.of_list
-    in
-    let zero_transitions, states =
-      let all_zero_transitions =
-        nfa.transitions
-        |> Array.map (List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl))
-      in
+    let find_reachable transitions start =
       let rec helper acc visited cur =
         if Set.is_empty cur
         then acc, visited
         else (
           let next_transitions =
-            all_zero_transitions
-            |> Base.Array.mapi ~f:(fun i x -> if Set.mem cur i then x else [])
+            transitions |> Base.Array.mapi ~f:(fun i x -> if Set.mem cur i then x else [])
           in
           next_transitions
           |> Base.Array.iteri ~f:(fun i list -> acc.(i) <- list @ acc.(i));
@@ -1521,8 +1513,20 @@ module MsbNat (Label : L) = struct
           in
           helper acc visited next)
       in
-      helper (Array.map (Fun.const []) all_zero_transitions) Set.empty pre_final
+      helper (Array.map (Fun.const []) transitions) Set.empty start
     in
+    let before_transitions, pre_start = find_reachable all_zero_transitions nfa.start in
+    let end_transitions =
+      nfa.transitions
+      |> Array.mapi (fun src list ->
+        if Set.mem pre_start src
+        then list |> List.filter (fun (lbl, _) -> Label.equal lbl res_lbl)
+        else [])
+    in
+    let pre_final =
+      end_transitions |> Array.to_list |> List.concat |> List.map snd |> Set.of_list
+    in
+    let zero_transitions, states = find_reachable all_zero_transitions pre_final in
     let start_transitions =
       nfa.transitions
       |> Array.mapi (fun src list ->
@@ -1563,7 +1567,8 @@ module MsbNat (Label : L) = struct
       }
     in
     let path_nfa =
-      { transitions = Graph.union_list [ zero_transitions; end_transitions ]
+      { transitions =
+          Graph.union_list [ zero_transitions; end_transitions; before_transitions ]
       ; start = nfa.start
       ; final = Set.empty
       ; deg = nfa.deg
@@ -1593,6 +1598,61 @@ module MsbNat (Label : L) = struct
     result
   ;;
 
+  let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
+    Debug.printfln "path_of_len entrance: len=%d" total_len;
+    Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
+    let exp_lbl = Label.singleton_with_mask exp [ exp ] in
+    let transitions = nfa.transitions in
+    let bfs =
+      let helper f =
+        let rec helper acc = function
+          | `Answer x :: _ -> Some x
+          | h :: tl -> helper (f h @ acc) tl
+          | [] ->
+            (match acc with
+             | [] -> None
+             | x -> helper [] x)
+        in
+        helper []
+      in
+      helper (function
+        | `Before (cur, path, visited) ->
+          if Set.mem visited cur
+          then []
+          else if total_len = 0 && Set.mem nfa.final cur
+          then [ `Answer path ]
+          else
+            transitions.(cur)
+            |> List.map (fun (lbl, dst) ->
+              if Label.equal lbl exp_lbl
+              then `Between (dst, lbl :: path, 1)
+              else `Before (dst, lbl :: path, Set.add visited cur))
+        | `Between (cur, path, len) ->
+          if len = total_len
+          then if Set.mem nfa.final cur then [ `Answer path ] else []
+          else (
+            assert (len < total_len);
+            transitions.(cur)
+            |> List.filter_map (fun (lbl, dst) ->
+              Some (`Between (dst, lbl :: path, len + 1))))
+        | `Answer x -> failwith "Should be unreachable")
+    in
+    nfa.start
+    |> Set.to_list
+    |> List.map (fun x -> `Before (x, [], Set.empty))
+    |> bfs
+    |> Option.map (fun p ->
+      let p = List.rev p in
+      let len = List.length p in
+      Debug.printfln
+        "path_of_len: found path of len %d: [%a]"
+        len
+        (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
+        p;
+      ( vars |> List.map (fun var -> List.init len (fun i -> Label.get (List.nth p i) var))
+      , len ))
+  ;;
+
   let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
     match nfa.start |> Set.find ~f:(Fun.const true) with
     | None -> Seq.empty
@@ -1619,7 +1679,13 @@ module MsbNat (Label : L) = struct
         Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
         Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
         Debug.dump_nfa ~msg:"Corresponding path_nfa: %s" format_nfa path_nfa;
-        (nfa, chrobak chrobak_nfa, path) |> return)
+        return
+          ( nfa
+          , chrobak chrobak_nfa
+          , path_of_len
+              { path_nfa with final = lbls |> List.map fst |> Set.of_list }
+              ~vars
+              ~exp:res ))
   ;;
 
   (*let to_nat (nfa : t) : u =
@@ -1637,36 +1703,19 @@ module MsbNat (Label : L) = struct
   ;;*)
   let to_nat (nfa : t) : u = nfa
 
-  let rec combine_model_pieces : (v list list * int) list -> v list list = function
-    | [] -> []
-    | [ (model, _) ] -> model
-    | (model, len1) :: (model2, len2) :: tl ->
-      let len = max (List.length model) (List.length model2) in
-      let model =
-        List.init len (fun i ->
-          List.nth_opt model i
-          |> Option.value ~default:(List.init len1 (Fun.const Label.u_zero)))
-      in
-      let model2 =
-        List.init len (fun i ->
-          List.nth_opt model2 i
-          |> Option.value ~default:(List.init len2 (Fun.const Label.u_zero)))
-      in
-      (Base.List.zip_exn model model2 |> List.map (fun (x, y) -> y @ x), len1 + len2)
-      (*
-         let len = max (len1) (len2) in
-          (List.init len (fun i ->
-                  Format.printf "len %d %d\n" len1 len2;
-          let x = (List.nth_opt model i |> Option.value ~default:(List.init (len1) (Fun.const Label.u_zero))) in
-          (*let x = x @ (List.init (len1 - List.length x) (Fun.const Label.u_zero)) in*)
-          let y = (List.nth_opt model2 i |> Option.value ~default:(List.init (len2) (Fun.const Label.u_zero))) in
-          (*let y = y @ (List.init (len2 - List.length y) (Fun.const Label.u_zero)) in*)
-  Format.printf "len2 %d %d\n" (List.length x) (List.length y);
-          y @ x
-      )
-      , len1 + len2)*)
-      :: tl
-      |> combine_model_pieces
+  let combine_model_pieces (model, len1) (model2, len2) : v list list * int =
+    let len = max (List.length model) (List.length model2) in
+    let model =
+      List.init len (fun i ->
+        List.nth_opt model i
+        |> Option.value ~default:(List.init len1 (Fun.const Label.u_zero)))
+    in
+    let model2 =
+      List.init len (fun i ->
+        List.nth_opt model2 i
+        |> Option.value ~default:(List.init len2 (Fun.const Label.u_zero)))
+    in
+    Base.List.zip_exn model model2 |> List.map (fun (x, y) -> y @ x), len1 + len2
   ;;
 end
 

@@ -24,6 +24,7 @@ module type L = sig
   val singleton_with_mask : int -> int list -> t
   val one_with_mask : int list -> t
   val pp : Format.formatter -> t -> unit
+  val pp_u : Format.formatter -> u -> unit
   val of_list : (int * u) list -> t
   val get : t -> int -> u
   val alpha : t -> u Set.t
@@ -95,9 +96,9 @@ module type NatType = sig
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (v list list * int)) Seq.t
+    -> (t * (int * int) list * (int -> (v list list * int) option)) Seq.t
 
-  val combine_model_pieces : (v list list * int) list -> v list list
+  val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
 end
 
 module Lsb (Label : L) : sig
