@@ -427,52 +427,7 @@
                                  i6; it633 -> 7; it634 -> (+ 2 it628); it635 ->
                                  it629; it636 -> 0; it637 -> 0; it638 ->
                                  it632; it644 -> 7; it646 -> i3; it647 ->
-                                 it636; it729 -> 7; it731 -> iwhole: (bool.and
-          (bool.and
-           (bool.and
-            (bool.and
-             (bool.and
-              (bool.and
-               (bool.and
-                (bool.and
-                 (bool.and
-                  (bool.and
-                   (bool.and
-                    (bool.and
-                     (bool.and
-                      (bool.and
-                       (bool.and
-                        (bool.and
-                         (bool.eq
-                          (int.add (int.add it645 (int.mul -6 it273))
-                           (int.mul -1 i2)) 5)
-                         (bool.eq
-                          (int.add it648
-                           (int.mul -1 (int.pow 2 (int.add 1 it273)))) -2))
-                        (bool.eq (int.add it649 (int.mul -2 exp_2_1)) -2))
-                       (bool.eq
-                        (int.add (int.add it730 (int.mul -9 i3))
-                         (int.mul -1 it645)) -36))
-                      (int.le_s
-                       (int.add (int.add i3 (int.mul -2 i3)) (int.mul -1 i3))
-                       -2)) (int.le_s (int.add i3 (int.mul -2 it648)) 2))
-                    (int.le_s (int.add (int.mul -2 i3) (int.mul 2 it648)) 1))
-                   (int.le_s (int.add (int.mul -1 i3) (int.mul 2 exp_2_1)) 0))
-                  (int.le_s (int.add (int.mul -1 i3) (int.mul 2 exp_2_1)) 1))
-                 (int.le_s (int.mul -1 i3) -5)) (int.le_s (int.mul -1 i3) -4))
-               (int.le_s (int.mul -1 i3) -3)) (int.le_s (int.mul -1 i3) -2))
-             (int.le_s (int.mul -1 it273) -1)) (int.le_s (int.mul -1 it87) -1))
-           (int.le_s (int.mul -1 exp_2_2) -2)) (int.le_s exp_2_2 2))
-         (int.lt_s it273 exp_2_1)
-         (int.lt_s it87 exp_2_2)
-  
-  Interesting: it273 it87
-  
-  Expecting 9 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  env = {| it273->1 it87->1 |}
-  t646; it732 ->
+                                 it636; it729 -> 7; it731 -> it646; it732 ->
                                  (+ (- 4) it646); it733 -> it646; it734 ->
                                  1; it741 -> 5; it742 -> (+ 2 it730); it743 ->
                                  it646; it744 -> (+ (- 3) it646); it745 ->
@@ -544,6 +499,51 @@
              (<= (* (- 1) (exp 2 it87)) (- 2))
              (<= (exp 2 it87) 2))
   Fixpoint after 9 steps
+  whole: (bool.and
+          (bool.and
+           (bool.and
+            (bool.and
+             (bool.and
+              (bool.and
+               (bool.and
+                (bool.and
+                 (bool.and
+                  (bool.and
+                   (bool.and
+                    (bool.and
+                     (bool.and
+                      (bool.and
+                       (bool.and
+                        (bool.and
+                         (bool.eq
+                          (int.add (int.add it645 (int.mul -6 it273))
+                           (int.mul -1 i2)) 5)
+                         (bool.eq
+                          (int.add it648
+                           (int.mul -1 (int.pow 2 (int.add 1 it273)))) -2))
+                        (bool.eq (int.add it649 (int.mul -2 exp_2_1)) -2))
+                       (bool.eq
+                        (int.add (int.add it730 (int.mul -9 i3))
+                         (int.mul -1 it645)) -36))
+                      (int.le_s
+                       (int.add (int.add i3 (int.mul -2 i3)) (int.mul -1 i3))
+                       -2)) (int.le_s (int.add i3 (int.mul -2 it648)) 2))
+                    (int.le_s (int.add (int.mul -2 i3) (int.mul 2 it648)) 1))
+                   (int.le_s (int.add (int.mul -1 i3) (int.mul 2 exp_2_1)) 0))
+                  (int.le_s (int.add (int.mul -1 i3) (int.mul 2 exp_2_1)) 1))
+                 (int.le_s (int.mul -1 i3) -5)) (int.le_s (int.mul -1 i3) -4))
+               (int.le_s (int.mul -1 i3) -3)) (int.le_s (int.mul -1 i3) -2))
+             (int.le_s (int.mul -1 it273) -1)) (int.le_s (int.mul -1 it87) -1))
+           (int.le_s (int.mul -1 exp_2_2) -2)) (int.le_s exp_2_2 2))
+         (int.lt_s it273 exp_2_1)
+         (int.lt_s it87 exp_2_2)
+  
+  Interesting: it273 it87
+  
+  Expecting 9 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| it273->1 it87->1 |}
   sat
   $ timeout 2 Chro -pre-simpl input.smt2 || echo "timeout"
   sat
