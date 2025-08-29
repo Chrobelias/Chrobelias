@@ -14,8 +14,17 @@ let fmt =
       }
 ;;
 
-let printf str = Format.fprintf fmt (str ^^ "%!")
-let printfln str = Format.fprintf fmt (str ^^ "\n%!")
+let printf ppf =
+  if flag ()
+  then Format.kasprintf (Format.printf "%s%!") ppf
+  else Format.ifprintf Format.std_formatter ppf
+;;
+
+let printfln ppf =
+  if flag ()
+  then Format.kasprintf (Format.printf "%s\n%!") ppf
+  else Format.ifprintf Format.std_formatter ppf
+;;
 
 let dump_nfa ?msg ?vars format_nfa nfa =
   if flag ()
