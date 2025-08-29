@@ -129,7 +129,8 @@ let check ast =
   in
   let _repr = helper ast in
   let whole = _repr :: formulas_of_cache () in
-  log "whole: @[<v>%a@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
+  Format.pp_print_flush Format.std_formatter ();
+  log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
   let solver = Smtml.Z3_mappings.Solver.make () in
   Smtml.Z3_mappings.Solver.reset solver;
   match Smtml.Z3_mappings.Solver.check solver ~assumptions:whole with
