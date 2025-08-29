@@ -12,3 +12,11 @@ val dump_nfa
   -> (Format.formatter -> 'a -> unit)
   -> 'a
   -> unit
+
+(* TODO(Kakadu): Rework logging
+  At the moment we evaluate function's arguments anyway and after that decide whether
+  will log visibly, or not. State-of-the-art libraries avoid this. See for details:
+
+    https://erratique.ch/software/logs/doc/Logs/index.html
+    https://github.com/janestreet/ppx_log/tree/master/doc
+*)
