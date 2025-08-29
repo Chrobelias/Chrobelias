@@ -5,7 +5,14 @@ module Map = Base.Map.Poly
 
 let () = Lib.Solver.parse_args ()
 
-(*let c = ref(0)*)
+let () =
+  Sys.set_signal
+    Sys.sigterm
+    (Sys.Signal_handle
+       (fun _ ->
+         print_endline "timeout";
+         exit 1))
+;;
 
 let check_sat ast =
   let __ () =

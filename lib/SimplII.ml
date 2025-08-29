@@ -23,7 +23,7 @@ let check_errors ph =
       let xs = List.filter not_a_const xs in
       (match xs with
        | [ Atom (Const _) ] -> assert false
-       | [ Atom (Var _) ] | [] -> acc
+       | [ Pow (Atom (Const _), _) ] | [ Atom (Var _) ] | [] -> acc
        | xs -> Non_linear_arith xs :: acc)
     | Pow (base, Atom (Const _)) as ans when not_a_const base ->
       Non_linear_arith [ ans ] :: acc
