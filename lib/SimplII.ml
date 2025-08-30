@@ -225,6 +225,7 @@ let make_main_symantics env =
       | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
       | Mul ((Atom (Const c) as base0) :: tl), Eia.Atom (Const e) ->
         mul [ pow base0 xs; pow (Mul tl) xs ]
+      | Eia.Atom (Const base), Eia.Atom (Const exp) -> const (Utils.pow ~base exp)
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
@@ -246,9 +247,10 @@ let make_main_symantics env =
       | 0, [ Eia.Atom (Var x); Mul [ Eia.Atom (Const -1); Eia.Atom (Var x2) ] ]
         when x = x2 -> const 0
       | c, Mul [ Eia.Atom (Const c1); t1 ] :: Mul [ Eia.Atom (Const c2); t2 ] :: tl
-        when c1 = -1 * c2 && Stdlib.(t1 = t2) ->
-        (* TODO(Kakadu): Do c1+c2 instead *)
-        add (Atom (Const c) :: tl)
+        when Stdlib.(t1 = t2) ->
+        if c1 = -1 * c2
+        then add (Atom (Const c) :: tl)
+        else add (Atom (Const c) :: Mul [ Eia.Atom (Const (c1 + c2)); t1 ] :: tl)
       | 0, [ h ] -> h
       | 0, [] -> const 0
       | 0, xs -> Ast.Eia.add (List.sort compare_term xs)
