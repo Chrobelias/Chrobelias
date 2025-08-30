@@ -177,6 +177,8 @@ module Eia = struct
       term = term'' && term' = term'''
     | _ -> false
   ;;
+
+  let eq_term : term -> term -> bool = Stdlib.( = )
 end
 
 let%test _ = Eia.(is_constant_term (atom (const 4))) = Some 4

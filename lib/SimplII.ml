@@ -191,23 +191,26 @@ let make_main_symantics env =
       c, List.sort compare_term xs
     ;;
 
+    let collect_inside_mul xs =
+      List.fold_right
+        (fun x acc : term list ->
+           match x, acc with
+           | Eia.Mul ys, _ -> ys @ acc
+           | e, Eia.Add ss :: tl | Add ss, e :: tl ->
+             Add (List.map (fun x -> Eia.Mul [ x; e ]) ss) :: tl
+           | Pow (base1, e1), Eia.Pow (base2, e2) :: tl when Stdlib.(base1 = base2) ->
+             Eia.Pow (base1, Eia.Add [ e1; e2 ]) :: tl
+           | ( Atom (Const c)
+             , Eia.Pow ((Atom (Const basec) as base), Add (Atom (Const -1) :: ss)) :: tl )
+             when Int.equal (abs c) basec ->
+             Atom (Const (c / basec)) :: Eia.Pow (base, Add ss) :: tl
+           | x, _ -> x :: acc)
+        xs
+        []
+    ;;
+
     let rec mul xs =
-      let xs =
-        (* List.fold_right
-          (fun x acc ->
-             match x, acc with
-             | Eia.Mul ys, _ -> ys @ acc
-             | Pow (base1, e1), Eia.Pow (base2, e2) :: tl when Stdlib.(base1 = base2) ->
-               Eia.Pow (base1, Eia.Add [ e1; e2 ]) :: tl
-             | x, _ -> x :: acc)
-          xs
-          [] *)
-        List.concat_map
-          (function
-            | Eia.Mul xs -> xs
-            | x -> [ x ])
-          xs
-      in
+      let xs = collect_inside_mul xs in
       match fold_and_sort 1 ( * ) xs with
       | 0, _ -> Eia.atom (Const 0)
       | c, [] -> Eia.atom (Const c)
@@ -226,13 +229,19 @@ let make_main_symantics env =
     ;;
 
     let rec add xs =
-      let xs =
-        List.concat_map
-          (function
-            | Eia.Add xs -> xs
-            | x -> [ x ])
+      let collect_inside_add xs =
+        List.fold_right
+          (fun x acc ->
+             match x, acc with
+             | Eia.Add ts, _ -> ts @ acc
+             | Mul (Atom (Const c1) :: ph1), Eia.Mul (Atom (Const c2) :: ph2) :: tl
+               when List.equal Ast.Eia.eq_term ph1 ph2 ->
+               if c1 + c2 = 0 then tl else mul (Atom (Const (c1 + c2)) :: ph1) :: tl
+             | a, _ -> a :: acc)
           xs
+          []
       in
+      let xs = collect_inside_add xs in
       match fold_and_sort 0 ( + ) xs with
       | 0, [ Eia.Atom (Var x); Mul [ Eia.Atom (Const -1); Eia.Atom (Var x2) ] ]
         when x = x2 -> const 0
