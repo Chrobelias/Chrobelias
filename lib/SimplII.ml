@@ -139,6 +139,16 @@ module Env = struct
   ;;
 end
 
+let compare_ast l r =
+  match l, r with
+  | Ast.True, Ast.True -> 0
+  | True, _ -> -1
+  | _, True -> 1
+  | Lnot _, _ -> -1
+  | _, Lnot _ -> 1
+  | _ -> Ast.compare l r
+;;
+
 let make_main_symantics env =
   let _ : Env.t = env in
   let module Main_symantics_ (*: SYM with type repr = Ast.t*) = struct
@@ -263,9 +273,10 @@ let make_main_symantics env =
             | x -> [ x ])
           xs
       in
-      let flat = Base.List.dedup_and_sort ~compare:Ast.compare flat in
+      let flat = Base.List.dedup_and_sort ~compare:compare_ast flat in
       match flat with
       | [] -> false_
+      | Lnot True :: _ -> false_
       | [ h ] -> h
       | _ ->
         (match List.drop_while (( = ) Ast.True) flat with
