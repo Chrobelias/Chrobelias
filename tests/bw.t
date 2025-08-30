@@ -1,4 +1,4 @@
 Basic BW tests
 
   $ Chro ./bw.smt2
-  sat
+  sat (underappox)

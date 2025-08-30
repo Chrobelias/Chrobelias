@@ -1,7 +1,6 @@
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test2exp.smt2 | sed 's/[[:space:]]*$//'
-  iteration 1
-  ast(1) = (and
+  iter(1)= (and
              (<= (exp 2 (+ x y)) (exp 2 z)))
-  iteration 2
-  ast(2) = (<= (+ x y) z)
-  Fixpoint after 2 steps
+  iter(2)= (<= (+ x y) z)
+  iter(2.0)= (<= (+ x y) z)
+  sat (underappox)

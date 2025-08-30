@@ -1,7 +1,6 @@
 $ cat input1.smt2
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl input1.smt2 | sed 's/[[:space:]]*$//'
-  iteration 1
-  ast(1) = (and
+  iter(1)= (and
              (and
                (<= (+ (+ 0 0) 1) (+ (+ (+ (+ (exp it377 3)
                                           (* (* (exp 9 (+ it140 (* (- 1) 1)))
@@ -68,8 +67,7 @@ $ cat input1.smt2
              (= (+ (+ (* i2 (* (- 1) 1)) it322) (* (- 1) 1)) 0)
              (= (+ it321 (* (- 1) 2)) 0)
              (= (+ i1 (* (- 1) 1)) 0))
-  iteration 2
-  ast(2) = (and
+  iter(2)= (and
              (= i1 1)
              (= it321 2)
              (= it357 3)
@@ -118,8 +116,7 @@ $ cat input1.smt2
                                  3; it373 -> (+ 1 it358); it374 -> it359; it375 ->
                                  (* (- 2) it360); it377 -> it362; it378 ->
                                  it363;
-  iteration 3
-  ast(3) = (and
+  iter(3)= (and
              (= i1 1)
              (= it321 2)
              (= it357 3)
@@ -151,21 +148,20 @@ $ cat input1.smt2
              (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it377 3))
                  (* 3 (exp it377 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp it375 2) (exp 4 (+ (* 2 (- 1)) (* 2 it140))))
+                 (* 4 (exp it375 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
                  (exp it377 5)) (- 1))
              (<= (+ (* (- 1) it361) (exp it360 2) (exp it362 5)) (- 1))
              (<= (+ (* (- 1) it376) (exp it375 2) (exp it377 5)) (- 1))
              (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it377 3))
-                 (* (exp it375 2) (exp 4 (+ (* 2 (- 1)) (* 2 it140))))
+                 (* (exp it375 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
                  (* (exp it377 3) (exp 9 (+ (- 1) it140))) (exp it377 5)) (- 1))
              (<= (* (- 1) it140) (- 1))
              (<= (* (- 1) it326) 5)
              (<= (* (- 1) it372) (- 3)))
-  iteration 4
-  ast(4) = (and
+  iter(4)= (and
              (= 0 0)
-             (= (+ it358 (* (- 1) i2) (* (- 1) 1)) 2)
+             (= (+ it358 (* i2 (- 1)) (* 1 (- 1))) 2)
              (= (+ it359 (* (- 1) i3)) 0)
              (= (+ it360 (* (- 1) i3)) 0)
              (= (+ it361 (* (- 1) i7)) 0)
@@ -180,15 +176,14 @@ $ cat input1.smt2
              (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it362 3))
                  (* 3 (exp it362 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it360) 2))
+                 (* 16 (exp 4 (+ (- 2) (* 2 it140))) (exp (* it360) 2))
                  (exp it362 5)) (- 1))
              (<= (+ (* (- 1) it361) (exp it360 2) (exp it362 5)) (- 1))
-             (<= (+ (* (- 1) it376) (exp it362 5) (exp (* (- 2) it360) 2)) (- 1))
+             (<= (+ (* (- 1) it376) (* 4 (exp (* it360) 2)) (exp it362 5)) (- 1))
              (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it362 3))
-                 (* (exp it362 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it360) 2))
-                 (exp it362 5)) (- 1))
+                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* it360) 2))
+                 (* (exp it362 3) (exp 9 (+ (- 1) it140))) (exp it362 5)) (- 1))
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
   Something ready to substitute:  i1 -> 1; it321 -> 2; it322 -> (+ 1 i2); it323 ->
@@ -199,8 +194,7 @@ $ cat input1.smt2
                                  (+ 1 it358); it374 -> it359; it375 ->
                                  (* (- 2) it360); it377 -> it362; it378 ->
                                  it363;
-  iteration 5
-  ast(5) = (and
+  iter(5)= (and
              (= (+ it358 (* (- 1) i2)) 3)
              (= (+ it359 (* (- 1) i3)) 0)
              (= (+ it360 (* (- 1) i3)) 0)
@@ -216,15 +210,14 @@ $ cat input1.smt2
              (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it362 3))
                  (* 3 (exp it362 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it360) 2))
+                 (* 16 (exp it360 2) (exp 4 (+ (- 2) (* 2 it140))))
                  (exp it362 5)) (- 1))
              (<= (+ (* (- 1) it361) (exp it360 2) (exp it362 5)) (- 1))
-             (<= (+ (* (- 1) it376) (exp it362 5) (exp (* (- 2) it360) 2)) (- 1))
+             (<= (+ (* (- 1) it376) (* 4 (exp it360 2)) (exp it362 5)) (- 1))
              (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it362 3))
-                 (* (exp it362 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it360) 2))
-                 (exp it362 5)) (- 1))
+                 (* 4 (exp it360 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp it362 3) (exp 9 (+ (- 1) it140))) (exp it362 5)) (- 1))
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
   Something ready to substitute:  i1 -> 1; it321 -> 2; it322 -> (+ 1 i2); it323 ->
@@ -235,8 +228,7 @@ $ cat input1.smt2
                                  3; it373 -> (+ 1 it358); it374 -> it359; it375 ->
                                  (* (- 2) it360); it377 -> it362; it378 ->
                                  it363;
-  iteration 6
-  ast(6) = (and
+  iter(6)= (and
              (= (+ it358 (* (- 1) i2)) 3)
              (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= i6 5)
@@ -245,18 +237,16 @@ $ cat input1.smt2
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it376) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it376) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
-  iteration 7
-  ast(7) = (and
+  iter(7)= (and
              (= 0 0)
              (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= i6 5)
@@ -265,18 +255,16 @@ $ cat input1.smt2
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it376) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it376) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
-  iteration 8
-  ast(8) = (and
+  iter(8)= (and
              (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= i6 5)
              (<= 1 i3)
@@ -284,30 +272,119 @@ $ cat input1.smt2
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it376) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it376) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
-  Fixpoint after 8 steps
-  Error after simplification.
-    Non linear arithmetic between
-      0) (exp i3 2)
+  iter(8.0)= (and
+               (= (+ i2 (* i2 (- 1)) (* 1 (- 1))) (- 1))
+               (= (+ it358 (* i2 (- 1)) (* 3 (- 1))) 0)
+               (= (+ it359 (* (- 1) i3)) 0)
+               (= (+ it362 (* (- 1) i6)) 0)
+               (= (+ it363 (* (- 1) i7)) 0)
+               (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+               (= (+ (* (- 2) it360) (* 2 i3)) 0)
+               (<= i6 5)
+               (<= 1 i3)
+               (<= 1 (* 2 it360))
+               (<= 1 (* 4 it360))
+               (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp it362 3))
+                   (* 3 (exp it362 3) (exp 9 (+ (- 1) it140)))
+                   (* 16 (exp 4 (* (+ (- 1) it140) 2)) (exp (* it360) 2))
+                   (exp it362 5)) (- 1))
+               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it376) (* 4 (exp (* it360) 2)) (exp it362 5)) (- 1))
+               (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp it362 3))
+                   (* 4 (exp 4 (* (+ (- 1) it140) 2)) (exp (* it360) 2))
+                   (* (exp it362 3) (exp 9 (+ (- 1) it140))) (exp it362 5)) (- 1))
+               (<= (* (- 1) i6) 5)
+               (<= (* (- 1) it140) (- 1)))
+  iter(8.1)= (and
+               (= 0 0)
+               (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+               (<= i6 5)
+               (<= 1 i3)
+               (<= 1 (* 2 i3))
+               (<= 1 (* 4 i3))
+               (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp i6 3))
+                   (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
+                   (* 16 (exp i3 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
+                   (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it376) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp i6 3))
+                   (* 4 (exp i3 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
+                   (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
+               (<= (* (- 1) i6) 5)
+               (<= (* (- 1) it140) (- 1)))
+  iter(8.2)= (and
+               (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+               (<= i6 5)
+               (<= 1 i3)
+               (<= 1 (* 2 i3))
+               (<= 1 (* 4 i3))
+               (<= (+ (* (- 3) it376 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp i6 3))
+                   (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
+                   (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it376) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it376 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp i6 3))
+                   (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                   (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
+               (<= (* (- 1) i6) 5)
+               (<= (* (- 1) it140) (- 1)))
+  Leftover formula:
+  (and
+                      (= eee2 (+ (- 2) (* 2 it140)))
+                      (= eee1 (+ (- 1) it140))
+                      (= (+ it376 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+                      (<= i6 5)
+                      (<= 1 i3)
+                      (<= 1 (* 2 i3))
+                      (<= 1 (* 4 i3))
+                      (<= (+ (* (- 3) it376 (exp 9 eee1)) (* (- 1) (exp i6 3))
+                          (* 3 (exp i6 3) (exp 9 eee1))
+                          (* 16 (exp i3 2) (exp 4 eee2)) (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) it376) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) it376 (exp 9 eee1)) (* (- 1) (exp i6 3))
+                          (* 4 (exp i3 2) (exp 4 eee2))
+                          (* (exp i6 3) (exp 9 eee1)) (exp i6 5)) (- 1))
+                      (<= (* (- 1) i6) 5)
+                      (<= (* (- 1) it140) (- 1)))
+  Non linear arithmetic between
+    0) it376
+    1) (exp 9 eee1)
   
-    Non linear arithmetic between
-      0) (exp i6 3)
+  Non linear arithmetic between
+    0) (exp i3 2)
   
-    Non linear arithmetic between
-      0) (exp i6 5)
+  Non linear arithmetic between
+    0) (exp i3 2)
+    1) (exp 4 eee2)
   
-    Non linear arithmetic between
-      0) (exp (* (- 2) i3) 2)
+  Non linear arithmetic between
+    0) (exp i6 3)
   
+  Non linear arithmetic between
+    0) (exp i6 3)
+    1) (exp 9 eee1)
+  
+  Non linear arithmetic between
+    0) (exp i6 5)
+  
+  UNKNOWN (Errors after simplification)
 
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 5 Chro -pre-simpl input1.smt2 | echo "timeout"
@@ -315,5 +392,5 @@ $ /usr/bin/time -f "TIME: %U"
 
 $ /usr/bin/time -f "TIME: %U"
   $ Chro -no-pre-simpl input1.smt2 | sed 's/[[:space:]]*$//'
-  sat
+  sat (underapprox2)
 

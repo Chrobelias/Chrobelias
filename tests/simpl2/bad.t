@@ -8,13 +8,13 @@ $ export CHRO_DEBUG=1
   > (check-sat)
   > EOF
   $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  Error after simplification.
-    Non linear arithmetic between
-      0) x1
-      1) x2
-
   Leftover formula:
   (<= (* x1 x2) 52)
+  Non linear arithmetic between
+    0) x1
+    1) x2
+  
+  UNKNOWN (Errors after simplification)
 
 
 $ export OCAMLRUNPARAM='b=0'
@@ -26,13 +26,54 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  Error after simplification.
-    Non linear arithmetic between
-      0) (exp x1 2)
-
   Leftover formula:
   (<= (exp x1 2) 124)
+  Non linear arithmetic between
+    0) (exp x1 2)
+  
+  UNKNOWN (Errors after simplification)
 
+
+
+  $ Chro -pre-simpl -dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2 | sed 's/[[:space:]]*$//'
+  unsat
+
+  $ cat > TODO1.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun x1 () Int)
+  > (declare-fun x2 () Int)
+  > (assert (and
+  >    (<= (* x1 x2) 52)
+  >    (= 1 2)
+  > ))
+  > (check-sat)
+  > EOF
+  $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
+  unsat
+
+
+  $ cat > UnderDoesntHelp1.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun x () Int)
+  > (declare-fun y () Int)
+  > (declare-fun z () Int)
+  > (assert (and
+  >        (<= (* z y) 0)
+  >        (<= (exp 2 x) (- 1))
+  > ))
+  > (check-sat)
+  > EOF
+$ export CHRO_DEBUG=1
+  $ Chro -bound 2 -pre-simpl -dsimpl UnderDoesntHelp1.smt2 | sed 's/[[:space:]]*$//'
+  Leftover formula:
+  (and
+                      (<= (* y z) 0)
+                      (<= (exp 2 x) (- 1)))
+  Non linear arithmetic between
+    0) y
+    1) z
+  
+  UNKNOWN (Errors after simplification)
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
   > (set-logic ALL)
@@ -44,12 +85,7 @@ The single exponent is not bad
   > ))
   > (check-sat)
   > EOF
-  $ Chro -bound 0 -pre-simpl -dsimpl TODO3.smt2 | sed 's/[[:space:]]*$//'
-  (assert (<= (* (- 1) it57)  -1) )
-  (assert (exists (it383) (<= (+ (* (- 1) it383) pow2(it57) )  0) ) )
+  $ Chro -bound 2 -pre-simpl -dsimpl TODO3.smt2 | sed 's/[[:space:]]*$//'
+  sat (underappox)
 
-  (assert (<= (+ it57 (* (- 1) pow2(it57)) )  0) )
 
-  sat
-
-  $ Chro -pre-simpl -dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2 | sed 's/[[:space:]]*$//'

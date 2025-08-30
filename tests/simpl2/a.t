@@ -1,26 +1,30 @@
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test1.smt2 | sed 's/[[:space:]]*$//'
-  iteration 1
-  ast(1) = (and
+  iter(1)= (and
              (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
              (= (+ z y) 52)
              (<= (* x (+ 0 (* (- 1) 5))) 13))
   Something ready to substitute:  z -> (+ 52 (* (- 1) y));
-  iteration 2
-  ast(2) = (and
+  iter(2)= (and
              (= (+ y z) 52)
              (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 14))
              (<= (* (- 5) x) 13))
-  iteration 3
-  ast(3) = (and
+  iter(3)= (and
              (= 0 0)
-             (<= (+ (* (- 8) (exp 2 y)) (* (- 7) 52) (* (- 7) (* (- 1) y))
-                 (* (- 5) x)) (- 14))
+             (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 52 (- 7))
+                 (* (* (- 1) y) (- 7))) (- 14))
              (<= (* (- 5) x) 13))
-  iteration 4
-  ast(4) = (and
+  iter(4)= (and
              (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
              (<= (* (- 5) x) 13))
-  Fixpoint after 4 steps
+  iter(4.0)= (and
+               (= (* (- 1) y) 0)
+               (<= (+ (- 364) (* (- 8) (exp 2 0)) (* (- 7) (* (- 1) y))
+                   (* (- 5) x)) (- 14))
+               (<= (* (- 5) x) 13))
+  iter(4.1)= (and
+               (<= (* (- 5) x) 13)
+               (<= (* (- 5) x) 358))
+  sat (underappox)
 
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
@@ -33,25 +37,20 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  iteration 1
-  ast(1) = (and
+  iter(1)= (and
              (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
              (= (+ z y) 52)
              (<= (* x (+ 0 (* (- 1) 5))) 13))
   Something ready to substitute:  z -> (+ 52 (* (- 1) y));
-  iteration 2
-  ast(2) = (and
+  iter(2)= (and
              (= (+ y z) 52)
              (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 14))
              (<= (* (- 5) x) 13))
-  iteration 3
-  ast(3) = (and
+  iter(3)= (and
              (= 0 0)
-             (<= (+ (* (- 8) (exp 2 y)) (* (- 7) 52) (* (- 7) (* (- 1) y))
-                 (* (- 5) x)) (- 14))
+             (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 52 (- 7))
+                 (* (* (- 1) y) (- 7))) (- 14))
              (<= (* (- 5) x) 13))
-  iteration 4
-  ast(4) = (and
+  iter(4)= (and
              (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
              (<= (* (- 5) x) 13))
-  Fixpoint after 4 steps
