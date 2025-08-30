@@ -15,14 +15,11 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (it159) (= (+ it159 (* (- 4) pow2(it147)) )  0) )
-  )
+  sat (underapprox2)
 
   $ export CHRO_EIA=old
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (it147) (= (+ (* (- 1)  %0) it147 )  -1) ) )
-  (assert (exists (it159) (= (+ it159 (* (- 2) pow2( %0)) )  0) ) )
-  
+  sat (underapprox2)
 
 
 
@@ -108,5 +105,5 @@ $ export CHRO_DEBUG=1
 Run solver
   $ unset CHRO_EIA
   $ Chro  -no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
-  sat
+  sat (underapprox2)
 

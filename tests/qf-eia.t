@@ -1,26 +1,26 @@
 Basic QF_EIA tests
 
   $ Chro ./qf-eia.smt2
-  sat
+  sat (nfa)
   unsat
   unsat
-  sat
+  sat (underappox)
   unsat
-  sat
+  sat (underappox)
   unsat
   unsat
   unsat
-  sat
+  sat (underappox)
   unsat
-  sat
+  sat (underappox)
   unsat
-  sat
+  sat ()
 sat
 
 Test ExEy y >=0 x & 2**y = x & x > 4
 
   $ Chro ./examples/QF_EIA/basic-exp-sat.smt2
-  sat
+  sat (nfa)
 
 Test Ex x > 2**x
 
@@ -30,4 +30,4 @@ Test Ex x > 2**x
 Test Frobenius coin problem with exponential restrictions
 
   $ Chro -bound 0 -no-over-approx ./examples/fcp_7_11_with_exps.smt2
-  sat
+  sat (nfa)

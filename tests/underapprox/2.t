@@ -9,11 +9,51 @@
   > EOF
   $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl testU.smt2 | sed 's/[[:space:]]*$//'
-  iteration 1
-  ast(1) = (and
+  iter(1)= (and
              (<= (exp 2 y) x)
              (exists (x) (<= (exp 2 x) x)))
-  Fixpoint after 1 steps
+  iter(1.0)= (and
+               (<= (exp 2 0) 0)
+               (exists (x) (<= (exp 2 0) 0)))
+  iter(1.1)= (not True)
+  iter(1.1)= (and
+               (<= (exp 2 0) 1)
+               (exists (x) (<= (exp 2 1) 1)))
+  iter(1.2)= (and
+               (exists (x) (not True)))
+  iter(1.3)= (exists (x) (not True))
+  iter(1.2)= (and
+               (<= (exp 2 0) 2)
+               (exists (x) (<= (exp 2 2) 2)))
+  iter(1.3)= (and
+               (exists (x) (not True)))
+  iter(1.4)= (exists (x) (not True))
+  iter(1.3)= (and
+               (<= (exp 2 1) 0)
+               (exists (x) (<= (exp 2 0) 0)))
+  iter(1.4)= (not True)
+  iter(1.4)= (and
+               (<= (exp 2 1) 1)
+               (exists (x) (<= (exp 2 1) 1)))
+  iter(1.5)= (not True)
+  iter(1.5)= (and
+               (<= (exp 2 1) 2)
+               (exists (x) (<= (exp 2 2) 2)))
+  iter(1.6)= (and
+               (exists (x) (not True)))
+  iter(1.7)= (exists (x) (not True))
+  iter(1.6)= (and
+               (<= (exp 2 2) 0)
+               (exists (x) (<= (exp 2 0) 0)))
+  iter(1.7)= (not True)
+  iter(1.7)= (and
+               (<= (exp 2 2) 1)
+               (exists (x) (<= (exp 2 1) 1)))
+  iter(1.8)= (not True)
+  iter(1.8)= (and
+               (<= (exp 2 2) 2)
+               (exists (x) (<= (exp 2 2) 2)))
+  iter(1.9)= (not True)
   Interesting: x y
   
   Expecting 9 choices ...

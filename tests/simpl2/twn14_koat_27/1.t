@@ -1,8 +1,7 @@
   $ cp ../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/twn14.koat_27.smt2 input.smt2
   $ export OCAMLRUNPARAM='b=0'
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
-  iteration 1
-  ast(1) = (and
+  iter(1)= (and
              (and
                (<= (+ 0 1) (* it552 (* (- 1) 2)))
                (<= (+ (+ 0 0) 1) (+ (+ (+ (+ (* (* (exp (exp 4 (+ it140
@@ -68,8 +67,7 @@
              (= (+ (+ (* i2 (* (- 1) 1)) it322) (* (- 1) 1)) 0)
              (= (+ it321 (* (- 1) 2)) 0)
              (= (+ i1 (* (- 1) 1)) 0))
-  iteration 2
-  ast(2) = (and
+  iter(2)= (and
              (= i1 1)
              (= it321 2)
              (= it541 3)
@@ -117,8 +115,7 @@
                                  3; it550 -> (+ 1 it542); it551 -> it543; it552 ->
                                  (* (- 2) it544); it554 -> it546; it555 ->
                                  it547;
-  iteration 3
-  ast(3) = (and
+  iter(3)= (and
              (= i1 1)
              (= it321 2)
              (= it541 3)
@@ -150,20 +147,19 @@
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it554 3))
                  (* 3 (exp it554 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp it552 2) (exp 4 (+ (* 2 (- 1)) (* 2 it140))))
+                 (* 4 (exp it552 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
                  (exp it554 5)) (- 1))
              (<= (+ (* (- 1) it545) (exp it544 2) (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it553) (exp it552 2) (exp it554 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it554 3))
-                 (* (exp it552 2) (exp 4 (+ (* 2 (- 1)) (* 2 it140))))
+                 (* (exp it552 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
                  (* (exp it554 3) (exp 9 (+ (- 1) it140))) (exp it554 5)) (- 1))
              (<= (* (- 1) it140) (- 1))
              (<= (* (- 1) it549) (- 3)))
-  iteration 4
-  ast(4) = (and
+  iter(4)= (and
              (= 0 0)
-             (= (+ it542 (* (- 1) i2) (* (- 1) 1)) 1)
+             (= (+ it542 (* i2 (- 1)) (* 1 (- 1))) 1)
              (= (+ it543 (* (- 1) i3)) 0)
              (= (+ it544 (* (- 1) i3)) 0)
              (= (+ it545 (* (- 1) i7)) 0)
@@ -178,15 +174,14 @@
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it546 3))
                  (* 3 (exp it546 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it544) 2))
+                 (* 16 (exp 4 (+ (- 2) (* 2 it140))) (exp (* it544) 2))
                  (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it545) (exp it544 2) (exp it546 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp it546 5) (exp (* (- 2) it544) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp (* it544) 2)) (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it546 3))
-                 (* (exp it546 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it544) 2))
-                 (exp it546 5)) (- 1))
+                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* it544) 2))
+                 (* (exp it546 3) (exp 9 (+ (- 1) it140))) (exp it546 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
   Something ready to substitute:  i1 -> 1; it321 -> 2; it322 -> (+ 1 i2); it323 ->
                                  i3; it324 -> i4; it325 -> i5; it326 ->
@@ -196,8 +191,7 @@
                                  (+ 1 it542); it551 -> it543; it552 ->
                                  (* (- 2) it544); it554 -> it546; it555 ->
                                  it547;
-  iteration 5
-  ast(5) = (and
+  iter(5)= (and
              (= (+ it542 (* (- 1) i2)) 2)
              (= (+ it543 (* (- 1) i3)) 0)
              (= (+ it544 (* (- 1) i3)) 0)
@@ -213,15 +207,14 @@
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it546 3))
                  (* 3 (exp it546 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it544) 2))
+                 (* 16 (exp it544 2) (exp 4 (+ (- 2) (* 2 it140))))
                  (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it545) (exp it544 2) (exp it546 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp it546 5) (exp (* (- 2) it544) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp it544 2)) (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it546 3))
-                 (* (exp it546 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it544) 2))
-                 (exp it546 5)) (- 1))
+                 (* 4 (exp it544 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp it546 3) (exp 9 (+ (- 1) it140))) (exp it546 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
   Something ready to substitute:  i1 -> 1; it321 -> 2; it322 -> (+ 1 i2); it323 ->
                                  i3; it324 -> i4; it325 -> i5; it326 ->
@@ -231,8 +224,7 @@
                                  3; it550 -> (+ 1 it542); it551 -> it543; it552 ->
                                  (* (- 2) it544); it554 -> it546; it555 ->
                                  it547;
-  iteration 6
-  ast(6) = (and
+  iter(6)= (and
              (= (+ it542 (* (- 1) i2)) 2)
              (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= 1 i3)
@@ -241,17 +233,15 @@
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  iteration 7
-  ast(7) = (and
+  iter(7)= (and
              (= 0 0)
              (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= 1 i3)
@@ -260,17 +250,15 @@
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  iteration 8
-  ast(8) = (and
+  iter(8)= (and
              (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= 1 i3)
              (<= 1 i6)
@@ -278,34 +266,118 @@
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  Fixpoint after 8 steps
-  Error after simplification.
-    Non linear arithmetic between
-      0) (exp i3 2)
+  iter(8.0)= (and
+               (= (+ i2 (* i2 (- 1)) (* 1 (- 1))) (- 1))
+               (= (+ it542 (* i2 (- 1)) (* 2 (- 1))) 0)
+               (= (+ it543 (* (- 1) i3)) 0)
+               (= (+ it546 (* (- 1) i6)) 0)
+               (= (+ it547 (* (- 1) i7)) 0)
+               (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+               (= (+ (* (- 2) it544) (* 2 i3)) 0)
+               (<= 1 i3)
+               (<= 1 i6)
+               (<= 1 (* 2 it544))
+               (<= 1 (* 4 it544))
+               (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp it546 3))
+                   (* 3 (exp it546 3) (exp 9 (+ (- 1) it140)))
+                   (* 16 (exp 4 (* (+ (- 1) it140) 2)) (exp (* it544) 2))
+                   (exp it546 5)) (- 1))
+               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it553) (* 4 (exp (* it544) 2)) (exp it546 5)) (- 1))
+               (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp it546 3))
+                   (* 4 (exp 4 (* (+ (- 1) it140) 2)) (exp (* it544) 2))
+                   (* (exp it546 3) (exp 9 (+ (- 1) it140))) (exp it546 5)) (- 1))
+               (<= (* (- 1) it140) (- 1)))
+  iter(8.1)= (and
+               (= 0 0)
+               (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+               (<= 1 i3)
+               (<= 1 i6)
+               (<= 1 (* 2 i3))
+               (<= 1 (* 4 i3))
+               (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp i6 3))
+                   (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
+                   (* 16 (exp i3 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
+                   (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp i6 3))
+                   (* 4 (exp i3 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
+                   (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
+               (<= (* (- 1) it140) (- 1)))
+  iter(8.2)= (and
+               (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+               (<= 1 i3)
+               (<= 1 i6)
+               (<= 1 (* 2 i3))
+               (<= 1 (* 4 i3))
+               (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp i6 3))
+                   (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
+                   (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
+               (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
+                   (* (- 1) (exp i6 3))
+                   (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                   (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
+               (<= (* (- 1) it140) (- 1)))
+  Leftover formula:
+  (and
+                      (= eee2 (+ (- 2) (* 2 it140)))
+                      (= eee1 (+ (- 1) it140))
+                      (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+                      (<= 1 i3)
+                      (<= 1 i6)
+                      (<= 1 (* 2 i3))
+                      (<= 1 (* 4 i3))
+                      (<= (+ (* (- 3) it553 (exp 9 eee1)) (* (- 1) (exp i6 3))
+                          (* 3 (exp i6 3) (exp 9 eee1))
+                          (* 16 (exp i3 2) (exp 4 eee2)) (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) it553 (exp 9 eee1)) (* (- 1) (exp i6 3))
+                          (* 4 (exp i3 2) (exp 4 eee2))
+                          (* (exp i6 3) (exp 9 eee1)) (exp i6 5)) (- 1))
+                      (<= (* (- 1) it140) (- 1)))
+  Non linear arithmetic between
+    0) it553
+    1) (exp 9 eee1)
   
-    Non linear arithmetic between
-      0) (exp i6 3)
+  Non linear arithmetic between
+    0) (exp i3 2)
   
-    Non linear arithmetic between
-      0) (exp i6 5)
+  Non linear arithmetic between
+    0) (exp i3 2)
+    1) (exp 4 eee2)
   
-    Non linear arithmetic between
-      0) (exp (* (- 2) i3) 2)
+  Non linear arithmetic between
+    0) (exp i6 3)
   
+  Non linear arithmetic between
+    0) (exp i6 3)
+    1) (exp 9 eee1)
+  
+  Non linear arithmetic between
+    0) (exp i6 5)
+  
+  UNKNOWN (Errors after simplification)
 $ time -f "%U"
 
   $ CHRO_DEBUG=1 timeout 5 Chro -pre-simpl input.smt2  -bound 0
-  iteration 1
-  ast(1) = (and
+  iter(1)= (and
              (and
                (<= (+ 0 1) (* it552 (* (- 1) 2)))
                (<= (+ (+ 0 0) 1) (+ (+ (+ (+ (* (* (exp (exp 4 (+ it140
@@ -371,8 +443,7 @@ $ time -f "%U"
              (= (+ (+ (* i2 (* (- 1) 1)) it322) (* (- 1) 1)) 0)
              (= (+ it321 (* (- 1) 2)) 0)
              (= (+ i1 (* (- 1) 1)) 0))
-  iteration 2
-  ast(2) = (and
+  iter(2)= (and
              (= i1 1)
              (= it321 2)
              (= it541 3)
@@ -420,8 +491,7 @@ $ time -f "%U"
                                  3; it550 -> (+ 1 it542); it551 -> it543; it552 -> 
                                  (* (- 2) it544); it554 -> it546; it555 -> 
                                  it547; 
-  iteration 3
-  ast(3) = (and
+  iter(3)= (and
              (= i1 1)
              (= it321 2)
              (= it541 3)
@@ -453,20 +523,19 @@ $ time -f "%U"
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it554 3))
                  (* 3 (exp it554 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp it552 2) (exp 4 (+ (* 2 (- 1)) (* 2 it140))))
+                 (* 4 (exp it552 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
                  (exp it554 5)) (- 1))
              (<= (+ (* (- 1) it545) (exp it544 2) (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it553) (exp it552 2) (exp it554 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it554 3))
-                 (* (exp it552 2) (exp 4 (+ (* 2 (- 1)) (* 2 it140))))
+                 (* (exp it552 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
                  (* (exp it554 3) (exp 9 (+ (- 1) it140))) (exp it554 5)) (- 1))
              (<= (* (- 1) it140) (- 1))
              (<= (* (- 1) it549) (- 3)))
-  iteration 4
-  ast(4) = (and
+  iter(4)= (and
              (= 0 0)
-             (= (+ it542 (* (- 1) i2) (* (- 1) 1)) 1)
+             (= (+ it542 (* i2 (- 1)) (* 1 (- 1))) 1)
              (= (+ it543 (* (- 1) i3)) 0)
              (= (+ it544 (* (- 1) i3)) 0)
              (= (+ it545 (* (- 1) i7)) 0)
@@ -481,15 +550,14 @@ $ time -f "%U"
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it546 3))
                  (* 3 (exp it546 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it544) 2))
+                 (* 16 (exp 4 (+ (- 2) (* 2 it140))) (exp (* it544) 2))
                  (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it545) (exp it544 2) (exp it546 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp it546 5) (exp (* (- 2) it544) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp (* it544) 2)) (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it546 3))
-                 (* (exp it546 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it544) 2))
-                 (exp it546 5)) (- 1))
+                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* it544) 2))
+                 (* (exp it546 3) (exp 9 (+ (- 1) it140))) (exp it546 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
   Something ready to substitute:  i1 -> 1; it321 -> 2; it322 -> (+ 1 i2); it323 -> 
                                  i3; it324 -> i4; it325 -> i5; it326 -> 
@@ -499,8 +567,7 @@ $ time -f "%U"
                                  (+ 1 it542); it551 -> it543; it552 -> 
                                  (* (- 2) it544); it554 -> it546; it555 -> 
                                  it547; 
-  iteration 5
-  ast(5) = (and
+  iter(5)= (and
              (= (+ it542 (* (- 1) i2)) 2)
              (= (+ it543 (* (- 1) i3)) 0)
              (= (+ it544 (* (- 1) i3)) 0)
@@ -516,15 +583,14 @@ $ time -f "%U"
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it546 3))
                  (* 3 (exp it546 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it544) 2))
+                 (* 16 (exp it544 2) (exp 4 (+ (- 2) (* 2 it140))))
                  (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it545) (exp it544 2) (exp it546 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp it546 5) (exp (* (- 2) it544) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp it544 2)) (exp it546 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp it546 3))
-                 (* (exp it546 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) it544) 2))
-                 (exp it546 5)) (- 1))
+                 (* 4 (exp it544 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp it546 3) (exp 9 (+ (- 1) it140))) (exp it546 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
   Something ready to substitute:  i1 -> 1; it321 -> 2; it322 -> (+ 1 i2); it323 -> 
                                  i3; it324 -> i4; it325 -> i5; it326 -> 
@@ -534,8 +600,7 @@ $ time -f "%U"
                                  3; it550 -> (+ 1 it542); it551 -> it543; it552 -> 
                                  (* (- 2) it544); it554 -> it546; it555 -> 
                                  it547; 
-  iteration 6
-  ast(6) = (and
+  iter(6)= (and
              (= (+ it542 (* (- 1) i2)) 2)
              (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= 1 i3)
@@ -544,17 +609,15 @@ $ time -f "%U"
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  iteration 7
-  ast(7) = (and
+  iter(7)= (and
              (= 0 0)
              (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= 1 i3)
@@ -563,17 +626,15 @@ $ time -f "%U"
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  iteration 8
-  ast(8) = (and
+  iter(8)= (and
              (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
              (<= 1 i3)
              (<= 1 i6)
@@ -581,29 +642,55 @@ $ time -f "%U"
              (<= 1 (* 4 i3))
              (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
                  (* (- 1) (exp i6 3)) (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* 4 (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-             (<= (+ (* (- 1) it553) (exp i6 5) (exp (* (- 2) i3) 2)) (- 1))
+             (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
              (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                 (* (- 1) (exp i6 3)) (* (exp i6 3) (exp 9 (+ (- 1) it140)))
-                 (* (exp 4 (+ (- 2) (* 2 it140))) (exp (* (- 2) i3) 2))
-                 (exp i6 5)) (- 1))
+                 (* (- 1) (exp i6 3))
+                 (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                 (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  Fixpoint after 8 steps
-  Error after simplification.
-    Non linear arithmetic between
-      0) (exp i3 2)
-      
-    Non linear arithmetic between
-      0) (exp i6 3)
-      
-    Non linear arithmetic between
-      0) (exp i6 5)
-      
-    Non linear arithmetic between
-      0) (exp (* (- 2) i3) 2)
-      
+  Leftover formula:
+  (and
+                      (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
+                      (<= 1 i3)
+                      (<= 1 i6)
+                      (<= 1 (* 2 i3))
+                      (<= 1 (* 4 i3))
+                      (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
+                          (* (- 1) (exp i6 3))
+                          (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
+                          (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                          (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
+                      (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
+                          (* (- 1) (exp i6 3))
+                          (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
+                          (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
+                      (<= (* (- 1) it140) (- 1)))
+  Non linear arithmetic between
+    0) it553
+    1) (exp 9 (+ (- 1) it140))
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    1) (exp 4 (+ (- 2) (* 2 it140)))
+    
+  Non linear arithmetic between
+    0) (exp i6 3)
+    
+  Non linear arithmetic between
+    0) (exp i6 3)
+    1) (exp 9 (+ (- 1) it140))
+    
+  Non linear arithmetic between
+    0) (exp i6 5)
+    
+  UNKNOWN (Errors after simplification)
   [1]
 
 $ time -f "%U"
@@ -611,4 +698,4 @@ It's luck that Z3 gives an answer. If we add
 (assert (<= 1000 it140))
 evrything goes south
   $ timeout 2 Chro -no-pre-simpl input.smt2 --no-simpl-alpha --no-simpl-mono -bound 1
-  sat
+  sat (underapprox2)

@@ -1,18 +1,18 @@
 Basic QF_S tests
 
   $ Chro ./qf-s.smt2
-  sat
+  sat (nfa)
   x = abc; 
-  sat
-  sat
+  sat (nfa)
+  sat (nfa)
   unsat
-  sat
+  sat (nfa)
   unsat
   unsat
-  sat
-  sat
+  sat (nfa)
+  sat (nfa)
   unsat
-  sat
+  sat (nfa)
   unsat
 
 +  1 sat

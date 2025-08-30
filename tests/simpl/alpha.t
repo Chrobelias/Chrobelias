@@ -25,5 +25,5 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro -dsimpl -stop-after simpl testA.smt2 | sed 's/[[:space:]]*$//'
-  Fatal error: exception ("Map.of_alist_exn: duplicate key" _)
+  sat (underappox)
 This is TODO. It is not related to alpha-equivalence simplifications.
