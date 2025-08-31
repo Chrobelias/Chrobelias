@@ -2,7 +2,6 @@
 (* Copyright 2024-2025, Chrobelias. *)
 
 val flag : unit -> bool
-val fmt : Format.formatter
 val printf : ('a, Format.formatter, unit) format -> 'a
 val printfln : ('a, Format.formatter, unit) format -> 'a
 

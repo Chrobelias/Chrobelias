@@ -1,19 +1,6 @@
 let nfa_cnt = ref 0
 let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
 
-let fmt =
-  if flag ()
-  then Format.formatter_of_out_channel Stdio.stderr
-  else
-    Format.formatter_of_out_functions
-      { out_string = (fun _ _ _ -> ())
-      ; out_flush = (fun _ -> ())
-      ; out_newline = (fun _ -> ())
-      ; out_spaces = (fun _ -> ())
-      ; out_indent = (fun _ -> ())
-      }
-;;
-
 let printf ppf =
   if flag ()
   then Format.kasprintf (Format.printf "%s%!") ppf
@@ -50,13 +37,13 @@ let dump_nfa ?msg ?vars format_nfa nfa =
      | None -> ());
     match vars with
     | Some vars ->
-      Format.pp_print_list
-        ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
-        (fun fmt (a, b) ->
-           (*Format.fprintf fmt "%d -> %a" b Ir.pp_poly_atom (a :> Ir.poly_atom))*)
-           Format.fprintf fmt "%d -> %a" b Ir.pp_atom a)
-        fmt
-        vars;
-      printfln "\n"
+      printf
+        "@[%a@]\n%!"
+        (Format.pp_print_list
+           ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
+           (fun fmt (a, b) ->
+              (*Format.fprintf fmt "%d -> %a" b Ir.pp_poly_atom (a :> Ir.poly_atom))*)
+              Format.fprintf fmt "%d -> %a" b Ir.pp_atom a))
+        vars
     | None -> ())
 ;;
