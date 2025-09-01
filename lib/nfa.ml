@@ -53,6 +53,14 @@ end
 
 let pow2 n = List.init n (Fun.const 2) |> List.fold_left ( * ) 1
 
+let log2 n =
+  let rec helper acc = function
+    | 0 -> acc
+    | n -> helper (acc + 1) (n / 2)
+  in
+  helper (-1) n
+;;
+
 type deg = int
 type state = int
 
@@ -387,7 +395,7 @@ module type NatType = sig
     -> (t * (int * int) list * model_part) Seq.t
 
   val combine_model_pieces
-    :  (deg * [< `Exp | `Lin ]) list
+    :  [< `Lin of deg | `Exp of deg * deg ] list
     -> (deg, int) Map.t
     -> int
     -> model_part list
@@ -1365,30 +1373,54 @@ module MsbNat = struct
   ;;
 
   (* len is the length of path between 1 in exp and 1 in var *)
-  let path_of_len nfa len ~var ~exp : (int list * int) option = failwith "TODO"
+  let path_of_len nfa vars total_len ~var ~exp : (int list * int) option =
+    let transitions = nfa.transitions in
+    failwith "TODO";
+    failwith "TODO: consider case where model(var) = 0"
+  ;;
 
-  let combine_model_pieces order map len list =
-    let rec helper mapVals order past_order parts =
+  let combine_model_pieces order mapVals len parts =
+    let vars =
+      order
+      |> List.filter_map (function
+        | `Lin var -> Some var
+        | `Exp _ -> None)
+    in
+    let rec helper mapVals len order past_order parts =
+      let lenOfVar = function
+        | `Lin var -> Map.find_exn mapVals var |> log2
+        | `Exp (var, _) -> Map.find_exn mapVals var
+      in
       match order with
       | [] -> mapVals
-      | (`Lin var as v) :: tl -> helper mapVals tl (v :: past_order) parts
+      | (`Lin var as v) :: tl -> helper mapVals len tl (v :: past_order) parts
       | (`Exp (var, exp) as v) :: tl ->
         (match parts with
          | [] -> failwith "TODO(timafrolov): write error message"
          | part :: parts ->
-           let prev_len = past_order |> fun _ -> failwith "TODO" in
+           let prev_var =
+             past_order
+             |> List.find (function
+               | `Lin var2 when var2 = var -> true
+               | `Exp _ -> true
+               | _ -> false)
+           in
            let path_len =
-             Map.find_exn mapVals var, prev_len |> fun (_, _) -> failwith "TODO"
+             lenOfVar (`Lin var) - lenOfVar prev_var
+             (*TODO: check for off-by-one errors *)
            in
-           let model2, len2 = path_of_len part path_len ~var ~exp |> Option.get in
+           let model2, len2 =
+             path_of_len part vars path_len ~var:prev_var ~exp |> Option.get
+           in
            let mapVals =
-             Base.List.zip_exn (mapVals |> fun _ -> failwith "TODO") model2
+             Base.List.zip_exn (List.map (Map.find_exn mapVals) vars) model2
              |> List.map (fun (x, y) -> Int.shift_left y len + x)
-             |> fun _ -> failwith "TODO"
+             |> Base.List.zip_exn vars
+             |> Map.of_alist_exn
            in
-           helper mapVals tl (v :: past_order) parts)
+           helper mapVals (len + len2) tl (v :: past_order) parts)
     in
-    helper Map.empty map order
+    helper mapVals len order [] parts
   ;;
 
   (* let rec helper order list = function *)
