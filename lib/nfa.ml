@@ -399,7 +399,7 @@ module type NatType = sig
     -> (deg, int) Map.t
     -> int
     -> model_part list
-    -> int list
+    -> (deg, int) Map.t
 end
 
 module Make (Invariants : NfaInvariants) = struct
@@ -1373,10 +1373,49 @@ module MsbNat = struct
   ;;
 
   (* len is the length of path between 1 in exp and 1 in var *)
-  let path_of_len nfa vars total_len ~var ~exp : (int list * int) option =
+  let path_of_len nfa vars total_len ~exp : (int list * int) option =
+    let mask = bv_init 32 (( = ) exp) in
+    let exp_lbl = mask, mask in
     let transitions = nfa.transitions in
-    failwith "TODO";
-    failwith "TODO: consider case where model(var) = 0"
+    let bfs =
+      let helper f =
+        let rec helper acc = function
+          | `Answer x :: _ -> Some x
+          | h :: tl -> helper (f h @ acc) tl
+          | [] ->
+            (match acc with
+             | [] -> None
+             | x -> helper [] x)
+        in
+        helper []
+      in
+      helper (function
+        | `Before (cur, path, visited) ->
+          if Set.mem visited cur
+          then []
+          else if total_len = 0 && Set.mem nfa.final cur
+          then [ `Answer path ]
+          else
+            transitions.(cur)
+            |> List.map (fun (lbl, dst) ->
+              if Label.equal lbl exp_lbl
+              then `Between (dst, lbl :: path, 0)
+              else `Before (dst, lbl :: path, Set.add visited cur))
+        | `Between (cur, path, len) ->
+          if len = total_len
+          then if Set.mem nfa.final cur then [ `Answer path ] else []
+          else (
+            assert (len < total_len);
+            transitions.(cur)
+            |> List.filter_map (fun (lbl, dst) ->
+              Some (`Between (dst, lbl :: path, len + 1))))
+        | `Answer x -> failwith "Should be unreachable")
+    in
+    nfa.start
+    |> Set.to_list
+    |> List.map (fun x -> `Before (x, [], Set.empty))
+    |> bfs
+    |> Option.map (fun _ -> failwith "TODO")
   ;;
 
   let combine_model_pieces order mapVals len parts =
@@ -1409,9 +1448,7 @@ module MsbNat = struct
              lenOfVar (`Lin var) - lenOfVar prev_var
              (*TODO: check for off-by-one errors *)
            in
-           let model2, len2 =
-             path_of_len part vars path_len ~var:prev_var ~exp |> Option.get
-           in
+           let model2, len2 = path_of_len part vars path_len ~exp |> Option.get in
            let mapVals =
              Base.List.zip_exn (List.map (Map.find_exn mapVals) vars) model2
              |> List.map (fun (x, y) -> Int.shift_left y len + x)

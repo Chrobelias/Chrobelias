@@ -63,7 +63,7 @@ module type NatType = sig
     -> (deg, int) Map.t
     -> int
     -> model_part list
-    -> int list
+    -> (deg, int) Map.t
 end
 
 module Lsb : sig
