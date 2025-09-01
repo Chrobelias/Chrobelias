@@ -40,6 +40,10 @@
  (applies_to koat748_mini))
 
 (cram
+ (deps ../underapprox/sum3exp.smt2)
+ (applies_to sum3exp))
+
+(cram
  (deps test3rec.smt2 test4rec.smt2)
  (applies_to test_occurs))
 

@@ -37,10 +37,6 @@ module type s_extra = sig
   val ( = ) : term -> term -> ph
 end
 
-type ('a, 'syn) folder =
-  { land_ : 'self -> Ast.t list -> 'syn }
-  constraint 'self = ('a, 'syn) folder
-
 module Sugar (S : sig
     type term
     type ph
@@ -53,4 +49,61 @@ struct
   let ( = ) = S.eq
   let ( < ) = S.lt
   let ( <= ) = S.leq
+end
+
+module To_smtml_symantics : sig
+  include s_term with type term = Smtml.Expr.t
+  include s_ph with type term = Smtml.Expr.t and type ph = Smtml.Expr.t
+  include s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
+end = struct
+  open Smtml
+
+  type term = Expr.t
+  type ph = term
+
+  let const n = Smtml.Expr.value (Value.Int n)
+  let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
+
+  let add = function
+    | [] ->
+      (* const 0 ??? *)
+      failwith (Printf.sprintf "Bad argument: %s" __FUNCTION__)
+    | x :: xs -> List.fold_left (Expr.binop Ty.Ty_int Ty.Binop.Add) x xs
+  ;;
+
+  let mul = function
+    | [] -> const 1
+    | x :: xs -> List.fold_left (Expr.binop Ty.Ty_int Ty.Binop.Mul) x xs
+  ;;
+
+  let bw op l r =
+    match op with
+    | Bwand -> Expr.binop Ty.Ty_int Ty.Binop.And l r
+    | Bwor -> Expr.binop Ty.Ty_int Ty.Binop.Or l r
+    | Bwxor -> Expr.binop Ty.Ty_int Ty.Binop.Xor l r
+  ;;
+
+  let true_ = Expr.Bool.true_
+  let false_ = Expr.Bool.false_
+  let not = Expr.Bool.not
+
+  let land_ = function
+    | [] -> false_
+    | h :: tl -> List.fold_left Expr.Bool.and_ h tl
+  ;;
+
+  let lor_ = function
+    | [] -> true_
+    | h :: tl -> List.fold_left Expr.Bool.or_ h tl
+  ;;
+
+  let var s = Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
+
+  (* let exists vars x = Smtml.Expr.exists (List.map var vars) x *)
+  let eq l r = Smtml.(Expr.relop Ty.Ty_bool Ty.Relop.Eq l r)
+  let leq l r = Smtml.(Expr.relop Ty.Ty_int Ty.Relop.Le l r)
+  let lt l r = Smtml.(Expr.relop Ty.Ty_int Ty.Relop.Lt l r)
+  let ( = ) = eq
+  let ( < ) = lt
+  let ( <= ) = leq
 end

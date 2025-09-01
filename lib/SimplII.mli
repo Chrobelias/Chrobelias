@@ -4,7 +4,11 @@ type relop =
 
 type error
 
-val simpl : Ast.t -> [> `Unknown of Ast.t | `Unsat | `Error of Ast.t * error list ]
+val simpl
+  :  int
+  -> Ast.t
+  -> [> `Unknown of Ast.t | `Sat of string | `Unsat | `Error of Ast.t * error list ]
+
 val pp_error : Format.formatter -> error -> unit
 
 (* TODO(Kakadu): Hash-consing of AST without loss of pattern matching *)
