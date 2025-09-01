@@ -18,10 +18,13 @@ let check_sat ast =
   let __ () =
     if Lib.Solver.config.stop_after = `Pre_simplify
     then (
-      match Lib.SimplII.simpl ast with
+      match Lib.SimplII.simpl 0 ast with
       | `Error _ -> failwith "not implemented"
       | `Unsat ->
         Format.eprintf "Unsat\n%!";
+        exit 0
+      | `Sat _ ->
+        Format.eprintf "Sat\n%!";
         exit 0
       | `Unknown ast ->
         Format.printf "%a\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -32,7 +35,7 @@ let check_sat ast =
       fun rez f ->
       match rez with
       | `Unknown ast -> f ast
-      | `Sat | `Unsat -> rez
+      | `Sat _ | `Unsat -> rez
     in
     let ast =
       `Unknown ast
@@ -40,14 +43,14 @@ let check_sat ast =
       if not Lib.Solver.config.pre_simpl
       then `Unknown ast
       else (
-        match Lib.SimplII.simpl ast with
+        match Lib.SimplII.simpl Lib.Solver.config.under_approx ast with
         | `Error (_ast, es) ->
           Format.printf "%!";
           Format.printf "%!@[<v 2>@[Error after simplification.@]@ ";
           Format.printf "%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
           Format.printf "Leftover formula:\n@[%a@]\n%!" Lib.Ast.pp_smtlib2 _ast;
           exit 1
-        | (`Unsat | `Unknown _) as other -> other))
+        | (`Unsat | `Sat _ | `Unknown _) as other -> other))
       <+> (fun ast ->
       if Lib.Solver.config.dump_pre_simpl
       then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -62,20 +65,18 @@ let check_sat ast =
     in
     let ast =
       match ast with
-      | `Sat -> `Sat
+      | `Sat s -> `Sat s
       | `Unsat -> `Unsat
       | `Unknown ast ->
         (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
-         | `Sat -> `Sat
+         | `Sat -> `Sat "nfa"
          | `Unsat -> `Unsat
          | `Unknown _ir -> `Unknown)
     in
-    (*c := !c + 1;
-    Format.printf "%d " !c;*)
-      match ast with
-      | `Sat -> Format.printf "sat\n%!"
-      | `Unsat -> Format.printf "unsat\n%!"
-      | `Unknown -> Format.printf "unknown\n%!"
+    match ast with
+    | `Sat s -> Format.printf "sat (%s)\n%!" s
+    | `Unsat -> Format.printf "unsat\n%!"
+    | `Unknown -> Format.printf "unknown\n%!"
   end
 ;;
 

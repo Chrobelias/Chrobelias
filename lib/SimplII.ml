@@ -4,6 +4,8 @@ let log = Utils.log
 
 type error = Non_linear_arith of Ast.Eia.term list
 
+let compare_error : error -> _ = Stdlib.compare
+
 let pp_error ppf = function
   | Non_linear_arith ts ->
     Format.fprintf ppf "@[<v 2>";
@@ -35,7 +37,10 @@ let check_errors ph =
        | _ -> errs)
     []
     ph
+  |> Base.List.dedup_and_sort ~compare:compare_error
 ;;
+
+let is_pure_lia ph = [] = check_errors ph
 
 type relop =
   | Leq
@@ -222,10 +227,12 @@ let make_main_symantics env =
 
     and pow base xs =
       match base, xs with
+      | _, Eia.Atom (Const 0) -> const 1
       | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
       | Mul ((Atom (Const c) as base0) :: tl), Eia.Atom (Const e) ->
         mul [ pow base0 xs; pow (Mul tl) xs ]
-      | Eia.Atom (Const base), Eia.Atom (Const exp) -> const (Utils.pow ~base exp)
+      | Eia.Atom (Const base), Eia.Atom (Const exp) when exp > 0 ->
+        const (Utils.pow ~base exp)
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
@@ -350,6 +357,7 @@ let make_main_symantics env =
 ;;
 
 exception Unsat
+exception Sat of string
 
 let try_propagate : Ast.t -> Env.t * Ast.t =
   let open Ast in
@@ -389,6 +397,15 @@ module Info = struct
   let make ~exp ~all =
     (* TODO: check subsumtion *)
     { exp = Base.Set.Poly.of_list exp; all = Base.Set.Poly.of_list all }
+  ;;
+
+  let pp_exp ppf { exp; _ } =
+    Format.fprintf
+      ppf
+      "exp: @[%a@]"
+      Format.(
+        pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ "))
+      (Base.Set.Poly.to_list exp)
   ;;
 end
 
@@ -452,6 +469,37 @@ struct
   include Who_in_exponents_
   include FT_SIG.Sugar (Who_in_exponents_)
 end
+
+let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
+  let module M = struct
+    include FT_SIG.To_smtml_symantics
+
+    type repr = term
+
+    let prj = Fun.id
+
+    let var s =
+      match Base.Map.Poly.find env s with
+      | None -> Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
+      | Some c -> const c
+    ;;
+
+    let pow2var s = pow (const 2) (var s)
+
+    let exists vars x =
+      let vars = List.filter (fun s -> Stdlib.not (Base.Map.Poly.mem env s)) vars in
+      match vars with
+      | [] -> x
+      | _ -> Smtml.Expr.exists (List.map var vars) x
+    ;;
+  end
+  in
+  (module struct
+    include M
+    include FT_SIG.Sugar (M)
+  end : SYM_SUGAR
+    with type ph = Smtml.Expr.t)
+;;
 
 let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let open Ast in
@@ -549,10 +597,26 @@ let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
   fun x -> helper x
 ;;
 
-let simpl ast =
+exception Underapprox_fired
+exception Error of Ast.t * error list
+
+(* type step = int list *)
+let next_step = function
+  | [] -> failwith "Bad argument: next_step"
+  | h :: tl -> (1 + h) :: tl
+;;
+
+let pp_step fmt step =
+  Format.pp_print_list
+    ~pp_sep:(fun ppf () -> Format.fprintf ppf ".")
+    Format.pp_print_int
+    fmt
+    (List.rev step)
+;;
+
+let basic_simplify step (env : Env.t) ast =
   let rec loop step (env : Env.t) ast =
-    log "iteration %d" step;
-    log "ast(%d) = @[%a@]" step Ast.pp_smtlib2 ast;
+    log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
     let rez = apply_symnatics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
@@ -561,19 +625,93 @@ let simpl ast =
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
       let () = log "Something ready to substitute: %a" Env.pp env2 in
-      loop (step + 1) (Env.merge env2 env) ast2
-    | false, false -> loop (step + 1) env ast2
+      loop (next_step step) (Env.merge env2 env) ast2
+    | false, false -> loop (next_step step) env ast2
     | false, true ->
-      let () = log "Fixpoint after %d steps%!" step in
-      ast2
+      (* log "Var_info.exp = %a" Info.pp_exp var_info; *)
+        (match ast2 with
+         | Ast.True -> raise (Sat "presimpl")
+         | Ast.Lnot Ast.True -> raise Unsat
+         | _ -> ast2, env, var_info, step)
   in
   try
-    let ast = loop 1 Env.empty ast in
+    let ast, env, var_info, step = loop step env ast in
+    match check_errors ast with
+    | [] -> `Unknown (ast, env, var_info, step)
+    | errrs -> `Error (ast, errrs, var_info, step)
+  with
+  | Unsat -> `Unsat
+  | Sat s -> `Sat s
+  | Underapprox_fired -> `Sat "udnerapprox"
+;;
+
+let simpl bound ast =
+  let prepare_choices env var_info =
+    let ( let* ) xs f = List.concat_map f xs in
+    let choice1 = List.init bound Fun.id in
+    Base.Set.Poly.fold
+      ~f:(fun acc name ->
+        let* v = choice1 in
+        let* acc = acc in
+        [ Env.extend_exn acc name (Ast.Eia.Atom (Const v)) ])
+      ~init:[ env ]
+      var_info.Info.exp
+  in
+  let on_env step env =
+    let _ =
+      log "%s %d. env = %a, step = %a\n%!" __FILE__ __LINE__ Env.pp env pp_step step
+    in
+    let (module Symantics) = make_main_symantics env in
+    let rez = apply_symnatics (module Symantics) ast in
+    (* SYMNATICS??? *)
+      match basic_simplify step env rez with
+      | `Unsat ->
+        (* log "%s %d\n%!" __FILE__ __LINE__; *)
+        ()
+      | `Sat _ ->
+        (* log "%s %d\n%!" __FILE__ __LINE__; *)
+        raise Underapprox_fired
+      | `Error _ ->
+        log "Underapprox doesn't help\n@[%a@]\n%!" Ast.pp_smtlib2 rez;
+        (* errors found *)
+        ()
+      | `Unknown (ast, env, _info, step) ->
+        (* log "%s %d\n%!" __FILE__ __LINE__; *)
+        let ph = apply_symnatics (make_smtml_symantics Utils.Map.empty) rez in
+        let solver = Smtml.Z3_mappings.Solver.make () in
+        Smtml.Z3_mappings.Solver.reset solver;
+        let __ () = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
+        (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
+         | `Sat -> raise Underapprox_fired
+         | _ -> ())
+  in
+  let loop (env : Env.t) ast =
+    match basic_simplify [ 1 ] env ast with
+    | `Unsat -> raise Unsat
+    | `Sat msg -> raise (Sat msg)
+    | `Unknown _ when bound <= 0 -> ast
+    | `Error (ast, errs, var_info, step) ->
+      let _ = log "Basic simplify finished after step %a.\n" pp_step step in
+      let _ = log "ast = @[%a@]\n%!" Ast.pp_smtlib2 ast in
+      let all_choices = prepare_choices env var_info in
+      log "There are %d choices" (List.length all_choices);
+      List.iteri (fun i -> on_env (i :: step)) all_choices;
+      raise (Error (ast, errs))
+    | `Unknown (ast, env, var_info, step) ->
+      let all_choices = prepare_choices env var_info in
+      List.iteri (fun i -> on_env (i :: step)) all_choices;
+      ast
+  in
+  try
+    let ast = loop Env.empty ast in
     match check_errors ast with
     | [] -> `Unknown ast
     | errrs -> `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
   with
   | Unsat -> `Unsat
+  | Underapprox_fired -> `Sat "underappox"
+  | Sat reason -> `Sat reason
+  | Error (ast, errs) -> `Error (ast, errs)
 ;;
 
 let test_distr xs =
