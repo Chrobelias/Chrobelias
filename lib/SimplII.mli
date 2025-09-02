@@ -4,11 +4,15 @@ type relop =
 
 type error
 
-val simpl
-  :  int
-  -> Ast.t
-  -> [> `Unknown of Ast.t | `Sat of string | `Unsat | `Error of Ast.t * error list ]
+type verdict =
+  [ `Sat of string
+  | `Unsat of string
+  | `Error of Ast.t * error list
+  | `Under of Ast.t * Ast.t list (** In underapprox. we should look only for SAT *)
+  | `Unknown of Ast.t
+  ]
 
+val simpl : int -> Ast.t -> verdict
 val pp_error : Format.formatter -> error -> unit
 
 (* TODO(Kakadu): Hash-consing of AST without loss of pattern matching *)
