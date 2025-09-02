@@ -2,25 +2,16 @@
 
 let log = Utils.log
 
-type error =
-  | Non_linear_arith of Ast.Eia.term list (* x^2, x*y, x * exp y *)
-  | Exponents of Ast.Eia.term
+type error = Non_linear_arith of Ast.Eia.term list
 
 let compare_error : error -> _ = Stdlib.compare
 
-let pp_error ppf =
-  let open Format in
-  function
+let pp_error ppf = function
   | Non_linear_arith ts ->
-    fprintf ppf "@[<v 2>";
-    fprintf ppf "@[Non linear arithmetic between@]@,";
-    List.iteri (fun i -> fprintf ppf "@[%d) %a@]@," i Ast.pp_term_smtlib2) ts;
-    fprintf ppf "@]"
-  | Exponents term ->
-    fprintf ppf "@[<v 2>";
-    fprintf ppf "@[Exponents@]@,";
-    fprintf ppf "@[%a@]" Ast.pp_term_smtlib2 term;
-    fprintf ppf "@]"
+    Format.fprintf ppf "@[<v 2>";
+    Format.fprintf ppf "@[Non linear arithmetic between@]@,";
+    List.iteri (fun i -> Format.fprintf ppf "@[%d) %a@]@," i Ast.pp_term_smtlib2) ts;
+    Format.fprintf ppf "@]"
 ;;
 
 let check_errors ph =
@@ -38,7 +29,6 @@ let check_errors ph =
        | xs -> Non_linear_arith xs :: acc)
     | Pow (base, Atom (Const _)) as ans when not_a_const base ->
       Non_linear_arith [ ans ] :: acc
-    | Pow (Atom (Const _), _) as ans -> Exponents ans :: acc
     | _ -> acc
   in
   Ast.fold
@@ -48,18 +38,6 @@ let check_errors ph =
     []
     ph
   |> Base.List.dedup_and_sort ~compare:compare_error
-;;
-
-let err_only_expo =
-  List.for_all (function
-    | Exponents _ -> true
-    | _ -> false)
-;;
-
-let err_only_nonlinear =
-  List.for_all (function
-    | Non_linear_arith _ -> true
-    | _ -> false)
 ;;
 
 let is_pure_lia ph = [] = check_errors ph
@@ -581,7 +559,7 @@ let%expect_test _ =
   ()
 ;;
 
-let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
+let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
   let rec helper = function
     | Ast.Land xs -> S.land_ (List.map helper xs)
     | Lor xs -> S.lor_ (List.map helper xs)
@@ -620,7 +598,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
 ;;
 
 exception Underapprox_fired
-exception Error of Ast.t * error list [@@ocaml.warnerror "-38"]
+exception Error of Ast.t * error list
 
 (* type step = int list *)
 let next_step = function
@@ -637,13 +615,12 @@ let pp_step fmt step =
 ;;
 
 let basic_simplify step (env : Env.t) ast =
-  let exception Sat in
   let rec loop step (env : Env.t) ast =
     log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
-    let rez = apply_symantics (module Symantics) ast in
+    let rez = apply_symnatics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
-    let var_info = apply_symantics (module Who_in_exponents) ast in
+    let var_info = apply_symnatics (module Who_in_exponents) ast in
     let env2 = eq_propagation var_info env ast in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
@@ -651,127 +628,90 @@ let basic_simplify step (env : Env.t) ast =
       loop (next_step step) (Env.merge env2 env) ast2
     | false, false -> loop (next_step step) env ast2
     | false, true ->
-      (match ast2 with
-       | Ast.True -> raise_notrace Sat
-       | Ast.Lnot Ast.True -> raise_notrace Unsat
-       | _ ->
-         (* log "Var_info.exp = %a" Info.pp_exp var_info; *)
-         ast2, env, var_info, step)
+      (* log "Var_info.exp = %a" Info.pp_exp var_info; *)
+        (match ast2 with
+         | Ast.True -> raise (Sat "presimpl")
+         | Ast.Lnot Ast.True -> raise Unsat
+         | _ -> ast2, env, var_info, step)
   in
-  try `Unknown (loop step env ast) with
+  try
+    let ast, env, var_info, step = loop step env ast in
+    match check_errors ast with
+    | [] -> `Unknown (ast, env, var_info, step)
+    | errrs -> `Error (ast, errrs, var_info, step)
+  with
   | Unsat -> `Unsat
-  | Sat -> `Sat
+  | Sat s -> `Sat s
+  | Underapprox_fired -> `Sat "udnerapprox"
 ;;
 
-type verdict =
-  [ `Sat of string
-  | `Unsat of string
-  | `Error of Ast.t * error list
-  | `Under of Ast.t * Ast.t list (** In underapprox. we should look only for SAT *)
-  | `Unknown of Ast.t
-  ]
-
-(* Generate environments where interesting variables in `[0..bound)` *)
-let prepare_choices bound env var_info =
-  let ( let* ) xs f = List.concat_map f xs in
-  let choice1 = List.init bound Fun.id in
-  Base.Set.Poly.fold
-    ~f:(fun acc name ->
-      let* v = choice1 in
-      let* acc = acc in
-      [ Env.extend_exn acc name (Ast.Eia.Atom (Const v)) ])
-    ~init:[ env ]
-    var_info.Info.exp
-;;
-
-let check_via_z3 ph =
-  let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ph in
-  let solver = Smtml.Z3_mappings.Solver.make () in
-  Smtml.Z3_mappings.Solver.reset solver;
-  let __ () = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
-  Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ]
-;;
-
-let simpl bound ast : verdict =
-  let on_env step env ast =
+let simpl bound ast =
+  let prepare_choices env var_info =
+    let ( let* ) xs f = List.concat_map f xs in
+    let choice1 = List.init bound Fun.id in
+    Base.Set.Poly.fold
+      ~f:(fun acc name ->
+        let* v = choice1 in
+        let* acc = acc in
+        [ Env.extend_exn acc name (Ast.Eia.Atom (Const v)) ])
+      ~init:[ env ]
+      var_info.Info.exp
+  in
+  let on_env step env =
     let _ =
       log "%s %d. env = %a, step = %a\n%!" __FILE__ __LINE__ Env.pp env pp_step step
     in
     let (module Symantics) = make_main_symantics env in
-    let rez = apply_symantics (module Symantics) ast in
-    match basic_simplify step env rez with
-    | `Unsat ->
-      (* log "%s %d\n%!" __FILE__ __LINE__; *)
-      `Unsat
-    | `Sat ->
-      (* log "%s %d\n%!" __FILE__ __LINE__; *)
-      raise Underapprox_fired
-    | `Unknown (ast, env, info, steps2) ->
-      (match check_errors ast with
-       | [] ->
-         (match check_via_z3 ast with
-          | `Sat -> `Sat ""
-          | `Unsat -> `Unsat
-          | `Unknown -> assert false)
-       | errs when err_only_expo errs -> `Expo ast
-       | errs when err_only_nonlinear errs -> `Nonlinear
-       | _ ->
-         failwith "BUG"
-         (* | `Unknown (ast, env, _info, step) ->
-         (* log "%s %d\n%!" __FILE__ __LINE__; *)
-         let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) rez in
-         let solver = Smtml.Z3_mappings.Solver.make () in
-         Smtml.Z3_mappings.Solver.reset solver;
-         let __ () = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
-         (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
-          | `Sat -> raise Underapprox_fired
-          | _ -> ()) *))
+    let rez = apply_symnatics (module Symantics) ast in
+    (* SYMNATICS??? *)
+      match basic_simplify step env rez with
+      | `Unsat ->
+        (* log "%s %d\n%!" __FILE__ __LINE__; *)
+        ()
+      | `Sat _ ->
+        (* log "%s %d\n%!" __FILE__ __LINE__; *)
+        raise Underapprox_fired
+      | `Error _ ->
+        log "Underapprox doesn't help\n@[%a@]\n%!" Ast.pp_smtlib2 rez;
+        (* errors found *)
+        ()
+      | `Unknown (ast, env, _info, step) ->
+        (* log "%s %d\n%!" __FILE__ __LINE__; *)
+        let ph = apply_symnatics (make_smtml_symantics Utils.Map.empty) rez in
+        let solver = Smtml.Z3_mappings.Solver.make () in
+        Smtml.Z3_mappings.Solver.reset solver;
+        let __ () = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
+        (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
+         | `Sat -> raise Underapprox_fired
+         | _ -> ())
   in
-  let exception Unknown of Ast.t in
-  let exception Unsupported of Ast.t in
-  let loop (env : Env.t) ast : verdict =
+  let loop (env : Env.t) ast =
     match basic_simplify [ 1 ] env ast with
     | `Unsat -> raise Unsat
-    | `Sat -> raise (Sat "")
-    | `Unknown _ when bound <= 0 -> raise (Unknown ast)
-    | `Unknown (ast, env, var_info, _step) ->
-      (* let _ = log "Basic simplify finished after step %a.\n" pp_step step in *)
+    | `Sat msg -> raise (Sat msg)
+    | `Unknown _ when bound <= 0 -> ast
+    | `Error (ast, errs, var_info, step) ->
+      let _ = log "Basic simplify finished after step %a.\n" pp_step step in
       let _ = log "ast = @[%a@]\n%!" Ast.pp_smtlib2 ast in
-      (match check_errors ast with
-       | [] ->
-         (match check_via_z3 ast with
-          | `Sat -> raise (Sat "")
-          | `Unsat -> raise Unsat
-          | `Unknown -> assert false)
-       | errs when err_only_expo errs -> raise (Unknown ast)
-       | errs when err_only_nonlinear errs -> raise (Unsupported ast)
-       | _errs ->
-         let all_choices = prepare_choices bound env var_info in
-         log "There are %d choices" (List.length all_choices);
-         let left =
-           List.filter_map
-             (fun env ->
-                (* TODO: filter_mapi for steps  *)
-                  match on_env [ 1 ] env ast with
-                  | `Unsat -> None
-                  | `Sat s -> raise (Sat s)
-                  | _ -> assert false)
-             all_choices
-         in
-         (match left with
-          | [] -> raise (Unknown ast)
-          | _ -> `Under (ast, left))
-         (* | `Unknown (ast, env, var_info, step) ->
-         let all_choices = prepare_choices bound env var_info in
-         List.iteri (fun i -> on_env (i :: step)) all_choices;
-         ast *))
+      let all_choices = prepare_choices env var_info in
+      log "There are %d choices" (List.length all_choices);
+      List.iteri (fun i -> on_env (i :: step)) all_choices;
+      raise (Error (ast, errs))
+    | `Unknown (ast, env, var_info, step) ->
+      let all_choices = prepare_choices env var_info in
+      List.iteri (fun i -> on_env (i :: step)) all_choices;
+      ast
   in
-  try loop Env.empty ast with
-  | Unsat -> `Unsat "presimpl"
+  try
+    let ast = loop Env.empty ast in
+    match check_errors ast with
+    | [] -> `Unknown ast
+    | errrs -> `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
+  with
+  | Unsat -> `Unsat
   | Underapprox_fired -> `Sat "underappox"
   | Sat reason -> `Sat reason
   | Error (ast, errs) -> `Error (ast, errs)
-  | Unknown ast -> `Unknown ast
 ;;
 
 let test_distr xs =

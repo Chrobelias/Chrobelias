@@ -14,16 +14,13 @@ let () =
          exit 1))
 ;;
 
-exception Sat of string
-exception Unsat of string
-
 let check_sat ast =
-  (* let __ () =
+  let __ () =
     if Lib.Solver.config.stop_after = `Pre_simplify
     then (
       match Lib.SimplII.simpl 0 ast with
       | `Error _ -> failwith "not implemented"
-      | `Unsat _ ->
+      | `Unsat ->
         Format.eprintf "Unsat\n%!";
         exit 0
       | `Sat _ ->
@@ -32,70 +29,55 @@ let check_sat ast =
       | `Unknown ast ->
         Format.printf "%a\n%!" Lib.Ast.pp_smtlib2 ast;
         exit 0)
-  in *)
-    try
-      let ( <+> ) =
-        fun rez f ->
-        match rez with
-        | `Unknown ast -> f ast
-        | `Sat _ | `Unsat -> rez
-      in
-      let ast =
-        `Unknown ast
-        <+> (fun ast ->
-        if not Lib.Solver.config.pre_simpl
-        then `Unknown ast
-        else (
-          match Lib.SimplII.simpl Lib.Solver.config.under_approx ast with
-          | `Error (_ast, es) ->
-            Format.printf "%!";
-            Format.printf "%!@[<v 2>@[Error after simplification.@]@ ";
-            Format.printf "%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
-            Format.printf "Leftover formula:\n@[%a@]\n%!" Lib.Ast.pp_smtlib2 _ast;
-            exit 1
-          | `Unsat s -> raise (Unsat s)
-          | `Sat s -> raise (Sat s)
-          | `Under (_ast, unders) ->
-            let rec loop = function
-              | [] -> `Unknown _ast
-              | h :: tl ->
-                (match Lib.Solver.proof (Lib.Me.ir_of_ast h) with
-                 | `Sat -> raise (Sat "??")
-                 | `Unsat | `Unknown _ -> loop tl)
-            in
-            loop unders
-          | `Unknown _ as other ->
-            Lib.Debug.printfln "%s %d.%!" __FILE__ __LINE__;
-            other))
-        <+> (fun ast ->
-        if Lib.Solver.config.dump_pre_simpl
-        then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-        `Unknown ast)
-        <+> (fun ast ->
-        if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else `Unknown ast)
-        <+> (fun ast ->
-        if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)
-        <+> fun ast ->
-        let bound = Lib.Solver.config.under_approx in
-        if bound > 0 then Lib.Underapprox.check bound ast else `Unknown ast
-      in
-      let ast =
-        match ast with
-        | `Sat s -> `Sat s
-        | `Unsat -> `Unsat
-        | `Unknown ast ->
-          (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
-           | `Sat -> `Sat "nfa"
-           | `Unsat -> `Unsat
-           | `Unknown _ir -> `Unknown)
-      in
+  in
+  begin
+    let ( <+> ) =
+      fun rez f ->
+      match rez with
+      | `Unknown ast -> f ast
+      | `Sat _ | `Unsat -> rez
+    in
+    let ast =
+      `Unknown ast
+      <+> (fun ast ->
+      if not Lib.Solver.config.pre_simpl
+      then `Unknown ast
+      else (
+        match Lib.SimplII.simpl Lib.Solver.config.under_approx ast with
+        | `Error (_ast, es) ->
+          Format.printf "%!";
+          Format.printf "%!@[<v 2>@[Error after simplification.@]@ ";
+          Format.printf "%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
+          Format.printf "Leftover formula:\n@[%a@]\n%!" Lib.Ast.pp_smtlib2 _ast;
+          exit 1
+        | (`Unsat | `Sat _ | `Unknown _) as other -> other))
+      <+> (fun ast ->
+      if Lib.Solver.config.dump_pre_simpl
+      then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+      `Unknown ast)
+      <+> (fun ast ->
+      if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else `Unknown ast)
+      <+> (fun ast ->
+      if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)
+      <+> fun ast ->
+      let bound = Lib.Solver.config.under_approx in
+      if bound > 0 then Lib.Underapprox.check bound ast else `Unknown ast
+    in
+    let ast =
       match ast with
-      | `Sat s -> raise (Sat s)
-      | `Unsat -> raise (Unsat "")
-      | `Unknown -> Format.printf "unknown\n%!"
-    with
-    | Sat s -> Format.printf "sat (%s)\n%!" s
-    | Unsat s -> Format.printf "unsat (%s)\n%!" s
+      | `Sat s -> `Sat s
+      | `Unsat -> `Unsat
+      | `Unknown ast ->
+        (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
+         | `Sat -> `Sat "nfa"
+         | `Unsat -> `Unsat
+         | `Unknown _ir -> `Unknown)
+    in
+    match ast with
+    | `Sat s -> Format.printf "sat (%s)\n%!" s
+    | `Unsat -> Format.printf "unsat\n%!"
+    | `Unknown -> Format.printf "unknown\n%!"
+  end
 ;;
 
 type state =
