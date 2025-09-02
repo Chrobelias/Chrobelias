@@ -46,9 +46,9 @@ let check_sat ast =
         match Lib.SimplII.simpl Lib.Solver.config.under_approx ast with
         | `Error (_ast, es) ->
           Format.printf "%!";
-          Format.printf "%!@[<v 2>@[Error after simplification.@]@ ";
-          Format.printf "%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
           Format.printf "Leftover formula:\n@[%a@]\n%!" Lib.Ast.pp_smtlib2 _ast;
+          Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
+          Format.printf "@[UNKNOWN (Errors after simplification)@]\n%!";
           exit 1
         | (`Unsat | `Sat _ | `Unknown _) as other -> other))
       <+> (fun ast ->
