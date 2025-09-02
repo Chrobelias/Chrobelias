@@ -154,26 +154,84 @@ let compare_ast l r =
   | _ -> Ast.compare l r
 ;;
 
+module Id_symantics :
+  SYM with type ph = Ast.t and type repr = Ast.t and type term = Ast.Eia.term = struct
+  type term = Ast.Eia.term
+  type ph = Ast.t
+  type repr = Ast.t
+
+  (** Terms *)
+  let bw k a b =
+    match k with
+    | FT_SIG.Bwand -> Ast.Eia.bwand a b
+    | FT_SIG.Bwor -> Ast.Eia.bwor a b
+    | FT_SIG.Bwxor -> Ast.Eia.bwxor a b
+  ;;
+
+  let pow = Ast.Eia.pow
+  let mul = Ast.Eia.mul
+  let add = Ast.Eia.add
+  let land_ xs = Ast.Land xs
+  let lor_ xs = Ast.Lor xs
+  let not = Ast.lnot
+
+  include Ast
+
+  let const s : term = Ast.Eia.Atom (Ast.Const s)
+  let var s = Ast.Eia.Atom (Ast.Var s)
+  let exists var ph = Ast.Exists (List.map Ast.var var, ph)
+  let eq l r = Ast.Eia (Ast.Eia.eq l r)
+  let leq l r = Ast.Eia (Ast.Eia.leq l r)
+  let lt l r = Ast.Eia (Ast.Eia.lt l r)
+  let prj = Fun.id
+  let pow2var s = pow (const 2) (var s)
+end
+
+let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
+  let rec helper = function
+    | Ast.Land xs -> S.land_ (List.map helper xs)
+    | Lor xs -> S.lor_ (List.map helper xs)
+    | Lnot x -> S.not (helper x)
+    | True -> S.true_
+    | Eia e -> helper_eia e
+    | Pred s -> assert false
+    | Exists (vs, ph) ->
+      let vs =
+        List.filter_map
+          (function
+            | Ast.Var s -> Some s
+            | Ast.Const _ -> None)
+          vs
+      in
+      S.exists vs (helper ph)
+    | Str _ -> failwith "TBD"
+  and helperT = function
+    | Ast.Eia.Atom (Ast.Const n) -> S.const n
+    | Atom (Ast.Var s) -> S.var s
+    | Add terms -> S.add (List.map helperT terms)
+    | Mul terms -> S.mul (List.map helperT terms)
+    | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> S.pow2var x
+    | Pow (base, p) -> S.pow (helperT base) (helperT p)
+    | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
+    | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
+    | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
+    | Len _ -> failwith "TBD"
+    | Stoi _ -> failwith "TBD"
+  and helper_eia eia =
+    match eia with
+    | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
+    | Leq (l, r) -> S.(helperT l <= helperT r)
+  in
+  fun x -> helper x
+;;
+
 let make_main_symantics env =
   let _ : Env.t = env in
   let module Main_symantics_ (*: SYM with type repr = Ast.t*) = struct
     open Ast
-
-    type term = Ast.Eia.term
-    type ph = Ast.t
-    type repr = Ast.t
+    include Id_symantics
 
     let compare_term = Eia.compare_term
-
-    (** Terms *)
-
-    let bw k a b =
-      match k with
-      | FT_SIG.Bwand -> Ast.Eia.bwand a b
-      | FT_SIG.Bwor -> Ast.Eia.bwor a b
-      | FT_SIG.Bwxor -> Ast.Eia.bwxor a b
-    ;;
-
     let const c = Ast.Eia.Atom (Ast.const c)
 
     let var s : term =
@@ -470,6 +528,54 @@ struct
   include FT_SIG.Sugar (Who_in_exponents_)
 end
 
+module Term_map = Map.Make (struct
+    type t = Ast.Eia.term
+
+    let compare = Stdlib.compare
+  end)
+
+let flatten { Info.all; _ } =
+  let n = ref 0 in
+  let rec gensym () =
+    incr n;
+    let ans = Printf.sprintf "eee%d" !n in
+    if Base.Set.Poly.mem all ans then gensym () else ans
+  in
+  let extra_ph = ref [] in
+  let mapping = ref Term_map.empty in
+  let extend v other =
+    extra_ph := Id_symantics.eq (Id_symantics.var v) other :: !extra_ph;
+    mapping := Term_map.add other v !mapping
+  in
+  let module M_ = struct
+    include Id_symantics
+
+    let pow base e =
+      match e with
+      | Ast.Eia.Atom (Ast.Var _) | Ast.Eia.Atom (Ast.Const _) -> Id_symantics.pow base e
+      | _ ->
+        (match Term_map.find e !mapping with
+         | exception Not_found ->
+           let newv = gensym () in
+           extend newv e;
+           Id_symantics.pow base (Id_symantics.var newv)
+         | newv -> Id_symantics.pow base (Id_symantics.var newv))
+    ;;
+
+    let prj = function
+      | Ast.Land xs -> land_ (!extra_ph @ xs)
+      | ph -> land_ (!extra_ph @ [ ph ])
+    ;;
+  end
+  in
+  let module Sym = struct
+    include M_
+    include FT_SIG.Sugar (M_)
+  end
+  in
+  fun ph -> Sym.prj (apply_symantics (module Sym) ph)
+;;
+
 let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
   let module M = struct
     include FT_SIG.To_smtml_symantics
@@ -559,46 +665,8 @@ let%expect_test _ =
   ()
 ;;
 
-let apply_symnatics (type a) (module S : SYM_SUGAR with type ph = a) =
-  let rec helper = function
-    | Ast.Land xs -> S.land_ (List.map helper xs)
-    | Lor xs -> S.lor_ (List.map helper xs)
-    | Lnot x -> S.not (helper x)
-    | True -> S.true_
-    | Eia e -> helper_eia e
-    | Pred s -> assert false
-    | Exists (vs, ph) ->
-      let vs =
-        List.filter_map
-          (function
-            | Ast.Var s -> Some s
-            | Ast.Const _ -> None)
-          vs
-      in
-      S.exists vs (helper ph)
-    | Str _ -> failwith "TBD"
-  and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> S.const n
-    | Atom (Ast.Var s) -> S.var s
-    | Add terms -> S.add (List.map helperT terms)
-    | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> S.pow2var x
-    | Pow (base, p) -> S.pow (helperT base) (helperT p)
-    | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
-    | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
-    | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
-    | Len _ -> failwith "TBD"
-    | Stoi _ -> failwith "TBD"
-  and helper_eia eia =
-    match eia with
-    | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
-    | Leq (l, r) -> S.(helperT l <= helperT r)
-  in
-  fun x -> helper x
-;;
-
 exception Underapprox_fired
-exception Error of Ast.t * error list
+exception Error of Ast.t * error list [@@ocaml.warnerror "-38"]
 
 (* type step = int list *)
 let next_step = function
@@ -618,9 +686,9 @@ let basic_simplify step (env : Env.t) ast =
   let rec loop step (env : Env.t) ast =
     log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
-    let rez = apply_symnatics (module Symantics) ast in
+    let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
-    let var_info = apply_symnatics (module Who_in_exponents) ast in
+    let var_info = apply_symantics (module Who_in_exponents) ast in
     let env2 = eq_propagation var_info env ast in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
@@ -628,21 +696,14 @@ let basic_simplify step (env : Env.t) ast =
       loop (next_step step) (Env.merge env2 env) ast2
     | false, false -> loop (next_step step) env ast2
     | false, true ->
-      (* log "Var_info.exp = %a" Info.pp_exp var_info; *)
-        (match ast2 with
-         | Ast.True -> raise (Sat "presimpl")
-         | Ast.Lnot Ast.True -> raise Unsat
-         | _ -> ast2, env, var_info, step)
+      (match ast2 with
+       | Ast.True -> raise (Sat "presimpl")
+       | Ast.Lnot Ast.True -> raise Unsat
+       | _ -> ast2, env, var_info, step)
   in
-  try
-    let ast, env, var_info, step = loop step env ast in
-    match check_errors ast with
-    | [] -> `Unknown (ast, env, var_info, step)
-    | errrs -> `Error (ast, errrs, var_info, step)
-  with
+  try `Unknown (loop step env ast) with
   | Unsat -> `Unsat
-  | Sat s -> `Sat s
-  | Underapprox_fired -> `Sat "udnerapprox"
+  | Sat _ -> `Sat
 ;;
 
 let simpl bound ast =
@@ -658,48 +719,51 @@ let simpl bound ast =
       var_info.Info.exp
   in
   let on_env step env =
-    let _ =
-      log "%s %d. env = %a, step = %a\n%!" __FILE__ __LINE__ Env.pp env pp_step step
-    in
     let (module Symantics) = make_main_symantics env in
-    let rez = apply_symnatics (module Symantics) ast in
-    (* SYMNATICS??? *)
-      match basic_simplify step env rez with
-      | `Unsat ->
-        (* log "%s %d\n%!" __FILE__ __LINE__; *)
-        ()
-      | `Sat _ ->
-        (* log "%s %d\n%!" __FILE__ __LINE__; *)
-        raise Underapprox_fired
-      | `Error _ ->
-        log "Underapprox doesn't help\n@[%a@]\n%!" Ast.pp_smtlib2 rez;
-        (* errors found *)
-        ()
-      | `Unknown (ast, env, _info, step) ->
-        (* log "%s %d\n%!" __FILE__ __LINE__; *)
-        let ph = apply_symnatics (make_smtml_symantics Utils.Map.empty) rez in
-        let solver = Smtml.Z3_mappings.Solver.make () in
-        Smtml.Z3_mappings.Solver.reset solver;
-        let __ () = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
-        (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
-         | `Sat -> raise Underapprox_fired
-         | _ -> ())
+    let rez = apply_symantics (module Symantics) ast in
+    match basic_simplify step env rez with
+    | `Unsat -> `Unknown
+    | `Sat -> raise Underapprox_fired
+    | `Unknown (ast, env, _info, step) ->
+      (match check_errors ast with
+       | [] ->
+         let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) rez in
+         let solver = Smtml.Z3_mappings.Solver.make ~logic:Smtml.Logic.LIA () in
+         Smtml.Z3_mappings.Solver.reset solver;
+         (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
+          | `Sat -> raise Underapprox_fired
+          | `Unsat | `Unknown -> `Unknown)
+       | _ -> `Errors)
   in
   let loop (env : Env.t) ast =
     match basic_simplify [ 1 ] env ast with
     | `Unsat -> raise Unsat
-    | `Sat msg -> raise (Sat msg)
-    | `Unknown _ when bound <= 0 -> ast
-    | `Error (ast, errs, var_info, step) ->
+    | `Sat -> raise (Sat "")
+    | `Unknown (ast, _, _, _) when bound <= 0 -> ast
+    (* | `Error (ast, errs, var_info, step) ->
       let _ = log "Basic simplify finished after step %a.\n" pp_step step in
       let _ = log "ast = @[%a@]\n%!" Ast.pp_smtlib2 ast in
       let all_choices = prepare_choices env var_info in
       log "There are %d choices" (List.length all_choices);
       List.iteri (fun i -> on_env (i :: step)) all_choices;
-      raise (Error (ast, errs))
-    | `Unknown (ast, env, var_info, step) ->
+      raise (Error (ast, errs)) *)
+    | `Unknown (ast, env, _var_info, step) ->
+      let ast = flatten _var_info ast in
+      let var_info = apply_symantics (module Who_in_exponents) ast in
       let all_choices = prepare_choices env var_info in
-      List.iteri (fun i -> on_env (i :: step)) all_choices;
+      assert (all_choices <> []);
+      let verdicts = List.mapi (fun i -> on_env (i :: step)) all_choices in
+      let is_error = function
+        | `Errors -> true
+        | `Unknown -> false
+      in
+      if List.for_all is_error verdicts
+      then (
+        match check_errors ast with
+        | [] ->
+          Printf.eprintf "Something weird: no errors. %s %d\n%!" __FILE__ __LINE__;
+          raise (Error (ast, []))
+        | errors -> raise (Error (ast, errors)));
       ast
   in
   try
