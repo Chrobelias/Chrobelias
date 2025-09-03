@@ -561,14 +561,6 @@ struct
 
   let pow2 n = List.init n (Fun.const NfaCollection.base) |> List.fold_left ( * ) 1
 
-  let gen_list_n n =
-    let rec helper acc = function
-      | 0 -> [ 0 ]
-      | n -> helper (n :: acc) (n - 1)
-    in
-    helper [] n |> List.rev
-  ;;
-
   let get_exp = function
     | Ir.Pow2 var -> Ir.var var
     | Ir.Var _ -> failwith "Expected exponent, found var"
@@ -676,7 +668,7 @@ struct
           let log = logBase x in
           x - log, log, 0)
         |> Seq.filter (fun (t, _, _) -> t = a)
-      else c |> gen_list_n |> List.map (fun d -> a, d, c) |> List.to_seq)
+      else 0 -- (c - 1) |> List.map (fun d -> a, d, c) |> List.to_seq)
     |> Seq.map (fun (a, d, c) ->
       let a_plus_d, s = internal s in
       let t, s = internal s in
