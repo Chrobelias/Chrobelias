@@ -7,9 +7,9 @@
 (source
  (github Chrobelias/Chrobelias))
 
-(authors "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev")
+(authors "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev, Mikhail Starchak")
 
-(maintainers "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev")
+(maintainers "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev, Mikhail Starchak")
 
 (license MIT)
 

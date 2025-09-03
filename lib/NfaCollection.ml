@@ -22,8 +22,8 @@ end
 module type NatType = sig
   include Type
 
-  val torename : varpos -> int -> int -> t
-  val torename2 : int -> int -> t
+  val div_in_pow : varpos -> int -> int -> t
+  val pow_of_log_var : int -> int -> t
 end
 
 let rec gcd a b =
@@ -49,7 +49,7 @@ module Lsb = struct
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  let torename var a c =
+  let div_in_pow var a c =
     if c = 0
     then (
       let trans1 = List.init a Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
@@ -70,7 +70,7 @@ module Lsb = struct
         ~deg:(var + 1))
   ;;
 
-  let torename2 var exp =
+  let pow_of_log_var var exp =
     Nfa.create_nfa
       ~transitions:[ 0, [ i; o ], 0; 0, [ o; o ], 0; 0, [ i; i ], 1; 1, [ o; o ], 1 ]
       ~start:[ 0 ]
@@ -386,7 +386,7 @@ module MsbNat = struct
 
   let z () = NfaMsbNat.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  let torename var a c =
+  let div_in_pow var a c =
     if c = 0
     then (
       let trans1 = List.init a Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
@@ -398,7 +398,7 @@ module MsbNat = struct
           ~vars:[ var ]
           ~deg:(var + 1)
       in
-      Debug.printfln "Building torename nfa: var=%d, a=%d, c=%d" var a c;
+      Debug.printfln "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
       Debug.dump_nfa ~msg:"Nfa: %s" NfaMsbNat.format_nfa nfa;
       nfa)
     else (
@@ -412,7 +412,7 @@ module MsbNat = struct
         ~deg:(var + 1))
   ;;
 
-  let torename2 var exp =
+  let pow_of_log_var var exp =
     NfaMsbNat.create_nfa
       ~transitions:[ 0, [ i; o ], 0; 0, [ o; o ], 0; 1, [ i; i ], 0; 1, [ o; o ], 1 ]
       ~start:[ 1 ]
@@ -504,7 +504,7 @@ module Str = struct
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  let torename var a c =
+  let div_in_pow var a c =
     if c = 0
     then (
       let trans1 = List.init a Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
@@ -525,7 +525,7 @@ module Str = struct
         ~deg:(var + 1))
   ;;
 
-  let torename2 var exp =
+  let pow_of_log_var var exp =
     Nfa.create_nfa
       ~transitions:
         ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))

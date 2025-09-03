@@ -686,8 +686,8 @@ struct
       in
       Debug.printfln "nfa_for_exponent: a=%d, d=%d, c=%d, n=%d" a d c n;
       Debug.dump_nfa ~msg:"nfa_for_exponent var nfa: %s" Nfa.format_nfa nfa;
-      let newvar_nfa = NfaCollection.torename newvar d c in
-      Debug.dump_nfa ~msg:"nfa_for_exponent newvar nfa: %s" Nfa.format_nfa newvar_nfa;
+      let newvar_nfa = NfaCollection.div_in_pow newvar d c in
+      Debug.dump_nfa ~msg:"nfa_for_exponent div_in_pow: %s" Nfa.format_nfa newvar_nfa;
       let poly = Map.of_alist_exn [ var, -1 ] in
       let geq_nfa = NfaCollection.leq s.vars poly (-n) in
       Debug.dump_nfa ~msg:"nfa_for_exponent geq_nfa: %s" Nfa.format_nfa geq_nfa;
@@ -734,27 +734,22 @@ struct
       let nfa =
         nfa
         |> Nfa.intersect
-             (NfaCollection.torename2 (get_deg x') (get_deg inter)
+             (NfaCollection.pow_of_log_var (get_deg x') (get_deg inter)
               |> fun nfa ->
-              Debug.dump_nfa ~msg:"torename2: %s" Nfa.format_nfa nfa;
+              Debug.dump_nfa ~msg:"pow_of_log_var: %s" Nfa.format_nfa nfa;
               nfa)
       in
-      Debug.dump_nfa ~msg:"Nfa intersected with torename2: %s" Nfa.format_nfa nfa;
-      let ans =
-        nfa
-        |> Nfa.get_chrobaks_sub_nfas
-             ~res:(get_deg x)
-             ~temp:(get_deg inter)
-             ~vars:(Map.data s.vars)
-        |> Seq.flat_map (fun (nfa, chrobak, model_part) ->
-          Debug.dump_nfa ~msg:"timofey asked to dump this: %s" Nfa.format_nfa nfa;
-          nfa_for_exponent s x' (get_deg inter) chrobak
-          |> Seq.map (Nfa.intersect nfa)
-          |> Seq.map (fun nfa -> nfa, model_part))
-        |> Seq.map (fun (nfa, model_part) ->
-          Nfa.project [ get_deg inter ] nfa, model_part)
-      in
-      ans)
+      Debug.dump_nfa ~msg:"Nfa intersected with pow_of_log_var: %s" Nfa.format_nfa nfa;
+      nfa
+      |> Nfa.get_chrobaks_sub_nfas
+           ~res:(get_deg x)
+           ~temp:(get_deg inter)
+           ~vars:(Map.data s.vars)
+      |> Seq.flat_map (fun (nfa, chrobak, model_part) ->
+        nfa_for_exponent s x' (get_deg inter) chrobak
+        |> Seq.map (Nfa.intersect nfa)
+        |> Seq.map (fun nfa -> nfa, model_part))
+      |> Seq.map (fun (nfa, model_part) -> Nfa.project [ get_deg inter ] nfa, model_part))
   ;;
 
   let proof_order return project s nfa order =
