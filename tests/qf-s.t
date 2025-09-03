@@ -14,6 +14,7 @@ Basic QF_S tests
   unsat
   sat (nfa)
   unsat
+  sat (nfa)
 
 +  1 sat
 +  2 sat

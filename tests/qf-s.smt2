@@ -83,3 +83,10 @@
   (assert (= (str.len x) (+ (* 2 y) 1)))
   (check-sat) ; unsat
 (pop 1)
+
+(push 1)
+  (assert (str.in.re x (re.* (str.to.re "100"))))
+  (assert (= (str.len x) 12))
+  (check-sat) ; sat
+(pop 1)
+
