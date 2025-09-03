@@ -21,8 +21,8 @@ end
 module type NatType = sig
   include Type
 
-  val torename : varpos -> int -> int -> t
-  val torename2 : int -> int -> t
+  val div_in_pow : varpos -> int -> int -> t
+  val pow_of_log_var : int -> int -> t
 end
 
 module Lsb : sig
