@@ -1,0 +1,10 @@
+(cram
+ (deps %{bin:Chro}))
+
+(cram
+ (applies_to 1)
+ (deps issue92.smt2))
+
+(cram
+ (applies_to bad)
+ (deps bad.smt2))
