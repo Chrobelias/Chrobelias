@@ -1653,7 +1653,7 @@ module Msb (Label : L) = struct
   let run nfa = any_path nfa [] |> Option.is_some
 
   let to_nat (nfa : t) : u =
-    Debug.dump_nfa ~msg:"befor to_nat nfa %s" format_nfa nfa;
+    Debug.dump_nfa ~msg:"before to_nat nfa %s" format_nfa nfa;
     let start =
       nfa.start
       |> Set.to_list
