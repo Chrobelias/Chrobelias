@@ -405,9 +405,9 @@ module MsbNat = struct
       let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
       NfaMsbNat.create_nfa
         ~transitions:
-          ([ a + c - 1, [ o ], a; a, [ i ], a + c; a + c, [ o ], a + c ] @ trans1)
-        ~start:[ 0 ]
-        ~final:[ a + c ]
+          ([ a, [ o ], a + c - 1; a + c, [ i ], a; a + c, [ o ], a + c ] @ trans1)
+        ~start:[ a + c ]
+        ~final:[ 0 ]
         ~vars:[ var ]
         ~deg:(var + 1))
   ;;
