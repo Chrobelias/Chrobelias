@@ -1046,7 +1046,6 @@ module LsbStr =
     end)
 
 let z_of_list_lsb p =
-  let p = List.rev p in
   let length = List.length p in
   let bv_init deg f =
     List.fold_left
