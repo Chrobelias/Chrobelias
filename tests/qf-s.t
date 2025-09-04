@@ -15,6 +15,7 @@ Basic QF_S tests
   sat (nfa)
   unsat
   sat (nfa)
+   %68 = 999999999999; %67 = 1200; x = 100100100100; 
 
 +  1 sat
 +  2 sat

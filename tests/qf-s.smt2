@@ -88,5 +88,6 @@
   (assert (str.in.re x (re.* (str.to.re "100"))))
   (assert (= (str.len x) 12))
   (check-sat) ; sat
+  (get-model)
 (pop 1)
 
