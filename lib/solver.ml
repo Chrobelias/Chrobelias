@@ -442,6 +442,52 @@ struct
     if config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
     if config.stop_after = `Simpl then exit 0;
     let vars = collect_vars ir in
+    let apply_post_strings atoms =
+      fun nfa ->
+      let slens =
+        Ir.fold
+          (fun acc -> function
+             | SLen (atom, atom') -> (atom, atom') :: acc
+             | _ -> acc)
+          []
+          ir
+      in
+      let stois =
+        Ir.fold
+          (fun acc -> function
+             | Stoi (atom, atom') -> (atom, atom') :: acc
+             | _ -> acc)
+          []
+          ir
+      in
+      let nfa =
+        List.fold_left
+          (fun nfa (atom, atom') ->
+             if List.mem atom atoms
+             then
+               NfaCollection.strlen
+                 nfa
+                 ~src:(Map.find_exn vars atom')
+                 ~dest:(Map.find_exn vars atom)
+             else nfa)
+          nfa
+          slens
+      in
+      let nfa =
+        List.fold_left
+          (fun nfa (atom, atom') ->
+             if List.mem atom atoms
+             then
+               NfaCollection.stoi
+                 nfa
+                 ~src:(Map.find_exn vars atom')
+                 ~dest:(Map.find_exn vars atom)
+             else nfa)
+          nfa
+          stois
+      in
+      nfa
+    in
     let rec eval ir =
       if config.dump_ir then Format.printf "%d Running %a\n%!" !level Ir.pp ir;
       level := !level + 1;
@@ -484,50 +530,8 @@ struct
        | Ir.Reg (reg, atoms) -> Extra.eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
          eval ir
-         |> fun nfa ->
-         let slens =
-           Ir.fold
-             (fun acc -> function
-                | SLen (atom, atom') -> (atom, atom') :: acc
-                | _ -> acc)
-             []
-             ir
-         in
-         let stois =
-           Ir.fold
-             (fun acc -> function
-                | Stoi (atom, atom') -> (atom, atom') :: acc
-                | _ -> acc)
-             []
-             ir
-         in
-         let nfa =
-           List.fold_left
-             (fun nfa (atom, atom') ->
-                if List.mem atom atoms
-                then
-                  NfaCollection.strlen
-                    nfa
-                    ~src:(Map.find_exn vars atom')
-                    ~dest:(Map.find_exn vars atom)
-                else nfa)
-             nfa
-             slens
-         in
-         let nfa =
-           List.fold_left
-             (fun nfa (atom, atom') ->
-                if List.mem atom atoms
-                then
-                  NfaCollection.stoi
-                    nfa
-                    ~src:(Map.find_exn vars atom')
-                    ~dest:(Map.find_exn vars atom)
-                else nfa)
-             nfa
-             stois
-         in
-         nfa |> Nfa.project (List.filter_map (Map.find vars) atoms)
+         |> apply_post_strings atoms
+         |> Nfa.project (List.filter_map (Map.find vars) atoms)
          (* APOHZ technique legacy.
            |> NfaO.lsb_of_msb:
            |> NfaO.Lsb.minimize
@@ -543,7 +547,9 @@ struct
       level := !level - 1;
       nfa
     in
-    eval ir, vars
+    let nfa = eval ir in
+    let nfa = apply_post_strings (collect_free ir |> Set.to_list) nfa in
+    nfa, vars
   ;;
 
   let is_exp = function
@@ -1042,7 +1048,17 @@ module LsbStr =
             , q' ))
       ;;
 
-      let model_to_int c = c |> List.to_seq |> String.of_seq |> int_of_string
+      let model_to_int c =
+        c
+        |> List.to_seq
+        |> Seq.drop_while (fun c -> c = '0')
+        |> Seq.filter (fun c -> Char.code c <> 0)
+        |> List.of_seq
+        |> List.rev
+        |> List.to_seq
+        |> String.of_seq
+        |> int_of_string
+      ;;
     end)
 
 let z_of_list_lsb p =
