@@ -1,0 +1,10 @@
+(set-logic ALL)
+(declare-fun x () Int)
+(declare-fun y () Int)
+(declare-fun z () Int)
+
+(assert (>= z 10))
+(assert (>= x 1000))
+(assert (= (* x (exp 2 z)) y))
+(assert (<= y 1000000))
+(check-sat)

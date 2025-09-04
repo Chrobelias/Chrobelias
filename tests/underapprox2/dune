@@ -1,0 +1,5 @@
+(cram
+ (deps %{bin:Chro}))
+
+(cram
+ (deps issue92.smt2))
