@@ -4,6 +4,7 @@
 module Map = Base.Map.Poly
 
 let () = Lib.Solver.parse_args ()
+let log = Lib.Debug.printfln
 
 let () =
   Sys.set_signal
@@ -28,7 +29,8 @@ let check_sat ast =
         exit 0
       | `Unknown ast ->
         Format.printf "%a\n%!" Lib.Ast.pp_smtlib2 ast;
-        exit 0)
+        exit 0
+      | _ -> assert false)
   in
   begin
     let ( <+> ) =
@@ -43,14 +45,33 @@ let check_sat ast =
       if not Lib.Solver.config.pre_simpl
       then `Unknown ast
       else (
-        match Lib.SimplII.simpl Lib.Solver.config.under_approx ast with
+        match
+          Lib.(
+            SimplII.simpl ~under_mode:Solver.config.under_mode Solver.config.under_approx)
+            ast
+        with
         | `Error (_ast, es) ->
           Format.printf "%!";
           Format.printf "Leftover formula:\n@[%a@]\n%!" Lib.Ast.pp_smtlib2 _ast;
           Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
           Format.printf "@[UNKNOWN (Errors after simplification)@]\n%!";
           exit 1
-        | (`Unsat | `Sat _ | `Unknown _) as other -> other))
+        | (`Unsat | `Sat _ | `Unknown _) as other -> other
+        | `Underapprox asts ->
+          log "Looking for SAT in %d asts..." (List.length asts);
+          let exception Sat_found in
+          (try
+             let f ast =
+               match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
+               | `Sat -> raise Sat_found
+               | _ -> ()
+             in
+             List.iter f asts;
+             exit 1
+           with
+           | Sat_found ->
+             Format.printf "sat (under II)\n%!";
+             exit 0)))
       <+> (fun ast ->
       if Lib.Solver.config.dump_pre_simpl
       then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;

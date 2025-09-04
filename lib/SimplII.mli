@@ -5,9 +5,15 @@ type relop =
 type error
 
 val simpl
-  :  int
+  :  ?under_mode:[ `First | `Second ]
+  -> int
   -> Ast.t
-  -> [> `Unknown of Ast.t | `Sat of string | `Unsat | `Error of Ast.t * error list ]
+  -> [> `Unknown of Ast.t
+     | `Sat of string
+     | `Unsat
+     | `Error of Ast.t * error list
+     | `Underapprox of Ast.t list
+     ]
 
 val pp_error : Format.formatter -> error -> unit
 
