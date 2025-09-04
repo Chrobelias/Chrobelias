@@ -365,6 +365,7 @@ type config =
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
   ; mutable under_approx : int
+  ; mutable under_mode : [ `First | `Second ]
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str ]
   }
@@ -381,6 +382,7 @@ let config =
   ; simpl_mono = true
   ; over_approx = true
   ; under_approx = 3
+  ; under_mode = `First
   ; input_file = ""
   ; logic = `Eia
   }
@@ -393,8 +395,9 @@ let parse_args () =
       , Arg.String
           (function
             | "simpl" -> config.stop_after <- `Simpl
-            | "pre_simpl" | "pre-simpl" | "simpl2" -> config.stop_after <- `Pre_simplify
-            | _ -> failwith "Bad argument")
+            | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
+              config.stop_after <- `Pre_simplify
+            | s -> failwith ("Bad argument: " ^ s))
       , " Stop after step" )
     ; "-error-check", Arg.Unit (fun () -> config.error_check <- true), " "
     ; "-no-error-check", Arg.Unit (fun () -> config.error_check <- false), " "
@@ -406,6 +409,7 @@ let parse_args () =
     ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
     ; "-dir", Arg.Unit (fun () -> config.dump_ir <- true), " Dump IR"
+    ; "-under2", Arg.Unit (fun () -> config.under_mode <- `Second), " ..."
     ; ( "-dpresimpl"
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , " Dump AST simplifications" )
