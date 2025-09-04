@@ -450,17 +450,23 @@ let try_propagate : Ast.t -> Env.t * Ast.t =
 ;;
 
 module Info = struct
+  type names = string Base.Set.Poly.t
+
   type t =
-    { exp : string Base.Set.Poly.t
-    ; all : string Base.Set.Poly.t
+    { exp : names
+    ; all : names
+    ; under2 : names
     }
 
   let is_in_expo name { exp; _ } = Base.Set.Poly.mem exp name
 
-  let make ~exp ~all =
+  let make ~exp ~all ~under =
     (* TODO: check subsumtion *)
-    { exp = Base.Set.Poly.of_list exp; all = Base.Set.Poly.of_list all }
+    let of_list = Base.Set.Poly.of_list in
+    { exp = of_list exp; all = of_list all; under2 = of_list under }
   ;;
+
+  let empty = make ~exp:[] ~all:[] ~under:[]
 
   let pp_exp ppf { exp; _ } =
     Format.fprintf
@@ -469,6 +475,11 @@ module Info = struct
       Format.(
         pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ "))
       (Base.Set.Poly.to_list exp)
+  ;;
+
+  let union e1 e2 =
+    let ( ++ ) = Base.Set.Poly.union in
+    { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all; under2 = e1.under2 ++ e2.under2 }
   ;;
 end
 
@@ -484,7 +495,7 @@ module Who_in_exponents_ = struct
       xs
   ;;
 
-  let pp_info ppf { Info.exp; all } =
+  let pp_info ppf { Info.exp; all; _ } =
     Format.printf
       "@[{ all = @[%a@];@ exp  = @[%a@] }@]"
       pp_set
@@ -494,15 +505,27 @@ module Who_in_exponents_ = struct
   [@@warning "-32"]
   ;;
 
-  let ( ++ ) e1 e2 = { Info.exp = S.union e1.exp e2.exp; all = S.union e1.all e2.all }
-  let empty = { Info.exp = S.empty; all = S.empty }
+  let ( ++ ) = Info.union
+  let empty = Info.empty
 
   type ph = term
   type repr = ph
 
   let const _ = empty
   let var s = { empty with all = S.singleton s }
-  let mul = List.fold_left ( ++ ) empty
+
+  let mul xs =
+    let aaa = List.fold_left ( ++ ) empty xs in
+    (* let u2 =
+      match xs with
+      | [ Eia.Atom (Var v); Eia.Pow (Eia.Atom (Const 2), Eia.Atom (Var _)) ] ->
+        S.singleton v
+      | _ -> S.empty
+    in
+    { aaa with under2 = S.union aaa.under2 u2 } *)
+    aaa
+  ;;
+
   let add = List.fold_left ( ++ ) empty
   let bw _ = ( ++ )
   let true_ = empty
@@ -519,7 +542,11 @@ module Who_in_exponents_ = struct
     info
   ;;
 
-  let pow2var v = { all = S.singleton v; exp = S.singleton v }
+  let pow2var v =
+    let all = [ v ] in
+    Info.make ~all ~exp:all ~under:all
+  ;;
+
   let pow base e = { e with all = S.union base.all e.all }
   let prj = Fun.id
 end
@@ -533,17 +560,42 @@ struct
   include FT_SIG.Sugar (Who_in_exponents_)
 end
 
+let find_vars_for_under2 ast =
+  let module S = Base.Set.Poly in
+  Ast.fold
+    (fun acc ->
+       let open Ast.Eia in
+       function
+       | Ast.Eia (Ast.Eia.Eq (l, r)) | Eia (Ast.Eia.Leq (l, r)) ->
+         let f =
+           fun acc -> function
+             | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const 2), Atom (Var _)) ] ->
+               S.add acc v
+             | _ -> acc
+         in
+         Ast.Eia.fold_term f (Ast.Eia.fold_term f acc r) l
+       | _ -> acc)
+    S.empty
+    ast
+;;
+
 module Term_map = Map.Make (struct
     type t = Ast.Eia.term
 
     let compare = Stdlib.compare
   end)
 
-let flatten { Info.all; _ } =
+let gensym =
   let n = ref 0 in
-  let rec gensym () =
+  fun ?(prefix = "eee") () ->
     incr n;
-    let ans = Printf.sprintf "eee%d" !n in
+    Printf.sprintf "%s%d" prefix !n
+;;
+
+let flatten { Info.all; _ } =
+  let gensym1 = gensym in
+  let rec gensym () =
+    let ans = gensym1 ~prefix:"eee" () in
     if Base.Set.Poly.mem all ans then gensym () else ans
   in
   let extra_ph = ref [] in
@@ -659,7 +711,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ?(env = [ "x"; "y"; "z" ]) ?(exp = []) ph =
-    let info = Info.make ~all:env ~exp in
+    let info = Info.make ~all:env ~exp ~under:[] in
     let env2 = eq_propagation info Env.empty ph in
     Format.printf "@[%a@]\n%!" Env.pp env2
   in
@@ -713,7 +765,38 @@ let basic_simplify step (env : Env.t) ast =
   | Sat _ -> `Sat
 ;;
 
-let simpl bound ast =
+let try_under2_heuristics env ast =
+  let under2vars = find_vars_for_under2 ast in
+  log
+    "vars_for_under2: %a\n%!"
+    Format.(pp_print_list pp_print_string)
+    (Base.Set.to_list under2vars);
+  let ( let* ) xs f = List.concat_map f xs in
+  let all_as = List.init 7 (( + ) 5) in
+  log
+    "FUK: @[%a@]\n%!"
+    Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
+    all_as;
+  assert (List.for_all (fun x -> x >= 5 && x <= 11) all_as);
+  let _k = 0 in
+  let envs =
+    Base.Set.Poly.fold
+      ~f:(fun acc name ->
+        let* a = all_as in
+        let* acc = acc in
+        let v = gensym ~prefix:"u" () in
+        [ Env.extend_exn acc name Id_symantics.(add [ pow2var v; const a ]) ])
+      ~init:[ env ]
+      under2vars
+  in
+  List.map
+    (fun e ->
+       let (module Symantics) = make_main_symantics e in
+       apply_symantics (module Symantics) ast)
+    envs
+;;
+
+let simpl ?(under_mode = `First) bound ast =
   let prepare_choices env var_info =
     let ( let* ) xs f = List.concat_map f xs in
     let choice1 = List.init bound Fun.id in
@@ -726,34 +809,35 @@ let simpl bound ast =
       var_info.Info.exp
   in
   let on_env step env =
+    log "step: %a. env = %a\n" pp_step step Env.pp env;
     let (module Symantics) = make_main_symantics env in
-    let rez = apply_symantics (module Symantics) ast in
-    match basic_simplify step env rez with
+    let ast_spec = apply_symantics (module Symantics) ast in
+    match basic_simplify step env ast_spec with
     | `Unsat -> `Unknown
     | `Sat -> raise Underapprox_fired
     | `Unknown (ast, env, _info, step) ->
-      (match check_errors ast with
+      let var_info = apply_symantics (module Who_in_exponents) ast_spec in
+      let ast_spec = flatten var_info ast_spec in
+      let ast_spec = apply_symantics (module Symantics) ast_spec in
+      log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec;
+      (match check_errors ast_spec with
        | [] ->
-         let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) rez in
+         let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast_spec in
          let solver = Smtml.Z3_mappings.Solver.make ~logic:Smtml.Logic.LIA () in
          Smtml.Z3_mappings.Solver.reset solver;
          (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
           | `Sat -> raise Underapprox_fired
           | `Unsat | `Unknown -> `Unknown)
-       | _ -> `Errors)
+       | errors ->
+         log "%d errors found" (List.length errors);
+         Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
+         `Errors)
   in
   let loop (env : Env.t) ast =
     match basic_simplify [ 1 ] env ast with
     | `Unsat -> raise Unsat
     | `Sat -> raise (Sat "")
     | `Unknown (ast, _, _, _) when bound <= 0 -> ast
-    (* | `Error (ast, errs, var_info, step) ->
-      let _ = log "Basic simplify finished after step %a.\n" pp_step step in
-      let _ = log "ast = @[%a@]\n%!" Ast.pp_smtlib2 ast in
-      let all_choices = prepare_choices env var_info in
-      log "There are %d choices" (List.length all_choices);
-      List.iteri (fun i -> on_env (i :: step)) all_choices;
-      raise (Error (ast, errs)) *)
     | `Unknown (ast, env, _var_info, step) ->
       let ast = flatten _var_info ast in
       let var_info = apply_symantics (module Who_in_exponents) ast in
@@ -777,7 +861,31 @@ let simpl bound ast =
     let ast = loop Env.empty ast in
     match check_errors ast with
     | [] -> `Unknown ast
-    | errrs -> `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
+    | errrs when under_mode = `First ->
+      `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
+    | errrs ->
+      (* we are doing underapprox II *)
+      (* TODO(Kakadu): enrich environment  *)
+      let env = Env.empty in
+      let asts = try_under2_heuristics env ast in
+      let asts =
+        List.filter_map
+          (fun ast ->
+             match basic_simplify [ 1 ] env ast with
+             | `Unsat -> None
+             | `Sat -> raise Underapprox_fired
+             | `Unknown (ast, _, _, _) ->
+               let var_info = apply_symantics (module Who_in_exponents) ast in
+               let ast = flatten var_info ast in
+               (match check_errors ast with
+                | [] -> Some ast
+                | errors ->
+                  log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
+                  Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
+                  None))
+          asts
+      in
+      `Underapprox asts
   with
   | Unsat -> `Unsat
   | Underapprox_fired -> `Sat "underappox"
