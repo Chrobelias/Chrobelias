@@ -1295,7 +1295,9 @@ module Lsb (Label : L) = struct
     |> Sequence.to_seq
     |> Seq.filter_map (fun mid ->
       let* path = any_path { nfa with start = Set.singleton mid } vars in
-      let chrobak_nfa = { exp_nfa with start = Set.singleton mid } in
+      let chrobak_nfa =
+        { exp_nfa with start = Set.singleton mid } |> remove_unreachable_from_start
+      in
       let nfa =
         { nfa with
           final = Set.singleton mid
@@ -1514,7 +1516,9 @@ module MsbNat (Label : L) = struct
       |> Map.to_sequence
       |> Sequence.to_seq
       |> Seq.filter_map (fun (mid, lbls) ->
-        let chrobak_nfa = { exp_nfa with start = Set.singleton mid } in
+        let chrobak_nfa =
+          { exp_nfa with start = Set.singleton mid } |> remove_unreachable_from_start
+        in
         let* path = any_path { nfa with start = Set.singleton mid } vars in
         let transitions = Array.copy nfa.transitions in
         transitions.(nfa_start) <- lbls |> List.map (fun lbl -> lbl, mid);
