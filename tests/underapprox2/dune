@@ -6,5 +6,9 @@
  (deps issue92.smt2))
 
 (cram
+ (applies_to issue92mini)
+ (deps issue92mini.smt2))
+
+(cram
  (applies_to bad)
  (deps bad.smt2))
