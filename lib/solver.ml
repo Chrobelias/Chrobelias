@@ -63,13 +63,14 @@ let ( -- ) i j =
   aux j []
 ;;
 
-type bound =
+(*type bound =
   | EqConst of Ir.atom * int
   | LeqConst of (Ir.atom, int) Map.t * int
   | EqVar of Ir.atom * Ir.atom
+*)
 
 let trivial ir =
-  let rec infer_bounds : Ir.t -> _ = function
+  (*let rec infer_bounds : Ir.t -> _ = function
     | Ir.Land irs ->
       let bounds = List.map infer_bounds irs in
       Set.union_list bounds
@@ -205,7 +206,7 @@ let trivial ir =
         in
         if c' < c then Ir.true_ else ir
       | ir -> ir)
-  in
+  in*)
   let quantifiers_closer : Ir.t -> Ir.t =
     Ir.map (function
       | Ir.Exists ([], ir) -> ir
@@ -260,10 +261,10 @@ let trivial ir =
   let simpl ir =
     ir
     |> Ir.map (function
-      | Ir.Rel (Ir.Eq, term, 0) when Map.for_all ~f:(fun v -> Int.equal v 0) term ->
-        Ir.true_
-      | Ir.Rel (Ir.Leq, term, c) when Map.length term = 0 && c >= 0 -> Ir.true_
-      | Ir.Rel (Ir.Leq, term, c) when Map.length term = 0 && c < 0 -> Ir.false_
+      | Ir.Rel (Ir.Eq, term, c)
+        when Map.for_all ~f:(fun v -> Z.(equal v zero)) term && c = Z.zero -> Ir.true_
+      | Ir.Rel (Ir.Leq, term, c) when Map.length term = 0 && Z.(c >= zero) -> Ir.true_
+      | Ir.Rel (Ir.Leq, term, c) when Map.length term = 0 && Z.(c < zero) -> Ir.false_
       | ir -> ir)
     |> Ir.map (function
       | Ir.Lor [] -> Ir.false_
@@ -312,7 +313,7 @@ let trivial ir =
              | ir -> [ ir ]))
       | ir -> ir)
   in
-  let aux ir =
+  (*let aux ir =
     Ir.map
       (function
         | Ir.Exists (atoms, ir') ->
@@ -330,9 +331,9 @@ let trivial ir =
           Ir.exists atoms (apply_bounds bounds' ir' |> simpl)
         | ir -> ir)
       ir
-  in
+  in*)
   let rec aux2 ir =
-    let ir' = aux ir |> quantifiers_closer in
+    let ir' = (*aux *) ir |> simpl |> quantifiers_closer in
     if Ir.equal ir ir' then ir' else aux2 ir'
   in
   aux2 ir
@@ -431,11 +432,12 @@ module Make
     (Extra : sig
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
        val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
-       val model_to_int : Nfa.v list -> int
+       val model_to_int : Nfa.v list -> Z.t
      end) =
 struct
   let eval ir =
-    let ir = if config.logic = `Eia then trivial ir else ir in
+    (*let ir = if config.logic = `Eia then trivial ir else ir in*)
+    let ir = trivial ir in
     let ir = if config.simpl_mono then Ir.simpl_monotonicty ir else ir in
     let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -565,7 +567,10 @@ struct
     helper (-1) n
   ;;
 
-  let pow2 n = List.init n (Fun.const NfaCollection.base) |> List.fold_left ( * ) 1
+  let pow2z n =
+    List.init (Z.to_int n) (Fun.const (NfaCollection.base |> Z.of_int))
+    |> List.fold_left Z.( * ) Z.one
+  ;;
 
   let get_exp = function
     | Ir.Pow2 var -> Ir.var var
@@ -645,8 +650,8 @@ struct
         Ir.pp_atom
         var2;
       (*Debug.printfln "[ var2_plus_a; c_mul_t; t ] = [%d; %d; %d]" var2_plus_a c_mul_t t;*)
-      let poly = Map.of_alist_exn [ var2, 1; t, c; var, -1 ] in
-      let nfa' = NfaCollection.eq s.vars poly ~-a in
+      let poly = Map.of_alist_exn [ var2, Z.one; t, Z.of_int c; var, Z.minus_one ] in
+      let nfa' = NfaCollection.eq s.vars poly (Z.of_int (-a)) in
       let nfa =
         Nfa.project [ get_deg t ] (*var2 + a + c * t = var*) nfa'
         (*(Nfa.intersect
@@ -681,8 +686,8 @@ struct
       let c_mul_t, s = internal s in
       let internal, s = internal s in
       let get_deg = Map.find_exn s.vars in
-      let poly = Map.of_alist_exn [ t, -c; var, 1 ] in
-      let nfa' = NfaCollection.eq s.vars poly (a + d) in
+      let poly = Map.of_alist_exn [ t, Z.of_int (-c); var, Z.one ] in
+      let nfa' = NfaCollection.eq s.vars poly (Z.of_int (a + d)) in
       let nfa = Nfa.project [ get_deg t ] nfa' in
       (*var = a + d + c * t*)
       let n =
@@ -694,8 +699,8 @@ struct
       Debug.dump_nfa ~msg:"nfa_for_exponent var nfa: %s" Nfa.format_nfa nfa;
       let newvar_nfa = NfaCollection.div_in_pow newvar d c in
       Debug.dump_nfa ~msg:"nfa_for_exponent div_in_pow: %s" Nfa.format_nfa newvar_nfa;
-      let poly = Map.of_alist_exn [ var, -1 ] in
-      let geq_nfa = NfaCollection.leq s.vars poly (-n) in
+      let poly = Map.of_alist_exn [ var, Z.minus_one ] in
+      let geq_nfa = NfaCollection.leq s.vars poly (Z.of_int (-n)) in
       Debug.dump_nfa ~msg:"nfa_for_exponent geq_nfa: %s" Nfa.format_nfa geq_nfa;
       let nfa =
         nfa |> Nfa.intersect geq_nfa |> Nfa.intersect newvar_nfa |> Nfa.minimize
@@ -778,8 +783,8 @@ struct
           let x' = get_exp x in
           let zero_nfa =
             Nfa.intersect
-              (NfaCollection.eq s.vars (Map.singleton x 1) 1)
-              (NfaCollection.eq s.vars (Map.singleton x' 1) 0)
+              (NfaCollection.eq s.vars (Map.singleton x Z.one) Z.one)
+              (NfaCollection.eq s.vars (Map.singleton x' Z.one) Z.zero)
             |> Nfa.truncate deg
             |> Nfa.intersect nfa
             |> project (get_deg x)
@@ -814,8 +819,8 @@ struct
                (order |> List.to_seq |> Seq.take (len - 1))
                (order |> List.to_seq |> Seq.drop 1)
              |> Seq.map (fun (x, y) ->
-               let term = [ x, 1; y, -1 ] |> Map.of_alist_exn in
-               Ir.geq term 0)
+               let term = [ x, Z.one; y, Z.minus_one ] |> Map.of_alist_exn in
+               Ir.geq term Z.zero)
              |> List.of_seq
              |> function
              | [] -> failwith ""
@@ -984,12 +989,12 @@ struct
               |> Map.filter_keys ~f:filter
               |> Map.to_sequence
               |> Base.Sequence.map ~f:(fun (k, v) ->
-                v
-                *
-                  match k with
-                  | Ir.Pow2 x -> pow2 (Extra.model_to_int (Map.find_exn map (Var x)))
-                  | Ir.Var _ -> Extra.model_to_int (Map.find_exn map k))
-              |> Base.Sequence.fold ~init:c ~f:( - )
+                Z.mul
+                  v
+                  (match k with
+                   | Ir.Pow2 x -> pow2z (Extra.model_to_int (Map.find_exn map (Var x)))
+                   | Ir.Var _ -> Extra.model_to_int (Map.find_exn map k)))
+              |> Base.Sequence.fold ~init:c ~f:Z.( - )
             in
             let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
             Ir.rel rel term c
@@ -1058,7 +1063,7 @@ module LsbStr =
         |> List.rev
         |> List.to_seq
         |> String.of_seq
-        |> fun s -> if String.length s = 0 then 0 else int_of_string s
+        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
       ;;
     end)
 
@@ -1070,7 +1075,7 @@ let z_of_list_lsb p =
       Z.zero
       (0 -- (deg - 1))
   in
-  bv_init length (fun i -> List.nth p i) |> Z.to_int
+  bv_init length (fun i -> List.nth p i)
 ;;
 
 module Lsb =
@@ -1098,7 +1103,7 @@ module Lsb =
 let z_of_list_msb p =
   let sign, p =
     match p with
-    | hd :: tl -> (if not hd then 1 else -1), tl
+    | hd :: tl -> (if not hd then Z.one else Z.minus_one), tl
     | _ -> failwith "unreachable"
   in
   let p = List.rev p in
@@ -1109,7 +1114,7 @@ let z_of_list_msb p =
       Z.zero
       (0 -- (deg - 1))
   in
-  (bv_init length (fun i -> List.nth p i) |> Z.to_int64_unsigned |> Int64.to_int) * sign
+  Z.mul (bv_init length (fun i -> List.nth p i)) sign
 ;;
 
 module Msb =

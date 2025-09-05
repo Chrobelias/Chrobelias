@@ -43,7 +43,7 @@ let pp_rel fmt = function
   | Eq -> Format.fprintf fmt "="
 ;;
 
-type polynom = (atom, int) Map.t
+type polynom = (atom, Z.t) Map.t
 
 let pp_polynom ppf m = Format.fprintf ppf "<polynom>"
 
@@ -53,92 +53,13 @@ type t =
   | SReg of atom * char list Regex.t
   | SLen of atom * atom
   | Stoi of atom * atom
-  | Rel of rel * polynom * int
+  | Rel of rel * polynom * Z.t
   (* Logical operations. *)
   | Lnot of t
   | Land of t list
   | Lor of t list
   | Exists of atom list * t (*| Pred of string * 'atom Eia.t list*)
 [@@deriving variants]
-
-let exists vars = function
-  | True -> True
-  | ph -> Exists (vars, ph)
-;;
-
-let false_ = lnot true_
-
-let of_bool = function
-  | true -> True
-  | false -> false_
-;;
-
-let neg term = Map.map ~f:( ~- ) term
-
-let is_zero_lhs (map : (atom, int) Map.t) =
-  match Map.length map with
-  | 0 -> true
-  | 1 -> snd (Map.min_elt_exn map) = 0
-  | _ -> false
-;;
-
-let eq = rel eq
-let leq m rhs = if is_zero_lhs m then of_bool (0 <= rhs) else rel leq m rhs
-let lt t c = leq t (pred c)
-let geq t c = leq (neg t) (-c)
-let gt t c = leq (neg t) (pred ~-c)
-
-(* Structural equivalence of the IR formulas. *)
-let rec equal ir ir' =
-  match ir, ir' with
-  | True, True -> true
-  | Reg (reg, atoms), Reg (reg', atoms') -> List.equal ( = ) atoms atoms' && reg = reg'
-  | Rel (rel, term, c), Rel (rel', term', c') ->
-    rel = rel' && c = c' && Map.equal Int.equal term term'
-  | Lnot ir, Lnot ir' -> equal ir ir'
-  | Land irs, Land irs' | Lor irs, Lor irs' ->
-    List.length irs = List.length irs' && List.for_all2 equal irs irs'
-  | Exists (atoms, ir), Exists (atoms', ir') ->
-    List.equal ( = ) atoms atoms' && equal ir ir'
-  | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
-  | SLen (atom, atom'), SLen (atom'', atom''') | Stoi (atom, atom'), Stoi (atom'', atom''')
-    -> atom = atom'' && atom' = atom'''
-  | _, _ -> false
-;;
-
-module X = struct
-  type nonrec t = t
-
-  let rec equal ir ir' =
-    match ir, ir' with
-    | True, True -> true
-    | Reg (reg, atoms), Reg (reg', atoms') -> List.equal ( = ) atoms atoms' && reg = reg'
-    | Rel (rel, term, c), Rel (rel', term', c') ->
-      rel = rel' && c = c' && Map.equal Int.equal term term'
-    | Lnot ir, Lnot ir' -> equal ir ir'
-    | Land irs, Land irs' | Lor irs, Lor irs' -> List.for_all2 equal irs irs'
-    | Exists (atoms, ir), Exists (atoms', ir') ->
-      Set.equal (Set.of_list atoms) (Set.of_list atoms') && equal ir ir'
-    | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
-    | Stoi (atom, atom'), Stoi (atom'', atom''')
-    | SLen (atom, atom'), SLen (atom'', atom''') -> atom = atom'' && atom' = atom'''
-    | _, _ -> false
-  ;;
-
-  let rec hash ir =
-    let hashl hash l = List.fold_left (fun acc el -> acc + hash el) 0 l in
-    match ir with
-    | True as ir -> Hashtbl.hash ir
-    | Lnot ir -> hash ir * 2
-    | Land irs | Lor irs -> hashl hash irs
-    | Exists (atoms, ir) -> hashl Hashtbl.hash atoms + hash ir
-    | Rel (rel, term, c) ->
-      Hashtbl.hash c + Hashtbl.hash rel + (Map.data term |> List.fold_left ( + ) 0)
-    | Reg (regex, atoms) -> Hashtbl.hash regex + hashl Hashtbl.hash atoms
-    | SReg (atom, regex) -> Hashtbl.hash regex + Hashtbl.hash atom
-    | Stoi (atom, atom') | SLen (atom, atom') -> Hashtbl.hash atom + Hashtbl.hash atom'
-  ;;
-end
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
@@ -158,13 +79,14 @@ let rec pp fmt = function
   | Rel (rel, term, c) ->
     Format.fprintf
       fmt
-      "(%a %a %d)"
+      "(%a %a %a)"
       (Format.pp_print_list
          ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ")
-         (fun fmt (a, b) -> Format.fprintf fmt "%d%a" b pp_atom a))
+         (fun fmt (a, b) -> Format.fprintf fmt "%a%a" Z.pp_print b pp_atom a))
       (Map.to_alist term)
       pp_rel
       rel
+      Z.pp_print
       c
   | Reg (regex, atoms) ->
     Format.fprintf
@@ -201,120 +123,6 @@ let rec pp fmt = function
       atoms
       pp
       ir
-;;
-
-let rec map2 f fleaf ir =
-  match ir with
-  | True -> fleaf ir
-  | Rel (_, _, _) -> fleaf ir
-  | Reg (_, _) -> fleaf ir
-  | SReg (_, _) -> fleaf ir
-  | SLen (_, _) -> fleaf ir
-  | Stoi (_, _) -> fleaf ir
-  | Lnot ir' -> f (lnot (map2 f fleaf ir'))
-  | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
-  | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
-  | Exists (atoms, ir') -> f (exists atoms (map2 f fleaf ir'))
-;;
-
-let map f ir = map2 f f ir
-
-let rec fold f acc ir =
-  match ir with
-  | True -> f acc ir
-  | Rel _ -> f acc ir
-  | Reg (_, _) -> f acc ir
-  | SReg (_, _) -> f acc ir
-  | SLen (_, _) -> f acc ir
-  | Stoi (_, _) -> f acc ir
-  | Lnot ir' -> f (fold f acc ir') ir
-  | Land irs -> f (List.fold_left (fold f) acc irs) ir
-  | Lor irs -> f (List.fold_left (fold f) acc irs) ir
-  | Exists (_, ir') -> f (fold f acc ir') ir
-;;
-
-let is_used_atom (v : string) inside =
-  let exception Found in
-  try
-    fold
-      (fun () -> function
-         | Rel (_, mapa, _) when Map.mem mapa (Var v) -> raise Found
-         | _ -> ())
-      ()
-      inside;
-    false
-  with
-  | Found -> true
-;;
-
-let for_all f ir = fold (fun acc ir -> f ir |> ( && ) acc) true ir
-let for_some f ir = fold (fun acc ir -> f ir |> ( || ) acc) false ir
-
-[@@@ocaml.warnerror "-26"]
-
-(** An attempt to implement pretty-printer via conversion to Smtml *)
-let pp_smtlib ppf (ir : t) =
-  let open Smtml in
-  let of_atom = function
-    | Var s -> Expr.symbol (Symbol.make Ty.Ty_int s)
-    | Pow2 s ->
-      Expr.binop
-        Ty.Ty_int
-        Ty.Binop.Pow
-        (Expr.value (Value.Int 2))
-        (Expr.symbol (Symbol.make Ty.Ty_int s))
-  in
-  let rec expr_of_ir : t -> Smtml.Expr.t = function
-    | True ->
-      Expr.symbol (Symbol.make Ty.Ty_bool "TRUE")
-      (* Expr.relop
-        Ty.Ty_int
-        Ty.Relop.Eq
-        (Expr.value (Value.Int 42))
-        (Expr.value (Value.Int 42)) *)
-    | Land [ x ] -> expr_of_ir x
-    | Land (x :: xs) -> Expr.Bool.and_ (expr_of_ir x) (expr_of_ir (Land xs))
-    | Rel (op, args, rhs) ->
-      let op =
-        match op with
-        | Leq -> Ty.Relop.Le
-        | Eq -> Ty.Relop.Eq
-      in
-      let open Smtml.Expr in
-      let polynom =
-        let linear = Map.to_sequence ~order:`Increasing_key args in
-        match Base.Sequence.hd linear with
-        | None -> failwith "bad empty polynome"
-        | Some h ->
-          let ( + ) = Expr.binop Ty.Ty_int Ty.Binop.Add in
-          let ( * ) = Expr.binop Ty.Ty_int Ty.Binop.Mul in
-          let combine (key, data) =
-            if data = 1 then of_atom key else value (Value.Int data) * of_atom key
-          in
-          Base.Sequence.fold
-            (Base.Sequence.tl_eagerly_exn linear)
-            ~init:(combine h)
-            ~f:(fun acc item -> acc + combine item)
-      in
-      relop Smtml.Ty.Ty_int op polynom (value (Smtml.Value.Int rhs))
-    | Exists (atoms, rhs) -> Smtml.Expr.exists (List.map of_atom atoms) (expr_of_ir rhs)
-    | rez ->
-      Format.eprintf "\n@[%a@]\n\n%!" pp rez;
-      Printf.eprintf "%s %d\n" __FILE__ __LINE__;
-      exit 1
-  in
-  let smtml_ir =
-    match ir with
-    | Land (x :: xs) ->
-      Smtml.Ast.Assert (Expr.Bool.and_ (expr_of_ir x) (expr_of_ir (Land xs)))
-    | Exists (atoms, xs) ->
-      Smtml.Ast.Assert (Smtml.Expr.exists (List.map of_atom atoms) (expr_of_ir xs))
-    | _ ->
-      Printf.eprintf "Error: %s %d\n" __FILE__ __LINE__;
-      exit 1
-  in
-  let open Smtml.Ast in
-  pp ppf smtml_ir
 ;;
 
 (** A manually implemented printer to SMTLIB2-like format *)
@@ -373,9 +181,10 @@ let pp_smtlib2 ppf ir =
         let one =
           fun ~key ~data ->
           match data with
-          | 1 -> fprintf ppf "%a@ " pp_atom key
-          | _ when data > 0 -> fprintf ppf "(* %d %a)@ " data pp_atom key
-          | _ -> fprintf ppf "(* (- %d) %a)@ " (-data) pp_atom key
+          | data when data = Z.one -> fprintf ppf "%a@ " pp_atom key
+          | data when data > Z.zero ->
+            fprintf ppf "(* %a %a)@ " Z.pp_print data pp_atom key
+          | _ -> fprintf ppf "(* (- %a) %a)@ " Z.pp_print (Z.( ~- ) data) pp_atom key
         in
         if Map.length mapa = 1
         then (
@@ -388,12 +197,13 @@ let pp_smtlib2 ppf ir =
       in
       fprintf
         ppf
-        "@[(%s %a %d)@]@ "
+        "@[(%s %a %a)@]@ "
         (match op with
          | Leq -> "<="
          | Eq -> "=")
         pp_map
         poly
+        Z.pp_print
         rhs
     | Lnot ph -> fprintf ppf "@[(not %a)@]" helper ph
     | Reg (r, atoms) ->
@@ -409,13 +219,107 @@ let pp_smtlib2 ppf ir =
   | ir -> fprintf ppf "(assert %a)" helper ir
 ;;
 
+let exists vars = function
+  | True -> True
+  | ph -> Exists (vars, ph)
+;;
+
+let false_ = lnot true_
+
+let of_bool = function
+  | true -> True
+  | false -> false_
+;;
+
+let neg term = Map.map ~f:Z.( ~- ) term
+
+let is_zero_lhs (map : (atom, Z.t) Map.t) =
+  match Map.length map with
+  | 0 -> true
+  | 1 -> Z.(snd (Map.min_elt_exn map) = zero)
+  | _ -> false
+;;
+
+let eq = rel eq
+let leq m rhs = if is_zero_lhs m then of_bool Z.(zero <= rhs) else rel Leq m rhs
+let lt t c = leq t Z.(pred c)
+let geq t c = leq (neg t) Z.(-c)
+let gt t c = leq (neg t) Z.(pred ~-c)
+
+(* Structural equivalence of the IR formulas. *)
+let rec equal ir ir' =
+  match ir, ir' with
+  | True, True -> true
+  | Reg (reg, atoms), Reg (reg', atoms') -> List.equal ( = ) atoms atoms' && reg = reg'
+  | Rel (rel, term, c), Rel (rel', term', c') ->
+    rel = rel' && c = c' && Map.equal ( = ) term term'
+  | Lnot ir, Lnot ir' -> equal ir ir'
+  | Land irs, Land irs' | Lor irs, Lor irs' ->
+    List.length irs = List.length irs' && List.for_all2 equal irs irs'
+  | Exists (atoms, ir), Exists (atoms', ir') ->
+    List.equal ( = ) atoms atoms' && equal ir ir'
+  | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
+  | SLen (atom, atom'), SLen (atom'', atom''') | Stoi (atom, atom'), Stoi (atom'', atom''')
+    -> atom = atom'' && atom' = atom'''
+  | _, _ -> false
+;;
+
+let rec map2 f fleaf ir =
+  match ir with
+  | True -> fleaf ir
+  | Rel (_, _, _) -> fleaf ir
+  | Reg (_, _) -> fleaf ir
+  | SReg (_, _) -> fleaf ir
+  | SLen (_, _) -> fleaf ir
+  | Stoi (_, _) -> fleaf ir
+  | Lnot ir' -> f (lnot (map2 f fleaf ir'))
+  | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
+  | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
+  | Exists (atoms, ir') -> f (exists atoms (map2 f fleaf ir'))
+;;
+
+let map f ir = map2 f f ir
+
+let rec fold f acc ir =
+  match ir with
+  | True -> f acc ir
+  | Rel _ -> f acc ir
+  | Reg (_, _) -> f acc ir
+  | SReg (_, _) -> f acc ir
+  | SLen (_, _) -> f acc ir
+  | Stoi (_, _) -> f acc ir
+  | Lnot ir' -> f (fold f acc ir') ir
+  | Land irs -> f (List.fold_left (fold f) acc irs) ir
+  | Lor irs -> f (List.fold_left (fold f) acc irs) ir
+  | Exists (_, ir') -> f (fold f acc ir') ir
+;;
+
+let is_used_atom (v : string) inside =
+  let exception Found in
+  try
+    fold
+      (fun () -> function
+         | Rel (_, mapa, _) when Map.mem mapa (Var v) -> raise Found
+         | _ -> ())
+      ()
+      inside;
+    false
+  with
+  | Found -> true
+;;
+
+let for_all f ir = fold (fun acc ir -> f ir |> ( && ) acc) true ir
+let for_some f ir = fold (fun acc ir -> f ir |> ( || ) acc) false ir
+
+[@@@ocaml.warnerror "-26"]
+
 type from =
   | Top
   | Bot
 
 (** [Bound (Top, x, y)] means for variable [v] holds [v <= x/y]
     [Bound (Bot, x, y)] means for variable [v] holds [v >= x/y] *)
-type bound = from * int * int
+type bound = from * Z.t * Z.t
 
 let pp_bound ppf = function
   | Top, x, y -> Format.fprintf ppf "<= %d/%d" x y
@@ -437,18 +341,17 @@ let log ppf =
 
 (** Habermehl's 2024 monotonicity simplification  *)
 let simpl_monotonicty ir =
-  log "ir = @[%a@]\n" pp ir;
   let is_bounded qvar ir =
     match ir with
     | Rel (Leq, map, rhs) when Map.length map = 1 ->
       let var, coeff = Map.min_elt_exn map in
       if var = Var qvar
-      then Bound (if coeff > 0 then Top, rhs, coeff else Bot, rhs, coeff)
+      then Bound (if coeff > Z.zero then Top, rhs, coeff else Bot, rhs, coeff)
       else Skip
     | Rel (Leq, map, _) ->
       (match Map.find map (Var qvar) with
        | None -> Skip
-       | Some c when c > 0 -> Pos
+       | Some c when Z.(c > zero) -> Pos
        | _ -> Neg)
     | _ when is_used_atom qvar ir -> Stop
     | _ -> Skip
@@ -471,10 +374,10 @@ let simpl_monotonicty ir =
         match ir with
         | Rel (r, mapa, rhs) ->
           let coeff = Map.find_exn mapa (Var v) in
-          Rel (r, Map.remove mapa (Var v), rhs - (coeff * new_value))
+          Rel (r, Map.remove mapa (Var v), Z.(rhs - (coeff * new_value)))
         | ir -> ir
       in
-      log "%a ~~> %a using %s=%d" pp ir pp ans v new_value;
+      log "%a ~~> %a using %s=%a" pp ir pp ans v Z.pp_print new_value;
       ans
     in
     let rec loop ~progress ivars ovars conjs ~sk =
@@ -503,10 +406,10 @@ let simpl_monotonicty ir =
                  List.fold_left
                    (fun acc b ->
                       match acc, b with
-                      | (low, None), (Top, b, a) -> low, Some (b / a)
-                      | (None, high), (Bot, b, a) -> Some (b / a), high
-                      | (low, Some m), (Top, b, a) -> low, Some (min m (b / a))
-                      | (Some m, high), (Bot, b, a) -> Some (max m (b / a)), high)
+                      | (low, None), (Top, b, a) -> low, Some Z.(b / a)
+                      | (None, high), (Bot, b, a) -> Some Z.(b / a), high
+                      | (low, Some m), (Top, b, a) -> low, Some (min m Z.(b / a))
+                      | (Some m, high), (Bot, b, a) -> Some (max m Z.(b / a)), high)
                    (None, None)
                    bounds
                in
@@ -553,7 +456,7 @@ let simpl_monotonicty ir =
             stage
             (List.length ovars)
             (String.concat " " ovars);
-          fixpoint (stage + 1) ovars [] rhs)
+          fixpoint (Int.add stage 1) ovars [] rhs)
     in
     fixpoint 0 vars [] rhs
   | _ -> ir
