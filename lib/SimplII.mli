@@ -16,6 +16,8 @@ val simpl
      ]
 
 val pp_error : Format.formatter -> error -> unit
+val set_a_min : int -> unit
+val set_a_max : int -> unit
 
 (* TODO(Kakadu): Hash-consing of AST without loss of pattern matching *)
 
