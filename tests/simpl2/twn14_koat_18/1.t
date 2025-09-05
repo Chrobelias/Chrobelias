@@ -344,6 +344,28 @@ $ cat input1.smt2
                    (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
                (<= (* (- 1) i6) 5)
                (<= (* (- 1) it140) (- 1)))
+  6 errors found
+  Non linear arithmetic between
+    0) it376
+    1) (exp 9 eee3)
+  
+  Non linear arithmetic between
+    0) (exp i3 2)
+  
+  Non linear arithmetic between
+    0) (exp i3 2)
+    1) (exp 4 eee4)
+  
+  Non linear arithmetic between
+    0) (exp i6 3)
+  
+  Non linear arithmetic between
+    0) (exp i6 3)
+    1) (exp 9 eee3)
+  
+  Non linear arithmetic between
+    0) (exp i6 5)
+  
   Leftover formula:
   (and
                       (= eee2 (+ (- 2) (* 2 it140)))

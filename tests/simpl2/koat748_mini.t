@@ -29,13 +29,13 @@
   iter(4)= (and
              (= it1126 1)
              (<= (+ (* it1095 (exp 2 (+ (- 1) it134))) (exp 2 it134)) 2)
-             (<= (+ (* (- 1) it1141) (* 2 it1126 (exp 2 (+ (- 1) it57)))) (- 1)))
+             (<= (+ (* it1126 (exp 2 (+ it57))) (* (- 1) it1141)) (- 1)))
   Something ready to substitute:  it1118 -> 1; it1126 -> 1; it1143 -> (* 2
                                                                       it1126);
   iter(5)= (and
              (= it1126 1)
              (<= (+ (* it1095 (exp 2 (+ (- 1) it134))) (exp 2 it134)) 2)
-             (<= (+ (* (- 1) it1141) (* 2 it1126 (exp 2 (+ (- 1) it57)))) (- 1)))
+             (<= (+ (* it1126 (exp 2 it57)) (* (- 1) it1141)) (- 1)))
   iter(6)= (and
              (<= (+ (* it1095 (exp 2 (+ (- 1) it134))) (exp 2 it134)) 2)
              (<= (+ (* (- 1) it1141) (exp 2 it57)) (- 1)))
@@ -46,6 +46,11 @@
   iter(6.1)= (and
                (<= (+ (* (- 1) it1141) (* 2 (exp 2 (- 1)))) (- 1))
                (<= (* it1095 (exp 2 (- 1))) 1))
+  1 errors found
+  Non linear arithmetic between
+    0) it1095
+    1) (exp 2 (- 1))
+  
   iter(6.1)= (and
                (= (* 2 it1126) 2)
                (<= (+ (* it1095 (exp 2 (- 1))) (exp 2 0)) 2)
@@ -53,6 +58,11 @@
   iter(6.2)= (and
                (<= (+ (* (- 1) it1141) (* 2 (exp 2 (- 1)))) (- 1))
                (<= (* it1095 (exp 2 (- 1))) 1))
+  1 errors found
+  Non linear arithmetic between
+    0) it1095
+    1) (exp 2 (- 1))
+  
   iter(6.2)= (and
                (= (* 2 it1126) 2)
                (<= (+ (* it1095 (exp 2 (- 1))) (exp 2 0)) 2)
@@ -60,6 +70,11 @@
   iter(6.3)= (and
                (<= (+ (* (- 1) it1141) (* 2 (exp 2 (- 1)))) (- 1))
                (<= (* it1095 (exp 2 (- 1))) 1))
+  1 errors found
+  Non linear arithmetic between
+    0) it1095
+    1) (exp 2 (- 1))
+  
   iter(6.3)= (and
                (= (* 2 it1126) 2)
                (<= (+ it1095 (exp 2 1)) 2)
@@ -76,6 +91,18 @@
   [2]
 
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
+  Non linear arithmetic between
+    0) it1095
+    1) (exp 2 (- 1))
+    
+  Non linear arithmetic between
+    0) it1095
+    1) (exp 2 (- 1))
+    
+  Non linear arithmetic between
+    0) it1095
+    1) (exp 2 (- 1))
+    
   sat (underappox)
 
 
