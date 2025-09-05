@@ -217,6 +217,10 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
                (= (* 0 it360) 0)))
   iter(2)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
   iter(2.0)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
+  1 errors found
+  Non linear arithmetic between
+    0) (exp it362 3)
+  
   Leftover formula:
   (and
                       (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0))

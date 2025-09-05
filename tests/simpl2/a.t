@@ -54,3 +54,28 @@
   iter(4)= (and
              (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
              (<= (* (- 5) x) 13))
+  $ cat > sum_join1.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun x () Int)
+  > (assert (= (+ (* n (exp 2 n)) ;(* x (exp 2 n))
+  >               (* (- 1) n (exp 2 n))
+  >               )
+  >            0))
+  > (check-sat)
+  > EOF
+  $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl sum_join1.smt2 | sed 's/[[:space:]]*$//'
+  iter(1)= (and
+             (= (+ (* n (exp 2 n)) (* (* (- 1) 1) n (exp 2 n))) 0))
+  iter(2)= True
+  sat ()
+  $ cat > sum_join2.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun n () Int)
+  > (assert (not (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)) )
+  > (check-sat)
+  > EOF
+  $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl sum_join2.smt2 | sed 's/[[:space:]]*$//'
+  iter(1)= (and
+             (not (= (+ (* (* (- 1) 1) (exp 2 n)) (exp 2 n)) 0)))
+  iter(2)= (not True)
+  unsat
