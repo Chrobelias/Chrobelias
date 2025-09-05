@@ -758,6 +758,22 @@ let basic_simplify step (env : Env.t) ast =
   | Sat _ -> `Sat
 ;;
 
+let a_range = ref (5, 11)
+
+let set_a_range min max =
+  assert (min <= max);
+  a_range := min, max
+;;
+
+let set_a_min min = set_a_range min (snd !a_range)
+let set_a_max max = set_a_range (fst !a_range) max
+
+let get_range () =
+  let ans = List.init (1 + snd !a_range - fst !a_range) (( + ) (fst !a_range)) in
+  assert (List.for_all (fun x -> x >= fst !a_range && x <= snd !a_range) ans);
+  ans
+;;
+
 let try_under2_heuristics env ast =
   let under2vars = find_vars_for_under2 ast in
   log
@@ -765,12 +781,11 @@ let try_under2_heuristics env ast =
     Format.(pp_print_list pp_print_string)
     (Base.Set.to_list under2vars);
   let ( let* ) xs f = List.concat_map f xs in
-  let all_as = List.init 7 (( + ) 5) in
+  let all_as = get_range () in
   log
     "FUK: @[%a@]\n%!"
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
     all_as;
-  assert (List.for_all (fun x -> x >= 5 && x <= 11) all_as);
   let _k = 0 in
   let envs =
     Base.Set.Poly.fold

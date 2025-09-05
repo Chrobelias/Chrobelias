@@ -413,6 +413,8 @@ let parse_args () =
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , " Use least-significant-bit first representation (only supports nats)" )
+    ; "-amin", Arg.Int SimplII.set_a_min, " "
+    ; "-amax", Arg.Int SimplII.set_a_max, " "
     ]
     (fun s ->
        if Sys.file_exists s
