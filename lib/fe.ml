@@ -37,7 +37,7 @@ and to_regex orig_expr =
                (* String constraints use LSB representation, we intentionally reverse the concat. *)
                Regex.concat a acc)
             Regex.epsilon)
-      (Regex.kleene (Regex.symbol [ Char.chr 0 ]))
+      (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
   | Expr.Naryop (_ty, Ty.Naryop.Concat, exprs) ->
     (* String constraints use LSB representation, we intentionally reverse the concat. *)
     List.map to_regex exprs |> List.rev |> List.fold_left Regex.concat Regex.epsilon

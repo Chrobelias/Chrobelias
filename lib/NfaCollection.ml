@@ -444,6 +444,7 @@ module MsbNat = struct
 end
 
 module Str = struct
+  module Str = Nfa.Str
   module Nfa = Nfa.Lsb (Nfa.Str)
 
   type t = Nfa.t
@@ -453,7 +454,7 @@ module Str = struct
   :'<,'>s/0b0/[o]/g | '<,'>s/0b1/[i]/g
   *)
 
-  let o = '0'
+  let o = Str.u_zero
   let i = '1'
   let alphabet = "0123456789ABCDEF" |> String.to_seq |> Array.of_seq
   let base = 10
@@ -468,13 +469,16 @@ module Str = struct
 
   let strlen (nfa : t) ~(dest : int) ~(src : int) =
     Nfa.filter_map nfa (fun (label, q') ->
-      let c = Char.code label.(src) in
       let latest_digit = itoc (base - 1) in
-      (* FIXME: use 10 base *)
-      if c <> 0 && (label.(dest) = latest_digit || Char.code label.(dest) = 0)
+      if
+        (not (Str.is_eos_at src label))
+        && (Str.nth dest label = latest_digit || Str.is_any_at dest label)
       then Some (Array.mapi (fun i c -> if i = dest then latest_digit else c) label, q')
-      else if c = 0 && (label.(dest) = '0' || Char.code label.(dest) = 0)
-      then Some (Array.mapi (fun i c -> if i = dest then '0' else c) label, q')
+      else if Str.is_any_at src label
+      then Some (label, q')
+      else if
+        Str.is_eos_at src label && (Str.is_zero_at dest label || Str.is_any_at dest label)
+      then Some (Array.mapi (fun i c -> if i = dest then Str.u_zero else c) label, q')
       else None)
     |> Nfa.remove_unreachable_from_final
   ;;
@@ -482,14 +486,16 @@ module Str = struct
   let stoi (nfa : t) ~(dest : int) ~(src : int) =
     let digits = 0 -- (base - 1) |> List.map itoc in
     Nfa.filter_map nfa (fun (label, q') ->
-      let c = if Array.length label > src then label.(src) else Char.chr 0 in
-      let c = Char.code c in
       let* label =
-        if c = 0 && (label.(dest) = '0' || Char.code label.(dest) = 0)
-        then Some (Array.mapi (fun i c -> if i = dest then '0' else c) label)
+        if
+          Str.is_eos_at src label
+          && (Str.is_zero_at dest label || Str.is_any_at dest label)
+        then Some (Array.mapi (fun i c -> if i = dest then Str.u_zero else c) label)
+        else if Str.is_any_at src label
+        then Some label
         else if
-          c <> 0
-          && (label.(src) = label.(dest) || Char.code label.(dest) = 0)
+          (not (Str.is_eos_at src label))
+          && (Str.nth src label = Str.nth dest label || Str.is_any_at dest label)
           && List.mem label.(src) digits
         then Some (Array.mapi (fun i c -> if i = dest then label.(dest) else c) label)
         else None
