@@ -1219,33 +1219,17 @@ module MsbNat = struct
     let res_lbl = bv_init 32 (( = ) res), mask in
     let pow_lbl = bv_init 32 (( = ) temp), mask in
     let one_lbl = bv_init 32 (Fun.const true), mask in
-    let () =
-      failwith
-        "TODO(timafrolov): consider the case where there are some 0s in res before the \
-         first 1"
-    in
-    let end_transitions =
+    let all_zero_transitions =
       nfa.transitions
-      |> Array.mapi (fun src list ->
-        if Set.mem nfa.start src
-        then list |> List.filter (fun (lbl, _) -> Label.equal lbl res_lbl)
-        else [])
+      |> Array.map (List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl))
     in
-    let pre_final =
-      end_transitions |> Array.to_list |> List.concat |> List.map snd |> Set.of_list
-    in
-    let zero_transitions, states =
-      let all_zero_transitions =
-        nfa.transitions
-        |> Array.map (List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl))
-      in
+    let find_reachable transitions start =
       let rec helper acc visited cur =
         if Set.is_empty cur
         then acc, visited
         else (
           let next_transitions =
-            all_zero_transitions
-            |> Base.Array.mapi ~f:(fun i x -> if Set.mem cur i then x else [])
+            transitions |> Base.Array.mapi ~f:(fun i x -> if Set.mem cur i then x else [])
           in
           next_transitions
           |> Base.Array.iteri ~f:(fun i list -> acc.(i) <- list @ acc.(i));
@@ -1260,8 +1244,20 @@ module MsbNat = struct
           in
           helper acc visited next)
       in
-      helper (Array.map (Fun.const []) all_zero_transitions) Set.empty pre_final
+      helper (Array.map (Fun.const []) transitions) Set.empty start
     in
+    let before_transitions, pre_start = find_reachable all_zero_transitions nfa.start in
+    let end_transitions =
+      nfa.transitions
+      |> Array.mapi (fun src list ->
+        if Set.mem pre_start src
+        then list |> List.filter (fun (lbl, _) -> Label.equal lbl res_lbl)
+        else [])
+    in
+    let pre_final =
+      end_transitions |> Array.to_list |> List.concat |> List.map snd |> Set.of_list
+    in
+    let zero_transitions, states = find_reachable all_zero_transitions pre_final in
     let start_transitions =
       nfa.transitions
       |> Array.mapi (fun src list ->
@@ -1302,7 +1298,8 @@ module MsbNat = struct
       }
     in
     let path_nfa =
-      { transitions = Graph.union_list [ zero_transitions; end_transitions ]
+      { transitions =
+          Graph.union_list [ zero_transitions; end_transitions; before_transitions ]
       ; start = nfa.start
       ; final = Set.empty
       ; deg = nfa.deg
@@ -1374,6 +1371,7 @@ module MsbNat = struct
 
   (* len is the length of path between 1 in exp and 1 in var *)
   let path_of_len nfa vars total_len ~exp : (int list * int) option =
+    Debug.printfln "path_of_len entrance: len=%d" total_len;
     let mask = bv_init 32 (( = ) exp) in
     let exp_lbl = mask, mask in
     let transitions = nfa.transitions in
@@ -1399,7 +1397,7 @@ module MsbNat = struct
             transitions.(cur)
             |> List.map (fun (lbl, dst) ->
               if Label.equal lbl exp_lbl
-              then `Between (dst, lbl :: path, 0)
+              then `Between (dst, lbl :: path, 1)
               else `Before (dst, lbl :: path, Set.add visited cur))
         | `Between (cur, path, len) ->
           if len = total_len
@@ -1415,7 +1413,17 @@ module MsbNat = struct
     |> Set.to_list
     |> List.map (fun x -> `Before (x, [], Set.empty))
     |> bfs
-    |> Option.map (fun _ -> failwith "TODO")
+    |> Option.map (fun p ->
+      let len = List.length p in
+      Debug.printfln
+        "path_of_len: found path of len %d: [%a]"
+        len
+        (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp_label)
+        p;
+      ( vars
+        |> List.map (fun var ->
+          bv_init len (fun i -> bv_get (List.nth p i |> fst) var) |> Z.to_int)
+      , len ))
   ;;
 
   let combine_model_pieces order mapVals len parts =
@@ -1444,14 +1452,13 @@ module MsbNat = struct
                | `Exp _ -> true
                | _ -> false)
            in
-           let path_len =
-             lenOfVar (`Lin var) - lenOfVar prev_var
-             (*TODO: check for off-by-one errors *)
-           in
+           let path_len = lenOfVar v - lenOfVar prev_var in
            let model2, len2 = path_of_len part vars path_len ~exp |> Option.get in
            let mapVals =
              Base.List.zip_exn (List.map (Map.find_exn mapVals) vars) model2
-             |> List.map (fun (x, y) -> Int.shift_left y len + x)
+             |> List.map (fun (x, y) ->
+               Debug.printfln "combine_mobel_pieces: x=%d, y=%d, len=%d" x y len;
+               Int.shift_left y len + x)
              |> Base.List.zip_exn vars
              |> Map.of_alist_exn
            in

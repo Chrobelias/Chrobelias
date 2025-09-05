@@ -888,16 +888,26 @@ struct
     in
     match res with
     | Some (s, order, (model, len), models) ->
+      let deg_of_var = Map.find_exn s.vars in
+      let var_of_deg =
+        s.vars
+        |> Map.to_alist
+        |> List.map (fun (a, b) -> b, a)
+        |> Map.of_alist_exn
+        |> Map.find_exn
+      in
       let map =
         NfaNat.combine_model_pieces
-          (order |> List.map (Map.find s.vars) |> List.map Option.get)
-          (model |> failwith "TODO")
+          (order
+           |> List.rev
+           |> List.map (function
+             | Ir.Var _ as var -> `Lin (deg_of_var var)
+             | Ir.Pow2 _ as exp -> `Exp (deg_of_var (get_exp exp), deg_of_var exp)))
+          (model |> Base.List.zip_exn (Map.data s.vars) |> Map.of_alist_exn)
           len
           models
-        |> List.mapi (fun i v -> List.nth (Map.keys s.vars) i, v)
-        |> Map.of_alist_exn
+        |> Map.map_keys_exn ~f:var_of_deg
       in
-      let map = Map.filter_keys map ~f:(fun key -> not (is_exp key)) in
       Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
       Debug.printfln
         "Variable map: %a"
