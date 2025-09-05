@@ -490,7 +490,7 @@ module Who_in_exponents_ = struct
       xs
   ;;
 
-  let pp_info ppf { Info.exp; all } =
+  let pp_info ppf { Info.exp; all; _ } =
     Format.printf
       "@[{ all = @[%a@];@ exp  = @[%a@] }@]"
       pp_set
@@ -771,7 +771,7 @@ let try_under2_heuristics env ast =
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
     all_as;
   assert (List.for_all (fun x -> x >= 5 && x <= 11) all_as);
-  let k = 0 in
+  let _k = 0 in
   let envs =
     Base.Set.Poly.fold
       ~f:(fun acc name ->
