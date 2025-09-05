@@ -8,12 +8,12 @@ let compare_char = Char.compare
 type atom =
   | Var of string
   (* TODO: such constants should be in the EIA theory. *)
-  | Const of int
+  | Const of Z.t
 [@@deriving variants, compare]
 
 let pp_atom ppf = function
   | Var n -> Format.fprintf ppf "%s" n
-  | Const n -> Format.fprintf ppf "%d" n
+  | Const n -> Format.fprintf ppf "%a" Z.pp_print n
 ;;
 
 (** String theory. *)
@@ -68,7 +68,7 @@ module Eia = struct
   [@@deriving variants, compare]
 
   let is_constant_term =
-    let exception Early of int in
+    let exception Early of Z.t in
     let rec helper = function
       | Atom (Var _) -> None
       | Atom (Const n) -> Some n
@@ -78,8 +78,8 @@ module Eia = struct
              (fun acc x ->
                 match helper x with
                 | None -> None
-                | Some m -> Option.map (( + ) m) acc)
-             (Some 0)
+                | Some m -> Option.map (Z.( + ) m) acc)
+             (Some Z.zero)
              ts
          with
          | Early n -> Some n)
@@ -89,9 +89,9 @@ module Eia = struct
              (fun acc x ->
                 match helper x with
                 | None -> None
-                | Some 0 -> raise (Early 0)
-                | Some m -> Option.map (( * ) m) acc)
-             (Some 1)
+                | Some m when Z.(m = zero) -> raise (Early Z.zero)
+                | Some m -> Option.map (Z.( * ) m) acc)
+             (Some Z.one)
              ts
          with
          | Early n -> Some n)
@@ -148,7 +148,7 @@ module Eia = struct
   [@@deriving variants, compare (* , show *)]
 
   let geq a b = leq b a
-  let lt a b = leq (add [ a; atom (const 1) ]) b
+  let lt a b = leq (add [ a; atom (const Z.one) ]) b
   let gt a b = lt b a
 
   let map f = function
@@ -181,10 +181,18 @@ module Eia = struct
   let eq_term : term -> term -> bool = Stdlib.( = )
 end
 
-let%test _ = Eia.(is_constant_term (atom (const 4))) = Some 4
+let%test _ = Eia.(is_constant_term (atom (const (Z.of_int 4)))) = Some (Z.of_int 4)
 let%test _ = Eia.(is_constant_term (atom (var "s"))) = None
-let%test _ = Eia.(is_constant_term (mul [ atom (const 4); atom (const 1) ])) = Some 4
-let%test _ = Eia.(is_constant_term (add [ atom (const 4); atom (const 1) ])) = Some 5
+
+let%test _ =
+  Eia.(is_constant_term (mul [ atom (const (Z.of_int 4)); atom (const Z.one) ]))
+  = Some (Z.of_int 4)
+;;
+
+let%test _ =
+  Eia.(is_constant_term (add [ atom (const (Z.of_int 4)); atom (const Z.one) ]))
+  = Some (Z.of_int 5)
+;;
 
 (** Bitvectors. *)
 (*Emodule Bv = struct
@@ -271,7 +279,8 @@ let rec pp ppf = function
 let pp_term_smtlib2 =
   let open Format in
   let rec pp_eia ppf = function
-    | Eia.Atom (Const c) when c < 0 -> fprintf ppf "(- %d)" (-c)
+    | Eia.Atom (Const c) when Z.lt c Z.zero ->
+      fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
     | Atom a -> fprintf ppf "%a" pp_atom a
     | Add xs -> fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
     | Mul xs -> fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs

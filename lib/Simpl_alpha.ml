@@ -42,7 +42,7 @@ let alpha_compare =
     | Exists ([ Var a ], l), Exists ([ Var b ], r) ->
       helper (Base.Map.add_exn subst ~key:a ~data:b) (l, r)
     | Rel (Eq, l, c1), Rel (Eq, r, c2) | Rel (Leq, l, c1), Rel (Leq, r, c2) ->
-      let rez = Int.compare c1 c2 in
+      let rez = Z.compare c1 c2 in
       if rez = 0 then helper_polyn subst l r else rez
     | Land xs, Land ys | Lor xs, Lor ys -> helper_lists subst (xs, ys)
     | l, r ->
@@ -57,9 +57,9 @@ let alpha_compare =
     | [], [] -> 0
   and helper_polyn subst l r =
     Debug.printfln "  subst = %a" pp_subst subst;
-    let _ : (atom, int) Map.t = l in
+    let _ : (atom, Z.t) Map.t = l in
     let normalize subst m =
-      let _ : (atom, int) Map.t = m in
+      let _ : (atom, Z.t) Map.t = m in
       Base.Map.fold subst ~init:m ~f:(fun ~key ~data acc ->
         match Map.find_exn acc (Var key) with
         | (exception Sexplib0.Sexp.Not_found_s _) | (exception Not_found) -> acc

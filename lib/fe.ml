@@ -51,12 +51,12 @@ and to_regex orig_expr =
   | _ -> failf "unable to handle %a as regex" Expr.pp orig_expr
 
 and to_eia_term orig_expr =
-  let neg eia_term = Ast.Eia.mul [ Ast.Eia.atom (Ast.const (-1)); eia_term ] in
+  let neg eia_term = Ast.Eia.mul [ Ast.Eia.atom (Ast.const Z.minus_one); eia_term ] in
   let expr = Expr.view orig_expr in
   match expr with
   | Expr.Val v -> begin
     match v with
-    | Int d -> Ast.Eia.atom (Ast.const d)
+    | Int d -> Ast.Eia.atom (Ast.const (Z.of_int d))
     | _ -> failf "unable to handle %a as integer term" Expr.pp orig_expr
   end
   | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ expr ])
@@ -68,7 +68,7 @@ and to_eia_term orig_expr =
     Ast.Eia.atom (Ast.var var)
   (* Semenov arithmetic, i.e. 2**x operators. *)
   | Expr.App ({ name = Symbol.Simple "pow2"; _ }, [ expr ]) ->
-    Ast.Eia.pow (Ast.Eia.atom (Ast.const 2)) (to_eia_term expr)
+    Ast.Eia.pow (Ast.Eia.atom (Ast.const (Z.of_int 2))) (to_eia_term expr)
   | Expr.App ({ name = Symbol.Simple "exp"; _ }, [ base; exp ]) ->
     Ast.Eia.pow (to_eia_term base) (to_eia_term exp)
   (* Bit-wise operations *)

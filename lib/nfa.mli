@@ -17,7 +17,7 @@ module type L = sig
   val project : int list -> t -> t
   val truncate : int -> t -> t
   val is_zero : t -> bool
-  val variations : t -> t list
+  val variations : u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
   val zero_with_mask : int list -> t
@@ -26,6 +26,7 @@ module type L = sig
   val pp : Format.formatter -> t -> unit
   val of_list : (int * u) list -> t
   val get : t -> int -> u
+  val alpha : t -> u Set.t
 end
 
 module Bv : sig

@@ -91,3 +91,10 @@
   (get-model)
 (pop 1)
 
+(push 1)
+  (assert (str.in.re x (re.+ (re.union (str.to.re "Ba") (str.to.re "Lyu")))))
+  (assert (= (str.len x) a))
+  (assert (= a 23))
+  (get-model)
+(pop 1)
+
