@@ -82,7 +82,7 @@ module type L = sig
   val project : int list -> t -> t
   val truncate : int -> t -> t
   val is_zero : t -> bool
-  val variations : t -> t list
+  val variations : u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
   val zero_with_mask : int list -> t
@@ -91,6 +91,7 @@ module type L = sig
   val pp : formatter -> t -> unit
   val of_list : (int * u) list -> t
   val get : t -> int -> u
+  val alpha : t -> u Set.t
 end
 
 module Bv = struct
@@ -171,7 +172,7 @@ module Bv = struct
 
   let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
 
-  let variations (_, mask) =
+  let variations _alpha (_, mask) =
     let mask_list = mask |> bv_to_list in
     let length = bv_len mask in
     Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
@@ -236,6 +237,7 @@ module Bv = struct
   ;;
 
   let get (vec, _mask) = bv_get vec
+  let alpha _ = [ true; false ] |> Set.of_list
 end
 
 module Str = struct
@@ -344,20 +346,8 @@ module Str = struct
   ;;
 
   (* FIXME: this should support different bases and symbols. *)
-  let variations vec =
-    let alpha =
-      [ [ '0' ]
-      ; [ '1' ]
-      ; [ '2' ]
-      ; [ '3' ]
-      ; [ '4' ]
-      ; [ '5' ]
-      ; [ '6' ]
-      ; [ '7' ]
-      ; [ '8' ]
-      ; [ '9' ]
-      ]
-    in
+  let variations alpha vec =
+    let alpha = List.map (fun a -> [ a ]) alpha in
     let rec powerset = function
       | 0 -> []
       | 1 -> alpha
@@ -402,6 +392,7 @@ module Str = struct
   ;;
 
   let get = safe_get
+  let alpha s = Array.to_list s |> Set.of_list
 end
 
 module Graph (Label : L) = struct
@@ -955,6 +946,16 @@ struct
 
   let to_dfa nfa =
     (* Format.printf "Runinng to_dfa\n%!"; *)
+    let alpha =
+      nfa.transitions
+      |> Array.to_seq
+      |> Seq.map List.to_seq
+      |> Seq.concat_map Fun.id
+      |> Seq.map fst
+      |> Seq.map Label.alpha
+      |> Seq.fold_left Set.union Set.empty
+      |> Set.to_list
+    in
     if nfa.is_dfa
     then nfa
     else (
@@ -1000,7 +1001,7 @@ struct
                 ~init:(Label.zero nfa.deg)
                 qs
             in
-            let variations = Label.variations acc in
+            let variations = Label.variations alpha acc in
             let delta =
               List.fold_left
                 (fun acc label ->
@@ -1362,21 +1363,19 @@ module Lsb (Label : L) = struct
     }
   ;;
 
-  let minimize nfa =
-    nfa
-    |> remove_unreachable_from_final
-       (*|> fun nfa ->
+  let minimize nfa = nfa |> remove_unreachable_from_final
+  (*|> fun nfa ->
     { nfa with
       transitions =
         nfa.transitions |> Array.map (fun delta -> Set.of_list delta |> Set.to_list)
     }
   ;;*)
-    |> to_dfa
+  (*|> to_dfa
     |> reverse
     |> to_dfa
     |> reverse
     |> to_dfa
-  ;;
+    |> remove_unreachable_from_final*)
 end
 
 module MsbNat (Label : L) = struct
