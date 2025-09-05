@@ -364,6 +364,7 @@ type config =
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
+  ; mutable minimize_in_semenov : bool
   ; mutable under_approx : int
   ; mutable under_mode : [ `First | `Second ]
   ; mutable input_file : string
@@ -381,6 +382,7 @@ let config =
   ; simpl_alpha = true
   ; simpl_mono = true
   ; over_approx = true
+  ; minimize_in_semenov = true
   ; under_approx = 3
   ; under_mode = `First
   ; input_file = ""
@@ -430,6 +432,10 @@ let parse_args () =
       , " Use least-significant-bit first representation (only supports nats)" )
     ; "-amin", Arg.Int SimplII.set_a_min, " "
     ; "-amax", Arg.Int SimplII.set_a_max, " "
+    ; ( "-mini-in-semenov"
+      , Arg.Unit (fun () -> config.minimize_in_semenov <- true)
+      , " Minimize in Semenov (default)" )
+    ; "-no-mini-in-semenov", Arg.Unit (fun () -> config.minimize_in_semenov <- false), " "
     ]
     (fun s ->
        if Sys.file_exists s
@@ -940,7 +946,7 @@ struct
               (not (is_exp var)) && not (Map.mem vars (to_exp var))))
     in
     let nfa, vars = eval formula in
-    let nfa = Nfa.minimize nfa in
+    let nfa = if config.minimize_in_semenov then Nfa.minimize nfa else nfa in
     Debug.dump_nfa
       ~msg:"Minimized raw original nfa: %s"
       ~vars:(Map.to_alist vars)
