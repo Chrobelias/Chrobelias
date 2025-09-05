@@ -243,9 +243,32 @@ module Str = struct
   type u = char
 
   let u_zero = '0'
+  let u_one = '1'
   let u_null = Char.chr 0
+  let u_eos = Char.chr 3
+
+  let pp ppf (vec : t) =
+    Array.to_seq vec
+    |> Seq.map (function
+      | x when x = u_null -> '_'
+      | x when x = u_eos -> '$'
+      | x -> x)
+    |> String.of_seq
+    |> Format.fprintf ppf "(%s)"
+  ;;
+
   let unsafe_get = Array.get
   let safe_get arr i = if Array.length arr <= i then u_null else Array.get arr i
+  let nth i label = safe_get label i
+  let is_eos_at i label = nth i label = u_eos
+
+  let is_any_at i label =
+    let res = nth i label = u_null in
+    res
+  ;;
+
+  let is_zero_at i label = nth i label = u_zero
+  let is_one_at i label = nth i label = u_one
 
   let stretch vec mask_list deg =
     let m =
@@ -318,15 +341,6 @@ module Str = struct
   let one_with_mask mask =
     let len = List.fold_left max 0 mask + 1 in
     Array.init len (fun i -> if List.mem i mask then '1' else u_null)
-  ;;
-
-  let pp ppf (vec : t) =
-    Array.to_seq vec
-    |> Seq.map (function
-      | x when Char.code x = 0 -> '_'
-      | x -> x)
-    |> String.of_seq
-    |> Format.fprintf ppf "(%s)"
   ;;
 
   (* FIXME: this should support different bases and symbols. *)

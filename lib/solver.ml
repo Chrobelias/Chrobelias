@@ -698,8 +698,7 @@ struct
       let geq_nfa = NfaCollection.leq s.vars poly (-n) in
       Debug.dump_nfa ~msg:"nfa_for_exponent geq_nfa: %s" Nfa.format_nfa geq_nfa;
       let nfa =
-        nfa |> Nfa.intersect geq_nfa |> Nfa.intersect newvar_nfa
-        (* |> Nfa.minimize *)
+        nfa |> Nfa.intersect geq_nfa |> Nfa.intersect newvar_nfa |> Nfa.minimize
       in
       Debug.dump_nfa
         ~msg:"nfa_for_exponent output nfa: %s"
@@ -1032,6 +1031,7 @@ end
 module LsbStr =
   Make (Nfa.Lsb (Nfa.Str)) (NfaCollection.Str) (Nfa.Lsb (Nfa.Str)) (NfaCollection.Str)
     (struct
+      module Str = Nfa.Str
       module Nfa = Nfa.Lsb (Nfa.Str)
 
       let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
@@ -1052,12 +1052,13 @@ module LsbStr =
         c
         |> List.to_seq
         |> Seq.drop_while (fun c -> c = '0')
-        |> Seq.filter (fun c -> Char.code c <> 0)
+        |> Seq.filter (( <> ) Str.u_eos)
+        |> Seq.filter (( <> ) Str.u_null)
         |> List.of_seq
         |> List.rev
         |> List.to_seq
         |> String.of_seq
-        |> int_of_string
+        |> fun s -> if String.length s = 0 then 0 else int_of_string s
       ;;
     end)
 
