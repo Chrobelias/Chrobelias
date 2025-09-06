@@ -128,11 +128,11 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
       S.exists vs (helper ph)
     | Str _ -> raise String_op
   and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> S.const n
+    | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
     | Atom (Ast.Var s) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> S.pow2var x
+    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
     | Len _ | Stoi _ -> raise String_op
@@ -187,7 +187,7 @@ let check bound ast =
       (* TODO: if all Unsat, add a constraints (x>bound) *)
       let newast =
         let vars = Base.Set.to_list !vars in
-        let b = Ast.Eia.Atom (Ast.Const bound) in
+        let b = Ast.Eia.Atom (Ast.Const (Z.of_int bound)) in
         let extend = fun v -> Ast.eia (Ast.Eia.lt b (Ast.Eia.atom (Ast.var v))) in
         Ast.land_ (ast :: List.map extend vars)
       in

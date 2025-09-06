@@ -82,7 +82,7 @@ module type L = sig
   val project : int list -> t -> t
   val truncate : int -> t -> t
   val is_zero : t -> bool
-  val variations : t -> t list
+  val variations : u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
   val zero_with_mask : int list -> t
@@ -91,6 +91,7 @@ module type L = sig
   val pp : formatter -> t -> unit
   val of_list : (int * u) list -> t
   val get : t -> int -> u
+  val alpha : t -> u Set.t
 end
 
 module Bv = struct
@@ -171,7 +172,7 @@ module Bv = struct
 
   let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
 
-  let variations (_, mask) =
+  let variations _alpha (_, mask) =
     let mask_list = mask |> bv_to_list in
     let length = bv_len mask in
     Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
@@ -236,6 +237,7 @@ module Bv = struct
   ;;
 
   let get (vec, _mask) = bv_get vec
+  let alpha _ = [ true; false ] |> Set.of_list
 end
 
 module Str = struct
@@ -243,9 +245,32 @@ module Str = struct
   type u = char
 
   let u_zero = '0'
+  let u_one = '1'
   let u_null = Char.chr 0
+  let u_eos = Char.chr 3
+
+  let pp ppf (vec : t) =
+    Array.to_seq vec
+    |> Seq.map (function
+      | x when x = u_null -> '_'
+      | x when x = u_eos -> '$'
+      | x -> x)
+    |> String.of_seq
+    |> Format.fprintf ppf "(%s)"
+  ;;
+
   let unsafe_get = Array.get
   let safe_get arr i = if Array.length arr <= i then u_null else Array.get arr i
+  let nth i label = safe_get label i
+  let is_eos_at i label = nth i label = u_eos
+
+  let is_any_at i label =
+    let res = nth i label = u_null in
+    res
+  ;;
+
+  let is_zero_at i label = nth i label = u_zero
+  let is_one_at i label = nth i label = u_one
 
   let stretch vec mask_list deg =
     let m =
@@ -320,29 +345,15 @@ module Str = struct
     Array.init len (fun i -> if List.mem i mask then '1' else u_null)
   ;;
 
-  let pp ppf (vec : t) =
-    Array.to_seq vec
-    |> Seq.map (function
-      | x when Char.code x = 0 -> '_'
-      | x -> x)
-    |> String.of_seq
-    |> Format.fprintf ppf "(%s)"
-  ;;
-
   (* FIXME: this should support different bases and symbols. *)
-  let variations vec =
+  let variations _alpha vec =
+    (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let alpha =
-      [ [ '0' ]
-      ; [ '1' ]
-      ; [ '2' ]
-      ; [ '3' ]
-      ; [ '4' ]
-      ; [ '5' ]
-      ; [ '6' ]
-      ; [ '7' ]
-      ; [ '8' ]
-      ; [ '9' ]
-      ]
+      [ u_eos ]
+      :: ("123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~a/"
+          |> String.to_seq
+          |> Seq.map (fun c -> [ c ])
+          |> List.of_seq)
     in
     let rec powerset = function
       | 0 -> []
@@ -388,6 +399,7 @@ module Str = struct
   ;;
 
   let get = safe_get
+  let alpha s = Array.to_list s |> Set.of_list
 end
 
 module Graph (Label : L) = struct
@@ -941,6 +953,16 @@ struct
 
   let to_dfa nfa =
     (* Format.printf "Runinng to_dfa\n%!"; *)
+    let alpha =
+      nfa.transitions
+      |> Array.to_seq
+      |> Seq.map List.to_seq
+      |> Seq.concat_map Fun.id
+      |> Seq.map fst
+      |> Seq.map Label.alpha
+      |> Seq.fold_left Set.union Set.empty
+      |> Set.to_list
+    in
     if nfa.is_dfa
     then nfa
     else (
@@ -986,7 +1008,7 @@ struct
                 ~init:(Label.zero nfa.deg)
                 qs
             in
-            let variations = Label.variations acc in
+            let variations = Label.variations alpha acc in
             let delta =
               List.fold_left
                 (fun acc label ->
@@ -1352,19 +1374,19 @@ module Lsb (Label : L) = struct
 
   let minimize nfa =
     nfa
-    |> remove_unreachable_from_final
-       (*|> fun nfa ->
+    |> fun nfa ->
     { nfa with
       transitions =
         nfa.transitions |> Array.map (fun delta -> Set.of_list delta |> Set.to_list)
     }
-  ;;*)
-    |> to_dfa
-    |> reverse
-    |> to_dfa
-    |> reverse
-    |> to_dfa
+    |> remove_unreachable_from_final
   ;;
+  (*|> to_dfa
+    |> reverse
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+    |> remove_unreachable_from_final*)
 end
 
 module MsbNat (Label : L) = struct

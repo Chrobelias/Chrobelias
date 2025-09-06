@@ -133,3 +133,11 @@
   (assert (forall ((x Int)) (exists ((y Int)) (or (= x (* 3 y)) (= x (+ (* 3 y) 2))))))
   (check-sat) ; sat
 (pop 1)
+
+(push 1)
+  (assert (= (+ 5 y (* (- 7) u)) 0))
+  (assert (= (+ 2 y (* (- 3) x)) 0))
+  (assert (>= z 100))
+  (check-sat)
+  (get-model)
+(pop 1)

@@ -21,6 +21,16 @@ let rec pow ~base:a = function
     b * b * if n mod 2 = 0 then 1 else a
 ;;
 
+let rec powz ~base:a = function
+  | n when Z.(n < zero) ->
+    failwith (Format.asprintf "Bad argument: exp = %a" Z.pp_print n)
+  | n when n = Z.zero -> Z.one
+  | n when n = Z.one -> a
+  | n ->
+    let b = powz ~base:a Z.(n / of_int 2) in
+    Z.(b * b * if n mod of_int 2 = zero then one else a)
+;;
+
 let log ppf =
   match Sys.getenv "CHRO_DEBUG" with
   | exception Not_found -> Format.ifprintf Format.std_formatter ppf

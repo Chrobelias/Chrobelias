@@ -19,6 +19,8 @@ Basic LIA tests
   sat (nfa)
   sat (nfa)
   unsat
+  sat (nfa)
+  u = -1829; x = -1536; y = -510; z = 100; 
 
 Test Frobenious coin problem for 7 and 11
 

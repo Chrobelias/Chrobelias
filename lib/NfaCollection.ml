@@ -12,10 +12,11 @@ module type Type = sig
   val n : unit -> t
   val z : unit -> t
   val power_of_two : int -> t
-  val eq : ('a, int) Map.t -> ('a, int) Map.t -> int -> t
-  val leq : ('a, int) Map.t -> ('a, int) Map.t -> int -> t
+  val eq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
+  val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val strlen : t -> dest:int -> src:int -> t
   val stoi : t -> dest:int -> src:int -> t
+  val seq : t -> dest:int -> src:int -> t
   val base : int
 end
 
@@ -26,9 +27,8 @@ module type NatType = sig
   val pow_of_log_var : int -> int -> t
 end
 
-let rec gcd a b =
-  if a < 0 || b < 0 then gcd (abs a) (abs b) else if b = 0 then a else gcd b (a mod b)
-;;
+let gcd a b = Z.gcd a b
+(*if a < zero || b < zero then gcd (abs a) (abs b) else if b = zero then a else gcd b (a mod b)*)
 
 let o = false
 let i = true
@@ -91,28 +91,29 @@ module Lsb = struct
   let powerset term =
     let rec helper = function
       | [] -> []
-      | [ x ] -> [ [ o ], [ 0 ]; [ i ], [ x ] ]
+      | [ x ] -> [ [ o ], [ Z.zero ]; [ i ], [ x ] ]
       | hd :: tl ->
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
-        [ o :: n, 0 :: thing; i :: n, hd :: thing ]
+        [ o :: n, Z.zero :: thing; i :: n, hd :: thing ]
     in
     term
     |> List.map snd
     |> helper
-    |> List.map (fun (a, x) -> a, Base.List.sum (module Base.Int) ~f:Fun.id x)
+    |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
   ;;
 
   let eq vars term c =
+    let base = Z.of_int 2 in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
-      |> List.filter (fun (_, v) -> v <> 0)
+      |> List.filter (fun (_, v) -> Z.(v <> zero))
     in
-    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) 0 term in
-    if gcd = 0
-    then if 0 = c then n () else z ()
+    let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if Z.(gcd_ = zero)
+    then if Z.(zero = c) then n () else z ()
     else (
       let thing = powerset term in
       let states = ref Set.empty in
@@ -126,8 +127,8 @@ module Lsb = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> (hd - sum) mod 2 = 0)
-              |> List.map (fun (bits, sum) -> hd, bits, (hd - sum) / 2)
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod base = zero))
+              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base))
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -140,7 +141,7 @@ module Lsb = struct
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-           (fun fmt a -> Format.fprintf fmt "%d" a))
+           (fun fmt a -> Format.fprintf fmt "%a" Z.pp_print a))
         states;
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
@@ -151,16 +152,17 @@ module Lsb = struct
       Nfa.create_nfa
         ~transitions
         ~start:(idxs c)
-        ~final:(idxs 0)
+        ~final:(idxs Z.zero)
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
   let leq vars term c =
+    let base = Z.of_int 2 in
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
-    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) 0 term in
-    if gcd = 0
-    then if 0 <= c then n () else z ()
+    let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if Z.(gcd_ = zero)
+    then if Z.(zero <= c) then n () else z ()
     else (
       let thing = powerset term in
       let states = ref Set.empty in
@@ -177,9 +179,9 @@ module Lsb = struct
               |> List.map (fun (bits, sum) ->
                 ( hd
                 , bits
-                , match (hd - sum) mod 2 with
-                  | 0 | 1 -> (hd - sum) / 2
-                  | -1 -> ((hd - sum) / 2) - 1
+                , match Z.((hd - sum) mod base) with
+                  | x when x = Z.one || x = Z.zero -> Z.((hd - sum) / base)
+                  | x when x = Z.minus_one -> Z.(((hd - sum) / base) - one)
                   | _ -> failwith "Should be unreachable" ))
             in
             states := Set.add !states hd;
@@ -193,7 +195,7 @@ module Lsb = struct
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-           (fun fmt a -> Format.fprintf fmt "%d" a))
+           (fun fmt a -> Format.fprintf fmt "%a" Z.pp_print a))
         states;
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
@@ -201,7 +203,7 @@ module Lsb = struct
       Nfa.create_nfa
         ~transitions
         ~start:[ idx c ]
-        ~final:(states |> Map.filter_keys ~f:(fun x -> x >= 0) |> Map.data)
+        ~final:(states |> Map.filter_keys ~f:(fun x -> Z.(x >= zero)) |> Map.data)
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
@@ -213,6 +215,7 @@ module Lsb = struct
   ;;
 
   let stoi = strlen
+  let seq = strlen
   let base = 2
 end
 
@@ -236,33 +239,34 @@ module Msb = struct
       ~deg:(exp + 1)
   ;;
 
-  let div a b = if a mod b >= 0 then a / b else (a / b) - 1
+  let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
 
   let powerset term =
     let rec helper = function
       | [] -> []
-      | [ x ] -> [ [ o ], [ 0 ]; [ i ], [ x ] ]
+      | [ x ] -> [ [ o ], [ Z.zero ]; [ i ], [ x ] ]
       | hd :: tl ->
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
-        [ o :: n, 0 :: thing; i :: n, hd :: thing ]
+        [ o :: n, Z.zero :: thing; i :: n, hd :: thing ]
     in
     term
     |> List.map snd
     |> helper
-    |> List.map (fun (a, x) -> a, Base.List.sum (module Base.Int) ~f:Fun.id x)
+    |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
   ;;
 
   let eq vars term c =
+    let base = Z.of_int 2 in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
-      |> List.filter (fun (_, v) -> v <> 0)
+      |> List.filter (fun (_, v) -> Z.(v <> zero))
     in
-    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) 0 term in
-    if gcd = 0
-    then if 0 = c then n () else z ()
+    let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if gcd_ = Z.zero
+    then if Z.(zero = c) then n () else z ()
     else (
       let thing = powerset term in
       let states = ref Set.empty in
@@ -276,8 +280,8 @@ module Msb = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> (hd - sum) mod (2 * gcd) = 0)
-              |> List.map (fun (bits, sum) -> div (hd - sum) 2, bits, hd)
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
+              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -293,7 +297,7 @@ module Msb = struct
       let transitions =
         (thing
          |> List.filter_map (fun (d, sum) ->
-           match Map.find states (-sum) with
+           match Map.find states Z.(-sum) with
            | None -> None
            | Some v -> Some (start, d, v)))
         @ transitions
@@ -308,14 +312,15 @@ module Msb = struct
   ;;
 
   let leq vars term c =
+    let base = Z.of_int 2 in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
-      |> List.filter (fun (_, v) -> v <> 0)
+      |> List.filter (fun (_, v) -> Z.(v <> zero))
     in
-    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) 0 term in
-    if gcd = 0
-    then if 0 <= c then n () else z ()
+    let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if Z.(gcd_ = zero)
+    then if Z.(zero <= c) then n () else z ()
     else (
       let thing = powerset term in
       let states = ref Set.empty in
@@ -329,7 +334,8 @@ module Msb = struct
           else begin
             let t =
               thing
-              |> List.map (fun (bits, sum) -> gcd * div (hd - sum) (2 * gcd), bits, hd)
+              |> List.map (fun (bits, sum) ->
+                Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -347,7 +353,7 @@ module Msb = struct
          |> List.concat_map (fun (d, sum) ->
            Map.to_alist states
            |> List.filter_map (fun (v, idv) ->
-             if -sum <= v then Some (start, d, idv) else None)))
+             if Z.(-sum <= v) then Some (start, d, idv) else None)))
         @ transitions
       in
       Nfa.create_nfa
@@ -366,6 +372,7 @@ module Msb = struct
   ;;
 
   let stoi = strlen
+  let seq = strlen
   let base = 2
 end
 
@@ -440,10 +447,12 @@ module MsbNat = struct
   ;;
 
   let stoi = strlen
+  let seq = strlen
   let base = 2
 end
 
 module Str = struct
+  module Str = Nfa.Str
   module Nfa = Nfa.Lsb (Nfa.Str)
 
   type t = Nfa.t
@@ -453,7 +462,7 @@ module Str = struct
   :'<,'>s/0b0/[o]/g | '<,'>s/0b1/[i]/g
   *)
 
-  let o = '0'
+  let o = Str.u_zero
   let i = '1'
   let alphabet = "0123456789ABCDEF" |> String.to_seq |> Array.of_seq
   let base = 10
@@ -468,13 +477,16 @@ module Str = struct
 
   let strlen (nfa : t) ~(dest : int) ~(src : int) =
     Nfa.filter_map nfa (fun (label, q') ->
-      let c = Char.code label.(src) in
       let latest_digit = itoc (base - 1) in
-      (* FIXME: use 10 base *)
-      if c <> 0 && (label.(dest) = latest_digit || Char.code label.(dest) = 0)
+      if
+        (not (Str.is_eos_at src label))
+        && (Str.nth dest label = latest_digit || Str.is_any_at dest label)
       then Some (Array.mapi (fun i c -> if i = dest then latest_digit else c) label, q')
-      else if c = 0 && (label.(dest) = '0' || Char.code label.(dest) = 0)
-      then Some (Array.mapi (fun i c -> if i = dest then '0' else c) label, q')
+      else if Str.is_any_at src label
+      then Some (label, q')
+      else if
+        Str.is_eos_at src label && (Str.is_zero_at dest label || Str.is_any_at dest label)
+      then Some (Array.mapi (fun i c -> if i = dest then Str.u_zero else c) label, q')
       else None)
     |> Nfa.remove_unreachable_from_final
   ;;
@@ -482,16 +494,35 @@ module Str = struct
   let stoi (nfa : t) ~(dest : int) ~(src : int) =
     let digits = 0 -- (base - 1) |> List.map itoc in
     Nfa.filter_map nfa (fun (label, q') ->
-      let c = if Array.length label > src then label.(src) else Char.chr 0 in
-      let c = Char.code c in
       let* label =
-        if c = 0 && (label.(dest) = '0' || Char.code label.(dest) = 0)
-        then Some (Array.mapi (fun i c -> if i = dest then '0' else c) label)
+        if
+          Str.is_eos_at src label
+          && (Str.is_zero_at dest label || Str.is_any_at dest label)
+        then Some (Array.mapi (fun i c -> if i = dest then Str.u_zero else c) label)
+        else if Str.is_any_at src label
+        then Some label
         else if
-          c <> 0
-          && (label.(src) = label.(dest) || Char.code label.(dest) = 0)
+          (not (Str.is_eos_at src label))
+          && (Str.nth src label = Str.nth dest label || Str.is_any_at dest label)
           && List.mem label.(src) digits
         then Some (Array.mapi (fun i c -> if i = dest then label.(dest) else c) label)
+        else None
+      in
+      Some (label, q'))
+    |> Nfa.remove_unreachable_from_final
+  ;;
+
+  let seq (nfa : t) ~(dest : int) ~(src : int) =
+    Nfa.filter_map nfa (fun (label, q') ->
+      let* label =
+        if Str.is_any_at src label
+        then
+          Some (Array.mapi (fun i c -> if i = src then Str.nth dest label else c) label)
+        else if Str.is_any_at dest label
+        then
+          Some (Array.mapi (fun i c -> if i = dest then Str.nth src label else c) label)
+        else if Str.nth src label = Str.nth dest label
+        then Some label
         else None
       in
       Some (label, q'))
@@ -550,28 +581,29 @@ module Str = struct
   let powerset term =
     let rec helper = function
       | [] -> []
-      | [ x ] -> 0 -- (base - 1) |> List.map (fun c -> [ itoc c ], [ x * c ])
+      | [ x ] -> 0 -- (base - 1) |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ])
       | hd :: tl ->
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
-        0 -- (base - 1) |> List.map (fun c -> itoc c :: n, (hd * c) :: thing)
+        0 -- (base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing)
     in
     term
     |> List.map snd
     |> helper
-    |> List.map (fun (a, x) -> a, Base.List.sum (module Base.Int) ~f:Fun.id x)
+    |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
   ;;
 
   let eq vars term c =
+    let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
-      |> List.filter (fun (_, v) -> v <> 0)
+      |> List.filter (fun (_, v) -> Z.(v <> zero))
     in
-    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) 0 term in
-    if gcd = 0
-    then if 0 = c then n () else z ()
+    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if gcd = Z.zero
+    then if Z.(zero = c) then n () else z ()
     else (
       let thing = powerset term in
       let states = ref Set.empty in
@@ -585,8 +617,8 @@ module Str = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> (hd - sum) mod base = 0)
-              |> List.map (fun (bits, sum) -> hd, bits, (hd - sum) / base)
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod base = zero))
+              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base))
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -599,7 +631,7 @@ module Str = struct
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-           (fun fmt a -> Format.fprintf fmt "%d" a))
+           (fun fmt a -> Format.fprintf fmt "%a" Z.pp_print a))
         states;
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
@@ -610,16 +642,18 @@ module Str = struct
       Nfa.create_nfa
         ~transitions
         ~start:(idxs c)
-        ~final:(idxs 0)
+        ~final:(idxs Z.zero)
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
-  let leq vars term c =
+  let leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t =
+    fun vars term c ->
+    let base = Z.of_int base in
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
-    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) 0 term in
-    if gcd = 0
-    then if 0 <= c then n () else z ()
+    let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if gcd = Z.zero
+    then if Z.(zero <= c) then n () else z ()
     else (
       let thing = powerset term in
       let states = ref Set.empty in
@@ -636,9 +670,9 @@ module Str = struct
               |> List.map (fun (bits, sum) ->
                 ( hd
                 , bits
-                , match (hd - sum) mod base with
-                  | i when 0 <= i && i < base -> (hd - sum) / base
-                  | i when -base < i && i < 0 -> ((hd - sum) / base) - 1
+                , match Z.((hd - sum) mod base) with
+                  | i when Z.(zero <= i) && i < base -> Z.((hd - sum) / base)
+                  | i when Z.(-base < i && i < zero) -> Z.(((hd - sum) / base) - one)
                   | _ -> failwith "Should be unreachable" ))
             in
             states := Set.add !states hd;
@@ -652,7 +686,7 @@ module Str = struct
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-           (fun fmt a -> Format.fprintf fmt "%d" a))
+           (fun fmt a -> Format.fprintf fmt "%a" Z.pp_print a))
         states;
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
@@ -660,7 +694,7 @@ module Str = struct
       Nfa.create_nfa
         ~transitions
         ~start:[ idx c ]
-        ~final:(states |> Map.filter_keys ~f:(fun x -> x >= 0) |> Map.data)
+        ~final:(states |> Map.filter_keys ~f:(fun x -> Z.(x >= zero)) |> Map.data)
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;

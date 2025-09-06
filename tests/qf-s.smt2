@@ -88,5 +88,13 @@
   (assert (str.in.re x (re.* (str.to.re "100"))))
   (assert (= (str.len x) 12))
   (check-sat) ; sat
+  (get-model)
+(pop 1)
+
+(push 1)
+  (assert (str.in.re x (re.+ (re.union (str.to.re "Ba") (str.to.re "Lyu")))))
+  (assert (= (str.len x) a))
+  (assert (= a 23))
+  (get-model)
 (pop 1)
 

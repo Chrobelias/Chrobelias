@@ -133,7 +133,7 @@ let () =
             ~f:(fun ~key:k ~data:v ->
               Format.printf "%a = " Lib.Ir.pp_atom k;
               (match v with
-               | `Int v -> Format.printf "%d" v
+               | `Int v -> Format.printf "%a" Z.pp_print v
                | `Str v -> Format.printf "%s" v);
               Format.printf "; ")
             model;
