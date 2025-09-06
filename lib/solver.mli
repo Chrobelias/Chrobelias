@@ -14,6 +14,7 @@ type config =
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
+  ; mutable minimize_in_semenov : bool
   ; mutable under_approx : int
   ; mutable under_mode : [ `First | `Second ]
   ; mutable input_file : string
