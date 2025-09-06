@@ -30,7 +30,10 @@ module Str = struct
     | Const s -> Format.fprintf ppf "\"%s\"" s
   ;;
 
-  type t = InRe of term * char list Regex.t [@@deriving variants, compare (* , show *)]
+  type t =
+    | InRe of term * char list Regex.t
+    | Eq of term * term
+  [@@deriving variants, compare (* , show *)]
 
   let pp fmt = function
     | InRe (str, re) ->
@@ -41,15 +44,19 @@ module Str = struct
         str
         (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
         re
+    | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re'
   ;;
 
   let equal str str' =
     match str, str' with
     | InRe (str, re), InRe (str', re') -> str = str' && re = re'
+    | Eq (re, re'), Eq (re'', re''') -> re = re'' && re' = re'''
+    | _, _ -> false
   ;;
 
   let fold2 f fterm acc = function
     | InRe (term, re) as ast -> f (fold_term fterm acc term) ast
+    | Eq (re, re') as ast -> f (fold_term fterm (fold_term fterm acc re) re') ast
   ;;
 end
 
