@@ -22,4 +22,4 @@ type config =
 val config : config
 val parse_args : unit -> unit
 val proof : Ir.t -> [ `Sat | `Unsat | `Unknown of Ir.t ]
-val get_model : Ir.t -> (Ir.atom, [ `Int of int | `Str of string ]) Map.t option
+val get_model : Ir.t -> (Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t option

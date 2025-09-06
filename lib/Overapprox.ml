@@ -114,11 +114,12 @@ let check ast =
       Symantics.exists vs (helper ph)
     | Str _ -> raise_notrace String_inside
   and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> Symantics.const n
+    | Ast.Eia.Atom (Ast.Const n) -> Symantics.const (Z.to_int n)
     | Atom (Ast.Var s) -> Symantics.var s
     | Add terms -> Symantics.add (List.map helperT terms)
     | Mul terms -> Symantics.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const 2), Atom (Ast.Var x)) -> Symantics.var (gensym x)
+    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 ->
+      Symantics.var (gensym x)
     | Pow (base, p) -> Symantics.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise_notrace Bitwise_inside
     | Len _ | Stoi _ -> raise_notrace String_inside

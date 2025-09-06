@@ -50,7 +50,7 @@ module type S = sig
   type repr
 
   val symbol : string -> t
-  val poly_of_const : int -> t
+  val poly_of_const : Z.t -> t
   val minus : t -> t -> t
   val add : t -> t -> t
   val mul : t -> t -> t
@@ -73,11 +73,11 @@ let of_str : Ast.Str.t -> Ir.t = function
     Ir.sreg str re
 ;;
 
-module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = struct
-  type repr = (Ir.atom, int) Map.t * int * Ir.t list
+module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = struct
+  type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list
 
   type t =
-    | Poly of (Ir.atom, Q.t) Map.t * int * Ir.t list
+    | Poly of (Ir.atom, Q.t) Map.t * Z.t * Ir.t list
     | Symbol of Ir.atom * Ir.t list
 
   let pp ppf =
@@ -89,14 +89,14 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
 
   let as_poly = function
     | Poly (poly, c, sups) as x -> x
-    | Symbol (symbol, sups) -> Poly (Map.singleton symbol Q.one, 0, sups)
+    | Symbol (symbol, sups) -> Poly (Map.singleton symbol Q.one, Z.zero, sups)
   ;;
 
-  let from_rat : (Ir.atom, Q.t) Map.t -> int -> (Ir.atom, int) Map.t * int =
+  let from_rat : (Ir.atom, Q.t) Map.t -> Z.t -> (Ir.atom, Z.t) Map.t * Z.t =
     fun mapa c ->
     let lcmz = Map.fold mapa ~init:Z.one ~f:(fun ~key:_ ~data -> Z.lcm (Q.den data)) in
-    let mapa = Map.map mapa ~f:(fun q -> Z.(lcmz / Q.den q * Q.num q |> to_int)) in
-    let c = c * Z.to_int lcmz in
+    let mapa = Map.map mapa ~f:(fun q -> Z.(lcmz / Q.den q * Q.num q)) in
+    let c = Z.(c * lcmz) in
     mapa, c
   ;;
 
@@ -104,7 +104,7 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
     | Poly (poly, c, sups) ->
       let var = Ir.internal () in
       let poly, c = from_rat poly c in
-      let sup = Ir.eq (Map.add_exn ~key:var ~data:(-1) poly) (-c) in
+      let sup = Ir.eq (Map.add_exn ~key:var ~data:Z.minus_one poly) Z.(( ~- ) c) in
       Symbol (var, sup :: sups)
     | Symbol _ as s -> s
   ;;
@@ -113,7 +113,7 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
     | Poly (mapa, c, sups) ->
       let mapa, c = from_rat mapa c in
       mapa, c, sups
-    | Symbol (symbol, sups) -> Map.singleton symbol 1, 0, sups
+    | Symbol (symbol, sups) -> Map.singleton symbol Z.one, Z.zero, sups
   ;;
 
   let symbol s = Symbol (Ir.var s, [])
@@ -149,7 +149,7 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
           | `Right a -> Some Q.(zero - a)
           | `Both (a, b) -> Some Q.(a - b))
       in
-      let c = c' - c in
+      let c = Z.(c' - c) in
       let sups = sups @ sups' in
       Poly (poly, c, sups)
     | Symbol (_, _), Symbol (_, _) -> minus (as_poly l) (as_poly r)
@@ -165,13 +165,14 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
           | `Left a | `Right a -> Some a
           | `Both (a, b) -> Some Q.(a + b))
       in
-      let c = c' + c in
+      let c = Z.(c' + c) in
       let sups = sups @ sups' in
       Poly (poly, c, sups)
     | Symbol (l, sup1), Symbol (r, sup2) ->
       if Ir.eq_atom l r
-      then Poly (Map.singleton l (Q.of_int 2), 0, sup1 @ sup2)
-      else Poly (Map.add_exn ~key:r ~data:Q.one (Map.singleton l Q.one), 0, sup1 @ sup2)
+      then Poly (Map.singleton l (Q.of_int 2), Z.zero, sup1 @ sup2)
+      else
+        Poly (Map.add_exn ~key:r ~data:Q.one (Map.singleton l Q.one), Z.zero, sup1 @ sup2)
   ;;
 
   let rec mul l r =
@@ -185,8 +186,8 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
         then poly', c', c
         else failwith "unable to multiply var by var"
       in
-      let poly = poly |> Map.map ~f:Q.(fun a -> a * Q.of_int d) in
-      let c = c * d in
+      let poly = poly |> Map.map ~f:Q.(fun a -> a * Q.of_bigint d) in
+      let c = Z.(c * d) in
       let sups = sups @ sups' in
       Poly (poly, c, sups)
     | _ ->
@@ -195,61 +196,70 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
   ;;
 
   let rec pow ~base exp =
+    let two = Z.of_int 2 in
+    let four = Z.of_int 4 in
     match base, exp with
-    | Poly (base_poly, 4, base_sups), _ when Map.is_empty base_poly ->
-      pow ~base:(Poly (base_poly, 2, base_sups)) (mul (poly_of_const 2) exp)
-    | Poly (base_poly, 2, base_sups), Poly (exp_map, exp_c, exp_sups)
-      when Map.is_empty base_poly ->
+    | Poly (base_poly, base, base_sups), _ when Map.is_empty base_poly && base = four ->
+      pow ~base:(Poly (base_poly, two, base_sups)) (mul (poly_of_const two) exp)
+    | Poly (base_poly, base, base_sups), Poly (exp_map, exp_c, exp_sups)
+      when Map.is_empty base_poly && base = two ->
       let merged_sups = base_sups @ exp_sups in
       (match Map.length exp_map with
-       | 0 -> Poly (base_poly, Utils.pow ~base:2 exp_c, base_sups @ exp_sups)
+       | 0 -> Poly (base_poly, Utils.powz ~base:two exp_c, base_sups @ exp_sups)
        | 1 ->
          let coeff =
-           if exp_c > 0
-           then Q.of_int (Utils.pow ~base:2 exp_c)
+           if Z.(exp_c > zero)
+           then Q.of_bigint (Utils.powz ~base:two exp_c)
            else (
-             let c = Utils.pow ~base:2 (-exp_c) in
-             Q.(one / of_int c))
+             let c = Utils.powz ~base:two Z.(-exp_c) in
+             Q.(one / of_bigint c))
          in
          let merged_sups, var =
            match fst (Map.min_elt_exn exp_map) with
            | Var s -> merged_sups, Ir.pow2 s
-           | Pow2 s when exp_c = 0 ->
+           | Pow2 s when exp_c = Z.zero ->
              let newv : string = Ir.internal_name () in
-             ( Ir.eq (Map.of_alist_exn [ Ir.Var newv, -1; Pow2 s, 1 ]) 0 :: merged_sups
+             ( Ir.eq (Map.of_alist_exn [ Ir.Var newv, Z.minus_one; Pow2 s, Z.one ]) Z.zero
+               :: merged_sups
              , Ir.pow2 newv )
            | x -> failf "not implemented: %a\n%!" Ir.pp_atom x
          in
-         Poly (Map.singleton var coeff, 0, merged_sups)
+         Poly (Map.singleton var coeff, Z.zero, merged_sups)
        | _ ->
          let var = Ir.internal () in
          let coeff =
-           if exp_c > 0
-           then Q.of_int (Utils.pow ~base:2 exp_c)
+           if Z.(exp_c > zero)
+           then Q.of_bigint (Utils.powz ~base:two exp_c)
            else (
-             let c = Utils.pow ~base:2 (-exp_c) in
-             Q.(one / of_int c))
+             let c = Utils.powz ~base:two Z.(-exp_c) in
+             Q.(one / of_bigint c))
          in
          let sup1 =
-           let mapa, c = from_rat (Map.add_exn ~key:var ~data:Q.(zero - one) exp_map) 0 in
+           let mapa, c =
+             from_rat (Map.add_exn ~key:var ~data:Q.(zero - one) exp_map) Z.zero
+           in
            Ir.eq mapa c
          in
          (* Debug.printfln "new variable %a for " Ir.pp_atom var; *)
-         Poly (Map.singleton var coeff, 0, (sup1 :: base_sups) @ exp_sups))
-    | Poly (base_poly, 2, base_sups), Symbol (exp_symbol, exp_sups)
-      when Map.length base_poly = 0 ->
+         Poly (Map.singleton var coeff, Z.zero, (sup1 :: base_sups) @ exp_sups))
+    | Poly (base_poly, c, base_sups), Symbol (exp_symbol, exp_sups)
+      when Map.length base_poly = 0 && c = Z.of_int 2 ->
       let poly =
         match exp_symbol with
         | Var v -> Map.singleton (Ir.pow2 v) Q.one
         | _ -> failwith "unreachable"
       in
       let sups = base_sups @ exp_sups in
-      Poly (poly, 0, sups)
+      Poly (poly, Z.zero, sups)
     | Symbol (a, _), _ ->
       failwith
         (Format.asprintf "only base 2 is supported in exponents (got %a)" Ir.pp_atom a)
     | Poly (base_poly, base_c, base_sups), _ ->
-      failwith (Printf.sprintf "only base 2 is supported in exponents (got %d)" base_c)
+      failwith
+        (Format.asprintf
+           "only base 2 is supported in exponents (got %a)"
+           Z.pp_print
+           base_c)
   ;;
 
   let len (v : Ast.Str.term) =
@@ -264,7 +274,7 @@ module Symantics : S with type repr = (Ir.atom, int) Map.t * int * Ir.t list = s
     Symbol
       ( r
       , [ Ir.slen u (Ir.var v)
-        ; Ir.eq (Map.singleton pow_r 1 |> Map.add_exn ~key:u ~data:(-1)) 1
+        ; Ir.eq (Map.singleton pow_r Z.one |> Map.add_exn ~key:u ~data:Z.minus_one) Z.one
         ] )
   ;;
 
@@ -319,17 +329,19 @@ let of_eia2 : Ast.Eia.t -> Ir.t =
     ans
 ;;
 
-let of_eia (eia : Ast.Eia.t) =
+(*let of_eia (eia : Ast.Eia.t) =
+  let open Z in
+  let open Z.Compare in
   (* log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
   let rec as_poly term =
     match of_term term with
     | `Poly (poly, c, sups) -> poly, c, sups
-    | `Symbol (symbol, sups) -> Map.singleton symbol 1, 0, sups
+    | `Symbol (symbol, sups) -> Map.singleton symbol one, zero, sups
   and as_symbol term =
     match of_term term with
     | `Poly (poly, c, sups) ->
       let var = Ir.internal () in
-      let sup = Ir.eq (Map.add_exn ~key:var ~data:(-1) poly) (-c) in
+      let sup = Ir.eq (Map.add_exn ~key:var ~data:(-one) poly) (-c) in
       var, sup :: sups
     | `Symbol (symbol, sups) -> symbol, sups
   and of_term : Ast.Eia.term -> _ = function
@@ -375,10 +387,10 @@ let of_eia (eia : Ast.Eia.t) =
       let base_poly, base_c, base_sups = as_poly base in
       let exp_symbol, exp_sups = as_symbol exp in
       let poly =
-        if Map.length base_poly = 0 && base_c = 2
+        if Int.equal (Map.length base_poly) 0 && Int.equal base_c 2
         then begin
           match exp_symbol with
-          | Var v -> Map.singleton (Ir.pow2 v) 1
+          | Var v -> Map.singleton (Ir.pow2 v) one
           | _ -> failwith "unreachable"
         end
         else
@@ -386,14 +398,14 @@ let of_eia (eia : Ast.Eia.t) =
             (Printf.sprintf "only base 2 is supported in exponents (got %d)" base_c)
       in
       let sups = base_sups @ exp_sups in
-      `Poly (poly, 0, sups)
+      `Poly (poly, zero, sups)
     | Mul [ lhs; rhs ] ->
       let poly, c, sups = as_poly lhs in
       let poly', c', sups' = as_poly rhs in
       let poly, c, d =
-        if Map.length poly' = 0
+        if Int.equal (Map.length poly') 0
         then poly, c, c'
-        else if Map.length poly = 0
+        else if Int.equal (Map.length poly) 0
         then poly', c', c
         else failwith "unable to multiply var by var"
       in
@@ -424,11 +436,12 @@ let of_eia (eia : Ast.Eia.t) =
       | Leq _ -> Ir.leq
     in
     Ir.land_ (build poly c :: sups)
-;;
+;;*)
 
-type bound = EqConst of Ast.atom * int
+type bound = EqConst of Ast.atom * Z.t
 
 let algebraic : Ast.t -> Ast.t =
+  let open Z in
   let rec infer_bounds : Ast.t -> _ = function
     | Ast.Land irs ->
       let bounds = List.map infer_bounds irs in
@@ -454,7 +467,7 @@ let algebraic : Ast.t -> Ast.t =
         (Ast.Eia.Eq
            ( Ast.Eia.Add
                [ Ast.Eia.Atom (Ast.Const d)
-               ; Ast.Eia.Mul [ Ast.Eia.Atom (Ast.Const -1); Ast.Eia.Atom v ]
+               ; Ast.Eia.Mul [ Ast.Eia.Atom (Ast.Const minus_one); Ast.Eia.Atom v ]
                ]
            , Ast.Eia.Atom (Ast.Const c) )) ->
       let bound = EqConst (v, d - c) in
@@ -490,8 +503,8 @@ let algebraic : Ast.t -> Ast.t =
   in
   let flatten =
     mapt (function
-      | Ast.Eia.Add [] -> Ast.Eia.atom (Ast.const 0)
-      | Ast.Eia.Mul [] -> Ast.Eia.atom (Ast.const 1)
+      | Ast.Eia.Add [] -> Ast.Eia.atom (Ast.const zero)
+      | Ast.Eia.Mul [] -> Ast.Eia.atom (Ast.const one)
       | Ast.Eia.Add [ term ] -> term
       | Ast.Eia.Mul [ term ] -> term
       | Ast.Eia.Add terms ->
@@ -531,10 +544,10 @@ let algebraic : Ast.t -> Ast.t =
                        | term -> Either.left term)
                      terms
                  in
-                 let c = List.fold_left Int.mul 1 cs in
-                 if c = 0
-                 then Ast.Eia.Atom (Ast.const 0)
-                 else if c = 1
+                 let c = List.fold_left ( * ) one cs in
+                 if c = zero
+                 then Ast.Eia.Atom (Ast.const zero)
+                 else if c = one
                  then Ast.Eia.mul terms
                  else Ast.Eia.mul (Ast.Eia.atom (Ast.const c) :: terms)
                | Ast.Eia.Add terms ->
@@ -545,8 +558,8 @@ let algebraic : Ast.t -> Ast.t =
                        | term -> Either.left term)
                      terms
                  in
-                 let c = List.fold_left ( + ) 0 cs in
-                 if c = 0
+                 let c = List.fold_left ( + ) zero cs in
+                 if c = zero
                  then Ast.Eia.add terms
                  else Ast.Eia.add (Ast.Eia.atom (Ast.const c) :: terms)
                | term -> term)
@@ -626,7 +639,7 @@ let ir_of_ast ir =
     | Str str -> of_str str
     | Eia eia ->
       (match Sys.getenv_opt "CHRO_EIA" with
-       | Some "old" -> of_eia
+       (*| Some "old" -> of_eia*)
        | _ -> of_eia2)
         eia
     | Pred s -> failf "Unexpected %s" s
@@ -638,22 +651,22 @@ let%expect_test _ =
   let open Ast in
   let wrap ast =
     Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 (Eia ast);
-    let ir1 = of_eia ast in
-    Format.printf "@[IR1: %a@]\n%!" Ir.pp_smtlib2 ir1;
+    (*let ir1 = of_eia ast in
+    Format.printf "@[IR1: %a@]\n%!" Ir.pp_smtlib2 ir1;*)
     let ir2 = of_eia2 ast in
     Format.printf "@[IR2: %a@]\n%!" Ir.pp_smtlib2 ir2
   in
   wrap
     (Ast.Eia.leq
-       Eia.(pow (atom (const 2)) (Eia.pow (atom @@ const 2) (atom @@ var "z")))
-       (Eia.atom (Const 1)));
+       Eia.(
+         pow
+           (atom (const (Z.of_int 2)))
+           (Eia.pow (atom @@ const (Z.of_int 2)) (atom @@ var "z")))
+       (Eia.atom (Const Z.one)));
   [%expect
     {|
     (<= (exp 2 (exp 2 z)) 1)
-    IR1: (assert (<= pow2( %0)  1) )
+    IR2: (assert (<= pow2( %0)  1) )
          (assert (= (+ (* (- 1)  %0) pow2(z) )  0) )
-
-    IR2: (assert (<= pow2( %1)  1) )
-         (assert (= (+ (* (- 1)  %1) pow2(z) )  0) )
     |}]
 ;;
