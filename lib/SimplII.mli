@@ -5,11 +5,19 @@ type relop =
 type error
 
 val simpl
-  :  int
+  :  ?under_mode:[ `First | `Second ]
+  -> int
   -> Ast.t
-  -> [> `Unknown of Ast.t | `Sat of string | `Unsat | `Error of Ast.t * error list ]
+  -> [> `Unknown of Ast.t
+     | `Sat of string
+     | `Unsat
+     | `Error of Ast.t * error list
+     | `Underapprox of Ast.t list
+     ]
 
 val pp_error : Format.formatter -> error -> unit
+val set_a_min : int -> unit
+val set_a_max : int -> unit
 
 (* TODO(Kakadu): Hash-consing of AST without loss of pattern matching *)
 

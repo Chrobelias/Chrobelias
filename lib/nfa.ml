@@ -939,6 +939,7 @@ struct
     { final = nfa.start; start = nfa.final; transitions; deg = nfa.deg; is_dfa = false }
   ;;
 
+  (* Note(Kakadu): it seems to be the slowest function *)
   let to_dfa nfa =
     (* Format.printf "Runinng to_dfa\n%!"; *)
     if nfa.is_dfa
@@ -990,15 +991,23 @@ struct
             let delta =
               List.fold_left
                 (fun acc label ->
+                   (* TODO(Kakadu): It looks like we are constructing a set [qs']
+                    and check if it is the same set as [qs]. Maybe we should check presence in [qs] on every addition
+                    to [qs'] and in the end check that every element of [qs] is in [qs']. It will give us a chance for
+                    early exit
+                   *)
                    let qs' =
                      Set.fold
                        ~f:(fun acc q ->
+                         (* Note(Kakadu): I tried to replace acc as list to a set, but it became slower *)
                          let delta = Array.get nfa.transitions q in
                          let q' =
-                           delta
-                           |> List.filter (fun (label', _) -> Label.equal label label')
-                           |> List.map snd
+                           List.filter_map
+                             (fun (label', x) ->
+                                if Label.equal label label' then Some x else None)
+                             delta
                          in
+                         (* TODO(Kakadu): appending lists is slow *)
                          List.append q' acc)
                        ~init:[]
                        qs
