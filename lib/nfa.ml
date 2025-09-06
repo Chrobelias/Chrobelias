@@ -346,8 +346,15 @@ module Str = struct
   ;;
 
   (* FIXME: this should support different bases and symbols. *)
-  let variations alpha vec =
-    let alpha = List.map (fun a -> [ a ]) alpha in
+  let variations _alpha vec =
+    (*let alpha = List.map (fun a -> [ a ]) alpha in*)
+    let alpha =
+      [ u_eos ]
+      :: ("123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~a/"
+          |> String.to_seq
+          |> Seq.map (fun c -> [ c ])
+          |> List.of_seq)
+    in
     let rec powerset = function
       | 0 -> []
       | 1 -> alpha
@@ -1365,13 +1372,15 @@ module Lsb (Label : L) = struct
     }
   ;;
 
-  let minimize nfa = nfa |> remove_unreachable_from_final
-  (*|> fun nfa ->
+  let minimize nfa =
+    nfa
+    |> fun nfa ->
     { nfa with
       transitions =
         nfa.transitions |> Array.map (fun delta -> Set.of_list delta |> Set.to_list)
     }
-  ;;*)
+    |> remove_unreachable_from_final
+  ;;
   (*|> to_dfa
     |> reverse
     |> to_dfa

@@ -124,6 +124,18 @@ and to_eia_term orig_expr =
   | _ -> failf "expected term, in %a" Expr.pp orig_expr
 
 and _to_ir orig_expr =
+  (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
+  (* nor the return type. Let's introduce our own method for checking if the return *)
+  (* type of the expr is string. *)
+  let is_str expr =
+    Expr.ty expr = Ty.Ty_str
+    &&
+      match Expr.view expr with
+      | Expr.Unop (_, Ty.Unop.Length, _)
+      | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ _ ])
+      | Expr.Cvtop (_, Ty.Cvtop.String_to_int, _) -> false
+      | _ -> true
+  in
   let expr = Expr.view orig_expr in
   match expr with
   (* Constants. *)
@@ -149,8 +161,7 @@ and _to_ir orig_expr =
   (* Implication *)
   | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) -> Ast.limpl (_to_ir lhs) (_to_ir rhs)
   (* Integer comparisons. *)
-  | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs)
-    when Expr.ty lhs = Ty.Ty_str || Expr.ty rhs = Ty.Ty_str ->
+  | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str lhs || is_str rhs ->
     let build t c = Ast.str (Ast.Str.eq t c) in
     let lhs = to_string lhs in
     let rhs = to_string rhs in
