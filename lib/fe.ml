@@ -21,6 +21,8 @@ let rec to_string orig_expr =
 and to_regex orig_expr =
   let expr = Expr.view orig_expr in
   match expr with
+  | Expr.Symbol s when Symbol.to_string s = "re.allchar" ->
+    Regex.kleene (Regex.symbol [ Nfa.Str.u_null ])
   | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
     let str =
@@ -28,21 +30,49 @@ and to_regex orig_expr =
       | Ast.Str.Const s -> s
       | _ -> failf "unable to create regex dynamically in %a" Expr.pp expr
     in
-    Regex.concat
-      (str
-       |> String.to_seq
-       |> Seq.map (fun c -> Regex.symbol [ c ])
-       |> Seq.fold_left
-            (fun acc a ->
-               (* String constraints use LSB representation, we intentionally reverse the concat. *)
-               Regex.concat a acc)
-            Regex.epsilon)
-      (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
+    str
+    |> String.to_seq
+    |> Seq.map (fun c -> Regex.symbol [ c ])
+    |> Seq.fold_left
+         (fun acc a ->
+            (* String constraints use LSB representation, we intentionally reverse the concat. *)
+            Regex.concat a acc)
+         Regex.epsilon
+  | Expr.Binop (_ty, Ty.Binop.Regexp_range, lhs, rhs) ->
+    let ( -- ) i j =
+      let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+      aux j []
+    in
+    let lhs =
+      match to_string lhs with
+      | Ast.Str.Const s -> s
+      | _ -> failf "unable to create regex dynamically in %a" Expr.pp orig_expr
+    in
+    let rhs =
+      match to_string rhs with
+      | Ast.Str.Const s -> s
+      | _ -> failf "unable to create regex dynamically in %a" Expr.pp orig_expr
+    in
+    let () =
+      if String.length lhs <> 1 || String.length rhs <> 1
+      then failf "expected range strings %s %s to be of length 1" lhs rhs
+      else ()
+    in
+    let lhs = String.get lhs 0 in
+    let rhs = String.get rhs 0 in
+    Char.code lhs -- Char.code rhs
+    |> List.fold_left
+         (fun acc c -> Regex.mor acc (Regex.symbol [ Char.chr c ]))
+         Regex.empty
   | Expr.Naryop (_ty, Ty.Naryop.Concat, exprs) ->
     (* String constraints use LSB representation, we intentionally reverse the concat. *)
     List.map to_regex exprs |> List.rev |> List.fold_left Regex.concat Regex.epsilon
   | Expr.Naryop (_ty, Ty.Naryop.Regexp_union, exprs) ->
     List.map to_regex exprs |> List.fold_left Regex.mor Regex.empty
+  | Expr.Binop (_ty, Ty.Binop.Regexp_inter, lhs, rhs) ->
+    let lhs = to_regex lhs in
+    let rhs = to_regex rhs in
+    Regex.mand lhs rhs
   | Expr.Unop (_ty, Ty.Unop.Regexp_opt, expr) -> to_regex expr |> Regex.opt
   | Expr.Unop (_ty, Ty.Unop.Regexp_plus, expr) -> to_regex expr |> Regex.plus
   | Expr.Unop (_ty, Ty.Unop.Regexp_star, expr) -> to_regex expr |> Regex.kleene
@@ -119,6 +149,12 @@ and _to_ir orig_expr =
   (* Implication *)
   | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) -> Ast.limpl (_to_ir lhs) (_to_ir rhs)
   (* Integer comparisons. *)
+  | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs)
+    when Expr.ty lhs = Ty.Ty_str || Expr.ty rhs = Ty.Ty_str ->
+    let build t c = Ast.str (Ast.Str.eq t c) in
+    let lhs = to_string lhs in
+    let rhs = to_string rhs in
+    build lhs rhs
   | Expr.Relop (_ty, rel, lhs, rhs) ->
     let build =
       match rel with
@@ -138,8 +174,14 @@ and _to_ir orig_expr =
   | Expr.Binop (_, Ty.Binop.String_in_re, str, re) ->
     let str = to_string str in
     let re = to_regex re in
+    let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
     Ast.Str (Ast.Str.inre str re)
   (* Quantifiers and binders. *)
+  | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
+    let c = _to_ir c in
+    let t = _to_ir t in
+    let e = _to_ir e in
+    Ast.lor_ [ Ast.land_ [ c; t ]; Ast.land_ [ Ast.lnot c; e ] ]
   | Expr.Binder (((Binder.Forall | Binder.Exists) as q), atoms, formula) ->
     let binder =
       match q with

@@ -71,6 +71,24 @@ let of_str : Ast.Str.t -> Ir.t = function
       | _ -> failwith "expected atom"
     in
     Ir.sreg str re
+  | Ast.Str.Eq (Ast.Str.Const c, Ast.Str.Const c1) ->
+    if c = c1 then Ir.true_ else Ir.false_
+  | Ast.Str.Eq (Ast.Str.Const c, Atom (Var s)) | Ast.Str.Eq (Atom (Var s), Const c) ->
+    let re =
+      Regex.concat
+        (c
+         |> String.to_seq
+         |> Seq.map (fun c -> Regex.symbol [ c ])
+         |> Seq.fold_left
+              (fun acc a ->
+                 (* String constraints use LSB representation, we intentionally reverse the concat. *)
+                 Regex.concat a acc)
+              Regex.epsilon)
+        (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
+    in
+    Ir.sreg (Ir.var s) re
+  | Ast.Str.Eq (Atom (Var a), Atom (Var b)) -> Ir.seq (Ir.var a) (Ir.var b)
+  | s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)
 ;;
 
 module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = struct

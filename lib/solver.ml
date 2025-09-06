@@ -27,6 +27,7 @@ let collect_vars ir =
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.SReg (atom, _) -> Set.add acc atom
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Rel (_, term, _) ->
          Set.union
@@ -51,6 +52,7 @@ let collect_free (ir : Ir.t) =
        | Ir.SReg (atom, _) -> Set.add acc atom
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
@@ -542,6 +544,7 @@ struct
        | Ir.SReg (atom, reg) -> Extra.eval_sreg vars atom reg
        | Ir.SLen (atom, atom') -> NfaCollection.n ()
        | Ir.Stoi (atom, atom') -> NfaCollection.n ()
+       | Ir.SEq (atom, atom') -> NfaCollection.n ()
        | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;
