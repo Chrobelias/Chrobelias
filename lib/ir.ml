@@ -52,6 +52,7 @@ type t =
   | Reg of bool list Regex.t * atom list
   | SReg of atom * char list Regex.t
   | SLen of atom * atom
+  | SEq of atom * atom
   | Stoi of atom * atom
   | Rel of rel * polynom * Z.t
   (* Logical operations. *)
@@ -63,6 +64,7 @@ type t =
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
+  | SEq (atom, atom') -> Format.fprintf fmt "(str.in.re %a %a)" pp_atom atom pp_atom atom'
   | SReg (atom, re) ->
     Format.fprintf
       fmt
@@ -164,7 +166,7 @@ let pp_smtlib2 ppf ir =
         rhs;
       (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
       fprintf ppf ")@]" *)
-    | (SLen _ | Stoi _ | SReg _) as ir -> Format.fprintf ppf "%a" pp ir
+    | (SLen _ | Stoi _ | SReg _ | SEq (_, _)) as ir -> Format.fprintf ppf "%a" pp ir
     | Land [ x ] ->
       (* TODO: should be eliminated in simplifier *)
       helper ppf x
@@ -272,6 +274,7 @@ let rec map2 f fleaf ir =
   | SReg (_, _) -> fleaf ir
   | SLen (_, _) -> fleaf ir
   | Stoi (_, _) -> fleaf ir
+  | SEq (_, _) -> fleaf ir
   | Lnot ir' -> f (lnot (map2 f fleaf ir'))
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
   | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
@@ -288,6 +291,7 @@ let rec fold f acc ir =
   | SReg (_, _) -> f acc ir
   | SLen (_, _) -> f acc ir
   | Stoi (_, _) -> f acc ir
+  | SEq (_, _) -> f acc ir
   | Lnot ir' -> f (fold f acc ir') ir
   | Land irs -> f (List.fold_left (fold f) acc irs) ir
   | Lor irs -> f (List.fold_left (fold f) acc irs) ir

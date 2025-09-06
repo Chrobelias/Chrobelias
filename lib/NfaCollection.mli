@@ -15,6 +15,7 @@ module type Type = sig
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val strlen : t -> dest:int -> src:int -> t
   val stoi : t -> dest:int -> src:int -> t
+  val seq : t -> dest:int -> src:int -> t
   val base : int
 end
 

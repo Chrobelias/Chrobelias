@@ -16,6 +16,7 @@ module type Type = sig
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val strlen : t -> dest:int -> src:int -> t
   val stoi : t -> dest:int -> src:int -> t
+  val seq : t -> dest:int -> src:int -> t
   val base : int
 end
 
@@ -214,6 +215,7 @@ module Lsb = struct
   ;;
 
   let stoi = strlen
+  let seq = strlen
   let base = 2
 end
 
@@ -370,6 +372,7 @@ module Msb = struct
   ;;
 
   let stoi = strlen
+  let seq = strlen
   let base = 2
 end
 
@@ -444,6 +447,7 @@ module MsbNat = struct
   ;;
 
   let stoi = strlen
+  let seq = strlen
   let base = 2
 end
 
@@ -502,6 +506,23 @@ module Str = struct
           && (Str.nth src label = Str.nth dest label || Str.is_any_at dest label)
           && List.mem label.(src) digits
         then Some (Array.mapi (fun i c -> if i = dest then label.(dest) else c) label)
+        else None
+      in
+      Some (label, q'))
+    |> Nfa.remove_unreachable_from_final
+  ;;
+
+  let seq (nfa : t) ~(dest : int) ~(src : int) =
+    Nfa.filter_map nfa (fun (label, q') ->
+      let* label =
+        if Str.is_any_at src label
+        then
+          Some (Array.mapi (fun i c -> if i = src then Str.nth dest label else c) label)
+        else if Str.is_any_at dest label
+        then
+          Some (Array.mapi (fun i c -> if i = dest then Str.nth src label else c) label)
+        else if Str.nth src label = Str.nth dest label
+        then Some label
         else None
       in
       Some (label, q'))

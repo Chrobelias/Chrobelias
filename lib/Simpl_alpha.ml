@@ -91,6 +91,7 @@ let rec simplify : Ir.t -> Ir.t = function
   | SReg _ as x -> x
   | SLen _ as x -> x
   | Stoi _ as x -> x
+  | SEq _ as x -> x
   | Land xs ->
     (* We simplify only conjuncts because interesting test needs it.
       benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2

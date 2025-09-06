@@ -17,6 +17,10 @@ jobs:
         with:
           ocaml-compiler: 5
 
+      - name: Install Smtml depedencies
+        working-directory: ./vendor/smtml
+        run: opam install . --deps-only --with-test
+
       - name: Install depedencies
         run: opam install . --deps-only --with-test
 
