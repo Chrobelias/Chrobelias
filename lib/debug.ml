@@ -31,7 +31,7 @@ let dump_nfa ?msg ?vars format_nfa nfa =
     let command = Format.sprintf {|dot -Tsvg "%s" > "%s"|} dot_file svg_file in
     Format.asprintf "%a" format_nfa nfa |> Printf.fprintf oc "%s";
     close_out oc;
-    Sys.command command |> ignore;
+    let __ () = Sys.command command |> ignore in
     (match msg with
      | Some msg -> printfln msg svg_file
      | None -> ());
