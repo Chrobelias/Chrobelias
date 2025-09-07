@@ -1,4 +1,7 @@
 (executables
  (public_names Chro)
  (names chro)
- (libraries lib))
+ (libraries
+  lib
+  ;memtrace
+  ))

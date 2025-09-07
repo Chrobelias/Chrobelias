@@ -247,6 +247,8 @@ let make_main_symantics env =
         List.fold_left
           (fun (cacc, phacc) -> function
              | Eia.Atom (Const c) -> op c cacc, phacc
+             | Eia.Pow ((Atom (Const base) as b), Eia.Add (Atom (Const -1) :: sums))
+               when cacc mod base = 0 -> cacc / base, Eia.Pow (b, Eia.Add sums) :: phacc
              | ph -> cacc, ph :: phacc)
           (init, [])
           xs
@@ -296,14 +298,34 @@ let make_main_symantics env =
 
     let rec add xs =
       let collect_inside_add xs =
+        let extend h tl =
+          let rec loop c1 tl1 = function
+            | ph :: ptl when ph = Eia.Mul tl1 ->
+              if 1 + c1 = 0
+              then ptl
+              else Eia.Mul (Eia.Atom (Const (1 + c1)) :: tl1) :: ptl
+            | Eia.Mul (Eia.Atom (Const c2) :: tl2) :: ptl when Stdlib.(tl1 = tl2) ->
+              if c1 + c2 = 0
+              then ptl
+              else Eia.Mul (Eia.Atom (Const (c1 + c2)) :: tl1) :: ptl
+            | ph :: ptl -> ph :: loop c1 tl1 ptl
+            | [] -> [ h ]
+          in
+          match h with
+          | Eia.Mul (Eia.Atom (Const c1) :: tl1) -> loop c1 tl1 tl
+          | Eia.Mul tl1 -> loop 1 tl1 tl
+          | _ -> h :: tl
+        in
         List.fold_right
           (fun x acc ->
              match x, acc with
              | Eia.Add ts, _ -> ts @ acc
              | Mul (Atom (Const c1) :: ph1), Eia.Mul (Atom (Const c2) :: ph2) :: tl
                when List.equal Ast.Eia.eq_term ph1 ph2 ->
-               if c1 + c2 = 0 then tl else mul (Atom (Const (c1 + c2)) :: ph1) :: tl
-             | a, _ -> a :: acc)
+               if c1 + c2 = 0 then tl else extend (mul (Atom (Const (c1 + c2)) :: ph1)) tl
+             | Mul [ Atom (Const c1); ph1 ], ph2 :: tl when Ast.Eia.eq_term ph1 ph2 ->
+               extend (mul [ Atom (Const (1 + c1)); ph1 ]) tl
+             | a, _ -> extend a acc)
           xs
           []
       in
@@ -817,7 +839,7 @@ let simpl ?(under_mode = `First) bound ast =
       var_info.Info.exp
   in
   let on_env step env =
-    log "step: %a. env = %a\n" pp_step step Env.pp env;
+    (* log "step: %a. env = %a\n" pp_step step Env.pp env; *)
     let (module Symantics) = make_main_symantics env in
     let ast_spec = apply_symantics (module Symantics) ast in
     match basic_simplify step env ast_spec with
@@ -827,7 +849,9 @@ let simpl ?(under_mode = `First) bound ast =
       let var_info = apply_symantics (module Who_in_exponents) ast_spec in
       let ast_spec = flatten var_info ast_spec in
       let ast_spec = apply_symantics (module Symantics) ast_spec in
-      log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec;
+      let __ () =
+        log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec
+      in
       (match check_errors ast_spec with
        | [] ->
          let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast_spec in
@@ -856,7 +880,7 @@ let simpl ?(under_mode = `First) bound ast =
         | `Errors -> true
         | `Unknown -> false
       in
-      if List.for_all is_error verdicts
+      if verdicts <> [] && List.for_all is_error verdicts
       then (
         match check_errors ast with
         | [] ->

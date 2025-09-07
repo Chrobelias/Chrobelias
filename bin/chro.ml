@@ -1,6 +1,8 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
 
+(* let () = Memtrace.trace_if_requested ~context:"my program" () *)
+
 module Map = Base.Map.Poly
 
 let () = Lib.Solver.parse_args ()
@@ -58,6 +60,9 @@ let check_sat ast =
           exit 1
         | (`Unsat | `Sat _ | `Unknown _) as other -> other
         | `Underapprox asts ->
+          if Lib.Solver.config.dump_pre_simpl
+          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+          if Lib.Solver.config.stop_after = `Pre_simplify then exit 0;
           log "Looking for SAT in %d asts..." (List.length asts);
           let exception Sat_found in
           (try
