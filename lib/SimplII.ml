@@ -232,7 +232,8 @@ let make_main_symantics env =
     include Id_symantics
 
     let compare_term = Eia.compare_term
-    let const c = Ast.Eia.Atom (Ast.const (Z.of_int c))
+    let constz c = Eia.Atom (Ast.const c)
+    let const c = constz (Z.of_int c)
 
     let var s : term =
       match Env.lookup s env with
@@ -246,7 +247,10 @@ let make_main_symantics env =
       let c, xs =
         List.fold_left
           (fun (cacc, phacc) -> function
-             | Eia.Atom (Const c) -> op (Z.to_int c) cacc, phacc
+             | Eia.Atom (Const c) -> op c cacc, phacc
+             | Eia.Pow ((Atom (Const base) as b), Eia.Add (Atom (Const minus1) :: sums))
+               when Z.(cacc mod base = Z.zero) && -1 = Z.to_int minus1 ->
+               Z.(cacc / base), Eia.Pow (b, Eia.Add sums) :: phacc
              | ph -> cacc, ph :: phacc)
           (init, [])
           xs
@@ -274,15 +278,16 @@ let make_main_symantics env =
 
     let rec mul xs =
       let xs = collect_inside_mul xs in
-      match fold_and_sort 1 ( * ) xs with
-      | 0, _ -> Eia.atom (Const Z.zero)
-      | c, [] -> Eia.atom (Const (Z.of_int c))
-      | 1, [ h ] -> h
-      | 1, xs -> Ast.Eia.mul (List.sort compare_term xs)
-      | 2, [ Pow ((Atom (Const base_) as base), Add [ Atom (Const v1); v ]) ]
-        when base_ = Z.of_int 2 && v1 = Z.minus_one -> pow base v
-      | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ const c; x ]) ss)
-      | c, xs -> Ast.Eia.mul (Eia.atom (Const (Z.of_int c)) :: List.sort compare_term xs)
+      match fold_and_sort Z.one Z.( * ) xs with
+      | c, _ when Z.(equal c zero) -> Eia.atom (Const Z.zero)
+      | c, [] -> Eia.atom (Const c)
+      | c, [ h ] when Z.equal c Z.one -> h
+      | c, xs when Z.equal c Z.one -> Ast.Eia.mul (List.sort compare_term xs)
+      | c, [ Pow ((Atom (Const base_) as base), Add [ Atom (Const v1); v ]) ]
+        when Z.(equal c (of_int 2)) && base_ = Z.of_int 2 && v1 = Z.minus_one ->
+        pow base v
+      | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
+      | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)
 
     and pow base xs =
       match base, xs with
@@ -297,6 +302,24 @@ let make_main_symantics env =
 
     let rec add xs =
       let collect_inside_add xs =
+        let extend h tl =
+          let rec loop c1 tl1 = function
+            | ph :: ptl when ph = Eia.Mul tl1 ->
+              if Z.(equal c1 minus_one)
+              then ptl
+              else Eia.Mul (Eia.Atom (Const Z.(one + c1)) :: tl1) :: ptl
+            | Eia.Mul (Eia.Atom (Const c2) :: tl2) :: ptl when Stdlib.(tl1 = tl2) ->
+              if Z.(c1 + c2 = zero)
+              then ptl
+              else Eia.Mul (Eia.Atom (Const Z.(c1 + c2)) :: tl1) :: ptl
+            | ph :: ptl -> ph :: loop c1 tl1 ptl
+            | [] -> [ h ]
+          in
+          match h with
+          | Eia.Mul (Eia.Atom (Const c1) :: tl1) -> loop c1 tl1 tl
+          | Eia.Mul tl1 -> loop Z.one tl1 tl
+          | _ -> h :: tl
+        in
         List.fold_right
           (fun x acc ->
              match x, acc with
@@ -306,25 +329,26 @@ let make_main_symantics env =
                if Z.(c1 + c2 = zero)
                then tl
                else mul (Atom (Const Z.(c1 + c2)) :: ph1) :: tl
-             | a, _ -> a :: acc)
+             | Mul [ Atom (Const c1); ph1 ], ph2 :: tl when Ast.Eia.eq_term ph1 ph2 ->
+               extend (mul [ Atom (Const Z.(of_int 1 + c1)); ph1 ]) tl
+             | a, _ -> extend a acc)
           xs
           []
       in
       let xs = collect_inside_add xs in
-      match fold_and_sort 0 ( + ) xs with
-      | 0, [ Eia.Atom (Var x); Mul [ Eia.Atom (Const x1); Eia.Atom (Var x2) ] ]
-        when x = x2 && x1 = Z.minus_one -> const 0
+      match fold_and_sort Z.zero Z.( + ) xs with
+      | c, [ Eia.Atom (Var x); Mul [ Eia.Atom (Const x1); Eia.Atom (Var x2) ] ]
+        when Z.(c = zero) && x = x2 && x1 = Z.minus_one -> const 0
       | c, Mul [ Eia.Atom (Const c1); t1 ] :: Mul [ Eia.Atom (Const c2); t2 ] :: tl
         when Stdlib.(t1 = t2) ->
         if c1 = Z.(minus_one * c2)
-        then add (Atom (Const (Z.of_int c)) :: tl)
-        else
-          add (Atom (Const (Z.of_int c)) :: Mul [ Eia.Atom (Const Z.(c1 + c2)); t1 ] :: tl)
-      | 0, [ h ] -> h
-      | 0, [] -> const 0
-      | 0, xs -> Ast.Eia.add (List.sort compare_term xs)
-      | c, [] -> Eia.atom (Const (Z.of_int c))
-      | c, xs -> Ast.Eia.add (Eia.atom (Const (Z.of_int c)) :: List.sort compare_term xs)
+        then add (constz c :: tl)
+        else add (constz c :: Mul [ Eia.Atom (Const Z.(c1 + c2)); t1 ] :: tl)
+      | c, [ h ] when Z.(equal c zero) -> h
+      | c, [] when Z.(equal c zero) -> const 0
+      | c, xs when Z.(equal c zero) -> Ast.Eia.add (List.sort compare_term xs)
+      | c, [] -> constz c
+      | c, xs -> Ast.Eia.add (constz c :: List.sort compare_term xs)
     ;;
 
     let rec negate = function
@@ -569,8 +593,8 @@ let find_vars_for_under2 ast =
        | Ast.Eia (Ast.Eia.Eq (l, r)) | Eia (Ast.Eia.Leq (l, r)) ->
          let f =
            fun acc -> function
-             | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const 2), Atom (Var _)) ] ->
-               S.add acc v
+             | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const two), Atom (Var _)) ]
+               when Z.(equal (of_int 2) two) -> S.add acc v
              | _ -> acc
          in
          Ast.Eia.fold_term f (Ast.Eia.fold_term f acc r) l
@@ -824,7 +848,7 @@ let simpl ?(under_mode = `First) bound ast =
       var_info.Info.exp
   in
   let on_env step env =
-    log "step: %a. env = %a\n" pp_step step Env.pp env;
+    (* log "step: %a. env = %a\n" pp_step step Env.pp env; *)
     let (module Symantics) = make_main_symantics env in
     let ast_spec = apply_symantics (module Symantics) ast in
     match basic_simplify step env ast_spec with
@@ -834,7 +858,9 @@ let simpl ?(under_mode = `First) bound ast =
       let var_info = apply_symantics (module Who_in_exponents) ast_spec in
       let ast_spec = flatten var_info ast_spec in
       let ast_spec = apply_symantics (module Symantics) ast_spec in
-      log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec;
+      let __ () =
+        log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec
+      in
       (match check_errors ast_spec with
        | [] ->
          let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast_spec in
@@ -863,7 +889,7 @@ let simpl ?(under_mode = `First) bound ast =
         | `Errors -> true
         | `Unknown -> false
       in
-      if List.for_all is_error verdicts
+      if verdicts <> [] && List.for_all is_error verdicts
       then (
         match check_errors ast with
         | [] ->
