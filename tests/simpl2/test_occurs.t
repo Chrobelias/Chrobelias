@@ -9,6 +9,7 @@
   sat ()
 
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
+  Something weird: no errors. lib/SimplII.ml 887
   iter(1)= (and
              (= (+ z x) 10000)
              (= (+ y z) 100)
@@ -45,3 +46,23 @@
   iter(7.3)= (and
                (= (+ y y) (- 9899)))
   iter(7.4)= (= (+ y y) (- 9899))
+  1 errors found
+  Non linear arithmetic between
+    0) (* (- 1) y)
+  
+  Leftover formula:
+  (and
+                      (= (+ y y) (- 9899)))
+  
+  UNKNOWN (Errors after simplification)
+  $ cat > xxx.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun y () Int)
+  > (assert (= (+ y y) (- 9899)) )
+  > (check-sat)
+  > EOF
+  $ CHRO_DEBUG=1 Chro -bound 1 -pre-simpl   -stop-after pre-simpl xxx.smt2 | sed 's/[[:space:]]*$//'
+  iter(1)= (and
+             (= (+ y y) (* (- 1) 9899)))
+  iter(2)= (= (+ y y) (- 9899))
+  iter(2.0)= (= (+ y y) (- 9899))
