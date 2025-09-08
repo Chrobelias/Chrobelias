@@ -971,12 +971,13 @@ struct
       in
       let map = Map.filter_keys map ~f:(fun key -> not (is_exp key)) in
       Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
-      (* Debug.printfln
+      Debug.printfln
         "Variable map: %a"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
-           (fun fmt (a, b) -> Format.fprintf fmt "%a -> %d" Ir.pp_atom a b))
-        (Map.to_alist map); *)
+           (fun fmt (a, b) ->
+              Format.fprintf fmt "%a -> %a" Ir.pp_atom a Z.pp_print (Extra.model_to_int b)))
+        (Map.to_alist map);
       let f =
         f
         |> Ir.map (function

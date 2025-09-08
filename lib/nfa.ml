@@ -1355,7 +1355,7 @@ module Lsb (Label : L) = struct
           List.nth_opt model2 i
           |> Option.value ~default:(List.init len2 (Fun.const Label.u_zero)))
       in
-      (Base.List.zip_exn model model2 |> List.map (fun (x, y) -> y @ x), len1 + len2)
+      (Base.List.zip_exn model model2 |> List.map (fun (x, y) -> x @ y), len1 + len2)
       :: tl
       |> combine_model_pieces
   ;;
