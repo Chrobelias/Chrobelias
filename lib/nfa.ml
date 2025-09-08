@@ -1068,12 +1068,23 @@ struct
     let n = length nfa in
     let reachable_in_range = Graph.reachable_in_range nfa.transitions in
     let reachable_in n init = reachable_in_range n n init |> List.hd in
-    let r1 =
-      0 -- ((n * n) - 1) (* TODO: do not map, collect thing *)
-      |> List.filter (fun i ->
-        reachable_in i nfa.start |> Set.are_disjoint nfa.final |> not)
-      |> Set.of_list
+    let m = n * n in
+    let rec helper n cur =
+      match n with
+      | n when n = m -> Set.empty
+      | n ->
+        let add = Set.are_disjoint cur nfa.final |> not in
+        let states =
+          cur
+          |> Set.to_sequence
+          |> Sequence.concat_map ~f:(fun state ->
+            nfa.transitions.(state) |> Sequence.of_list |> Sequence.map ~f:snd)
+          |> Set.of_sequence
+        in
+        let next = helper (n + 1) states in
+        if add then Set.add next n else next
     in
+    let r1 = helper 0 nfa.start in
     let states = reachable_in (n - 1) nfa.start in
     let states =
       states
@@ -1105,7 +1116,7 @@ struct
         not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
       |> List.map (fun c -> c, 0)
     in
-    r2 @ r1
+    r2 @ r1 |> Set.of_list |> Set.to_list
   ;;
 
   let of_regex (r : Label.u list Regex.t) =
