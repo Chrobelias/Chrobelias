@@ -437,6 +437,11 @@ module Make
        val model_to_int : Nfa.v list -> Z.t
      end) =
 struct
+  let is_exp = function
+    | Ir.Pow2 _ -> true
+    | Ir.Var _ -> false
+  ;;
+
   let eval ir =
     (*let ir = if config.logic = `Eia then trivial ir else ir in*)
     let ir = trivial ir in
@@ -528,8 +533,32 @@ struct
          List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
        | Ir.Rel (rel, term, c) -> begin
          match rel with
-         | Ir.Eq -> NfaCollection.eq vars term c
-         | Ir.Leq -> NfaCollection.leq vars term c
+         | Ir.Eq ->
+           let nfa = NfaCollection.eq vars term c in
+           let nfa =
+             Map.fold
+               ~init:nfa
+               ~f:(fun ~key:k ~data:v acc ->
+                 (* TODO: this can (and should) be placed inside NfaCollection. *)
+                 if Map.mem term k && is_exp k
+                 then Nfa.intersect acc (NfaCollection.power_of_two v)
+                 else acc)
+               vars
+           in
+           nfa
+         | Ir.Leq ->
+           let nfa = NfaCollection.leq vars term c in
+           let nfa =
+             Map.fold
+               ~init:nfa
+               ~f:(fun ~key:k ~data:v acc ->
+                 (* TODO: this can (and should) be placed inside NfaCollection. *)
+                 if Map.mem term k && is_exp k
+                 then Nfa.intersect acc (NfaCollection.power_of_two v)
+                 else acc)
+               vars
+           in
+           nfa
        end
        | Ir.Reg (reg, atoms) -> Extra.eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
@@ -555,11 +584,6 @@ struct
     let nfa = eval ir in
     let nfa = apply_post_strings (collect_free ir |> Set.to_list) nfa in
     nfa, vars
-  ;;
-
-  let is_exp = function
-    | Ir.Pow2 _ -> true
-    | Ir.Var _ -> false
   ;;
 
   let logBase n =
