@@ -1,6 +1,22 @@
 realheapsort.koat_20
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort.koat_20.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) it3017
+    1) it3369
+    
+  Non linear arithmetic between
+    0) it3369
+    1) it93
+    
+  Non linear arithmetic between
+    0) it3017
+    1) it3369
+    
+  Non linear arithmetic between
+    0) it3369
+    1) it93
+    
   Leftover formula:
   (and
                       (= (+ it3379 (* (- 7) it3017 it3369)

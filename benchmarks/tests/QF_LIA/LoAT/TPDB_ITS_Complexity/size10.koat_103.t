@@ -1,6 +1,72 @@
 size10.koat_103
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size10.koat_103.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) i3
+    1) it120
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it120 2)
+    
+  Non linear arithmetic between
+    0) i4
+    1) (exp (- 1) it120)
+    
+  Non linear arithmetic between
+    0) i5
+    1) (exp (- 1) it120)
+    
+  Non linear arithmetic between
+    0) it120
+    1) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) it15
+    1) it290
+    
+  Non linear arithmetic between
+    0) it15
+    1) (exp it290 2)
+    
+  Non linear arithmetic between
+    0) it264
+    1) it284
+    
+  Non linear arithmetic between
+    0) it284
+    1) it285
+    
+  Non linear arithmetic between
+    0) it290
+    1) (exp it15 2)
+    
+  Non linear arithmetic between
+    0) it291
+    1) (exp (- 1) it15)
+    
+  Non linear arithmetic between
+    0) it292
+    1) (exp (- 1) it15)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp it120 2)
+    
+  Non linear arithmetic between
+    0) (exp it120 3)
+    
+  Non linear arithmetic between
+    0) (exp it15 2)
+    
+  Non linear arithmetic between
+    0) (exp it15 3)
+    
+  Non linear arithmetic between
+    0) (exp it290 2)
+    
   Leftover formula:
   (and
                       (= (+ it185 (* (- 2) it120) (* (- 1) i2)) 1)

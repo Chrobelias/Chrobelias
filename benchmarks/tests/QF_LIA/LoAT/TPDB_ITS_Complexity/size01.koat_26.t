@@ -1,6 +1,139 @@
 size01.koat_26
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size01.koat_26.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) i3
+    1) it13
+    2) it48
+    3) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) i3
+    1) it13
+    2) it73
+    
+  Non linear arithmetic between
+    0) i3
+    1) it48
+    2) it73
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it13 2)
+    2) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it48 2)
+    2) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) i4
+    1) (exp (- 1) eee2)
+    
+  Non linear arithmetic between
+    0) i5
+    1) (exp (- 1) eee2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) it48
+    2) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) it73
+    
+  Non linear arithmetic between
+    0) it13
+    1) it73
+    2) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) (exp it48 2)
+    2) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) it48
+    1) it73
+    
+  Non linear arithmetic between
+    0) it48
+    1) it73
+    2) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) it48
+    1) (exp it13 2)
+    2) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) it78
+    1) it84
+    
+  Non linear arithmetic between
+    0) it78
+    1) (exp it84 2)
+    
+  Non linear arithmetic between
+    0) it79
+    1) (exp (- 1) it84)
+    
+  Non linear arithmetic between
+    0) it80
+    1) (exp (- 1) it84)
+    
+  Non linear arithmetic between
+    0) it84
+    1) (exp it78 2)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    1) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    1) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) (exp it48 2)
+    
+  Non linear arithmetic between
+    0) (exp it48 2)
+    1) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) (exp it48 3)
+    
+  Non linear arithmetic between
+    0) (exp it48 3)
+    1) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) (exp it78 2)
+    
+  Non linear arithmetic between
+    0) (exp it84 2)
+    
+  Non linear arithmetic between
+    0) (exp it84 3)
+    
   Leftover formula:
   (and
                       (= eee1 (+ (* it13 it73) (* it48 it73)))
@@ -31,17 +164,13 @@ size01.koat_26
                          (* (- 6) it84 (exp it78 2)) (* (- 3) it81)
                          (* (- 1) it84) (* 3 it137) (* 6 (exp it84 2))
                          (* 12 it78 (exp it84 2))) 0)
-                      (<= (+ (* (- 2) it13) (* (- 2) it48) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it73) (* 2 it48)
+                      (<= (+ (* (- 2) it48) (* (- 1) i3) (* 2 it13 it73)
                           (* 2 it48 it73)) 0)
-                      (<= (+ (* (- 2) it13) (* (- 2) it48) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it73) (* 2 it48)
+                      (<= (+ (* (- 2) it48) (* (- 1) i3) (* 2 it13 it73)
                           (* 2 it48 it73)) 1)
-                      (<= (+ (* (- 2) it13) (* (- 2) it48) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it73) (* 2 it48 it73)) 0)
-                      (<= (+ (* (- 2) it13) (* (- 2) it48) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it73) (* 2 it48 it73)) 1)
                       (<= (+ (* (- 1) i3) (* 2 it13) (* 2 it48)) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13 it73) (* 2 it48 it73)) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13 it73) (* 2 it48 it73)) 1)
                       (<= (+ (* (- 1) it78) (* 2 it84)) 0)
                       (<= (+ (* (- 1) it78) (* 2 it84)) 1)
                       (<= (* (- 1) it13) (- 1))

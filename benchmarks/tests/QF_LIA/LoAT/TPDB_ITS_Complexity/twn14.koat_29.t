@@ -1,6 +1,30 @@
 twn14.koat_29
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/twn14.koat_29.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) it577
+    1) (exp 9 eee3)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp i6 3)
+    
+  Non linear arithmetic between
+    0) (exp i6 3)
+    1) (exp 9 eee3)
+    
+  Non linear arithmetic between
+    0) (exp i6 5)
+    
+  Non linear arithmetic between
+    0) (exp 4 eee4)
+    1) (exp (* i3) 2)
+    
+  Non linear arithmetic between
+    0) (exp (* i3) 2)
+    
   Leftover formula:
   (and
                       (= eee2 (+ (- 2) (* 2 it109)))

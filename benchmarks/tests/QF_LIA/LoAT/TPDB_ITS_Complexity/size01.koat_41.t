@@ -1,6 +1,116 @@
 size01.koat_41
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size01.koat_41.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) i3
+    1) it13
+    2) it48
+    3) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) i3
+    1) it13
+    2) it73
+    
+  Non linear arithmetic between
+    0) i3
+    1) it48
+    2) it73
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it13 2)
+    2) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it48 2)
+    2) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) i4
+    1) (exp (- 1) eee2)
+    
+  Non linear arithmetic between
+    0) i5
+    1) (exp (- 1) eee2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) it48
+    2) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) it73
+    
+  Non linear arithmetic between
+    0) it13
+    1) it73
+    2) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) (exp it48 2)
+    2) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) it48
+    1) it73
+    
+  Non linear arithmetic between
+    0) it48
+    1) it73
+    2) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) it48
+    1) (exp it13 2)
+    2) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    1) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    1) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) (exp it48 2)
+    
+  Non linear arithmetic between
+    0) (exp it48 2)
+    1) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) (exp it48 3)
+    
+  Non linear arithmetic between
+    0) (exp it48 3)
+    1) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) (exp it73 2)
+    
+  Non linear arithmetic between
+    0) (exp it73 3)
+    
+  Non linear arithmetic between
+    0) (exp it78 2)
+    
+  Non linear arithmetic between
+    0) (exp (+ (- 1) it78) 2)
+    
   Leftover formula:
   (and
                       (= eee1 (+ (* it13 it73) (* it48 it73)))
@@ -27,17 +137,13 @@ size01.koat_41
                       (= (+ (* (- 1) i5 (exp (- 1) eee1)) (* (- 1) it266)) 0)
                       (= (+ (* 2 it83) (* 2 it84)) 0)
                       (<= 1 it78)
-                      (<= (+ (* (- 2) it13) (* (- 2) it48) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it73) (* 2 it48)
+                      (<= (+ (* (- 2) it48) (* (- 1) i3) (* 2 it13 it73)
                           (* 2 it48 it73)) 0)
-                      (<= (+ (* (- 2) it13) (* (- 2) it48) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it73) (* 2 it48)
+                      (<= (+ (* (- 2) it48) (* (- 1) i3) (* 2 it13 it73)
                           (* 2 it48 it73)) 1)
-                      (<= (+ (* (- 2) it13) (* (- 2) it48) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it73) (* 2 it48 it73)) 0)
-                      (<= (+ (* (- 2) it13) (* (- 2) it48) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it73) (* 2 it48 it73)) 1)
                       (<= (+ (* (- 1) i3) (* 2 it13) (* 2 it48)) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13 it73) (* 2 it48 it73)) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13 it73) (* 2 it48 it73)) 1)
                       (<= (+ (* (- 1) it78) (* 2 it83) (* 2 it84)) (- 2))
                       (<= (+ (* (- 1) it78) (* 2 it83) (* 2 it84)) (- 1))
                       (<= (+ (* (- 1) it78) (* 2 it84)) (- 2))
