@@ -14,12 +14,20 @@
  (deps ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2))
 
 (cram
+ (applies_to koat36mini)
+ (deps koat36mini.smt2))
+
+(cram
  (applies_to koat83mini)
  (deps koat83mini.smt2))
 
 (cram
  (deps ../../benchmarks/heapsort.c.koat_2.smt2)
  (applies_to heapsort))
+
+(cram
+ (deps ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_15.smt2)
+ (applies_to a03koat15))
 
 (cram
  (deps
