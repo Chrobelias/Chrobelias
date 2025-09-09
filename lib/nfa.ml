@@ -379,7 +379,9 @@ module Str = struct
   ;;
 
   let reenumerate map vec =
-    let len = Array.length vec in
+    let len =
+      max (Array.length vec) ((map |> Map.keys |> List.fold_left max min_int) + 1)
+    in
     let vec =
       Array.init len (fun i ->
         match Map.find map i with

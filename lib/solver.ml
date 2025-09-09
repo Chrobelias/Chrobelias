@@ -854,6 +854,9 @@ struct
              | comps -> Ir.land_ comps)
         in
         Debug.dump_nfa ~msg:"Nfa order1: %s" Nfa.format_nfa order_nfa;
+        order_vars
+        |> Map.map_keys_exn ~f:(fun k -> Map.find_exn s.vars k)
+        |> Map.iteri ~f:(fun ~key ~data -> Debug.printfln "   %d -> %d" key data);
         let order_nfa =
           order_nfa
           |> Nfa.to_nat
