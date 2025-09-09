@@ -853,12 +853,14 @@ struct
              | [] -> failwith ""
              | comps -> Ir.land_ comps)
         in
+        Debug.dump_nfa ~msg:"Nfa order1: %s" Nfa.format_nfa order_nfa;
         let order_nfa =
           order_nfa
           |> Nfa.to_nat
           |> NfaNat.reenumerate
                (order_vars |> Map.map_keys_exn ~f:(fun k -> Map.find_exn s.vars k))
         in
+        Debug.dump_nfa ~msg:"Nfa order2: %s" NfaNat.format_nfa order_nfa;
         NfaNat.intersect nfa order_nfa |> NfaNat.minimize)
     in
     Debug.dump_nfa ~msg:"NFA taking order into account: %s" NfaNat.format_nfa nfa;
@@ -936,12 +938,36 @@ struct
     decide_order powered_vars
     |> List.to_seq
     |> Seq.map (prepare_order s nfa)
-    (*|> Seq.filter (function order, nfa ->
-        let nfa =
-          nfa |> Nfa.MsbNat.project (order |> List.map (fun str -> Map.find_exn s.vars str))
+    (*Filtering of orderings w.r.t. the simple overapproximation idea: 
+      1) exponent is a power of the base; 
+      2) exp(base, x) >= (base -1)*x + 1
+    *)
+    |> Seq.filter (function order, nfa ->
+        let nfa_with_over =
+          nfa
+          |> List.fold_right
+               NfaNat.intersect
+               (powered_vars
+                |> Map.keys
+                |> List.filter (fun x -> is_exp x)
+                |> List.map (fun x ->
+                  let over_x =
+                    Map.of_alist_exn
+                      [ x, Z.minus_one; get_exp x, Z.of_int (NfaCollection.base - 1) ]
+                  in
+                  Nfa.to_nat (NfaCollection.leq powered_vars over_x Z.minus_one)))
         in
-        Debug.dump_nfa ~msg:"Checking if solvable: %s" Nfa.MsbNat.format_nfa nfa;
-        nfa |> Nfa.MsbNat.run)*)
+        Debug.dump_nfa
+          ~msg:"Overapproxed nfa: %s"
+          ~vars:(Map.to_alist vars)
+          NfaNat.format_nfa
+          nfa_with_over;
+        let nfa_to_check =
+          nfa_with_over
+          |> NfaNat.project (order |> List.map (fun str -> Map.find_exn s.vars str))
+        in
+        Debug.dump_nfa ~msg:"Checking if solvable: %s" NfaNat.format_nfa nfa_to_check;
+        nfa_to_check |> NfaNat.run)
     |> Seq.map (fun (order, nfa) -> proof_order return next s nfa order)
     |> Seq.find (function
       | Some _ -> true
