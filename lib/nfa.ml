@@ -1072,19 +1072,22 @@ struct
     let reachable_in n init = reachable_in_range n n init |> List.hd in
     let m = n * n in
     let rec helper n cur =
-      match n with
-      | n when n = m -> Set.empty
-      | n ->
-        let add = Set.are_disjoint cur nfa.final |> not in
-        let states =
-          cur
-          |> Set.to_sequence
-          |> Sequence.concat_map ~f:(fun state ->
-            nfa.transitions.(state) |> Sequence.of_list |> Sequence.map ~f:snd)
-          |> Set.of_sequence
-        in
-        let next = helper (n + 1) states in
-        if add then Set.add next n else next
+      if Set.is_empty cur
+      then Set.empty
+      else (
+        match n with
+        | n when n = m -> Set.empty
+        | n ->
+          let add = Set.are_disjoint cur nfa.final |> not in
+          let states =
+            cur
+            |> Set.to_sequence
+            |> Sequence.concat_map ~f:(fun state ->
+              nfa.transitions.(state) |> Sequence.of_list |> Sequence.map ~f:snd)
+            |> Set.of_sequence
+          in
+          let next = helper (n + 1) states in
+          if add then Set.add next n else next)
     in
     let r1 = helper 0 nfa.start in
     let states = reachable_in (n - 1) nfa.start in
@@ -1157,10 +1160,10 @@ struct
     |> remove_unreachable_from_final
   ;;
 
-  let any_path ?nozero nfa vars =
+  let any_path ?nozero (nfa : t) vars =
     let transitions = nfa.transitions in
     let nozero = nozero |> Option.value ~default:false in
-    let p =
+    (*let q =
       let visited = Array.make (length nfa) false in
       let rec dfs len q =
         if visited.(q)
@@ -1179,15 +1182,53 @@ struct
             None)
       in
       nfa.start |> Set.to_list |> List.find_map (dfs 0)
+    in*)
+    let p =
+      let frontier = Queue.create () in
+      let mem' q = function
+        | [] -> false
+        | _ :: [] -> false
+        | q' :: tl -> q' = q
+      in
+      let rec bfs () =
+        match Queue.take_opt frontier with
+        | None -> None
+        | Some ((_, hd) :: _ as path) ->
+          let path_q = List.map snd path in
+          let new_paths =
+            Array.get transitions hd
+            |> List.filter (fun (label, q') -> not (mem' q' path_q))
+            |> List.map (fun part -> part :: path)
+          in
+          let path' =
+            List.find_opt
+              (fun path' -> Set.mem nfa.final (List.hd path' |> snd))
+              new_paths
+          in
+          begin
+            match path' with
+            | Some path' -> Some path'
+            | None ->
+              List.iter (fun path' -> Queue.add path' frontier) new_paths;
+              bfs ()
+          end
+        | Some [] -> failwith ""
+      in
+      Set.iter ~f:(fun q -> Queue.add [ Label.zero nfa.deg, q ] frontier) nfa.start;
+      if (not nozero) && not (Set.inter nfa.start nfa.final |> Set.is_empty)
+      then Some []
+      else bfs ()
     in
     match p with
-    | Some (p, _, len) ->
+    | Some [] -> Some (List.map (fun _ -> []) vars, 0)
+    | Some p ->
+      let p = List.rev p |> List.tl in
       let length = List.length p in
       Some
         ( List.map
             (fun var -> List.init length (fun i -> Label.get (List.nth p i |> fst) var))
             vars
-        , len )
+        , length )
     | None -> None
   ;;
 end
@@ -1393,6 +1434,7 @@ module Lsb (Label : L) = struct
         nfa.transitions |> Array.map (fun delta -> Set.of_list delta |> Set.to_list)
     }
     |> remove_unreachable_from_final
+    |> remove_unreachable_from_start
   ;;
   (*|> to_dfa
     |> reverse

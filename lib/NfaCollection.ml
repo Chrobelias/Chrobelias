@@ -488,7 +488,7 @@ module Str = struct
         Str.is_eos_at src label && (Str.is_zero_at dest label || Str.is_any_at dest label)
       then Some (Array.mapi (fun i c -> if i = dest then Str.u_zero else c) label, q')
       else None)
-    |> Nfa.remove_unreachable_from_final
+    |> Nfa.minimize
   ;;
 
   let stoi (nfa : t) ~(dest : int) ~(src : int) =
@@ -509,7 +509,7 @@ module Str = struct
         else None
       in
       Some (label, q'))
-    |> Nfa.remove_unreachable_from_final
+    |> Nfa.minimize
   ;;
 
   let seq (nfa : t) ~(dest : int) ~(src : int) =
@@ -526,7 +526,7 @@ module Str = struct
         else None
       in
       Some (label, q'))
-    |> Nfa.remove_unreachable_from_final
+    |> Nfa.minimize
   ;;
 
   let n () =

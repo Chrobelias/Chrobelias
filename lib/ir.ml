@@ -13,7 +13,7 @@ let eq_atom : atom -> atom -> bool = Stdlib.( = )
 let internalc = ref 0
 
 let internal_name () =
-  let r = String.concat "" [ " %"; !internalc |> Int.to_string ] in
+  let r = String.concat "" [ "%"; !internalc |> Int.to_string ] in
   internalc := !internalc + 1;
   r
 ;;
