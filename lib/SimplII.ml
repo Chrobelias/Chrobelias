@@ -445,8 +445,8 @@ let make_main_symantics env =
 
 exception Unsat
 exception Sat of string
-
-let try_propagate : Ast.t -> Env.t * Ast.t =
+(*
+   let try_propagate : Ast.t -> Env.t * Ast.t =
   let open Ast in
   let helper = function
     | Ast.Land xs ->
@@ -471,7 +471,7 @@ let try_propagate : Ast.t -> Env.t * Ast.t =
     | ast -> Env.empty, ast
   in
   helper
-;;
+;; *)
 
 module Info = struct
   type names = string Base.Set.Poly.t
@@ -595,6 +595,8 @@ let find_vars_for_under2 ast =
            fun acc -> function
              | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const two), Atom (Var _)) ]
                when Z.(equal (of_int 2) two) -> S.add acc v
+             | Mul [ Atom (Const _); Atom (Var v); Pow (Atom (Const two), Atom (Var _)) ]
+               when Z.(equal (of_int 2) two) -> S.add acc v
              | _ -> acc
          in
          Ast.Eia.fold_term f (Ast.Eia.fold_term f acc r) l
@@ -697,8 +699,10 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
     try
       match c1, Info.is_in_expo v1 info, c2, Info.is_in_expo v2 info with
       | 1, false, _, _ when Env.is_absent_key v1 env && Env.is_absent_key v2 env ->
+        (* Format.printf "%s %d v1=%s, v2=%s\n%!" __FILE__ __LINE__ v1 v2; *)
         Env.extend_exn env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
       | _, _, 1, false when Env.is_absent_key v2 env && Env.is_absent_key v2 env ->
+        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
         Env.extend_exn env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
       | _ -> env
       (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
@@ -709,25 +713,31 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let helper info env = function
     | Eia (Eia.Eq (Atom (Var v), (Atom (Const c) as rhs))) when Env.is_absent_key v env ->
       Env.extend_exn env v rhs
-    | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) ->
+    | Eia (Eia.Eq (Mul [ Atom (Const _); Atom (Var v) ], (Atom (Const z) as rhs)))
+      when Z.(equal z zero) && Env.is_absent_key v env -> Env.extend_exn env v rhs
+    | Eia (Eia.Eq (Mul [ Atom (Const cl); Atom (Var v) ], Atom (Const cr)))
+      when Z.(cr mod cl = zero) && Env.is_absent_key v env ->
+      Env.extend_exn env v (Atom (Const Z.(cr / cl)))
+    | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) when v1 <> v2 ->
       single info env Z.one v1 Z.one v2 rhs
-    | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs)) ->
-      single info env Z.one v1 c2 v2 rhs
-    | Eia (Eia.Eq (Add [ Mul [ Atom (Const c1); Atom (Var v1) ]; Atom (Var v2) ], rhs)) ->
-      single info env c1 v1 Z.one v2 rhs
+    | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs))
+      when v1 <> v2 -> single info env Z.one v1 c2 v2 rhs
+    | Eia (Eia.Eq (Add [ Mul [ Atom (Const c1); Atom (Var v1) ]; Atom (Var v2) ], rhs))
+      when v1 <> v2 -> single info env c1 v1 Z.one v2 rhs
     | Eia
         (Eia.Eq
            ( Add
                [ Mul [ Atom (Const c1); Atom (Var v1) ]
                ; Mul [ Atom (Const c2); Atom (Var v2) ]
                ]
-           , rhs )) -> single info env c1 v1 c2 v2 rhs
+           , rhs ))
+      when v1 <> v2 -> single info env c1 v1 c2 v2 rhs
     | x -> env
   in
   fun info env ast ->
     (* log "ast = %a\n%!" Ast.pp_smtlib2 ast; *)
       match ast with
-      | Land xs -> List.fold_left (fun acc x -> helper info acc x) env xs
+      | Land xs -> List.fold_left (helper info) env xs
       | Eia _ -> helper info env ast
       | _ -> env
 ;;
@@ -982,7 +992,7 @@ let%expect_test " -2x <= -1" =
   [%expect "(<= (* (- 1) x) (- 1))"]
 ;;
 
-let%expect_test _ =
+(* let%expect_test _ =
   let (module Main_symantics) = make_main_symantics Env.empty in
   let wrap ph =
     let e, ast = try_propagate ph in
@@ -1002,4 +1012,4 @@ let%expect_test _ =
         ]);
   [%expect
     "\n rest ast: (and\n             (<= (* 5 z) 50))\n env:       x -> 10; y -> 20;\n "]
-;;
+;; *)
