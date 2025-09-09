@@ -429,12 +429,14 @@ module Graph (Label : L) = struct
   ;;
 
   let reachable_in_range (graph : t) first last (init : state Set.t) =
+    assert (0 <= first);
     assert (first <= last);
     let diff = last - first + 1 in
     let rec helper n cur =
       match n with
       | 0 -> [ cur ], 1
       | n ->
+        assert (n > 0);
         let states =
           cur
           |> Set.to_sequence
@@ -1075,7 +1077,7 @@ struct
 
   let find_c_d nfa (imp : (int, int) Map.t) =
     assert (Set.length nfa.start = 1);
-    let n = length nfa in
+    let n = max 2 (length nfa) in
     let reachable_in_range = Graph.reachable_in_range nfa.transitions in
     let reachable_in n init = reachable_in_range n n init |> List.hd in
     let m = n * n in
@@ -1109,6 +1111,7 @@ struct
       states
       |> Sequence.concat_map ~f:(fun (state, d) ->
         let first = (n * n) - n - d in
+        assert (first >= 0);
         let last = (n * n) - n - 1 in
         reachable_in_range first last (Set.singleton state)
         |> List.map (fun set -> not (Set.are_disjoint nfa.final set))
