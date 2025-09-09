@@ -1374,6 +1374,61 @@ module Lsb (Label : L) = struct
     result
   ;;
 
+  let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
+    Debug.printfln "path_of_len entrance: len=%d" total_len;
+    Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
+    let exp_lbl = Label.singleton_with_mask exp [ exp ] in
+    let transitions = nfa.transitions in
+    let bfs =
+      let helper f =
+        let rec helper acc = function
+          | `Answer x :: _ -> Some x
+          | h :: tl -> helper (f h @ acc) tl
+          | [] ->
+            (match acc with
+             | [] -> None
+             | x -> helper [] x)
+        in
+        helper []
+      in
+      helper (function
+        | `Before (cur, path, len) ->
+          if len = total_len
+          then if Set.mem nfa.final cur then [ `Answer path ] else []
+          else (
+            assert (len < total_len);
+            transitions.(cur)
+            |> List.filter_map (fun (lbl, dst) ->
+              Some (`Before (dst, lbl :: path, len + 1))))
+        | `Between (cur, path, visited) ->
+          if Set.mem visited cur
+          then []
+          else if total_len = 0 && Set.mem nfa.final cur
+          then [ `Answer path ]
+          else
+            transitions.(cur)
+            |> List.map (fun (lbl, dst) ->
+              if Label.equal lbl exp_lbl
+              then `Before (dst, lbl :: path, 1)
+              else `Between (dst, lbl :: path, Set.add visited cur))
+        | `Answer x -> failwith "Should be unreachable")
+    in
+    nfa.start
+    |> Set.to_list
+    |> List.map (fun x -> `Before (x, [], 0))
+    |> bfs
+    |> Option.map (fun p ->
+      let len = List.length p in
+      let p = List.rev p in
+      Debug.printfln
+        "path_of_len: found path of len %d: [%a]"
+        len
+        (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
+        p;
+      ( vars |> List.map (fun var -> List.init len (fun i -> Label.get (List.nth p i) var))
+      , len ))
+  ;;
+
   let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
     let temp_lbl = Label.singleton_with_mask temp [ temp ] in
     let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
@@ -1397,7 +1452,7 @@ module Lsb (Label : L) = struct
       Debug.printfln "Calculating chrobak for var %d" res;
       Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
       Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
-      return (nfa, chrobak chrobak_nfa, fun len -> failwith "TODO"))
+      return (nfa, chrobak chrobak_nfa, path_of_len chrobak_nfa ~vars ~exp:res))
   ;;
 
   let to_nat (nfa : t) : u = nfa
@@ -1417,7 +1472,7 @@ module Lsb (Label : L) = struct
         List.nth_opt model2 i
         |> Option.value ~default:(List.init len2 (Fun.const Label.u_zero)))
     in
-    Base.List.zip_exn model model2 |> List.map (fun (x, y) -> y @ x), len1 + len2
+    Base.List.zip_exn model model2 |> List.map (fun (x, y) -> x @ y), len1 + len2
   ;;
 
   (*let len = max (List.length model) (List.length model2) in
