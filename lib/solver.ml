@@ -469,6 +469,14 @@ struct
           []
           ir
       in
+      let seqs =
+        Ir.fold
+          (fun acc -> function
+             | SEq (atom, atom') -> (atom, atom') :: acc
+             | _ -> acc)
+          []
+          ir
+      in
       let nfa =
         List.fold_left
           (fun nfa (atom, atom') ->
@@ -494,6 +502,19 @@ struct
              else nfa)
           nfa
           stois
+      in
+      let nfa =
+        List.fold_left
+          (fun nfa (atom, atom') ->
+             if List.mem atom atoms
+             then
+               NfaCollection.seq
+                 nfa
+                 ~src:(Map.find_exn vars atom')
+                 ~dest:(Map.find_exn vars atom)
+             else nfa)
+          nfa
+          seqs
       in
       nfa
     in
@@ -565,6 +586,7 @@ struct
          eval ir
          |> apply_post_strings atoms
          |> Nfa.project (List.filter_map (Map.find vars) atoms)
+         |> Nfa.minimize
          (* APOHZ technique legacy.
            |> NfaO.lsb_of_msb:
            |> NfaO.Lsb.minimize
