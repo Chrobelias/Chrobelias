@@ -9,7 +9,7 @@
   sat ()
 
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
-  Something weird: no errors. lib/SimplII.ml 887
+  Something weird: no errors. lib/SimplII.ml 897
   iter(1)= (and
              (= (+ z x) 10000)
              (= (+ y z) 100)
