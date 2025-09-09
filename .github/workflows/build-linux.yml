@@ -19,7 +19,7 @@ jobs:
 
       - name: Install Smtml depedencies
         working-directory: ./vendor/smtml
-        run: opam install . --deps-only --with-test
+        run: opam install . --deps-only --with-test --with-dev-setup
 
       - name: Install depedencies
         run: opam install . --deps-only --with-test
