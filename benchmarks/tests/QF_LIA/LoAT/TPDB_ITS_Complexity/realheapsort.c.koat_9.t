@@ -1,10 +1,25 @@
 realheapsort.c.koat_9
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort.c.koat_9.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) it182
+    1) it2293
+    
+  Non linear arithmetic between
+    0) it2045
+    1) it2293
+    
+  Non linear arithmetic between
+    0) it182
+    1) it2293
+    
+  Non linear arithmetic between
+    0) it2045
+    1) it2293
+    
   Leftover formula:
   (and
-                      (= (+ it182 it2045 it2303 (* (- 1) it182)
-                         (* (- 1) it182 it2293) (* (- 1) it2045)
+                      (= (+ it182 it2303 (* (- 1) it182) (* (- 1) it182 it2293)
                          (* (- 1) it2045 it2293)) 1)
                       (= (+ it2302 (* (- 8) it2045 it2293)
                          (* (- 6) it182 it2293) (* (- 1) i2)) 5)
@@ -34,22 +49,6 @@ realheapsort.c.koat_9
                       (<= (+ it182 it2045 (* (- 2) it51)) 2)
                       (<= (+ it182 it2045 (* (- 2) it52)) 2)
                       (<= (+ it182 it2045 (* (- 1) i5)) (- 1))
-                      (<= (+ it182 it2045 (* (- 1) it182)
-                          (* (- 1) it182 it2293) (* (- 1) it2045 it2293)) 0)
-                      (<= (+ it182 it2045 (* (- 1) it182)
-                          (* (- 1) it182 it2293) (* (- 1) it2045 it2293)) 1)
-                      (<= (+ it182 it2045 (* (- 1) it182)
-                          (* (- 1) it182 it2293) (* (- 1) it2045 it2293)
-                          (* 2 it3)) 0)
-                      (<= (+ it182 it2045 (* (- 1) it182)
-                          (* (- 1) it182 it2293) (* (- 1) it2045 it2293)
-                          (* 2 it50)) 0)
-                      (<= (+ it182 it2045 (* (- 1) it182)
-                          (* (- 1) it182 it2293) (* (- 1) it2045 it2293)
-                          (* 2 it51)) 0)
-                      (<= (+ it182 it2045 (* (- 1) it182)
-                          (* (- 1) it182 it2293) (* (- 1) it2045 it2293)
-                          (* 2 it52)) 0)
                       (<= (+ it182 it2045 (* (- 1) it182 it2293)
                           (* (- 1) it2045 it2293)) 0)
                       (<= (+ it182 it2045 (* (- 1) it182 it2293)
@@ -77,6 +76,18 @@ realheapsort.c.koat_9
                       (<= (+ it182 (* (- 2) it6)) 2)
                       (<= (+ it182 (* (- 1) i5)) (- 2))
                       (<= (+ it182 (* (- 1) i5)) (- 1))
+                      (<= (+ it2045 (* (- 1) it182 it2293)
+                          (* (- 1) it2045 it2293)) 0)
+                      (<= (+ it2045 (* (- 1) it182 it2293)
+                          (* (- 1) it2045 it2293)) 1)
+                      (<= (+ it2045 (* (- 1) it182 it2293)
+                          (* (- 1) it2045 it2293) (* 2 it3)) 0)
+                      (<= (+ it2045 (* (- 1) it182 it2293)
+                          (* (- 1) it2045 it2293) (* 2 it50)) 0)
+                      (<= (+ it2045 (* (- 1) it182 it2293)
+                          (* (- 1) it2045 it2293) (* 2 it51)) 0)
+                      (<= (+ it2045 (* (- 1) it182 it2293)
+                          (* (- 1) it2045 it2293) (* 2 it52)) 0)
                       (<= (+ (* it182 it2293) (* it2045 it2293) (* (- 2) it6)
                           (* (- 1) it182) (* (- 1) it2045)) 1)
                       (<= (+ (* it182 it2293) (* it2045 it2293) (* (- 1) i5)

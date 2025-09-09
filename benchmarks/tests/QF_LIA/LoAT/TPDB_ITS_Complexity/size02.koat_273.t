@@ -1,6 +1,145 @@
 size02.koat_273
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_273.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) i3
+    1) it92
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it92 2)
+    
+  Non linear arithmetic between
+    0) i4
+    1) (exp (- 1) it92)
+    
+  Non linear arithmetic between
+    0) i5
+    1) (exp (- 1) it92)
+    
+  Non linear arithmetic between
+    0) it117
+    1) it1184
+    2) it1188
+    
+  Non linear arithmetic between
+    0) it117
+    1) it1184
+    2) it13
+    
+  Non linear arithmetic between
+    0) it117
+    1) it1188
+    
+  Non linear arithmetic between
+    0) it117
+    1) it1188
+    2) (exp it1184 2)
+    
+  Non linear arithmetic between
+    0) it117
+    1) it13
+    
+  Non linear arithmetic between
+    0) it117
+    1) it13
+    2) (exp it1184 2)
+    
+  Non linear arithmetic between
+    0) it1184
+    1) it1188
+    2) it13
+    3) (exp it117 2)
+    
+  Non linear arithmetic between
+    0) it1184
+    1) (exp it117 2)
+    2) (exp it1188 2)
+    
+  Non linear arithmetic between
+    0) it1184
+    1) (exp it117 2)
+    2) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) it1185
+    1) (exp (- 1) eee2)
+    
+  Non linear arithmetic between
+    0) it1186
+    1) (exp (- 1) eee2)
+    
+  Non linear arithmetic between
+    0) it1188
+    1) it13
+    2) (exp it117 2)
+    
+  Non linear arithmetic between
+    0) it1188
+    1) (exp it117 3)
+    2) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) (exp it117 3)
+    2) (exp it1188 2)
+    
+  Non linear arithmetic between
+    0) it92
+    1) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp it117 2)
+    
+  Non linear arithmetic between
+    0) (exp it117 2)
+    1) (exp it1188 2)
+    
+  Non linear arithmetic between
+    0) (exp it117 2)
+    1) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) (exp it117 3)
+    
+  Non linear arithmetic between
+    0) (exp it117 3)
+    1) (exp it1188 3)
+    
+  Non linear arithmetic between
+    0) (exp it117 3)
+    1) (exp it13 3)
+    
+  Non linear arithmetic between
+    0) (exp it1184 2)
+    
+  Non linear arithmetic between
+    0) (exp it1188 2)
+    
+  Non linear arithmetic between
+    0) (exp it1188 3)
+    
+  Non linear arithmetic between
+    0) (exp it1204 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    
+  Non linear arithmetic between
+    0) (exp it92 2)
+    
+  Non linear arithmetic between
+    0) (exp it92 3)
+    
+  Non linear arithmetic between
+    0) (exp (+ (- 1) it1204) 2)
+    
   Leftover formula:
   (and
                       (= eee1 (+ (* it117 it1188) (* it117 it13)))
@@ -36,18 +175,16 @@ size02.koat_273
                          (* 3 it1187) (* 6 (exp it92 2))
                          (* 12 i3 (exp it92 2))) 0)
                       (<= 1 it1204)
-                      (<= (+ (* (- 2) it1188) (* (- 2) it13) (* (- 1) it1184)
-                          (* 2 it117 it1188) (* 2 it117 it13) (* 2 it1188)
-                          (* 2 it13)) 0)
-                      (<= (+ (* (- 2) it1188) (* (- 2) it13) (* (- 1) it1184)
-                          (* 2 it117 it1188) (* 2 it117 it13) (* 2 it1188)
-                          (* 2 it13)) 1)
-                      (<= (+ (* (- 2) it1188) (* (- 2) it13) (* (- 1) it1184)
-                          (* 2 it117 it1188) (* 2 it117 it13) (* 2 it13)) 0)
-                      (<= (+ (* (- 2) it1188) (* (- 2) it13) (* (- 1) it1184)
-                          (* 2 it117 it1188) (* 2 it117 it13) (* 2 it13)) 1)
+                      (<= (+ (* (- 2) it1188) (* (- 1) it1184)
+                          (* 2 it117 it1188) (* 2 it117 it13)) 0)
+                      (<= (+ (* (- 2) it1188) (* (- 1) it1184)
+                          (* 2 it117 it1188) (* 2 it117 it13)) 1)
                       (<= (+ (* (- 1) i3) (* 2 it92)) 0)
                       (<= (+ (* (- 1) i3) (* 2 it92)) 1)
+                      (<= (+ (* (- 1) it1184) (* 2 it117 it1188)
+                          (* 2 it117 it13)) 0)
+                      (<= (+ (* (- 1) it1184) (* 2 it117 it1188)
+                          (* 2 it117 it13)) 1)
                       (<= (+ (* (- 1) it1184) (* 2 it1188) (* 2 it13)) 0)
                       (<= (+ (* (- 1) it1184) (* 2 it13)) 0)
                       (<= (+ (* (- 1) it1204) (* 2 it1209)) (- 2))

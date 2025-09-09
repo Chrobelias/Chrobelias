@@ -1,9 +1,40 @@
 realheapsort.koat_30
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort.koat_30.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) it3017
+    1) it3369
+    
+  Non linear arithmetic between
+    0) it3369
+    1) it93
+    
+  Non linear arithmetic between
+    0) it3017
+    1) it3369
+    
+  Non linear arithmetic between
+    0) it3369
+    1) it93
+    
+  Non linear arithmetic between
+    0) it3017
+    1) it3369
+    
+  Non linear arithmetic between
+    0) it3369
+    1) it93
+    
+  Non linear arithmetic between
+    0) it3017
+    1) it3369
+    
+  Non linear arithmetic between
+    0) it3369
+    1) it93
+    
   Leftover formula:
   (and
-                      (= eee1 (+ (- 1) it6546))
                       (= (+ it3379 (* (- 7) it3017 it3369)
                          (* (- 4) it3369 it93) (* (- 1) i2)) 2)
                       (= (+ it3381 (* (- 1) it3017 it3369)
@@ -18,9 +49,9 @@ realheapsort.koat_30
                       (<= 0 it3368)
                       (<= 0 it4)
                       (<= (+ i3 (* (- 2) it6491)) 3)
-                      (<= (+ i3 (* (- 2) it6491 (exp 2 eee1))
-                          (* (- 1) (exp 2 it6546))) 1)
                       (<= (+ i3 (* (- 1) it3381)) 0)
+                      (<= (+ i3 (* (- 1) it6491 (exp 2 it6546))
+                          (* (- 1) (exp 2 it6546))) 1)
                       (<= (+ it29 (* (- 2) it3368)) 1)
                       (<= (+ it3017 it93 (* it3017 it3369) (* it3369 it93)
                           (* (- 2) it2) (* (- 1) it3017) (* (- 1) it93)) 0)
@@ -72,9 +103,9 @@ realheapsort.koat_30
                           (* (- 1) it3017) (* (- 1) it93)) (- 1))
                       (<= (+ (* it3017 it3369) (* it3369 it93) (* (- 1) i3)
                           (* (- 1) it3017) (* (- 1) it93)) (- 2))
-                      (<= (+ (* (- 1) i3) (* 2 it6491)) (- 3))
-                      (<= (+ (* (- 1) i3) (* 2 it6491 (exp 2 eee1))
+                      (<= (+ (* it6491 (exp 2 it6546)) (* (- 1) i3)
                           (exp 2 it6546)) (- 1))
+                      (<= (+ (* (- 1) i3) (* 2 it6491)) (- 3))
                       (<= (+ (* (- 1) i3) (exp 2 it6485)) (- 2))
                       (<= (+ (* (- 1) i3) (exp 2 it6485)) (- 1))
                       (<= (+ (* (- 1) it29) (* 2 it3368)) 0)
@@ -106,7 +137,7 @@ realheapsort.koat_30
     
   Non linear arithmetic between
     0) it6491
-    1) (exp 2 eee1)
+    1) (exp 2 it6546)
     
   UNKNOWN (Errors after simplification)
   TIMEOUT
