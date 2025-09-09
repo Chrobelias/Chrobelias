@@ -3,12 +3,13 @@ realheapsort_step2.c.koat_85
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.c.koat_85.smt2 || echo TIMEOUT
   Leftover formula:
   (and
-                      (= eee1 (+ (- 1) it316))
                       (= (+ it509 (* (- 11) i4) (* (- 1) i2)) (- 17))
                       (<= (+ i4 i4) (- 1))
                       (<= (+ i4 i4) 0)
-                      (<= (+ (* 2 i4 (exp 2 eee1)) (* 2 (exp 2 it316))) 3)
-                      (<= (+ (* 2 i4 (exp 2 eee1)) (* 2 (exp 2 it316))) 4)
+                      (<= (+ i4 (* i4 (exp 2 it316)) (* (- 1) i4)
+                          (* 2 (exp 2 it316))) 3)
+                      (<= (+ i4 (* i4 (exp 2 it316)) (* (- 1) i4)
+                          (* 2 (exp 2 it316))) 4)
                       (<= (* (- 1) i4) (- 4))
                       (<= (* (- 1) i4) (- 3))
                       (<= (* (- 1) i4) (- 2))
@@ -16,7 +17,7 @@ realheapsort_step2.c.koat_85
                       (<= (* (- 1) it316) (- 1)))
   Non linear arithmetic between
     0) i4
-    1) (exp 2 eee1)
+    1) (exp 2 it316)
     
   UNKNOWN (Errors after simplification)
   TIMEOUT

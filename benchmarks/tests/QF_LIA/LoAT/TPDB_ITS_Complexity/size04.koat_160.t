@@ -1,6 +1,272 @@
 size04.koat_160
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size04.koat_160.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) i3
+    1) it13
+    2) it488
+    
+  Non linear arithmetic between
+    0) i3
+    1) it13
+    2) it92
+    3) (exp it488 2)
+    
+  Non linear arithmetic between
+    0) i3
+    1) it488
+    2) it92
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it13 2)
+    2) (exp it488 2)
+    
+  Non linear arithmetic between
+    0) i3
+    1) (exp it488 2)
+    2) (exp it92 2)
+    
+  Non linear arithmetic between
+    0) i4
+    1) (exp (- 1) eee3)
+    
+  Non linear arithmetic between
+    0) i5
+    1) (exp (- 1) eee3)
+    
+  Non linear arithmetic between
+    0) it117
+    1) it499
+    
+  Non linear arithmetic between
+    0) it117
+    1) it499
+    2) it549
+    
+  Non linear arithmetic between
+    0) it117
+    1) it499
+    2) (exp it549 2)
+    
+  Non linear arithmetic between
+    0) it117
+    1) it549
+    2) it553
+    
+  Non linear arithmetic between
+    0) it117
+    1) it553
+    
+  Non linear arithmetic between
+    0) it117
+    1) it553
+    2) (exp it549 2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) it488
+    
+  Non linear arithmetic between
+    0) it13
+    1) it488
+    2) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) it92
+    2) (exp it488 2)
+    
+  Non linear arithmetic between
+    0) it13
+    1) (exp it488 3)
+    2) (exp it92 2)
+    
+  Non linear arithmetic between
+    0) it488
+    1) it92
+    
+  Non linear arithmetic between
+    0) it488
+    1) it92
+    2) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) it493
+    1) it498
+    
+  Non linear arithmetic between
+    0) it493
+    1) (exp it498 2)
+    
+  Non linear arithmetic between
+    0) it494
+    1) (exp (- 1) it498)
+    
+  Non linear arithmetic between
+    0) it495
+    1) (exp (- 1) it498)
+    
+  Non linear arithmetic between
+    0) it498
+    1) (exp it493 2)
+    
+  Non linear arithmetic between
+    0) it499
+    1) it549
+    2) it553
+    3) (exp it117 2)
+    
+  Non linear arithmetic between
+    0) it499
+    1) it553
+    2) (exp it117 2)
+    
+  Non linear arithmetic between
+    0) it499
+    1) (exp it117 3)
+    2) (exp it553 2)
+    
+  Non linear arithmetic between
+    0) it549
+    1) (exp it117 2)
+    2) (exp it499 2)
+    
+  Non linear arithmetic between
+    0) it549
+    1) (exp it117 2)
+    2) (exp it553 2)
+    
+  Non linear arithmetic between
+    0) it550
+    1) (exp (- 1) eee4)
+    
+  Non linear arithmetic between
+    0) it551
+    1) (exp (- 1) eee4)
+    
+  Non linear arithmetic between
+    0) it553
+    1) (exp it117 3)
+    2) (exp it499 2)
+    
+  Non linear arithmetic between
+    0) it734
+    1) it740
+    
+  Non linear arithmetic between
+    0) it734
+    1) (exp it740 2)
+    
+  Non linear arithmetic between
+    0) it735
+    1) (exp (- 1) it740)
+    
+  Non linear arithmetic between
+    0) it736
+    1) (exp (- 1) it740)
+    
+  Non linear arithmetic between
+    0) it740
+    1) (exp it734 2)
+    
+  Non linear arithmetic between
+    0) it92
+    1) (exp it13 2)
+    2) (exp it488 3)
+    
+  Non linear arithmetic between
+    0) (exp i3 2)
+    
+  Non linear arithmetic between
+    0) (exp it117 2)
+    
+  Non linear arithmetic between
+    0) (exp it117 2)
+    1) (exp it499 2)
+    
+  Non linear arithmetic between
+    0) (exp it117 2)
+    1) (exp it553 2)
+    
+  Non linear arithmetic between
+    0) (exp it117 3)
+    
+  Non linear arithmetic between
+    0) (exp it117 3)
+    1) (exp it499 3)
+    
+  Non linear arithmetic between
+    0) (exp it117 3)
+    1) (exp it553 3)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 2)
+    1) (exp it488 2)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    
+  Non linear arithmetic between
+    0) (exp it13 3)
+    1) (exp it488 3)
+    
+  Non linear arithmetic between
+    0) (exp it488 2)
+    
+  Non linear arithmetic between
+    0) (exp it488 2)
+    1) (exp it92 2)
+    
+  Non linear arithmetic between
+    0) (exp it488 3)
+    
+  Non linear arithmetic between
+    0) (exp it488 3)
+    1) (exp it92 3)
+    
+  Non linear arithmetic between
+    0) (exp it493 2)
+    
+  Non linear arithmetic between
+    0) (exp it498 2)
+    
+  Non linear arithmetic between
+    0) (exp it498 3)
+    
+  Non linear arithmetic between
+    0) (exp it499 2)
+    
+  Non linear arithmetic between
+    0) (exp it499 3)
+    
+  Non linear arithmetic between
+    0) (exp it549 2)
+    
+  Non linear arithmetic between
+    0) (exp it553 2)
+    
+  Non linear arithmetic between
+    0) (exp it553 3)
+    
+  Non linear arithmetic between
+    0) (exp it734 2)
+    
+  Non linear arithmetic between
+    0) (exp it740 2)
+    
+  Non linear arithmetic between
+    0) (exp it740 3)
+    
+  Non linear arithmetic between
+    0) (exp it92 2)
+    
+  Non linear arithmetic between
+    0) (exp it92 3)
+    
   Leftover formula:
   (and
                       (= eee2 (+ (* it117 it499) (* it117 it553)))
@@ -63,30 +329,24 @@ size04.koat_160
                          (* (- 1) it740) (* 3 it785) (* 6 (exp it740 2))
                          (* 12 it734 (exp it740 2))) 0)
                       (= (+ (* 2 it739) (* 2 it786)) 0)
-                      (<= (+ (* (- 2) it13) (* (- 2) it92) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it488) (* 2 it488 it92)
-                          (* 2 it92)) 0)
-                      (<= (+ (* (- 2) it13) (* (- 2) it92) (* (- 1) i3)
-                          (* 2 it13) (* 2 it13 it488) (* 2 it488 it92)
-                          (* 2 it92)) 1)
                       (<= (+ (* (- 2) it13) (* (- 1) i3) (* 2 it13 it488)
                           (* 2 it488 it92)) 0)
                       (<= (+ (* (- 2) it13) (* (- 1) i3) (* 2 it13 it488)
                           (* 2 it488 it92)) 1)
-                      (<= (+ (* (- 2) it499) (* (- 2) it553) (* (- 1) it549)
-                          (* 2 it117 it499) (* 2 it117 it553) (* 2 it499)) 0)
-                      (<= (+ (* (- 2) it499) (* (- 2) it553) (* (- 1) it549)
-                          (* 2 it117 it499) (* 2 it117 it553) (* 2 it499)) 1)
-                      (<= (+ (* (- 2) it499) (* (- 2) it553) (* (- 1) it549)
-                          (* 2 it117 it499) (* 2 it117 it553) (* 2 it499)
-                          (* 2 it553)) 0)
-                      (<= (+ (* (- 2) it499) (* (- 2) it553) (* (- 1) it549)
-                          (* 2 it117 it499) (* 2 it117 it553) (* 2 it499)
-                          (* 2 it553)) 1)
+                      (<= (+ (* (- 2) it553) (* (- 1) it549) (* 2 it117 it499)
+                          (* 2 it117 it553)) 0)
+                      (<= (+ (* (- 2) it553) (* (- 1) it549) (* 2 it117 it499)
+                          (* 2 it117 it553)) 1)
                       (<= (+ (* (- 1) i3) (* 2 it13) (* 2 it92)) 1)
+                      (<= (+ (* (- 1) i3) (* 2 it13 it488) (* 2 it488 it92)) 0)
+                      (<= (+ (* (- 1) i3) (* 2 it13 it488) (* 2 it488 it92)) 1)
                       (<= (+ (* (- 1) i3) (* 2 it92)) 0)
                       (<= (+ (* (- 1) it493) (* 2 it498)) 0)
                       (<= (+ (* (- 1) it493) (* 2 it498)) 1)
+                      (<= (+ (* (- 1) it549) (* 2 it117 it499)
+                          (* 2 it117 it553)) 0)
+                      (<= (+ (* (- 1) it549) (* 2 it117 it499)
+                          (* 2 it117 it553)) 1)
                       (<= (+ (* (- 1) it549) (* 2 it499)) 0)
                       (<= (+ (* (- 1) it549) (* 2 it499) (* 2 it553)) 1)
                       (<= (+ (* (- 1) it734) (* 2 it740)) 0)

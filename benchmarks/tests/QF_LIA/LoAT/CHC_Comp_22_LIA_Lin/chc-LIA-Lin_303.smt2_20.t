@@ -1,6 +1,54 @@
 chc-LIA-Lin_303.smt2_20
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_20.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) it132
+    1) it390
+    
+  Non linear arithmetic between
+    0) it215
+    1) it324
+    
+  Non linear arithmetic between
+    0) it249
+    1) it394
+    
+  Non linear arithmetic between
+    0) (exp it215 2)
+    
+  Non linear arithmetic between
+    0) (exp it249 2)
+    
+  Non linear arithmetic between
+    0) (exp it324 2)
+    
+  Non linear arithmetic between
+    0) (exp it390 2)
+    
+  Non linear arithmetic between
+    0) it132
+    1) it390
+    
+  Non linear arithmetic between
+    0) it215
+    1) it324
+    
+  Non linear arithmetic between
+    0) it249
+    1) it394
+    
+  Non linear arithmetic between
+    0) (exp it215 2)
+    
+  Non linear arithmetic between
+    0) (exp it249 2)
+    
+  Non linear arithmetic between
+    0) (exp it324 2)
+    
+  Non linear arithmetic between
+    0) (exp it390 2)
+    
   Leftover formula:
   (and
                       (= (+ it215 (* (- 2) it215 it324) (* (- 2) it328)

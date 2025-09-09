@@ -1,6 +1,22 @@
 MysteriousProgram.jar-obl-12.smt2_463
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Termination/MysteriousProgram.jar-obl-12.smt2_463.smt2 || echo TIMEOUT
+  Non linear arithmetic between
+    0) it292
+    1) it577
+    
+  Non linear arithmetic between
+    0) it310
+    1) it577
+    
+  Non linear arithmetic between
+    0) it292
+    1) it577
+    
+  Non linear arithmetic between
+    0) it310
+    1) it577
+    
   Leftover formula:
   (and
                       (= (+ it2152 (* (- 2) (exp 2 it192))) 0)
