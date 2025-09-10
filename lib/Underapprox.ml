@@ -160,7 +160,7 @@ let check bound ast =
       (Utils.pow ~base:bound (List.length interestring_vars));
     let all_choices =
       let ( let* ) xs f = List.concat_map f xs in
-      let choice1 = List.init bound Fun.id in
+      let choice1 = List.init (bound + 1) Fun.id in
       List.fold_left
         (fun acc name ->
            let* v = choice1 in
@@ -184,7 +184,7 @@ let check bound ast =
            | `Sat -> raise (Early env)
            | _ -> ())
         all_choices;
-      (* TODO: if all Unsat, add a constraints (x>bound) *)
+      (* TODO: if all Unsat, add a constraints (x>bound), becuase we have already checked values in [0.. bound] *)
       let newast =
         let vars = Base.Set.to_list !vars in
         let b = Ast.Eia.Atom (Ast.Const (Z.of_int bound)) in
@@ -197,7 +197,7 @@ let check bound ast =
     | Early env ->
       log "%s gives early Sat." __FILE__;
       log "env = %a" pp_env env;
-      `Sat "underapprox2"
+      `Sat "underapprox1"
   with
   | Bitwise_op -> `Unknown ast
 ;;

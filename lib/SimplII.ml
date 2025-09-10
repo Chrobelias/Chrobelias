@@ -848,7 +848,7 @@ let try_under2_heuristics env ast =
 let simpl ?(under_mode = `First) bound ast =
   let prepare_choices env var_info =
     let ( let* ) xs f = List.concat_map f xs in
-    let choice1 = List.init bound Fun.id in
+    let choice1 = List.init (bound + 1) Fun.id in
     Base.Set.Poly.fold
       ~f:(fun acc name ->
         let* v = choice1 in
@@ -908,40 +908,47 @@ let simpl ?(under_mode = `First) bound ast =
         | errors -> raise (Error (ast, errors)));
       ast
   in
-  try
-    let ast = loop Env.empty ast in
-    match check_errors ast with
-    | [] -> `Unknown ast
-    | errrs when under_mode = `First ->
-      `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
-    | errrs ->
-      (* we are doing underapprox II *)
-      (* TODO(Kakadu): enrich environment  *)
-      let env = Env.empty in
-      let asts = try_under2_heuristics env ast in
-      let asts =
-        List.filter_map
-          (fun ast ->
-             match basic_simplify [ 1 ] env ast with
-             | `Unsat -> None
-             | `Sat -> raise Underapprox_fired
-             | `Unknown (ast, _, _, _) ->
-               let var_info = apply_symantics (module Who_in_exponents) ast in
-               let ast = flatten var_info ast in
-               (match check_errors ast with
-                | [] -> Some ast
-                | errors ->
-                  log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
-                  Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
-                  None))
-          asts
-      in
-      `Underapprox asts
-  with
-  | Unsat -> `Unsat
-  | Underapprox_fired -> `Sat "underappox"
-  | Sat reason -> `Sat reason
-  | Error (ast, errs) -> `Error (ast, errs)
+  let ast = loop Env.empty ast in
+  (* Underapprox I *)
+    match if bound >= 0 then Underapprox.check bound ast else `Unknown ast with
+    | `Sat reason -> `Sat reason
+    | `Unknown _ ->
+      (try
+         match check_errors ast with
+         | [] -> `Unknown ast
+         | errrs when under_mode = `First ->
+           `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
+         | errrs ->
+           (* Underapprox II *)
+           (* TODO(Kakadu): enrich environment  *)
+           let env = Env.empty in
+           let asts = try_under2_heuristics env ast in
+           let asts =
+             List.filter_map
+               (fun ast ->
+                  match basic_simplify [ 1 ] env ast with
+                  | `Unsat -> None
+                  | `Sat -> raise Underapprox_fired
+                  | `Unknown (ast, _, _, _) ->
+                    let var_info = apply_symantics (module Who_in_exponents) ast in
+                    let ast = flatten var_info ast in
+                    (match check_errors ast with
+                     | [] -> Some ast
+                     | errors ->
+                       log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
+                       Format.printf
+                         "@[<v>%a@]\n%!"
+                         (Format.pp_print_list pp_error)
+                         errors;
+                       None))
+               asts
+           in
+           `Underapprox asts
+       with
+       | Unsat -> `Unsat
+       | Underapprox_fired -> `Sat "underappox2"
+       | Sat reason -> `Sat reason
+       | Error (ast, errs) -> `Error (ast, errs))
 ;;
 
 let test_distr xs =
