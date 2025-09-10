@@ -341,89 +341,6 @@ let trivial ir =
   aux2 ir
 ;;
 
-type config =
-  { mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
-  ; mutable mode : [ `Msb | `Lsb ]
-  ; mutable dump_simpl : bool
-  ; mutable dump_pre_simpl : bool
-  ; mutable dump_ir : bool
-  ; mutable pre_simpl : bool
-  ; mutable error_check : bool
-  ; mutable simpl_alpha : bool
-  ; mutable simpl_mono : bool
-  ; mutable over_approx : bool
-  ; mutable under_approx : int
-  ; mutable input_file : string
-  ; mutable logic : [ `Eia | `Str ]
-  }
-
-let config =
-  { stop_after = `Solving
-  ; mode = `Msb
-  ; dump_simpl = false
-  ; dump_pre_simpl = false
-  ; dump_ir = false
-  ; pre_simpl = true
-  ; error_check = true
-  ; simpl_alpha = true
-  ; simpl_mono = true
-  ; over_approx = true
-  ; under_approx = 3
-  ; input_file = ""
-  ; logic = `Eia
-  }
-;;
-
-let parse_args () =
-  (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
-  Arg.parse
-    [ ( "-stop-after"
-      , Arg.String
-          (function
-            | "simpl" -> config.stop_after <- `Simpl
-            | "pre_simpl" | "pre-simpl" | "simpl2" -> config.stop_after <- `Pre_simplify
-            | _ -> failwith "Bad argument")
-      , " Stop after step" )
-    ; "-error-check", Arg.Unit (fun () -> config.error_check <- true), " "
-    ; "-no-error-check", Arg.Unit (fun () -> config.error_check <- false), " "
-    ; "-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), " "
-    ; "-no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), " "
-    ; ( "--no-simpl-alpha"
-      , Arg.Unit (fun () -> config.simpl_alpha <- false)
-      , " Don't try simplifications based on alpha-equivalence" )
-    ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
-    ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
-    ; "-dir", Arg.Unit (fun () -> config.dump_ir <- true), " Dump IR"
-    ; ( "-dpresimpl"
-      , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
-      , " Dump AST simplifications" )
-    ; ( "-bound"
-      , Arg.Int
-          (fun n ->
-            assert (n >= 0);
-            config.under_approx <- n)
-      , " Set underapprox. bound (zero disables)" )
-    ; ( "-over-approx"
-      , Arg.Unit (fun () -> config.over_approx <- true)
-      , " Simple overapproximation (issue #75)" )
-    ; ( "-no-over-approx"
-      , Arg.Unit (fun () -> config.over_approx <- false)
-      , " Disable simple overapproximation (issue #75)" )
-    ; ( "-lsb"
-      , Arg.Unit (fun () -> config.mode <- `Lsb)
-      , " Use least-significant-bit first representation (only supports nats)" )
-    ]
-    (fun s ->
-       if Sys.file_exists s
-       then config.input_file <- s
-       else Printf.eprintf "File %S doesn't exist\n" s)
-    {|Chrobak normal form-based Exponential Linear Integer Arithmetic Solver.
-Usage: chro [options] <file.smt2>
-
-List options using -help or --help.
-|}
-;;
-
 let level = ref 0
 
 module Make
@@ -445,11 +362,11 @@ struct
   let eval ir =
     (*let ir = if config.logic = `Eia then trivial ir else ir in*)
     let ir = trivial ir in
-    let ir = if config.simpl_mono then Ir.simpl_monotonicty ir else ir in
-    let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
+    let ir = if Config.v.simpl_mono then Ir.simpl_monotonicty ir else ir in
+    let ir = if Config.v.simpl_alpha then Simpl_alpha.simplify ir else ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
-    if config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
-    if config.stop_after = `Simpl then exit 0;
+    if Config.v.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
+    if Config.v.stop_after = `Simpl then exit 0;
     let vars = collect_vars ir in
     let apply_post_strings atoms =
       fun nfa ->
@@ -490,6 +407,11 @@ struct
           nfa
           slens
       in
+      Debug.dump_nfa
+        ~msg:"After evaluating strlen %s"
+        ~vars:(Map.to_alist vars)
+        Nfa.format_nfa
+        nfa;
       let nfa =
         List.fold_left
           (fun nfa (atom, atom') ->
@@ -503,6 +425,11 @@ struct
           nfa
           stois
       in
+      Debug.dump_nfa
+        ~msg:"After evaluating stoi %s"
+        ~vars:(Map.to_alist vars)
+        Nfa.format_nfa
+        nfa;
       let nfa =
         List.fold_left
           (fun nfa (atom, atom') ->
@@ -516,10 +443,15 @@ struct
           nfa
           seqs
       in
+      Debug.dump_nfa
+        ~msg:"After evaluating seqs %s"
+        ~vars:(Map.to_alist vars)
+        Nfa.format_nfa
+        nfa;
       nfa
     in
     let rec eval ir =
-      if config.dump_ir then Format.printf "%d Running %a\n%!" !level Ir.pp ir;
+      if Config.v.dump_ir then Format.printf "%d Running %a\n%!" !level Ir.pp ir;
       level := !level + 1;
       (match ir with
        | Ir.True -> NfaCollection.n ()
@@ -893,6 +825,7 @@ struct
   ;;
 
   let eval_semenov return next formula =
+    Memtrace.trace_if_requested ~context:"my program" ();
     (* if
       Ast.for_some
         (function
@@ -916,12 +849,6 @@ struct
               (not (is_exp var)) && not (Map.mem vars (to_exp var))))
     in
     let nfa, vars = eval formula in
-    let nfa = Nfa.minimize nfa in
-    Debug.dump_nfa
-      ~msg:"Minimized raw original nfa: %s"
-      ~vars:(Map.to_alist vars)
-      Nfa.format_nfa
-      nfa;
     let nfa =
       Map.fold
         ~init:nfa
@@ -929,30 +856,9 @@ struct
           if is_exp k then Nfa.intersect acc (NfaCollection.power_of_two v) else acc)
         vars
     in
-    Debug.dump_nfa
-      ~msg:"Minimized raw2 original nfa: %s"
-      ~vars:(Map.to_alist vars)
-      Nfa.format_nfa
-      nfa;
-    let nfa =
-      Map.fold
-        ~f:(fun ~key:k ~data:v acc ->
-          if is_exp k
-          then acc
-          else if Map.mem vars (to_exp k) |> not
-          then Nfa.project [ v ] acc
-          else acc)
-        ~init:nfa
-        vars
-    in
-    Debug.dump_nfa
-      ~msg:"Minimized raw3 original nfa: %s"
-      ~vars:(Map.to_alist vars)
-      Nfa.format_nfa
-      nfa;
     let nfa = nfa |> Nfa.to_nat |> NfaNat.minimize in
     Debug.dump_nfa
-      ~msg:"Minimized original nfa: %s"
+      ~msg:"Minimized nfa with projected linear-only variables: %s"
       ~vars:(Map.to_alist vars)
       NfaNat.format_nfa
       nfa;
@@ -1169,7 +1075,8 @@ module Lsb =
           |> Map.of_list_with_key_exn ~get_key:Fun.id
           |> Map.map_keys_exn ~f:(fun k -> Map.find_exn vars (List.nth atoms k))
         in
-        Nfa.reenumerate reenum nfa
+        let nfa = Nfa.reenumerate reenum nfa in
+        nfa
       ;;
 
       let eval_sreg _vars _atom _regex =
@@ -1208,7 +1115,8 @@ module Msb =
           |> Map.of_list_with_key_exn ~get_key:Fun.id
           |> Map.map_keys_exn ~f:(fun k -> Map.find_exn vars (List.nth atoms k))
         in
-        Nfa.reenumerate reenum nfa
+        let nfa = Nfa.reenumerate reenum nfa in
+        nfa
       ;;
 
       let eval_sreg _vars _atom _regex =
@@ -1219,9 +1127,9 @@ module Msb =
     end)
 
 let proof ir =
-  match config.logic with
+  match Config.v.logic with
   | `Eia -> begin
-    match config.mode with
+    match Config.v.mode with
     | `Lsb -> Lsb.proof ir
     | `Msb -> Msb.proof ir
   end
@@ -1229,7 +1137,7 @@ let proof ir =
 ;;
 
 let get_model ir =
-  match config.logic with
+  match Config.v.logic with
   | `Str ->
     LsbStr.get_model ir
     |> Option.map
@@ -1242,14 +1150,14 @@ let get_model ir =
                |> String.of_seq)))
   | _ -> begin
     let model =
-      match config.mode with
+      match Config.v.mode with
       | `Lsb -> Lsb.get_model ir
       | `Msb -> Msb.get_model ir
     in
     model
     |> Option.map
          (Map.map ~f:(fun v ->
-            `Int (if config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)))
+            `Int (if Config.v.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)))
   end
 ;;
 
