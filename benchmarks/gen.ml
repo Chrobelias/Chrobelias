@@ -78,6 +78,15 @@ let find_files path =
        f basename)
     files *)
 
+let get_extra_flags =
+  let data = [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -under2 -amin 1 -amax 1" ] in
+  fun s ->
+    let file = Filename.basename s in
+    (* Printf.printf "file = %s\n%!" file; *)
+      try List.assoc file data with
+      | Not_found -> ""
+;;
+
 let dune_str = "dune build --no-print-directory --profile=benchmark"
 
 let () =
@@ -131,15 +140,17 @@ let () =
           (config.outdir ^ "/" ^ tfilename)
           (fun tch ->
              let tfmt = Format.formatter_of_out_channel tch in
+             let extra_flags = get_extra_flags smt2_file in
              Format.fprintf tfmt "%s\n%!" file;
              Format.fprintf tfmt "  $ export OCAMLRUNPARAM='b=0'\n";
              if config.timeout > 0
              then
                Format.fprintf
                  tfmt
-                 "  $ timeout %d Chro %s || echo TIMEOUT\n"
+                 "  $ timeout %d Chro %s %s || echo TIMEOUT\n"
                  config.timeout
                  smt2_file
+                 extra_flags
              else Format.fprintf tfmt "  $ Chro %s\n" smt2_file;
              Format.pp_print_flush tfmt ())
       in
