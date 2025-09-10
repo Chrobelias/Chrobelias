@@ -83,11 +83,8 @@ let check_sat ast =
       `Unknown ast)
       <+> (fun ast ->
       if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else `Unknown ast)
-      <+> (fun ast ->
-      if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast)
       <+> fun ast ->
-      let bound = Lib.Solver.config.under_approx in
-      if bound > 0 then Lib.Underapprox.check bound ast else `Unknown ast
+      if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast
     in
     let ast =
       match ast with
