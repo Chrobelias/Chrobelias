@@ -1,5 +1,6 @@
 let nfa_cnt = ref 0
-let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
+let flag () = Config.v.verbosity >= 1 || Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
+let flag2 () = Config.v.verbosity >= 2 || Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
 
 let printf ppf =
   if flag ()
@@ -14,7 +15,7 @@ let printfln ppf =
 ;;
 
 let dump_nfa ?msg ?vars format_nfa nfa =
-  if flag ()
+  if flag2 ()
   then (
     let ( !< ) a = Format.sprintf a in
     let name =

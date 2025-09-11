@@ -11,6 +11,12 @@ module Debug = struct
   let nfa_cnt = ref 0
   let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
 
+  let flag2 () =
+    match Sys.getenv_opt "CHRO_DEBUG" with
+    | Some "2" -> true
+    | _ -> false
+  ;;
+
   let fmt =
     if flag ()
     then Format.formatter_of_out_channel Stdio.stderr
@@ -27,7 +33,7 @@ module Debug = struct
   let printfln str = Format.fprintf fmt (str ^^ "\n%!")
 
   let dump_nfa ?msg ?vars format_nfa nfa =
-    if flag ()
+    if flag2 ()
     then (
       let ( !< ) a = Format.sprintf a in
       let name =
@@ -48,6 +54,19 @@ module Debug = struct
       match msg with
       | Some msg -> printfln msg svg_file
       | None -> ())
+  ;;
+
+  let timers : (string, float) Hashtbl.t = Hashtbl.create 0
+  let starts : (string, float) Hashtbl.t = Hashtbl.create 0
+  let _tstart name = Hashtbl.add starts name (Sys.time ())
+
+  let _tstop name =
+    let old = Hashtbl.find_opt timers name |> Option.value ~default:0.0 in
+    Hashtbl.remove timers name;
+    Hashtbl.add
+      timers
+      name
+      (Float.add old (Float.sub (Sys.time ()) (Hashtbl.find starts name)))
   ;;
 end
 
@@ -1275,6 +1294,7 @@ module Lsb (Label : L) = struct
   let run nfa = any_path nfa [] |> Option.is_some
 
   let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
+    Debug.printfln "> get_exponent_sub_nfa";
     let zero_lbl = Label.zero_with_mask [ res; temp ] in
     let res_lbl = Label.singleton_with_mask res [ res; temp ] in
     let pow_lbl = Label.singleton_with_mask temp [ res; temp ] in
@@ -1341,11 +1361,14 @@ module Lsb (Label : L) = struct
     let result =
       { transitions; final = nfa.final; start; deg = nfa.deg; is_dfa = false }
     in
+    Debug.printfln "< get_exponent_sub_nfa";
     result
   ;;
 
   let chrobak nfa =
+    Debug.printfln "> chrobak";
     Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa nfa;
+    Debug.printfln "= chrobak";
     let important =
       Graph.find_important_verticies nfa.transitions
       |> List.filter (fun (_, b) -> b <> 0)
@@ -1359,11 +1382,12 @@ module Lsb (Label : L) = struct
       (fun fmt (a, b) -> Format.fprintf fmt " (%d, %d)" a b)
       Debug.fmt
       result;
-    Debug.printfln "";
+    Debug.printfln "< chrobak";
     result
   ;;
 
   let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
+    Debug.printfln "> get_chrobaks_sub_nfas";
     let temp_lbl = Label.singleton_with_mask temp [ temp ] in
     let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
     exp_nfa.start
@@ -1386,6 +1410,7 @@ module Lsb (Label : L) = struct
       Debug.printfln "Calculating chrobak for var %d" res;
       Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
       Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
+      Debug.printfln "< get_chrobaks_sub_nfas";
       return (nfa, chrobak chrobak_nfa, path))
   ;;
 
