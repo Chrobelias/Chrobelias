@@ -201,5 +201,5 @@ let check bound ast =
       log "env = %a" pp_env env;
       `Sat "underapprox1"
   with
-  | Bitwise_op -> `Unknown ast
+  | String_op | Bitwise_op -> `Unknown ast
 ;;
