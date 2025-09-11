@@ -64,12 +64,12 @@ let check_sat ast =
         let () = report_result (`Unknown "non-linear") in
         exit 0)
       <+> (fun ast ->
-      if not Lib.Solver.config.pre_simpl
-      then `Unknown ast
-      else (
-        match Lib.SimplII.run_under1 Lib.Solver.config.under_approx ast with
+      if Lib.Solver.config.under_approx >= 0
+      then (
+        match Lib.Underapprox.check Lib.Solver.config.under_approx ast with
         | `Sat s -> `Sat s
-        | `Unknown -> `Unknown ast))
+        | `Unknown _ -> `Unknown ast)
+      else `Unknown ast)
       <+> (fun ast ->
       if Lib.Solver.is_under2_enabled ()
       then (
