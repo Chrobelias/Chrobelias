@@ -63,7 +63,9 @@ type t =
 
 let exists vars = function
   | True -> True
-  | ph -> Exists (vars, ph)
+  | ph ->
+    assert (None = Base.List.find_a_dup ~compare:Stdlib.compare vars);
+    Exists (vars, ph)
 ;;
 
 let false_ = lnot true_

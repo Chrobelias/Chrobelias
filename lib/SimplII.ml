@@ -40,6 +40,39 @@ let check_errors ph =
   |> Base.List.dedup_and_sort ~compare:compare_error
 ;;
 
+let has_unsupported_nonlinearity =
+  let open Ast.Eia in
+  let not_a_const = function
+    | Atom (Const _) -> false
+    | _ -> true
+  in
+  let on_term acc = function
+    | Mul xs ->
+      let xs = List.filter not_a_const xs in
+      (match xs with
+       | [ Atom (Const _) ] -> assert false
+       | [ Pow (Atom (Const _), _) ] | [ Atom (Var _) ] | [] -> acc
+       | xs ->
+         let rec loop acc = function
+           | [ _ ] | [] -> acc
+           | (Atom (Var _) as l) :: (Atom (Var _) as r) :: _ ->
+             Ast.Eia.mul [ l; r ] :: acc
+           | h :: tl -> loop acc tl
+         in
+         loop acc xs)
+    | Pow (base, Atom (Const _)) as t when not_a_const base -> t :: acc
+    | _ -> acc
+  in
+  fun ph ->
+    let f acc = function
+      | Ast.Eia eia -> Ast.Eia.fold2 (fun acc _ -> acc) on_term acc eia
+      | _ -> acc
+    in
+    match Ast.fold f [] ph with
+    | [] -> Result.Ok ()
+    | xs -> Result.Error (Base.List.dedup_and_sort ~compare:Ast.Eia.compare_term xs)
+;;
+
 let is_pure_lia ph = [] = check_errors ph
 
 type relop =
@@ -790,6 +823,13 @@ let basic_simplify step (env : Env.t) ast =
   | Sat _ -> `Sat
 ;;
 
+let run_basic_simplify ast =
+  match basic_simplify [ 1 ] Env.empty ast with
+  | `Sat -> `Sat "presimpl"
+  | `Unsat -> `Unsat
+  | `Unknown (ast, _, _, _) -> `Unknown ast
+;;
+
 let a_range = ref (5, 11)
 
 let set_a_range min max =
@@ -940,6 +980,39 @@ let simpl ?(under_mode = `First) bound ast =
        | Underapprox_fired -> `Sat "underappox2"
        | Sat reason -> `Sat reason
        | Error (ast, errs) -> `Error (ast, errs))
+;;
+
+let run_under1 bound ast : [> `Sat of string | `Unknown ] =
+  if bound >= 0
+  then (
+    match Underapprox.check bound ast with
+    | `Sat s -> `Sat s
+    | `Unknown _ -> `Unknown)
+  else `Unknown
+;;
+
+let run_under2 ast =
+  (* TODO(Kakadu): enrich environment  *)
+  let env = Env.empty in
+  let asts = try_under2_heuristics env ast in
+  let asts =
+    List.filter_map
+      (fun ast ->
+         match basic_simplify [ 1 ] env ast with
+         | `Unsat -> None
+         | `Sat -> raise Underapprox_fired
+         | `Unknown (ast, _, _, _) ->
+           let var_info = apply_symantics (module Who_in_exponents) ast in
+           let ast = flatten var_info ast in
+           (match check_errors ast with
+            | [] -> Some ast
+            | errors ->
+              log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
+              Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
+              None))
+      asts
+  in
+  `Underapprox asts
 ;;
 
 let test_distr xs =

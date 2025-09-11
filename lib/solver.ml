@@ -209,9 +209,10 @@ let trivial ir =
   let quantifiers_closer : Ir.t -> Ir.t =
     Ir.map (function
       | Ir.Exists ([], ir) -> ir
-      | Ir.Exists (atoms, Ir.Exists (atoms', ir)) -> Ir.exists (atoms @ atoms') ir
+      | Ir.Exists (atoms, Ir.Exists (atoms', ir)) ->
+        Ir.exists (Base.List.dedup_and_sort ~compare (atoms @ atoms')) ir
       | Ir.Exists (atoms, Ir.Land irs) ->
-        let atoms_set = atoms |> Set.of_list in
+        let atoms_set = Set.of_list atoms in
         let irs_using_var =
           List.mapi
             begin
@@ -374,6 +375,8 @@ let config =
   ; logic = `Eia
   }
 ;;
+
+let is_under2_enabled () = config.under_mode = `Second
 
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
