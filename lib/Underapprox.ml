@@ -177,10 +177,12 @@ let check bound ast =
              make_sym env (fun s -> vars := Base.Set.add !vars s) bound
            in
            let ph = apply_symnatics sym ast in
-           let solver = Smtml.Z3_mappings.Solver.make () in
-           Smtml.Z3_mappings.Solver.reset solver;
-           let __ () = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
-           match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
+           let module Z3 = Smtml.Z3_mappings.Solver in
+           (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
+           let solver = Z3.make () in
+           Z3.reset solver;
+           let __ _ = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
+           match Z3.check solver ~assumptions:[ ph ] with
            | `Sat -> raise (Early env)
            | _ -> ())
         all_choices;

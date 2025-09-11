@@ -34,6 +34,11 @@ let check_sat ast =
         exit 0
       | _ -> assert false)
   in
+  let report_result = function
+    | `Sat s -> Format.printf "sat (%s)\n%!" s
+    | `Unsat -> Format.printf "unsat\n%!"
+    | `Unknown s -> Format.printf "unknown%s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
+  in
   begin
     let ( <+> ) =
       fun rez f ->
@@ -46,19 +51,30 @@ let check_sat ast =
       <+> (fun ast ->
       if not Lib.Solver.config.pre_simpl
       then `Unknown ast
+      else Lib.SimplII.run_basic_simplify ast)
+      <+> (fun ast ->
+      match Lib.SimplII.has_unsupported_nonlinearity ast with
+      | Result.Ok () -> `Unknown ast
+      | Error terms ->
+        (* TODO(Kakadu): Print leftover AST too *)
+        Format.printf "@[<v 2>";
+        Format.printf "@[Non linear arithmetic between@]@,";
+        List.iteri (fun i -> Format.printf "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
+        Format.printf "@]@,";
+        let () = report_result (`Unknown "non-linear") in
+        exit 0)
+      <+> (fun ast ->
+      if not Lib.Solver.config.pre_simpl
+      then `Unknown ast
       else (
-        match
-          Lib.(
-            SimplII.simpl ~under_mode:Solver.config.under_mode Solver.config.under_approx)
-            ast
-        with
-        | `Error (_ast, es) ->
-          Format.printf "%!";
-          Format.printf "Leftover formula:\n@[%a@]\n%!" Lib.Ast.pp_smtlib2 _ast;
-          Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list Lib.SimplII.pp_error) es;
-          Format.printf "@[UNKNOWN (Errors after simplification)@]\n%!";
-          exit 1
-        | (`Unsat | `Sat _ | `Unknown _) as other -> other
+        match Lib.SimplII.run_under1 Lib.Solver.config.under_approx ast with
+        | `Sat s -> `Sat s
+        | `Unknown -> `Unknown ast))
+      <+> (fun ast ->
+      if Lib.Solver.is_under2_enabled ()
+      then (
+        match Lib.SimplII.run_under2 ast with
+        | `Sat -> `Sat "under2"
         | `Underapprox asts ->
           if Lib.Solver.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -76,7 +92,8 @@ let check_sat ast =
            with
            | Sat_found ->
              Format.printf "sat (under II)\n%!";
-             exit 0)))
+             exit 0))
+      else `Unknown ast)
       <+> (fun ast ->
       if Lib.Solver.config.dump_pre_simpl
       then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -94,12 +111,9 @@ let check_sat ast =
         (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
          | `Sat -> `Sat "nfa"
          | `Unsat -> `Unsat
-         | `Unknown _ir -> `Unknown)
+         | `Unknown _ir -> `Unknown "")
     in
-    match ast with
-    | `Sat s -> Format.printf "sat (%s)\n%!" s
-    | `Unsat -> Format.printf "unsat\n%!"
-    | `Unknown -> Format.printf "unknown\n%!"
+    report_result ast
   end
 ;;
 
