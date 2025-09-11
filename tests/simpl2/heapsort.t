@@ -1,9 +1,9 @@
-  $ Chro -no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
-  sat (underapprox2)
-  $ Chro ../../benchmarks/heapsort.c.koat_2.smt2
-  sat (underappox)
+$ Chro -no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
+sat (underapprox2)
+$ Chro ../../benchmarks/heapsort.c.koat_2.smt2
+sat (underappox)
   $ export CHRO_DEBUG=1
-  $ Chro -dsimpl -pre-simpl -stop-after pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -dsimpl -bound 1 -pre-simpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (+ (* it14 (* (- 1) 1)) it160) 0)
              (= (+ (+ (+ (* (+ 0 it11) (exp 2 (+ it147 (* (- 1) 1)))
@@ -230,86 +230,10 @@
              (<= (* (- 1) i10) (- 2))
              (<= (* (- 1) i10) (- 1))
              (<= (* (- 1) it147) (- 1)))
-  iter(6.0)= (and
-               (not True)
-               (= (+ it152 (* i2 (- 1)) (* 12 (- 1))) 0)
-               (= (+ it154 (* (- 4) (exp 2 (- 1)))) (- 2))
-               (= (+ it155 (* (- 4) (exp 2 (- 1)))) (- 1))
-               (= (+ it157 (* (- 2) (exp 2 0))) (- 1))
-               (= (+ it158 (* (- 2) (exp 2 (- 1)))) (- 1))
-               (= (+ it159 (* (- 4) (exp 2 (- 1)))) (- 1))
-               (<= 0 (* (- 1) it2))
-               (<= 1 i10)
-               (<= 1 it4)
-               (<= (+ (* (- 1) i10) (* 4 (exp 2 (- 1)))) 1)
-               (<= (+ (* (- 1) i10) (* 4 (exp 2 (- 1)))) 2)
-               (<= (+ (* (- 1) i10) (exp 2 (- 1)) (exp 2 (- 1))) 1)
-               (<= (* (- 1) i10) (- 3))
-               (<= (* (- 1) i10) (- 2))
-               (<= (* (- 1) i10) (- 1)))
-  iter(6.1)= (not True)
-  iter(6.1)= (and
-               (= it154 2)
-               (= it155 3)
-               (= it158 1)
-               (= it159 3)
-               (= (+ it152 (* i2 (- 1)) (* 12 (- 1))) 14)
-               (= (+ it157 (* (- 2) (exp 2 1))) (- 1))
-               (<= 0 (* (- 1) it2))
-               (<= 1 i10)
-               (<= 1 it4)
-               (<= (* (- 1) i10) (- 3))
-               (<= (* (- 1) i10) (- 2))
-               (<= (* (- 1) i10) (- 1)))
-  Something ready to substitute:  i1 -> 1; it10 -> i6; it11 -> 1; it12 ->
-                                 i8; it13 -> i9; it14 -> i10; it147 ->
-                                 1; it151 -> 13; it153 -> it4; it154 ->
-                                 2; it155 -> 3; it156 -> it2; it158 ->
-                                 1; it159 -> 3; it160 -> i10; it5 -> 13; it6 ->
-                                 (+ 12 i2); it7 -> i3; it8 -> i4; it9 ->
-                                 i5;
-  iter(6.2)= (and
-               (= it154 2)
-               (= it155 3)
-               (= it157 3)
-               (= it158 1)
-               (= it159 3)
-               (= (+ it152 (* (- 1) i2)) 26)
-               (<= 0 (* (- 1) it2))
-               (<= 1 i10)
-               (<= 1 it4)
-               (<= (* (- 1) i10) (- 3))
-               (<= (* (- 1) i10) (- 2))
-               (<= (* (- 1) i10) (- 1)))
-  Something ready to substitute:  i1 -> 1; it10 -> i6; it11 -> 1; it12 ->
-                                 i8; it13 -> i9; it14 -> i10; it147 ->
-                                 1; it151 -> 13; it152 -> (+ 26 i2); it153 ->
-                                 it4; it154 -> 2; it155 -> 3; it156 ->
-                                 it2; it157 -> 3; it158 -> 1; it159 ->
-                                 3; it160 -> i10; it5 -> 13; it6 -> (+ 12 i2); it7 ->
-                                 i3; it8 -> i4; it9 -> i5;
-  iter(6.3)= (and
-               (= it157 3)
-               (= (+ it152 (* (- 1) i2)) 26)
-               (<= 0 (* (- 1) it2))
-               (<= 1 i10)
-               (<= 1 it4)
-               (<= (* (- 1) i10) (- 3))
-               (<= (* (- 1) i10) (- 2))
-               (<= (* (- 1) i10) (- 1)))
-  iter(6.4)= (and
-               (= 0 0)
-               (<= 0 (* (- 1) it2))
-               (<= 1 i10)
-               (<= 1 it4)
-               (<= (* (- 1) i10) (- 3))
-               (<= (* (- 1) i10) (- 2))
-               (<= (* (- 1) i10) (- 1)))
-  iter(6.5)= (and
-               (<= 0 (* (- 1) it2))
-               (<= 1 i10)
-               (<= 1 it4)
-               (<= (* (- 1) i10) (- 3))
-               (<= (* (- 1) i10) (- 2))
-               (<= (* (- 1) i10) (- 1)))
-  sat (underappox)
+  Interesting: it147
+  
+  Expecting 1 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| it147->1 |}
+  sat (underapprox1)

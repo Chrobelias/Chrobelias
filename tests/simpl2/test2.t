@@ -2,5 +2,10 @@
   iter(1)= (and
              (<= (exp 2 (+ x y)) (exp 2 z)))
   iter(2)= (<= (+ x y) z)
-  iter(2.0)= (<= (+ x y) z)
-  sat (underappox)
+  Interesting:
+  
+  Expecting 1 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| |}
+  sat (underapprox1)

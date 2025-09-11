@@ -4,17 +4,17 @@ Basic QF_EIA tests
   sat (nfa)
   unsat
   unsat
-  sat (underappox)
+  sat (underapprox1)
   unsat
-  sat (underappox)
+  sat (underapprox1)
   unsat
   unsat
   unsat
-  sat (underappox)
+  sat (underapprox1)
   unsat
-  sat (underappox)
+  sat (underapprox1)
   unsat
-  sat ()
+  sat (presimpl)
 sat
 
 Test ExEy y >=0 x & 2**y = x & x > 4
