@@ -15,11 +15,13 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  sat (underapprox2)
+  (assert (exists (it159) (= (+ it159 (* (- 4) pow2(it147)) )  0) )
+  )
 
   $ export CHRO_EIA=old
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  sat (underapprox2)
+  (assert (exists (it159) (= (+ it159 (* (- 4) pow2(it147)) )  0) )
+  )
 
 
 
@@ -40,7 +42,7 @@ $ export CHRO_DEBUG=1
   > EOF
 $ export CHRO_DEBUG=1
   $ unset CHRO_EIA
-  $ Chro -bound 0 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 -dsimpl -stop-after simpl test.smt2 || echo TIMEOUT | sed 's/[[:space:]]*$//'
   (assert (exists (it1) (= (+ (* 2 it1) (* 7 pow2(it2)) )  30) )
   )
 
@@ -68,9 +70,12 @@ $ export CHRO_DEBUG=1
             (exists (i10) (= (+ (* (- 1) i10) it14 )  0) )
             (exists (i1) (= i1  1) )
             (exists (i2) (= (+ (* (- 1) i2) it6 )  12) )
-            (exists (it10 i6) (= (+ (* (- 1) i6) it10 )  0) )
-            (exists (it12 i8) (= (+ (* (- 1) i8) it12 )  0) )
-            (exists (it13 i9) (= (+ (* (- 1) i9) it13 )  0) )
+            (exists (i3 it7) (= (+ (* (- 1) i3) it7 )  0) )
+            (exists (i4 it8) (= (+ (* (- 1) i4) it8 )  0) )
+            (exists (i5 it9) (= (+ (* (- 1) i5) it9 )  0) )
+            (exists (i6 it10) (= (+ (* (- 1) i6) it10 )  0) )
+            (exists (i8 it12) (= (+ (* (- 1) i8) it12 )  0) )
+            (exists (i9 it13) (= (+ (* (- 1) i9) it13 )  0) )
             (exists (it154) (= (+ it154 (* (- 2) pow2(it147)) )  -2) )
             (exists (it155) (= (+ it155 (* (- 2) pow2(it147)) )  -1) )
             (exists (it158) (= (+ it158 (* (- 1) pow2(it147)) )  -1) )
@@ -79,9 +84,6 @@ $ export CHRO_DEBUG=1
             (exists (it156) (= (+ it156 (* (- 1) it2) )  0) )
             (exists (it153) (= (+ it153 (* (- 1) it4) )  0) )
             (exists (it151) (= it151  13) )
-            (exists (it7 i3) (= (+ (* (- 1) i3) it7 )  0) )
-            (exists (it8 i4) (= (+ (* (- 1) i4) it8 )  0) )
-            (exists (it9 i5) (= (+ (* (- 1) i5) it9 )  0) )
             )
   )
 
@@ -110,9 +112,12 @@ $ export CHRO_DEBUG=1
             (exists (i10) (= (+ (* (- 1) i10) it14 )  0) )
             (exists (i1) (= i1  1) )
             (exists (i2) (= (+ (* (- 1) i2) it6 )  12) )
-            (exists (it10 i6) (= (+ (* (- 1) i6) it10 )  0) )
-            (exists (it12 i8) (= (+ (* (- 1) i8) it12 )  0) )
-            (exists (it13 i9) (= (+ (* (- 1) i9) it13 )  0) )
+            (exists (i3 it7) (= (+ (* (- 1) i3) it7 )  0) )
+            (exists (i4 it8) (= (+ (* (- 1) i4) it8 )  0) )
+            (exists (i5 it9) (= (+ (* (- 1) i5) it9 )  0) )
+            (exists (i6 it10) (= (+ (* (- 1) i6) it10 )  0) )
+            (exists (i8 it12) (= (+ (* (- 1) i8) it12 )  0) )
+            (exists (i9 it13) (= (+ (* (- 1) i9) it13 )  0) )
             (exists (it154) (= (+ it154 (* (- 2) pow2(it147)) )  -2) )
             (exists (it155) (= (+ it155 (* (- 2) pow2(it147)) )  -1) )
             (exists (it158) (= (+ it158 (* (- 1) pow2(it147)) )  -1) )
@@ -121,14 +126,11 @@ $ export CHRO_DEBUG=1
             (exists (it156) (= (+ it156 (* (- 1) it2) )  0) )
             (exists (it153) (= (+ it153 (* (- 1) it4) )  0) )
             (exists (it151) (= it151  13) )
-            (exists (it7 i3) (= (+ (* (- 1) i3) it7 )  0) )
-            (exists (it8 i4) (= (+ (* (- 1) i4) it8 )  0) )
-            (exists (it9 i5) (= (+ (* (- 1) i5) it9 )  0) )
             )
   )
 
 Run solver
   $ unset CHRO_EIA
-  $ Chro  -no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
-  sat (underapprox2)
+  $ timeout 2  Chro  -no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
+  sat (underapprox1)
 

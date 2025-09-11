@@ -8,13 +8,10 @@ $ export CHRO_DEBUG=1
   > (check-sat)
   > EOF
   $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  Leftover formula:
-  (<= (* x1 x2) 52)
   Non linear arithmetic between
-    0) x1
-    1) x2
+    0) (* x1 x2)
   
-  UNKNOWN (Errors after simplification)
+  unknown (non-linear)
 
 
 $ export OCAMLRUNPARAM='b=0'
@@ -26,12 +23,10 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  Leftover formula:
-  (<= (exp x1 2) 124)
   Non linear arithmetic between
     0) (exp x1 2)
   
-  UNKNOWN (Errors after simplification)
+  unknown (non-linear)
 
 
 
@@ -65,15 +60,10 @@ $ export OCAMLRUNPARAM='b=0'
   > EOF
 $ export CHRO_DEBUG=1
   $ Chro -bound 2 -pre-simpl -dsimpl UnderDoesntHelp1.smt2 | sed 's/[[:space:]]*$//'
-  Leftover formula:
-  (and
-                      (<= (* y z) 0)
-                      (<= (exp 2 x) (- 1)))
   Non linear arithmetic between
-    0) y
-    1) z
+    0) (* y z)
   
-  UNKNOWN (Errors after simplification)
+  unknown (non-linear)
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
   > (set-logic ALL)
@@ -86,6 +76,6 @@ The single exponent is not bad
   > (check-sat)
   > EOF
   $ Chro -bound 2 -pre-simpl -dsimpl TODO3.smt2 | sed 's/[[:space:]]*$//'
-  sat (underappox)
+  sat (underapprox1)
 
 

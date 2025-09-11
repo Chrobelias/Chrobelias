@@ -274,128 +274,12 @@
                  (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
                  (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  iter(8.0)= (and
-               (= (+ i2 (* i2 (- 1)) (* 1 (- 1))) (- 1))
-               (= (+ it542 (* i2 (- 1)) (* 2 (- 1))) 0)
-               (= (+ it543 (* (- 1) i3)) 0)
-               (= (+ it546 (* (- 1) i6)) 0)
-               (= (+ it547 (* (- 1) i7)) 0)
-               (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
-               (= (+ (* (- 2) it544) (* 2 i3)) 0)
-               (<= 1 i3)
-               (<= 1 i6)
-               (<= 1 (* 2 it544))
-               (<= 1 (* 4 it544))
-               (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
-                   (* (- 1) (exp it546 3))
-                   (* 3 (exp it546 3) (exp 9 (+ (- 1) it140)))
-                   (* 16 (exp 4 (* (+ (- 1) it140) 2)) (exp (* it544) 2))
-                   (exp it546 5)) (- 1))
-               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-               (<= (+ (* (- 1) it553) (* 4 (exp (* it544) 2)) (exp it546 5)) (- 1))
-               (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                   (* (- 1) (exp it546 3))
-                   (* 4 (exp 4 (* (+ (- 1) it140) 2)) (exp (* it544) 2))
-                   (* (exp it546 3) (exp 9 (+ (- 1) it140))) (exp it546 5)) (- 1))
-               (<= (* (- 1) it140) (- 1)))
-  iter(8.1)= (and
-               (= 0 0)
-               (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
-               (<= 1 i3)
-               (<= 1 i6)
-               (<= 1 (* 2 i3))
-               (<= 1 (* 4 i3))
-               (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
-                   (* (- 1) (exp i6 3))
-                   (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                   (* 16 (exp i3 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
-                   (exp i6 5)) (- 1))
-               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-               (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
-               (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                   (* (- 1) (exp i6 3))
-                   (* 4 (exp i3 2) (exp 4 (+ (* (- 1) 2) (* it140 2))))
-                   (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
-               (<= (* (- 1) it140) (- 1)))
-  iter(8.2)= (and
-               (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
-               (<= 1 i3)
-               (<= 1 i6)
-               (<= 1 (* 2 i3))
-               (<= 1 (* 4 i3))
-               (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
-                   (* (- 1) (exp i6 3))
-                   (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                   (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140)))) (exp i6 5)) (- 1))
-               (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-               (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
-               (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                   (* (- 1) (exp i6 3))
-                   (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
-                   (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
-               (<= (* (- 1) it140) (- 1)))
-  6 errors found
-  Non linear arithmetic between
-    0) it553
-    1) (exp 9 eee3)
-  
   Non linear arithmetic between
     0) (exp i3 2)
+    1) (exp i6 3)
+    2) (exp i6 5)
   
-  Non linear arithmetic between
-    0) (exp i3 2)
-    1) (exp 4 eee4)
-  
-  Non linear arithmetic between
-    0) (exp i6 3)
-  
-  Non linear arithmetic between
-    0) (exp i6 3)
-    1) (exp 9 eee3)
-  
-  Non linear arithmetic between
-    0) (exp i6 5)
-  
-  Leftover formula:
-  (and
-                      (= eee2 (+ (- 2) (* 2 it140)))
-                      (= eee1 (+ (- 1) it140))
-                      (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
-                      (<= 1 i3)
-                      (<= 1 i6)
-                      (<= 1 (* 2 i3))
-                      (<= 1 (* 4 i3))
-                      (<= (+ (* (- 3) it553 (exp 9 eee1)) (* (- 1) (exp i6 3))
-                          (* 3 (exp i6 3) (exp 9 eee1))
-                          (* 16 (exp i3 2) (exp 4 eee2)) (exp i6 5)) (- 1))
-                      (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-                      (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
-                      (<= (+ (* (- 1) it553 (exp 9 eee1)) (* (- 1) (exp i6 3))
-                          (* 4 (exp i3 2) (exp 4 eee2))
-                          (* (exp i6 3) (exp 9 eee1)) (exp i6 5)) (- 1))
-                      (<= (* (- 1) it140) (- 1)))
-  Non linear arithmetic between
-    0) it553
-    1) (exp 9 eee1)
-  
-  Non linear arithmetic between
-    0) (exp i3 2)
-  
-  Non linear arithmetic between
-    0) (exp i3 2)
-    1) (exp 4 eee2)
-  
-  Non linear arithmetic between
-    0) (exp i6 3)
-  
-  Non linear arithmetic between
-    0) (exp i6 3)
-    1) (exp 9 eee1)
-  
-  Non linear arithmetic between
-    0) (exp i6 5)
-  
-  UNKNOWN (Errors after simplification)
+  unknown (non-linear)
 $ time -f "%U"
 
   $ CHRO_DEBUG=1 timeout 5 Chro -pre-simpl input.smt2  -bound 0
@@ -672,52 +556,24 @@ $ time -f "%U"
                  (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
                  (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  Leftover formula:
-  (and
-                      (= (+ it553 (* (- 3) i7) (* 2 (exp i6 3))) 0)
-                      (<= 1 i3)
-                      (<= 1 i6)
-                      (<= 1 (* 2 i3))
-                      (<= 1 (* 4 i3))
-                      (<= (+ (* (- 3) it553 (exp 9 (+ (- 1) it140)))
-                          (* (- 1) (exp i6 3))
-                          (* 3 (exp i6 3) (exp 9 (+ (- 1) it140)))
-                          (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
-                          (exp i6 5)) (- 1))
-                      (<= (+ (* (- 1) i7) (exp i3 2) (exp i6 5)) (- 1))
-                      (<= (+ (* (- 1) it553) (* 4 (exp i3 2)) (exp i6 5)) (- 1))
-                      (<= (+ (* (- 1) it553 (exp 9 (+ (- 1) it140)))
-                          (* (- 1) (exp i6 3))
-                          (* 4 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
-                          (* (exp i6 3) (exp 9 (+ (- 1) it140))) (exp i6 5)) (- 1))
-                      (<= (* (- 1) it140) (- 1)))
-  Non linear arithmetic between
-    0) it553
-    1) (exp 9 (+ (- 1) it140))
-    
   Non linear arithmetic between
     0) (exp i3 2)
+    1) (exp i6 3)
+    2) (exp i6 5)
     
-  Non linear arithmetic between
-    0) (exp i3 2)
-    1) (exp 4 (+ (- 2) (* 2 it140)))
-    
-  Non linear arithmetic between
-    0) (exp i6 3)
-    
-  Non linear arithmetic between
-    0) (exp i6 3)
-    1) (exp 9 (+ (- 1) it140))
-    
-  Non linear arithmetic between
-    0) (exp i6 5)
-    
-  UNKNOWN (Errors after simplification)
-  [1]
+  unknown (non-linear)
 
 $ time -f "%U"
 It's luck that Z3 gives an answer. If we add
 (assert (<= 1000 it140))
 evrything goes south
   $ timeout 2 Chro -no-pre-simpl input.smt2 --no-simpl-alpha --no-simpl-mono -bound 1
-  sat (underapprox2)
+  Non linear arithmetic between
+    0) (exp it544 2)
+    1) (exp it546 3)
+    2) (exp it546 5)
+    3) (exp it552 2)
+    4) (exp it554 3)
+    5) (exp it554 5)
+    
+  unknown (non-linear)

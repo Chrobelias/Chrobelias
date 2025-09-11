@@ -25,3 +25,8 @@
   iter(4)= (and
              (= (+ y (* (- 1) x)) 20)
              (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
+  Interesting: x y
+  
+  Expecting 0 choices ...
+  
+  Can't decide in lib/Underapprox.ml

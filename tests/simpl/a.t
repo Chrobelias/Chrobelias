@@ -9,12 +9,7 @@
   > (check-sat)
   > EOF
   $ timeout 2 Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (x)
-          (and
-            (<= (* (- 5) x)  13)
-            (<= (+ (* (- 5) x) (* 7 y) (* (- 8) pow2(y)) )  350)
-            )
-  )
+  sat (underapprox1)
 We can't do anything below, because y exists in two polarities
   $ cat > testS2.smt2 <<-EOF
   > (set-logic ALL)
@@ -27,13 +22,7 @@ We can't do anything below, because y exists in two polarities
   > (check-sat)
   > EOF
   $ timeout 2 Chro -bound 0 -dsimpl -stop-after simpl testS2.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (x y)
-          (and
-            (<= (+ (* (- 1) x) (* (- 3) y) )  -24)
-            (<= (* 5 y)  42)
-            (exists (z) (<= (+ x (* (- 3) y) z )  0) )
-            )
-  )
+  sat (underapprox1)
 
 Habermehl demo
   $ cat > Habermehl.smt2 <<-EOF

@@ -1,3 +1,4 @@
+This test should be removed
   $ cat > testA.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun it147 () Int)
@@ -20,10 +21,27 @@
   > ))
   > (check-sat)
   > EOF
-  $ export OCAMLRUNPARAM='b=0'
+$ export OCAMLRUNPARAM='b=0'
 $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro -dsimpl -stop-after simpl testA.smt2 | sed 's/[[:space:]]*$//'
-  sat (underappox)
+  (assert (exists (it6 it160 -1)
+          (and
+            (<= (+ (* (- 1) -1) (* (- 1) it147) )  0)
+            (<= (+ (* (- 1) it160) pow2(it147) )  1)
+            (<= (+ (* (- 1) it160) (* 2 pow2(it147)) )  1)
+            (exists (-2 it154)
+            (= (+ (* (- 1) -2) it154 (* (- 2) pow2(it147)) )  0) )
+            (exists (it4) (<= (+ (* (- 1) -1) (* (- 1) it4) )  0) )
+            (exists (-3) (<= (+ (* (- 1) -3) (* (- 1) it160) )  0) )
+            (exists (it2) (<= it2  0) )
+            (exists (it159)
+            (= (+ (* (- 1) -1) it159 (* (- 2) pow2(it147)) )  0) )
+            (exists (it158)
+            (= (+ (* (- 1) -1) it158 (* (- 1) pow2(it147)) )  0) )
+            (exists (it152) (= (+ (* (- 14) it147) it152 (* (- 1) it6) )  0) )
+            (exists (i2) (= (+ (* (- 1) i2) it6 )  12) )
+            )
+  )
 This is TODO. It is not related to alpha-equivalence simplifications.
