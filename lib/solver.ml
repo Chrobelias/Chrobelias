@@ -404,11 +404,8 @@ let parse_args () =
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , " Dump AST simplifications" )
     ; ( "-bound"
-      , Arg.Int
-          (fun n ->
-            assert (n >= 0);
-            config.under_approx <- n)
-      , " Set underapprox. bound (zero disables)" )
+      , Arg.Int (fun n -> config.under_approx <- n)
+      , " Set underapprox. bound (negative disables)" )
     ; ( "-over-approx"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , " Simple overapproximation (issue #75)" )
