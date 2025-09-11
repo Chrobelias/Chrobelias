@@ -31,7 +31,6 @@ $ export CHRO_DEBUG=1
             )
   )
 
-
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
 > (declare-const a String)

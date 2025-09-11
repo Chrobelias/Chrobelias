@@ -21,4 +21,4 @@
   iter(4)= (and
              (= 0 0))
   iter(5)= True
-  sat ()
+  sat (presimpl)

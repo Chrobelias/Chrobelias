@@ -4,17 +4,17 @@ Basic QF_EIA tests
   sat (nfa)
   unsat
   unsat
-  sat (underappox)
+  sat (underapprox1)
   unsat
-  sat (underappox)
+  sat (underapprox1)
   unsat
   unsat
   unsat
-  sat (underappox)
+  sat (underapprox1)
   unsat
-  sat (underappox)
+  sat (underapprox1)
   unsat
-  sat ()
+  sat (presimpl)
 sat
 
 Test ExEy y >=0 x & 2**y = x & x > 4
@@ -29,7 +29,7 @@ Test Ex x > 2**x
 
 Test Frobenius coin problem with exponential restrictions
 
-  $ Chro -bound 0 -no-over-approx ./examples/fcp_7_11_with_exps.smt2
+  $ timeout 2 Chro -bound 0 -no-over-approx ./examples/fcp_7_11_with_exps.smt2
   sat (nfa)
 
 Test Double exponent theorem

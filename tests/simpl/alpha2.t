@@ -14,7 +14,7 @@
 $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
-  $ Chro -bound 0 -no-over-approx -dsimpl -stop-after simpl testA2.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -bound -1 -no-over-approx -dsimpl -stop-after simpl testA2.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (P)
           (and
             (<= (* (- 1) P)  0)

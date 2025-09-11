@@ -16,15 +16,13 @@
   iter(4)= (and
              (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
              (<= (* (- 5) x) 13))
-  iter(4.0)= (and
-               (= (* (- 1) y) 0)
-               (<= (+ (- 364) (* (- 8) (exp 2 0)) (* (- 7) (* (- 1) y))
-                   (* (- 5) x)) (- 14))
-               (<= (* (- 5) x) 13))
-  iter(4.1)= (and
-               (<= (* (- 5) x) 13)
-               (<= (* (- 5) x) 358))
-  sat (underappox)
+  Interesting: y
+  
+  Expecting 2 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| y->0 |}
+  sat (underapprox1)
 
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
@@ -54,6 +52,13 @@
   iter(4)= (and
              (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
              (<= (* (- 5) x) 13))
+  Interesting: y
+  
+  Expecting 0 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| y->0 |}
+  sat (underapprox1)
   $ cat > sum_join1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)
@@ -67,7 +72,7 @@
   iter(1)= (and
              (= (+ (* n (exp 2 n)) (* (* (- 1) 1) n (exp 2 n))) 0))
   iter(2)= True
-  sat ()
+  sat (presimpl)
   $ cat > sum_join2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun n () Int)

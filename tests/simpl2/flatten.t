@@ -10,15 +10,7 @@
   iter(1)= (and
              (= (exp x 2) 32))
   iter(2)= (= (exp x 2) 32)
-  iter(2.0)= (= (exp x 2) 32)
-  1 errors found
   Non linear arithmetic between
     0) (exp x 2)
   
-  Leftover formula:
-  (and
-                      (= (exp x 2) 32))
-  Non linear arithmetic between
-    0) (exp x 2)
-  
-  UNKNOWN (Errors after simplification)
+  unknown (non-linear)

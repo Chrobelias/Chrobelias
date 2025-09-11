@@ -8,20 +8,26 @@
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=1
-  $ timeout 2 Chro -no-pre-simpl -no-over-approx -bound 3 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  iter(1)= (and
+             (<= (exp 2 y) x)
+             (<= (exp 2 x) x))
+  iter(2)= (and
+             (<= (exp 2 x) x)
+             (<= (exp 2 y) x))
   Interesting: x y
   
   Expecting 9 choices ...
   
   Can't decide in lib/Underapprox.ml
-  Simplify step: ((2 ** y) <= x & (2 ** x) <= x)
-  Simplify step: ((2 ** y) <= x & (2 ** x) <= x)
-  Simplified expression: ((2 ** y) <= x & (2 ** x) <= x)
-  Trying to use Semenov deciding procedure over (((-1x + 1pow2(y) <= 0)) & ((-1x + 1pow2(x) <= 0)))
+  Simplify step: ((2 ** x) <= x & (2 ** y) <= x)
+  Simplified expression: ((2 ** x) <= x & (2 ** y) <= x)
+  Trying to use Semenov deciding procedure over (((-1x + 1pow2(x) <= 0)) & ((-1x + 1pow2(y) <= 0)))
     subst = {| |}
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   
+
 
 
 
@@ -36,11 +42,11 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->1 x2->0 |}
-  sat (underapprox2)
+  sat (underapprox1)
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
   $ Chro -no-over-approx -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
-  sat (underappox)
+  sat (underapprox1)
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
