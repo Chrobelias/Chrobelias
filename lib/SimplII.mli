@@ -4,6 +4,8 @@ type relop =
 
 type error
 
+val has_unsupported_nonlinearity : Ast.t -> (unit, Ast.Eia.term list) Result.t
+
 val simpl
   :  ?under_mode:[ `First | `Second ]
   -> int
@@ -15,6 +17,9 @@ val simpl
      | `Underapprox of Ast.t list
      ]
 
+val run_basic_simplify : Ast.t -> [ `Sat of string | `Unsat | `Unknown of Ast.t ]
+val run_under1 : int -> Ast.t -> [ `Sat of string | `Unknown ]
+val run_under2 : Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val pp_error : Format.formatter -> error -> unit
 val set_a_min : int -> unit
 val set_a_max : int -> unit
