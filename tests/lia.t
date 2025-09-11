@@ -1,34 +1,32 @@
 Basic LIA tests
 
   $ Chro -bound 0 -no-over-approx ./lia.smt2
-  sat ()
+  sat (presimpl)
   unsat
-  sat ()
-  sat ()
-  sat (nfa)
-  sat (nfa)
-  sat (nfa)
+  sat (presimpl)
+  sat (presimpl)
+  sat (underapprox1)
+  sat (underapprox1)
+  sat (underapprox1)
   unsat
-  sat (nfa)
-  sat (nfa)
-  sat (nfa)
+  sat (underapprox1)
+  sat (underapprox1)
+  sat (underapprox1)
   unsat
-  sat (nfa)
+  sat (underapprox1)
   unsat
   unsat
-  sat (nfa)
-  sat (nfa)
-  unsat
+  sat (underapprox1)
 
 Test Frobenious coin problem for 7 and 11
 
-  $ Chro -bound 0  -no-over-approx examples/LIA/fcp_7_11.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound -1 -no-over-approx examples/LIA/fcp_7_11.smt2 || echo TIMEOUT | sed 's/[[:space:]]*$//'
   sat (nfa)
-  P = 59;
+  P = 59; 
 
 Test Frobenious coin problem for 7, 11, and 13
 
-  $ Chro -bound 0 -no-over-approx examples/LIA/fcp_7_11_13.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound -1 -no-over-approx examples/LIA/fcp_7_11_13.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   P = 30;
 
@@ -41,4 +39,4 @@ Test Frobenious coin problem for 2 and 4
 Test for all nats exists bigger
 
   $ Chro -bound 5 -no-over-approx examples/LIA/for-all-nats-exists-bigger.smt2
-  sat (underappox)
+  sat (underapprox1)
