@@ -575,8 +575,7 @@
 
   $ unset CHRO_DEBUG
   $ OCAMLRUNPARAM='b=0' Chro -no-pre-simpl input.smt2
-  Fatal error: exception Failure("unimplemented (+ 2 + it1111 + (* -1 * (2 ** (+ 1 + it134))) + (* -1 * it1095 * (2 ** it134))) = 0")
-  [2]
+  sat (underapprox1)
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
   sat (underapprox1)
 

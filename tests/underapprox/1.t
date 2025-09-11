@@ -38,20 +38,13 @@
 
 
   $ Chro -no-pre-simpl -no-over-approx -bound 3 -dsimpl -stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1)) <= (* -80) & 0 <= x2 & 0 <= x1)
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1)) <= -80 & 0 <= x2 & 0 <= x1)
-  Simplify step: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1)) <= -80 & 0 <= x2 & 0 <= x1)
-  Simplified expression: ((+ (* 77 * (2 ** x1)) + (* 42 * (2 ** x2)) + (* 575 * x2) + (* -575 * x1)) <= -80 & 0 <= x2 & 0 <= x1)
-  Trying to use Semenov deciding procedure over (((-575x1 + 575x2 + 77pow2(x1) + 42pow2(x2) <= -80)) & ((-1x2 <= 0)) & ((-1x1 <= 0)))
-  ir = ((-575x1 + 575x2 + 77pow2(x1) + 42pow2(x2) <= -80) & (-1x2 <= 0) & (-1x1 <= 0))
+  Interesting: x1 x2
   
-    subst = {| |}
-  (assert (<= (+ (* (- 575) x1) (* 575 x2) (* 77 pow2(x1)) (* 42 pow2(x2)) )
-           -80)
-  )
-  (assert (<= (* (- 1) x1)  0) )
-  (assert (<= (* (- 1) x2)  0) )
+  Expecting 9 choices ...
   
+  lib/Underapprox.ml gives early Sat.
+  env = {| x1->1 x2->0 |}
+  sat (underapprox1)
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
   $ Chro -no-over-approx -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'

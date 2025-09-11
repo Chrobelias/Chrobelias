@@ -108,6 +108,5 @@ $ export CHRO_DEBUG=1
 Run solver
   $ unset CHRO_EIA
   $ timeout 2  Chro  -no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
-  timeout
-  [124]
+  sat (underapprox1)
 
