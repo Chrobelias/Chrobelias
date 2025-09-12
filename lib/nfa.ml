@@ -1522,21 +1522,24 @@ module MsbNat (Label : L) = struct
         let update_invariants nfa =
           let filter = fun (lbl, _) -> Label.is_zero lbl in
           let rec helper front visited =
-            if front = []
+            if Set.is_empty front
             then visited
             else (
               let next =
                 front
-                |> List.concat_map (fun state ->
+                |> Set.to_sequence
+                |> Sequence.concat_map ~f:(fun state ->
                   nfa.transitions.(state)
-                  |> List.filter filter
-                  |> List.map snd
-                  |> List.filter (fun state -> not (Set.mem visited state)))
+                  |> Sequence.of_list
+                  |> Sequence.filter ~f:filter
+                  |> Sequence.map ~f:snd
+                  |> Sequence.filter ~f:(fun state -> not (Set.mem visited state)))
+                |> Set.of_sequence
               in
-              let visited = Set.union visited (front |> Set.of_list) in
+              let visited = Set.union visited front in
               helper next visited)
           in
-          let front = nfa.start |> Set.to_list in
+          let front = nfa.start in
           { nfa with start = helper front Set.empty }
         ;;
       end)
