@@ -20,14 +20,18 @@ let pp_atom ppf = function
 module Str = struct
   type term =
     | Atom of atom
+    | FromEia of atom
     | Const of string
+    | Concat of term * term
   [@@deriving variants, compare]
 
   let fold_term f acc term = f acc term
 
-  let pp_term ppf = function
+  let rec pp_term ppf = function
     | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
+    | FromEia eia -> Format.fprintf ppf "(str.from_int %a)" pp_atom eia
     | Const s -> Format.fprintf ppf "\"%s\"" s
+    | Concat (s1, s2) -> Format.fprintf ppf "(str.++ %a %a)" pp_term s1 pp_term s2
   ;;
 
   type t =
@@ -60,8 +64,9 @@ module Str = struct
   ;;
 end
 
-(** Exponential integer arithmetic, i.e. LIA with exponents.*)
 module Eia = struct
+  (** Exponential integer arithmetic, i.e. LIA with exponents.*)
+
   type term =
     | Atom of atom
     | Len of Str.term
@@ -73,6 +78,83 @@ module Eia = struct
     | Bwxor of term * term
     | Pow of term * term
   [@@deriving variants, compare]
+
+  let rec map_term f = function
+    | (Atom _ | Len _ | Stoi _) as term -> f term
+    | Add terms -> f (add (List.map (map_term f) terms))
+    | Mul terms -> f (mul (List.map (map_term f) terms))
+    | Bwand (term, term') -> f (bwand (map_term f term) (map_term f term'))
+    | Bwor (term, term') -> f (bwor (map_term f term) (map_term f term'))
+    | Bwxor (term, term') -> f (bwxor (map_term f term) (map_term f term'))
+    | Pow (term, term') -> f (pow (map_term f term) (map_term f term'))
+  ;;
+
+  let rec fold_term f acc term =
+    match term with
+    | Atom _ | Len _ | Stoi _ -> f acc term
+    | Add terms | Mul terms -> f (List.fold_left (fold_term f) acc terms) term
+    | Bwand (term', term'')
+    | Bwor (term', term'')
+    | Bwxor (term', term'')
+    | Pow (term', term'') -> f (fold_term f (fold_term f acc term') term'') term
+  ;;
+
+  let rec pp_term =
+    let open Format in
+    let rec pp_eia ppf = function
+      | Len s -> Format.fprintf ppf "(str.len %a)" Str.pp_term s
+      | Stoi s -> Format.fprintf ppf "(str.to.int %a)" Str.pp_term s
+      | Atom (Const c) when Z.lt c Z.zero -> fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
+      | Atom a -> fprintf ppf "%a" pp_atom a
+      | Add xs ->
+        fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+      | Mul xs ->
+        fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+      | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
+      | Bwor (a, b) -> Format.fprintf ppf "(bwor %a %a)" pp_term a pp_term b
+      | Bwxor (a, b) -> Format.fprintf ppf "(bwxor %a %a)" pp_term a pp_term b
+      | Bwand (a, b) -> Format.fprintf ppf "(bwand %a %a)" pp_term a pp_term b
+    in
+    pp_eia
+  ;;
+
+  type t =
+    | Eq of term * term
+    | Leq of term * term
+  [@@deriving variants, compare (* , show *)]
+
+  let geq a b = leq b a
+  let lt a b = leq (add [ a; atom (const Z.one) ]) b
+  let gt a b = lt b a
+
+  let map f = function
+    | Eq _ as eia -> f eia
+    | Leq _ as eia -> f eia
+  ;;
+
+  let map2 f fterm = function
+    | Eq (term, term') -> f (eq (map_term fterm term) (map_term fterm term'))
+    | Leq (term, term') -> f (leq (map_term fterm term) (map_term fterm term'))
+  ;;
+
+  let fold2 f fterm acc = function
+    | (Eq (term, term') | Leq (term, term')) as ast ->
+      f (fold_term fterm (fold_term fterm acc term) term') ast
+  ;;
+
+  let pp fmt = function
+    | Eq (term, term') -> Format.fprintf fmt "(= %a %a)" pp_term term pp_term term'
+    | Leq (term, term') -> Format.fprintf fmt "(<= %a %a)" pp_term term pp_term term'
+  ;;
+
+  let equal eia eia' =
+    match eia, eia' with
+    | Eq (term, term'), Eq (term'', term''') | Leq (term, term'), Leq (term'', term''') ->
+      term = term'' && term' = term'''
+    | _ -> false
+  ;;
+
+  let eq_term : term -> term -> bool = Stdlib.( = )
 
   let is_constant_term =
     let exception Early of Z.t in
@@ -107,99 +189,19 @@ module Eia = struct
     helper
   ;;
 
-  let rec map_term f = function
-    | (Atom _ | Len _ | Stoi _) as term -> f term
-    | Add terms -> f (add (List.map (map_term f) terms))
-    | Mul terms -> f (mul (List.map (map_term f) terms))
-    | Bwand (term, term') -> f (bwand (map_term f term) (map_term f term'))
-    | Bwor (term, term') -> f (bwor (map_term f term) (map_term f term'))
-    | Bwxor (term, term') -> f (bwxor (map_term f term) (map_term f term'))
-    | Pow (term, term') -> f (pow (map_term f term) (map_term f term'))
+  let%test _ = is_constant_term (atom (const (Z.of_int 4))) = Some (Z.of_int 4)
+  let%test _ = is_constant_term (atom (var "s")) = None
+
+  let%test _ =
+    is_constant_term (mul [ atom (const (Z.of_int 4)); atom (const Z.one) ])
+    = Some (Z.of_int 4)
   ;;
 
-  let rec fold_term f acc term =
-    match term with
-    | Atom _ | Len _ | Stoi _ -> f acc term
-    | Add terms | Mul terms -> f (List.fold_left (fold_term f) acc terms) term
-    | Bwand (term', term'')
-    | Bwor (term', term'')
-    | Bwxor (term', term'')
-    | Pow (term', term'') -> f (fold_term f (fold_term f acc term') term'') term
+  let%test _ =
+    is_constant_term (add [ atom (const (Z.of_int 4)); atom (const Z.one) ])
+    = Some (Z.of_int 5)
   ;;
-
-  let rec pp_term ppf = function
-    | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
-    | Len s -> Format.fprintf ppf "(str.len %a)" Str.pp_term s
-    | Stoi s -> Format.fprintf ppf "(str.to.int %a)" Str.pp_term s
-    | Add terms ->
-      Format.fprintf
-        ppf
-        "(+ %a)"
-        (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ") pp_term)
-        terms
-    | Mul terms ->
-      Format.fprintf
-        ppf
-        "(* %a)"
-        (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " * ") pp_term)
-        terms
-    | Bwor (a, b) -> Format.fprintf ppf "(%a | %a)" pp_term a pp_term b
-    | Bwxor (a, b) -> Format.fprintf ppf "(%a ^ %a)" pp_term a pp_term b
-    | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
-    | Pow (a, b) -> Format.fprintf ppf "(%a ** %a)" pp_term a pp_term b
-  ;;
-
-  type t =
-    | Eq of term * term
-    | Leq of term * term
-  [@@deriving variants, compare (* , show *)]
-
-  let geq a b = leq b a
-  let lt a b = leq (add [ a; atom (const Z.one) ]) b
-  let gt a b = lt b a
-
-  let map f = function
-    | Eq _ as eia -> f eia
-    | Leq _ as eia -> f eia
-  ;;
-
-  let map2 f fterm = function
-    | Eq (term, term') -> f (eq (map_term fterm term) (map_term fterm term'))
-    | Leq (term, term') -> f (leq (map_term fterm term) (map_term fterm term'))
-  ;;
-
-  let fold2 f fterm acc = function
-    | (Eq (term, term') | Leq (term, term')) as ast ->
-      f (fold_term fterm (fold_term fterm acc term) term') ast
-  ;;
-
-  let pp fmt = function
-    | Eq (term, term') -> Format.fprintf fmt "%a = %a" pp_term term pp_term term'
-    | Leq (term, term') -> Format.fprintf fmt "%a <= %a" pp_term term pp_term term'
-  ;;
-
-  let equal eia eia' =
-    match eia, eia' with
-    | Eq (term, term'), Eq (term'', term''') | Leq (term, term'), Leq (term'', term''') ->
-      term = term'' && term' = term'''
-    | _ -> false
-  ;;
-
-  let eq_term : term -> term -> bool = Stdlib.( = )
 end
-
-let%test _ = Eia.(is_constant_term (atom (const (Z.of_int 4)))) = Some (Z.of_int 4)
-let%test _ = Eia.(is_constant_term (atom (var "s"))) = None
-
-let%test _ =
-  Eia.(is_constant_term (mul [ atom (const (Z.of_int 4)); atom (const Z.one) ]))
-  = Some (Z.of_int 4)
-;;
-
-let%test _ =
-  Eia.(is_constant_term (add [ atom (const (Z.of_int 4)); atom (const Z.one) ]))
-  = Some (Z.of_int 5)
-;;
 
 (** Bitvectors. *)
 (*Emodule Bv = struct
@@ -283,20 +285,6 @@ let rec pp ppf = function
   | Str str -> Format.fprintf ppf "%a" Str.pp str
 ;;
 
-let pp_term_smtlib2 =
-  let open Format in
-  let rec pp_eia ppf = function
-    | Eia.Atom (Const c) when Z.lt c Z.zero ->
-      fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
-    | Atom a -> fprintf ppf "%a" pp_atom a
-    | Add xs -> fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
-    | Mul xs -> fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
-    | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
-    | x -> Eia.pp_term ppf x
-  in
-  pp_eia
-;;
-
 let pp_smtlib2 =
   let open Format in
   let rec pp ppf = function
@@ -321,11 +309,24 @@ let pp_smtlib2 =
         a
         pp
         b
-    | Eia (Eia.Eq (l, r)) -> fprintf ppf "(= %a %a)" pp_eia l pp_eia r
-    | Eia (Eia.Leq (l, r)) -> fprintf ppf "(<= %a %a)" pp_eia l pp_eia r
+    | Eia eia -> fprintf ppf "%a" Eia.pp eia
     | Str s -> fprintf ppf "%a" Str.pp s
-  and pp_eia = pp_term_smtlib2 in
+  in
   pp
+;;
+
+let pp_term_smtlib2 =
+  let open Format in
+  let rec pp_eia ppf = function
+    | Eia.Atom (Const c) when Z.lt c Z.zero ->
+      fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
+    | Atom a -> fprintf ppf "%a" pp_atom a
+    | Add xs -> fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+    | Mul xs -> fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+    | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
+    | x -> Eia.pp_term ppf x
+  in
+  pp_eia
 ;;
 
 (*

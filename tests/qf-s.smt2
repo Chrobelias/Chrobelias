@@ -131,3 +131,10 @@
   (get-model)
 (pop 1)
 
+(push 1)
+  (assert (str.in.re a (re.+ (re.union (str.to.re "2") (str.to.re "5")))))
+  (assert (= a (str.from.int q)))
+  (assert (= q 25))
+  (get-model)
+(pop 1)
+

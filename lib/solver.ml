@@ -20,6 +20,8 @@ let internal s =
   c, s
 ;;
 
+let failf fmt = Format.kasprintf failwith fmt
+
 let collect_vars ir =
   Ir.fold
     (fun acc -> function
@@ -29,6 +31,7 @@ let collect_vars ir =
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Rel (_, term, _) ->
          Set.union
            acc
@@ -52,6 +55,7 @@ let collect_free (ir : Ir.t) =
        | Ir.SReg (atom, _) -> Set.add acc atom
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
@@ -620,6 +624,8 @@ struct
        | Ir.SReg (atom, reg) -> Extra.eval_sreg vars atom reg
        | Ir.SLen (atom, atom') -> NfaCollection.n ()
        | Ir.Stoi (atom, atom') -> NfaCollection.n ()
+       | Ir.Itos (atom, atom') ->
+         NfaCollection.itos ~src:(Map.find_exn vars atom') ~dest:(Map.find_exn vars atom)
        | Ir.SEq (atom, atom') -> NfaCollection.n ()
        | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
       |> fun nfa ->
@@ -1303,39 +1309,47 @@ module Msb =
       let nat_model_to_int = z_of_list_msb_nat
     end)
 
-let proof ir =
-  match config.logic with
-  | `Eia -> begin
-    match config.mode with
-    | `Lsb -> Lsb.proof ir
-    | `Msb -> Msb.proof ir
+let proof ast =
+  match Me.ir_of_ast ast with
+  | Ok ir -> begin
+    match config.logic with
+    | `Eia -> begin
+      match config.mode with
+      | `Lsb -> Lsb.proof ir
+      | `Msb -> Msb.proof ir
+    end
+    | `Str -> LsbStr.proof ir
   end
-  | `Str -> LsbStr.proof ir
+  | Error _ -> `Unknown ast
 ;;
 
-let get_model ir =
-  match config.logic with
-  | `Str ->
-    LsbStr.get_model ir
-    |> Option.map
-         (Map.map ~f:(fun v ->
-            `Str
-              (v
-               |> List.rev
-               |> List.to_seq
-               |> Seq.filter (fun c -> Char.code c <> 0)
-               |> String.of_seq)))
-  | _ -> begin
-    let model =
-      match config.mode with
-      | `Lsb -> Lsb.get_model ir
-      | `Msb -> Msb.get_model ir
-    in
-    model
-    |> Option.map
-         (Map.map ~f:(fun v ->
-            `Int (if config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)))
+let get_model ast =
+  match Me.ir_of_ast ast with
+  | Ok ir -> begin
+    match config.logic with
+    | `Str ->
+      LsbStr.get_model ir
+      |> Option.map
+           (Map.map ~f:(fun v ->
+              `Str
+                (v
+                 |> List.rev
+                 |> List.to_seq
+                 |> Seq.filter (fun c -> Char.code c <> 0)
+                 |> String.of_seq)))
+    | _ -> begin
+      let model =
+        match config.mode with
+        | `Lsb -> Lsb.get_model ir
+        | `Msb -> Msb.get_model ir
+      in
+      model
+      |> Option.map
+           (Map.map ~f:(fun v ->
+              `Int (if config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)))
+    end
   end
+  | Error msg -> failf "unable to get model: %s" msg
 ;;
 
 (*let aux s =
