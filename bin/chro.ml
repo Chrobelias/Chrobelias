@@ -88,7 +88,8 @@ let check_sat ast =
                | _ -> ()
              in
              List.iter f asts;
-             exit 1
+             report_result (`Unknown "");
+             exit 0
            with
            | Sat_found ->
              Format.printf "sat (under II)\n%!";
