@@ -16,6 +16,7 @@ module type Type = sig
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val strlen : t -> dest:int -> src:int -> t
   val stoi : t -> dest:int -> src:int -> t
+  val itos : dest:int -> src:int -> t
   val seq : t -> dest:int -> src:int -> t
   val base : int
 end
@@ -215,6 +216,13 @@ module Lsb = struct
   ;;
 
   let stoi = strlen
+
+  let itos ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
   let seq = strlen
   let base = 2
 end
@@ -380,6 +388,13 @@ module Msb = struct
   ;;
 
   let stoi = strlen
+
+  let itos ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
   let seq = strlen
   let base = 2
 end
@@ -455,6 +470,13 @@ module MsbNat = struct
   ;;
 
   let stoi = strlen
+
+  let itos ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
   let seq = strlen
   let base = 2
 end
@@ -518,6 +540,17 @@ module Str = struct
       in
       Some (label, q'))
     |> Nfa.minimize
+  ;;
+
+  let itos ~(dest : int) ~(src : int) =
+    Nfa.create_nfa
+      ~transitions:
+        ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; itoc c ], 0))
+         @ [ 0, [ o; Str.u_eos ], 0 ])
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
   ;;
 
   let seq (nfa : t) ~(dest : int) ~(src : int) =
