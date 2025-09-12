@@ -16,6 +16,15 @@ let rec to_string orig_expr =
     | Str s -> Ast.Str.Const s
     | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
   end
+  | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ expr ])
+  | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ expr ])
+  | Expr.Cvtop (_, Ty.Cvtop.ToString, expr) ->
+    let str : Ast.Eia.term = to_eia_term expr in
+    begin
+      match str with
+      | Ast.Eia.Atom atom -> Ast.Str.FromEia atom
+      | _ -> failwith "TBD: from.int now only expects vars inside"
+    end
   | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
 
 and to_regex orig_expr =
@@ -134,13 +143,19 @@ and _to_ir orig_expr =
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
   let is_str expr =
-    Expr.ty expr = Ty.Ty_str
-    &&
+    (Expr.ty expr = Ty.Ty_str
+     &&
+       match Expr.view expr with
+       | Expr.Unop (_, Ty.Unop.Length, _)
+       | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ _ ])
+       | Expr.Cvtop (_, Ty.Cvtop.String_to_int, _) -> false
+       | _ -> true)
+    ||
       match Expr.view expr with
-      | Expr.Unop (_, Ty.Unop.Length, _)
-      | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ _ ])
-      | Expr.Cvtop (_, Ty.Cvtop.String_to_int, _) -> false
-      | _ -> true
+      | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ _ ])
+      | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ _ ])
+      | Expr.Cvtop (_, Ty.Cvtop.ToString, _) -> true
+      | _ -> false
   in
   let expr = Expr.view orig_expr in
   match expr with
