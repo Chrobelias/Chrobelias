@@ -1,9 +1,7 @@
 Basic LIA tests
 
-  $ Chro -bound 0 -no-over-approx ./lia.smt2
+  $ OCAMLRUNPARAM='b=0' Chro -bound 0 -no-over-approx ./lia.smt2
   Fatal error: exception Smtml.Parse.Syntax_error("3053-3060: syntax error: 116")
-  Raised at Smtml__Parse.Smtlib.from_file in file "vendor/smtml/src/smtml/parse.ml", lines 50-53, characters 6-9
-  Called from Dune__exe__Chro in file "bin/chro.ml", line 131, characters 17-43
   [2]
 
 Test Frobenious coin problem for 7 and 11
