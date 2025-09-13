@@ -1,7 +1,7 @@
 Basic LIA tests
 
   $ OCAMLRUNPARAM='b=0' Chro -bound 0 -no-over-approx ./lia.smt2
-  Fatal error: exception Smtml.Parse.Syntax_error("3053-3060: syntax error: 116")
+  Fatal error: exception Smtml.Parse.Syntax_error("2866-2874: syntax error: 116")
   [2]
 
 Test Frobenious coin problem for 7 and 11
