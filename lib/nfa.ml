@@ -1889,26 +1889,34 @@ module Msb (Label : L) = struct
           match Set.find ~f:(Fun.const true) nfa.start with
           | Some start ->
             let rec helper front visited transitions =
-              if front = []
+              if Set.is_empty front
               then transitions
               else (
                 let next =
                   front
-                  |> List.concat_map (fun (lbl, state) ->
+                  |> Set.to_sequence
+                  |> Sequence.concat_map ~f:(fun (lbl, state) ->
                     transitions.(state)
-                    |> List.filter_map (fun (lbl', state) ->
+                    |> Sequence.of_list
+                    |> Sequence.filter_map ~f:(fun (lbl', state) ->
                       if (not (Set.mem visited state)) && Label.equal lbl lbl'
                       then Some (lbl, state)
                       else None))
+                  |> Set.of_sequence
                 in
-                let visited = Set.union visited (front |> List.map snd |> Set.of_list) in
+                let visited = Set.union visited (front |> Set.map ~f:snd) in
                 transitions.(start)
                 <- (let t = transitions.(start) in
-                    List.append (List.filter (fun x -> not (List.mem x t)) next) t);
+                    List.append
+                      (Set.filter ~f:(fun x -> not (List.mem x t)) next |> Set.to_list)
+                      t);
                 helper next visited transitions)
             in
             let front =
-              nfa.start |> Set.to_list |> List.concat_map (Array.get nfa.transitions)
+              nfa.start
+              |> Set.to_list
+              |> List.concat_map (Array.get nfa.transitions)
+              |> Set.of_list
             in
             { nfa with transitions = helper front Set.empty (Array.copy nfa.transitions) }
           | None -> nfa
@@ -1940,15 +1948,15 @@ module Msb (Label : L) = struct
   let run nfa = any_path nfa [] |> Option.is_some
 
   let to_nat (nfa : t) : u =
-    Debug.dump_nfa ~msg:"before to_nat nfa %s" format_nfa nfa;
     let start =
       nfa.start
-      |> Set.to_list
-      |> List.concat_map (fun state ->
+      |> Set.to_sequence
+      |> Sequence.concat_map ~f:(fun state ->
         nfa.transitions.(state)
-        |> List.filter (fun (lbl, _) -> lbl |> Label.is_zero)
-        |> List.map snd)
-      |> Set.of_list
+        |> Sequence.of_list
+        |> Sequence.filter ~f:(fun (lbl, _) -> lbl |> Label.is_zero)
+        |> Sequence.map ~f:snd)
+      |> Set.of_sequence
     in
     { transitions = nfa.transitions
     ; final = nfa.final
