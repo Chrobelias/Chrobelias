@@ -83,7 +83,7 @@ let check_sat ast =
           let exception Sat_found in
           (try
              let f ast =
-               match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
+               match Lib.Solver.proof ast with
                | `Sat -> raise Sat_found
                | _ -> ()
              in
@@ -109,7 +109,7 @@ let check_sat ast =
       | `Sat s -> `Sat s
       | `Unsat -> `Unsat
       | `Unknown ast ->
-        (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
+        (match Lib.Solver.proof ast with
          | `Sat -> `Sat "nfa"
          | `Unsat -> `Unsat
          | `Unknown _ir -> `Unknown "")
@@ -165,7 +165,7 @@ let () =
       in
       let ir = Lib.Ast.land_ (get_irs state) in
       begin
-        match Lib.Solver.get_model (Lib.Me.ir_of_ast ir) with
+        match Lib.Solver.get_model ir with
         | Some model ->
           Map.iteri
             ~f:(fun ~key:k ~data:v ->
