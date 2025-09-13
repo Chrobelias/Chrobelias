@@ -153,8 +153,18 @@ module Eia = struct
     | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
     | Len s -> Format.fprintf ppf "(str.len %a)" Str.pp_term s
     | Stoi s -> Format.fprintf ppf "(str.to.int %a)" Str.pp_term s
-    | Add xs -> Format.fprintf ppf "@[(+ %a)@]" (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space) xs
-    | Mul xs -> Format.fprintf ppf "@[(* %a)@]" (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space) xs
+    | Add xs ->
+      Format.fprintf
+        ppf
+        "@[(+ %a)@]"
+        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
+        xs
+    | Mul xs ->
+      Format.fprintf
+        ppf
+        "@[(* %a)@]"
+        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
+        xs
     | Bwor (a, b) -> Format.fprintf ppf "(%a | %a)" pp_term a pp_term b
     | Bwxor (a, b) -> Format.fprintf ppf "(%a ^ %a)" pp_term a pp_term b
     | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
