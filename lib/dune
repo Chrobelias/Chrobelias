@@ -31,4 +31,6 @@
    ppx_inline_test
    ppx_assert
    ppx_expect
-   ppx_regexp)))
+   ppx_regexp))
+ (instrumentation
+  (backend bisect_ppx)))

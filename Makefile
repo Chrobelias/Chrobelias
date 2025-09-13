@@ -40,3 +40,15 @@ promote_benchmarks:
 clean:
 	dune clean
 
+.PHONY: coverage
+TEST_COV_D ?= /tmp/Chrobelias_cov
+COVERAGE_FLAGS += --expect src/ --expect bin/ --do-not-expect vendor/ --do-not-expect bin/ --do-not-expect vendor/smtml/src/smtml
+coverage:
+	if [ -d $(TEST_COV_D) ]; then $(RM) -r $(TEST_COV_D); fi
+	mkdir -p $(TEST_COV_D)
+	BISECT_FILE=$(TEST_COV_D)/Chrobelias dune b bin @lib/runtest @tests/runtest \
+		--no-print-directory \
+		--instrument-with bisect_ppx --force
+	bisect-ppx-report html --coverage-path $(TEST_COV_D) $(COVERAGE_FLAGS)
+	bisect-ppx-report summary --coverage-path $(TEST_COV_D) $(COVERAGE_FLAGS)
+	@echo "Use 'xdg-open _coverage/index.html' to see coverage report"

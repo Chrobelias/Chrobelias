@@ -1,3 +1,5 @@
 _build/
 debugs/
 dumps/
+/_coverage
+

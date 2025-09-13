@@ -4,7 +4,12 @@
  (libraries
   lib
   ;memtrace
-  ))
+  )
+ (instrumentation
+  ;(deps %{project_root}/bisect.exclude)
+  (backend
+   bisect_ppx ; --exclusions %{project_root}/bisect.exclude
+   )))
 
 (rule
  (targets swine)
