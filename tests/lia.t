@@ -21,6 +21,9 @@ Basic LIA tests
   sat (underapprox1)
   Fatal error: exception Failure("not implemented: (+ (- 5) (* 7 u))")
   [2]
+<<<<<<< HEAD
+=======
+>>>>>>> 47913a788 (solver: fix pow to expression)
 
 Test Frobenious coin problem for 7 and 11
 
