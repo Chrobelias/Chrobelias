@@ -328,8 +328,9 @@ let make_main_symantics env =
       | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
       | Mul ((Atom (Const c) as base0) :: tl), Eia.Atom (Const e) ->
         mul [ pow base0 xs; pow (Mul tl) xs ]
-      | Eia.Atom (Const base), Eia.Atom (Const exp) when Z.(exp > zero) ->
-        const (Z.to_int (Utils.powz ~base exp))
+      | Eia.Atom (Const b), Eia.Atom (Const exp) when Z.(exp > zero) ->
+        (try const (Z.to_int (Utils.powz ~base:b exp)) with
+         | Z.Overflow -> Ast.Eia.Pow (base, xs))
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
