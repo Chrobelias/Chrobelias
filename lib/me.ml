@@ -244,7 +244,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
          in
          Poly (Map.singleton var coeff, Z.zero, merged_sups)
        | _ ->
-         let var = Ir.internal () in
+         let var = Ir.internal_name () in
          let coeff =
            if Z.(exp_c > zero)
            then Q.of_bigint (Utils.powz ~base:two exp_c)
@@ -254,12 +254,12 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
          in
          let sup1 =
            let mapa, c =
-             from_rat (Map.add_exn ~key:var ~data:Q.(zero - one) exp_map) Z.zero
+             from_rat (Map.add_exn ~key:(Ir.var var) ~data:Q.(zero - one) exp_map) Z.zero
            in
            Ir.eq mapa c
          in
          (* Debug.printfln "new variable %a for " Ir.pp_atom var; *)
-         Poly (Map.singleton var coeff, Z.zero, (sup1 :: base_sups) @ exp_sups))
+         Poly (Map.singleton (Ir.pow2 var) coeff, Z.zero, (sup1 :: base_sups) @ exp_sups))
     | Poly (base_poly, c, base_sups), Symbol (exp_symbol, exp_sups)
       when Map.length base_poly = 0 && c = Z.of_int 2 ->
       let poly =
