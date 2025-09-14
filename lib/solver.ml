@@ -714,8 +714,8 @@ struct
   let nfa_for_exponent2 s var var2 chrob =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
-    Debug.printfln
-      "nfa_for_exponent2: internal_counter=%d var=%a var2=%a"
+    Format.printf
+      "nfa_for_exponent2: internal_counter=%d var=%a var2=%a\n%!"
       s.internal_counter
       Ir.pp_atom
       var
@@ -729,6 +729,13 @@ struct
         let poly = Map.of_alist_exn [ var, Z.one; var2, Z.minus_one ] in
         let nfa = NfaCollection.eq s.vars poly (Z.of_int a) in
         (* var = var2 + a*)
+        Format.printf
+          "nfa_for_exponent2: we have %a = %a + %d\n%!"
+          Ir.pp_atom
+          var
+          Ir.pp_atom
+          var2
+          a;
         Debug.dump_nfa ~msg:"nfa_for_exponent2 output nfa: %s" Nfa.format_nfa nfa;
         nfa)
       else (
@@ -743,6 +750,14 @@ struct
           (* |> Nfa.intersect t_non_neg t >= 0 (* We are assuming to work only with non-negative integers*)*)
           |> Nfa.project [ Map.find_exn s.vars t ]
         in
+        Format.printf
+          "nfa_for_exponent2: we have Et : %a = %a + %d + %d * t\n%!"
+          Ir.pp_atom
+          var
+          Ir.pp_atom
+          var2
+          a
+          c;
         Debug.dump_nfa ~msg:"nfa_for_exponent2 output nfa: %s" Nfa.format_nfa nfa;
         nfa))
   ;;
@@ -756,13 +771,13 @@ struct
     |> Seq.concat_map (fun (a, c) ->
       if c = 0
       then
-        Seq.init (a + 10) (( + ) (a + 1))
+        Seq.init (a + 10) (( + ) a)
         |> Seq.filter (fun x -> x - logBase x = a)
         |> Seq.map (fun a' ->
           let poly = Map.of_alist_exn [ var, Z.one ] in
           let nfa = NfaCollection.eq s.vars poly (Z.of_int a') in
           (*var = a'*)
-          Debug.printfln "nfa_for_exponent: a=%d, a'=%d, c=%d" a a' c;
+          Format.printf "nfa_for_exponent: a=%d, a'=%d, c=%d\n%!" a a' c;
           Debug.dump_nfa
             ~msg:"nfa_for_exponent output nfa: %s"
             Nfa.format_nfa
@@ -781,11 +796,11 @@ struct
           let nfa = Nfa.project [ get_deg t ] nfa' in
           (*var = a + d + c * t*)
           let n =
-            List.init (a + 10) (( + ) (a + 1))
+            List.init (a + 10) (( + ) a)
             |> List.filter (fun x -> x - logBase x >= a)
             |> List.hd
           in
-          Debug.printfln "nfa_for_exponent: a=%d, d=%d, c=%d, n=%d" a d c n;
+          Format.printf "nfa_for_exponent: a=%d, d=%d, c=%d, n=%d\n%!" a d c n;
           Debug.dump_nfa ~msg:"nfa_for_exponent var nfa: %s" Nfa.format_nfa nfa;
           let newvar_nfa = NfaCollection.div_in_pow newvar d c in
           Debug.dump_nfa ~msg:"nfa_for_exponent div_in_pow: %s" Nfa.format_nfa newvar_nfa;
@@ -878,7 +893,7 @@ struct
             |> Nfa.intersect nfa
             |> project (get_deg x)
           in
-          Debug.printf "Zero nfa for %a: " Ir.pp_atom x;
+          Format.printf "Zero nfa for %a: \n%!" Ir.pp_atom x;
           Debug.dump_nfa ~msg:"%s" Nfa.format_nfa zero_nfa;
           match helper zero_nfa tl ((fun _ -> Some ([], 0)) :: model) with
           | Some _ as res -> res
@@ -893,8 +908,8 @@ struct
   ;;
 
   let prepare_order s nfa order =
-    Debug.printfln
-      "Trying order %a"
+    Format.printf
+      "\n\n\nTrying order %a\n%!"
       (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " <= ") Ir.pp_atom)
       (order |> List.rev);
     let len = List.length order in
