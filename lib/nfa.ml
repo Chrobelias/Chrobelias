@@ -1374,12 +1374,14 @@ module Lsb (Label : L) = struct
     (* important *)
     (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
     let result = find_c_d nfa important in
-    Debug.printfln "Chrobak output:";
-    Format.pp_print_list
-      (fun fmt (a, b) -> Format.fprintf fmt " (%d, %d)" a b)
-      Debug.fmt
+    Format.printf "Chrobak output: ";
+    Format.printf
+      "%a\n"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
       result;
-    Debug.printfln "";
+    Format.printf "";
     result
   ;;
 
@@ -1659,12 +1661,14 @@ module MsbNat (Label : L) = struct
     (* important *)
     (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
     let result = find_c_d nfa important in
-    Debug.printfln "Chrobak output:";
-    Format.pp_print_list
-      (fun fmt (a, b) -> Format.fprintf fmt " (%d, %d)" a b)
-      Debug.fmt
+    Format.printf "Chrobak output: ";
+    Format.printf
+      "%a\n"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
       result;
-    Debug.printfln "";
+    Format.printf "";
     result
   ;;
 
