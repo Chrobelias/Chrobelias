@@ -714,36 +714,37 @@ struct
   let nfa_for_exponent2 s var var2 chrob =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
+    Debug.printfln
+      "nfa_for_exponent2: internal_counter=%d var=%a var2=%a"
+      s.internal_counter
+      Ir.pp_atom
+      var
+      Ir.pp_atom
+      var2;
     chrob
     |> List.to_seq
     |> Seq.map (fun (a, c) ->
-      let a_var, s = internal s in
-      let var2_plus_a, s = internal s in
-      let t, s = internal s in
-      let c_mul_t, s = internal s in
-      let get_deg = Map.find_exn s.vars in
-      Debug.printfln
-        "nfa_for_exponent2: internal_counter=%d var=%a var2=%a"
-        s.internal_counter
-        Ir.pp_atom
-        var
-        Ir.pp_atom
-        var2;
-      (*Debug.printfln "[ var2_plus_a; c_mul_t; t ] = [%d; %d; %d]" var2_plus_a c_mul_t t;*)
-      let poly = Map.of_alist_exn [ var2, Z.one; t, Z.of_int c; var, Z.minus_one ] in
-      let nfa' = NfaCollection.eq s.vars poly (Z.of_int (-a)) in
-      let nfa =
-        Nfa.project [ get_deg t ] (*var2 + a + c * t = var*) nfa'
-        (*(Nfa.intersect
-             (NfaCollection.add ~lhs:var2_plus_a ~rhs:c_mul_t ~res:var)
-             (Nfa.intersect
-                (Nfa.intersect
-                   (NfaCollection.add ~res:var2_plus_a ~lhs:var2 ~rhs:a_var)
-                   (NfaCollection.eq_const a_var a))
-                (NfaCollection.mul ~res:c_mul_t ~lhs:c ~rhs:t)))*)
-      in
-      Debug.dump_nfa ~msg:"nfa_for_exponent2 output nfa: %s" Nfa.format_nfa nfa;
-      nfa)
+      if c = 0
+      then (
+        let poly = Map.of_alist_exn [ var, Z.one; var2, Z.minus_one ] in
+        let nfa = NfaCollection.eq s.vars poly (Z.of_int a) in
+        (* var = var2 + a*)
+        Debug.dump_nfa ~msg:"nfa_for_exponent2 output nfa: %s" Nfa.format_nfa nfa;
+        nfa)
+      else (
+        let t, s = internal s in
+        (* let t_non_neg =
+            NfaCollection.leq s.vars (Map.of_alist_exn [ t, Z.minus_one ]) Z.zero
+          in *)
+        let poly = Map.of_alist_exn [ var, Z.one; var2, Z.minus_one; t, Z.of_int (-c) ] in
+        let nfa =
+          NfaCollection.eq s.vars poly (Z.of_int a)
+          (* var = var2 + a + c * t *)
+          (* |> Nfa.intersect t_non_neg t >= 0 (* We are assuming to work only with non-negative integers*)*)
+          |> Nfa.project [ Map.find_exn s.vars t ]
+        in
+        Debug.dump_nfa ~msg:"nfa_for_exponent2 output nfa: %s" Nfa.format_nfa nfa;
+        nfa))
   ;;
 
   let nfa_for_exponent s var newvar chrob =
