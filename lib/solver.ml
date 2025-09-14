@@ -749,48 +749,57 @@ struct
   let nfa_for_exponent s var newvar chrob =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
+    let get_deg = Map.find_exn s.vars in
     chrob
     |> List.to_seq
     |> Seq.concat_map (fun (a, c) ->
       if c = 0
       then
-        Seq.init (a + 10) (( + ) a)
-        |> Seq.map (fun x ->
-          let log = logBase x in
-          x - log, log, 0)
-        |> Seq.filter (fun (t, _, _) -> t = a)
-      else 0 -- (c - 1) |> List.map (fun d -> a, d, c) |> List.to_seq)
-    |> Seq.map (fun (a, d, c) ->
-      let a_plus_d, s = internal s in
-      let t, s = internal s in
-      let c_mul_t, s = internal s in
-      let internal, s = internal s in
-      let get_deg = Map.find_exn s.vars in
-      let poly = Map.of_alist_exn [ t, Z.of_int (-c); var, Z.one ] in
-      let nfa' = NfaCollection.eq s.vars poly (Z.of_int (a + d)) in
-      let nfa = Nfa.project [ get_deg t ] nfa' in
-      (*var = a + d + c * t*)
-      let n =
-        List.init (a + 2) (( + ) a)
-        |> List.filter (fun x -> x - logBase x >= a)
-        |> List.hd
-      in
-      Debug.printfln "nfa_for_exponent: a=%d, d=%d, c=%d, n=%d" a d c n;
-      Debug.dump_nfa ~msg:"nfa_for_exponent var nfa: %s" Nfa.format_nfa nfa;
-      let newvar_nfa = NfaCollection.div_in_pow newvar d c in
-      Debug.dump_nfa ~msg:"nfa_for_exponent div_in_pow: %s" Nfa.format_nfa newvar_nfa;
-      let poly = Map.of_alist_exn [ var, Z.minus_one ] in
-      let geq_nfa = NfaCollection.leq s.vars poly (Z.of_int (-n)) in
-      Debug.dump_nfa ~msg:"nfa_for_exponent geq_nfa: %s" Nfa.format_nfa geq_nfa;
-      let nfa =
-        nfa |> Nfa.intersect geq_nfa |> Nfa.intersect newvar_nfa |> Nfa.minimize
-      in
-      Debug.dump_nfa
-        ~msg:"nfa_for_exponent output nfa: %s"
-        Nfa.format_nfa
-        nfa
-        ~vars:[ var, get_deg var; Ir.var "newvar", newvar ];
-      nfa)
+        Seq.init (a + 10) (( + ) (a + 1))
+        |> Seq.filter (fun x -> x - logBase x = a)
+        |> Seq.map (fun a' ->
+          let poly = Map.of_alist_exn [ var, Z.one ] in
+          let nfa = NfaCollection.eq s.vars poly (Z.of_int a') in
+          (*var = a'*)
+          Debug.printfln "nfa_for_exponent: a=%d, a'=%d, c=%d" a a' c;
+          Debug.dump_nfa
+            ~msg:"nfa_for_exponent output nfa: %s"
+            Nfa.format_nfa
+            nfa
+            ~vars:[ var, get_deg var ];
+          nfa)
+      else
+        0 -- (c - 1)
+        |> List.map (fun d -> a, d, c)
+        |> List.to_seq
+        |> Seq.map (fun (a, d, c) ->
+          let t, s = internal s in
+          let get_deg = Map.find_exn s.vars in
+          let poly = Map.of_alist_exn [ t, Z.of_int (-c); var, Z.one ] in
+          let nfa' = NfaCollection.eq s.vars poly (Z.of_int (a + d)) in
+          let nfa = Nfa.project [ get_deg t ] nfa' in
+          (*var = a + d + c * t*)
+          let n =
+            List.init (a + 10) (( + ) (a + 1))
+            |> List.filter (fun x -> x - logBase x >= a)
+            |> List.hd
+          in
+          Debug.printfln "nfa_for_exponent: a=%d, d=%d, c=%d, n=%d" a d c n;
+          Debug.dump_nfa ~msg:"nfa_for_exponent var nfa: %s" Nfa.format_nfa nfa;
+          let newvar_nfa = NfaCollection.div_in_pow newvar d c in
+          Debug.dump_nfa ~msg:"nfa_for_exponent div_in_pow: %s" Nfa.format_nfa newvar_nfa;
+          let poly = Map.of_alist_exn [ var, Z.minus_one ] in
+          let geq_nfa = NfaCollection.leq s.vars poly (Z.of_int (-n)) in
+          Debug.dump_nfa ~msg:"nfa_for_exponent geq_nfa: %s" Nfa.format_nfa geq_nfa;
+          let nfa =
+            nfa |> Nfa.intersect geq_nfa |> Nfa.intersect newvar_nfa |> Nfa.minimize
+          in
+          Debug.dump_nfa
+            ~msg:"nfa_for_exponent output nfa: %s"
+            Nfa.format_nfa
+            nfa
+            ~vars:[ var, get_deg var; Ir.var "newvar", newvar ];
+          nfa))
   ;;
 
   let project_exp s nfa x next =
