@@ -900,6 +900,7 @@ struct
           let x_eq_1_model =
             if not (List.exists is_exp leq_x')
             then (
+              Format.printf "We are trying zeros for %a\n%!" Ir.pp_atom x';
               let zero_nfa =
                 List.fold_left
                   (fun nfa y' ->
@@ -1049,31 +1050,33 @@ struct
       2) exp(base, x) >= (base -1)*x + 1
     *)
     |> Seq.filter (function order, nfa ->
-        let nfa_with_over =
-          nfa
-          |> List.fold_right
-               NfaNat.intersect
-               (powered_vars
-                |> Map.keys
-                |> List.filter (fun x -> is_exp x)
-                |> List.map (fun x ->
-                  let over_x =
-                    Map.of_alist_exn
-                      [ x, Z.minus_one; get_exp x, Z.of_int (NfaCollection.base - 1) ]
-                  in
-                  Nfa.to_nat (NfaCollection.leq powered_vars over_x Z.minus_one)))
-        in
-        Debug.dump_nfa
-          ~msg:"Overapproxed nfa: %s"
-          ~vars:(Map.to_alist vars)
-          NfaNat.format_nfa
-          nfa_with_over;
-        let nfa_to_check =
-          nfa_with_over
-          |> NfaNat.project (order |> List.map (fun str -> Map.find_exn s.vars str))
-        in
-        Debug.dump_nfa ~msg:"Checking if solvable: %s" NfaNat.format_nfa nfa_to_check;
-        nfa_to_check |> NfaNat.run)
+        let exp_vars = powered_vars |> Map.keys |> List.filter (fun x -> is_exp x) in
+        if List.length exp_vars > 1
+        then (
+          let nfa_with_over =
+            nfa
+            |> List.fold_right
+                 NfaNat.intersect
+                 (exp_vars
+                  |> List.map (fun x ->
+                    let over_x =
+                      Map.of_alist_exn
+                        [ x, Z.minus_one; get_exp x, Z.of_int (NfaCollection.base - 1) ]
+                    in
+                    Nfa.to_nat (NfaCollection.leq powered_vars over_x Z.minus_one)))
+          in
+          Debug.dump_nfa
+            ~msg:"Overapproxed nfa: %s"
+            ~vars:(Map.to_alist vars)
+            NfaNat.format_nfa
+            nfa_with_over;
+          let nfa_to_check =
+            nfa_with_over
+            |> NfaNat.project (order |> List.map (fun str -> Map.find_exn s.vars str))
+          in
+          Debug.dump_nfa ~msg:"Checking if solvable: %s" NfaNat.format_nfa nfa_to_check;
+          nfa_to_check |> NfaNat.run)
+        else true)
     |> Seq.map (fun (order, nfa) -> proof_order return next s nfa order)
     |> Seq.find (function
       | Some _ -> true
