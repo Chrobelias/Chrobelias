@@ -1,8 +1,14 @@
 let log = Debug.printfln
 
 module type Smtml_symantics = sig
-  include FT_SIG.s_term with type term := Smtml.Expr.t
-  include FT_SIG.s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
+  include FT_SIG.s_term with type term := Smtml.Expr.t and type str = Smtml.Expr.t
+
+  include
+    FT_SIG.s_ph
+    with type ph := Smtml.Expr.t
+     and type term = Smtml.Expr.t
+     and type str = Smtml.Expr.t
+
   include FT_SIG.s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 
   val exists : string list -> Smtml.Expr.t -> Smtml.Expr.t
@@ -13,8 +19,14 @@ module Symantics : Smtml_symantics = struct
   open Smtml
 
   type term = Expr.t
+  type str = Expr.t
   type ph = Expr.t [@@warning "-34"]
 
+  let str_len _ = assert false
+  let str_atoi _ = assert false
+  let str_const _ = assert false
+  let str_var _ = assert false
+  let in_re _ _ = failwith __FILE__
   let const n = Smtml.Expr.value (Value.Int n)
   let var s = Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
   let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
@@ -129,7 +141,7 @@ let check ast =
       | Ast.Eia.Eq (l, r) -> Symantics.(helperT l = helperT r)
       | Leq (l, r) -> Symantics.(helperT l <= helperT r)
     with
-    | Bitwise_inside -> Symantics.true_
+    | String_inside | Bitwise_inside -> Symantics.true_
   in
   let _repr = helper ast in
   let whole = _repr :: formulas_of_cache () in

@@ -1,9 +1,10 @@
 module type SYM0 = sig
   type term
+  type str
   type ph
 
-  include FT_SIG.s_term with type term := term
-  include FT_SIG.s_ph with type ph := ph and type term := term
+  include FT_SIG.s_term with type term := term and type str := str
+  include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
   include FT_SIG.s_extra with type ph := ph and type term := term
 
   val pow2var : string -> term
@@ -73,11 +74,16 @@ let make_sym (env : env) onvar bound =
 let make_collector () =
   let module M = struct
     type term = string list
+    type str = term
     type ph = term
     type repr = ph
 
     let ( ++ ) = List.append
     let empty = []
+    let str_const _ = empty
+    let str_atoi _ = empty
+    let str_len _ = empty
+    let str_var _ = empty
     let const _ = empty
     let var _ = empty
     let mul = List.fold_left ( ++ ) []
@@ -88,6 +94,7 @@ let make_collector () =
     let false_ = empty
 
     (* phormulas  *)
+    let in_re _ _ = failwith __FILE__
     let not = Fun.id
     let lor_ = List.fold_left ( ++ ) []
     let land_ = List.fold_left ( ++ ) []
