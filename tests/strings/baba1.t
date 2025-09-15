@@ -2,7 +2,6 @@
 $ cat baba1.smt2
   $ Chro -dpresimpl ./baba1.smt2
   (and
-    (= q q)
     (= q (str.len a))
     (= q (str.len b))
     (= q (+ 1 (str.to.int b)))
