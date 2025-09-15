@@ -1,4 +1,6 @@
 [@@@warning "-unused-value-declaration"]
+[@@@warnerror "-unused-open"]
+[@@@warnerror "-unused-var"]
 
 let log = Utils.log
 
@@ -81,10 +83,11 @@ type relop =
 
 module type SYM0 = sig
   type term
+  type str
   type ph
 
-  include FT_SIG.s_term with type term := term
-  include FT_SIG.s_ph with type ph := ph and type term := term
+  include FT_SIG.s_term with type term := term and type str := str
+  include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
 
   val pow2var : string -> term
   val exists : string list -> ph -> ph
@@ -155,6 +158,7 @@ module Env = struct
   let is_empty = Base.Map.Poly.is_empty
   let length = Base.Map.Poly.length [@@warning "-32"]
   let lookup k map = Base.Map.Poly.find map k
+  let lookup_exn k map = Base.Map.Poly.find_exn map k
   let is_absent_key k map = not (Base.Map.Poly.mem map k)
 
   let merge : t -> t -> t =
@@ -175,6 +179,11 @@ module Env = struct
     Format.fprintf ppf "@]"
   [@@ocaml.warning "-32"]
   ;;
+
+  let to_eqs : t -> Ast.t list =
+    Base.Map.Poly.fold ~init:[] ~f:(fun ~key ~data acc ->
+      Ast.Eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.Var key)) data) :: acc)
+  ;;
 end
 
 let compare_ast l r =
@@ -188,8 +197,13 @@ let compare_ast l r =
 ;;
 
 module Id_symantics :
-  SYM with type ph = Ast.t and type repr = Ast.t and type term = Ast.Eia.term = struct
+  SYM
+  with type ph = Ast.t
+   and type repr = Ast.t
+   and type term = Ast.Eia.term
+   and type str = Ast.Str.term = struct
   type term = Ast.Eia.term
+  type str = Ast.Str.term
   type ph = Ast.t
   type repr = Ast.t
 
@@ -201,6 +215,33 @@ module Id_symantics :
     | FT_SIG.Bwxor -> Ast.Eia.bwxor a b
   ;;
 
+  let str_atoi = function
+    | Ast.Str.Atom (Var s as a) -> Ast.Eia.Stoi (Ast.Str.Atom a)
+    | Const s -> Ast.Eia.Stoi (Ast.Str.Const s)
+    | x ->
+      log "%s %d: %a\n%!" __FILE__ __LINE__ Ast.Str.pp_term x;
+      assert false
+  ;;
+
+  let str_const s = Ast.Str.Const s
+  let str_var s = Ast.Str.Atom (Ast.Var s)
+
+  let in_re l regex =
+    let _ : str = l in
+    match l with
+    | Ast.Str.Atom (Var s) -> Ast.Str (Ast.Str.InRe (Ast.Str.Atom (Var s), regex))
+    | _ -> assert false
+  ;;
+
+  let str_len = function
+    | Ast.Str.Atom (Var s) -> Ast.Eia.Len (Ast.Str.atom (Var s))
+    | Atom (Const _) -> assert false
+    | x ->
+      log "%s %d: %a\n%!" __FILE__ __LINE__ Ast.Str.pp_term x;
+      assert false
+  ;;
+
+  let len = Ast.Eia.len
   let pow = Ast.Eia.pow
   let mul = Ast.Eia.mul
   let add = Ast.Eia.add
@@ -220,6 +261,8 @@ module Id_symantics :
   let pow2var s = pow (const 2) (var s)
 end
 
+(* TODO(Kakadu): create non-sugared application *)
+
 let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
   let rec helper = function
     | Ast.Land xs -> S.land_ (List.map helper xs)
@@ -237,7 +280,14 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
           vs
       in
       S.exists vs (helper ph)
-    | Str _ -> failwith "TBD"
+    | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helper_str term) regex
+    | str ->
+      Format.eprintf "%s %d %a\n%!" __FILE__ __LINE__ Ast.pp_smtlib2 str;
+      failwith (Format.asprintf "TBD")
+  and helper_str : Ast.Str.term -> S.str = function
+    | Ast.Str.Const s -> S.str_const s
+    | Ast.Str.Atom (Ast.Var s) -> S.str_var s
+    | Atom (Const _) -> failwith "should not happen"
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
     | Atom (Ast.Var s) -> S.var s
@@ -248,14 +298,31 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
     | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
-    | Len _ -> failwith "TBD"
-    | Stoi _ -> failwith "TBD"
+    | Len (Ast.Str.Atom (Var s)) -> S.str_len (S.str_var s)
+    | Len (Ast.Str.Const s) -> S.const (String.length s)
+    | Stoi (Ast.Str.Atom (Var s)) -> S.str_atoi (S.str_var s)
+    | Stoi (Ast.Str.Const s) ->
+      (match int_of_string_opt s with
+       | Some n -> S.const n
+       | None -> S.str_atoi (S.str_const s))
+    | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
+      Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
+      failwith "Strlen/Stoi should not be called from int constants. Types are bad"
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
     | Leq (l, r) -> S.(helperT l <= helperT r)
   in
   fun x -> helper x
+;;
+
+let apply_symantics_unsugared (type a) (module S : SYM with type ph = a) =
+  let module M = struct
+    include S
+    include FT_SIG.Sugar (S)
+  end
+  in
+  apply_symantics (module M)
 ;;
 
 let make_main_symantics env =
@@ -545,6 +612,7 @@ module Who_in_exponents_ = struct
   module S = Base.Set.Poly
 
   type term = Info.t
+  type str = Info.t
 
   open Info
 
@@ -569,6 +637,11 @@ module Who_in_exponents_ = struct
   type ph = term
   type repr = ph
 
+  let in_re _ _ = empty
+  let str_atoi _ = empty
+  let str_len _ = empty
+  let str_const _ = empty
+  let str_var _ = empty
   let const _ = empty
   let var s = { empty with all = S.singleton s }
 
@@ -809,6 +882,54 @@ let pp_step fmt step =
     (List.rev step)
 ;;
 
+let lower_strlen ast =
+  let env = ref Env.empty in
+  let names : (Ast.Eia.term, string) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
+  let forgotten = ref Env.empty in
+  let module Collector = struct
+    open Ast.Eia
+    include Id_symantics
+
+    let eq l r =
+      let () =
+        match l, r with
+        | Atom (Var v), Len l | Len l, Atom (Var v) ->
+          if Env.is_absent_key v !env
+          then env := Env.extend_exn !env v (Len l)
+          else forgotten := Env.extend_exn !forgotten v (Len l);
+          names := Base.Map.Poly.set !names ~key:(Len l) ~data:v
+        | _ -> ()
+      in
+      eq l r
+    ;;
+  end
+  in
+  let module Lowering = struct
+    open Ast.Eia
+    include Id_symantics
+
+    let str_len : str -> term = function
+      | Atom (Var v) ->
+        let lv = Ast.Str.Atom (Var v) in
+        (match Base.Map.Poly.find_exn !names (Len lv) with
+         | exception Base.Not_found_s _ ->
+           let newvar = Ir.internal_name () in
+           let lent = Id_symantics.str_len lv in
+           env := Env.extend_exn !env newvar lent;
+           names := Base.Map.Poly.set !names ~key:lent ~data:newvar;
+           var newvar
+         | t -> Id_symantics.var t)
+      | _ -> failwith (Printf.sprintf "Not implemented: %s %d" __FILE__ __LINE__)
+    ;;
+  end
+  in
+  let _ : Ast.t = apply_symantics_unsugared (module Collector) ast in
+  match apply_symantics_unsugared (module Lowering) ast with
+  | Ast.Land xs ->
+    Ast.Land (Env.to_eqs !env @ Env.to_eqs !forgotten @ List.map Id_symantics.prj xs)
+  | ph -> Ast.Land ((ph :: Env.to_eqs !env) @ Env.to_eqs !forgotten)
+;;
+
 let basic_simplify step (env : Env.t) ast =
   let rec loop step (env : Env.t) ast =
     log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
@@ -834,6 +955,8 @@ let basic_simplify step (env : Env.t) ast =
 ;;
 
 let run_basic_simplify ast =
+  let ast = lower_strlen ast in
+  let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat -> `Sat "presimpl"
   | `Unsat -> `Unsat

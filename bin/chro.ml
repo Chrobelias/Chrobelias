@@ -139,7 +139,7 @@ let () =
       Lib.Solver.config.over_approx <- false;
       Lib.Solver.config.simpl_alpha <- false;
       Lib.Solver.config.simpl_mono <- false;
-      Lib.Solver.config.pre_simpl <- false;
+      (* Lib.Solver.config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ -> { asserts = []; prev = Some state }
     | Smtml.Ast.Pop _ -> begin

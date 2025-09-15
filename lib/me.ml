@@ -301,7 +301,9 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
     let v =
       match v with
       | Ast.Str.Atom (Var v) -> v
-      | _ -> failwith "TBD"
+      | _ ->
+        Format.eprintf "term = %a\n%!" Ast.Str.pp_term v;
+        failwith (Format.asprintf "TBD: %s %d" __FILE__ __LINE__)
     in
     Symbol (u, [ Ir.stoi u (Ir.var v) ])
   ;;
