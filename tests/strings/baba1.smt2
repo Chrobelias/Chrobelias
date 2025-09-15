@@ -1,0 +1,16 @@
+(set-logic QF_S)
+
+(declare-const x String)
+(declare-const y String)
+(declare-const a Int)
+(declare-const b Int)
+(declare-const c Int)
+
+(push 1)
+  (assert (str.in.re a (re.+ (re.union (str.to.re "Ba") (str.to.re "Lyu")))))
+  (assert (str.in.re b (re.+ (re.union (str.to.re "20") (str.to.re "25")))))
+  (assert (= q (str.len a)))
+  (assert (= q (+ 1 (str.to.int b))))
+  (assert (= q (str.len b)))
+  (check-sat)
+(pop 1)
