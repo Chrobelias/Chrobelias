@@ -1,0 +1,14 @@
+(cram
+ (applies_to baba1)
+ (deps baba1.smt2))
+
+(cram
+ (applies_to baba2)
+ (deps baba2.smt2))
+
+(cram
+ (applies_to baba3)
+ (deps baba3.smt2))
+
+(cram
+ (deps %{bin:Chro}))
