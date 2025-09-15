@@ -2,6 +2,8 @@
 
 (declare-const x Int)
 (declare-const y Int)
+(declare-const y Int)
+(declare-const u Int)
 
 (push 1)
   (assert (= (exp 2 x) 16))
@@ -88,3 +90,13 @@
 ;  (assert (<= y 10000))
 ;  (check-sat) ; unsat
 ;(pop 1)
+
+(push 1)
+  (assert (and
+            (<= (+ (exp 2 (+ u z)) (exp 2 z)) 21)
+            (<= 2 z)
+            (>= (exp 2 u) 4)
+            ))
+  (check-sat) ; sat
+  (get-model)
+(pop 1)

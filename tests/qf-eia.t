@@ -15,7 +15,48 @@ Basic QF_EIA tests
   sat (underapprox1)
   unsat
   sat (presimpl)
-sat
+  sat (underapprox1)
+  %20 = 4; u = 2; z = 2; 
+
+Basic QF_EIA tests using only NFAs
+
+  $ Chro -bound -1 -no-over-approx ./qf-eia.smt2
+  sat (nfa)
+  unsat
+  unsat
+  sat (nfa)
+  unsat
+  sat (nfa)
+  unsat
+  unsat
+  unsat
+  sat (nfa)
+  unsat
+  sat (nfa)
+  unsat
+  sat (presimpl)
+  sat (nfa)
+  %107 = 4; u = 2; z = 2; 
+
+Same basic QF_EIA tests using only NFAs but in the LSB mode
+
+  $ Chro -lsb -bound -1 -no-over-approx ./qf-eia.smt2
+  sat (nfa)
+  unsat
+  unsat
+  sat (nfa)
+  unsat
+  sat (nfa)
+  unsat
+  unsat
+  unsat
+  sat (nfa)
+  unsat
+  sat (nfa)
+  unsat
+  sat (presimpl)
+  sat (nfa)
+  %45 = 4; u = 2; z = 2; 
 
 Test ExEy y >=0 x & 2**y = x & x > 4
 
