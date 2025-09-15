@@ -883,22 +883,48 @@ struct
         if not (is_exp x)
         then helper (project (get_deg x) nfa) tl model
         else (
-          let deg = (Map.max_elt_exn s.vars |> snd) + 2 in
           let x' = get_exp x in
-          let zero_nfa =
-            Nfa.intersect
-              (NfaCollection.eq s.vars (Map.singleton x Z.one) Z.one)
-              (NfaCollection.eq s.vars (Map.singleton x' Z.one) Z.zero)
-            |> Nfa.truncate deg
-            |> Nfa.intersect nfa
-            |> project (get_deg x)
+          (*
+             If we're here, we're considering 2^x >= ... ordering.
+            We begin from the simple case when 2^x = 1, meaning that x = 0 and
+            all the remaining linear variables are 0.
+            NB: this assumption does not make sense if the ordering is
+                x >= ... >= 2^y >= ... since it implies x >= 1 making 2^x = 1
+                unsat. That's why there is a pre-condition.
+            Then we continue with non-trivial case when 2^x > 1 and x > 0
+            TODO: currently, we add this inequalities as a knowledge. Though
+                  it's not clear if it is faster with these checks or not.
+          *)
+          let x'_idx = List.find_index (( = ) x') tl |> Option.get in
+          let leq_x' = List.drop x'_idx tl in
+          let x_eq_1_model =
+            if not (List.exists is_exp leq_x')
+            then (
+              let zero_nfa =
+                List.fold_left
+                  (fun nfa y' ->
+                     let y'_eq_0 =
+                       NfaCollection.eq s.vars (Map.singleton y' Z.one) Z.zero
+                     in
+                     let y = to_exp y' in
+                     let y_eq_1 = NfaCollection.eq s.vars (Map.singleton y Z.one) Z.one in
+                     Nfa.intersect nfa y'_eq_0 |> Nfa.intersect y_eq_1)
+                  nfa
+                  leq_x'
+              in
+              return s order zero_nfa model)
+            else None
           in
-          Debug.printf "Zero nfa for %a: \n%!" Ir.pp_atom x;
-          Debug.dump_nfa ~msg:"%s" Nfa.format_nfa zero_nfa;
-          match helper zero_nfa tl ((fun _ -> Some ([], 0)) :: model) with
-          | Some _ as res -> res
+          match x_eq_1_model with
+          | Some model -> Option.some model
           | None ->
-            Debug.printfln "%a > 1:" Ir.pp_atom x;
+            let x'_geq_1 =
+              NfaCollection.leq s.vars (Map.singleton x' Z.minus_one) Z.minus_one
+            in
+            let x_gt_1 =
+              NfaCollection.leq s.vars (Map.singleton x Z.minus_one) Z.(of_int (-2))
+            in
+            let nfa = Nfa.intersect nfa x'_geq_1 |> Nfa.intersect x_gt_1 in
             project_exp s nfa x next
             |> Seq.map (fun (nfa, model_part) ->
               helper (Nfa.minimize (project (get_deg x) nfa)) tl (model_part :: model))
