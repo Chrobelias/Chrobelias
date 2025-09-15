@@ -24,6 +24,7 @@ module Debug = struct
         }
   ;;
 
+  let printf str = Format.fprintf fmt (str ^^ "%!")
   let printfln str = Format.fprintf fmt (str ^^ "\n%!")
 
   let dump_nfa ?msg ?vars format_nfa nfa =
@@ -1291,6 +1292,7 @@ module Lsb (Label : L) = struct
 
   type u = t
 
+  let zero_any_path = any_path ~nozero:false
   let any_path = any_path ~nozero:true
   let run nfa = any_path nfa [] |> Option.is_some
 
@@ -1374,14 +1376,13 @@ module Lsb (Label : L) = struct
     (* important *)
     (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
     let result = find_c_d nfa important in
-    Format.printf "Chrobak output: ";
-    Format.printf
+    Debug.printf "Chrobak output: ";
+    Debug.printf
       "%a\n"
       (Format.pp_print_list
          ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
          (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
       result;
-    Format.printf "";
     result
   ;;
 
@@ -1447,7 +1448,7 @@ module Lsb (Label : L) = struct
     |> Set.to_sequence
     |> Sequence.to_seq
     |> Seq.filter_map (fun mid ->
-      let* path = any_path { nfa with start = Set.singleton mid } vars in
+      let* path = zero_any_path { nfa with start = Set.singleton mid } vars in
       let chrobak_nfa =
         { exp_nfa with start = Set.singleton mid } |> remove_unreachable_from_start
       in
@@ -1661,14 +1662,13 @@ module MsbNat (Label : L) = struct
     (* important *)
     (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
     let result = find_c_d nfa important in
-    Format.printf "Chrobak output: ";
-    Format.printf
+    Debug.printf "Chrobak output: ";
+    Debug.printf
       "%a\n"
       (Format.pp_print_list
          ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
          (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
       result;
-    Format.printf "";
     result
   ;;
 
