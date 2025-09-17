@@ -1252,32 +1252,30 @@ struct
     in*)
     let p =
       let frontier = Queue.create () in
-      let mem' q = function
-        | [] -> false
-        | _ :: [] -> false
-        | q' :: tl -> q' = q
-      in
+      let visited = Array.init (length nfa) (Fun.const false) in
       let rec bfs () =
         match Queue.take_opt frontier with
         | None -> None
         | Some ((_, hd) :: _ as path) ->
-          let path_q = List.map snd path in
-          let new_paths =
-            Array.get transitions hd
-            |> List.filter (fun (label, q') -> not (mem' q' path_q))
-            |> List.map (fun part -> part :: path)
-          in
-          let path' =
-            List.find_opt
-              (fun path' -> Set.mem nfa.final (List.hd path' |> snd))
-              new_paths
-          in
-          begin
-            match path' with
-            | Some path' -> Some path'
-            | None ->
-              List.iter (fun path' -> Queue.add path' frontier) new_paths;
-              bfs ()
+          if visited.(hd)
+          then bfs ()
+          else begin
+            visited.(hd) <- true;
+            let new_paths =
+              Array.get transitions hd |> List.map (fun part -> part :: path)
+            in
+            let path' =
+              List.find_opt
+                (fun path' -> Set.mem nfa.final (List.hd path' |> snd))
+                new_paths
+            in
+            begin
+              match path' with
+              | Some path' -> Some path'
+              | None ->
+                List.iter (fun path' -> Queue.add path' frontier) new_paths;
+                bfs ()
+            end
           end
         | Some [] -> failwith ""
       in
