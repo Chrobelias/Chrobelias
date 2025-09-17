@@ -536,6 +536,52 @@ module Graph (Label : L) = struct
       let min = list |> List.map snd |> List.fold_left Int.min (verticies graph) in
       list |> List.find_all (fun (_, len) -> len = min))
   ;;
+
+  let all_paths (graph : t) start =
+    let rec helper visited front =
+      Debug.printfln
+        "bfs_before: front=[%a]"
+        (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_int)
+        (List.map fst front);
+      if List.is_empty front
+      then visited
+      else (
+        let visited =
+          Map.fold2 visited (Map.of_alist_exn front) ~init:Map.empty ~f:(fun ~key ~data ->
+            match data with
+            | `Left data | `Right data -> Map.add_exn ~key ~data
+            | `Both _ -> failwith "Unreachable")
+        in
+        let next =
+          front
+          |> List.concat_map (fun (i, path) ->
+            graph.(i)
+            |> List.filter (fun (lbl, dst) -> not (Map.mem visited dst))
+            |> List.map (fun (lbl, dst) -> dst, lbl :: path))
+        in
+        helper visited next)
+    in
+    start |> Map.to_alist |> helper Map.empty
+  ;;
+
+  let all_paths_of_len graph =
+    let rec helper cur = function
+      | 0 -> cur
+      | n ->
+        assert (n > 0);
+        let next =
+          cur
+          |> Map.to_sequence
+          |> Sequence.concat_map ~f:(fun (state, path) ->
+            graph.(state)
+            |> Sequence.of_list
+            |> Sequence.map ~f:(fun (lbl, dst) -> dst, lbl :: path))
+          |> Map.of_sequence_reduce ~f:Fun.const
+        in
+        helper next (pred n)
+    in
+    helper
+  ;;
 end
 
 let%expect_test "Reachable in range smoke test" =
@@ -1391,44 +1437,43 @@ module Lsb (Label : L) = struct
     Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
     let exp_lbl = Label.singleton_with_mask exp [ exp ] in
     let transitions = nfa.transitions in
-    let bfs =
-      let helper f =
-        let rec helper acc = function
-          | `Answer x :: _ -> Some x
-          | h :: tl -> helper (f h @ acc) tl
-          | [] ->
-            (match acc with
-             | [] -> None
-             | x -> helper [] x)
-        in
-        helper []
-      in
-      helper (function
-        | `Before (cur, path, len) ->
-          if len = total_len
-          then if Set.mem nfa.final cur then [ `Answer path ] else []
-          else (
-            assert (len < total_len);
-            transitions.(cur)
-            |> List.filter_map (fun (lbl, dst) ->
-              Some (`Before (dst, lbl :: path, len + 1))))
-        | `Between (cur, path, visited) ->
-          if Set.mem visited cur
-          then []
-          else if total_len = 0 && Set.mem nfa.final cur
-          then [ `Answer path ]
-          else
-            transitions.(cur)
-            |> List.map (fun (lbl, dst) ->
-              if Label.equal lbl exp_lbl
-              then `Before (dst, lbl :: path, 1)
-              else `Between (dst, lbl :: path, Set.add visited cur))
-        | `Answer x -> failwith "Should be unreachable")
+    let zero_transitions =
+      transitions
+      |> Array.map (List.filter (fun (lbl, dst) -> not (Label.equal exp_lbl lbl)))
     in
-    nfa.start
-    |> Set.to_list
-    |> List.map (fun x -> `Before (x, [], 0))
-    |> bfs
+    let start =
+      nfa.start |> Set.to_list |> List.map (fun x -> x, []) |> Map.of_alist_exn
+    in
+    let intermediate =
+      if total_len = 0
+      then start
+      else Graph.all_paths_of_len zero_transitions start (pred total_len)
+    in
+    Debug.printfln "path_of_len intermediate results:";
+    Debug.printfln
+      "%a"
+      (Format.pp_print_list ~pp_sep:Format.pp_print_newline (fun fmt (a, b) ->
+         Format.fprintf
+           fmt
+           "%d -> [%a]"
+           a
+           (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
+           b))
+      (Map.to_alist intermediate);
+    let find_answer map = nfa.final |> Set.to_list |> List.find_map (Map.find map) in
+    (if total_len = 0
+     then intermediate
+     else
+       intermediate
+       |> Map.to_sequence
+       |> Sequence.concat_map ~f:(fun (state, path) ->
+         transitions.(state)
+         |> Sequence.of_list
+         |> Sequence.filter ~f:(fun (lbl, _) -> Label.equal exp_lbl lbl)
+         |> Sequence.map ~f:(fun (lbl, state) -> state, lbl :: path))
+       |> Map.of_sequence_reduce ~f:Fun.const
+       |> Graph.all_paths zero_transitions)
+    |> find_answer
     |> Option.map (fun p ->
       let len = List.length p in
       let p = List.rev p in
@@ -1691,44 +1736,41 @@ module MsbNat (Label : L) = struct
     Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
     let exp_lbl = Label.singleton_with_mask exp [ exp ] in
     let transitions = nfa.transitions in
-    let bfs =
-      let helper f =
-        let rec helper acc = function
-          | `Answer x :: _ -> Some x
-          | h :: tl -> helper (f h @ acc) tl
-          | [] ->
-            (match acc with
-             | [] -> None
-             | x -> helper [] x)
-        in
-        helper []
-      in
-      helper (function
-        | `Before (cur, path, visited) ->
-          if Set.mem visited cur
-          then []
-          else if total_len = 0 && Set.mem nfa.final cur
-          then [ `Answer path ]
-          else
-            transitions.(cur)
-            |> List.map (fun (lbl, dst) ->
-              if Label.equal lbl exp_lbl
-              then `Between (dst, lbl :: path, 1)
-              else `Before (dst, lbl :: path, Set.add visited cur))
-        | `Between (cur, path, len) ->
-          if len = total_len
-          then if Set.mem nfa.final cur then [ `Answer path ] else []
-          else (
-            assert (len < total_len);
-            transitions.(cur)
-            |> List.filter_map (fun (lbl, dst) ->
-              Some (`Between (dst, lbl :: path, len + 1))))
-        | `Answer x -> failwith "Should be unreachable")
+    let intermediate =
+      nfa.start
+      |> Set.to_list
+      |> List.map (fun x -> x, [])
+      |> Map.of_alist_exn
+      |> Graph.all_paths
+           (transitions
+            |> Array.map (List.filter (fun (lbl, dst) -> not (Label.equal exp_lbl lbl))))
     in
-    nfa.start
-    |> Set.to_list
-    |> List.map (fun x -> `Before (x, [], Set.empty))
-    |> bfs
+    Debug.printfln "path_of_len intermediate results:";
+    Debug.printfln
+      "%a"
+      (Format.pp_print_list ~pp_sep:Format.pp_print_newline (fun fmt (a, b) ->
+         Format.fprintf
+           fmt
+           "%d -> [%a]"
+           a
+           (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
+           b))
+      (Map.to_alist intermediate);
+    let find_answer map = nfa.final |> Set.to_list |> List.find_map (Map.find map) in
+    (if total_len = 0
+     then find_answer intermediate
+     else (
+       let intermediate =
+         intermediate
+         |> Map.to_sequence
+         |> Sequence.concat_map ~f:(fun (state, path) ->
+           transitions.(state)
+           |> Sequence.of_list
+           |> Sequence.filter ~f:(fun (lbl, _) -> Label.equal exp_lbl lbl)
+           |> Sequence.map ~f:(fun (lbl, state) -> state, lbl :: path))
+         |> Map.of_sequence_reduce ~f:Fun.const
+       in
+       Graph.all_paths_of_len transitions intermediate (pred total_len) |> find_answer))
     |> Option.map (fun p ->
       let p = List.rev p in
       let len = List.length p in
