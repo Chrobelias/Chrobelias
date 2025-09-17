@@ -524,6 +524,11 @@ let make_main_symantics env =
         else
           (* TODO(Kakadu): Support other three cases *)
           ofop l r
+      | Eia.Pow (Eia.Atom (Const base), Eia.Add (Atom (Const n) :: etail)), _
+        when Z.(n < zero) && Z.fits_int n ->
+        ofop
+          (Eia.Pow (Eia.Atom (Const base), Eia.Add etail))
+          (mul [ pow (constz base) (constz (Z.abs n)); r ])
       | _ -> ofop l r
     ;;
 
