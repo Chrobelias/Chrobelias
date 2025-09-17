@@ -66,3 +66,7 @@
 (cram
  (deps ../overapprox/NIA2334test33.smt2)
  (applies_to NIA2334test33))
+
+(cram
+ (deps issue117.smt2)
+ (applies_to issue117))
