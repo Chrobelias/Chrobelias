@@ -104,12 +104,3 @@
   (assert (= (str.len a) (str.len b)))
   (get-model)
 (pop 1)
-
-; same as strings/baba1.smt2 but slow
-(push 1)
-  (assert (str.in.re a (re.+ (re.union (str.to.re "Ba") (str.to.re "Lyu")))))
-  (assert (str.in.re b (re.+ (re.union (str.to.re "20") (str.to.re "25")))))
-  (assert (= (str.len b) (str.len a)))
-  (assert (= (str.len a) (+ 1 (str.to.int b))))
-  (check-sat)
-(pop 1)
