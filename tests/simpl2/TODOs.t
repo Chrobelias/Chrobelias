@@ -155,7 +155,7 @@ Fold exps
   iter(1)= (and
              (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 it134)) 2))
   iter(2)= (<= (exp 2 (+ (+ (- 1) it134) it134)) 2)
-  iter(3)= (<= (exp 2 (+ (- 1) it134 it134)) 2)
+  iter(3)= (<= (exp 2 (+ it134 it134)) 4)
   Interesting:
   
   Expecting 1 choices ...
