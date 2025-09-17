@@ -908,7 +908,7 @@ struct
           | None ->
             project_exp s nfa x next
             |> Seq.map (fun (nfa, model_part) ->
-              helper (Nfa.minimize (project (get_deg x) nfa)) tl (model_part :: model))
+              helper (project (get_deg x) nfa) tl (model_part :: model))
             |> Seq.find_map Fun.id)
     in
     helper nfa order []
@@ -948,7 +948,7 @@ struct
                (order_vars |> Map.map_keys_exn ~f:(fun k -> Map.find_exn s.vars k))
         in
         Debug.dump_nfa ~msg:"Nfa order2: %s" NfaNat.format_nfa order_nfa;
-        NfaNat.intersect nfa order_nfa |> NfaNat.minimize)
+        NfaNat.intersect nfa (order_nfa |> NfaNat.minimize))
     in
     Debug.dump_nfa ~msg:"NFA taking order into account: %s" NfaNat.format_nfa nfa;
     order, nfa
@@ -1012,7 +1012,10 @@ struct
       ~vars:(Map.to_alist vars)
       Nfa.format_nfa
       nfa;
-    let nfa = nfa |> Nfa.to_nat |> NfaNat.minimize in
+    let nfa =
+      nfa |> Nfa.to_nat
+      (*|> NfaNat.minimize *)
+    in
     Debug.dump_nfa
       ~msg:"Minimized original nfa: %s"
       ~vars:(Map.to_alist vars)
