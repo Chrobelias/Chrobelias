@@ -4,6 +4,12 @@
 
 let log = Utils.log
 
+module Term_map = Map.Make (struct
+    type t = Ast.Eia.term
+
+    let compare = Stdlib.compare
+  end)
+
 type error = Non_linear_arith of Ast.Eia.term list
 
 let compare_error : error -> _ = Stdlib.compare
@@ -534,7 +540,21 @@ let make_main_symantics env =
 
     let lt l r = relop Leq (add [ const 1; l ]) r
     let leq = relop Leq
-    let eq x y = relop Eq x y
+
+    let eq x y =
+      let ans = relop Eq x y in
+      match ans with
+      | Eia (Eia.Eq (Mul (Atom (Const l) :: ltl), Mul (Atom (Const r) :: rtl))) ->
+        let gcd1 = Z.gcd l r in
+        if Z.(equal gcd1 one)
+        then ans
+        else
+          Eia
+            (Eia.eq (mul (constz Z.(l / gcd1) :: ltl)) (mul (constz Z.(r / gcd1) :: rtl)))
+      | Eia (Eia.Eq (l, r)) when Eia.eq_term l r -> true_
+      | _ -> ans
+    ;;
+
     let prj : ph -> repr = Fun.id
   end
   in
@@ -668,6 +688,37 @@ struct
   include FT_SIG.Sugar (Who_in_exponents_)
 end
 
+let propagate_exponents ast =
+  let open Ast in
+  let rec collect acc = function
+    | Ast.Eia (Eia.Leq _) | Eia (Eia.Eq (Eia.Pow _, Eia.Pow _)) -> acc
+    | Eia (Eia.Eq ((Eia.Pow _ as l), r)) -> collect acc (Eia (Eia.Eq (r, l)))
+    | Eia (Eia.Eq (l, (Eia.Pow _ as r))) -> Term_map.add r l acc
+    | _ -> acc
+  in
+  let info =
+    match ast with
+    | Ast.Land xs -> List.fold_left collect Term_map.empty xs
+    | _ -> collect Term_map.empty ast
+  in
+  let check key ~rhs =
+    match Term_map.find key info with
+    | exception Not_found -> key
+    | t when Eia.eq_term rhs t -> key
+    | t ->
+      log "%s: %a -> %a" __FUNCTION__ Ast.pp_term_smtlib2 key Ast.pp_term_smtlib2 t;
+      t
+  in
+  let on_eia = function
+    | Eia (Eia.Eq (l, r)) -> Eia (Eia.eq (check l ~rhs:r) (check r ~rhs:l))
+    | Eia (Eia.Leq (l, r)) -> Eia (Eia.leq (check l ~rhs:r) (check r ~rhs:l))
+    | x -> x
+  in
+  match ast with
+  | Ast.Land xs -> Ast.land_ (List.map on_eia xs)
+  | _ -> ast
+;;
+
 let find_vars_for_under2 ast =
   let module S = Base.Set.Poly in
   Ast.fold
@@ -688,12 +739,6 @@ let find_vars_for_under2 ast =
     S.empty
     ast
 ;;
-
-module Term_map = Map.Make (struct
-    type t = Ast.Eia.term
-
-    let compare = Stdlib.compare
-  end)
 
 let gensym =
   let n = ref 0 in
@@ -802,6 +847,8 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
     | Eia (Eia.Eq (Mul [ Atom (Const cl); Atom (Var v) ], Atom (Const cr)))
       when Z.(cr mod cl = zero) && Env.is_absent_key v env ->
       Env.extend_exn env v (Atom (Const Z.(cr / cl)))
+    | Eia (Eia.Eq ((Mul [ Atom (Const cl); Atom (Var v) ] as lhs), Atom (Var r)))
+      when Env.is_absent_key r env -> Env.extend_exn env r lhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) when v1 <> v2 ->
       single info env Z.one v1 Z.one v2 rhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs))
@@ -913,8 +960,10 @@ let basic_simplify step (env : Env.t) ast =
     let (module Symantics) = make_main_symantics env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
+    let ast2 = propagate_exponents ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
     let env2 = eq_propagation var_info env ast in
+    let __ _ = log "env2 = %a" Env.pp env2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
       let () = log "Something ready to substitute: %a" Env.pp env2 in
