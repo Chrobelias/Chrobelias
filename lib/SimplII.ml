@@ -546,33 +546,6 @@ let make_main_symantics env =
 
 exception Unsat
 exception Sat of string
-(*
-   let try_propagate : Ast.t -> Env.t * Ast.t =
-  let open Ast in
-  let helper = function
-    | Ast.Land xs ->
-      let env, xs =
-        List.fold_left
-          (fun (env, rest) -> function
-             | Eia
-                 (Eia.Eq
-                    (Eia.Mul [ Atom (Const coeff); Atom (Var v) ], Eia.Atom (Ast.Const r)))
-               ->
-               if Z.(r mod coeff = zero)
-               then Env.extend_exn env v (Eia.Atom (const Z.(r / coeff))), rest
-               else raise Unsat
-             | Eia Eia.(Eq (Atom (Var v), Atom (Const r)))
-             | Eia Eia.(Eq (Atom (Const r), Atom (Var v))) ->
-               Env.extend_exn env v (Eia.Atom (const r)), rest
-             | other -> env, other :: rest)
-          (Env.empty, [])
-          xs
-      in
-      env, Ast.land_ xs
-    | ast -> Env.empty, ast
-  in
-  helper
-;; *)
 
 module Info = struct
   type names = string Base.Set.Poly.t
@@ -580,7 +553,6 @@ module Info = struct
   type t =
     { exp : names
     ; all : names
-    ; under2 : names
     }
 
   let is_in_expo name { exp; _ } = Base.Set.Poly.mem exp name
@@ -588,7 +560,7 @@ module Info = struct
   let make ~exp ~all ~under =
     (* TODO: check subsumtion *)
     let of_list = Base.Set.Poly.of_list in
-    { exp = of_list exp; all = of_list all; under2 = of_list under }
+    { exp = of_list exp; all = of_list all }
   ;;
 
   let empty = make ~exp:[] ~all:[] ~under:[]
@@ -604,7 +576,7 @@ module Info = struct
 
   let union e1 e2 =
     let ( ++ ) = Base.Set.Poly.union in
-    { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all; under2 = e1.under2 ++ e2.under2 }
+    { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all }
   ;;
 end
 
@@ -1195,25 +1167,3 @@ let%expect_test " -2x <= -1" =
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-1));
   [%expect "(<= (* (- 1) x) (- 1))"]
 ;;
-
-(* let%expect_test _ =
-  let (module Main_symantics) = make_main_symantics Env.empty in
-  let wrap ph =
-    let e, ast = try_propagate ph in
-    Format.printf "@[<v>";
-    Format.printf "@[rest ast: @[%a@]@]@ " Ast.pp_smtlib2 ast;
-    Format.printf "@[env:      @[%a@]@]" Env.pp e;
-    Format.printf "@]%!"
-  in
-  wrap Main_symantics.(land_ [ eq (mul [ const 5; var "x" ]) (const 50) ]);
-  [%expect "\n rest ast: (= (* 5 x) 50)\n env:\n "];
-  wrap
-    Main_symantics.(
-      land_
-        [ eq (mul [ const 5; var "x" ]) (const 50)
-        ; eq (mul [ const 3; var "y" ]) (const 60)
-        ; leq (mul [ const 5; var "z" ]) (const 50)
-        ]);
-  [%expect
-    "\n rest ast: (and\n             (<= (* 5 z) 50))\n env:       x -> 10; y -> 20;\n "]
-;; *)
