@@ -4,8 +4,7 @@
              (= (+ x y) 13))
   Something ready to substitute:  y -> (+ 13 (* (- 1) x));
   iter(2)= (= (+ x y) 13)
-  iter(3)= (= 0 0)
-  iter(4)= True
+  iter(3)= True
   sat (presimpl)
 
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
@@ -20,18 +19,14 @@
              (= (+ x z) 10000)
              (= (+ y z) 100))
   iter(3)= (and
-             (= 0 0)
              (= (+ y (* (- 1) x)) (- 9900))
              (= (+ (* (- 1) x) (* (- 1) y)) (- 1)))
   iter(4)= (and
              (= (+ y (* 1 (- 1)) (* (* (- 1) y) (- 1))) (- 9900))
              (= (+ (* (- 1) y) (* 1 (- 1)) (* (* (- 1) y) (- 1))) (- 1)))
   iter(5)= (and
-             (= 0 0)
              (= (+ y y) (- 9899)))
-  iter(6)= (and
-             (= (+ y y) (- 9899)))
-  iter(7)= (= (+ y y) (- 9899))
+  iter(6)= (= (+ y y) (- 9899))
   Interesting:
   
   Expecting 1 choices ...

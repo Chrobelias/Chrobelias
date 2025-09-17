@@ -62,50 +62,6 @@ Should be (<= x 2)
   iter(2)= True
   sat (presimpl)
 
-  $ cat > i3.smt2 <<-EOF
-  > (set-logic ALL)
-  > (declare-fun i3 () Int)
-  > (declare-fun it1092 () Int)
-  > (declare-fun it1094 () Int)
-  > (declare-fun it1095 () Int)
-  > (assert (= (+ (+ it1095 (* i3 (* (- 1) 2))) 2) 0))
-  > (assert (= (+ (+ (* i3 (* (- 1) 1)) it1094) 1) 0))
-  > (assert (= (+ (+ it1092 (* i3 (* (- 1) 1))) 1) 0))
-  > (assert (<= 0 (+ i3 (* (- 1) 2))))
-  > (check-sat)
-  > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
-  iter(1)= (and
-             (<= 0 (+ i3 (* (* (- 1) 1) 2)))
-             (= (+ (+ it1092 (* i3 (* (* (- 1) 1) 1))) 1) 0)
-             (= (+ (+ (* i3 (* (* (- 1) 1) 1)) it1094) 1) 0)
-             (= (+ (+ it1095 (* i3 (* (* (- 1) 1) 2))) 2) 0))
-  iter(2)= (and
-             (= (+ it1092 (* (- 1) i3)) (- 1))
-             (= (+ it1094 (* (- 1) i3)) (- 1))
-             (= (+ it1095 (* (- 2) i3)) (- 2))
-             (<= (* (- 1) i3) (- 2)))
-  Something ready to substitute:  it1092 -> (+ (- 1) i3); it1094 -> (+ (- 1)
-                                                                    i3); it1095 ->
-                                 (+ (- 2) (* 2 i3));
-  iter(3)= (and
-             (= (+ it1092 (* (- 1) i3)) (- 1))
-             (= (+ it1094 (* (- 1) i3)) (- 1))
-             (= (+ it1095 (* (- 2) i3)) (- 2))
-             (<= (* (- 1) i3) (- 2)))
-  iter(4)= (and
-             (= 0 0)
-             (<= (* (- 1) i3) (- 2)))
-  iter(5)= (and
-             (<= (* (- 1) i3) (- 2)))
-  iter(6)= (<= (* (- 1) i3) (- 2))
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  env = {| |}
-  sat (underapprox1)
 Fold exps
   $ cat > i3.smt2 <<-EOF
   > (set-logic ALL)
