@@ -111,8 +111,12 @@ end
 
 module MsbNat (Label : L) : sig
   include NatType with type v = Label.u
+
+  val strong_minimize : t -> t
 end
 
 module Msb (Label : L) : sig
   include Type with type u = MsbNat(Label).t and type v = Label.u
+
+  val strong_minimize : t -> t
 end

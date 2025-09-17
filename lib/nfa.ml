@@ -1509,12 +1509,6 @@ module Lsb (Label : L) = struct
     |> remove_unreachable_from_final
     |> remove_unreachable_from_start
   ;;
-  (*|> to_dfa
-    |> reverse
-    |> to_dfa
-    |> reverse
-    |> to_dfa
-    |> remove_unreachable_from_final*)
 end
 
 module MsbNat (Label : L) = struct
@@ -1551,7 +1545,27 @@ module MsbNat (Label : L) = struct
 
   type u = t
 
-  let minimize nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa
+  let minimize nfa =
+    nfa
+    |> fun nfa ->
+    { nfa with
+      transitions =
+        nfa.transitions |> Array.map (fun delta -> Set.of_list delta |> Set.to_list)
+    }
+    |> remove_unreachable_from_final
+    |> remove_unreachable_from_start
+  ;;
+
+  let strong_minimize nfa =
+    nfa
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+    |> remove_unreachable_from_final
+  ;;
+
   let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
 
@@ -1856,7 +1870,26 @@ module Msb (Label : L) = struct
 
   type u = MsbNat.t
 
-  let minimize nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa
+  let minimize nfa =
+    nfa
+    |> fun nfa ->
+    { nfa with
+      transitions =
+        nfa.transitions |> Array.map (fun delta -> Set.of_list delta |> Set.to_list)
+    }
+    |> remove_unreachable_from_final
+    |> remove_unreachable_from_start
+  ;;
+
+  let strong_minimize nfa =
+    nfa
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+    |> remove_unreachable_from_final
+  ;;
 
   let any_path nfa =
     Debug.dump_nfa ~msg:"ANY PATH INPUT: %s" format_nfa nfa;

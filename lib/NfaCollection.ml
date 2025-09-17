@@ -321,48 +321,49 @@ module Msb = struct
     let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
     if Z.(gcd_ = zero)
     then if Z.(zero <= c) then n () else z ()
-    else (
-      let thing = powerset term in
-      let states = ref Set.empty in
-      let transitions = ref [] in
-      let rec lp front =
-        match front with
-        | [] -> ()
-        | hd :: tl ->
-          if Set.mem !states hd
-          then lp tl
-          else begin
-            let t =
-              thing
-              |> List.map (fun (bits, sum) ->
-                Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
-            in
-            states := Set.add !states hd;
-            transitions := t @ !transitions;
-            lp (List.map (fun (x, _, _) -> x) t @ tl)
-          end
-      in
-      lp [ c ];
-      let states = Set.to_list !states in
-      let start = List.length states in
-      let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
-      let idx c = Map.find states c |> Option.get in
-      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
-      let transitions =
-        (thing
-         |> List.concat_map (fun (d, sum) ->
-           Map.to_alist states
-           |> List.filter_map (fun (v, idv) ->
-             if Z.(-sum <= v) then Some (start, d, idv) else None)))
-        @ transitions
-      in
-      Nfa.create_nfa
-        ~transitions
-        ~start:[ start ]
-        ~final:(states |> Map.filter_keys ~f:(fun x -> x <= c) |> Map.data)
-        ~vars:(List.map fst term)
-        ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
-      |> fun x -> x)
+    else
+      (let thing = powerset term in
+       let states = ref Set.empty in
+       let transitions = ref [] in
+       let rec lp front =
+         match front with
+         | [] -> ()
+         | hd :: tl ->
+           if Set.mem !states hd
+           then lp tl
+           else begin
+             let t =
+               thing
+               |> List.map (fun (bits, sum) ->
+                 Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
+             in
+             states := Set.add !states hd;
+             transitions := t @ !transitions;
+             lp (List.map (fun (x, _, _) -> x) t @ tl)
+           end
+       in
+       lp [ c ];
+       let states = Set.to_list !states in
+       let start = List.length states in
+       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+       let idx c = Map.find states c |> Option.get in
+       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+       let transitions =
+         (thing
+          |> List.concat_map (fun (d, sum) ->
+            Map.to_alist states
+            |> List.filter_map (fun (v, idv) ->
+              if Z.(-sum <= v) then Some (start, d, idv) else None)))
+         @ transitions
+       in
+       Nfa.create_nfa
+         ~transitions
+         ~start:[ start ]
+         ~final:(states |> Map.filter_keys ~f:(fun x -> x <= c) |> Map.data)
+         ~vars:(List.map fst term)
+         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+       |> fun x -> x)
+      |> Nfa.strong_minimize
   ;;
 
   let strlen (_nfa : t) ~(dest : int) ~(src : int) =
