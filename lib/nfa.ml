@@ -539,18 +539,18 @@ module Graph (Label : L) = struct
 
   let all_paths (graph : t) start =
     let rec helper visited front =
-      Debug.printfln
-        "bfs_before: front=[%a]"
-        (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_int)
-        (List.map fst front);
       if List.is_empty front
       then visited
       else (
         let visited =
-          Map.fold2 visited (Map.of_alist_exn front) ~init:Map.empty ~f:(fun ~key ~data ->
-            match data with
-            | `Left data | `Right data -> Map.add_exn ~key ~data
-            | `Both _ -> failwith "Unreachable")
+          Map.fold2
+            visited
+            (Map.of_alist_reduce ~f:Fun.const front)
+            ~init:Map.empty
+            ~f:(fun ~key ~data ->
+              match data with
+              | `Left data | `Right data -> Map.add_exn ~key ~data
+              | `Both _ -> failwith "Unreachable")
         in
         let next =
           front
