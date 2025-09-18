@@ -1204,12 +1204,12 @@ module LsbStr =
       let model_to_int c =
         c
         |> List.to_seq
-        |> Seq.drop_while (fun c -> c = '0')
         |> Seq.filter (( <> ) Str.u_eos)
         |> Seq.filter (( <> ) Str.u_null)
         |> List.of_seq
         |> List.rev
         |> List.to_seq
+        |> Seq.drop_while (fun c -> c = '0')
         |> String.of_seq
         |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
       ;;
