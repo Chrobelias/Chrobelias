@@ -24,12 +24,12 @@
   (check-sat) ; unsat
 (pop 1)
 
-;(push 1)
-;    (assert (and
-;            (= (* (exp 2 z) (+ 1 (exp 2 u))) y)
-;            (<= y 275)
-;            (<= 4 z)
-;            (>= (exp 2 u) 9)
-;            ))
-;    (check-sat) ; sat
-;(pop 1)
+(push 1)
+    (assert (and
+            (= (* (exp 2 z) (+ 1 (exp 2 u))) y)
+            (<= y 275)
+            (<= 4 z)
+            (>= (exp 2 u) 9)
+            ))
+    (check-sat) ; sat
+(pop 1)
