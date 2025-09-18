@@ -15,8 +15,6 @@ Basic QF_EIA tests
   sat (underapprox1)
   unsat
   sat (presimpl)
-  sat (underapprox1)
-  %20 = 4; u = 2; z = 2; 
 
 Basic QF_EIA tests using only NFAs
 
@@ -35,8 +33,6 @@ Basic QF_EIA tests using only NFAs
   sat (nfa)
   unsat
   sat (presimpl)
-  sat (nfa)
-  %77 = 4; u = 2; z = 2; 
 
 Same basic QF_EIA tests using only NFAs but in the LSB mode
 
@@ -55,8 +51,6 @@ Same basic QF_EIA tests using only NFAs but in the LSB mode
   sat (nfa)
   unsat
   sat (presimpl)
-  sat (nfa)
-  %31 = 4; u = 2; z = 2; 
 
 Test ExEy y >=0 x & 2**y = x & x > 4
 
