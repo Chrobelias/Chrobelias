@@ -1208,9 +1208,8 @@ module LsbStr =
         |> Seq.filter (( <> ) Str.u_null)
         |> List.of_seq
         |> List.rev
-        |> List.to_seq
-        |> Seq.drop_while (fun c -> c = '0')
-        |> String.of_seq
+        |> Base.List.drop_while ~f:(( = ) '0')
+        |> Base.String.of_list
         |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
       ;;
 

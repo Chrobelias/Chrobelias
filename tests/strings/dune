@@ -11,4 +11,8 @@
  (deps baba3.smt2))
 
 (cram
+ (applies_to simple-len)
+ (deps simple-len.smt2))
+
+(cram
  (deps %{bin:Chro}))
