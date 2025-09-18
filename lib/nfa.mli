@@ -78,6 +78,7 @@ module type Type = sig
   val is_graph : t -> bool
   val reenumerate : (int, int) Map.t -> t -> t
   val minimize : t -> t
+  val minimize_strong : t -> t
   val invert : t -> t
   val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
@@ -111,12 +112,8 @@ end
 
 module MsbNat (Label : L) : sig
   include NatType with type v = Label.u
-
-  val strong_minimize : t -> t
 end
 
 module Msb (Label : L) : sig
   include Type with type u = MsbNat(Label).t and type v = Label.u
-
-  val strong_minimize : t -> t
 end

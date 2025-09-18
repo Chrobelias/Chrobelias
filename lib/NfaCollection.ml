@@ -363,8 +363,15 @@ module Msb = struct
          ~vars:(List.map fst term)
          ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
        |> fun x -> x)
-      |> Nfa.strong_minimize
+      |> Nfa.minimize_strong
   ;;
+
+  (* Remark by Bernard Boigelot from "Symbolic methods and automata": 
+  
+  An important difference between Algorithm 1 and Algorithm 2 is that the latter
+  generally produces nondeterministic NDD. This may be problematic in some applications, 
+  in particular if automata need to be minimised in order to obtain canonical set
+  representations.*)
 
   let strlen (_nfa : t) ~(dest : int) ~(src : int) =
     let _src = src in
