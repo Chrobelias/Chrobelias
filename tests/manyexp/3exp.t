@@ -4,6 +4,7 @@ QF_EIA tests with three exponentiated vars using only NFAs
   sat (nfa)
   %33 = 4; u = 2; z = 2; 
   unsat
+  sat (nfa)
 
 The same tests with three exponentiated vars in the LSB mode
 
@@ -11,3 +12,4 @@ The same tests with three exponentiated vars in the LSB mode
   sat (nfa)
   %17 = 4; u = 2; z = 2; 
   unsat
+  sat (nfa)
