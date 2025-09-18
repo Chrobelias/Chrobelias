@@ -1,0 +1,6 @@
+(cram
+ (deps %{bin:Chro}))
+
+(cram
+ (deps 3exp.smt2)
+ (applies_to 3exp))
