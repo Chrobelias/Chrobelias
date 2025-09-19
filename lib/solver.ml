@@ -222,56 +222,78 @@ let trivial ir =
       | ir -> ir)
   in*)
   let quantifiers_closer : Ir.t -> Ir.t =
-    Ir.map (function
-      | Ir.Exists ([], ir) -> ir
-      | Ir.Exists (atoms, Ir.Exists (atoms', ir)) ->
-        Ir.exists (Base.List.dedup_and_sort ~compare (atoms @ atoms')) ir
-      | Ir.Exists (atoms, Ir.Land irs) ->
-        let atoms_set = Set.of_list atoms in
-        let irs_using_var =
-          List.mapi
-            begin
-              fun i ir ->
-                let free_vars = collect_free ir in
-                let used_vars = Set.inter atoms_set free_vars in
-                i, used_vars
-            end
-            irs
-        in
-        let var_is_used_in =
-          List.map
-            begin
-              fun atom ->
-                ( atom
-                , List.filter_map
-                    (fun (i, s) -> if Set.mem s atom then Some i else None)
-                    irs_using_var )
-            end
-            atoms
-          |> Map.of_alist_exn
-        in
-        let atoms, irs =
-          List.fold_left
-            begin
-              fun (atoms, irs) (atom, used_in) ->
-                match used_in with
-                | [] -> atoms, irs
-                | [ i ] ->
-                  ( atoms
-                  , List.mapi
-                      (fun j ir -> if i = j then Ir.exists [ atom ] ir else ir)
-                      irs )
-                | _ -> atom :: atoms, irs
-            end
-            ([], irs)
-            (var_is_used_in
-             |> Map.to_alist
-             |> List.sort (fun (_, used_in) (_, used_in') ->
-               List.length used_in' - List.length used_in))
-        in
-        Ir.exists atoms (Ir.land_ irs)
-      | Ir.Exists (atoms, Ir.Lor irs) -> Ir.lor_ (List.map (Ir.exists atoms) irs)
-      | ir -> ir)
+    fun ir ->
+    Ir.map
+      (function
+        | Ir.Exists ([], ir) -> ir
+        | Ir.Exists (atoms, Ir.Exists (atoms', ir)) ->
+          Ir.exists (Base.List.dedup_and_sort ~compare (atoms @ atoms')) ir
+        | Ir.Exists ((a :: b :: tl as atoms), (Ir.Land irs as ir)) as orig_ir ->
+          let atoms =
+            List.filter
+              (fun atom ->
+                 not
+                   (Ir.for_some
+                      (function
+                        | Ir.SReg (atom', _)
+                        | Ir.SLen (atom', _)
+                        | Ir.Stoi (atom', _)
+                        | Ir.SEq (atom', _)
+                          when atom = atom' -> true
+                        | _ -> false)
+                      ir))
+              atoms
+          in
+          let atoms_set = Set.of_list atoms in
+          if atoms_set |> Set.is_empty
+          then orig_ir
+          else (
+            let irs_using_var =
+              List.mapi
+                begin
+                  fun i ir ->
+                    let free_vars = collect_free ir in
+                    let used_vars = Set.inter atoms_set free_vars in
+                    i, used_vars
+                end
+                irs
+            in
+            let var_is_used_in =
+              List.map
+                begin
+                  fun atom ->
+                    ( atom
+                    , List.filter_map
+                        (fun (i, s) -> if Set.mem s atom then Some i else None)
+                        irs_using_var )
+                end
+                atoms
+              |> Map.of_alist_exn
+            in
+            let atom_to_move, used_in =
+              var_is_used_in
+              |> Map.to_alist
+              |> List.sort (fun (_, used_in) (_, used_in') ->
+                List.length used_in - List.length used_in')
+              |> List.hd
+            in
+            if List.length irs = List.length used_in
+            then orig_ir
+            else (
+              let atoms = List.filter (fun atom -> atom <> atom_to_move) atoms in
+              let irs_used, irs_free =
+                irs
+                |> List.mapi (fun i ir -> i, ir)
+                |> List.partition (fun (i, ir) -> List.mem i used_in)
+              in
+              let irs_used = List.map snd irs_used in
+              let irs_free = List.map snd irs_free in
+              Ir.exists
+                atoms
+                (Ir.land_ (Ir.exists [ atom_to_move ] (Ir.land_ irs_used) :: irs_free))))
+        | Ir.Exists (atoms, Ir.Lor irs) -> Ir.lor_ (List.map (Ir.exists atoms) irs)
+        | ir -> ir)
+      ir
   in
   let simpl ir =
     ir

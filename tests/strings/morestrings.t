@@ -26,6 +26,3 @@
   term = "123451234123412341234123"
   Fatal error: exception Failure("TBD: lib/me.ml 346")
   [2]
-<<<<<<< HEAD
-=======
->>>>>>> eb339ef1 (solver: infer from equalities in string simplify)
