@@ -643,8 +643,8 @@ struct
 
   let logBaseZ n =
     let base = Z.of_int NfaCollection.base in
-    let rec helper acc n = if n = Z.zero then acc else helper (acc + 1) Z.(n / base) in
-    helper (-1) n
+    let rec helper acc n = if n = Z.zero then acc else helper Z.(succ acc) Z.(n / base) in
+    helper Z.minus_one n
   ;;
 
   let pow2z n =
@@ -1098,7 +1098,7 @@ struct
     let rec helper mapVals len order past_order parts =
       let len_of_var = function
         | Ir.Var var -> Map.find_exn mapVals var |> Extra.nat_model_to_int |> logBaseZ
-        | Ir.Pow2 var -> Map.find_exn mapVals var |> Extra.nat_model_to_int |> Z.to_int
+        | Ir.Pow2 var -> Map.find_exn mapVals var |> Extra.nat_model_to_int
       in
       match order with
       | [] -> mapVals
@@ -1122,7 +1122,11 @@ struct
              exp
              Ir.pp_atom
              prev_var;
-           let path_len = len_of_var exp - len_of_var prev_var in
+           let path_len = Z.(len_of_var exp - len_of_var prev_var) in
+           Debug.printfln "inside combine_mmodel_pieces: path_len=%a" Z.pp_print path_len;
+           if not (Z.fits_int path_len)
+           then failwith "The model found does not fit in the RAM";
+           let path_len = Z.to_int path_len in
            let model2 = part path_len |> Option.get in
            let new_model, new_len =
              NfaNat.combine_model_pieces
