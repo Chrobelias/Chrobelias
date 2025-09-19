@@ -171,10 +171,17 @@ let check_sat ?(verbose = false) ast : rez =
 let join_int_model prefix m =
   let open Lib in
   let _ : Ir.model = m in
-  SimplII.Env.fold prefix ~init:m ~f:(fun ~key ~data acc ->
-    match data with
-    | Ast.Eia.Atom (Const z) -> Map.add_exn acc ~key:(Var key) ~data:(`Int z)
-    | Atom (Var _) | _ -> failwith "not implemented")
+  let rec seek key =
+    let term = Map.find_exn prefix key in
+    match term with
+    | Ast.Eia.Atom (Const z) -> Some (`Int z)
+    | Atom (Var v) -> seek v
+    | term -> failwith (Format.asprintf "not implemented: %a" Ast.pp_term_smtlib2 term)
+  in
+  SimplII.Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
+    match seek key with
+    | Some value -> Map.add_exn acc ~key:(Var key) ~data:value
+    | None -> failwith "not implemented")
 ;;
 
 type state =

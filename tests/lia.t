@@ -1,7 +1,25 @@
 Basic LIA tests
 
   $ OCAMLRUNPARAM='b=0' Chro -bound 0 -no-over-approx ./lia.smt2
-  Fatal error: exception Smtml.Parse.Syntax_error("3053-3060: syntax error: 116")
+  sat (presimpl)
+  unsat
+  sat (presimpl)
+  sat (presimpl)
+  sat (underapprox1)
+  sat (underapprox1)
+  sat (underapprox1)
+  unsat
+  sat (underapprox1)
+  sat (underapprox1)
+  sat (underapprox1)
+  unsat
+  sat (underapprox1)
+  unsat
+  unsat
+  sat (underapprox1)
+  unsat
+  sat (underapprox1)
+  Fatal error: exception Failure("not implemented: (+ (- 5) (* 7 u))")
   [2]
 
 Test Frobenious coin problem for 7 and 11

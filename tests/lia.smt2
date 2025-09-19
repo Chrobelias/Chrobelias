@@ -130,7 +130,6 @@
 ;   (check-sat) ; sat
 ; (pop 1)
 
-<<<<<<< HEAD
 (push 1)
   (assert (forall ((x Int)) (exists ((y Int)) (or (= x (* 3 y)) (= x (+ (* 3 y) 2))))))
   (check-sat) ; sat
@@ -143,9 +142,8 @@
   (check-sat)
   (get-model)
 (pop 1)
-=======
+
 ; (push 1)
 ;   (assert (forall ((x Int)) (exists ((y Int)) (or (= x (* 3 y)) (= x (+ (* 3 y) 2))))))
 ;   (check-sat) ; sat
 ; (pop 1)
->>>>>>> 124e218e (Promote tests)
