@@ -36,9 +36,14 @@ Habermehl demo
   > (check-sat)
   > EOF
   $ Chro -bound 0 -dsimpl -stop-after simpl Habermehl.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (x) (and
-                        (<= (+ x z )  24)
-                        (= (+ x pow2(z) )  52)
-                        )
+  (assert (exists (y)
+          (and
+            (<= (* 5 y)  42)
+            (exists (x)
+            (and
+              (<= (+ x (* (- 3) y) z )  0)
+              (= (+ x pow2(z) )  52)
+              )
+            )
   )
 

@@ -1,7 +1,7 @@
 
 $ cat baba3.smt2
   $ Chro -dsimpl ./baba3.smt2 -stop-after simpl
-  (assert (exists (b a %4 %2)
+  (assert (exists (%2 %4 a b)
           (and
             (= %2 (str.len b))(= %4 (str.len a))(= (+ (* (- 1) %1) %3 )  23)
             (= (+ (* (- 1) %2) pow2(%1) )  1)
