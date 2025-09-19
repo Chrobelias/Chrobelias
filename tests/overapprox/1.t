@@ -24,7 +24,7 @@ $ export CHRO_DEBUG=1
   Early SAT in lib/Overapprox.ml ~~> Unknown
   (model
     (x1 int 0))
-  (assert (exists (x1 %0)
+  (assert (exists (%0 x1)
           (and
             ((re.* (re.union (re.union (re.union (str.to.re "4") (str.to.re "2")) (str.to.re "0")) (str.to.re "7"))))
             (= (+ (* (- 1) %0) x1 )  0)
