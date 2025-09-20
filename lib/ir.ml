@@ -221,6 +221,8 @@ let pp_smtlib2 ppf ir =
   | ir -> fprintf ppf "(assert %a)" helper ir
 ;;
 
+let model_to_str _ = "model in smt2-format: TODO Kakadu"
+
 let exists vars = function
   | True -> True
   | ph ->
