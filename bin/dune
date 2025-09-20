@@ -4,7 +4,9 @@
  (libraries
   lib
   ;memtrace
-  ))
+  )
+ (preprocess
+  (pps ppx_deriving.show)))
 
 (rule
  (targets swine)

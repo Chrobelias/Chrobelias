@@ -224,7 +224,6 @@ let pp_smtlib2 ppf ir =
 type model = (atom, [ `Int of Z.t | `Str of string ]) Map.t
 
 let pp_model_smtlib2 ppf m =
-  (* "model in smt2-format: TODO Kakadu" *)
   let open Format in
   fprintf ppf "@[<hov 1>@[(@]";
   Map.iteri m ~f:(fun ~key ~data ->
