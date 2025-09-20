@@ -118,6 +118,112 @@ let check_sat ast =
   end
 ;;
 
+(* IntMap.iter (fun k v -> Format.fprintf ppf "%d -> %s@\n" k v) m
+  let s = "" in 
+    Map.iteri
+            ~f:(fun ~key:k ~data:v ->
+              Format.printf "%a = " Lib.Ir.pp_atom k;
+              (match v with
+               | `Int v -> Format.printf "%a" Z.pp_print v
+               | `Str v -> Format.printf "%s" v);
+              Format.printf "; ")
+            model;
+          Format.printf "\n%!" 
+          s; *)
+
+let get_model ast =
+  let report_result =
+    if Lib.Solver.config.with_check_sat
+    then
+      function
+      | `Sat s -> Format.printf "%s\n%!" s
+      | `Unsat -> Format.printf "no model\n%!"
+      | `Unknown s -> Format.printf "%s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
+    else
+      function
+      | `Sat s -> Format.printf "sat \n%s\n%!" s
+      | `Unsat -> Format.printf "unsat \nno model\n%!"
+      | `Unknown s ->
+        Format.printf "unknown %s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
+  in
+  begin
+    let ( <+> ) =
+      fun rez f ->
+      match rez with
+      | `Unknown ast -> f ast
+      | `Sat _ | `Unsat -> rez
+    in
+    let ast =
+      `Unknown ast
+      <+> (fun ast ->
+      if not Lib.Solver.config.pre_simpl
+      then `Unknown ast
+      else Lib.SimplII.run_basic_simplify ast)
+      <+> (fun ast ->
+      match Lib.SimplII.has_unsupported_nonlinearity ast with
+      | Result.Ok () -> `Unknown ast
+      | Error terms ->
+        (* TODO(Kakadu): Print leftover AST too *)
+        Format.printf "@[<v 2>";
+        Format.printf "@[Non linear arithmetic between@]@,";
+        List.iteri (fun i -> Format.printf "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
+        Format.printf "@]@,";
+        let () = report_result (`Unknown "non-linear") in
+        exit 0)
+      <+> (fun ast ->
+      if Lib.Solver.config.under_approx >= 0
+      then (
+        match Lib.Underapprox.check Lib.Solver.config.under_approx ast with
+        | `Sat s -> `Sat s
+        | `Unknown _ -> `Unknown ast)
+      else `Unknown ast)
+      <+> (fun ast ->
+      if Lib.Solver.is_under2_enabled ()
+      then (
+        match Lib.SimplII.run_under2 ast with
+        | `Sat -> `Sat "under2"
+        | `Underapprox asts ->
+          if Lib.Solver.config.dump_pre_simpl
+          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+          if Lib.Solver.config.stop_after = `Pre_simplify then exit 0;
+          log "Looking for SAT in %d asts..." (List.length asts);
+          let exception Sat_found of string in
+          (try
+             let f ast =
+               match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) with
+               | Some model -> raise (Sat_found (Lib.Ir.model_to_str model))
+               | _ -> ()
+             in
+             List.iter f asts;
+             report_result (`Unknown "");
+             exit 0
+           with
+           | Sat_found model_str ->
+             report_result (`Sat model_str);
+             exit 0))
+      else `Unknown ast)
+      <+> (fun ast ->
+      if Lib.Solver.config.dump_pre_simpl
+      then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+      `Unknown ast)
+      <+> (fun ast ->
+      if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else `Unknown ast)
+      <+> fun ast ->
+      if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast
+    in
+    let ast =
+      match ast with
+      | `Sat s -> `Sat s
+      | `Unsat -> `Unsat
+      | `Unknown ast ->
+        (match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) with
+         | Some model -> `Sat (Lib.Ir.model_to_str model)
+         | None -> `Unsat)
+    in
+    report_result ast
+  end
+;;
+
 type state =
   { asserts : Lib.Ast.t list
   ; prev : state option
@@ -148,6 +254,7 @@ let () =
       | None -> failwith "Nothing to pop"
     end
     | Smtml.Ast.Check_sat exprs ->
+      Lib.Solver.config.with_check_sat <- true;
       let expr_irs = List.map Lib.Fe._to_ir exprs in
       let rec get_ast { asserts; prev; _ } =
         match prev with
@@ -158,26 +265,13 @@ let () =
       check_sat ast;
       state
     | Smtml.Ast.Get_model ->
-      let rec get_irs { asserts; prev; _ } =
+      let rec get_ast { asserts; prev; _ } =
         match prev with
-        | Some state -> asserts @ get_irs state
+        | Some state -> asserts @ get_ast state
         | None -> asserts
       in
-      let ir = Lib.Ast.land_ (get_irs state) in
-      begin
-        match Lib.Solver.get_model (Lib.Me.ir_of_ast ir) with
-        | Some model ->
-          Map.iteri
-            ~f:(fun ~key:k ~data:v ->
-              Format.printf "%a = " Lib.Ir.pp_atom k;
-              (match v with
-               | `Int v -> Format.printf "%a" Z.pp_print v
-               | `Str v -> Format.printf "%s" v);
-              Format.printf "; ")
-            model;
-          Format.printf "\n%!"
-        | None -> Format.printf "no model\n%!"
-      end;
+      let ast = Lib.Ast.land_ (get_ast state) in
+      get_model ast;
       state
     (*| Smtml.Ast.Declare_const { id; _ } ->
       let var = Smtml.Symbol.to_string id in

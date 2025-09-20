@@ -19,6 +19,7 @@ type config =
   ; mutable under_mode : [ `First | `Second ]
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str ]
+  ; mutable with_check_sat : bool
   }
 
 val config : config
