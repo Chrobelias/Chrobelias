@@ -8,13 +8,13 @@ Test Frobenious coin problem for 7 and 11
 
   $ Chro -bound -1 -no-over-approx examples/LIA/fcp_7_11.smt2 || echo TIMEOUT | sed 's/[[:space:]]*$//'
   sat (nfa)
-  P = 59; 
+  ((define-fun P () (_ Int) 59))
 
 Test Frobenious coin problem for 7, 11, and 13
 
   $ Chro -bound -1 -no-over-approx examples/LIA/fcp_7_11_13.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
-  P = 30;
+  ((define-fun P () (_ Int) 30))
 
 Test Frobenious coin problem for 2 and 4
 
