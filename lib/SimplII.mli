@@ -11,6 +11,8 @@ module Env : sig
 
   val empty : t
   val merge : t -> t -> t
+  val fold : t -> init:'a -> f:(key:string -> data:Ast.Eia.term -> 'a -> 'a) -> 'a
+  val length : t -> int
   val pp : Format.formatter -> t -> unit
 end
 

@@ -39,7 +39,7 @@ let lift ast = function
   | `Sat (s, e) -> Sat (s, ast, e)
 ;;
 
-let check_sat ast : rez =
+let check_sat ?(verbose = false) ast : rez =
   let __ () =
     if Lib.Solver.config.stop_after = `Pre_simplify
     then (
@@ -56,10 +56,15 @@ let check_sat ast : rez =
         exit 0
       | _ -> assert false)
   in
-  let report_result2 = function
-    | `Sat s -> Format.printf "sat (%s)\n%!" s
-    | `Unsat -> Format.printf "unsat\n%!"
-    | `Unknown s -> Format.printf "unknown%s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
+  let report_result2 =
+    if verbose
+    then
+      function
+      | `Sat s -> Format.printf "sat (%s)\n%!" s
+      | `Unsat -> Format.printf "unsat\n%!"
+      | `Unknown s ->
+        Format.printf "unknown%s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
+    else fun _ -> ()
   in
   begin
     let rez =
@@ -150,6 +155,15 @@ let check_sat ast : rez =
   end
 ;;
 
+let join_int_model prefix m =
+  let open Lib in
+  let _ : Ir.model = m in
+  SimplII.Env.fold prefix ~init:m ~f:(fun ~key ~data acc ->
+    match data with
+    | Ast.Eia.Atom (Const z) -> Map.add_exn acc ~key:(Var key) ~data:(`Int z)
+    | Atom (Var _) | _ -> failwith "not implemented")
+;;
+
 type state =
   { asserts : Lib.Ast.t list
   ; prev : state option (* TODO: where is the stack? *)
@@ -189,7 +203,7 @@ let () =
         | None -> asserts
       in
       let ast = Lib.Ast.land_ (expr_irs @ get_ast state) in
-      let rez = check_sat ast in
+      let rez = check_sat ~verbose:true ast in
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
       let rec get_ast { asserts; prev; _ } =
@@ -206,9 +220,11 @@ let () =
       let () =
         match rez with
         | Unknown _ | Unsat -> print_endline "no model"
-        | Sat (_, ast, _env) ->
+        | Sat (_, ast, env) ->
           (match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) with
-           | Some model -> Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+           | Some model ->
+             let model = join_int_model env model in
+             Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
            | _ -> ())
       in
       state

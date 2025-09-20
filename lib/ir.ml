@@ -225,9 +225,11 @@ type model = (atom, [ `Int of Z.t | `Str of string ]) Map.t
 
 let pp_model_smtlib2 ppf m =
   let open Format in
-  fprintf ppf "@[<hov 1>@[(@]";
+  fprintf ppf "@[<hv 1>@[(@]";
+  let i = ref 0 in
+  (* Mutability only for pretty-printing *)
   Map.iteri m ~f:(fun ~key ~data ->
-    fprintf ppf "@,";
+    if !i <> 0 then fprintf ppf "@ " else incr i;
     match key, data with
     | Var v, `Int z -> fprintf ppf "@[(define-fun %s () (_ Int) %a)@]" v Z.pp_print z
     | Var v, `Str s -> fprintf ppf "@[(define-fun %s () (_ String) \"%s\")@]" v s

@@ -166,6 +166,7 @@ module Env = struct
   let lookup k map = Base.Map.Poly.find map k
   let lookup_exn k map = Base.Map.Poly.find_exn map k
   let is_absent_key k map = not (Base.Map.Poly.mem map k)
+  let fold : t -> _ = Base.Map.Poly.fold
 
   let merge : t -> t -> t =
     Base.Map.Poly.merge_skewed ~combine:(fun ~key v1 v2 ->
@@ -1083,7 +1084,7 @@ let simpl ?(under_mode = `First) bound ast =
     match basic_simplify [ 1 ] env ast with
     | `Unsat -> raise Unsat
     | `Sat env -> raise (Sat ("", env))
-    | `Unknown (ast, _, _, _) when bound <= 0 -> ast, env
+    | `Unknown (ast, env, _, _) when bound <= 0 -> ast, env
     | `Unknown (ast, env, _var_info, step) ->
       let ast = flatten _var_info ast in
       let var_info = apply_symantics (module Who_in_exponents) ast in
