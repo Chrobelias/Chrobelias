@@ -221,7 +221,22 @@ let pp_smtlib2 ppf ir =
   | ir -> fprintf ppf "(assert %a)" helper ir
 ;;
 
-let model_to_str _ = "model in smt2-format: TODO Kakadu"
+type model = (atom, [ `Int of Z.t | `Str of string ]) Map.t
+
+let pp_model_smtlib2 ppf m =
+  (* "model in smt2-format: TODO Kakadu" *)
+  let open Format in
+  fprintf ppf "@[<hov 1>@[(@]";
+  Map.iteri m ~f:(fun ~key ~data ->
+    fprintf ppf "@,";
+    match key, data with
+    | Var v, `Int z -> fprintf ppf "@[(define-fun %s () (_ Int) %a)@]" v Z.pp_print z
+    | Var v, `Str s -> fprintf ppf "@[(define-fun %s () (_ String) \"%s\")@]" v s
+    | Pow2 _, _ -> failwith "Unsupported. Exponenetials in the model");
+  fprintf ppf ")@]"
+;;
+
+let model_to_str m = Format.asprintf "%a" pp_model_smtlib2 m
 
 let exists vars = function
   | True -> True
