@@ -17,7 +17,29 @@ let () =
          exit 1))
 ;;
 
-let check_sat ast =
+type rez =
+  | Sat of string * Lib.Ast.t * Lib.SimplII.Env.t
+  | Unknown of Lib.Ast.t * Lib.SimplII.Env.t
+  | Unsat
+[@@deriving show]
+
+let unknown ast e = Unknown (ast, e)
+let sat desc ast e = Sat (desc, ast, e)
+
+let ( <+> ) =
+  fun rez f ->
+  match rez with
+  | Unknown (ast, e) -> f ast e
+  | Sat _ | Unsat -> rez
+;;
+
+let lift ast = function
+  | `Unknown (ast, e) -> Unknown (ast, e)
+  | `Unsat -> Unsat
+  | `Sat (s, e) -> Sat (s, ast, e)
+;;
+
+let check_sat ast : rez =
   let __ () =
     if Lib.Solver.config.stop_after = `Pre_simplify
     then (
@@ -34,47 +56,41 @@ let check_sat ast =
         exit 0
       | _ -> assert false)
   in
-  let report_result = function
+  let report_result2 = function
     | `Sat s -> Format.printf "sat (%s)\n%!" s
     | `Unsat -> Format.printf "unsat\n%!"
     | `Unknown s -> Format.printf "unknown%s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
   in
   begin
-    let ( <+> ) =
-      fun rez f ->
-      match rez with
-      | `Unknown ast -> f ast
-      | `Sat _ | `Unsat -> rez
-    in
-    let ast =
-      `Unknown ast
-      <+> (fun ast ->
+    let rez =
+      unknown ast Lib.SimplII.Env.empty
+      <+> (fun ast e ->
       if not Lib.Solver.config.pre_simpl
-      then `Unknown ast
-      else Lib.SimplII.run_basic_simplify ast)
-      <+> (fun ast ->
+      then unknown ast e
+      else lift ast (Lib.SimplII.run_basic_simplify ast))
+      <+> (fun ast e ->
       match Lib.SimplII.has_unsupported_nonlinearity ast with
-      | Result.Ok () -> `Unknown ast
+      | Result.Ok () -> unknown ast e
       | Error terms ->
         (* TODO(Kakadu): Print leftover AST too *)
         Format.printf "@[<v 2>";
         Format.printf "@[Non linear arithmetic between@]@,";
         List.iteri (fun i -> Format.printf "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
         Format.printf "@]@,";
-        let () = report_result (`Unknown "non-linear") in
+        let () = report_result2 (`Unknown "non-linear") in
         exit 0)
-      <+> (fun ast ->
+      <+> (fun ast e ->
       if Lib.Solver.config.under_approx >= 0
       then (
         match Lib.Underapprox.check Lib.Solver.config.under_approx ast with
-        | `Sat s -> `Sat s
-        | `Unknown _ -> `Unknown ast)
-      else `Unknown ast)
-      <+> (fun ast ->
+        | `Sat s -> Sat (s, ast, e)
+        | `Unknown _ -> unknown ast e)
+      else unknown ast e)
+      <+> (fun ast e ->
       if Lib.Solver.is_under2_enabled ()
       then (
         match Lib.SimplII.run_under2 ast with
-        | `Sat -> `Sat "under2"
+        | `Sat -> sat "under2" ast e
         | `Underapprox asts ->
           if Lib.Solver.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -88,145 +104,56 @@ let check_sat ast =
                | _ -> ()
              in
              List.iter f asts;
-             report_result (`Unknown "");
+             report_result2 (`Unknown "TODO");
              exit 0
            with
            | Sat_found ->
              Format.printf "sat (under II)\n%!";
              exit 0))
-      else `Unknown ast)
-      <+> (fun ast ->
+      else unknown ast e)
+      <+> (fun ast e ->
       if Lib.Solver.config.dump_pre_simpl
       then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-      `Unknown ast)
-      <+> (fun ast ->
-      if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else `Unknown ast)
-      <+> fun ast ->
-      if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast
+      unknown ast e)
+      <+> (fun ast e ->
+      if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
+      <+> fun ast e ->
+      if Lib.Solver.config.over_approx
+      then (
+        match Lib.Overapprox.check ast with
+        | `Unknown ast -> unknown ast e
+        | `Unsat -> Unsat
+        | `Sat r -> sat "over" r e)
+      else unknown ast e
     in
-    let ast =
-      match ast with
-      | `Sat s -> `Sat s
-      | `Unsat -> `Unsat
-      | `Unknown ast ->
-        (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
-         | `Sat -> `Sat "nfa"
-         | `Unsat -> `Unsat
-         | `Unknown _ir -> `Unknown "")
-    in
-    report_result ast
-  end
-;;
-
-(* IntMap.iter (fun k v -> Format.fprintf ppf "%d -> %s@\n" k v) m
-  let s = "" in 
-    Map.iteri
-            ~f:(fun ~key:k ~data:v ->
-              Format.printf "%a = " Lib.Ir.pp_atom k;
-              (match v with
-               | `Int v -> Format.printf "%a" Z.pp_print v
-               | `Str v -> Format.printf "%s" v);
-              Format.printf "; ")
-            model;
-          Format.printf "\n%!" 
-          s; *)
-
-let get_model ast =
-  let report_result =
-    if Lib.Solver.config.with_check_sat
-    then
-      function
-      | `Sat s -> Format.printf "%s\n%!" s
-      | `Unsat -> Format.printf "no model\n%!"
-      | `Unknown s -> Format.printf "%s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
-    else
-      function
-      | `Sat s -> Format.printf "sat \n%s\n%!" s
-      | `Unsat -> Format.printf "unsat \nno model\n%!"
-      | `Unknown s ->
-        Format.printf "unknown %s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
-  in
-  begin
-    let ( <+> ) =
-      fun rez f ->
+    let rez =
       match rez with
-      | `Unknown ast -> f ast
-      | `Sat _ | `Unsat -> rez
+      | Sat (s, _, _) ->
+        report_result2 (`Sat s);
+        rez
+      | Unsat ->
+        report_result2 `Unsat;
+        rez
+      | Unknown (ast, e) ->
+        (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
+         | `Sat ->
+           report_result2 (`Sat "nfa");
+           sat "nfa" ast e
+         | `Unsat ->
+           report_result2 `Unsat;
+           rez
+         | `Unknown _ir ->
+           report_result2 (`Unknown "nfa");
+           rez)
     in
-    let ast =
-      `Unknown ast
-      <+> (fun ast ->
-      if not Lib.Solver.config.pre_simpl
-      then `Unknown ast
-      else Lib.SimplII.run_basic_simplify ast)
-      <+> (fun ast ->
-      match Lib.SimplII.has_unsupported_nonlinearity ast with
-      | Result.Ok () -> `Unknown ast
-      | Error terms ->
-        (* TODO(Kakadu): Print leftover AST too *)
-        Format.printf "@[<v 2>";
-        Format.printf "@[Non linear arithmetic between@]@,";
-        List.iteri (fun i -> Format.printf "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
-        Format.printf "@]@,";
-        let () = report_result (`Unknown "non-linear") in
-        exit 0)
-      <+> (fun ast ->
-      if Lib.Solver.config.under_approx >= 0
-      then (
-        match Lib.Underapprox.check Lib.Solver.config.under_approx ast with
-        | `Sat s -> `Sat s
-        | `Unknown _ -> `Unknown ast)
-      else `Unknown ast)
-      <+> (fun ast ->
-      if Lib.Solver.is_under2_enabled ()
-      then (
-        match Lib.SimplII.run_under2 ast with
-        | `Sat -> `Sat "under2"
-        | `Underapprox asts ->
-          if Lib.Solver.config.dump_pre_simpl
-          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-          if Lib.Solver.config.stop_after = `Pre_simplify then exit 0;
-          log "Looking for SAT in %d asts..." (List.length asts);
-          let exception Sat_found of string in
-          (try
-             let f ast =
-               match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) with
-               | Some model -> raise (Sat_found (Lib.Ir.model_to_str model))
-               | _ -> ()
-             in
-             List.iter f asts;
-             report_result (`Unknown "");
-             exit 0
-           with
-           | Sat_found model_str ->
-             report_result (`Sat model_str);
-             exit 0))
-      else `Unknown ast)
-      <+> (fun ast ->
-      if Lib.Solver.config.dump_pre_simpl
-      then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-      `Unknown ast)
-      <+> (fun ast ->
-      if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else `Unknown ast)
-      <+> fun ast ->
-      if Lib.Solver.config.over_approx then Lib.Overapprox.check ast else `Unknown ast
-    in
-    let ast =
-      match ast with
-      | `Sat s -> `Sat s
-      | `Unsat -> `Unsat
-      | `Unknown ast ->
-        (match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) with
-         | Some model -> `Sat (Lib.Ir.model_to_str model)
-         | None -> `Unsat)
-    in
-    report_result ast
+    rez
   end
 ;;
 
 type state =
   { asserts : Lib.Ast.t list
-  ; prev : state option
+  ; prev : state option (* TODO: where is the stack? *)
+  ; last_result : rez option
   }
 
 let () =
@@ -247,7 +174,7 @@ let () =
       Lib.Solver.config.simpl_mono <- false;
       (* Lib.Solver.config.pre_simpl <- false; *)
       state
-    | Smtml.Ast.Push _ -> { asserts = []; prev = Some state }
+    | Smtml.Ast.Push _ -> { asserts = []; prev = Some state; last_result = None }
     | Smtml.Ast.Pop _ -> begin
       match prev with
       | Some state -> state
@@ -262,8 +189,8 @@ let () =
         | None -> asserts
       in
       let ast = Lib.Ast.land_ (expr_irs @ get_ast state) in
-      check_sat ast;
-      state
+      let rez = check_sat ast in
+      { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
       let rec get_ast { asserts; prev; _ } =
         match prev with
@@ -271,18 +198,26 @@ let () =
         | None -> asserts
       in
       let ast = Lib.Ast.land_ (get_ast state) in
-      get_model ast;
+      let rez =
+        match state.last_result with
+        | Some r -> r
+        | None -> check_sat ast
+      in
+      let () =
+        match rez with
+        | Unknown _ | Unsat -> print_endline "no model"
+        | Sat (_, ast, _env) ->
+          (match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) with
+           | Some model -> Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+           | _ -> ())
+      in
       state
-    (*| Smtml.Ast.Declare_const { id; _ } ->
-      let var = Smtml.Symbol.to_string id in
-      consts := var :: !consts;
-      acc*)
     | Smtml.Ast.Assert expr -> begin
       let ast = expr |> Lib.Fe._to_ir in
       { state with asserts = ast :: state.asserts }
     end
     | _ -> state
   in
-  let _ = List.fold_left exec { asserts = []; prev = None } f in
+  let _ = List.fold_left exec { asserts = []; prev = None; last_result = None } f in
   ()
 ;;

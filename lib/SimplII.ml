@@ -570,7 +570,7 @@ let make_main_symantics env =
 ;;
 
 exception Unsat
-exception Sat of string
+exception Sat of string * Env.t
 
 module Info = struct
   type names = string Base.Set.Poly.t
@@ -889,7 +889,7 @@ let%expect_test _ =
   ()
 ;;
 
-exception Underapprox_fired
+exception Underapprox_fired of Env.t
 exception Error of Ast.t * error list [@@ocaml.warnerror "-38"]
 
 (* type step = int list *)
@@ -971,22 +971,22 @@ let basic_simplify step (env : Env.t) ast =
     | false, false -> loop (next_step step) env ast2
     | false, true ->
       (match ast2 with
-       | Ast.True -> raise (Sat "presimpl")
+       | Ast.True -> raise (Sat ("presimpl", env))
        | Ast.Lnot Ast.True -> raise Unsat
        | _ -> ast2, env, var_info, step)
   in
   try `Unknown (loop step env ast) with
   | Unsat -> `Unsat
-  | Sat _ -> `Sat
+  | Sat (_, env) -> `Sat env
 ;;
 
 let run_basic_simplify ast =
   let ast = lower_strlen ast in
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   match basic_simplify [ 1 ] Env.empty ast with
-  | `Sat -> `Sat "presimpl"
+  | `Sat env -> `Sat ("presimpl", env)
   | `Unsat -> `Unsat
-  | `Unknown (ast, _, _, _) -> `Unknown ast
+  | `Unknown (ast, e, _, _) -> `Unknown (ast, e)
 ;;
 
 let a_range = ref (5, 11)
@@ -1053,7 +1053,7 @@ let simpl ?(under_mode = `First) bound ast =
     let ast_spec = apply_symantics (module Symantics) ast in
     match basic_simplify step env ast_spec with
     | `Unsat -> `Unknown
-    | `Sat -> raise Underapprox_fired
+    | `Sat env -> raise (Underapprox_fired env)
     | `Unknown (ast, env, _info, step) ->
       let var_info = apply_symantics (module Who_in_exponents) ast_spec in
       let ast_spec = flatten var_info ast_spec in
@@ -1067,7 +1067,12 @@ let simpl ?(under_mode = `First) bound ast =
          let solver = Smtml.Z3_mappings.Solver.make ~logic:Smtml.Logic.LIA () in
          Smtml.Z3_mappings.Solver.reset solver;
          (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
-          | `Sat -> raise Underapprox_fired
+          | `Sat ->
+            Printf.eprintf
+              "The model could be not fully populated. %s %d\n%!"
+              __FILE__
+              __LINE__;
+            raise (Underapprox_fired env)
           | `Unsat | `Unknown -> `Unknown)
        | errors ->
          log "%d errors found" (List.length errors);
@@ -1077,8 +1082,8 @@ let simpl ?(under_mode = `First) bound ast =
   let loop (env : Env.t) ast =
     match basic_simplify [ 1 ] env ast with
     | `Unsat -> raise Unsat
-    | `Sat -> raise (Sat "")
-    | `Unknown (ast, _, _, _) when bound <= 0 -> ast
+    | `Sat env -> raise (Sat ("", env))
+    | `Unknown (ast, _, _, _) when bound <= 0 -> ast, env
     | `Unknown (ast, env, _var_info, step) ->
       let ast = flatten _var_info ast in
       let var_info = apply_symantics (module Who_in_exponents) ast in
@@ -1096,12 +1101,12 @@ let simpl ?(under_mode = `First) bound ast =
           Printf.eprintf "Something weird: no errors. %s %d\n%!" __FILE__ __LINE__;
           raise (Error (ast, []))
         | errors -> raise (Error (ast, errors)));
-      ast
+      ast, env
   in
-  let ast = loop Env.empty ast in
+  let ast, env = loop Env.empty ast in
   (* Underapprox I *)
     match if bound >= 0 then Underapprox.check bound ast else `Unknown ast with
-    | `Sat reason -> `Sat reason
+    | `Sat reason -> `Sat (reason, env)
     | `Unknown _ ->
       (try
          match check_errors ast with
@@ -1118,7 +1123,7 @@ let simpl ?(under_mode = `First) bound ast =
                (fun ast ->
                   match basic_simplify [ 1 ] env ast with
                   | `Unsat -> None
-                  | `Sat -> raise Underapprox_fired
+                  | `Sat env -> raise (Underapprox_fired env)
                   | `Unknown (ast, _, _, _) ->
                     let var_info = apply_symantics (module Who_in_exponents) ast in
                     let ast = flatten var_info ast in
@@ -1136,8 +1141,8 @@ let simpl ?(under_mode = `First) bound ast =
            `Underapprox asts
        with
        | Unsat -> `Unsat
-       | Underapprox_fired -> `Sat "underappox2"
-       | Sat reason -> `Sat reason
+       | Underapprox_fired env -> `Sat ("underappox2", env)
+       | Sat (reason, env) -> `Sat (reason, env)
        | Error (ast, errs) -> `Error (ast, errs))
 ;;
 
@@ -1159,7 +1164,7 @@ let run_under2 ast =
       (fun ast ->
          match basic_simplify [ 1 ] env ast with
          | `Unsat -> None
-         | `Sat -> raise Underapprox_fired
+         | `Sat env -> raise_notrace (Underapprox_fired env)
          | `Unknown (ast, _, _, _) ->
            let var_info = apply_symantics (module Who_in_exponents) ast in
            let ast = flatten var_info ast in
