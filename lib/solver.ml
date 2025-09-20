@@ -370,6 +370,7 @@ type config =
   ; mutable under_mode : [ `First | `Second ]
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str ]
+  ; mutable with_check_sat : bool
   }
 
 let config =
@@ -388,6 +389,7 @@ let config =
   ; under_mode = `First
   ; input_file = ""
   ; logic = `Eia
+  ; with_check_sat = false
   }
 ;;
 
@@ -1028,8 +1030,8 @@ struct
     decide_order powered_vars
     |> List.to_seq
     |> Seq.map (prepare_order s nfa)
-    (*Filtering of orderings w.r.t. the simple overapproximation idea: 
-      1) exponent is a power of the base; 
+    (*Filtering of orderings w.r.t. the simple overapproximation idea:
+      1) exponent is a power of the base;
       2) exp(base, x) >= (base -1)*x + 1
     *)
     |> Seq.filter (function order, nfa ->

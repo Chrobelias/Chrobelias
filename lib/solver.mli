@@ -19,10 +19,11 @@ type config =
   ; mutable under_mode : [ `First | `Second ]
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str ]
+  ; mutable with_check_sat : bool
   }
 
 val config : config
 val is_under2_enabled : unit -> bool
 val parse_args : unit -> unit
 val proof : Ir.t -> [ `Sat | `Unsat | `Unknown of Ir.t ]
-val get_model : Ir.t -> (Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t option
+val get_model : Ir.t -> Ir.model option
