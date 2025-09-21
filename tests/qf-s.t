@@ -25,4 +25,4 @@ Basic QF_S tests
   ((define-fun a () (_ String) "BabBabBabLyubaLyubaLyuba")
    (define-fun b () (_ String) "2")
    (define-fun q () (_ Int) 24))
-  ((define-fun a () (_ String) "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+  ((define-fun a () (_ String) "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"))
