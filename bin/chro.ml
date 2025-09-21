@@ -18,13 +18,13 @@ let () =
 ;;
 
 type rez =
-  | Sat of string * Lib.Ast.t * Lib.SimplII.Env.t
+  | Sat of string * Lib.Ast.t * Lib.SimplII.Env.t * (unit -> Lib.Ir.model)
   | Unknown of Lib.Ast.t * Lib.SimplII.Env.t
   | Unsat
 [@@deriving show]
 
 let unknown ast e = Unknown (ast, e)
-let sat desc ast e = Sat (desc, ast, e)
+let sat desc ast e get_model = Sat (desc, ast, e, get_model)
 
 let ( <+> ) =
   fun rez f ->
@@ -36,7 +36,7 @@ let ( <+> ) =
 let lift ast = function
   | `Unknown (ast, e) -> Unknown (ast, e)
   | `Unsat -> Unsat
-  | `Sat (s, e) -> Sat (s, ast, e)
+  | `Sat (s, e) -> Sat (s, ast, e, fun () -> Map.empty)
 ;;
 
 let check_sat ?(verbose = false) ast : rez =
@@ -88,14 +88,14 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Solver.config.under_approx >= 0
       then (
         match Lib.Underapprox.check Lib.Solver.config.under_approx ast with
-        | `Sat s -> Sat (s, ast, e)
+        | `Sat s -> Sat (s, ast, e, fun () -> Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
       if Lib.Solver.is_under2_enabled ()
       then (
         match Lib.SimplII.run_under2 ast with
-        | `Sat -> sat "under2" ast e
+        | `Sat -> sat "under2" ast e (fun () -> Map.empty)
         | `Underapprox asts ->
           if Lib.Solver.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -104,8 +104,8 @@ let check_sat ?(verbose = false) ast : rez =
           let exception Sat_found in
           (try
              let f ast =
-               match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
-               | `Sat -> raise Sat_found
+               match Lib.Solver.check_sat (Lib.Me.ir_of_ast ast) with
+               | `Sat _ -> raise Sat_found
                | _ -> ()
              in
              List.iter f asts;
@@ -128,22 +128,22 @@ let check_sat ?(verbose = false) ast : rez =
         match Lib.Overapprox.check ast with
         | `Unknown ast -> unknown ast e
         | `Unsat -> Unsat
-        | `Sat r -> sat "over" r e)
+        | `Sat r -> sat "over" r e (fun () -> Map.empty))
       else unknown ast e
     in
     let rez =
       match rez with
-      | Sat (s, _, _) ->
+      | Sat (s, _, _, _) ->
         report_result2 (`Sat s);
         rez
       | Unsat ->
         report_result2 `Unsat;
         rez
       | Unknown (ast, e) ->
-        (match Lib.Solver.proof (Lib.Me.ir_of_ast ast) with
-         | `Sat ->
+        (match Lib.Solver.check_sat (Lib.Me.ir_of_ast ast) with
+         | `Sat get_model ->
            report_result2 (`Sat "nfa");
-           sat "nfa" ast e
+           sat "nfa" ast e get_model
          | `Unsat ->
            report_result2 `Unsat;
            rez
@@ -220,12 +220,10 @@ let () =
       let () =
         match rez with
         | Unknown _ | Unsat -> print_endline "no model"
-        | Sat (_, ast, env) ->
-          (match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) rez with
-           | Some model ->
-             let model = join_int_model env model in
-             Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
-           | _ -> ())
+        | Sat (_, _, env, get_model) ->
+          let model = get_model () in
+          let model = join_int_model env model in
+          Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
       in
       state
     | Smtml.Ast.Assert expr -> begin
