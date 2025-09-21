@@ -22,7 +22,6 @@
   Can't decide in lib/Underapprox.ml
   Simplify step: ((2 ** x) <= x & (2 ** y) <= x)
   Simplified expression: ((2 ** x) <= x & (2 ** y) <= x)
-  Trying to use Semenov deciding procedure over (((-1x + 1pow2(x) <= 0)) & ((-1x + 1pow2(y) <= 0)))
     subst = {| |}
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )

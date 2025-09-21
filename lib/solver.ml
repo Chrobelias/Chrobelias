@@ -1071,31 +1071,6 @@ struct
     | None -> None
   ;;
 
-  let proof_semenov f =
-    Debug.printf "Trying to use Semenov deciding procedure over %a\n" Ir.pp f;
-    match
-      f
-      |> eval_semenov
-           (fun s order nfa model ->
-              match
-                NfaNat.any_path nfa (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
-              with
-              | Some path -> Some (s, order, path, model)
-              | None -> None)
-           (fun _ nfa -> nfa)
-    with
-    | Some rez -> `Sat (Some rez)
-    | None -> `Unsat
-  ;;
-
-  let get_model_normal f =
-    let nfa, vars = f |> eval in
-    let free_vars = f |> collect_free |> Set.to_list in
-    Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars)
-    |> Option.map (fun (model, _) ->
-      model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
-  ;;
-
   let combine_model_pieces s order (model, len) models =
     let vars = Map.keys s.vars |> List.filter_map Ir.var_val in
     Debug.printfln
@@ -1143,79 +1118,89 @@ struct
     helper mapVals len order [] models |> Map.map_keys_exn ~f:Ir.var
   ;;
 
-  let get_model_semenov f s order nfa model =
-    let res =
-      match NfaNat.any_path nfa (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data) with
-      | Some path -> Some (s, order, path, model)
-      | None -> None
+  let get_model_normal ir () =
+    let nfa, vars = ir |> eval in
+    let free_vars = ir |> collect_free |> Set.to_list in
+    let model, _ =
+      Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) |> Option.get
     in
-    match res with
-    | Some (s, order, (model, len), models) ->
-      let map = combine_model_pieces s (List.rev order) (model, len) models in
-      Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
-      Debug.printfln
-        "Variable map: %a"
-        (Format.pp_print_list
-           ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
-           (fun fmt (a, b) ->
-              Format.fprintf fmt "%a -> %a" Ir.pp_atom a Z.pp_print (Extra.model_to_int b)))
-        (Map.to_alist map);
-      let f =
-        f
-        |> Ir.map (function
-          | Ir.Rel (rel, term, c) ->
-            let filter =
-              fun k ->
-              match k with
-              | Ir.Pow2 _ -> true
-              | Ir.Var _ -> Map.mem map k
-            in
-            let c =
-              term
-              |> Map.filter_keys ~f:filter
-              |> Map.to_sequence
-              |> Base.Sequence.map ~f:(fun (k, v) ->
-                Z.mul
-                  v
-                  (match k with
-                   | Ir.Pow2 x -> pow2z (Extra.model_to_int (Map.find_exn map (Var x)))
-                   | Ir.Var _ -> Extra.model_to_int (Map.find_exn map k)))
-              |> Base.Sequence.fold ~init:c ~f:Z.( - )
-            in
-            let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
-            Ir.rel rel term c
-          (*| Ast.Var x -> *)
-          (*  Base.Option.value ~default:(Ast.Var x) (Map.find map x |> Option.map Ast.const) *)
-          (*| Ast.Pow (2, Ast.Const c) -> Ast.Const (pow2 c) *)
-          (*| Ast.Pow _ as t -> failwith (Format.asprintf "unimplemented: %a" Ast.pp_term t) *)
-          | x -> x)
-      in
-      Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
-      let model = get_model_normal f in
-      Map.merge map (Option.get model) ~f:(fun ~key:_ -> function
-        | `Left x -> Some x
-        | `Right x -> Some x
-        | `Both _ -> failwith "Should be unreachable")
-      |> Option.some
-    | None -> None
+    model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn
   ;;
 
-  let proof ir =
+  let get_model_semenov f s order (model, len) models () =
+    let map = combine_model_pieces s (List.rev order) (model, len) models in
+    Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
+    Debug.printfln
+      "Variable map: %a"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
+         (fun fmt (a, b) ->
+            Format.fprintf fmt "%a -> %a" Ir.pp_atom a Z.pp_print (Extra.model_to_int b)))
+      (Map.to_alist map);
+    let f =
+      f
+      |> Ir.map (function
+        | Ir.Rel (rel, term, c) ->
+          let filter =
+            fun k ->
+            match k with
+            | Ir.Pow2 _ -> true
+            | Ir.Var _ -> Map.mem map k
+          in
+          let c =
+            term
+            |> Map.filter_keys ~f:filter
+            |> Map.to_sequence
+            |> Base.Sequence.map ~f:(fun (k, v) ->
+              Z.mul
+                v
+                (match k with
+                 | Ir.Pow2 x -> pow2z (Extra.model_to_int (Map.find_exn map (Var x)))
+                 | Ir.Var _ -> Extra.model_to_int (Map.find_exn map k)))
+            |> Base.Sequence.fold ~init:c ~f:Z.( - )
+          in
+          let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
+          Ir.rel rel term c
+        (*| Ast.Var x -> *)
+        (*  Base.Option.value ~default:(Ast.Var x) (Map.find map x |> Option.map Ast.const) *)
+        (*| Ast.Pow (2, Ast.Const c) -> Ast.Const (pow2 c) *)
+        (*| Ast.Pow _ as t -> failwith (Format.asprintf "unimplemented: %a" Ast.pp_term t) *)
+        | x -> x)
+    in
+    Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
+    let model = get_model_normal f () in
+    Map.merge map model ~f:(fun ~key:_ -> function
+      | `Left x -> Some x
+      | `Right x -> Some x
+      | `Both _ -> failwith "Should be unreachable")
+  ;;
+
+  let check_sat ir : [ `Sat of unit -> (Ir.atom, Nfa.v list) Map.t | `Unsat | `Unknown ] =
     let run_semenov = collect_vars ir |> Map.keys |> List.exists is_exp in
     if run_semenov
-    then proof_semenov ir
+    then (
+      let res =
+        ir
+        |> eval_semenov
+             (fun s order nfa model ->
+                match
+                  NfaNat.any_path nfa (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
+                with
+                | Some path -> Some (s, order, path, model)
+                | None -> None)
+             (fun _ nfa -> nfa)
+      in
+      begin
+        match res with
+        | Some (s, order, (model, len), models) ->
+          `Sat (get_model_semenov ir s order (model, len) models)
+        | None -> `Unsat
+      end)
     else (
-      (*let f = Optimizer.optimize f in
-      Debug.printfln "optimized formula: %a" Ast.pp_formula f;*)
       let free_vars = collect_free ir in
-      let ir = Ir.exists (free_vars |> Set.to_list) ir in
+      let ir' = Ir.exists (free_vars |> Set.to_list) ir in
       Debug.printf "Trying to use PrA deciding procedure over  %a\n" Ir.pp ir;
-      if ir |> eval |> fst |> Nfa.run then `Sat None else `Unsat)
-  ;;
-
-  let get_model f s order nfa model =
-    let run_semenov = collect_vars f |> Map.keys |> List.exists is_exp in
-    if run_semenov then get_model_semenov f s order nfa model else get_model_normal f
+      if ir' |> eval |> fst |> Nfa.run then `Sat (get_model_normal ir) else `Unsat)
   ;;
 end
 
@@ -1340,46 +1325,41 @@ module Msb =
       let nat_model_to_int = z_of_list_msb_nat
     end)
 
-let proof ir =
+let check_sat ir : [ `Sat of unit -> Ir.model | `Unsat | `Unknown of Ir.t ] =
   match config.logic with
-  | `Eia -> begin
-    match config.mode with
-    | `Lsb -> Lsb.proof ir
-    | `Msb -> Msb.proof ir
-  end
-  | `Str -> LsbStr.proof ir
-;;
-
-let get_model ir s order nfa model =
-  match config.logic with
-  | `Str ->
-    LsbStr.get_model ir s order nfa model
-    |> Option.map
-         (Map.map ~f:(fun v ->
-            `Str
-              (v
-               |> List.rev
-               |> List.to_seq
-               |> Seq.filter (fun c -> Char.code c <> 0)
-               |> String.of_seq)))
-  | _ -> begin
-    let model =
+  | `Eia ->
+    let res =
       match config.mode with
-      | `Lsb -> Lsb.get_model ir s order nfa model
-      | `Msb -> Msb.get_model ir s order nfa model
+      | `Lsb -> Lsb.check_sat ir
+      | `Msb -> Msb.check_sat ir
     in
-    model
-    |> Option.map
-         (Map.map ~f:(fun v ->
-            `Int (if config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)))
-  end
+    begin
+      match res with
+      | `Sat model ->
+        `Sat
+          (fun () ->
+            Map.map
+              ~f:(fun v ->
+                `Int (if config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v))
+              (model ()))
+      | `Unsat -> `Unsat
+      | `Unknown -> `Unknown ir
+    end
+  | `Str ->
+    let res = LsbStr.check_sat ir in
+    (match res with
+     | `Sat model ->
+       `Sat
+         (fun () ->
+           Map.map
+             ~f:(fun v ->
+               `Str
+                 (v
+                  |> List.rev
+                  |> List.to_seq
+                  |> Seq.filter (fun c -> Char.code c <> 0)
+                  |> String.of_seq))
+             (model ()))
+     | `Unsat -> `Unsat
+     | `Unknown -> `Unknown ir)
 ;;
-
-(*let aux s =
-  let res, asts = Smtml.Smtlib.parse_all (`Contents ("", s)) in
-  let asts = Lazy.force asts in
-  match asts with
-  | Smtml.Ast.Assert expr :: [] -> expr |> Fe._to_ir |> Me.ir_of_ast
-  | s -> failwith "TBD"
-;;
-*)
