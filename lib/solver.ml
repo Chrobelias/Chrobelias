@@ -1376,7 +1376,8 @@ let check_sat ir
                      (v
                       |> List.rev
                       |> List.to_seq
-                      |> Seq.filter (fun c -> Char.code c <> 0)
+                      |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                      |> Seq.map (fun c -> if c = Nfa.Str.u_null then 'a' else c)
                       |> String.of_seq)
                end
                | `Str ->
@@ -1384,7 +1385,8 @@ let check_sat ir
                    (v
                     |> List.rev
                     |> List.to_seq
-                    |> Seq.filter (fun c -> c <> Nfa.Str.u_eos && c <> Nfa.Str.u_null)
+                    |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                    |> Seq.map (fun c -> if c = Nfa.Str.u_null then 'a' else c)
                     |> String.of_seq))
              (model ())
            |> filter_internal)
