@@ -2,7 +2,7 @@ Basic QF_S tests
 
   $ Chro ./qf-s.smt2
   sat (nfa)
-  ((define-fun x () (_ String) "abc"))
+  ((define-fun a () (_ String) "abc"))
   sat (nfa)
   sat (nfa)
   unsat
@@ -18,11 +18,11 @@ Basic QF_S tests
   ((define-fun %33 () (_ Int) 12)
    (define-fun %34 () (_ String) "0000000000012")
    (define-fun %35 () (_ String) "999999999999")
-   (define-fun x () (_ String) "100100100100"))
+   (define-fun a () (_ String) "100100100100"))
   ((define-fun %39 () (_ String) "000000000000000000000023")
    (define-fun %40 () (_ String) "99999999999999999999999")
-   (define-fun a () (_ Int) 23)
-   (define-fun x () (_ String) "LyuBaBaBaBaBaBaBaBaBaBa"))
+   (define-fun a () (_ String) "LyuBaBaBaBaBaBaBaBaBaBa")
+   (define-fun x () (_ Int) 23))
   ((define-fun %44 () (_ String) "02")
    (define-fun %45 () (_ String) "02")
    (define-fun %46 () (_ String) "002")

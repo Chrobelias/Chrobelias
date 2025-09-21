@@ -1,5 +1,5 @@
 (set-logic ALL)
-(declare-fun x () Int)
+(declare-fun u () Int)
 (declare-fun y () Int)
 (declare-fun z () Int)
  
