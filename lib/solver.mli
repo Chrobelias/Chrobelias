@@ -25,4 +25,7 @@ type config =
 val config : config
 val is_under2_enabled : unit -> bool
 val parse_args : unit -> unit
-val check_sat : Ir.t -> [ `Sat of unit -> Ir.model | `Unsat | `Unknown of Ir.t ]
+
+val check_sat
+  :  Ir.t
+  -> [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> Ir.model | `Unsat | `Unknown of Ir.t ]
