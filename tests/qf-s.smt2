@@ -119,3 +119,8 @@
   (assert (= q (+ (str.len b) 23)))
   (get-model)
 (pop 1)
+
+(push 1)
+  (assert (< 10 (str.len a)))
+  (get-model)
+(pop 1)
