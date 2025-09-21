@@ -1076,10 +1076,15 @@ struct
     match
       f
       |> eval_semenov
-           (fun _ _ nfa _ -> if NfaNat.run nfa then Some () else None)
-           (fun x nfa -> NfaNat.project [ x ] nfa)
+           (fun s order nfa model ->
+              match
+                NfaNat.any_path nfa (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
+              with
+              | Some path -> Some (s, order, path, model)
+              | None -> None)
+           (fun _ nfa -> nfa)
     with
-    | Some _ -> `Sat
+    | Some rez -> `Sat (Some rez)
     | None -> `Unsat
   ;;
 
@@ -1138,17 +1143,11 @@ struct
     helper mapVals len order [] models |> Map.map_keys_exn ~f:Ir.var
   ;;
 
-  let get_model_semenov f =
+  let get_model_semenov f s order nfa model =
     let res =
-      f
-      |> eval_semenov
-           (fun s order nfa model ->
-              match
-                NfaNat.any_path nfa (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
-              with
-              | Some path -> Some (s, order, path, model)
-              | None -> None)
-           (fun _ nfa -> nfa)
+      match NfaNat.any_path nfa (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data) with
+      | Some path -> Some (s, order, path, model)
+      | None -> None
     in
     match res with
     | Some (s, order, (model, len), models) ->
@@ -1211,12 +1210,12 @@ struct
       let free_vars = collect_free ir in
       let ir = Ir.exists (free_vars |> Set.to_list) ir in
       Debug.printf "Trying to use PrA deciding procedure over  %a\n" Ir.pp ir;
-      if ir |> eval |> fst |> Nfa.run then `Sat else `Unsat)
+      if ir |> eval |> fst |> Nfa.run then `Sat None else `Unsat)
   ;;
 
-  let get_model f =
+  let get_model f s order nfa model =
     let run_semenov = collect_vars f |> Map.keys |> List.exists is_exp in
-    if run_semenov then get_model_semenov f else get_model_normal f
+    if run_semenov then get_model_semenov f s order nfa model else get_model_normal f
   ;;
 end
 
@@ -1351,10 +1350,10 @@ let proof ir =
   | `Str -> LsbStr.proof ir
 ;;
 
-let get_model ir =
+let get_model ir s order nfa model =
   match config.logic with
   | `Str ->
-    LsbStr.get_model ir
+    LsbStr.get_model ir s order nfa model
     |> Option.map
          (Map.map ~f:(fun v ->
             `Str
@@ -1366,8 +1365,8 @@ let get_model ir =
   | _ -> begin
     let model =
       match config.mode with
-      | `Lsb -> Lsb.get_model ir
-      | `Msb -> Msb.get_model ir
+      | `Lsb -> Lsb.get_model ir s order nfa model
+      | `Msb -> Msb.get_model ir s order nfa model
     in
     model
     |> Option.map

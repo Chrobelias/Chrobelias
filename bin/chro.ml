@@ -221,7 +221,7 @@ let () =
         match rez with
         | Unknown _ | Unsat -> print_endline "no model"
         | Sat (_, ast, env) ->
-          (match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) with
+          (match Lib.Solver.get_model (Lib.Me.ir_of_ast ast) rez with
            | Some model ->
              let model = join_int_model env model in
              Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
