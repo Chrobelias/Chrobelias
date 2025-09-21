@@ -12,12 +12,7 @@ $ cat baba3.smt2
   )
   $ Chro ./baba3.smt2
   sat (nfa)
-  ((define-fun %0 () (_ String) "000000000000000000000001")
-   (define-fun %1 () (_ String) "0000000000000000000000001")
-   (define-fun %2 () (_ String) "000000000000000000000009")
-   (define-fun %3 () (_ String) "0000000000000000000000024")
-   (define-fun %4 () (_ String) "999999999999999999999999")
-   (define-fun a () (_ String) "BabBabBabLyubaLyubaLyuba")
-   (define-fun b () (_ String) "2")
-   (define-fun q () (_ String) "000000000000000000000024"))
+  ((define-fun a () (_ String) "BabBabBabLyubaLyubaLyuba")
+   (define-fun b () (_ String) "2")
+   (define-fun q () (_ Int) 24))
 

@@ -1325,7 +1325,15 @@ module Msb =
       let nat_model_to_int = z_of_list_msb_nat
     end)
 
-let check_sat ir : [ `Sat of unit -> Ir.model | `Unsat | `Unknown of Ir.t ] =
+let filter_internal =
+  Map.filter_keys ~f:(function
+    | Ir.Var s -> not (String.starts_with ~prefix:"%" s)
+    | _ -> true)
+;;
+
+let check_sat ir
+  : [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> Ir.model | `Unsat | `Unknown of Ir.t ]
+  =
   match config.logic with
   | `Eia ->
     let res =
@@ -1337,11 +1345,17 @@ let check_sat ir : [ `Sat of unit -> Ir.model | `Unsat | `Unknown of Ir.t ] =
       match res with
       | `Sat model ->
         `Sat
-          (fun () ->
-            Map.map
-              ~f:(fun v ->
-                `Int (if config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v))
-              (model ()))
+          (fun tys ->
+            Map.mapi
+              ~f:(fun ~key:k ~data:v ->
+                let ty = Map.find tys k |> Option.value ~default:`Int in
+                match ty with
+                | `Int ->
+                  `Int (if config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)
+                | `Str ->
+                  failwith "it is something strange: there is string variable in EIA")
+              (model ())
+            |> filter_internal)
       | `Unsat -> `Unsat
       | `Unknown -> `Unknown ir
     end
@@ -1350,16 +1364,30 @@ let check_sat ir : [ `Sat of unit -> Ir.model | `Unsat | `Unknown of Ir.t ] =
     (match res with
      | `Sat model ->
        `Sat
-         (fun () ->
-           Map.map
-             ~f:(fun v ->
-               `Str
-                 (v
-                  |> List.rev
-                  |> List.to_seq
-                  |> Seq.filter (fun c -> Char.code c <> 0)
-                  |> String.of_seq))
-             (model ()))
+         (fun tys ->
+           Map.mapi
+             ~f:(fun ~key:k ~data:v ->
+               let ty = Map.find tys k |> Option.value ~default:`Int in
+               match ty with
+               | `Int -> begin
+                 try `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq)) with
+                 | Invalid_argument _ ->
+                   `Str
+                     (v
+                      |> List.rev
+                      |> List.to_seq
+                      |> Seq.filter (fun c -> Char.code c <> 0)
+                      |> String.of_seq)
+               end
+               | `Str ->
+                 `Str
+                   (v
+                    |> List.rev
+                    |> List.to_seq
+                    |> Seq.filter (fun c -> c <> Nfa.Str.u_eos && c <> Nfa.Str.u_null)
+                    |> String.of_seq))
+             (model ())
+           |> filter_internal)
      | `Unsat -> `Unsat
      | `Unknown -> `Unknown ir)
 ;;

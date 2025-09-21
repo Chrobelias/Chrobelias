@@ -18,7 +18,11 @@ let () =
 ;;
 
 type rez =
-  | Sat of string * Lib.Ast.t * Lib.SimplII.Env.t * (unit -> Lib.Ir.model)
+  | Sat of
+      string
+      * Lib.Ast.t
+      * Lib.SimplII.Env.t
+      * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> Lib.Ir.model)
   | Unknown of Lib.Ast.t * Lib.SimplII.Env.t
   | Unsat
 [@@deriving show]
@@ -36,7 +40,7 @@ let ( <+> ) =
 let lift ast = function
   | `Unknown (ast, e) -> Unknown (ast, e)
   | `Unsat -> Unsat
-  | `Sat (s, e) -> Sat (s, ast, e, fun () -> Map.empty)
+  | `Sat (s, e) -> Sat (s, ast, e, fun _ -> Map.empty)
 ;;
 
 let check_sat ?(verbose = false) ast : rez =
@@ -88,14 +92,14 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Solver.config.under_approx >= 0
       then (
         match Lib.Underapprox.check Lib.Solver.config.under_approx ast with
-        | `Sat s -> Sat (s, ast, e, fun () -> Map.empty)
+        | `Sat s -> Sat (s, ast, e, fun _ -> Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
       if Lib.Solver.is_under2_enabled ()
       then (
         match Lib.SimplII.run_under2 ast with
-        | `Sat -> sat "under2" ast e (fun () -> Map.empty)
+        | `Sat -> sat "under2" ast e (fun _ -> Map.empty)
         | `Underapprox asts ->
           if Lib.Solver.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -128,7 +132,7 @@ let check_sat ?(verbose = false) ast : rez =
         match Lib.Overapprox.check ast with
         | `Unknown ast -> unknown ast e
         | `Unsat -> Unsat
-        | `Sat r -> sat "over" r e (fun () -> Map.empty))
+        | `Sat r -> sat "over" r e (fun _ -> Map.empty))
       else unknown ast e
     in
     let rez =
@@ -168,6 +172,7 @@ type state =
   { asserts : Lib.Ast.t list
   ; prev : state option (* TODO: where is the stack? *)
   ; last_result : rez option
+  ; tys : (Lib.Ir.atom, [ `Str | `Int ]) Map.t
   }
 
 let () =
@@ -179,6 +184,17 @@ let () =
     | Ok file -> Smtml.Parse.from_file file
   in
   let exec ({ prev; _ } as state) = function
+    | Smtml.Ast.Declare_const { id; sort; _ }
+    | Smtml.Ast.Declare_fun { id; sort; args = [] } ->
+      let id = Lib.Ir.var (Smtml.Symbol.to_string id) in
+      let sort = Smtml.Symbol.to_string sort in
+      let tys =
+        match sort with
+        | "Int" -> Map.set ~key:id ~data:`Int state.tys
+        | "String" -> Map.set ~key:id ~data:`Str state.tys
+        | _ -> state.tys
+      in
+      { state with tys }
     | Smtml.Ast.Set_logic Smtml.Logic.QF_S ->
       Lib.Solver.config.logic <- `Str;
       Lib.Solver.config.mode <- `Lsb;
@@ -188,7 +204,8 @@ let () =
       Lib.Solver.config.simpl_mono <- false;
       (* Lib.Solver.config.pre_simpl <- false; *)
       state
-    | Smtml.Ast.Push _ -> { asserts = []; prev = Some state; last_result = None }
+    | Smtml.Ast.Push _ ->
+      { asserts = []; prev = Some state; last_result = None; tys = Map.empty }
     | Smtml.Ast.Pop _ -> begin
       match prev with
       | Some state -> state
@@ -221,7 +238,20 @@ let () =
         match rez with
         | Unknown _ | Unsat -> print_endline "no model"
         | Sat (_, _, env, get_model) ->
-          let model = get_model () in
+          let rec tys state =
+            match state.prev with
+            | Some state' ->
+              Map.merge
+                ~f:(fun ~key:_ -> function
+                   | `Left x -> Some x
+                   | `Right x -> Some x
+                   | `Both (x, _) -> Some x)
+                state.tys
+                (tys state')
+            | None -> state.tys
+          in
+          let tys = tys state in
+          let model = get_model tys in
           let model = join_int_model env model in
           Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
       in
@@ -232,6 +262,11 @@ let () =
     end
     | _ -> state
   in
-  let _ = List.fold_left exec { asserts = []; prev = None; last_result = None } f in
+  let _ =
+    List.fold_left
+      exec
+      { asserts = []; prev = None; last_result = None; tys = Map.empty }
+      f
+  in
   ()
 ;;
