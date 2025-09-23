@@ -113,7 +113,7 @@ let check_sat ?(verbose = false) ast : rez =
                | _ -> ()
              in
              List.iter f asts;
-             report_result2 (`Unknown "TODO");
+             report_result2 (`Unknown "Under2 resigns");
              exit 0
            with
            | Sat_found ->
