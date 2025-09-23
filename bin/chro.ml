@@ -114,10 +114,11 @@ let check_sat ?(verbose = false) ast : rez =
              in
              List.iter f asts;
              report_result2 (`Unknown "Under2 resigns");
+             (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
              exit 0
            with
            | Sat_found ->
-             Format.printf "sat (under II)\n%!";
+             report_result2 (`Sat "under II");
              exit 0))
       else unknown ast e)
       <+> (fun ast e ->
