@@ -84,7 +84,7 @@ $ export CHRO_DEBUG=1
             (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3076)
             )
   )
-  unknown (TODO)
+  unknown (Under2 resigns)
 
   $ echo '(2^12-2^10+1)* 2^0' | bc
   3073
@@ -151,4 +151,4 @@ $ export CHRO_DEBUG=1
             (= (+ (* (- 1) pow2(eee4)) (* (- 1) pow2(eee5)) pow2(eee6) )  8096)
             )
   )
-  unknown (TODO)
+  unknown (Under2 resigns)
