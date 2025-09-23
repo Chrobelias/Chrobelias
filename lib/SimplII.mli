@@ -34,8 +34,12 @@ val run_basic_simplify
 val run_under1 : int -> Ast.t -> [ `Sat of string | `Unknown ]
 val run_under2 : Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val pp_error : Format.formatter -> error -> unit
+
+(** Underapproximation 2 related functions *)
+
 val set_a_min : int -> unit
 val set_a_max : int -> unit
+val set_flat : int -> unit
 
 (* TODO(Kakadu): Hash-consing of AST without loss of pattern matching *)
 

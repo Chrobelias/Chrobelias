@@ -990,19 +990,29 @@ let run_basic_simplify ast =
   | `Unknown (ast, e, _, _) -> `Unknown (ast, e)
 ;;
 
-let a_range = ref (5, 11)
+type under2_config =
+  { mutable amin : int
+  ; mutable amax : int
+  ; mutable flat : int [@warning "-69"]
+  }
+
+let under2_config = { amin = 5; amax = 11; flat = 0 }
 
 let set_a_range min max =
   assert (min <= max);
-  a_range := min, max
+  under2_config.amin <- min;
+  under2_config.amax <- max
 ;;
 
-let set_a_min min = set_a_range min (snd !a_range)
-let set_a_max max = set_a_range (fst !a_range) max
+let set_a_min min = set_a_range min under2_config.amax
+let set_a_max max = set_a_range under2_config.amin max
+let set_flat n = under2_config.flat <- n
 
 let get_range () =
-  let ans = List.init (1 + snd !a_range - fst !a_range) (( + ) (fst !a_range)) in
-  assert (List.for_all (fun x -> x >= fst !a_range && x <= snd !a_range) ans);
+  let ans =
+    List.init (1 + under2_config.amax - under2_config.amin) (( + ) under2_config.amin)
+  in
+  assert (List.for_all (fun x -> x >= under2_config.amin && x <= under2_config.amax) ans);
   ans
 ;;
 
@@ -1013,26 +1023,78 @@ let try_under2_heuristics env ast =
     Format.(pp_print_list pp_print_string)
     (Base.Set.to_list under2vars);
   let ( let* ) xs f = List.concat_map f xs in
-  let all_as = get_range () in
-  log
-    "FUK: @[%a@]\n%!"
-    Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
-    all_as;
   let _k = 0 in
-  let envs =
-    Base.Set.Poly.fold
-      ~f:(fun acc name ->
-        let* a = all_as in
-        let* acc = acc in
-        let v = gensym ~prefix:"u" () in
-        [ Env.extend_exn acc name Id_symantics.(add [ pow2var v; const a ]) ])
-      ~init:[ env ]
-      under2vars
+  let envs : (Env.t * Ast.t list) list =
+    match under2_config.flat with
+    | n when n < 0 -> failwith "bad config"
+    | 0 ->
+      let all_as = get_range () in
+      log
+        "all as: @[%a@]\n%!"
+        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
+        all_as;
+      Base.Set.Poly.fold
+        ~f:(fun acc name ->
+          let* a = all_as in
+          let* acc, phs = acc in
+          let u = gensym ~prefix:"u" () in
+          [ Env.extend_exn acc name Id_symantics.(add [ pow2var u; const a ]), phs ])
+        ~init:[ env, [] ]
+        under2vars
+    | 1 ->
+      let all_as = get_range () in
+      log
+        "all as: @[%a@]\n%!"
+        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
+        all_as;
+      Base.Set.Poly.fold
+        ~f:(fun acc name ->
+          let* a = all_as in
+          let* acc, phs = acc in
+          let u = gensym ~prefix:"u" () in
+          let v = gensym ~prefix:"v" () in
+          [ ( Env.extend_exn
+                acc
+                name
+                Id_symantics.(
+                  Ast.Eia.Add
+                    [ pow2var u; Ast.Eia.Mul [ const (-1); pow2var v ]; const a ])
+            , Id_symantics.(prj (leq (var v) (var u))) :: phs )
+          ])
+        ~init:[ env, [] ]
+        under2vars
+    | n ->
+      Base.Set.Poly.fold
+        ~f:(fun acc name ->
+          let* a = [ 0 ] in
+          (* Do we neeed as in general case? *)
+          let* acc, phs = acc in
+          let vars = List.init (1 + n) (fun _ -> gensym ~prefix:"u" ()) in
+          let sum =
+            List.mapi
+              (fun i u ->
+                 if i mod 2 = 0
+                 then Id_symantics.(mul [ const (-1); pow2var u ])
+                 else Id_symantics.(pow2var u))
+              vars
+          in
+          let constraints =
+            List.tl vars
+            |> List.fold_left
+                 (fun (oldv, acc) v ->
+                    v, Id_symantics.(prj (leq (var v) (var oldv))) :: acc)
+                 (List.hd vars, [])
+            |> snd
+          in
+          [ Env.extend_exn acc name (Ast.Eia.Add sum), constraints @ phs ])
+        ~init:[ env, [] ]
+        under2vars
+    (* *)
   in
   List.map
-    (fun e ->
+    (fun (e, phs) ->
        let (module Symantics) = make_main_symantics e in
-       apply_symantics (module Symantics) ast)
+       apply_symantics (module Symantics) (Symantics.land_ (ast :: phs)))
     envs
 ;;
 
