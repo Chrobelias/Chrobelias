@@ -83,6 +83,7 @@ let apply_symnatics (module S : Smtml_symantics) =
     | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 ->
       Symantics.var (gensym x)
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
+    | Mod (t, z) -> S.mod_ (helperT t) z
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
     | Len _ | Stoi _ | Len2 _ | Stoi2 _ -> raise String_op
   and helper_eia eia =
