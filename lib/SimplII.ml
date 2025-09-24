@@ -1073,7 +1073,7 @@ let try_under2_heuristics env ast =
           let sum =
             List.mapi
               (fun i u ->
-                 if i mod 2 = 0
+                 if i mod 2 = 1
                  then Id_symantics.(mul [ const (-1); pow2var u ])
                  else Id_symantics.(pow2var u))
               vars
