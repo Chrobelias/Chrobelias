@@ -34,8 +34,9 @@ let () =
 ;;
 
 let is_good_smt2_file ~path filename =
-  Printf.printf "path  = %s\n" path;
-  Printf.printf "fname = %s\n" filename;
+  (* Printf.printf "path  = %s\n" path;
+  Printf.printf "fname = %s\n" filename; *)
+  let suffix = ".smt2" in
   if Base.String.is_substring path ~substring:"EXP-solver"
   then if String.ends_with filename ~suffix:"-result" then None else Some filename
   else (
@@ -43,9 +44,13 @@ let is_good_smt2_file ~path filename =
       Str.string_match (Str.regexp "exp i") str 0
       || Str.string_match (Str.regexp "exp 5") str 0
     in
-    let c1 = String.ends_with filename ~suffix:".smt2" in
+    let c1 = String.ends_with filename ~suffix in
     let check2 () =
-      let strs = In_channel.with_open_text filename In_channel.input_lines in
+      let strs =
+        In_channel.with_open_text
+          (path ^ Filename.dir_sep ^ filename)
+          In_channel.input_lines
+      in
       try
         let _ =
           List.find
@@ -59,7 +64,9 @@ let is_good_smt2_file ~path filename =
       with
       | Not_found -> true
     in
-    if c1 && check2 () then Some (Base.String.drop_suffix filename 4) else None)
+    if c1 && check2 ()
+    then Some (Base.String.drop_suffix filename (String.length suffix))
+    else None)
 ;;
 
 let max_tests_count = 4444 [@@ocaml.warning "-32"]
@@ -105,7 +112,9 @@ let get_extra_flags =
     (* Printf.printf "file = %s\n%!" file; *)
       try List.assoc file data with
       | Not_found ->
-        if Base.String.is_substring ~substring:"stringfuzz" s
+        if
+          Base.String.is_substring ~substring:"stringfuzz" s
+          || Base.String.is_substring ~substring:"Norn/ab" s
         then " --no-simpl-alpha "
         else ""
 ;;
