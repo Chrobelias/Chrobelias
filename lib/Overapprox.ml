@@ -12,68 +12,24 @@ module type Smtml_symantics = sig
   include FT_SIG.s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 
   val exists : string list -> Smtml.Expr.t -> Smtml.Expr.t
+
+  type repr = Smtml.Expr.t
+
+  val prj : Smtml.Expr.t -> Smtml.Expr.t
 end
 
-(** SYntax + seMANTICS *)
 module Symantics : Smtml_symantics = struct
-  open Smtml
+  include FT_SIG.To_smtml_symantics
 
-  type term = Expr.t
-  type str = Expr.t
-  type ph = Expr.t [@@warning "-34"]
+  type repr = Smtml.Expr.t
 
-  let str_len _ = assert false
-  let str_atoi _ = assert false
-  let str_const _ = assert false
-  let str_var _ = assert false
-  let in_re _ _ = failwith __FILE__
-  let const n = Smtml.Expr.value (Value.Int n)
-  let var s = Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
-  let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
-
-  let mul = function
-    | [] -> const 1
-    | x :: xs -> List.fold_left (Expr.binop Ty.Ty_int Ty.Binop.Mul) x xs
-  ;;
-
-  let add = function
-    | [] ->
-      (* const 0 ??? *)
-      failwith (Printf.sprintf "Bad argument: %s" __FUNCTION__)
-    | x :: xs -> List.fold_left (Expr.binop Ty.Ty_int Ty.Binop.Add) x xs
-  ;;
-
-  let bw op l r =
-    match op with
-    | FT_SIG.Bwand -> Expr.binop Ty.Ty_int Ty.Binop.And l r
-    | Bwor -> Expr.binop Ty.Ty_int Ty.Binop.Or l r
-    | Bwxor -> Expr.binop Ty.Ty_int Ty.Binop.Xor l r
-  ;;
+  let prj = Fun.id
 
   let exists vs ph =
-    Smtml.Expr.exists (List.map (fun s -> Smtml.Expr.symbol (Symbol.make Ty_int s)) vs) ph
+    Smtml.Expr.exists
+      (List.map (fun s -> Smtml.Expr.symbol (Smtml.Symbol.make Ty_int s)) vs)
+      ph
   ;;
-
-  let true_ = Expr.Bool.true_
-  let false_ = Expr.Bool.false_
-  let not = Expr.Bool.not
-
-  let land_ = function
-    | [] -> false_
-    | h :: tl -> List.fold_left Expr.Bool.and_ h tl
-  ;;
-
-  let lor_ = function
-    | [] -> true_
-    | h :: tl -> List.fold_left Expr.Bool.or_ h tl
-  ;;
-
-  let eq l r = Expr.relop Ty.Ty_bool Ty.Relop.Eq l r
-  let leq l r = Expr.relop Ty.Ty_int Ty.Relop.Le l r
-  let lt l r = Expr.relop Ty.Ty_int Ty.Relop.Lt l r
-  let ( = ) = eq
-  let ( < ) = lt
-  let ( <= ) = leq
 end
 
 let cache : (string, string, _) Base.Map.t ref = ref (Base.Map.empty (module Base.String))
@@ -98,23 +54,17 @@ let gensym =
     | x -> x
 ;;
 
-let check ast =
-  let tracing_on =
-    match Sys.getenv "CHRO_TRACE_OPT" with
-    | exception Not_found -> false
-    | "1" -> true
-    | _ -> false
-  in
-  let exception Bitwise_inside in
-  let exception String_inside in
-  cache := Base.Map.empty (module Base.String);
+exception Bitwise_op
+exception String_op
+
+let apply_symnatics (module S : Smtml_symantics) =
   let rec helper = function
-    | Ast.Land xs -> Symantics.land_ (List.map helper xs)
-    | Lor xs -> Symantics.lor_ (List.map helper xs)
-    | Lnot x -> Symantics.not (helper x)
-    | True -> Symantics.true_
+    | Ast.Land xs -> S.land_ (List.map helper xs)
+    | Lor xs -> S.lor_ (List.map helper xs)
+    | Lnot x -> S.not (helper x)
+    | True -> S.true_
     | Eia e -> helper_eia e
-    | Pred s -> Symantics.var s
+    | Pred s -> assert false
     | Exists (vs, ph) ->
       let vs =
         List.filter_map
@@ -123,27 +73,38 @@ let check ast =
             | Ast.Const _ -> None)
           vs
       in
-      Symantics.exists vs (helper ph)
-    | Str _ -> raise_notrace String_inside
+      S.exists vs (helper ph)
+    | Str _ -> Symantics.true_
   and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> Symantics.const (Z.to_int n)
-    | Atom (Ast.Var s) -> Symantics.var s
-    | Add terms -> Symantics.add (List.map helperT terms)
-    | Mul terms -> Symantics.mul (List.map helperT terms)
+    | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
+    | Atom (Ast.Var s) -> S.var s
+    | Add terms -> S.add (List.map helperT terms)
+    | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 ->
       Symantics.var (gensym x)
-    | Pow (base, p) -> Symantics.pow (helperT base) (helperT p)
-    | Bwand _ | Bwor _ | Bwxor _ -> raise_notrace Bitwise_inside
-    | Len _ | Stoi _ | Len2 _ | Stoi2 _ -> raise_notrace String_inside
+    | Pow (base, p) -> S.pow (helperT base) (helperT p)
+    | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
+    | Len _ | Stoi _ | Len2 _ | Stoi2 _ -> raise String_op
   and helper_eia eia =
     try
       match eia with
-      | Ast.Eia.Eq (l, r) -> Symantics.(helperT l = helperT r)
-      | Leq (l, r) -> Symantics.(helperT l <= helperT r)
+      | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
+      | Leq (l, r) -> S.(helperT l <= helperT r)
     with
-    | String_inside | Bitwise_inside -> Symantics.true_
+    | String_op | Bitwise_op -> Symantics.true_
   in
-  let _repr = helper ast in
+  fun x -> S.prj (helper x)
+;;
+
+let check ast =
+  let tracing_on =
+    match Sys.getenv "CHRO_TRACE_OPT" with
+    | exception Not_found -> false
+    | "1" -> true
+    | _ -> false
+  in
+  cache := Base.Map.empty (module Base.String);
+  let _repr = apply_symnatics (module Symantics) ast in
   let whole = _repr :: formulas_of_cache () in
   Format.pp_print_flush Format.std_formatter ();
   log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
