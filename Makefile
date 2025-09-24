@@ -37,7 +37,7 @@ define ADD_STRING_BENCH
 gen$(1):
 	mkdir -p benchmarks/tests/QF_SLIA/$(2)
 	dune exec benchmarks/gen.exe -- -ddc $(3) -t 2 benchmarks/QF_SLIA/$(2) -o benchmarks/tests/QF_SLIA/$(2)
-	dune b @benchmarks/tests/QF_SLIA/$(2)/fmt --au || exit 0
+	dune b @benchmarks/tests/QF_SLIA/$(2)/fmt --au 2> /dev/null || exit 0
 gen-tests-string: gen$(1)
 promote_benchmarks_string_$(1):
 	$$(MAKE) -C benchmarks/tests/QF_SLIA/$(2)
@@ -70,6 +70,7 @@ $(eval $(call ADD_STRING_BENCH,stringfuzz-gen-variants,20230327-stringfuzz-lu/ge
 $(eval $(call ADD_STRING_BENCH,stringfuzz-tra-amazon,20230327-stringfuzz-lu/transformed/amazon,6))
 $(eval $(call ADD_STRING_BENCH,stringfuzz-tra-z3str2,20230327-stringfuzz-lu/transformed/z3str2,6))
 
+gen-stringfuzz: genstringfuzz-gen-manyregexes genstringfuzz-gen-regexbig genstringfuzz-gen-regexdeep genstringfuzz-gen-regexlengths genstringfuzz-gen-regexpair genstringfuzz-gen-regexsmall genstringfuzz-gen-variants genstringfuzz-tra-amazon genstringfuzz-tra-z3str2
 
 promote_benchmarks: promote_benchmarks_string
 	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
