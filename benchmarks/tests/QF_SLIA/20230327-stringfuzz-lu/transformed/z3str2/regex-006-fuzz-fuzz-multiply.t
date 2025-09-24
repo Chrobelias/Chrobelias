@@ -1,6 +1,6 @@
 regex-006-fuzz-fuzz-multiply
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-006-fuzz-fuzz-multiply.smt2  --no-simpl-alpha  || echo TIMEOUT
-  lib/SimplII.ml 292 (= x "aabbnn..KKHH66==RRbb^^((NNXXtteeii00")
+  lib/SimplII.ml 226 (= x "aabbnn..KKHH66==RRbb^^((NNXXtteeii00")
   Fatal error: exception Failure("TBD")
   TIMEOUT

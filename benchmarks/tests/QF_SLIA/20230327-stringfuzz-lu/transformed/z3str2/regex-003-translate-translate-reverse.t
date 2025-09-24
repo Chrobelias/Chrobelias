@@ -1,6 +1,6 @@
 regex-003-translate-translate-reverse
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-003-translate-translate-reverse.smt2  --no-simpl-alpha  || echo TIMEOUT
-  lib/SimplII.ml 292 (= x "C{Q{QANC{Q")
+  lib/SimplII.ml 226 (= x "C{Q{QANC{Q")
   Fatal error: exception Failure("TBD")
   TIMEOUT
