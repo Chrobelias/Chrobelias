@@ -107,14 +107,29 @@ let find_files path =
 
 let get_extra_flags =
   let data = [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -under2 -amin 1 -amax 1" ] in
+  let conflicts_simpl_alpah =
+    [ "Norn/HammingDistance/norn-benchmark-5"
+    ; "Norn/ab/norn-benchmark-69"
+    ; "Norn/ChunkSplit/norn-benchmark-7"
+    ; "stringfuzz"
+    ]
+  in
+  let list_contains (cond : _ -> bool) xs =
+    try
+      let _ = List.find cond xs in
+      true
+    with
+    | Not_found -> false
+  in
   fun s ->
     let file = Filename.basename s in
     (* Printf.printf "file = %s\n%!" file; *)
       try List.assoc file data with
       | Not_found ->
         if
-          Base.String.is_substring ~substring:"stringfuzz" s
-          || Base.String.is_substring ~substring:"Norn/ab" s
+          list_contains
+            (fun substring -> Base.String.is_substring ~substring s)
+            conflicts_simpl_alpah
         then " --no-simpl-alpha "
         else ""
 ;;
