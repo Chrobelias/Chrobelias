@@ -5,9 +5,12 @@ type config =
   ; mutable dot_dot_count : int
     (** This is needed to insert right number of ../ to access benchmarks.
         Probably it could be calculated from two paths, but it is postponed for later. *)
+  ; mutable suffix : string
   }
 
-let config = { outdir = "."; path = "."; timeout = 2; dot_dot_count = 5 }
+let config =
+  { outdir = "."; path = "."; timeout = 2; dot_dot_count = 5; suffix = ".smt2" }
+;;
 
 let () =
   Arg.parse
@@ -24,46 +27,61 @@ let () =
     "help"
 ;;
 
-let is_good_smt2_file filename =
-  let strs = In_channel.with_open_text filename In_channel.input_lines in
-  let has_bad_expo str =
-    Str.string_match (Str.regexp "exp i") str 0
-    || Str.string_match (Str.regexp "exp 5") str 0
-  in
-  try
-    let _ =
-      List.find
-        (fun s ->
-           (String.starts_with ~prefix:"(declare-fun " s
-            && String.ends_with ~suffix:" Bool)" s)
-           || has_bad_expo s)
-        strs
-    in
-    false
-  with
-  | Not_found -> true
+let () =
+  if Base.String.is_substring config.path ~substring:"EXP-solver"
+  then config.suffix <- ""
+  else ()
 ;;
 
-let max_tests_count = 4444
+let is_good_smt2_file ~path filename =
+  Printf.printf "path  = %s\n" path;
+  Printf.printf "fname = %s\n" filename;
+  if Base.String.is_substring path ~substring:"EXP-solver"
+  then if String.ends_with filename ~suffix:"-result" then None else Some filename
+  else (
+    let has_bad_expo str =
+      Str.string_match (Str.regexp "exp i") str 0
+      || Str.string_match (Str.regexp "exp 5") str 0
+    in
+    let c1 = String.ends_with filename ~suffix:".smt2" in
+    let check2 () =
+      let strs = In_channel.with_open_text filename In_channel.input_lines in
+      try
+        let _ =
+          List.find
+            (fun s ->
+               (String.starts_with ~prefix:"(declare-fun " s
+                && String.ends_with ~suffix:" Bool)" s)
+               || has_bad_expo s)
+            strs
+        in
+        false
+      with
+      | Not_found -> true
+    in
+    if c1 && check2 () then Some (Base.String.drop_suffix filename 4) else None)
+;;
+
+let max_tests_count = 4444 [@@ocaml.warning "-32"]
 
 let find_files path =
   let dir = Unix.opendir path in
-  let c = ref 0 in
+  (* let c = ref 0 in *)
   let rec loop acc =
     try
-      let s = Unix.readdir dir in
-      let suffix = ".smt2" in
-      let newacc =
-        if
-          String.ends_with ~suffix s
-          && is_good_smt2_file (path ^ "/" ^ s)
-          && !c < max_tests_count
-        then String.sub s 0 (String.length s - String.length suffix) :: acc
-        else
-          (* let () = Printf.eprintf "File %s is skipped\n" s in *)
-          acc
-      in
-      loop newacc
+      match Unix.readdir dir with
+      | ".." | "." | ".DS_Store" -> loop acc
+      | s ->
+        let newacc =
+          match is_good_smt2_file ~path s with
+          | Some s ->
+            (* String.sub s 0 (String.length s - String.length suffix)  *)
+            s :: acc
+          | _ ->
+            (* let () = Printf.eprintf "File %s is skipped\n" s in *)
+            acc
+        in
+        loop newacc
     with
     | End_of_file ->
       Unix.closedir dir;
@@ -161,12 +179,14 @@ let () =
       in
       ListLabels.iter files ~f:(fun file ->
         makefile_single file;
+        (* Printf.printf "%d: file = %s\n%!" __LINE__ file; *)
         let smt2_file =
           Printf.sprintf
-            "%s/%s/%s.smt2"
+            "%s/%s/%s%s"
             (String.concat "/" (List.init config.dot_dot_count (fun _ -> "..")))
             config.path
             file
+            config.suffix
         in
         dune_single ~file smt2_file;
         t_file ~file smt2_file);
