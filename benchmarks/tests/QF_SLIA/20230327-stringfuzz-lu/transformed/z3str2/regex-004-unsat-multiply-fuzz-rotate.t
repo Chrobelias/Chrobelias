@@ -1,6 +1,6 @@
 regex-004-unsat-multiply-fuzz-rotate
   $ export OCAMLRUNPARAM='b=0'
-  $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-004-unsat-multiply-fuzz-rotate.smt2  || echo TIMEOUT
+  $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-004-unsat-multiply-fuzz-rotate.smt2  --no-simpl-alpha  || echo TIMEOUT
   lib/SimplII.ml 292 (= x "x7C4_d(NQJVdrK|YIuLQ'\\x0b'JM<l""""vtVmq'YXXWADF[d'\\n'y!:|e_Tw6Ccdd4't1q5")
   Fatal error: exception Failure("TBD")
   TIMEOUT
