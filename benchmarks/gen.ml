@@ -59,9 +59,9 @@ let find_files path =
           && is_good_smt2_file (path ^ "/" ^ s)
           && !c < max_tests_count
         then String.sub s 0 (String.length s - String.length suffix) :: acc
-        else (
-          let () = Printf.eprintf "File %s is skipped\n" s in
-          acc)
+        else
+          (* let () = Printf.eprintf "File %s is skipped\n" s in *)
+          acc
       in
       loop newacc
     with
@@ -86,7 +86,10 @@ let get_extra_flags =
     let file = Filename.basename s in
     (* Printf.printf "file = %s\n%!" file; *)
       try List.assoc file data with
-      | Not_found -> ""
+      | Not_found ->
+        if Base.String.is_substring ~substring:"stringfuzz" s
+        then " --no-simpl-alpha "
+        else ""
 ;;
 
 let dune_str = "dune build --no-print-directory --profile=benchmark"
