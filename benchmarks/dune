@@ -1,6 +1,6 @@
 (executable
  (name gen)
- (libraries unix str))
+ (libraries base unix str))
 
 (cram
  (applies_to gen)
