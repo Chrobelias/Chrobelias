@@ -33,7 +33,6 @@ genPURRS:
 	dune b @benchmarks/tests/$(DIR)/fmt --au
 
 define ADD_STRING_BENCH
-#gen$(1): DIR = QF_SLIA/$(2)
 gen$(1):
 	mkdir -p benchmarks/tests/QF_SLIA/$(2)
 	dune exec benchmarks/gen.exe -- -ddc $(3) -t 2 benchmarks/QF_SLIA/$(2) -o benchmarks/tests/QF_SLIA/$(2)
@@ -116,6 +115,11 @@ $(eval $(call ADD_STRING_BENCH,stringfuzz-tra-z3str2,20230327-stringfuzz-lu/tran
 gen-stringfuzz: genstringfuzz-gen-manyregexes genstringfuzz-gen-regexbig genstringfuzz-gen-regexdeep genstringfuzz-gen-regexlengths genstringfuzz-gen-regexpair genstringfuzz-gen-regexsmall genstringfuzz-gen-variants genstringfuzz-tra-amazon genstringfuzz-tra-z3str2
 
 gen-full_str_int: genleetcode_int-addStrings genleetcode_int-add_binary
+
+gen-EXP:
+	mkdir -p benchmarks/tests/EXP-solver/hash-all/head
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/head
+	dune b @benchmarks/tests/EXP-solver/hash-all/head/fmt --au 2> /dev/null || exit 0
 
 promote_benchmarks: promote_benchmarks_string
 	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
