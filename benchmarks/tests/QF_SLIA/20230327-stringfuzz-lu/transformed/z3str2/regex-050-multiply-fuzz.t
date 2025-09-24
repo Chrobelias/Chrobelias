@@ -1,0 +1,5 @@
+regex-050-multiply-fuzz
+  $ export OCAMLRUNPARAM='b=0'
+  $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-050-multiply-fuzz.smt2  || echo TIMEOUT
+  Fatal error: exception Failure("expected range strings \\n | to be of length 1")
+  TIMEOUT
