@@ -45,7 +45,27 @@ let pp_rel fmt = function
 
 type polynom = (atom, Z.t) Map.t
 
-let pp_polynom ppf m = Format.fprintf ppf "<polynom>"
+let pp_polynom ppf poly =
+  let fprintf = Format.fprintf in
+  let pp_map ppf mapa =
+    let one =
+      fun ~key ~data ->
+      match data with
+      | data when data = Z.one -> fprintf ppf "%a@ " pp_atom key
+      | data when data > Z.zero -> fprintf ppf "(* %a %a)@ " Z.pp_print data pp_atom key
+      | _ -> fprintf ppf "(* (- %a) %a)@ " Z.pp_print (Z.( ~- ) data) pp_atom key
+    in
+    if Map.length mapa = 1
+    then (
+      let v, coeff = Map.min_elt_exn mapa in
+      one ~key:v ~data:coeff)
+    else (
+      fprintf ppf "@[(+ ";
+      Map.iteri mapa ~f:one;
+      fprintf ppf ")@]@ ")
+  in
+  fprintf ppf "@[(%a)@]@ " pp_map poly
+;;
 
 type t =
   | True

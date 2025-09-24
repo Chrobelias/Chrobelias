@@ -108,7 +108,8 @@ let check_sat ?(verbose = false) ast : rez =
           let exception Sat_found in
           (try
              let f ast =
-               match Lib.Solver.check_sat (Lib.Me.ir_of_ast ast) with
+               let ir = Lib.Me.ir_of_ast ast |> Result.get_ok in
+               match Lib.Solver.check_sat ir with
                | `Sat _ -> raise Sat_found
                | _ -> ()
              in
@@ -144,17 +145,24 @@ let check_sat ?(verbose = false) ast : rez =
       | Unsat ->
         report_result2 `Unsat;
         rez
-      | Unknown (ast, e) ->
-        (match Lib.Solver.check_sat (Lib.Me.ir_of_ast ast) with
-         | `Sat get_model ->
-           report_result2 (`Sat "nfa");
-           sat "nfa" ast e get_model
-         | `Unsat ->
-           report_result2 `Unsat;
-           rez
-         | `Unknown _ir ->
-           report_result2 (`Unknown "nfa");
-           rez)
+      | Unknown (ast, e) -> begin
+        match Lib.Me.ir_of_ast ast with
+        | Ok ir ->
+          (match Lib.Solver.check_sat ir with
+           | `Sat get_model ->
+             report_result2 (`Sat "nfa");
+             sat "nfa" ast e get_model
+           | `Unsat ->
+             report_result2 `Unsat;
+             rez
+           | `Unknown _ir ->
+             report_result2 (`Unknown "nfa");
+             rez)
+        | Error s ->
+          report_result2
+            (`Unknown (Format.sprintf "converting to automaton expression: %s" s));
+          rez
+      end
     in
     rez
   end
