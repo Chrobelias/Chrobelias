@@ -119,7 +119,18 @@ gen-full_str_int: genleetcode_int-addStrings genleetcode_int-add_binary
 gen-EXP:
 	mkdir -p benchmarks/tests/EXP-solver/hash-all/head
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/head
-	dune b @benchmarks/tests/EXP-solver/hash-all/head/fmt --au 2> /dev/null || exit 0
+	mkdir -p benchmarks/tests/EXP-solver/hash-all/head-tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/head-tail
+	mkdir -p benchmarks/tests/EXP-solver/hash-all/tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/tail
+	#
+	mkdir -p benchmarks/tests/EXP-solver/flatten/head
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/flatten/head
+	mkdir -p benchmarks/tests/EXP-solver/flatten/head-tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/flatten/head-tail
+	mkdir -p benchmarks/tests/EXP-solver/flatten/tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/flatten/tail
+	dune b @benchmarks/tests/EXP-solver/fmt --au 2> /dev/null || exit 0
 
 promote_benchmarks: promote_benchmarks_string
 	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
