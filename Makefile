@@ -55,6 +55,45 @@ $(eval $(call ADD_STRING_BENCH,Norn-Levenshtein,2015-Norn/Levenshtein,5))
 $(eval $(call ADD_STRING_BENCH,Norn-StringReplace,2015-Norn/StringReplace,5))
 
 $(eval $(call ADD_STRING_BENCH,leetcode_int-add_binary,2019-full_str_int/py-conbyte_cvc4/leetcode_int-add_binary,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-add_binary,2019-full_str_int/py-conbyte_z3seq/leetcode_int-add_binary,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-addStrings,2019-full_str_int/py-conbyte_cvc4/leetcode_int-addStrings,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-addStrings,2019-full_str_int/py-conbyte_trauc/leetcode_int-addStrings,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-addStrings,2019-full_str_int/py-conbyte_z3seq/leetcode_int-addStrings,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-addStrings,2019-full_str_int/py-conbyte_z3str/leetcode_int-addStrings,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-numDecodings,2019-full_str_int/py-conbyte_cvc4/leetcode_int-numDecodings,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-numDecodings,2019-full_str_int/py-conbyte_trauc/leetcode_int-numDecodings,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-numDecodings,2019-full_str_int/py-conbyte_z3seq/leetcode_int-numDecodings,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-numDecodings,2019-full_str_int/py-conbyte_z3str/leetcode_int-numDecodings,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-restoreIpAddresses,2019-full_str_int/py-conbyte_cvc4/leetcode_int-restoreIpAddresses,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-restoreIpAddresses,2019-full_str_int/py-conbyte_trauc/leetcode_int-restoreIpAddresses,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-restoreIpAddresses,2019-full_str_int/py-conbyte_z3seq/leetcode_int-restoreIpAddresses,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-restoreIpAddresses,2019-full_str_int/py-conbyte_z3str/leetcode_int-restoreIpAddresses,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-validIPAddress,2019-full_str_int/py-conbyte_cvc4/leetcode_int-validIPAddress,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-validIPAddress,2019-full_str_int/py-conbyte_trauc/leetcode_int-validIPAddress,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-validWordAbbreviation,2019-full_str_int/py-conbyte_cvc4/leetcode_int-validWordAbbreviation,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-validWordAbbreviation,2019-full_str_int/py-conbyte_trauc/leetcode_int-validWordAbbreviation,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-validWordAbbreviation,2019-full_str_int/py-conbyte_z3seq/leetcode_int-validWordAbbreviation,6))
+$(eval $(call ADD_STRING_BENCH,leetcode_int-validWordAbbreviation,2019-full_str_int/py-conbyte_z3str/leetcode_int-validWordAbbreviation,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-datetime__parse_hh_mm_ss_ff,2019-full_str_int/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-datetime__parse_hh_mm_ss_ff,2019-full_str_int/py-conbyte_trauc/lib_int-datetime__parse_hh_mm_ss_ff,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-datetime__parse_hh_mm_ss_ff,2019-full_str_int/py-conbyte_z3seq/lib_int-datetime__parse_hh_mm_ss_ff,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-datetime__parse_isoformat_date,2019-full_str_int/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-distutils_get_build_version,2019-full_str_int/py-conbyte_cvc4/lib_int-distutils_get_build_version,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-email__parsedate_tz,2019-full_str_int/py-conbyte_cvc4/lib_int-email__parsedate_tz,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-email__parsedate_tz,2019-full_str_int/py-conbyte_trauc/lib_int-email__parsedate_tz,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-email__parsedate_tz,2019-full_str_int/py-conbyte_z3seq/lib_int-email__parsedate_tz,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-email__parsedate_tz,2019-full_str_int/py-conbyte_z3str/lib_int-email__parsedate_tz,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-http_parse_request,2019-full_str_int/py-conbyte_cvc4/lib_int-http_parse_request,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-ipaddress__ip_int_from_string,2019-full_str_int/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-ipaddress__ip_int_from_string,2019-full_str_int/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-ipaddress__ip_int_from_string,2019-full_str_int/py-conbyte_z3seq/lib_int-ipaddress__ip_int_from_string,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-ipaddress__ip_int_from_string,2019-full_str_int/py-conbyte_z3str/lib_int-ipaddress__ip_int_from_string,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-nntplib__parse_datetime,2019-full_str_int/py-conbyte_cvc4/lib_int-nntplib__parse_datetime,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-smtpd_parseargs,2019-full_str_int/py-conbyte_cvc4/lib_int-smtpd_parseargs,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-wsgiref_check_status,2019-full_str_int/py-conbyte_cvc4/lib_int-wsgiref_check_status,6))
+$(eval $(call ADD_STRING_BENCH,lib_int-wsgiref_check_status,2019-full_str_int/py-conbyte_trauc/lib_int-wsgiref_check_status,6))
+
+genfull_str_int: genleetcode_int-restoreIpAddresses genleetcode_int-addStrings genleetcode_int-numDecodings genlib_int-datetime__parse_hh_mm_ss_ff genlib_int-wsgiref_check_status genlib_int-ipaddress__ip_int_from_string genleetcode_int-validWordAbbreviation genlib_int-email__parsedate_tz genleetcode_int-validIPAddress genleetcode_int-restoreIpAddresses genleetcode_int-addStrings genleetcode_int-numDecodings genleetcode_int-add_binary genlib_int-datetime__parse_hh_mm_ss_ff genlib_int-ipaddress__ip_int_from_string genleetcode_int-validWordAbbreviation genlib_int-email__parsedate_tz genleetcode_int-restoreIpAddresses genleetcode_int-addStrings genleetcode_int-numDecodings genlib_int-ipaddress__ip_int_from_string genleetcode_int-validWordAbbreviation genlib_int-email__parsedate_tz genleetcode_int-restoreIpAddresses genleetcode_int-addStrings genlib_int-nntplib__parse_datetime genlib_int-smtpd_parseargs genleetcode_int-numDecodings genleetcode_int-add_binary genlib_int-distutils_get_build_version genlib_int-datetime__parse_hh_mm_ss_ff genlib_int-http_parse_request genlib_int-datetime__parse_isoformat_date genlib_int-wsgiref_check_status genlib_int-ipaddress__ip_int_from_string genleetcode_int-validWordAbbreviation genlib_int-email__parsedate_tz genleetcode_int-validIPAddress
 
 $(eval $(call ADD_STRING_BENCH,redos-sat,20240411-redos_attack_detection/sat,5))
 $(eval $(call ADD_STRING_BENCH,redos-unsat,20240411-redos_attack_detection/unsat,5))
@@ -76,6 +115,8 @@ $(eval $(call ADD_STRING_BENCH,stringfuzz-tra-z3str2,20230327-stringfuzz-lu/tran
 
 gen-stringfuzz: genstringfuzz-gen-manyregexes genstringfuzz-gen-regexbig genstringfuzz-gen-regexdeep genstringfuzz-gen-regexlengths genstringfuzz-gen-regexpair genstringfuzz-gen-regexsmall genstringfuzz-gen-variants genstringfuzz-tra-amazon genstringfuzz-tra-z3str2
 
+gen-full_str_int: genleetcode_int-addStrings genleetcode_int-add_binary
+
 promote_benchmarks: promote_benchmarks_string
 	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
 	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity
@@ -86,3 +127,7 @@ promote_benchmarks: promote_benchmarks_string
 clean:
 	dune clean
 
+# ✗ cat foo.sh
+# printf "\$(eval \$(call ADD_STRING_BENCH,`basename $1`,$1,5))\n"
+# find 2019-full_str_int -mindepth 2 -type d -exec ./foo.sh {} \; | sort
+# find benchmarks/QF_SLIA/2019-full_str_int -mindepth 2 -type d -exec echo {} \; | xargs -n1  basename  | xargs -n1 printf "gen%s "
