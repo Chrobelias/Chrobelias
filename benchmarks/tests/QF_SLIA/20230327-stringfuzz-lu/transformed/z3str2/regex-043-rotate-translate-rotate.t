@@ -1,6 +1,6 @@
 regex-043-rotate-translate-rotate
   $ export OCAMLRUNPARAM='b=0'
-  $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-043-rotate-translate-rotate.smt2  || echo TIMEOUT
+  $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-043-rotate-translate-rotate.smt2  --no-simpl-alpha  || echo TIMEOUT
   lib/SimplII.ml 292 (= x "hhh")
   Fatal error: exception Failure("TBD")
   TIMEOUT
