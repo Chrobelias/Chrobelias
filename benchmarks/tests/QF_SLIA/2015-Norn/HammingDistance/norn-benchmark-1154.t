@@ -1,0 +1,5 @@
+norn-benchmark-1154
+  $ export OCAMLRUNPARAM='b=0'
+  $ timeout 2 Chro ../../../../../benchmarks/QF_SLIA/2015-Norn/HammingDistance/norn-benchmark-1154.smt2  || echo TIMEOUT
+  Fatal error: exception Failure("unable to handle (str.++ (var_6, \"z\", var_7)) as string")
+  TIMEOUT
