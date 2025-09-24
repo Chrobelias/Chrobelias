@@ -59,7 +59,9 @@ let find_files path =
           && is_good_smt2_file (path ^ "/" ^ s)
           && !c < max_tests_count
         then String.sub s 0 (String.length s - String.length suffix) :: acc
-        else acc
+        else (
+          let () = Printf.eprintf "File %s is skipped\n" s in
+          acc)
       in
       loop newacc
     with
