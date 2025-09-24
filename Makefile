@@ -59,6 +59,10 @@ $(eval $(call ADD_STRING_BENCH,leetcode_int-add_binary,2019-full_str_int/py-conb
 $(eval $(call ADD_STRING_BENCH,redos-sat,20240411-redos_attack_detection/sat,5))
 $(eval $(call ADD_STRING_BENCH,redos-unsat,20240411-redos_attack_detection/unsat,5))
 
+$(eval $(call ADD_STRING_BENCH,str-small-rw-pred,20190311-str-small-rw-Noetzli/str-pred-small-rw,5))
+$(eval $(call ADD_STRING_BENCH,str-small-rw-term,20190311-str-small-rw-Noetzli/str-term-small-rw,5))
+
+
 $(eval $(call ADD_STRING_BENCH,stringfuzz-gen-manyregexes,20230327-stringfuzz-lu/generated/manyregexes,6))
 $(eval $(call ADD_STRING_BENCH,stringfuzz-gen-regexbig,20230327-stringfuzz-lu/generated/regexbig,6))
 $(eval $(call ADD_STRING_BENCH,stringfuzz-gen-regexdeep,20230327-stringfuzz-lu/generated/regexdeep,6))
