@@ -5,3 +5,15 @@
 (cram
  (applies_to gen)
  (deps ./gen.exe))
+
+(rule
+ (targets
+  (dir QF_SLIA))
+ (deps %{project_root}/vendor/QF_SLIA.tar.zst)
+ (mode
+  (promote (until-clean)))
+ (action
+  (progn
+   (run tar -xf %{project_root}/vendor/QF_SLIA.tar.zst)
+   (run mv non-incremental/QF_SLIA .)
+   (run rm -rf non-incremental))))
