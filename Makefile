@@ -43,7 +43,7 @@ promote_benchmarks_string_$(1):
 	$$(MAKE) -C benchmarks/tests/QF_SLIA/$(2)
 promote_benchmarks_string: promote_benchmarks_string_$(1)
 endef
-$(eval $(call ADD_STRING_BENCH,Kepler,2018-Kepler,4))
+#$(eval $(call ADD_STRING_BENCH,Kepler,2018-Kepler,4))
 $(eval $(call ADD_STRING_BENCH,Denghang,20230329-denghang,4))
 $(eval $(call ADD_STRING_BENCH,Woorpje,20230329-woorpje-lu/track05,5))
 $(eval $(call ADD_STRING_BENCH,Matching,20250410-matching,4))
