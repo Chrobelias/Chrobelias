@@ -1,6 +1,6 @@
 regex-022-unsat-translate-reverse-multiply
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-022-unsat-translate-reverse-multiply.smt2  --no-simpl-alpha  || echo TIMEOUT
-  lib/SimplII.ml 292 (= x "ttDD")
+  lib/SimplII.ml 226 (= x "ttDD")
   Fatal error: exception Failure("TBD")
   TIMEOUT

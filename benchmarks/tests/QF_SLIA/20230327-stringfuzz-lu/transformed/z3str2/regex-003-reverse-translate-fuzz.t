@@ -1,6 +1,6 @@
 regex-003-reverse-translate-fuzz
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-003-reverse-translate-fuzz.smt2  --no-simpl-alpha  || echo TIMEOUT
-  lib/SimplII.ml 292 (= x ";!/nFd6dNGYYtJ:./s'\x0b'B!e$G/ctg^'\x0c'_")
+  lib/SimplII.ml 226 (= x ";!/nFd6dNGYYtJ:./s'\x0b'B!e$G/ctg^'\x0c'_")
   Fatal error: exception Failure("TBD")
   TIMEOUT
