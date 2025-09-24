@@ -1,5 +1,7 @@
 (lang dune 3.16)
 
+(using directory-targets 0.1)
+
 (name Chrobelias)
 
 (generate_opam_files true)
@@ -7,9 +9,11 @@
 (source
  (github Chrobelias/Chrobelias))
 
-(authors "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev, Mikhail Starchak")
+(authors
+ "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev, Mikhail Starchak")
 
-(maintainers "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev, Mikhail Starchak")
+(maintainers
+ "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev, Mikhail Starchak")
 
 (license MIT)
 
