@@ -24,7 +24,7 @@ module Debug = struct
         }
   ;;
 
-  let printf str = Format.fprintf fmt (str ^^ "%!")
+  let _printf str = Format.fprintf fmt (str ^^ "%!")
   let printfln str = Format.fprintf fmt (str ^^ "\n%!")
 
   let dump_nfa ?msg ?vars format_nfa nfa =
@@ -433,18 +433,28 @@ module Graph (Label : L) = struct
     assert (0 <= first);
     assert (first <= last);
     let diff = last - first + 1 in
+    let step =
+      let mem = ref Map.empty in
+      fun cur ->
+        match Map.find !mem cur with
+        | Some x -> x
+        | None ->
+          let ans =
+            cur
+            |> Set.to_sequence
+            |> Sequence.concat_map ~f:(fun state ->
+              graph.(state) |> Sequence.of_list |> Sequence.map ~f:snd)
+            |> Set.of_sequence
+          in
+          mem := Map.add_exn !mem ~key:cur ~data:ans;
+          ans
+    in
     let rec helper n cur =
       match n with
       | 0 -> [ cur ], 1
       | n ->
         assert (n > 0);
-        let states =
-          cur
-          |> Set.to_sequence
-          |> Sequence.concat_map ~f:(fun state ->
-            graph.(state) |> Sequence.of_list |> Sequence.map ~f:snd)
-          |> Set.of_sequence
-        in
+        let states = step cur in
         let next, amount = helper (n - 1) states in
         if amount < diff then cur :: next, amount + 1 else next, amount
     in
@@ -671,15 +681,12 @@ end
 module type NatType = sig
   include Type
 
-  val find_c_d : t -> (int, int) Map.t -> (int * int) list
-  val chrobak : t -> (int * int) list
-
   val get_chrobaks_sub_nfas
     :  t
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (int -> (v list list * int) option)) Seq.t
+    -> (t * (int * int) Seq.t * (int -> (v list list * int) option)) Seq.t
 
   val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
 end
@@ -1135,29 +1142,19 @@ struct
   let find_c_d nfa (imp : (int, int) Map.t) =
     assert (Set.length nfa.start = 1);
     let n = max 2 (length nfa) in
-    let reachable_in_range = Graph.reachable_in_range nfa.transitions in
-    let reachable_in n init = reachable_in_range n n init |> List.hd in
     let m = n * n in
-    let rec helper n cur =
-      if Set.is_empty cur
-      then Set.empty
-      else (
-        match n with
-        | n when n = m -> Set.empty
-        | n ->
-          let add = Set.are_disjoint cur nfa.final |> not in
-          let states =
-            cur
-            |> Set.to_sequence
-            |> Sequence.concat_map ~f:(fun state ->
-              nfa.transitions.(state) |> Sequence.of_list |> Sequence.map ~f:snd)
-            |> Set.of_sequence
-          in
-          let next = helper (n + 1) states in
-          if add then Set.add next n else next)
+    let t =
+      Graph.reachable_in_range (Graph.reverse nfa.transitions) 0 (m - n - 1) nfa.final
+      |> Array.of_list
     in
-    let r1 = helper 0 nfa.start in
-    let states = reachable_in (n - 1) nfa.start in
+    let s = Graph.reachable_in_range nfa.transitions 0 m nfa.start in
+    let r1 =
+      s
+      |> List.mapi (fun i set -> if Set.are_disjoint nfa.final set then None else Some i)
+      |> List.filter_map Fun.id
+      |> Set.of_list
+    in
+    let states = List.nth s (n - 1) in
     let states =
       states
       |> Set.to_sequence
@@ -1170,11 +1167,8 @@ struct
         let first = (n * n) - n - d in
         assert (first >= 0);
         let last = (n * n) - n - 1 in
-        reachable_in_range first last (Set.singleton state)
-        |> List.map (fun set -> not (Set.are_disjoint nfa.final set))
-        |> Base.List.zip_exn (first -- last)
-        |> List.filter snd
-        |> List.map fst
+        first -- last
+        |> List.filter (fun i -> Set.mem t.(i) state)
         |> List.map (fun c -> c + n - 1, d)
         |> Sequence.of_list)
       |> Sequence.map ~f:(fun (c, d) ->
@@ -1189,7 +1183,7 @@ struct
         not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
       |> List.map (fun c -> c, 0)
     in
-    r2 @ r1 |> Set.of_list |> Set.to_list
+    r2 @ r1 |> Set.of_list |> Set.to_sequence |> Sequence.to_seq
   ;;
 
   let of_regex (r : Label.u list Regex.t) =
@@ -1418,16 +1412,19 @@ module Lsb (Label : L) = struct
       |> List.filter (fun (_, b) -> b <> 0)
       |> Map.of_alist_exn
     in
-    (* important *)
-    (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
+    Debug.printfln
+      "important verticies: [%a]"
+      (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
+         Format.fprintf fmt "(%d: %d)" a b))
+      (Map.to_alist important);
     let result = find_c_d nfa important in
-    Debug.printf "Chrobak output: ";
-    Debug.printf
-      "%a\n"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-         (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
-      result;
+    (* Debug.printf "Chrobak output: "; *)
+    (* Debug.printf *)
+    (*   "%a\n" *)
+    (*   (Format.pp_print_list *)
+    (*      ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ") *)
+    (*      (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b)) *)
+    (*   result; *)
     result
   ;;
 
@@ -1718,16 +1715,19 @@ module MsbNat (Label : L) = struct
       |> List.filter (fun (_, b) -> b <> 0)
       |> Map.of_alist_exn
     in
-    (* important *)
-    (* |> Map.iteri ~f:(fun ~key ~data -> Format.printf "state=%d,d=%d\n" key data); *)
+    Debug.printfln
+      "important verticies: [%a]"
+      (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
+         Format.fprintf fmt "(%d: %d)" a b))
+      (Map.to_alist important);
     let result = find_c_d nfa important in
-    Debug.printf "Chrobak output: ";
-    Debug.printf
-      "%a\n"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-         (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
-      result;
+    (* Debug.printf "Chrobak output: "; *)
+    (* Debug.printf *)
+    (*   "%a\n" *)
+    (*   (Format.pp_print_list *)
+    (*      ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ") *)
+    (*      (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b)) *)
+    (*   result; *)
     result
   ;;
 
@@ -1869,7 +1869,7 @@ let%expect_test "find_c_d smoke test" =
     }
   in
   let imp = Map.of_alist_exn [ 0, 2; 1, 2 ] in
-  print (find_c_d nfa imp);
+  print (find_c_d nfa imp |> List.of_seq);
   [%expect {|1, 2|}]
 ;;
 

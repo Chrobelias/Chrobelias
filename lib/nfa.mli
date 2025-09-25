@@ -89,15 +89,12 @@ end
 module type NatType = sig
   include Type
 
-  val find_c_d : t -> (int, int) Map.t -> (int * int) list
-  val chrobak : t -> (int * int) list
-
   val get_chrobaks_sub_nfas
     :  t
     -> res:deg
     -> temp:deg
     -> vars:int list
-    -> (t * (int * int) list * (int -> (v list list * int) option)) Seq.t
+    -> (t * (int * int) Seq.t * (int -> (v list list * int) option)) Seq.t
 
   val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
 end
