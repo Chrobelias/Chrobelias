@@ -1,0 +1,15 @@
+(set-logic QF_S)
+
+(declare-fun x () String)
+(declare-fun u () Int)
+(declare-fun v () Int)
+(declare-fun w () Int)
+
+(assert (str.in_re x (re.++ (re.+ (str.to_re "12")) (re.+ (str.to_re "28"))(str.to_re "6789")) ))
+(assert (<= 0 v))
+(assert (< v 137))
+(assert (= (* 137 w) (+ (str.to_int x) v)))
+(assert (= v (* u 130)))
+(assert (< (str.len x) 100))
+(check-sat)
+;(get-model)
