@@ -724,7 +724,6 @@ struct
       Ir.pp_atom
       var2;
     chrob
-    |> List.to_seq
     |> Seq.map (fun (a, c) ->
       if c = 0
       then (
@@ -769,7 +768,6 @@ struct
     let module NfaCollection = NfaCollectionNat in
     let get_deg = Map.find_exn s.vars in
     chrob
-    |> List.to_seq
     |> Seq.concat_map (fun (a, c) ->
       if c = 0
       then
