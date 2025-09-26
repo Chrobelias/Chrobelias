@@ -96,7 +96,7 @@ let check_sat ?(verbose = false) ast : rez =
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
-      if Lib.Config.is_under2_enabled ()
+      if Lib.SimplII.is_under2_enabled ()
       then (
         match Lib.SimplII.run_under2 ast with
         | `Sat -> sat "under2" ast e (fun _ -> Map.empty)
