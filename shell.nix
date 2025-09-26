@@ -4,5 +4,6 @@ pkgs.mkShell {
     packages = with pkgs; [ 
       gmp
       opam
+      bc
     ];
 }

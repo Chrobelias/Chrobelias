@@ -90,6 +90,7 @@ let of_str : Ast.Str.t -> (Ir.t, string) result = function
     in
     return (Ir.sreg (Ir.var s) re)
   | Ast.Str.Eq (Atom (Var a), Atom (Var b)) -> return (Ir.seq (Ir.var a) (Ir.var b))
+  | Ast.Str.Eq (Atom (Var a), FromEia (Var b)) -> return (Ir.itos (Ir.var a) (Ir.var b))
   | s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)
 ;;
 

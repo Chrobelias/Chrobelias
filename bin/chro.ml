@@ -108,18 +108,53 @@ let check_sat ?(verbose = false) ast : rez =
           let exception Sat_found in
           (try
              let f ast =
-               let ir = Lib.Me.ir_of_ast ast |> Result.get_ok in
+               let ir = Lib.Me.ir_of_ast ast in
+               match ir with
+               | Ok ir -> begin
+                 match Lib.Solver.check_sat ir with
+                 | `Sat _ -> raise Sat_found
+                 | _ -> ()
+               end
+               | Error _ -> ()
+             in
+             List.iter f asts;
+             report_result2 (`Unknown "Under2 resigns");
+             (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
+             unknown ast e
+           with
+           | Sat_found ->
+             report_result2 (`Sat "under II");
+             exit 0))
+      else unknown ast e)
+      <+> (fun ast e ->
+      if Lib.Config.is_under3_enabled ()
+      then (
+        match Lib.SimplII.run_under3 ast with
+        | `Sat -> sat "under3" ast e (fun _ -> Map.empty)
+        | `Underapprox asts ->
+          if Lib.Config.config.dump_pre_simpl
+          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+          if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
+          log "Looking for SAT in %d asts..." (List.length asts);
+          let exception Sat_found in
+          (try
+             let f ast =
+               let ir =
+                 Lib.Me.ir_of_ast ast
+                 |> Result.map_error (fun c -> Format.eprintf "ERROR: %s\n%!" c)
+                 |> Result.get_ok
+               in
                match Lib.Solver.check_sat ir with
                | `Sat _ -> raise Sat_found
                | _ -> ()
              in
              List.iter f asts;
-             report_result2 (`Unknown "Under2 resigns");
+             report_result2 (`Unknown "Under3 resigns");
              (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
              exit 0
            with
            | Sat_found ->
-             report_result2 (`Sat "under II");
+             report_result2 (`Sat "under III");
              exit 0))
       else unknown ast e)
       <+> (fun ast e ->
