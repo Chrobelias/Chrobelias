@@ -9,7 +9,6 @@ type config =
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
-  ; mutable minimize_in_semenov : bool
   ; mutable under_approx : int
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str ]
@@ -27,7 +26,6 @@ let config =
   ; simpl_alpha = true
   ; simpl_mono = true
   ; over_approx = true
-  ; minimize_in_semenov = true
   ; under_approx = 2
   ; input_file = ""
   ; logic = `Eia
@@ -80,10 +78,6 @@ let parse_args () =
     ; ( "-amax"
       , Arg.Int SimplII.set_a_max
       , " <n> Parameter of underapprox.2. Matters when N>=2" )
-    ; ( "-mini-in-semenov"
-      , Arg.Unit (fun () -> config.minimize_in_semenov <- true)
-      , " Minimize in Semenov (default)" )
-    ; "-no-mini-in-semenov", Arg.Unit (fun () -> config.minimize_in_semenov <- false), " "
     ]
     (fun s ->
        if Sys.file_exists s
