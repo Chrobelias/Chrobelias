@@ -11,7 +11,6 @@ type config =
   ; mutable over_approx : bool
   ; mutable minimize_in_semenov : bool
   ; mutable under_approx : int
-  ; mutable under_mode : [ `First | `Second ]
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str ]
   ; mutable with_check_sat : bool
@@ -30,14 +29,11 @@ let config =
   ; over_approx = true
   ; minimize_in_semenov = true
   ; under_approx = 2
-  ; under_mode = `First
   ; input_file = ""
   ; logic = `Eia
   ; with_check_sat = false
   }
 ;;
-
-let is_under2_enabled () = config.under_mode = `Second
 
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -60,7 +56,6 @@ let parse_args () =
     ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
     ; "-dir", Arg.Unit (fun () -> config.dump_ir <- true), " Dump IR"
-    ; "-under2", Arg.Unit (fun () -> config.under_mode <- `Second), " ..."
     ; ( "-dpresimpl"
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , " Dump AST simplifications" )
@@ -76,9 +71,15 @@ let parse_args () =
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , " Use least-significant-bit first representation (only supports nats)" )
-    ; "-flat", Arg.Int SimplII.set_flat, " "
-    ; "-amin", Arg.Int SimplII.set_a_min, " "
-    ; "-amax", Arg.Int SimplII.set_a_max, " "
+    ; ( "-flat"
+      , Arg.Int SimplII.set_flat
+      , " <N> Underapproximation 2 of (* x (exp 2 y)). N >=0. " )
+    ; ( "-amin"
+      , Arg.Int SimplII.set_a_min
+      , " <n> Parameter of underapprox.2. Matters when N>=2" )
+    ; ( "-amax"
+      , Arg.Int SimplII.set_a_max
+      , " <n> Parameter of underapprox.2. Matters when N>=2" )
     ; ( "-mini-in-semenov"
       , Arg.Unit (fun () -> config.minimize_in_semenov <- true)
       , " Minimize in Semenov (default)" )

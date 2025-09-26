@@ -996,7 +996,7 @@ type under2_config =
   ; mutable flat : int [@warning "-69"]
   }
 
-let under2_config = { amin = 5; amax = 11; flat = 0 }
+let under2_config = { amin = 5; amax = 11; flat = -1 }
 
 let set_a_range min max =
   assert (min <= max);
@@ -1007,6 +1007,8 @@ let set_a_range min max =
 let set_a_min min = set_a_range min under2_config.amax
 let set_a_max max = set_a_range under2_config.amin max
 let set_flat n = under2_config.flat <- n
+let get_flat () = under2_config.flat
+let is_under2_enabled () = get_flat () >= 0
 
 let get_range () =
   let ans =
@@ -1096,7 +1098,7 @@ let try_under2_heuristics env ast =
     envs
 ;;
 
-let simpl ?(under_mode = `First) bound ast =
+let simpl bound ast =
   let prepare_choices env var_info =
     let ( let* ) xs f = List.concat_map f xs in
     let choice1 = List.init (bound + 1) Fun.id in
@@ -1172,7 +1174,7 @@ let simpl ?(under_mode = `First) bound ast =
       (try
          match check_errors ast with
          | [] -> `Unknown ast
-         | errrs when under_mode = `First ->
+         | errrs when get_flat () < 0 ->
            `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
          | errrs ->
            (* Underapprox II *)

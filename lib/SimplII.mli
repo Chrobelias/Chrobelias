@@ -17,8 +17,7 @@ module Env : sig
 end
 
 val simpl
-  :  ?under_mode:[ `First | `Second ]
-  -> int
+  :  int
   -> Ast.t
   -> [> `Unknown of Ast.t
      | `Sat of string * Env.t
@@ -40,6 +39,7 @@ val pp_error : Format.formatter -> error -> unit
 val set_a_min : int -> unit
 val set_a_max : int -> unit
 val set_flat : int -> unit
+val is_under2_enabled : unit -> bool
 
 (* TODO(Kakadu): Hash-consing of AST without loss of pattern matching *)
 
