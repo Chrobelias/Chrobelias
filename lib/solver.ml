@@ -1019,6 +1019,13 @@ struct
            helper mapVals new_len tl (exp :: past_order) parts)
     in
     let mapVals = Base.List.zip_exn vars model |> Map.of_alist_exn in
+    Debug.printfln
+      "Variable map: %a"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
+         (fun fmt (a, b) ->
+            Format.fprintf fmt "%s -> %a" a Z.pp_print (Extra.model_to_int b)))
+      (Map.to_alist mapVals);
     helper mapVals len order [] models |> Map.map_keys_exn ~f:Ir.var
   ;;
 

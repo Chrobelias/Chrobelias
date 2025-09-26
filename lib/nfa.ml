@@ -94,6 +94,7 @@ module type L = sig
   val of_list : (int * u) list -> t
   val get : t -> int -> u
   val alpha : t -> u Set.t
+  val cmp : t -> t -> int
 end
 
 module Bv = struct
@@ -245,6 +246,11 @@ module Bv = struct
 
   let get (vec, _mask) = bv_get vec
   let alpha _ = [ true; false ] |> Set.of_list
+
+  let cmp a b =
+    let f (x1, x2) = Z.logand x1 x2 |> Z.numbits in
+    f b - f a
+  ;;
 end
 
 module Str = struct
@@ -411,6 +417,11 @@ module Str = struct
 
   let get = safe_get
   let alpha s = Array.to_list s |> Set.of_list
+
+  let cmp a b =
+    let f x = x |> Array.map Char.code |> Array.fold_left ( + ) 0 in
+    f a - f b
+  ;;
 end
 
 module Graph (Label : L) = struct
@@ -1223,7 +1234,7 @@ struct
   ;;
 
   let any_path ?nozero (nfa : t) vars =
-    let transitions = nfa.transitions in
+    let transitions = Graph.reverse nfa.transitions in
     let nozero = nozero |> Option.value ~default:false in
     (*let q =
       let visited = Array.make (length nfa) false in
@@ -1257,11 +1268,13 @@ struct
           else begin
             visited.(hd) <- true;
             let new_paths =
-              Array.get transitions hd |> List.map (fun part -> part :: path)
+              Array.get transitions hd
+              |> List.fast_sort (fun (a, _) (b, _) -> Label.cmp a b)
+              |> List.map (fun part -> part :: path)
             in
             let path' =
               List.find_opt
-                (fun path' -> Set.mem nfa.final (List.hd path' |> snd))
+                (fun path' -> Set.mem nfa.start (List.hd path' |> snd))
                 new_paths
             in
             begin
@@ -1274,7 +1287,7 @@ struct
           end
         | Some [] -> failwith ""
       in
-      Set.iter ~f:(fun q -> Queue.add [ Label.zero nfa.deg, q ] frontier) nfa.start;
+      Set.iter ~f:(fun q -> Queue.add [ Label.zero nfa.deg, q ] frontier) nfa.final;
       if (not nozero) && not (Set.inter nfa.start nfa.final |> Set.is_empty)
       then Some []
       else bfs ()
@@ -1282,8 +1295,16 @@ struct
     match p with
     | Some [] -> Some (List.map (fun _ -> []) vars, 0)
     | Some p ->
-      let p = List.rev p |> List.tl in
       let length = List.length p in
+      Debug.printfln
+        "Found any_path of len %d: [%a]"
+        length
+        (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
+        (List.map fst p);
+      Debug.printfln
+        "States used for mentioned path: [%a]"
+        (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_int)
+        (List.map snd p);
       Some
         ( List.map
             (fun var -> List.init length (fun i -> Label.get (List.nth p i |> fst) var))
@@ -1418,13 +1439,12 @@ module Lsb (Label : L) = struct
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
     let result = find_c_d nfa important in
-    (* Debug.printf "Chrobak output: "; *)
-    (* Debug.printf *)
-    (*   "%a\n" *)
-    (*   (Format.pp_print_list *)
-    (*      ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ") *)
-    (*      (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b)) *)
-    (*   result; *)
+    Debug.printfln
+      "Chrobak output: %a"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
+      (List.of_seq result);
     result
   ;;
 

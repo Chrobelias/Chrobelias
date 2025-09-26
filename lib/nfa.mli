@@ -28,6 +28,7 @@ module type L = sig
   val of_list : (int * u) list -> t
   val get : t -> int -> u
   val alpha : t -> u Set.t
+  val cmp : t -> t -> int
 end
 
 module Bv : sig
