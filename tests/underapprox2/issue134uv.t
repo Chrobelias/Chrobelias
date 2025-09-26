@@ -20,7 +20,7 @@ $ export OCAMLRUNPARAM='b=0'
   > EOF
 
 $ export CHRO_DEBUG=1
-  $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -under2 -amin 5 -amax 5 -lsb  1.smt2 #-stop-after simpl
+  $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #-stop-after simpl
   (assert (= (+ (* (- 1) pow2(eee2)) (* (- 5) pow2(y)) )  -52) )
   (assert (exists (u1) (= (+ eee2 (* (- 1) u1) (* (- 1) y) )  0) ) )
   
@@ -42,7 +42,7 @@ $ export CHRO_DEBUG=1
   > EOF
 
   $ export RUN='Chro -no-mini-in-semenov -no-over-approx -bound -1 -dsimpl -lsb 2.smt2'
-  $ CHRO_DEBUG=1 $RUN -under2 -amin 1 -amax 1 -flat 1 -stop-after presimpl
+  $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 -stop-after presimpl
   iter(1)= (and
              (= (* x (exp 2 z)) 3076))
   iter(2)= (= (* x (exp 2 z)) 3076)
@@ -61,7 +61,7 @@ $ export CHRO_DEBUG=1
              (= (+ (* (- 1) (exp 2 (+ v2 z))) (exp 2 z) (exp 2 (+ u1 z))) 3076)
              (<= v2 u1))
 
-  $ timeout 2 $RUN -under2 -amin 1 -amax 1 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
+  $ timeout 2 $RUN -amin 1 -amax 1 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
           (and
             (<= (+ (* (- 1) u1) v2 )  0)
             (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
@@ -83,7 +83,7 @@ $ export CHRO_DEBUG=1
   > (get-model)
   > EOF
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 3.smt2'
-  $ timeout 2 $RUN -under2 -amin 1 -amax 1 -lsb 3.smt2 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
+  $ timeout 2 $RUN -amin 1 -amax 1 -lsb 3.smt2 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
           (and
             (<= (+ (* (- 1) u1) v2 )  0)
             (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
@@ -105,7 +105,7 @@ $ export CHRO_DEBUG=1
   > (get-model)
   > EOF
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 4.smt2'
-  $ CHRO_DEBUG=1 $RUN -under2 -flat 2 -stop-after presimpl
+  $ CHRO_DEBUG=1 $RUN -flat 2 -stop-after presimpl
   iter(1)= (and
              (= (* x (exp 2 z)) 8096))
   iter(2)= (= (* x (exp 2 z)) 8096)
@@ -129,7 +129,7 @@ $ export CHRO_DEBUG=1
              (<= u2 u1)
              (<= u3 u2)
              (<= 0 u3))
-  $ timeout 2 $RUN -under2 -flat 2 | grep -v assert | sed -r '/^\s*$/d'
+  $ timeout 2 $RUN -flat 2 | grep -v assert | sed -r '/^\s*$/d'
           (and
             (<= (+ (* (- 1) u1) u2 )  0)
             (<= (+ (* (- 1) u2) u3 )  0)
