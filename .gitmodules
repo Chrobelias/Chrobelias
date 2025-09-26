@@ -1,6 +1,13 @@
 [submodule "vendor/smtml"]
 	path = vendor/smtml
 	url = https://github.com/Chrobelias/smtml.git
+	shallow = true
 [submodule "benchmarks/QF_LIA"]
 	path = benchmarks/QF_LIA
 	url = https://github.com/ffrohn/QF_EIA.git
+	shallow = true	
+[submodule "benchmarks/EXP-solver"]
+	path = benchmarks/EXP-solver
+	url = https://github.com/EcstasyH/EXP-solver.git
+	shallow = true 
+
