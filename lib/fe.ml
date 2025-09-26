@@ -121,6 +121,13 @@ and to_eia_term orig_expr =
   | Expr.Unop (_ty, Ty.Unop.Length, expr) ->
     let str = to_string expr in
     Ast.Eia.len str
+  (* mod *)
+  | Expr.Binop (_, Ty.Binop.Rem, lhs, rhs) ->
+    (match Expr.view rhs with
+     | Expr.Val (Int d) -> Ast.Eia.Mod (to_eia_term lhs, Z.of_int d)
+     | _ -> failf "expected term, in %a" Expr.pp orig_expr)
+    (* Remainder is needed for example for this test
+    dune b @benchmarks/tests/EXP-solver/flatten/head/test24 --profile=benchmark *)
   | _ -> failf "expected term, in %a" Expr.pp orig_expr
 
 and _to_ir orig_expr =

@@ -1,0 +1,5 @@
+instance57564
+  $ export OCAMLRUNPARAM='b=0'
+  $ timeout 2 Chro ../../../../benchmarks/QF_SLIA/20230329-denghang/instance57564.smt2  || echo TIMEOUT
+  Fatal error: exception Failure("unable to handle (regexp.loop\n                  (regexp.++\n                   ((regexp.+\n                     (regexp.+\n                      (regexp.inter\n                       (regexp.diff re.allchar (str.to_re \"\\\\u{20}\"))\n                       (regexp.inter\n                        (regexp.diff re.allchar (str.to_re \"\\\\u{0a}\"))\n                        (regexp.inter\n                         (regexp.diff re.allchar (str.to_re \"\\\\u{0b}\"))\n                         (regexp.inter\n                          (regexp.diff re.allchar (str.to_re \"\\\\u{0d}\"))\n                          (regexp.inter\n                           (regexp.diff re.allchar (str.to_re \"\\\\u{09}\"))\n                           (regexp.diff re.allchar (str.to_re \"\\\\u{0c}\"))))))))),\n                   (str.to_re \"\\\\u{09}\")))) as regex")
+  TIMEOUT
