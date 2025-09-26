@@ -23,11 +23,11 @@ $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #-stop-after simpl
   (assert (= (+ (* (- 1) pow2(eee2)) (* (- 5) pow2(y)) )  -52) )
   (assert (exists (u1) (= (+ eee2 (* (- 1) u1) (* (- 1) y) )  0) ) )
-
+  
   (assert (<= (+ (* (- 1) eee2) pow2(y) )  0) )
   (assert (<= (+ eee2 (* (- 1) pow2(eee2)) )  0) )
   (assert (<= (+ y (* (- 1) pow2(y)) )  0) )
-
+  
   sat (under II)
 
   $ echo '(2^10-2^8+1)* 2^2' | bc
@@ -47,9 +47,9 @@ $ export CHRO_DEBUG=1
              (= (* x (exp 2 z)) 3076))
   iter(2)= (= (* x (exp 2 z)) 3076)
   vars_for_under2: x
-
+  
   all as: 1
-
+  
   iter(1)= (and
              (= (+ (* (exp 2 u1) (exp 2 z)) (* (* (- 1) (exp 2 v2)) (exp 2 z))
                 (* 1 (exp 2 z))) 3076)
@@ -111,7 +111,7 @@ which is needed to be fixed first
              (= (* x (exp 2 z)) 8096))
   iter(2)= (= (* x (exp 2 z)) 8096)
   vars_for_under2: x
-
+  
   iter(1)= (and
              (= (+ (* (exp 2 u1) (exp 2 z)) (* (* (- 1) (exp 2 u2)) (exp 2 z))
                 (* (exp 2 u3) (exp 2 z))) 8096)
