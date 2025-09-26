@@ -1,5 +1,5 @@
 $ export CHRO_DEBUG=1
-  $ timeout 120 Chro -no-mini-in-semenov -no-over-approx -bound 0 -dsimpl -flat 0 -amin 1 -amax 11 issue92mini.smt2  | sed 's/[[:space:]]*$//'
+  $ timeout 120 Chro -no-over-approx -bound 0 -dsimpl -flat 0 -amin 1 -amax 11 issue92mini.smt2  | sed 's/[[:space:]]*$//'
   (assert (exists (y)
           (and
             (<= (* (- 1) pow2(u1))  -36)

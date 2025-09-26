@@ -41,7 +41,7 @@ $ export CHRO_DEBUG=1
   > (get-model)
   > EOF
 
-  $ export RUN='Chro -no-mini-in-semenov -no-over-approx -bound -1 -dsimpl -lsb 2.smt2'
+  $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 2.smt2'
   $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 -stop-after presimpl
   iter(1)= (and
              (= (* x (exp 2 z)) 3076))
