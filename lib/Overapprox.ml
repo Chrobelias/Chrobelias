@@ -134,7 +134,7 @@ let check ast =
       Symantics.var (gensym x)
     | Pow (base, p) -> Symantics.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise_notrace Bitwise_inside
-    | Len _ | Stoi _ -> raise_notrace String_inside
+    | Len _ | Stoi _ | Len2 _ | Stoi2 _ -> raise_notrace String_inside
   and helper_eia eia =
     try
       match eia with

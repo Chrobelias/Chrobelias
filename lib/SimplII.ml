@@ -97,6 +97,8 @@ module type SYM0 = sig
 
   val pow2var : string -> term
   val exists : string list -> ph -> ph
+  val str_len2 : string -> term
+  val stoi2 : string -> term
 end
 
 module type SYM = sig
@@ -248,6 +250,8 @@ module Id_symantics :
       assert false
   ;;
 
+  let str_len2 s1 = Ast.Eia.len2 (Ast.var s1)
+  let stoi2 s1 = Ast.Eia.stoi2 (Ast.var s1)
   let len = Ast.Eia.len
   let pow = Ast.Eia.pow
   let mul = Ast.Eia.mul
@@ -265,7 +269,7 @@ module Id_symantics :
   let leq l r = Ast.Eia (Ast.Eia.leq l r)
   let lt l r = Ast.Eia (Ast.Eia.lt l r)
   let prj = Fun.id
-  let pow2var s = pow (const 2) (var s)
+  let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
 end
 
 (* TODO(Kakadu): create non-sugared application *)
@@ -300,7 +304,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Atom (Ast.Var s) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 -> S.pow2var x
+    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Config.base () ->
+      S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
@@ -312,6 +317,10 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       (match int_of_string_opt s with
        | Some n -> S.const n
        | None -> S.str_atoi (S.str_const s))
+    | Stoi2 (Var s) -> S.stoi2 s
+    | Stoi2 (Const _) -> failwith "TBD"
+    | Len2 (Var s) -> S.str_len2 s
+    | Len2 (Const _) -> failwith "TBD"
     | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
       Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
       failwith "Strlen/Stoi should not be called from int constants. Types are bad"
@@ -348,7 +357,7 @@ let make_main_symantics env =
       | Some c -> c
     ;;
 
-    let pow2var v = Ast.Eia.Pow (const 2, var v)
+    let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
 
     let fold_and_sort init op xs =
       let c, xs =
@@ -391,7 +400,7 @@ let make_main_symantics env =
       | c, [ h ] when Z.equal c Z.one -> h
       | c, xs when Z.equal c Z.one -> Ast.Eia.mul (List.sort compare_term xs)
       | c, [ Pow ((Atom (Const base_) as base), Add [ Atom (Const v1); v ]) ]
-        when Z.(equal c (of_int 2)) && base_ = Z.of_int 2 && v1 = Z.minus_one ->
+        when Z.(equal c (Config.base ())) && base_ = Config.base () && v1 = Z.minus_one ->
         pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
       | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)
@@ -642,6 +651,8 @@ module Who_in_exponents_ = struct
   let str_var _ = empty
   let const _ = empty
   let var s = { empty with all = S.singleton s }
+  let str_len2 _ = empty
+  let stoi2 _ = empty
 
   let mul xs =
     let aaa = List.fold_left ( ++ ) empty xs in
@@ -730,9 +741,9 @@ let find_vars_for_under2 ast =
          let f =
            fun acc -> function
              | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const two), Atom (Var _)) ]
-               when Z.(equal (of_int 2) two) -> S.add acc v
+               when Z.(equal (Config.base ()) two) -> S.add acc v
              | Mul [ Atom (Const _); Atom (Var v); Pow (Atom (Const two), Atom (Var _)) ]
-               when Z.(equal (of_int 2) two) -> S.add acc v
+               when Z.(equal (Config.base ()) two) -> S.add acc v
              | _ -> acc
          in
          Ast.Eia.fold_term f (Ast.Eia.fold_term f acc r) l
@@ -803,7 +814,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
       | Some c -> const c
     ;;
 
-    let pow2var s = pow (const 2) (var s)
+    let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
 
     let exists vars x =
       let vars = List.filter (fun s -> Stdlib.not (Base.Map.Poly.mem env s)) vars in
@@ -811,6 +822,9 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
       | [] -> x
       | _ -> Smtml.Expr.exists (List.map var vars) x
     ;;
+
+    let str_len2 _ = failwith "not implemented"
+    let stoi2 _ = failwith "not implemented"
   end
   in
   (module struct
@@ -990,31 +1004,16 @@ let run_basic_simplify ast =
   | `Unknown (ast, e, _, _) -> `Unknown (ast, e)
 ;;
 
-type under2_config =
-  { mutable amin : int
-  ; mutable amax : int
-  ; mutable flat : int [@warning "-69"]
-  }
-
-let under2_config = { amin = 5; amax = 11; flat = -1 }
-
-let set_a_range min max =
-  assert (min <= max);
-  under2_config.amin <- min;
-  under2_config.amax <- max
-;;
-
-let set_a_min min = set_a_range min under2_config.amax
-let set_a_max max = set_a_range under2_config.amin max
-let set_flat n = under2_config.flat <- n
-let get_flat () = under2_config.flat
-let is_under2_enabled () = get_flat () >= 0
-
 let get_range () =
   let ans =
-    List.init (1 + under2_config.amax - under2_config.amin) (( + ) under2_config.amin)
+    List.init
+      (1 + Config.under2_config.amax - Config.under2_config.amin)
+      (( + ) Config.under2_config.amin)
   in
-  assert (List.for_all (fun x -> x >= under2_config.amin && x <= under2_config.amax) ans);
+  assert (
+    List.for_all
+      (fun x -> x >= Config.under2_config.amin && x <= Config.under2_config.amax)
+      ans);
   ans
 ;;
 
@@ -1027,7 +1026,7 @@ let try_under2_heuristics env ast =
   let ( let* ) xs f = List.concat_map f xs in
   let _k = 0 in
   let envs =
-    match under2_config.flat with
+    match Config.under2_config.flat with
     | n when n < 0 -> failwith "bad config"
     | 0 ->
       let all_as = get_range () in
@@ -1174,7 +1173,7 @@ let simpl bound ast =
       (try
          match check_errors ast with
          | [] -> `Unknown ast
-         | errrs when get_flat () < 0 ->
+         | errrs when Config.get_flat () < 0 ->
            `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
          | errrs ->
            (* Underapprox II *)

@@ -96,7 +96,7 @@ let check_sat ?(verbose = false) ast : rez =
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
-      if Lib.SimplII.is_under2_enabled ()
+      if Lib.Config.is_under2_enabled ()
       then (
         match Lib.SimplII.run_under2 ast with
         | `Sat -> sat "under2" ast e (fun _ -> Map.empty)
@@ -232,39 +232,44 @@ let () =
       let rez = check_sat ~verbose:true ast in
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
-      let rec get_ast { asserts; prev; _ } =
-        match prev with
-        | Some state -> asserts @ get_ast state
-        | None -> asserts
-      in
-      let ast = Lib.Ast.land_ (get_ast state) in
-      let rez =
-        match state.last_result with
-        | Some r -> r
-        | None -> check_sat ast
-      in
-      let () =
-        match rez with
-        | Unknown _ | Unsat -> print_endline "no model"
-        | Sat (_, _, env, get_model) ->
-          let rec tys state =
-            match state.prev with
-            | Some state' ->
-              Map.merge
-                ~f:(fun ~key:_ -> function
-                   | `Left x -> Some x
-                   | `Right x -> Some x
-                   | `Both (x, _) -> Some x)
-                state.tys
-                (tys state')
-            | None -> state.tys
-          in
-          let tys = tys state in
-          let model = get_model tys in
-          let model = join_int_model env model in
-          Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
-      in
-      state
+      if Lib.Config.config.no_model = true
+      then (
+        Format.printf "(no-model regime)\n%!";
+        state)
+      else (
+        let rec get_ast { asserts; prev; _ } =
+          match prev with
+          | Some state -> asserts @ get_ast state
+          | None -> asserts
+        in
+        let ast = Lib.Ast.land_ (get_ast state) in
+        let rez =
+          match state.last_result with
+          | Some r -> r
+          | None -> check_sat ast
+        in
+        let () =
+          match rez with
+          | Unknown _ | Unsat -> print_endline "no model"
+          | Sat (_, _, env, get_model) ->
+            let rec tys state =
+              match state.prev with
+              | Some state' ->
+                Map.merge
+                  ~f:(fun ~key:_ -> function
+                     | `Left x -> Some x
+                     | `Right x -> Some x
+                     | `Both (x, _) -> Some x)
+                  state.tys
+                  (tys state')
+              | None -> state.tys
+            in
+            let tys = tys state in
+            let model = get_model tys in
+            let model = join_int_model env model in
+            Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+        in
+        state)
     | Smtml.Ast.Assert expr -> begin
       let ast = expr |> Lib.Fe._to_ir in
       { state with asserts = ast :: state.asserts }

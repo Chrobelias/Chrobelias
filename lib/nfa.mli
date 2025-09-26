@@ -94,6 +94,7 @@ module type NatType = sig
     -> res:deg
     -> temp:deg
     -> vars:int list
+    -> no_model:bool
     -> (t * (int * int) Seq.t * (int -> (v list list * int) option)) Seq.t
 
   val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
