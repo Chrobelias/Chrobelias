@@ -249,7 +249,7 @@ module Bv = struct
 
   let cmp a b =
     let f (x1, x2) = Z.logand x1 x2 |> Z.numbits in
-    f b - f a
+    f a - f b
   ;;
 end
 
