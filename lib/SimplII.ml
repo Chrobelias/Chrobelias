@@ -1024,7 +1024,7 @@ let try_under2_heuristics env ast =
     (Base.Set.to_list under2vars);
   let ( let* ) xs f = List.concat_map f xs in
   let _k = 0 in
-  let envs : (Env.t * Ast.t list) list =
+  let envs =
     match under2_config.flat with
     | n when n < 0 -> failwith "bad config"
     | 0 ->
@@ -1066,8 +1066,6 @@ let try_under2_heuristics env ast =
     | n ->
       Base.Set.Poly.fold
         ~f:(fun acc name ->
-          let* a = [ 0 ] in
-          (* Do we neeed as in general case? *)
           let* acc, phs = acc in
           let vars = List.init (1 + n) (fun _ -> gensym ~prefix:"u" ()) in
           let sum =
@@ -1079,17 +1077,17 @@ let try_under2_heuristics env ast =
               vars
           in
           let constraints =
-            List.tl vars
-            |> List.fold_left
-                 (fun (oldv, acc) v ->
-                    v, Id_symantics.(prj (leq (var v) (var oldv))) :: acc)
-                 (List.hd vars, [])
+            List.fold_right
+              (fun v (oldv, acc) ->
+                 let v = Id_symantics.var v in
+                 v, Id_symantics.(prj (leq oldv v)) :: acc)
+              vars
+              (Id_symantics.const 0, [])
             |> snd
           in
           [ Env.extend_exn acc name (Ast.Eia.Add sum), constraints @ phs ])
         ~init:[ env, [] ]
         under2vars
-    (* *)
   in
   List.map
     (fun (e, phs) ->
