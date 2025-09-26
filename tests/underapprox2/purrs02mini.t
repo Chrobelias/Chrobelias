@@ -1,5 +1,5 @@
   $ export CHRO_DEBUG=1
-  $ timeout 2 Chro -no-mini-in-semenov -no-over-approx -bound 0 -dsimpl -amin 1 -amax 11 ../../benchmarks/QF_LIA/PURRS/purrs02.smt2 -stop-after presimpl #| sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -no-over-approx -bound 0 -dsimpl -amin 1 -amax 11 ../../benchmarks/QF_LIA/PURRS/purrs02.smt2 -stop-after presimpl #| sed 's/[[:space:]]*$//'
   iter(1)= (and
              (not (= (* (+ x n) (exp 2 n)) (+ (* 2
                                               (* (+ x (+ n (* (- 1) 1)))

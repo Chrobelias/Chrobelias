@@ -1,5 +1,5 @@
 
-  $ timeout 2 Chro -no-mini-in-semenov -no-over-approx -bound -1 -dsimpl -flat 0 -amin 0 -amax 0 -lsb issue92.smt2  | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -flat 0 -amin 0 -amax 0 -lsb issue92.smt2  | sed 's/[[:space:]]*$//'
   (assert (exists (z y)
           (and
             (<= (* (- 1) pow2(u1))  -1000)
