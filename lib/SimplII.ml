@@ -249,6 +249,7 @@ module Id_symantics :
   ;;
 
   let len = Ast.Eia.len
+  let mod_ = Ast.Eia.mod_
   let pow = Ast.Eia.pow
   let mul = Ast.Eia.mul
   let add = Ast.Eia.add
@@ -305,6 +306,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
     | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
+    | Mod (t, z) -> S.mod_ (helperT t) z
     | Len (Ast.Str.Atom (Var s)) -> S.str_len (S.str_var s)
     | Len (Ast.Str.Const s) -> S.const (String.length s)
     | Stoi (Ast.Str.Atom (Var s)) -> S.str_atoi (S.str_var s)
@@ -656,6 +658,7 @@ module Who_in_exponents_ = struct
   ;;
 
   let add = List.fold_left ( ++ ) empty
+  let mod_ x _ = x
   let bw _ = ( ++ )
   let true_ = empty
   let false_ = empty
@@ -907,6 +910,30 @@ let pp_step fmt step =
     (List.rev step)
 ;;
 
+let lower_mod ast =
+  let acc = ref [] in
+  let extend ph = acc := ph :: !acc in
+  let module M = struct
+    open Ast.Eia
+    include Id_symantics
+
+    let mod_ t z =
+      let r = var (gensym ~prefix:"r" ()) in
+      let q = var (gensym ~prefix:"q" ()) in
+      let zz = Ast.Eia.atom (Ast.Const z) in
+      extend (leq (const 0) r);
+      extend (lt r zz);
+      extend (eq t (add [ mul [ zz; q ]; r ]));
+      r
+    ;;
+  end
+  in
+  let ph = apply_symantics_unsugared (module M) ast in
+  match !acc with
+  | [] -> ph
+  | acc -> Ast.land_ (ph :: acc)
+;;
+
 let lower_strlen ast =
   let env = ref Env.empty in
   let names : (Ast.Eia.term, string) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
@@ -983,6 +1010,7 @@ let basic_simplify step (env : Env.t) ast =
 
 let run_basic_simplify ast =
   let ast = lower_strlen ast in
+  let ast = lower_mod ast in
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat ("presimpl", env)

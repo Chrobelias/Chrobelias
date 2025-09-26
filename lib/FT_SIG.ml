@@ -15,6 +15,7 @@ module type s_term = sig
   val str_var : string -> str
 
   (** Arithmetic *)
+  val mod_ : term -> Z.t -> term
 
   val pow : term -> term -> term
   val mul : term list -> term
@@ -85,6 +86,7 @@ end = struct
   let str_const _ = failwith "not implemented"
   let str_var _ = failwith "not implemented"
   let const n = Smtml.Expr.value (Value.Int n)
+  let mod_ _ _ = failwith "not implemented"
   let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
 
   let add = function
