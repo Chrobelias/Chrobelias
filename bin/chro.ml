@@ -5,7 +5,7 @@
 
 module Map = Base.Map.Poly
 
-let () = Lib.Solver.parse_args ()
+let () = Lib.Config.parse_args ()
 let log = Lib.Debug.printfln
 
 let () =
@@ -45,7 +45,7 @@ let lift ast = function
 
 let check_sat ?(verbose = false) ast : rez =
   let __ () =
-    if Lib.Solver.config.stop_after = `Pre_simplify
+    if Lib.Config.config.stop_after = `Pre_simplify
     then (
       match Lib.SimplII.simpl 0 ast with
       | `Error _ -> failwith "not implemented"
@@ -74,7 +74,7 @@ let check_sat ?(verbose = false) ast : rez =
     let rez =
       unknown ast Lib.SimplII.Env.empty
       <+> (fun ast e ->
-      if not Lib.Solver.config.pre_simpl
+      if not Lib.Config.config.pre_simpl
       then unknown ast e
       else lift ast (Lib.SimplII.run_basic_simplify ast))
       <+> (fun ast e ->
@@ -89,21 +89,21 @@ let check_sat ?(verbose = false) ast : rez =
         let () = report_result2 (`Unknown "non-linear") in
         exit 0)
       <+> (fun ast e ->
-      if Lib.Solver.config.under_approx >= 0
+      if Lib.Config.config.under_approx >= 0
       then (
-        match Lib.Underapprox.check Lib.Solver.config.under_approx ast with
+        match Lib.Underapprox.check Lib.Config.config.under_approx ast with
         | `Sat s -> Sat (s, ast, e, fun _ -> Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
-      if Lib.Solver.is_under2_enabled ()
+      if Lib.Config.is_under2_enabled ()
       then (
         match Lib.SimplII.run_under2 ast with
         | `Sat -> sat "under2" ast e (fun _ -> Map.empty)
         | `Underapprox asts ->
-          if Lib.Solver.config.dump_pre_simpl
+          if Lib.Config.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-          if Lib.Solver.config.stop_after = `Pre_simplify then exit 0;
+          if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
           log "Looking for SAT in %d asts..." (List.length asts);
           let exception Sat_found in
           (try
@@ -123,13 +123,13 @@ let check_sat ?(verbose = false) ast : rez =
              exit 0))
       else unknown ast e)
       <+> (fun ast e ->
-      if Lib.Solver.config.dump_pre_simpl
+      if Lib.Config.config.dump_pre_simpl
       then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
       unknown ast e)
       <+> (fun ast e ->
-      if Lib.Solver.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
+      if Lib.Config.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
       <+> fun ast e ->
-      if Lib.Solver.config.over_approx
+      if Lib.Config.config.over_approx
       then (
         match Lib.Overapprox.check ast with
         | `Unknown ast -> unknown ast e
@@ -186,7 +186,7 @@ type state =
 
 let () =
   let f =
-    match Fpath.of_string Lib.Solver.config.input_file with
+    match Fpath.of_string Lib.Config.config.input_file with
     | Result.Error (`Msg msg) ->
       Format.eprintf "%s\n%!" msg;
       exit 1
@@ -205,13 +205,13 @@ let () =
       in
       { state with tys }
     | Smtml.Ast.Set_logic Smtml.Logic.QF_S ->
-      Lib.Solver.config.logic <- `Str;
-      Lib.Solver.config.mode <- `Lsb;
-      Lib.Solver.config.under_approx <- 0;
-      Lib.Solver.config.over_approx <- false;
-      Lib.Solver.config.simpl_alpha <- false;
-      Lib.Solver.config.simpl_mono <- false;
-      (* Lib.Solver.config.pre_simpl <- false; *)
+      Lib.Config.config.logic <- `Str;
+      Lib.Config.config.mode <- `Lsb;
+      Lib.Config.config.under_approx <- 0;
+      Lib.Config.config.over_approx <- false;
+      Lib.Config.config.simpl_alpha <- false;
+      Lib.Config.config.simpl_mono <- false;
+      (* Lib.Config.config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
       { asserts = []; prev = Some state; last_result = None; tys = Map.empty }
@@ -221,7 +221,7 @@ let () =
       | None -> failwith "Nothing to pop"
     end
     | Smtml.Ast.Check_sat exprs ->
-      Lib.Solver.config.with_check_sat <- true;
+      Lib.Config.config.with_check_sat <- true;
       let expr_irs = List.map Lib.Fe._to_ir exprs in
       let rec get_ast { asserts; prev; _ } =
         match prev with
