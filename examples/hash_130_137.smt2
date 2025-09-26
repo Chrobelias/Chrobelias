@@ -12,4 +12,4 @@
 (assert (= v (* u 130)))
 (assert (< (str.len x) 100))
 (check-sat)
-;(get-model)
+(get-model)
