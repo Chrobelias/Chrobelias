@@ -36,11 +36,6 @@ val pp_error : Format.formatter -> error -> unit
 
 (** Underapproximation 2 related functions *)
 
-val set_a_min : int -> unit
-val set_a_max : int -> unit
-val set_flat : int -> unit
-val is_under2_enabled : unit -> bool
-
 (* TODO(Kakadu): Hash-consing of AST without loss of pattern matching *)
 
 (* TODO(Kakadu): More simplifications

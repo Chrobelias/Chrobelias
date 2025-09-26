@@ -99,6 +99,8 @@ and to_eia_term orig_expr =
   (* Semenov arithmetic, i.e. 2**x operators. *)
   | Expr.App ({ name = Symbol.Simple "pow2"; _ }, [ expr ]) ->
     Ast.Eia.pow (Ast.Eia.atom (Ast.const (Z.of_int 2))) (to_eia_term expr)
+  | Expr.App ({ name = Symbol.Simple "pow10"; _ }, [ expr ]) ->
+    Ast.Eia.pow (Ast.Eia.atom (Ast.const (Z.of_int 10))) (to_eia_term expr)
   | Expr.App ({ name = Symbol.Simple "exp"; _ }, [ base; exp ]) ->
     Ast.Eia.pow (to_eia_term base) (to_eia_term exp)
   (* Bit-wise operations *)

@@ -376,13 +376,13 @@ struct
   ;;
 
   let eval ir =
-    (*let ir = if config.logic = `Eia then trivial ir else ir in*)
+    (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let ir = trivial ir in
-    let ir = if config.simpl_mono then Ir.simpl_monotonicty ir else ir in
-    let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
+    let ir = if Config.config.simpl_mono then Ir.simpl_monotonicty ir else ir in
+    let ir = if Config.config.simpl_alpha then Simpl_alpha.simplify ir else ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
-    if config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
-    if config.stop_after = `Simpl then exit 0;
+    if Config.config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
+    if Config.config.stop_after = `Simpl then exit 0;
     let vars = collect_vars ir in
     let apply_post_strings atoms =
       fun nfa ->
@@ -452,7 +452,7 @@ struct
       nfa
     in
     let rec eval ir =
-      if config.dump_ir then Format.printf "%d Running %a\n%!" !level Ir.pp ir;
+      if Config.config.dump_ir then Format.printf "%d Running %a\n%!" !level Ir.pp ir;
       level := !level + 1;
       (match ir with
        | Ir.True -> NfaCollection.n ()
@@ -743,7 +743,11 @@ struct
     if is_exp next
     then
       nfa
-      |> Nfa.get_chrobaks_sub_nfas ~res:(get_deg x) ~temp:(get_deg next) ~vars
+      |> Nfa.get_chrobaks_sub_nfas
+           ~res:(get_deg x)
+           ~temp:(get_deg next)
+           ~vars
+           ~no_model:Config.config.no_model
       |> Seq.flat_map (fun (nfa, chrobak, model_part) ->
         (let y = get_exp next in
          Debug.dump_nfa
@@ -764,7 +768,11 @@ struct
       in
       Debug.dump_nfa ~msg:"Nfa intersected with pow_of_log_var: %s" Nfa.format_nfa nfa;
       nfa
-      |> Nfa.get_chrobaks_sub_nfas ~res:(get_deg x) ~temp:(get_deg inter) ~vars
+      |> Nfa.get_chrobaks_sub_nfas
+           ~res:(get_deg x)
+           ~temp:(get_deg inter)
+           ~vars
+           ~no_model:Config.config.no_model
       |> Seq.flat_map (fun (nfa, chrobak, model_part) ->
         nfa_for_exponent s x' (get_deg inter) chrobak
         |> Seq.map (Nfa.intersect nfa)
@@ -1082,24 +1090,36 @@ struct
   let check_sat ir : [ `Sat of unit -> (Ir.atom, Nfa.v list) Map.t | `Unsat | `Unknown ] =
     let run_semenov = collect_vars ir |> Map.keys |> List.exists is_exp in
     if run_semenov
-    then (
-      let res =
+    then
+      if Config.config.no_model
+      then
         ir
         |> eval_semenov
-             (fun s order nfa model ->
-                match
-                  NfaNat.any_path nfa (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
-                with
-                | Some path -> Some (s, order, path, model)
-                | None -> None)
-             (fun _ nfa -> nfa)
-      in
-      begin
-        match res with
-        | Some (s, order, (model, len), models) ->
-          `Sat (get_model_semenov ir s order (model, len) models)
+             (fun _ _ nfa _ -> if NfaNat.run nfa then Some () else None)
+             (fun var nfa -> NfaNat.project [ var ] nfa)
+        |> function
+        | Some _ -> `Sat (fun () -> failwith "No model can be generated due to config")
         | None -> `Unsat
-      end)
+      else (
+        let res =
+          ir
+          |> eval_semenov
+               (fun s order nfa model ->
+                  match
+                    NfaNat.any_path
+                      nfa
+                      (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
+                  with
+                  | Some path -> Some (s, order, path, model)
+                  | None -> None)
+               (fun _ nfa -> nfa)
+        in
+        begin
+          match res with
+          | Some (s, order, (model, len), models) ->
+            `Sat (get_model_semenov ir s order (model, len) models)
+          | None -> `Unsat
+        end)
     else (
       let free_vars = collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
@@ -1229,6 +1249,60 @@ module Msb =
       let nat_model_to_int = z_of_list_msb_nat
     end)
 
+let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
+  | Ir.Var s -> Ast.Eia.atom (Ast.var s)
+  | Ir.Pow2 s ->
+    Ast.Eia.pow (Ast.Eia.atom (Ast.const (Config.base ()))) (Ast.Eia.atom (Ast.var s))
+;;
+
+let ir_atom_to_str_term : Ir.atom -> Ast.Str.term = function
+  | Ir.Var s -> Ast.Str.atom (Ast.var s)
+  | Ir.Pow2 _ -> failwith "only vars are supported inside string IRs"
+;;
+
+let ir_atom_to_atom : Ir.atom -> Ast.atom = function
+  | Ir.Var s -> Ast.var s
+  | Ir.Pow2 _ -> failwith "only vars are supported to be converted back in AST"
+;;
+
+let rec ir_to_ast : Ir.t -> Ast.t = function
+  | True -> Ast.true_
+  | Lnot lhs -> Ast.lnot (ir_to_ast lhs)
+  | Land ls -> Ast.land_ (List.map ir_to_ast ls)
+  | Lor ls -> Ast.lor_ (List.map ir_to_ast ls)
+  | Reg (_, _) -> failwith "TBD"
+  | Rel (rel, poly, c) ->
+    let build =
+      match rel with
+      | Ir.Leq -> Ast.Eia.leq
+      | Ir.Eq -> Ast.Eia.eq
+    in
+    let poly =
+      Map.fold
+        ~f:(fun ~key ~data acc ->
+          Ast.Eia.mul [ Ast.Eia.atom (Ast.const data); ir_atom_to_eia_term key ] :: acc)
+        ~init:[]
+        poly
+    in
+    let lhs = Ast.Eia.add poly in
+    let rhs = Ast.Eia.atom (Ast.const c) in
+    Ast.eia (build lhs rhs)
+  | SReg (atom, re) -> Ast.str (Ast.Str.inre (ir_atom_to_str_term atom) re)
+  | SEq (atom, atom') ->
+    Ast.str (Ast.Str.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
+  | SLen (atom, atom') ->
+    Ast.eia
+      (Ast.Eia.eq
+         (Ast.Eia.atom (ir_atom_to_atom atom))
+         (Ast.Eia.len2 (ir_atom_to_atom atom')))
+  | Stoi (atom, atom') ->
+    Ast.eia
+      (Ast.Eia.eq
+         (Ast.Eia.atom (ir_atom_to_atom atom))
+         (Ast.Eia.stoi2 (ir_atom_to_atom atom')))
+  | Exists (atoms, lhs) -> Ast.exists (List.map ir_atom_to_atom atoms) (ir_to_ast lhs)
+;;
+
 let filter_internal =
   Map.filter_keys ~f:(function
     | Ir.Var s -> not (String.starts_with ~prefix:"%" s)
@@ -1238,10 +1312,10 @@ let filter_internal =
 let check_sat ir
   : [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> Ir.model | `Unsat | `Unknown of Ir.t ]
   =
-  match config.logic with
+  match Config.config.logic with
   | `Eia ->
     let res =
-      match config.mode with
+      match Config.config.mode with
       | `Lsb -> Lsb.check_sat ir
       | `Msb -> Msb.check_sat ir
     in
@@ -1255,7 +1329,10 @@ let check_sat ir
                 let ty = Map.find tys k |> Option.value ~default:`Int in
                 match ty with
                 | `Int ->
-                  `Int (if config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)
+                  `Int
+                    (if Config.config.mode = `Lsb
+                     then z_of_list_lsb v
+                     else z_of_list_msb v)
                 | `Str ->
                   failwith "it is something strange: there is string variable in EIA")
               (model ())
@@ -1263,37 +1340,45 @@ let check_sat ir
       | `Unsat -> `Unsat
       | `Unknown -> `Unknown ir
     end
-  | `Str ->
-    let res = LsbStr.check_sat ir in
-    (match res with
-     | `Sat model ->
-       `Sat
-         (fun tys ->
-           Map.mapi
-             ~f:(fun ~key:k ~data:v ->
-               let ty = Map.find tys k |> Option.value ~default:`Int in
-               match ty with
-               | `Int -> begin
-                 try `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq)) with
-                 | Invalid_argument _ ->
+  | `Str -> begin
+    match ir |> ir_to_ast |> SimplII.run_basic_simplify with
+    | `Unknown (ast, _) ->
+      let ir = Me.ir_of_ast ast |> Result.get_ok in
+      let res = LsbStr.check_sat ir in
+      (match res with
+       | `Sat model ->
+         `Sat
+           (fun tys ->
+             Map.mapi
+               ~f:(fun ~key:k ~data:v ->
+                 let ty = Map.find tys k |> Option.value ~default:`Int in
+                 match ty with
+                 | `Int -> begin
+                   try
+                     `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq))
+                   with
+                   | Invalid_argument _ ->
+                     `Str
+                       (v
+                        |> List.rev
+                        |> List.to_seq
+                        |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                        |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+                        |> String.of_seq)
+                 end
+                 | `Str ->
                    `Str
                      (v
                       |> List.rev
                       |> List.to_seq
                       |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
                       |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                      |> String.of_seq)
-               end
-               | `Str ->
-                 `Str
-                   (v
-                    |> List.rev
-                    |> List.to_seq
-                    |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                    |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                    |> String.of_seq))
-             (model ())
-           |> filter_internal)
-     | `Unsat -> `Unsat
-     | `Unknown -> `Unknown ir)
+                      |> String.of_seq))
+               (model ())
+             |> filter_internal)
+       | `Unsat -> `Unsat
+       | `Unknown -> `Unknown ir)
+    | `Sat (_, env) -> `Sat (fun _ -> Map.empty)
+    | `Unsat -> `Unsat
+  end
 ;;

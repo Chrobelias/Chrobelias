@@ -686,6 +686,7 @@ module type NatType = sig
     -> res:deg
     -> temp:deg
     -> vars:int list
+    -> no_model:bool
     -> (t * (int * int) Seq.t * (int -> (v list list * int) option)) Seq.t
 
   val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
@@ -1429,7 +1430,7 @@ module Lsb (Label : L) = struct
   ;;
 
   let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
-    Debug.printfln "path_of_len entrance: len=%d" total_len;
+    Debug.printfln "path_of_len entrance: len=%d%!" total_len;
     Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
     let exp_lbl = Label.singleton_with_mask exp [ exp ] in
     let transitions = nfa.transitions in
@@ -1482,7 +1483,7 @@ module Lsb (Label : L) = struct
       , len ))
   ;;
 
-  let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
+  let get_chrobaks_sub_nfas nfa ~res ~temp ~vars ~no_model =
     let temp_lbl = Label.singleton_with_mask temp [ temp ] in
     let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
     exp_nfa.start
@@ -1505,7 +1506,10 @@ module Lsb (Label : L) = struct
       Debug.printfln "Calculating chrobak for var %d" res;
       Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
       Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
-      return (nfa, chrobak chrobak_nfa, path_of_len chrobak_nfa ~vars ~exp:res))
+      let model_piece =
+        if no_model then fun _ -> Some ([], 0) else path_of_len chrobak_nfa ~vars ~exp:res
+      in
+      return (nfa, chrobak chrobak_nfa, model_piece))
   ;;
 
   let to_nat (nfa : t) : u = nfa
@@ -1783,7 +1787,7 @@ module MsbNat (Label : L) = struct
       , len ))
   ;;
 
-  let get_chrobaks_sub_nfas nfa ~res ~temp ~vars =
+  let get_chrobaks_sub_nfas nfa ~res ~temp ~vars ~no_model =
     match nfa.start |> Set.find ~f:(Fun.const true) with
     | None -> Seq.empty
     | Some nfa_start ->
@@ -1809,13 +1813,16 @@ module MsbNat (Label : L) = struct
         Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
         Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
         Debug.dump_nfa ~msg:"Corresponding path_nfa: %s" format_nfa path_nfa;
-        return
-          ( nfa
-          , chrobak chrobak_nfa
-          , path_of_len
+        let model_piece =
+          if no_model
+          then fun _ -> Some ([], 0)
+          else
+            path_of_len
               { path_nfa with final = lbls |> List.map fst |> Set.of_list }
               ~vars
-              ~exp:res ))
+              ~exp:res
+        in
+        return (nfa, chrobak chrobak_nfa, model_piece))
   ;;
 
   (*let to_nat (nfa : t) : u =

@@ -247,8 +247,8 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let rec pow ~base exp =
-    let two = Z.of_int 2 in
-    let four = Z.of_int 4 in
+    let two = Config.base () in
+    let four = Z.(two * two) in
     match base, exp with
     | Poly (base_poly, base, base_sups), _ when Map.is_empty base_poly && base = four ->
       pow ~base:(Poly (base_poly, two, base_sups)) (mul (poly_of_const two) exp)
@@ -294,7 +294,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
          (* Debug.printfln "new variable %a for " Ir.pp_atom var; *)
          Poly (Map.singleton (Ir.pow2 var) coeff, Z.zero, (sup1 :: base_sups) @ exp_sups))
     | Poly (base_poly, c, base_sups), Symbol (exp_symbol, exp_sups)
-      when Map.length base_poly = 0 && c = Z.of_int 2 ->
+      when Map.length base_poly = 0 && c = two ->
       let poly =
         match exp_symbol with
         | Var v -> Map.singleton (Ir.pow2 v) Q.one
@@ -304,11 +304,18 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
       Poly (poly, Z.zero, sups)
     | Symbol (a, _), _ ->
       failwith
-        (Format.asprintf "only base 2 is supported in exponents (got %a)" Ir.pp_atom a)
+        (Format.asprintf
+           "only the same base %a is supported in exponents (got %a)"
+           Z.pp_print
+           (Config.base ())
+           Ir.pp_atom
+           a)
     | Poly (base_poly, base_c, base_sups), _ ->
       failwith
         (Format.asprintf
-           "only base 2 is supported in exponents (got %a)"
+           "only the same base %a is supported in exponents (got %a)"
+           Z.pp_print
+           (Config.base ())
            Z.pp_print
            base_c)
   ;;
@@ -388,6 +395,16 @@ let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       failf "unimplemented %a" Ast.Eia.pp eia
   in
   match eia with
+  | Eq (Ast.Eia.Atom (Ast.Var v), Ast.Eia.Len2 (Ast.Var v')) ->
+    return (Ir.slen (Ir.var v) (Ir.var v'))
+  | Eq (Ast.Eia.Atom (Ast.Var v), Ast.Eia.Stoi2 (Ast.Var v')) ->
+    return (Ir.stoi (Ir.var v) (Ir.var v'))
+  | Eq (Ast.Eia.Atom (Ast.Const v), Ast.Eia.Len2 (Ast.Var v')) ->
+    let u = Ir.internal () in
+    return (Ir.land_ [ Ir.slen u (Ir.var v'); Ir.eq (Map.singleton u Z.one) v ])
+  | Eq (Ast.Eia.Atom (Ast.Const v), Ast.Eia.Stoi2 (Ast.Var v')) ->
+    let u = Ir.internal () in
+    return (Ir.land_ [ Ir.stoi u (Ir.var v'); Ir.eq (Map.singleton u Z.one) v ])
   | Eq (lhs, rhs) | Leq (lhs, rhs) ->
     let* lhs = helper lhs in
     let* rhs = helper rhs in

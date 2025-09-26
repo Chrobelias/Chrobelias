@@ -11,6 +11,7 @@ type config =
   ; mutable over_approx : bool
   ; mutable under_approx : int
   ; mutable input_file : string
+  ; mutable no_model : bool
   ; mutable logic : [ `Eia | `Str ]
   ; mutable with_check_sat : bool
   }
@@ -28,10 +29,22 @@ let config =
   ; over_approx = true
   ; under_approx = 2
   ; input_file = ""
+  ; no_model = false
   ; logic = `Eia
   ; with_check_sat = false
   }
 ;;
+
+type under2_config =
+  { mutable amin : int
+  ; mutable amax : int
+  ; mutable flat : int [@warning "-69"]
+  }
+
+let under2_config = { amin = 5; amax = 11; flat = -1 }
+let get_flat () = under2_config.flat
+let is_under2_enabled () = get_flat () >= 0
+let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
 
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -45,6 +58,7 @@ let parse_args () =
             | s -> failwith ("Bad argument: " ^ s))
       , " Stop after step" )
     ; "-error-check", Arg.Unit (fun () -> config.error_check <- true), " "
+    ; "-no-model", Arg.Unit (fun () -> config.no_model <- true), " "
     ; "-no-error-check", Arg.Unit (fun () -> config.error_check <- false), " "
     ; "-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), " "
     ; "-no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), " "
@@ -70,13 +84,13 @@ let parse_args () =
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , " Use least-significant-bit first representation (only supports nats)" )
     ; ( "-flat"
-      , Arg.Int SimplII.set_flat
+      , Arg.Int (fun n -> under2_config.flat <- n)
       , " <N> Underapproximation 2 of (* x (exp 2 y)). N >=0. " )
     ; ( "-amin"
-      , Arg.Int SimplII.set_a_min
+      , Arg.Int (fun n -> under2_config.amin <- n)
       , " <n> Parameter of underapprox.2. Matters when N>=2" )
     ; ( "-amax"
-      , Arg.Int SimplII.set_a_max
+      , Arg.Int (fun n -> under2_config.amax <- n)
       , " <n> Parameter of underapprox.2. Matters when N>=2" )
     ]
     (fun s ->

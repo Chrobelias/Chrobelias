@@ -143,6 +143,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
     | Len _ | Stoi _ -> raise String_op
+    | Len2 _ | Stoi2 _ -> raise String_op
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
