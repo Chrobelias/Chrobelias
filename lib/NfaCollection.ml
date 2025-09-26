@@ -14,10 +14,13 @@ module type Type = sig
   val power_of_two : int -> t
   val eq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
-  val strlen : t -> dest:int -> src:int -> t
-  val stoi : t -> dest:int -> src:int -> t
+  val strlen_post : t -> dest:int -> src:int -> t
+  val stoi_post : t -> dest:int -> src:int -> t
+  val seq_post : t -> dest:int -> src:int -> t
+  val strlen : dest:int -> src:int -> t
+  val stoi : dest:int -> src:int -> t
   val itos : dest:int -> src:int -> t
-  val seq : t -> dest:int -> src:int -> t
+  val seq : dest:int -> src:int -> t
   val base : int
 end
 
@@ -209,7 +212,16 @@ module Lsb = struct
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
-  let strlen (_nfa : t) ~(dest : int) ~(src : int) =
+  let strlen_post (_nfa : t) ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let stoi_post = strlen_post
+  let seq_post = strlen_post
+
+  let strlen ~(dest : int) ~(src : int) =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
@@ -381,7 +393,16 @@ module Msb = struct
   in particular if automata need to be minimised in order to obtain canonical set
   representations.*)
 
-  let strlen (_nfa : t) ~(dest : int) ~(src : int) =
+  let strlen_post (_nfa : t) ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let stoi_post = strlen_post
+  let seq_post = strlen_post
+
+  let strlen ~(dest : int) ~(src : int) =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
@@ -463,7 +484,16 @@ module MsbNat = struct
   let eq vars term c = Msb.eq vars term c |> NfaMsb.to_nat
   let leq vars term c = Msb.leq vars term c |> NfaMsb.to_nat
 
-  let strlen (_nfa : t) ~(dest : int) ~(src : int) =
+  let strlen_post (_nfa : t) ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let stoi_post = strlen_post
+  let seq_post = strlen_post
+
+  let strlen ~(dest : int) ~(src : int) =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
@@ -494,8 +524,15 @@ module Str = struct
 
   let o = Str.u_zero
   let i = '1'
-  let alphabet = "0123456789ABCDEF" |> String.to_seq |> Array.of_seq
   let base = 10
+  let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
+
+  let full_alphabet =
+    "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~/"
+    |> Iter.of_str
+    |> Iter.to_list
+  ;;
+
   let itoc i = alphabet.(i)
 
   let ( -- ) i j =
@@ -505,7 +542,7 @@ module Str = struct
 
   let ( let* ) = Option.bind
 
-  let strlen (nfa : t) ~(dest : int) ~(src : int) =
+  let strlen_post (nfa : t) ~(dest : int) ~(src : int) =
     Nfa.filter_map nfa (fun (label, q') ->
       let latest_digit = itoc (base - 1) in
       if
@@ -521,7 +558,15 @@ module Str = struct
     |> Nfa.minimize
   ;;
 
-  let stoi (nfa : t) ~(dest : int) ~(src : int) =
+  let strlen ~(dest : int) ~(src : int) =
+    let alpha_transitions =
+      List.map (fun c -> 0, [ c; itoc (base - 1) ], 0) full_alphabet
+    in
+    let transitions = [ 0, [ Str.u_eos; Str.u_zero ], 0 ] @ alpha_transitions in
+    Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
+  ;;
+
+  let stoi_post (nfa : t) ~(dest : int) ~(src : int) =
     let digits = 0 -- (base - 1) |> List.map itoc in
     Nfa.filter_map nfa (fun (label, q') ->
       let* label =
@@ -553,7 +598,13 @@ module Str = struct
       ~deg:(max dest src + 1)
   ;;
 
-  let seq (nfa : t) ~(dest : int) ~(src : int) =
+  let stoi ~(dest : int) ~(src : int) =
+    let alpha_transitions = List.map (fun c -> 0, [ c; c ], 0) (Array.to_list alphabet) in
+    let transitions = [ 0, [ Str.u_eos; Str.u_zero ], 0 ] @ alpha_transitions in
+    Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
+  ;;
+
+  let seq_post (nfa : t) ~(dest : int) ~(src : int) =
     Nfa.filter_map nfa (fun (label, q') ->
       let* label =
         if Str.is_any_at src label
@@ -568,6 +619,11 @@ module Str = struct
       in
       Some (label, q'))
     |> Nfa.minimize
+  ;;
+
+  let seq ~(dest : int) ~(src : int) =
+    let transitions = List.map (fun c -> 0, [ c; c ], 0) full_alphabet in
+    Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
   ;;
 
   let n () =

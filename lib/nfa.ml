@@ -359,7 +359,7 @@ module Str = struct
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let alpha =
       [ u_eos ]
-      :: ("123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~a/"
+      :: ("0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~a/"
           |> String.to_seq
           |> Seq.map (fun c -> [ c ])
           |> List.of_seq)

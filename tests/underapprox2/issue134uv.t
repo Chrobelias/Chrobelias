@@ -80,6 +80,9 @@ which is needed to be fixed first
             )
   )
   unknown (Under2 resigns)
+  unknown (converting to automaton expression: unable to multiply var by var: (pow2(z) )  with (x )
+  )
+  no model
 
   $ echo '(2^12-2^10+1)* 2^0' | bc
   3073

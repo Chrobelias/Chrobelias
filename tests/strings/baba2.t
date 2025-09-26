@@ -8,7 +8,7 @@ $ cat baba2.smt2
     (str.in_re a (re.++ (re.++ (re.union (re.++ (str.to.re "a") (str.to.re "B")) (re.++ (str.to.re "u") (re.++ (str.to.re "y") (str.to.re "L")))) (re.* (re.union (re.++ (str.to.re "a") (str.to.re "B")) (re.++ (str.to.re "u") (re.++ (str.to.re "y") (str.to.re "L")))))) (re.* (str.to.re ""))))
     (str.in_re b (re.++ (re.++ (re.union (str.to.re "1") (str.to.re "0")) (re.* (re.union (str.to.re "1") (str.to.re "0")))) (re.* (str.to.re "")))))
   sat (nfa)
-  ((define-fun a () (_ String) "LyuBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBa")
-   (define-fun b () (_ String) "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100")
-   (define-fun q () (_ Int) 101))
+  ((define-fun a () (_ String) "Ba")
+   (define-fun b () (_ String) "01")
+   (define-fun q () (_ Int) 2))
 

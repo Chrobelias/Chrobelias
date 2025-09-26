@@ -16,6 +16,13 @@ let rec to_string orig_expr =
     | Str s -> Ast.Str.Const s
     | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
   end
+  | Expr.Naryop (_, Ty.Naryop.Concat, ls) ->
+    let ls = List.map to_string ls in
+    begin
+      match ls with
+      | hd :: tl -> List.fold_left Ast.Str.concat hd tl
+      | _ -> failf "unable to concat 0 strings"
+    end
   | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ expr ])
   | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.ToString, expr) ->
