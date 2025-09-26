@@ -8,10 +8,7 @@ $ export CHRO_DEBUG=1
   > (check-sat)
   > EOF
   $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  Non linear arithmetic between
-    0) (* x1 x2)
-  
-  unknown (non-linear)
+  sat (underapprox1)
 
 
 $ export OCAMLRUNPARAM='b=0'
@@ -60,10 +57,7 @@ $ export OCAMLRUNPARAM='b=0'
   > EOF
 $ export CHRO_DEBUG=1
   $ Chro -bound 2 -pre-simpl -dsimpl UnderDoesntHelp1.smt2 | sed 's/[[:space:]]*$//'
-  Non linear arithmetic between
-    0) (* y z)
-  
-  unknown (non-linear)
+  unknown (converting to automaton expression: not implemented: Lib__Me.Symantics.mul. l = Symbol (y,_), r = Symbol (z,_))
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
   > (set-logic ALL)

@@ -13,10 +13,13 @@ module type Type = sig
   val power_of_two : int -> t
   val eq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
-  val strlen : t -> dest:int -> src:int -> t
-  val stoi : t -> dest:int -> src:int -> t
+  val strlen_post : t -> dest:int -> src:int -> t
+  val stoi_post : t -> dest:int -> src:int -> t
+  val seq_post : t -> dest:int -> src:int -> t
+  val strlen : dest:int -> src:int -> t
+  val stoi : dest:int -> src:int -> t
   val itos : dest:int -> src:int -> t
-  val seq : t -> dest:int -> src:int -> t
+  val seq : dest:int -> src:int -> t
   val base : int
 end
 

@@ -63,8 +63,7 @@ let has_unsupported_nonlinearity =
        | xs ->
          let rec loop acc = function
            | [ _ ] | [] -> acc
-           | (Atom (Var _) as l) :: (Atom (Var _) as r) :: _ ->
-             Ast.Eia.mul [ l; r ] :: acc
+           | Atom (Var _) :: Atom (Var _) :: _ -> (*Ast.Eia.mul [ l; r ] ::*) acc
            | h :: tl -> loop acc tl
          in
          loop acc xs)
@@ -96,6 +95,7 @@ module type SYM0 = sig
   include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
 
   val str_from_eia : string -> str
+  val str_from_eia_const : Z.t -> str
   val str_concat : str -> str -> str
   val str_equal : str -> str -> ph
   val pow2var : string -> term
@@ -189,6 +189,7 @@ module Id_symantics :
   let str_len2 s1 = Ast.Eia.len2 (Ast.var s1)
   let stoi2 s1 = Ast.Eia.stoi2 (Ast.var s1)
   let str_from_eia s = Ast.Str.FromEia (Ast.var s)
+  let str_from_eia_const c = Ast.Str.Const (Z.to_string c)
   let str_concat s1 s2 = Ast.Str.concat s1 s2
   let len = Ast.Eia.len
   let pow = Ast.Eia.pow
@@ -234,7 +235,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Ast.Str.Atom (Ast.Var s) -> S.str_var s
     | Atom (Const _) -> failwith "should not happen"
     | FromEia (Var eia) -> S.str_from_eia eia
-    | FromEia (Const _) -> failwith "should not happen"
+    | FromEia (Const c) -> S.str_from_eia_const c
     | Concat (s1, s2) -> S.str_concat (helper_str s1) (helper_str s2)
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
@@ -296,6 +297,27 @@ let make_main_symantics env =
     ;;
 
     let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
+
+    let str_from_eia s =
+      match Env.lookup s env with
+      | Some (Ast.Eia.Atom (Ast.Const c)) -> Ast.Str.fromeia (Ast.const c)
+      | _ -> Ast.Str.fromeia (Ast.var s)
+    ;;
+
+    let fold_and_sort init op xs =
+      let c, xs =
+        List.fold_left
+          (fun (cacc, phacc) -> function
+             | Eia.Atom (Const c) -> op c cacc, phacc
+             | Eia.Pow ((Atom (Const base) as b), Eia.Add (Atom (Const minus1) :: sums))
+               when Z.(cacc mod base = Z.zero) && -1 = Z.to_int minus1 ->
+               Z.(cacc / base), Eia.Pow (b, Eia.Add sums) :: phacc
+             | ph -> cacc, ph :: phacc)
+          (init, [])
+          xs
+      in
+      c, List.sort compare_term xs
+    ;;
 
     let collect_inside_mul xs =
       List.fold_right
@@ -634,7 +656,8 @@ module Who_in_exponents_ = struct
   let str_len _ = empty
   let str_const _ = empty
   let str_var _ = empty
-  let str_from_eia _ = empty
+  let str_from_eia s = empty
+  let str_from_eia_const s = empty
   let str_concat = ( ++ )
   let str_equal = ( ++ )
   let const _ = empty
@@ -728,10 +751,13 @@ let find_vars_for_under2 ast =
        | Ast.Eia (Ast.Eia.Eq (l, r)) | Eia (Ast.Eia.Leq (l, r)) ->
          let f =
            fun acc -> function
-             | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const two), Atom (Var _)) ]
-               when Z.(equal (Config.base ()) two) -> S.add acc v
-             | Mul [ Atom (Const _); Atom (Var v); Pow (Atom (Const two), Atom (Var _)) ]
-               when Z.(equal (Config.base ()) two) -> S.add acc v
+             | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
+               when Z.(equal (Config.base ()) base) -> S.add acc v
+             | Mul [ Atom (Const _); Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
+               when Z.(equal (Config.base ()) base) -> S.add acc v
+             | Mul [ Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
+               when Z.(equal (Config.base ()) base) -> S.add acc v
+             | Mul [ Atom (Var v1); Atom (Var v2) ] -> S.add (S.add acc v1) v2
              | _ -> acc
          in
          Ast.Eia.fold_term f (Ast.Eia.fold_term f acc r) l
@@ -803,6 +829,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     ;;
 
     let str_from_eia _ = failwith "not implemented"
+    let str_from_eia_const _ = failwith "not implemented"
     let str_concat _ = failwith "not implemented"
     let str_equal _ = failwith "not implemented"
     let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
@@ -1233,6 +1260,65 @@ let run_under2 ast =
       asts
   in
   `Underapprox asts
+;;
+
+let flatten_concats { Info.all; _ } =
+  let gensym1 = gensym in
+  let rec gensym () =
+    let ans = gensym1 ~prefix:"eeb" () in
+    if Base.Set.Poly.mem all ans then gensym () else ans
+  in
+  let extra_ph = ref [] in
+  let mapping = ref Term_map.empty in
+  let extend v other =
+    extra_ph := Id_symantics.eq (Id_symantics.var v) other :: !extra_ph;
+    mapping := Term_map.add other v !mapping
+  in
+  let module M_ = struct
+    include Id_symantics
+
+    let str_concat (lhs : str) (rhs : str) =
+      let u = gensym () in
+      let v = gensym () in
+      let lhs' = gensym () in
+      let rhs' = gensym () in
+      extend lhs' (Ast.Eia.Stoi lhs);
+      extend rhs' (Ast.Eia.Stoi rhs);
+      extend
+        u
+        (Ast.Eia.add
+           [ Ast.Eia.mul
+               [ Ast.Eia.Atom (Ast.var lhs')
+               ; Ast.Eia.pow
+                   (Ast.Eia.Atom (Ast.const (Config.base ())))
+                   (Ast.Eia.Atom (Ast.var v))
+               ]
+           ; Ast.Eia.atom (Ast.var rhs')
+           ]);
+      extend v (Ast.Eia.len rhs);
+      Ast.Str.fromeia (Ast.var u)
+    ;;
+
+    let prj = function
+      | Ast.Land xs -> land_ (!extra_ph @ xs)
+      | ph -> land_ (!extra_ph @ [ ph ])
+    ;;
+  end
+  in
+  let module Sym = struct
+    include M_
+    include FT_SIG.Sugar (M_)
+  end
+  in
+  fun ph -> Sym.prj (apply_symantics (module Sym) ph)
+;;
+
+let run_under3 ast =
+  let var_info = apply_symantics (module Who_in_exponents) ast in
+  let ast = flatten_concats var_info ast in
+  match run_basic_simplify ast with
+  | `Unknown (ast, _env) -> run_under2 ast
+  | _ -> failwith "tbd"
 ;;
 
 let test_distr xs =

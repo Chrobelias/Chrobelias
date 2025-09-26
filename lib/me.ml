@@ -90,6 +90,11 @@ let of_str : Ast.Str.t -> (Ir.t, string) result = function
     in
     return (Ir.sreg (Ir.var s) re)
   | Ast.Str.Eq (Atom (Var a), Atom (Var b)) -> return (Ir.seq (Ir.var a) (Ir.var b))
+  | Ast.Str.Eq (Atom (Var a), FromEia (Var b)) | Ast.Str.Eq (FromEia (Var b), Atom (Var a))
+    -> return (Ir.itos (Ir.var a) (Ir.var b))
+  | Ast.Str.Eq (FromEia (Var a), FromEia (Var b)) ->
+    let u = Ir.internal () in
+    return (Ir.land_ [ Ir.itos u (Ir.var b); Ir.itos u (Ir.var a) ])
   | s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)
 ;;
 
