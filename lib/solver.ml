@@ -884,7 +884,7 @@ struct
               (not (is_exp var)) && not (Map.mem vars (to_exp var))))
     in
     let nfa, vars = eval formula in
-    let nfa = if config.minimize_in_semenov then Nfa.minimize nfa else nfa in
+    let nfa = Nfa.minimize nfa in
     Debug.dump_nfa
       ~msg:"Minimized raw original nfa: %s"
       ~vars:(Map.to_alist vars)
