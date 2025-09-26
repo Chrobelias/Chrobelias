@@ -1342,40 +1342,81 @@ let check_sat ir
     end
   | `Str -> begin
     match ir |> ir_to_ast |> SimplII.run_basic_simplify with
-    | `Unknown (ast, _) ->
+    | `Unknown (ast, env) ->
       let ir = Me.ir_of_ast ast |> Result.get_ok in
       let res = LsbStr.check_sat ir in
       (match res with
        | `Sat model ->
          `Sat
            (fun tys ->
-             Map.mapi
-               ~f:(fun ~key:k ~data:v ->
-                 let ty = Map.find tys k |> Option.value ~default:`Int in
-                 match ty with
-                 | `Int -> begin
-                   try
-                     `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq))
-                   with
-                   | Invalid_argument _ ->
+             let main_model =
+               Map.mapi
+                 ~f:(fun ~key:k ~data:v ->
+                   let ty = Map.find tys k |> Option.value ~default:`Int in
+                   match ty with
+                   | `Int -> begin
+                     try
+                       `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq))
+                     with
+                     | Invalid_argument _ ->
+                       `Str
+                         (v
+                          |> List.rev
+                          |> List.to_seq
+                          |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                          |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+                          |> String.of_seq)
+                   end
+                   | `Str ->
                      `Str
                        (v
                         |> List.rev
                         |> List.to_seq
                         |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
                         |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                        |> String.of_seq)
-                 end
-                 | `Str ->
-                   `Str
-                     (v
-                      |> List.rev
-                      |> List.to_seq
-                      |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                      |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                      |> String.of_seq))
-               (model ())
-             |> filter_internal)
+                        |> String.of_seq))
+                 (model ())
+             in
+             let env_model =
+               Map.filter_mapi
+                 ~f:(fun ~key ~data ->
+                   let ( let* ) = Option.bind in
+                   let rec aux = function
+                     | Ast.Eia.Mul ls ->
+                       let* ls = Base.Option.all (List.map aux ls) in
+                       Option.some (List.fold_left Z.(mul) Z.one ls)
+                     | Ast.Eia.Add ls ->
+                       let* ls = Base.Option.all (List.map aux ls) in
+                       Option.some (List.fold_left Z.( + ) Z.zero ls)
+                     | Ast.Eia.Atom (Ast.Const v) -> Option.some v
+                     | Ast.Eia.Atom (Ast.Var v) -> begin
+                       match Map.find main_model (Ir.var v) with
+                       | Some (`Int v) -> Option.some v
+                       | Some (`Str _) | None -> None
+                     end
+                     | Ast.Eia.Pow (lhs, rhs) ->
+                       let* lhs = aux lhs in
+                       let* rhs = aux rhs in
+                       Option.some (Utils.powz ~base:lhs rhs)
+                     | _ -> None
+                   in
+                   begin
+                     match aux data with
+                     | Some v -> Option.some (`Int v)
+                     | None ->
+                       Format.printf
+                         "Warning: some of the model pieces are likely to be missed: %s \
+                          = %a\n\
+                          %!"
+                         key
+                         Ast.pp_term_smtlib2
+                         data;
+                       None
+                   end)
+                 env
+               |> Map.map_keys_exn ~f:(fun v -> Ir.var v)
+             in
+             Map.merge_disjoint_exn main_model env_model |> filter_internal)
        | `Unsat -> `Unsat
        | `Unknown -> `Unknown ir)
     | `Sat (_, env) -> `Sat (fun _ -> Map.empty)
