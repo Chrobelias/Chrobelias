@@ -19,8 +19,10 @@ Basic LIA tests
   sat (underapprox1)
   unsat
   sat (underapprox1)
-  Fatal error: exception Failure("not implemented: (+ (- 5) (* 7 u))")
-  [2]
+  ((define-fun u () (_ Int) 3)
+   (define-fun x () (_ Int) 6)
+   (define-fun y () (_ Int) 16)
+   (define-fun z () (_ Int) 100))
 
 Test Frobenious coin problem for 7 and 11
 

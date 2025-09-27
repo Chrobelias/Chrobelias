@@ -512,7 +512,8 @@
   Expecting 4 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| it273->1 it87->1 |}
+  env = {| i2->-11 i3->5 it273->1 it645->0 it648->2 it649->2 it730->9 it87->1
+         |}
   sat (underapprox1)
   $ timeout 2 Chro -pre-simpl input.smt2 || echo "timeout"
   sat (underapprox1)

@@ -15,7 +15,7 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| |}
+  env = {| x1->0 x2->0 |}
   sat (underapprox1)
 Should be (<= x 2)
   $ cat > TODO2.smt2 <<-EOF
@@ -34,7 +34,7 @@ Should be (<= x 2)
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| |}
+  env = {| x1->0 |}
   sat (underapprox1)
 
 
@@ -97,7 +97,7 @@ Fold exps
   Expecting 2 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| x3->0 |}
+  env = {| x1->0 x2->0 x3->0 |}
   sat (underapprox1)
 
   $ cat > i3.smt2 <<-EOF
@@ -141,7 +141,7 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| |}
+  env = {| it646->1 |}
   sat (underapprox1)
 
   $ cat > XXXX.smt2 <<-EOF

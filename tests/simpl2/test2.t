@@ -7,5 +7,5 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| |}
+  env = {| x->0 y->0 z->0 |}
   sat (underapprox1)

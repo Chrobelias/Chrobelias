@@ -634,7 +634,8 @@
   Expecting 2 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| it147->1 |}
+  env = {| i10->6 i2->0 it147->1 it152->26 it154->2 it155->3 it157->3 it158->1
+        it159->3 it163->0 it2->0 it4->1 |}
   sat (underapprox1)
 
 
