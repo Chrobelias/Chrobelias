@@ -142,6 +142,7 @@
   (check-sat)
   (get-model)
 (pop 1)
+; problem with (get-model)
 
 ; (push 1)
 ;   (assert (forall ((x Int)) (exists ((y Int)) (or (= x (* 3 y)) (= x (+ (* 3 y) 2))))))
