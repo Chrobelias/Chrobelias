@@ -74,6 +74,7 @@ type t =
   | SLen of atom * atom
   | SEq of atom * atom
   | Stoi of atom * atom
+  | Itos of atom * atom
   | Rel of rel * polynom * Z.t
   (* Logical operations. *)
   | Lnot of t
@@ -98,6 +99,8 @@ let rec pp fmt = function
     Format.fprintf fmt "(= %a (str.len %a))" pp_atom atom pp_atom atom'
   | Stoi (atom, atom') ->
     Format.fprintf fmt "(= %a (str.to.int %a))" pp_atom atom pp_atom atom'
+  | Itos (atom, atom') ->
+    Format.fprintf fmt "(= %a (str.from_int %a))" pp_atom atom pp_atom atom'
   | Rel (rel, term, c) ->
     Format.fprintf
       fmt
@@ -186,7 +189,8 @@ let pp_smtlib2 ppf ir =
         rhs;
       (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
       fprintf ppf ")@]" *)
-    | (SLen _ | Stoi _ | SReg _ | SEq (_, _)) as ir -> Format.fprintf ppf "%a" pp ir
+    | (SLen _ | Stoi _ | SReg _ | SEq (_, _) | Itos (_, _)) as ir ->
+      Format.fprintf ppf "%a" pp ir
     | Land [ x ] ->
       (* TODO: should be eliminated in simplifier *)
       helper ppf x
@@ -301,8 +305,9 @@ let rec equal ir ir' =
   | Exists (atoms, ir), Exists (atoms', ir') ->
     List.equal ( = ) atoms atoms' && equal ir ir'
   | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
-  | SLen (atom, atom'), SLen (atom'', atom''') | Stoi (atom, atom'), Stoi (atom'', atom''')
-    -> atom = atom'' && atom' = atom'''
+  | SLen (atom, atom'), SLen (atom'', atom''')
+  | Stoi (atom, atom'), Stoi (atom'', atom''')
+  | Itos (atom, atom'), Itos (atom'', atom''') -> atom = atom'' && atom' = atom'''
   | _, _ -> false
 ;;
 
@@ -314,6 +319,7 @@ let rec map2 f fleaf ir =
   | SReg (_, _) -> fleaf ir
   | SLen (_, _) -> fleaf ir
   | Stoi (_, _) -> fleaf ir
+  | Itos (_, _) -> fleaf ir
   | SEq (_, _) -> fleaf ir
   | Lnot ir' -> f (lnot (map2 f fleaf ir'))
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
@@ -331,6 +337,7 @@ let rec fold f acc ir =
   | SReg (_, _) -> f acc ir
   | SLen (_, _) -> f acc ir
   | Stoi (_, _) -> f acc ir
+  | Itos (_, _) -> f acc ir
   | SEq (_, _) -> f acc ir
   | Lnot ir' -> f (fold f acc ir') ir
   | Land irs -> f (List.fold_left (fold f) acc irs) ir

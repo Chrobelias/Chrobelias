@@ -20,8 +20,8 @@
   Expecting 9 choices ...
   
   Can't decide in lib/Underapprox.ml
-  Simplify step: ((2 ** x) <= x & (2 ** y) <= x)
-  Simplified expression: ((2 ** x) <= x & (2 ** y) <= x)
+  Simplify step: ((<= (exp 2 x) x) & (<= (exp 2 y) x))
+  Simplified expression: ((<= (exp 2 x) x) & (<= (exp 2 y) x))
     subst = {| |}
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )

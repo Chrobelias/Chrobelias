@@ -29,6 +29,7 @@ let collect_vars ir =
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Rel (_, term, _) ->
          Set.union
            acc
@@ -52,6 +53,7 @@ let collect_free (ir : Ir.t) =
        | Ir.SReg (atom, _) -> Set.add acc atom
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
@@ -550,6 +552,8 @@ struct
        | Ir.SReg (atom, reg) -> Extra.eval_sreg vars atom reg
        | Ir.SLen (atom, atom') -> NfaCollection.n ()
        | Ir.Stoi (atom, atom') -> NfaCollection.n ()
+       | Ir.Itos (atom, atom') ->
+         NfaCollection.itos ~src:(Map.find_exn vars atom') ~dest:(Map.find_exn vars atom)
        | Ir.SEq (atom, atom') -> NfaCollection.n ()
        | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
       |> fun nfa ->
@@ -1322,6 +1326,11 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
       (Ast.Eia.eq
          (Ast.Eia.atom (ir_atom_to_atom atom))
          (Ast.Eia.stoi2 (ir_atom_to_atom atom')))
+  | Itos (atom, atom') ->
+    Ast.str
+      (Ast.Str.eq
+         (Ast.Str.atom (ir_atom_to_atom atom))
+         (Ast.Str.fromeia (ir_atom_to_atom atom')))
   | Exists (atoms, lhs) -> Ast.exists (List.map ir_atom_to_atom atoms) (ir_to_ast lhs)
 ;;
 

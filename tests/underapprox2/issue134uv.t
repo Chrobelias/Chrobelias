@@ -9,7 +9,8 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ OCAMLRUNPARAM='b=0' Chro -no-over-approx -bound 6 -lsb 0.smt2
-  unknown (converting to automaton expression: unimplemented (+ (* -1 * a * (2 ** z)) + (* -1 * (2 ** (+ u + z))) + (* -1 * (2 ** (+ v + z)))) = -113)
+  unknown (converting to automaton expression: unimplemented (= (+ (* (- 1) a (exp 2 z)) (* (- 1) (exp 2 (+ u z)))
+                   (* (- 1) (exp 2 (+ v z)))) (- 113)))
 
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)

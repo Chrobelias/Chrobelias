@@ -95,6 +95,10 @@ module type SYM0 = sig
   include FT_SIG.s_term with type term := term and type str := str
   include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
 
+  val str_from_eia : string -> str
+  val str_from_eia_const : Z.t -> str
+  val str_concat : str -> str -> str
+  val str_equal : str -> str -> ph
   val pow2var : string -> term
   val exists : string list -> ph -> ph
   val str_len2 : string -> term
@@ -232,6 +236,7 @@ module Id_symantics :
       assert false
   ;;
 
+  let str_equal s1 s2 = Ast.str (Ast.Str.eq s1 s2)
   let str_const s = Ast.Str.Const s
   let str_var s = Ast.Str.Atom (Ast.Var s)
 
@@ -252,6 +257,9 @@ module Id_symantics :
 
   let str_len2 s1 = Ast.Eia.len2 (Ast.var s1)
   let stoi2 s1 = Ast.Eia.stoi2 (Ast.var s1)
+  let str_from_eia s = Ast.Str.FromEia (Ast.var s)
+  let str_from_eia_const c = Ast.Str.Const (Z.to_string c)
+  let str_concat s1 s2 = Ast.Str.concat s1 s2
   let len = Ast.Eia.len
   let pow = Ast.Eia.pow
   let mul = Ast.Eia.mul
@@ -292,13 +300,14 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       in
       S.exists vs (helper ph)
     | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helper_str term) regex
-    | str ->
-      Format.eprintf "%s %d %a\n%!" __FILE__ __LINE__ Ast.pp_smtlib2 str;
-      failwith (Format.asprintf "TBD")
+    | Str (Ast.Str.Eq (term, term')) -> S.str_equal (helper_str term) (helper_str term')
   and helper_str : Ast.Str.term -> S.str = function
     | Ast.Str.Const s -> S.str_const s
     | Ast.Str.Atom (Ast.Var s) -> S.str_var s
     | Atom (Const _) -> failwith "should not happen"
+    | FromEia (Var eia) -> S.str_from_eia eia
+    | FromEia (Const c) -> S.str_from_eia_const c
+    | Concat (s1, s2) -> S.str_concat (helper_str s1) (helper_str s2)
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
     | Atom (Ast.Var s) -> S.var s
@@ -324,6 +333,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
       Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
       failwith "Strlen/Stoi should not be called from int constants. Types are bad"
+    | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
@@ -358,6 +368,12 @@ let make_main_symantics env =
     ;;
 
     let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
+
+    let str_from_eia s =
+      match Env.lookup s env with
+      | Some (Ast.Eia.Atom (Ast.Const c)) -> Ast.Str.fromeia (Ast.const c)
+      | _ -> Ast.Str.fromeia (Ast.var s)
+    ;;
 
     let fold_and_sort init op xs =
       let c, xs =
@@ -649,6 +665,10 @@ module Who_in_exponents_ = struct
   let str_len _ = empty
   let str_const _ = empty
   let str_var _ = empty
+  let str_from_eia s = empty
+  let str_from_eia_const s = empty
+  let str_concat = ( ++ )
+  let str_equal = ( ++ )
   let const _ = empty
   let var s = { empty with all = S.singleton s }
   let str_len2 _ = empty
@@ -744,6 +764,7 @@ let find_vars_for_under2 ast =
                when Z.(equal (Config.base ()) two) -> S.add acc v
              | Mul [ Atom (Const _); Atom (Var v); Pow (Atom (Const two), Atom (Var _)) ]
                when Z.(equal (Config.base ()) two) -> S.add acc v
+             | Mul [ Atom (Var v1); Atom (Var v2) ] -> S.add (S.add acc v1) v2
              | _ -> acc
          in
          Ast.Eia.fold_term f (Ast.Eia.fold_term f acc r) l
@@ -814,6 +835,10 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
       | Some c -> const c
     ;;
 
+    let str_from_eia _ = failwith "not implemented"
+    let str_from_eia_const _ = failwith "not implemented"
+    let str_concat _ = failwith "not implemented"
+    let str_equal _ = failwith "not implemented"
     let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
 
     let exists vars x =
@@ -1239,6 +1264,51 @@ let run_under2 ast =
       asts
   in
   `Underapprox asts
+;;
+
+let flatten_concats { Info.all; _ } =
+  let gensym1 = gensym in
+  let rec gensym () =
+    let ans = gensym1 ~prefix:"eeb" () in
+    if Base.Set.Poly.mem all ans then gensym () else ans
+  in
+  let extra_ph = ref [] in
+  let mapping = ref Term_map.empty in
+  let extend v other =
+    extra_ph := Id_symantics.eq (Id_symantics.var v) other :: !extra_ph;
+    mapping := Term_map.add other v !mapping
+  in
+  let module M_ = struct
+    include Id_symantics
+
+    let str_concat (lhs : str) (rhs : str) =
+      let u = gensym () in
+      let lhs' = gensym () in
+      let rhs' = gensym () in
+      extend lhs' (Ast.Eia.Stoi lhs);
+      extend rhs' (Ast.Eia.Stoi rhs);
+      extend u (Ast.Eia.mul [ Ast.Eia.Atom (Ast.var lhs'); Ast.Eia.Atom (Ast.var rhs') ]);
+      Ast.Str.fromeia (Ast.var u)
+    ;;
+
+    let prj = function
+      | Ast.Land xs -> land_ (!extra_ph @ xs)
+      | ph -> land_ (!extra_ph @ [ ph ])
+    ;;
+  end
+  in
+  let module Sym = struct
+    include M_
+    include FT_SIG.Sugar (M_)
+  end
+  in
+  fun ph -> Sym.prj (apply_symantics (module Sym) ph)
+;;
+
+let run_under3 ast =
+  let var_info = apply_symantics (module Who_in_exponents) ast in
+  let ast = flatten_concats var_info ast in
+  run_under2 ast
 ;;
 
 let test_distr xs =
