@@ -1423,6 +1423,7 @@ let check_sat ir
                      | _ -> None
                    in
                    begin
+                     let (`Eia data) = data in
                      match aux data with
                      | Some v -> Option.some (`Int v)
                      | None ->

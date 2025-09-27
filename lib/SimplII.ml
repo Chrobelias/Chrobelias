@@ -284,7 +284,7 @@ let make_main_symantics env =
     let var s : term =
       match Env.lookup s env with
       | None -> Eia.Atom (Ast.var s)
-      | Some c -> c
+      | Some (`Eia c) -> c
     ;;
 
     let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
