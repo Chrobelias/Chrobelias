@@ -1423,18 +1423,20 @@ let check_sat ir
                      | _ -> None
                    in
                    begin
-                     let (`Eia data) = data in
-                     match aux data with
-                     | Some v -> Option.some (`Int v)
-                     | None ->
-                       Format.printf
-                         "Warning: some of the model pieces are likely to be missed: %s \
-                          = %a\n\
-                          %!"
-                         key
-                         Ast.pp_term_smtlib2
-                         data;
-                       None
+                     match data with
+                     | `Eia data ->
+                       (match aux data with
+                        | Some v -> Option.some (`Int v)
+                        | None ->
+                          Format.printf
+                            "Warning: some of the model pieces are likely to be missed: \
+                             %s = %a\n\
+                             %!"
+                            key
+                            Ast.pp_term_smtlib2
+                            data;
+                          None)
+                     | `Str _ -> failwith "TBD"
                    end)
                  env
                |> Map.map_keys_exn ~f:(fun v -> Ir.var v)

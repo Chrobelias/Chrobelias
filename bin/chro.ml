@@ -92,7 +92,10 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Config.config.under_approx >= 0
       then (
         match Lib.Underapprox.check Lib.Config.config.under_approx ast with
-        | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Map.empty)
+        | `Sat (s, e0) ->
+          if Lib.Env.length e0 <> 0
+          then Format.eprintf "ACHTUNG. We are forgetting something!!!\n%!";
+          Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
@@ -184,6 +187,7 @@ let join_int_model prefix m =
   log "Ir.model = @[%a@]" Ir.pp_model_smtlib2 m;
   let rec seek key =
     match Map.find_exn prefix key with
+    | `Str _ -> failwith "TBD"
     | `Eia term ->
       let term = SimplII.subst_term prefix term in
       (match term with

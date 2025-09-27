@@ -1,6 +1,6 @@
 [@@@ocaml.warnerror "-32"]
 
-type t = (string, [ `Eia of Ast.Eia.term ]) Base.Map.Poly.t
+type t = (string, [ `Eia of Ast.Eia.term | `Str of Ast.Str.term ]) Base.Map.Poly.t
 
 let walk : t -> Ast.Eia.term -> Ast.Eia.term =
   fun env ->
@@ -8,6 +8,7 @@ let walk : t -> Ast.Eia.term -> Ast.Eia.term =
     | Ast.Eia.Atom (Ast.Var s) as orig ->
       (match Base.Map.Poly.find_exn env s with
        | exception Base.Not_found_s _ -> orig
+       | `Str _ -> failwith "Type error?"
        | `Eia t -> t)
     | t -> t)
 ;;
@@ -53,7 +54,8 @@ let merge : t -> t -> t =
       | `Eia v1, `Eia v2 ->
         Format.eprintf "v1 = %a\n%!" Ast.pp_term_smtlib2 v1;
         Format.eprintf "v2 = %a\n%!" Ast.pp_term_smtlib2 v2;
-        failwith "We tried to subtitute a varible by two different terms"))
+        failwith "We tried to subtitute a varible by two different terms"
+      | _ -> failwith "TBD"))
 ;;
 
 let pp : Format.formatter -> t -> unit =
@@ -61,7 +63,8 @@ let pp : Format.formatter -> t -> unit =
   Format.fprintf ppf "@[ ";
   Base.Map.iteri s ~f:(fun ~key ~data ->
     match data with
-    | `Eia data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data);
+    | `Eia data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data
+    | _ -> failwith "TBD");
   Format.fprintf ppf "@]"
 [@@ocaml.warning "-32"]
 ;;
@@ -69,7 +72,8 @@ let pp : Format.formatter -> t -> unit =
 let to_eqs : t -> Ast.t list =
   Base.Map.Poly.fold ~init:[] ~f:(fun ~key ~data acc ->
     match data with
-    | `Eia data -> Ast.Eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.Var key)) data) :: acc)
+    | `Eia data -> Ast.Eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.Var key)) data) :: acc
+    | _ -> failwith "TBD")
 ;;
 
 let enrich m other =

@@ -285,6 +285,7 @@ let make_main_symantics env =
       match Env.lookup s env with
       | None -> Eia.Atom (Ast.var s)
       | Some (`Eia c) -> c
+      | Some (`Str _) -> failwith "can't be implemented"
     ;;
 
     let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
