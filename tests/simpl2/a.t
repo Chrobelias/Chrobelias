@@ -20,7 +20,7 @@
   Expecting 2 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| y->0 |}
+  env = {| x->0 y->0 |}
   sat (underapprox1)
 
   $ cat > testS1.smt2 <<-EOF
@@ -55,7 +55,7 @@
   Expecting 0 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| y->0 |}
+  env = {| x->0 y->0 |}
   sat (underapprox1)
   $ cat > sum_join1.smt2 <<-EOF
   > (set-logic ALL)
