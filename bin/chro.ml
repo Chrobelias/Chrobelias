@@ -21,9 +21,9 @@ type rez =
   | Sat of
       string
       * Lib.Ast.t
-      * Lib.SimplII.Env.t
+      * Lib.Env.t
       * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> Lib.Ir.model)
-  | Unknown of Lib.Ast.t * Lib.SimplII.Env.t
+  | Unknown of Lib.Ast.t * Lib.Env.t
   | Unsat
 [@@deriving show]
 
@@ -72,7 +72,7 @@ let check_sat ?(verbose = false) ast : rez =
   in
   begin
     let rez =
-      unknown ast Lib.SimplII.Env.empty
+      unknown ast Lib.Env.empty
       <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
       then unknown ast e
@@ -92,7 +92,7 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Config.config.under_approx >= 0
       then (
         match Lib.Underapprox.check Lib.Config.config.under_approx ast with
-        | `Sat s -> Sat (s, ast, e, fun _ -> Map.empty)
+        | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
@@ -171,16 +171,28 @@ let check_sat ?(verbose = false) ast : rez =
 let join_int_model prefix m =
   let open Lib in
   let _ : Ir.model = m in
+  (* log "prefix.length = %d, n.length = %d" (Env.length prefix) (Base.Map.Poly.length m); *)
+  let prefix =
+    let shrink_ir_model =
+      Base.Map.Poly.map_keys_exn m ~f:(function
+        | Ir.Var s -> Ast.Var s
+        | Ir.Pow2 _ -> assert false)
+    in
+    Env.enrich prefix shrink_ir_model
+  in
+  (* log "prefix.length = %d" (Env.length prefix); *)
+  (* log "Ir.model = @[%a@]" Ir.pp_model_smtlib2 m; *)
   let rec seek key =
     let term = Map.find_exn prefix key in
+    let term = SimplII.subst_term prefix term in
     match term with
     | Ast.Eia.Atom (Const z) -> Some (`Int z)
-    | Atom (Var v) -> seek v
+    | Ast.Eia.Atom (Var v) -> seek v
     | term -> failwith (Format.asprintf "not implemented: %a" Ast.pp_term_smtlib2 term)
   in
-  SimplII.Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
+  Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek key with
-    | Some value -> Map.add_exn acc ~key:(Var key) ~data:value
+    | Some value -> Map.set acc ~key:(Var key) ~data:value
     | None -> failwith "not implemented")
 ;;
 

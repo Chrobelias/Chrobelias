@@ -21,6 +21,8 @@ module type s_term = sig
   val add : term list -> term
   val bw : sup_binop -> term -> term -> term
   val const : int -> term
+
+  (* val constz : Z.t -> term *)
   val var : string -> term
 end
 
@@ -85,6 +87,14 @@ end = struct
   let str_const _ = failwith "not implemented"
   let str_var _ = failwith "not implemented"
   let const n = Smtml.Expr.value (Value.Int n)
+
+  let constz z =
+    match Z.to_int z with
+    | exception Z.Overflow -> failwith "What to do?"
+    | n -> Expr.value (Value.Int n)
+  [@@ocaml.warnerror "-32"]
+  ;;
+
   let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
 
   let add = function
