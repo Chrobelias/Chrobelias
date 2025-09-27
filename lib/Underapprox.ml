@@ -21,6 +21,12 @@ end
 
 type env = (string, int) Base.Map.Poly.t
 
+let to_normal_env : env -> Env.t =
+  Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
+    let _ : Env.t = acc in
+    Env.extend_exn acc key (Ast.Eia.Atom (Ast.Const (Z.of_int data))))
+;;
+
 let pp_env ppf env =
   Format.fprintf ppf "@[{|";
   Base.Map.Poly.iteri env ~f:(fun ~key ~data ->
@@ -191,7 +197,22 @@ let check bound ast =
            Z3.reset solver;
            let __ _ = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
            match Z3.check solver ~assumptions:[ ph ] with
-           | `Sat -> raise (Early env)
+           | `Sat ->
+             (match Z3.model solver with
+              | None -> assert false
+              | Some m ->
+                let env =
+                  Hashtbl.fold
+                    (fun k v acc ->
+                       let _ : Smtml.Symbol.t = k in
+                       match k.name, v with
+                       | Smtml.Symbol.Simple s, Smtml.Value.Int n ->
+                         Base.Map.Poly.add_exn env ~key:s ~data:n
+                       | _ -> acc)
+                    (Smtml.Z3_mappings.values_of_model m)
+                    env
+                in
+                raise (Early env))
            | _ -> ())
         all_choices;
       (* TODO: if all Unsat, add a constraints (x>bound), becuase we have already checked values in [0.. bound] *)
@@ -207,7 +228,7 @@ let check bound ast =
     | Early env ->
       log "%s gives early Sat." __FILE__;
       log "env = %a" pp_env env;
-      `Sat "underapprox1"
+      `Sat ("underapprox1", to_normal_env env)
   with
   | String_op | Bitwise_op -> `Unknown ast
 ;;

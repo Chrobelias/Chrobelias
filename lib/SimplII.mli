@@ -5,16 +5,8 @@ type relop =
 type error
 
 val has_unsupported_nonlinearity : Ast.t -> (unit, Ast.Eia.term list) Result.t
-
-module Env : sig
-  type t = (string, Ast.Eia.term) Base.Map.Poly.t
-
-  val empty : t
-  val merge : t -> t -> t
-  val fold : t -> init:'a -> f:(key:string -> data:Ast.Eia.term -> 'a -> 'a) -> 'a
-  val length : t -> int
-  val pp : Format.formatter -> t -> unit
-end
+val subst : Env.t -> Ast.t -> Ast.t
+val subst_term : Env.t -> Ast.Eia.term -> Ast.Eia.term
 
 val simpl
   :  int
@@ -30,7 +22,7 @@ val run_basic_simplify
   :  Ast.t
   -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t * Env.t ]
 
-val run_under1 : int -> Ast.t -> [ `Sat of string | `Unknown ]
+val run_under1 : int -> Ast.t -> [ `Sat of string * Env.t | `Unknown ]
 val run_under2 : Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val pp_error : Format.formatter -> error -> unit
 

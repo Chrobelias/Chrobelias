@@ -127,74 +127,6 @@ let distribute xs =
     xs
 ;;
 
-module Env = struct
-  type t = (string, Ast.Eia.term) Base.Map.Poly.t
-
-  let walk : t -> Ast.Eia.term -> Ast.Eia.term =
-    fun env ->
-    Ast.Eia.map_term (function
-      | Ast.Eia.Atom (Ast.Var s) as orig ->
-        (match Base.Map.Poly.find_exn env s with
-         | exception Base.Not_found_s _ -> orig
-         | t -> t)
-      | t -> t)
-  ;;
-
-  let occurs_var : string -> Ast.Eia.term -> bool =
-    fun v term ->
-    try
-      Ast.Eia.fold_term
-        (fun () -> function
-           | Ast.(Eia.Atom (Var v2)) when String.equal v v2 -> raise Exit
-           | _ -> ())
-        ()
-        term;
-      false
-    with
-    | Exit -> true
-  ;;
-
-  exception Occurs
-
-  let extend_exn : t -> _ -> _ -> t =
-    fun m key data ->
-    let data = walk m data in
-    if occurs_var key data then raise Occurs else Base.Map.Poly.add_exn m ~key ~data
-  ;;
-
-  let empty : t = Base.Map.Poly.empty
-  let is_empty = Base.Map.Poly.is_empty
-  let length = Base.Map.Poly.length [@@warning "-32"]
-  let lookup k map = Base.Map.Poly.find map k
-  let lookup_exn k map = Base.Map.Poly.find_exn map k
-  let is_absent_key k map = not (Base.Map.Poly.mem map k)
-  let fold : t -> _ = Base.Map.Poly.fold
-
-  let merge : t -> t -> t =
-    Base.Map.Poly.merge_skewed ~combine:(fun ~key v1 v2 ->
-      if Stdlib.(v1 = v2)
-      then v1
-      else (
-        Format.eprintf "v1 = %a\n%!" Ast.pp_term_smtlib2 v1;
-        Format.eprintf "v2 = %a\n%!" Ast.pp_term_smtlib2 v2;
-        failwith "We tried to subtitute a varible by two different terms"))
-  ;;
-
-  let pp : Format.formatter -> t -> unit =
-    fun ppf s ->
-    Format.fprintf ppf "@[ ";
-    Base.Map.iteri s ~f:(fun ~key ~data ->
-      Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data);
-    Format.fprintf ppf "@]"
-  [@@ocaml.warning "-32"]
-  ;;
-
-  let to_eqs : t -> Ast.t list =
-    Base.Map.Poly.fold ~init:[] ~f:(fun ~key ~data acc ->
-      Ast.Eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.Var key)) data) :: acc)
-  ;;
-end
-
 let compare_ast l r =
   match l, r with
   | Ast.True, Ast.True -> 0
@@ -271,8 +203,6 @@ module Id_symantics :
   let prj = Fun.id
   let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
 end
-
-(* TODO(Kakadu): create non-sugared application *)
 
 let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
   let rec helper = function
@@ -577,6 +507,42 @@ let make_main_symantics env =
     with type ph = Ast.t
      and type repr = Ast.t
      and type term = Ast.Eia.term)
+;;
+
+let apply_term_symantics
+  : (module SYM with type term = Ast.Eia.term) -> Ast.Eia.term -> Ast.Eia.term
+  =
+  fun (module S : SYM with type term = Ast.Eia.term) ->
+  let rec helperT = function
+    | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
+    | Atom (Ast.Var s) -> S.var s
+    | Add terms -> S.add (List.map helperT terms)
+    | Mul terms -> S.mul (List.map helperT terms)
+    | Pow (base, p) -> S.pow (helperT base) (helperT p)
+    | Bwand (l, r) -> S.bw Bwand (helperT l) (helperT r)
+    | Bwor (l, r) -> S.bw Bwor (helperT l) (helperT r)
+    | Bwxor (l, r) -> S.bw Bwxor (helperT l) (helperT r)
+    | Len (Ast.Str.Atom (Var s)) -> S.str_len (S.str_var s)
+    | Len (Ast.Str.Const s) -> S.const (String.length s)
+    | Stoi (Ast.Str.Atom (Var s)) -> S.str_atoi (S.str_var s)
+    | Stoi (Ast.Str.Const s) ->
+      (match int_of_string_opt s with
+       | Some n -> S.const n
+       | None -> S.str_atoi (S.str_const s))
+    | Stoi2 (Var s) -> S.stoi2 s
+    | Stoi2 (Const _) -> failwith "TBD"
+    | Len2 (Var s) -> S.str_len2 s
+    | Len2 (Const _) -> failwith "TBD"
+    | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
+      Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
+      failwith "Strlen/Stoi should not be called from int constants. Types are bad"
+  in
+  helperT
+;;
+
+let subst_term env ast =
+  let (module S : SYM_SUGAR_AST) = make_main_symantics env in
+  apply_term_symantics (module S) ast
 ;;
 
 exception Unsat
@@ -1017,6 +983,11 @@ let get_range () =
   ans
 ;;
 
+let subst env ast =
+  let (module S : SYM_SUGAR_AST) = make_main_symantics env in
+  apply_symantics_unsugared (module S) ast
+;;
+
 let try_under2_heuristics env ast =
   let under2vars = find_vars_for_under2 ast in
   log
@@ -1168,7 +1139,7 @@ let simpl bound ast =
   let ast, env = loop Env.empty ast in
   (* Underapprox I *)
     match if bound >= 0 then Underapprox.check bound ast else `Unknown ast with
-    | `Sat reason -> `Sat (reason, env)
+    | `Sat (reason, e) -> `Sat (reason, Env.merge e env)
     | `Unknown _ ->
       (try
          match check_errors ast with
@@ -1208,7 +1179,7 @@ let simpl bound ast =
        | Error (ast, errs) -> `Error (ast, errs))
 ;;
 
-let run_under1 bound ast : [> `Sat of string | `Unknown ] =
+let run_under1 bound ast : [> `Sat of string * Env.t | `Unknown ] =
   if bound >= 0
   then (
     match Underapprox.check bound ast with
