@@ -160,11 +160,18 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
 
 let log = Debug.printfln
 
+(* Needed for tests, because Z3 gives a module non-deterministically *)
+let omit_z3_model =
+  match Sys.getenv_opt "CHRO_OMIT_Z3_MODEL" with
+  | None -> false
+  | Some _ -> true
+;;
+
 let check bound ast =
   try
     let vars = ref (Base.Set.empty (module Base.String)) in
     let interestring_vars = apply_symnatics (make_collector ()) ast in
-    (* TODO: collecting of interesting variables could be buggy. For example, what if
+    (* TODO(Kakadu): collecting of interesting variables could be buggy. For example, what if
       (exists (x) (...) (exists (x) (= (exp 2 x) 128)))
     ??
     *)
@@ -197,6 +204,7 @@ let check bound ast =
            Z3.reset solver;
            let __ _ = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
            match Z3.check solver ~assumptions:[ ph ] with
+           | `Sat when omit_z3_model -> raise (Early env)
            | `Sat ->
              (match Z3.model solver with
               | None -> assert false

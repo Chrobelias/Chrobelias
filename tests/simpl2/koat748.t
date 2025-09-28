@@ -1,6 +1,6 @@
   $ cp ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_748.smt2 input.smt2
 
-  $ export CHRO_DEBUG=1
+  $ export CHRO_DEBUG=1 CHRO_OMIT_Z3_MODEL=1
   $ Chro -dsimpl -pre-simpl -stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
@@ -567,9 +567,7 @@
   Expecting 4 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| i2->-27 i3->3 i4->11 it1107->-24 it1110->5 it1111->10 it1117->-21
-        it1125->0 it1127->4 it1139->3 it1141->3 it134->1 it19->1 it57->1
-        it88->7 |}
+  env = {| it134->1 it57->1 |}
   sat (underapprox1)
 
 
