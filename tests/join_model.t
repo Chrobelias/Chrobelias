@@ -34,3 +34,15 @@
    (define-fun x () (_ Int) -1)
    (define-fun y () (_ Int) -5)
    (define-fun z () (_ Int) 100))
+
+TODO: fix this later
+  $ cat > 2.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun x () Int)
+  > (assert (= x x))
+  > (check-sat)
+  > (get-model)
+  > EOF
+  $ Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl 2.smt2 | sed 's/[[:space:]]*$//'
+  sat (presimpl)
+  ()
