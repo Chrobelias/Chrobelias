@@ -1,38 +1,4 @@
 realheapsort_step2.koat_194
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_194.smt2 || echo TIMEOUT
-  Leftover formula:
-  (and
-                      (= eee2 (+ 1 it420))
-                      (= eee1 (+ 1 it273))
-                      (= (+ it415 (* (- 6) it273) (* (- 1) i2)) 5)
-                      (= (+ it418 (* (- 1) (exp 2 eee1))) (- 2))
-                      (= (+ it419 (* (- 2) (exp 2 it273))) (- 2))
-                      (= (+ it480 (* (- 6) it420) (* (- 1) it415)) 8)
-                      (= (+ it483 (* (- 1) (exp 2 eee2))) (- 2))
-                      (= (+ it484 (* (- 2) (exp 2 it420))) (- 2))
-                      (= (+ it573 (* (- 18) it418) (* (- 1) it480)) (- 18))
-                      (<= (+ (* (- 4) it418) (* 2 it483)) 7)
-                      (<= (+ (* (- 2) it418) (* 2 (exp 2 it273))) 3)
-                      (<= (+ (* (- 2) it418) (* 2 (exp 2 it273))) 4)
-                      (<= (+ (* (- 2) it418) (* 2 (exp 2 it420))) 2)
-                      (<= (+ (* (- 2) it418) (* 2 (exp 2 it420))) 3)
-                      (<= (+ (* (- 2) it483) (* 2 it418)) 0)
-                      (<= (+ (* 2 it418 (exp 2 it485)) (* 5 (exp 2 it485))) 4)
-                      (<= (+ (* 2 it418 (exp 2 it485)) (* 5 (exp 2 it485))) 5)
-                      (<= (* (- 2) it418) 0)
-                      (<= (* (- 2) it418) 1)
-                      (<= (* (- 2) it418) 5)
-                      (<= (* (- 1) it273) (- 1))
-                      (<= (* (- 1) it418) (- 2))
-                      (<= (* (- 1) it418) (- 1))
-                      (<= (* (- 1) it420) (- 1))
-                      (<= (* (- 1) it485) (- 1))
-                      (<= (* 4 it418) (- 6))
-                      (<= (* 4 it418) (- 5)))
-  Non linear arithmetic between
-    0) it418
-    1) (exp 2 it485)
-    
-  UNKNOWN (Errors after simplification)
-  TIMEOUT
+  unsat
