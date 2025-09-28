@@ -1,5 +1,3 @@
-[@@@ocaml.warnerror "-32"]
-
 type t = (string, Ast.Eia.term) Base.Map.Poly.t
 
 let walk : t -> Ast.Eia.term -> Ast.Eia.term =
@@ -35,10 +33,12 @@ let extend_exn : t -> _ -> _ -> t =
 ;;
 
 let empty : t = Base.Map.Poly.empty
-let is_empty = Base.Map.Poly.is_empty
+
+(* let is_empty = Base.Map.Poly.is_empty *)
 let length = Base.Map.Poly.length [@@warning "-32"]
 let lookup k map = Base.Map.Poly.find map k
-let lookup_exn k map = Base.Map.Poly.find_exn map k
+
+(* let lookup_exn k map = Base.Map.Poly.find_exn map k *)
 let is_absent_key k map = not (Base.Map.Poly.mem map k)
 let fold : t -> _ = Base.Map.Poly.fold
 
