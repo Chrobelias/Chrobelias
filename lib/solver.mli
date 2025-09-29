@@ -5,4 +5,7 @@ module Map = Base.Map.Poly
 
 val check_sat
   :  Ir.t
-  -> [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> Ir.model | `Unsat | `Unknown of Ir.t ]
+  -> [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long ]) Result.t
+     | `Unsat
+     | `Unknown of Ir.t
+     ]

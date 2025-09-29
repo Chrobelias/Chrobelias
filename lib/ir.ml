@@ -505,3 +505,21 @@ let simpl_monotonicty ir =
     fixpoint 0 vars [] rhs
   | _ -> ir
 ;;
+
+let shrink_strings ir =
+  (* Format.eprintf "%s: @[%a@]\n%!" __FUNCTION__ pp ir; *)
+  let module SS = Stdlib.Map.Make (String) in
+  let string_vars =
+    fold
+      (fun acc -> function
+         | SLen (Var vlen, Var vs) -> SS.add vs (Var vlen) acc
+         | _ -> acc)
+      SS.empty
+      ir
+  in
+  SS.fold
+    (fun _key term acc -> Rel (Leq, Map.singleton term (Z.of_int 1), Z.of_int 10) :: acc)
+    string_vars
+    []
+  |> land_
+;;
