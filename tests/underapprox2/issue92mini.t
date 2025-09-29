@@ -807,6 +807,9 @@ $ export CHRO_DEBUG=1
   (assert (<= (+ (* (- 1) pow2(eee16)) pow2(u5) )  0) )
   (assert (<= (+ (* (- 1) pow2(u5)) pow2(z) )  0) )
   
+  (assert (<= y  1184) )
+  (assert (= (* (- 1) y)  -1184) )
+  
   sat (under II)
 
 
