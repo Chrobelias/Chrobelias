@@ -844,6 +844,21 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
                ]
            , rhs ))
       when v1 <> v2 -> single info env c1 v1 c2 v2 rhs
+    | Eia (Eia.Eq (Add sums, Atom (Const rhs))) when Z.(zero = rhs) ->
+      let rec loop acc = function
+        | Eia.Atom (Var v) :: xs
+          when Env.is_absent_key v env && not (Info.is_in_expo v info) ->
+          Env.extend_exn env v S.(mul [ const (-1); add (acc @ xs) ])
+        | Mul [ Atom (Const c); Eia.Atom (Var v) ] :: xs
+          when Env.is_absent_key v env
+               && (not (Info.is_in_expo v info))
+               && Z.(equal (of_int (-1)) c) ->
+          Env.extend_exn env v S.(mul [ add (acc @ xs) ])
+        | h :: tl -> loop (h :: acc) tl
+        | [] -> raise Exit
+      in
+      (try loop [] sums with
+       | Exit -> env)
     | x -> env
   in
   fun info env ast ->
