@@ -14,6 +14,7 @@
   Ir
   Simpl_alpha
   Overapprox
+  Orderings
   Underapprox
   Regex
   Solver
