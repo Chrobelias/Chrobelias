@@ -22,7 +22,7 @@ type rez =
       string
       * Lib.Ast.t
       * Lib.Env.t
-      * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> Lib.Ir.model)
+      * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> (Lib.Ir.model, [ `Too_long ]) Result.t)
   | Unknown of Lib.Ast.t * Lib.Env.t
   | Unsat
 [@@deriving show]
@@ -40,7 +40,7 @@ let ( <+> ) =
 let lift ast = function
   | `Unknown (ast, e) -> Unknown (ast, e)
   | `Unsat -> Unsat
-  | `Sat (s, e) -> Sat (s, ast, e, fun _ -> Map.empty)
+  | `Sat (s, e) -> Sat (s, ast, e, fun _ -> Result.Ok Map.empty)
 ;;
 
 let check_sat ?(verbose = false) ast : rez =
@@ -92,14 +92,14 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Config.config.under_approx >= 0
       then (
         match Lib.Underapprox.check Lib.Config.config.under_approx ast with
-        | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Map.empty)
+        | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Result.Ok Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
       if Lib.Config.is_under2_enabled ()
       then (
         match Lib.SimplII.run_under2 ast with
-        | `Sat -> sat "under2" ast e (fun _ -> Map.empty)
+        | `Sat -> sat "under2" ast e (fun _ -> Result.Ok Map.empty)
         | `Underapprox asts ->
           if Lib.Config.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -134,7 +134,7 @@ let check_sat ?(verbose = false) ast : rez =
         match Lib.Overapprox.check ast with
         | `Unknown ast -> unknown ast e
         | `Unsat -> Unsat
-        | `Sat r -> sat "over" r e (fun _ -> Map.empty))
+        | `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty))
       else unknown ast e
     in
     let rez =
@@ -284,9 +284,11 @@ let () =
               | None -> state.tys
             in
             let tys = tys state in
-            let model = get_model tys in
-            let model = join_int_model env model in
-            Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+            (match get_model tys with
+             | Result.Error `Too_long -> Format.printf "; model is TOO big\n%!"
+             | Result.Ok model ->
+               let model = join_int_model env model in
+               Format.printf "%s\n%!" (Lib.Ir.model_to_str model))
         in
         state)
     | Smtml.Ast.Assert expr -> begin

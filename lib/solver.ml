@@ -1017,7 +1017,7 @@ struct
         | Ir.Pow2 var -> Map.find_exn mapVals var |> Extra.nat_model_to_int |> Z.to_int
       in
       match order with
-      | [] -> mapVals
+      | [] -> Result.Ok mapVals
       | (Ir.Var _ as v) :: tl -> helper mapVals len tl (v :: past_order) parts
       | (Ir.Pow2 var as exp) :: tl ->
         (match parts with
@@ -1039,17 +1039,20 @@ struct
              Ir.pp_atom
              prev_var;
            let path_len = len_of_var exp - len_of_var prev_var in
-           let model2 = part path_len |> Option.get in
-           let new_model, new_len =
-             NfaNat.combine_model_pieces
-               (List.map (Map.find_exn mapVals) vars, len)
-               model2
-           in
-           let mapVals = new_model |> Base.List.zip_exn vars |> Map.of_alist_exn in
-           helper mapVals new_len tl (exp :: past_order) parts)
+           if path_len > 10000000
+           then Result.Error `Too_long
+           else (
+             let model2 = part path_len |> Option.get in
+             let new_model, new_len =
+               NfaNat.combine_model_pieces
+                 (List.map (Map.find_exn mapVals) vars, len)
+                 model2
+             in
+             let mapVals = new_model |> Base.List.zip_exn vars |> Map.of_alist_exn in
+             helper mapVals new_len tl (exp :: past_order) parts))
     in
     let mapVals = Base.List.zip_exn vars model |> Map.of_alist_exn in
-    helper mapVals len order [] models |> Map.map_keys_exn ~f:Ir.var
+    helper mapVals len order [] models |> Result.map (Map.map_keys_exn ~f:Ir.var)
   ;;
 
   let get_model_normal ir () =
@@ -1061,55 +1064,75 @@ struct
     model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn
   ;;
 
-  let get_model_semenov f s order (model, len) models () =
-    let map = combine_model_pieces s (List.rev order) (model, len) models in
-    Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
-    Debug.printfln
-      "Variable map: %a"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
-         (fun fmt (a, b) ->
-            Format.fprintf fmt "%a -> %a" Ir.pp_atom a Z.pp_print (Extra.model_to_int b)))
-      (Map.to_alist map);
-    let f =
-      f
-      |> Ir.map (function
-        | Ir.Rel (rel, term, c) ->
-          let filter =
-            fun k ->
-            match k with
-            | Ir.Pow2 _ -> true
-            | Ir.Var _ -> Map.mem map k
-          in
-          let c =
-            term
-            |> Map.filter_keys ~f:filter
-            |> Map.to_sequence
-            |> Base.Sequence.map ~f:(fun (k, v) ->
-              Z.mul
-                v
-                (match k with
-                 | Ir.Pow2 x -> pow2z (Extra.model_to_int (Map.find_exn map (Var x)))
-                 | Ir.Var _ -> Extra.model_to_int (Map.find_exn map k)))
-            |> Base.Sequence.fold ~init:c ~f:Z.( - )
-          in
-          let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
-          Ir.rel rel term c
-        (*| Ast.Var x -> *)
-        (*  Base.Option.value ~default:(Ast.Var x) (Map.find map x |> Option.map Ast.const) *)
-        (*| Ast.Pow (2, Ast.Const c) -> Ast.Const (pow2 c) *)
-        (*| Ast.Pow _ as t -> failwith (Format.asprintf "unimplemented: %a" Ast.pp_term t) *)
-        | x -> x)
-    in
-    Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
-    let model = get_model_normal f () in
-    Map.merge map model ~f:(fun ~key:_ -> function
-      | `Left x -> Some x
-      | `Right x -> Some x
-      | `Both _ -> failwith "Should be unreachable")
+  exception Cant_combine
+
+  let get_model_semenov_exn f s order (model, len) models () =
+    match combine_model_pieces s (List.rev order) (model, len) models with
+    | Result.Error `Too_long -> raise Cant_combine
+    | Result.Ok map ->
+      Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
+      Debug.printfln
+        "Variable map: %a"
+        (Format.pp_print_list
+           ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
+           (fun fmt (a, b) ->
+              Format.fprintf fmt "%a -> %a" Ir.pp_atom a Z.pp_print (Extra.model_to_int b)))
+        (Map.to_alist map);
+      let f =
+        f
+        |> Ir.map (function
+          | Ir.Rel (rel, term, c) ->
+            let filter =
+              fun k ->
+              match k with
+              | Ir.Pow2 _ -> true
+              | Ir.Var _ -> Map.mem map k
+            in
+            let c =
+              term
+              |> Map.filter_keys ~f:filter
+              |> Map.to_sequence
+              |> Base.Sequence.map ~f:(fun (k, v) ->
+                Z.mul
+                  v
+                  (match k with
+                   | Ir.Pow2 x -> pow2z (Extra.model_to_int (Map.find_exn map (Var x)))
+                   | Ir.Var _ -> Extra.model_to_int (Map.find_exn map k)))
+              |> Base.Sequence.fold ~init:c ~f:Z.( - )
+            in
+            let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
+            Ir.rel rel term c
+          (*| Ast.Var x -> *)
+          (*  Base.Option.value ~default:(Ast.Var x) (Map.find map x |> Option.map Ast.const) *)
+          (*| Ast.Pow (2, Ast.Const c) -> Ast.Const (pow2 c) *)
+          (*| Ast.Pow _ as t -> failwith (Format.asprintf "unimplemented: %a" Ast.pp_term t) *)
+          | x -> x)
+      in
+      Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
+      let model = get_model_normal f () in
+      Map.merge map model ~f:(fun ~key:_ -> function
+        | `Left x -> Some x
+        | `Right x -> Some x
+        | `Both _ -> failwith "Should be unreachable")
   ;;
 
-  let check_sat ir : [ `Sat of unit -> (Ir.atom, Nfa.v list) Map.t | `Unsat | `Unknown ] =
+  let get_model_semenov f s order (model, len) models =
+    fun () ->
+    match get_model_semenov_exn f s order (model, len) models () with
+    | m -> Result.Ok m
+    | exception Cant_combine ->
+      let ir = Ir.shrink_strings f in
+      (match get_model_semenov_exn ir s order (model, len) models () with
+       | m -> Result.Ok m
+       | exception Cant_combine -> Result.Error `Too_long)
+  ;;
+
+  let check_sat ir
+    : [ `Sat of unit -> ((Ir.atom, Nfa.v list) Map.t, [ `Too_long ]) Result.t
+      | `Unsat
+      | `Unknown
+      ]
+    =
     let run_semenov = collect_vars ir |> Map.keys |> List.exists is_exp in
     if run_semenov
     then
@@ -1138,15 +1161,20 @@ struct
         in
         begin
           match res with
+          | None -> `Unsat
           | Some (s, order, (model, len), models) ->
             `Sat (get_model_semenov ir s order (model, len) models)
-          | None -> `Unsat
+          (* (match get_model_semenov ir s order (model, len) models with
+             | `Cant_get_model -> `Sat (Result.Error `Too_long)
+             | `Ok x -> `Sat (Result.Ok x)) *)
         end)
     else (
       let free_vars = collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
       Debug.printf "Trying to use PrA deciding procedure over  %a\n" Ir.pp ir;
-      if ir' |> eval |> fst |> Nfa.run then `Sat (get_model_normal ir) else `Unsat)
+      if ir' |> eval |> fst |> Nfa.run
+      then `Sat (fun () -> Result.Ok (get_model_normal ir ()))
+      else `Unsat)
   ;;
 end
 
@@ -1332,7 +1360,10 @@ let filter_internal =
 ;;
 
 let check_sat ir
-  : [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> Ir.model | `Unsat | `Unknown of Ir.t ]
+  : [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long ]) Result.t
+    | `Unsat
+    | `Unknown of Ir.t
+    ]
   =
   match Config.config.logic with
   | `Eia ->
@@ -1344,21 +1375,25 @@ let check_sat ir
     begin
       match res with
       | `Sat model ->
-        `Sat
-          (fun tys ->
-            Map.mapi
-              ~f:(fun ~key:k ~data:v ->
-                let ty = Map.find tys k |> Option.value ~default:`Int in
-                match ty with
-                | `Int ->
-                  `Int
-                    (if Config.config.mode = `Lsb
-                     then z_of_list_lsb v
-                     else z_of_list_msb v)
-                | `Str ->
-                  failwith "it is something strange: there is string variable in EIA")
-              (model ())
-            |> filter_internal)
+        (match model () with
+         | Result.Error _ -> assert false
+         | Result.Ok model ->
+           let f tys =
+             Result.Ok
+               (model
+                |> Map.mapi ~f:(fun ~key:k ~data:v ->
+                  let ty = Map.find tys k |> Option.value ~default:`Int in
+                  match ty with
+                  | `Int ->
+                    `Int
+                      (if Config.config.mode = `Lsb
+                       then z_of_list_lsb v
+                       else z_of_list_msb v)
+                  | `Str ->
+                    failwith "it is something strange: there is string variable in EIA")
+                |> filter_internal)
+           in
+           `Sat f)
       | `Unsat -> `Unsat
       | `Unknown -> `Unknown ir
     end
@@ -1369,79 +1404,82 @@ let check_sat ir
       let res = LsbStr.check_sat ir in
       (match res with
        | `Sat model ->
-         `Sat
-           (fun tys ->
-             let main_model =
-               Map.mapi
-                 ~f:(fun ~key:k ~data:v ->
-                   let ty = Map.find tys k |> Option.value ~default:`Int in
-                   match ty with
-                   | `Int -> begin
-                     try
-                       `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq))
-                     with
-                     | Invalid_argument _ ->
-                       `Str
-                         (v
-                          |> List.rev
-                          |> List.to_seq
-                          |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                          |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                          |> String.of_seq)
-                   end
-                   | `Str ->
-                     `Str
-                       (v
-                        |> List.rev
-                        |> List.to_seq
-                        |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                        |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                        |> String.of_seq))
-                 (model ())
-             in
-             let env_model =
-               Map.filter_mapi
-                 ~f:(fun ~key ~data ->
-                   let ( let* ) = Option.bind in
-                   let rec aux = function
-                     | Ast.Eia.Mul ls ->
-                       let* ls = Base.Option.all (List.map aux ls) in
-                       Option.some (List.fold_left Z.(mul) Z.one ls)
-                     | Ast.Eia.Add ls ->
-                       let* ls = Base.Option.all (List.map aux ls) in
-                       Option.some (List.fold_left Z.( + ) Z.zero ls)
-                     | Ast.Eia.Atom (Ast.Const v) -> Option.some v
-                     | Ast.Eia.Atom (Ast.Var v) -> begin
-                       match Map.find main_model (Ir.var v) with
-                       | Some (`Int v) -> Option.some v
-                       | Some (`Str _) | None -> None
-                     end
-                     | Ast.Eia.Pow (lhs, rhs) ->
-                       let* lhs = aux lhs in
-                       let* rhs = aux rhs in
-                       Option.some (Utils.powz ~base:lhs rhs)
-                     | _ -> None
-                   in
-                   begin
-                     match aux data with
-                     | Some v -> Option.some (`Int v)
-                     | None ->
-                       Format.printf
-                         "Warning: some of the model pieces are likely to be missed: %s \
-                          = %a\n\
-                          %!"
-                         key
-                         Ast.pp_term_smtlib2
-                         data;
-                       None
-                   end)
-                 env
-               |> Map.map_keys_exn ~f:(fun v -> Ir.var v)
-             in
-             Map.merge_disjoint_exn main_model env_model |> filter_internal)
+         (match model () with
+          | Result.Error `Too_long -> `Sat (fun _ -> Result.Error `Too_long)
+          | Ok model ->
+            `Sat
+              (fun tys ->
+                let main_model =
+                  Map.mapi
+                    ~f:(fun ~key:k ~data:v ->
+                      let ty = Map.find tys k |> Option.value ~default:`Int in
+                      match ty with
+                      | `Int -> begin
+                        try
+                          `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq))
+                        with
+                        | Invalid_argument _ ->
+                          `Str
+                            (v
+                             |> List.rev
+                             |> List.to_seq
+                             |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                             |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+                             |> String.of_seq)
+                      end
+                      | `Str ->
+                        `Str
+                          (v
+                           |> List.rev
+                           |> List.to_seq
+                           |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                           |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+                           |> String.of_seq))
+                    model
+                in
+                let env_model =
+                  Map.filter_mapi
+                    ~f:(fun ~key ~data ->
+                      let ( let* ) = Option.bind in
+                      let rec aux = function
+                        | Ast.Eia.Mul ls ->
+                          let* ls = Base.Option.all (List.map aux ls) in
+                          Option.some (List.fold_left Z.(mul) Z.one ls)
+                        | Ast.Eia.Add ls ->
+                          let* ls = Base.Option.all (List.map aux ls) in
+                          Option.some (List.fold_left Z.( + ) Z.zero ls)
+                        | Ast.Eia.Atom (Ast.Const v) -> Option.some v
+                        | Ast.Eia.Atom (Ast.Var v) -> begin
+                          match Map.find main_model (Ir.var v) with
+                          | Some (`Int v) -> Option.some v
+                          | Some (`Str _) | None -> None
+                        end
+                        | Ast.Eia.Pow (lhs, rhs) ->
+                          let* lhs = aux lhs in
+                          let* rhs = aux rhs in
+                          Option.some (Utils.powz ~base:lhs rhs)
+                        | _ -> None
+                      in
+                      begin
+                        match aux data with
+                        | Some v -> Option.some (`Int v)
+                        | None ->
+                          Format.printf
+                            "Warning: some of the model pieces are likely to be missed: \
+                             %s = %a\n\
+                             %!"
+                            key
+                            Ast.pp_term_smtlib2
+                            data;
+                          None
+                      end)
+                    env
+                  |> Map.map_keys_exn ~f:(fun v -> Ir.var v)
+                in
+                Result.ok (Map.merge_disjoint_exn main_model env_model |> filter_internal)))
        | `Unsat -> `Unsat
        | `Unknown -> `Unknown ir)
-    | `Sat (_, env) -> `Sat (fun _ -> Map.empty)
+    | `Sat (_, env) -> `Sat (fun _ -> Result.Ok Map.empty)
     | `Unsat -> `Unsat
   end
 ;;
