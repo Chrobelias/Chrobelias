@@ -617,10 +617,17 @@ struct
        end
        | Ir.Reg (reg, atoms) -> Extra.eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
-         eval ir
-         (*|> apply_post_strings atoms*)
-         |> Nfa.project (List.filter_map (Map.find vars) atoms)
-         |> Nfa.minimize
+         let latest_var = Set.equal (collect_free ir) (Set.of_list atoms) in
+         let nfa =
+           eval ir
+           (*|> apply_post_strings atoms*)
+           |> Nfa.project (List.filter_map (Map.find vars) atoms)
+         in
+         if not latest_var
+         then Nfa.minimize nfa
+         else if Nfa.run nfa
+         then NfaCollection.n ()
+         else NfaCollection.z ()
          (* APOHZ technique legacy.
        |> NfaO.lsb_of_msb:
                |> NfaO.Lsb.minimize
