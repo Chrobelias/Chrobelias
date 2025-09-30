@@ -47,3 +47,33 @@
   Expecting 1 choices ...
   
   Can't decide in lib/Underapprox.ml
+
+  $ cat > 4.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-fun a () Int)
+  > (declare-fun v () Int)
+  > (declare-fun x () Int)
+  > (declare-fun z () Int)
+  > (assert (and
+  >           (= (+ it19 it23 (* (- 1) i4)) (- 1))
+  >           (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0)
+  > ))
+  > (check-sat)
+  > EOF
+  $ CHRO_DEBUG=1 Chro -bound 1 -pre-simpl   -stop-after pre-simpl 4.smt2 | sed 's/[[:space:]]*$//'
+  iter(1)= (and
+             (and
+               (= (+ (+ it19 it23) (* (* (- 1) 1) i4)) (* (- 1) 1))
+               (= (+ (+ (+ it21 it57) (* (* (- 1) 1) it21))
+                  (* (* (- 1) 1) it57)) 0)))
+  iter(2)= (and
+             (= (+ it19 it23 (* (- 1) i4)) (- 1))
+             (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0))
+  Interesting:
+  
+  Expecting 1 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| i4->0 it19->-1 it21->0 it23->0 it57->0 |}
+  sat (underapprox1)
+
