@@ -15,13 +15,11 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (it159) (= (+ it159 (* (- 4) pow2(it147)) )  0) )
-  )
+  sat (presimpl)
 
   $ export CHRO_EIA=old
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (it159) (= (+ it159 (* (- 4) pow2(it147)) )  0) )
-  )
+  sat (presimpl)
 
 
 
