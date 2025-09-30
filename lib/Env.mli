@@ -20,3 +20,8 @@ val extend_exn : t -> string -> [ `Eia of Ast.Eia.term | `Str of Ast.Str.term ] 
 val pp : Format.formatter -> t -> unit
 val to_eqs : t -> Ast.t list
 val enrich : t -> (Ast.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
+
+val walk
+  :  t
+  -> [ `Eia of Ast.Eia.term | `Str of Ast.Str.term ]
+  -> [ `Eia of Ast.Eia.term | `Str of Ast.Str.term ]
