@@ -1420,7 +1420,13 @@ let check_sat ir
   | `Str -> begin
     match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
-      let ir = Me.ir_of_ast ast |> Result.get_ok in
+      let ir =
+        match Me.ir_of_ast ast with
+        | Result.Ok x -> x
+        | Error s ->
+          Format.eprintf "Can't convert AST to IR: %s\n%!" s;
+          exit 1
+      in
       let res = LsbStr.check_sat ir in
       (match res with
        | `Sat model ->

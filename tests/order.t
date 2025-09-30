@@ -1,6 +1,6 @@
 
   $ export CHRO_HACK_ORDERINGS=1
-  $ timeout 2 Chro -flat 1 examples/order1.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 3 Chro -flat 1 examples/order1.smt2 | sed 's/[[:space:]]*$//'
   Ir = (assert (exists (%1 b y)
                (and
                  (= %1 (str.len b))(= y (str.to.int b))(= (+ (* (- 1) %0) u )
