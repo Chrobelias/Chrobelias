@@ -12,3 +12,4 @@ val lookup : string -> t -> Ast.Eia.term option
 val is_absent_key : string -> t -> bool
 val extend_exn : t -> string -> Ast.Eia.term -> t
 val to_eqs : t -> Ast.t list
+val walk : t -> Ast.Eia.term -> Ast.Eia.term

@@ -845,15 +845,38 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
            , rhs ))
       when v1 <> v2 -> single info env c1 v1 c2 v2 rhs
     | Eia (Eia.Eq (Add sums, Atom (Const rhs))) when Z.(zero = rhs) ->
+      let not_touched_by_env env term =
+        try
+          let f env = function
+            | Eia.Atom (Var v) when not (Env.is_absent_key v env) -> raise Exit
+            | _ -> env
+          in
+          let _ : Env.t = Eia.fold_term f env term in
+          true
+        with
+        | Exit -> false
+      in
+      let maybe_extend env v data ~fk =
+        if not_touched_by_env (Env.extend_exn Env.empty v (Atom (Const Z.zero))) data
+        then Env.extend_exn env v data
+        else fk ()
+      in
       let rec loop acc = function
+        | Eia.Atom (Var v) :: _ when not (Env.is_absent_key v env) -> raise Exit
         | Eia.Atom (Var v) :: xs
           when Env.is_absent_key v env && not (Info.is_in_expo v info) ->
-          Env.extend_exn env v S.(mul [ const (-1); add (acc @ xs) ])
-        | Mul [ Atom (Const c); Eia.Atom (Var v) ] :: xs
+          let data = S.(mul [ const (-1); add (acc @ xs) ]) in
+          if not_touched_by_env (Env.extend_exn Env.empty v (Atom (Const Z.zero))) data
+          then Env.extend_exn env v data
+          else loop (Eia.Atom (Var v) :: acc) xs
+        | (Mul [ Atom (Const c); Eia.Atom (Var v) ] as leftmost) :: xs
           when Env.is_absent_key v env
                && (not (Info.is_in_expo v info))
-               && Z.(equal (of_int (-1)) c) ->
-          Env.extend_exn env v S.(mul [ add (acc @ xs) ])
+               && Z.(equal (of_int (-1)) c)
+               && not_touched_by_env env (Eia.Add acc)
+               && not_touched_by_env env (Eia.Add xs) ->
+          let data = S.(mul [ add (acc @ xs) ]) in
+          maybe_extend env v data ~fk:(fun () -> loop (leftmost :: acc) xs)
         | h :: tl -> loop (h :: acc) tl
         | [] -> raise Exit
       in
