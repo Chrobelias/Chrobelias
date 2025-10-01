@@ -690,12 +690,15 @@ module Str = struct
   let powerset term =
     let rec helper = function
       | [] -> []
-      | [ x ] -> 0 -- (base - 1) |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ])
+      | [ x ] ->
+        ([ Str.u_eos ], [ Z.zero ])
+        :: (0 -- (base - 1) |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
       | hd :: tl ->
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
-        0 -- (base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing)
+        (Str.u_eos :: n, Z.zero :: thing)
+        :: (0 -- (base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
     in
     term
     |> List.map snd

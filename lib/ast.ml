@@ -25,7 +25,15 @@ module Str = struct
     | Concat of term * term
   [@@deriving variants, compare]
 
-  let fold_term f acc term = f acc term
+  let rec fold_term f acc = function
+    | (Atom _ | FromEia _ | Const _) as term -> f acc term
+    | Concat (lhs, rhs) as term -> f (fold_term f (fold_term f acc lhs) rhs) term
+  ;;
+
+  let rec map_term f = function
+    | (Atom _ | FromEia _ | Const _) as term -> f term
+    | Concat (lhs, rhs) -> f (concat (map_term f lhs) (map_term f rhs))
+  ;;
 
   let rec pp_term ppf = function
     | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
@@ -434,4 +442,14 @@ let rec equal ast ast' =
   | Eia eia, Eia eia' -> Eia.equal eia eia'
   | Str str, Str str' -> Str.equal str str'
   | _ -> false
+;;
+
+let fold_term feia fstr acc = function
+  | `Str str -> Str.fold_term fstr acc str
+  | `Eia eia -> Eia.fold_term feia acc eia
+;;
+
+let map_term feia fstr = function
+  | `Str str -> `Str (Str.map_term fstr str)
+  | `Eia eia -> `Eia (Eia.map_term feia eia)
 ;;

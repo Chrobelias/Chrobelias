@@ -333,7 +333,7 @@ module Str = struct
     Array.init (Array.length vec) (fun i -> if i < len then unsafe_get vec i else u_null)
   ;;
 
-  let is_zero vec = Array.for_all (fun v -> Char.equal v '0' || Char.equal v u_null) vec
+  let is_zero vec = Array.for_all (fun v -> Char.equal v u_eos || Char.equal v u_null) vec
   let zero deg = Array.init deg (fun _i -> u_null)
 
   let zero_with_mask mask =
