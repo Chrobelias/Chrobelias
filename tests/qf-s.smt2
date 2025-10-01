@@ -124,3 +124,8 @@
   (assert (< 10 (str.len a)))
   (get-model)
 (pop 1)
+
+(push 1)
+  (assert (= eeb5 (* 10 (exp 10 (exp 10 p)))))
+  (check-sat)
+(pop 1) ; sat
