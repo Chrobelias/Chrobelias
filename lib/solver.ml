@@ -1365,38 +1365,37 @@ let check_sat ir
     | `Unknown of Ir.t
     ]
   =
-  match Config.config.logic with
-  | `Eia ->
-    let res =
+  let on_no_strings ir =
+    let checker =
       match Config.config.mode with
-      | `Lsb -> Lsb.check_sat ir
-      | `Msb -> Msb.check_sat ir
+      | `Lsb -> Lsb.check_sat
+      | `Msb -> Msb.check_sat
     in
-    begin
-      match res with
-      | `Sat model ->
-        (match model () with
-         | Result.Error _ -> assert false
-         | Result.Ok model ->
-           let f tys =
-             Result.Ok
-               (model
-                |> Map.mapi ~f:(fun ~key:k ~data:v ->
-                  let ty = Map.find tys k |> Option.value ~default:`Int in
-                  match ty with
-                  | `Int ->
-                    `Int
-                      (if Config.config.mode = `Lsb
-                       then z_of_list_lsb v
-                       else z_of_list_msb v)
-                  | `Str ->
-                    failwith "it is something strange: there is string variable in EIA")
-                |> filter_internal)
-           in
-           `Sat f)
-      | `Unsat -> `Unsat
-      | `Unknown -> `Unknown ir
-    end
+    match checker ir with
+    | `Sat model ->
+      (match model () with
+       | Result.Error _ -> assert false
+       | Result.Ok model ->
+         let f tys =
+           Result.Ok
+             (model
+              |> Map.mapi ~f:(fun ~key:k ~data:v ->
+                match Map.find tys k with
+                | None | Some `Int ->
+                  `Int
+                    (if Config.config.mode = `Lsb
+                     then z_of_list_lsb v
+                     else z_of_list_msb v)
+                | Some `Str ->
+                  failwith "it is something strange: there is string variable in EIA")
+              |> filter_internal)
+         in
+         `Sat f)
+    | `Unsat -> `Unsat
+    | `Unknown -> `Unknown ir
+  in
+  match Config.config.logic with
+  | `Eia -> on_no_strings ir
   | `Str -> begin
     match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
@@ -1407,34 +1406,28 @@ let check_sat ir
          (match model () with
           | Result.Error `Too_long -> `Sat (fun _ -> Result.Error `Too_long)
           | Ok model ->
+            let string_of_char_list v =
+              (* TODO(Kakadu): This code is full of shit
+                We need to use Buffer module, Seq is too memory heavy (complicated) *)
+              v
+              |> List.rev
+              |> List.to_seq
+              |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+              |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+              |> String.of_seq
+            in
             `Sat
               (fun tys ->
                 let main_model =
                   Map.mapi
-                    ~f:(fun ~key:k ~data:v ->
-                      let ty = Map.find tys k |> Option.value ~default:`Int in
-                      match ty with
-                      | `Int -> begin
-                        try
-                          `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq))
-                        with
-                        | Invalid_argument _ ->
-                          `Str
-                            (v
-                             |> List.rev
-                             |> List.to_seq
-                             |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                             |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                             |> String.of_seq)
+                    ~f:(fun ~key ~data:v ->
+                      match Map.find tys key with
+                      | None | Some `Int -> begin
+                        let s = List.rev v |> List.to_seq |> String.of_seq in
+                        try `Int (Z.of_string s) with
+                        | Invalid_argument _ -> `Str (string_of_char_list v)
                       end
-                      | `Str ->
-                        `Str
-                          (v
-                           |> List.rev
-                           |> List.to_seq
-                           |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                           |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                           |> String.of_seq))
+                      | Some `Str -> `Str (string_of_char_list v))
                     model
                 in
                 let env_model =
@@ -1460,21 +1453,19 @@ let check_sat ir
                           Option.some (Utils.powz ~base:lhs rhs)
                         | _ -> None
                       in
-                      begin
-                        match aux data with
-                        | Some v -> Option.some (`Int v)
-                        | None ->
-                          Format.printf
-                            "Warning: some of the model pieces are likely to be missed: \
-                             %s = %a\n\
-                             %!"
-                            key
-                            Ast.pp_term_smtlib2
-                            data;
-                          None
-                      end)
+                      match aux data with
+                      | Some v -> Option.some (`Int v)
+                      | None ->
+                        Format.printf
+                          "Warning: some of the model pieces are likely to be missed: %s \
+                           = %a\n\
+                           %!"
+                          key
+                          Ast.pp_term_smtlib2
+                          data;
+                        None)
                     env
-                  |> Map.map_keys_exn ~f:(fun v -> Ir.var v)
+                  |> Map.map_keys_exn ~f:Ir.var
                 in
                 Result.ok (Map.merge_disjoint_exn main_model env_model |> filter_internal)))
        | `Unsat -> `Unsat
