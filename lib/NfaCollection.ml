@@ -601,7 +601,12 @@ module Str = struct
   let stoi ~(dest : int) ~(src : int) =
     let alpha_transitions = List.map (fun c -> 0, [ c; c ], 0) (Array.to_list alphabet) in
     let transitions = [ 0, [ Str.u_eos; Str.u_zero ], 0 ] @ alpha_transitions in
-    Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
   ;;
 
   let seq_post (nfa : t) ~(dest : int) ~(src : int) =
@@ -622,8 +627,15 @@ module Str = struct
   ;;
 
   let seq ~(dest : int) ~(src : int) =
-    let transitions = List.map (fun c -> 0, [ c; c ], 0) full_alphabet in
-    Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
+    let transitions =
+      (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) full_alphabet
+    in
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
   ;;
 
   let n () =

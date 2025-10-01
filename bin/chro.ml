@@ -130,7 +130,7 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Config.is_under3_enabled ()
       then (
         match Lib.SimplII.run_under3 ast with
-        | `Sat -> sat "under3" ast e (fun _ -> Map.empty)
+        | `Sat -> sat "under3" ast e (fun _ -> Result.ok Map.empty)
         | `Underapprox asts ->
           if Lib.Config.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
