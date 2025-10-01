@@ -261,6 +261,18 @@ let () =
           | Some state -> asserts @ get_ast state
           | None -> asserts
         in
+        let rec merge_tys state =
+          match state.prev with
+          | Some state' ->
+            Map.merge
+              ~f:(fun ~key:_ -> function
+                 | `Left x -> Some x
+                 | `Right x -> Some x
+                 | `Both (x, _) -> Some x)
+              state.tys
+              (merge_tys state')
+          | None -> state.tys
+        in
         let ast = Lib.Ast.land_ (get_ast state) in
         let rez =
           match state.last_result with
@@ -271,24 +283,40 @@ let () =
           match rez with
           | Unknown _ | Unsat -> print_endline "no model"
           | Sat (_, _, env, get_model) ->
-            let rec tys state =
-              match state.prev with
-              | Some state' ->
-                Map.merge
-                  ~f:(fun ~key:_ -> function
-                     | `Left x -> Some x
-                     | `Right x -> Some x
-                     | `Both (x, _) -> Some x)
-                  state.tys
-                  (tys state')
-              | None -> state.tys
-            in
-            let tys = tys state in
+            let tys = merge_tys state in
             (match get_model tys with
-             | Result.Error `Too_long -> Format.printf "; model is TOO big\n%!"
              | Result.Ok model ->
                let model = join_int_model env model in
-               Format.printf "%s\n%!" (Lib.Ir.model_to_str model))
+               Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+             | Result.Error `Too_long ->
+               Format.printf "; model is TOO big on 1st attempt\n%!";
+               let shrinked_ast =
+                 Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
+                   match key, data with
+                   | Lib.Ir.Var v, `Int ->
+                     Lib.Ast.(eia (Eia.leq (Atom (Var v)) (Atom (Const (Z.of_int 1)))))
+                     :: acc
+                   (* | Lib.Ir.Var v, `Str ->
+                     Lib.Ast.(
+                       eia
+                         (Eia.leq
+                            (Len2 (Var v))
+                            (Atom (Const (Z.of_int Lib.Solver.max_longest_path)))))
+                     :: acc *)
+                   | _ -> acc)
+                 |> Lib.Ast.land_
+               in
+               Format.printf "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
+               (match check_sat shrinked_ast with
+                | Unknown _ | Unsat -> Format.printf "; Can't shrink model\n%!"
+                | Sat (_, _, env, get_model) ->
+                  (* let tys = merge_tys state in *)
+                    (match get_model tys with
+                     | Result.Ok model ->
+                       let model = join_int_model env model in
+                       Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+                     | Result.Error `Too_long ->
+                       Format.printf "; Ничто не спасёт отца русской демократии\n%!")))
         in
         state)
     | Smtml.Ast.Assert expr -> begin
