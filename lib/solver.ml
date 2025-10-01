@@ -1075,11 +1075,11 @@ struct
     model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn
   ;;
 
-  exception Cant_combine
+  exception Too_long_model
 
   let get_model_semenov_exn f s order (model, len) models () =
     match combine_model_pieces s (List.rev order) (model, len) models with
-    | Result.Error `Too_long -> raise Cant_combine
+    | Result.Error `Too_long -> raise Too_long_model
     | Result.Ok map ->
       Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
       Debug.printfln
@@ -1131,11 +1131,11 @@ struct
     fun () ->
     match get_model_semenov_exn f s order (model, len) models () with
     | m -> Result.Ok m
-    | exception Cant_combine ->
+    | exception Too_long_model ->
       let ir = Ir.shrink_strings f in
       (match get_model_semenov_exn ir s order (model, len) models () with
        | m -> Result.Ok m
-       | exception Cant_combine -> Result.Error `Too_long)
+       | exception Too_long_model -> Result.Error `Too_long)
   ;;
 
   let check_sat ir
@@ -1467,10 +1467,9 @@ let check_sat ir
                       match aux data with
                       | Some v -> Option.some (`Int v)
                       | None ->
-                        Format.printf
+                        Debug.printfln
                           "Warning: some of the model pieces are likely to be missed: %s \
-                           = %a\n\
-                           %!"
+                           = %a%!"
                           key
                           Ast.pp_term_smtlib2
                           data;
