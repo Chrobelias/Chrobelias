@@ -253,7 +253,7 @@ let () =
     | Smtml.Ast.Get_model ->
       if Lib.Config.config.no_model = true
       then (
-        Format.printf "(no-model regime)\n%!";
+        Format.printf "no-model mode\n%!";
         state)
       else (
         let rec get_ast { asserts; prev; _ } =
@@ -289,31 +289,27 @@ let () =
                let model = join_int_model env model in
                Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
              | Result.Error `Too_long ->
-               Format.printf "; model is TOO big on 1st attempt\n%!";
+               log "; model is TOO big on 1st attempt\n%!";
                let shrinked_ast =
                  Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
                    match key, data with
                    | Lib.Ir.Var v, `Str ->
                      Lib.Ast.(
-                       eia
-                         (Eia.leq
-                            (Len (Atom (Var v)))
-                            (Atom (Const (Z.of_int 1000000000000000000)))))
+                       eia (Eia.leq (Len (Atom (Var v))) (Atom (Const (Z.of_int 100000)))))
                      :: acc
                    | _ -> acc)
                  |> Lib.Ast.land_
                in
-               Format.printf "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
+               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
                (match check_sat shrinked_ast with
-                | Unknown _ | Unsat -> Format.printf "; Can't shrink model. UNSAT\n%!"
+                | Unknown _ | Unsat -> Format.printf "no short model\n%!"
                 | Sat (_, _, env, get_model) ->
                   (* let tys = merge_tys state in *)
                     (match get_model tys with
                      | Result.Ok model ->
                        let model = join_int_model env model in
                        Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
-                     | Result.Error `Too_long ->
-                       Format.printf "; Ничто не спасёт отца русской демократии\n%!")))
+                     | Result.Error `Too_long -> Format.printf "no short model\n%!")))
         in
         state)
     | Smtml.Ast.Assert expr -> begin
