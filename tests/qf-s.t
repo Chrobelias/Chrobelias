@@ -26,6 +26,7 @@ Basic QF_S tests
    (define-fun b () (_ String) "2")
    (define-fun q () (_ Int) 24))
   ((define-fun a () (_ String) "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"))
+  sat (nfa)
 
 +  1 sat
 +  2 sat

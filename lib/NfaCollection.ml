@@ -649,7 +649,8 @@ module Str = struct
     then (
       let trans1 = List.init a Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
       Nfa.create_nfa
-        ~transitions:([ a, [ i ], a + 1; a + 1, [ o ], a + 1 ] @ trans1)
+        ~transitions:
+          ([ a, [ i ], a + 1; a + 1, [ o ], a + 1; a + 1, [ Str.u_eos ], a + 1 ] @ trans1)
         ~start:[ 0 ]
         ~final:[ a + 1 ]
         ~vars:[ var ]
@@ -658,7 +659,12 @@ module Str = struct
       let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
       Nfa.create_nfa
         ~transitions:
-          ([ a + c - 1, [ o ], a; a, [ i ], a + c; a + c, [ o ], a + c ] @ trans1)
+          ([ a + c - 1, [ o ], a
+           ; a, [ i ], a + c
+           ; a + c, [ o ], a + c
+           ; a + c, [ Str.u_eos ], a + c
+           ]
+           @ trans1)
         ~start:[ 0 ]
         ~final:[ a + c ]
         ~vars:[ var ]
@@ -670,7 +676,7 @@ module Str = struct
       ~transitions:
         ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
          @ (1 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; i ], 1))
-         @ [ 1, [ o; o ], 1 ])
+         @ [ 1, [ o; o ], 1; 1, [ Str.u_eos; Str.u_eos ], 1 ])
       ~start:[ 0 ]
       ~final:[ 1 ]
       ~vars:[ var; exp ]
@@ -680,7 +686,7 @@ module Str = struct
   (* FIXME: it is actually power_of_base *)
   let power_of_two exp =
     Nfa.create_nfa
-      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
+      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1 ]
       ~start:[ 0 ]
       ~final:[ 1 ]
       ~vars:[ exp ]
