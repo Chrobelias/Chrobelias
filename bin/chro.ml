@@ -219,11 +219,15 @@ let join_int_model prefix m =
   (* log "Ir.model = @[%a@]" Ir.pp_model_smtlib2 m; *)
   let rec seek key =
     let term = Map.find_exn prefix key in
-    let term = SimplII.subst_term prefix term in
     match term with
-    | Ast.Eia.Atom (Const z) -> Some (`Int z)
-    | Ast.Eia.Atom (Var v) -> seek v
-    | term -> failwith (Format.asprintf "not implemented: %a" Ast.pp_term_smtlib2 term)
+    | `Eia (eia) -> begin
+      match SimplII.subst_term prefix eia with
+      | Ast.Eia.Atom (Ast.Const c) -> Option.some (`Int c)
+      | Ast.Eia.Atom (Ast.Var v) -> seek v
+      | _ -> failwith "tbd"
+    end
+    | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z)
+    | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term)
   in
   Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek key with

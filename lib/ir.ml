@@ -85,7 +85,7 @@ type t =
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
-  | SEq (atom, atom') -> Format.fprintf fmt "(str.in.re %a %a)" pp_atom atom pp_atom atom'
+  | SEq (atom, atom') -> Format.fprintf fmt "(= %a %a)" pp_atom atom pp_atom atom'
   | SReg (atom, re) ->
     Format.fprintf
       fmt
@@ -96,11 +96,11 @@ let rec pp fmt = function
          Format.fprintf ppf "%a" (Format.pp_print_list Format.pp_print_char) bv))
       re (* TODO: print regex *)
   | SLen (atom, atom') ->
-    Format.fprintf fmt "(= %a (str.len %a))" pp_atom atom pp_atom atom'
+    Format.fprintf fmt "(= %a (chrob.len %a))" pp_atom atom pp_atom atom'
   | Stoi (atom, atom') ->
-    Format.fprintf fmt "(= %a (str.to.int %a))" pp_atom atom pp_atom atom'
+    Format.fprintf fmt "(= %a (chrob.to.int %a))" pp_atom atom pp_atom atom'
   | Itos (atom, atom') ->
-    Format.fprintf fmt "(= %a (str.from_int %a))" pp_atom atom pp_atom atom'
+    Format.fprintf fmt "(= %a (chrob.from.int %a))" pp_atom atom pp_atom atom'
   | Rel (rel, term, c) ->
     Format.fprintf
       fmt
@@ -305,6 +305,7 @@ let rec equal ir ir' =
   | Exists (atoms, ir), Exists (atoms', ir') ->
     List.equal ( = ) atoms atoms' && equal ir ir'
   | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
+  | SEq (atom, atom'), SEq (atom'', atom''')
   | SLen (atom, atom'), SLen (atom'', atom''')
   | Stoi (atom, atom'), Stoi (atom'', atom''')
   | Itos (atom, atom'), Itos (atom'', atom''') -> atom = atom'' && atom' = atom'''

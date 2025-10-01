@@ -65,38 +65,44 @@ end
 
 [@@@warnerror "-32-37-39"]
 
-let of_str : Ast.Str.t -> (Ir.t, string) result = function
+let of_str : Ast.Str.t -> (Ir.t, string) result =
+  let of_str_atom = function
+    | Ast.Str.Atom (Var atom) -> (Ir.var atom, []) |> return
+    | Ast.Str.Const s ->
+      let re' =
+        Regex.concat
+          (Regex.concat
+             (s
+              |> String.to_seq
+              |> Seq.map (fun c -> Regex.symbol [ c ])
+              |> Seq.fold_left
+                   (fun acc a ->
+                      (* String constraints use LSB representation, we intentionally reverse the concat. *)
+                      Regex.concat a acc)
+                   Regex.epsilon)
+             (Regex.kleene (Regex.symbol [ Nfa.Str.u_zero ])))
+          (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
+      in
+      let u = Ir.internal () in
+      (u, [ Ir.sreg u re' ]) |> return
+    | Ast.Str.FromEia (Var atom) -> (Ir.var atom, []) |> return
+    | Ast.Str.FromEia (Const c) ->
+      let u = Ir.internal () in
+      (u, [ Ir.eq (Map.singleton u Z.one) c ]) |> return
+    | Ast.Str.Concat _ -> failf "concatenation makes the formula undecideable"
+    | _ -> failwith "expected atom"
+  in
+  function
   | Ast.Str.InRe (str, re) ->
-    let str =
-      match str with
-      | Ast.Str.Atom (Var atom) -> Ir.var atom
-      | _ -> failwith "expected atom"
-    in
-    return (Ir.sreg str re)
-  | Ast.Str.Eq (Ast.Str.Const c, Ast.Str.Const c1) ->
-    return (if c = c1 then Ir.true_ else Ir.false_)
-  | Ast.Str.Eq (Ast.Str.Const c, Atom (Var s)) | Ast.Str.Eq (Atom (Var s), Const c) ->
-    let re =
-      Regex.concat
-        (c
-         |> String.to_seq
-         |> Seq.map (fun c -> Regex.symbol [ c ])
-         |> Seq.fold_left
-              (fun acc a ->
-                 (* String constraints use LSB representation, we intentionally reverse the concat. *)
-                 Regex.concat a acc)
-              Regex.epsilon)
-        (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
-    in
-    return (Ir.sreg (Ir.var s) re)
-  | Ast.Str.Eq (Atom (Var a), Atom (Var b)) -> return (Ir.seq (Ir.var a) (Ir.var b))
-  | Ast.Str.Eq (Atom (Var a), FromEia (Var b)) | Ast.Str.Eq (FromEia (Var b), Atom (Var a))
-    -> return (Ir.itos (Ir.var a) (Ir.var b))
-  | Ast.Str.Eq (FromEia (Var a), FromEia (Var b)) ->
-    let u = Ir.internal () in
-    return (Ir.land_ [ Ir.itos u (Ir.var b); Ir.itos u (Ir.var a) ])
-  | s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)
+    let* str, sup = of_str_atom str in
+    Ir.sreg str re :: sup |> Ir.land_ |> return
+  | Ast.Str.Eq (a, b) ->
+    let* a, sup_a = of_str_atom a in
+    let* b, sup_b = of_str_atom b in
+    (Ir.seq a b :: sup_a) @ sup_b |> Ir.land_ |> return
 ;;
+
+(*| s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)*)
 
 module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = struct
   let failf fmt = Format.kasprintf failwith fmt
@@ -342,7 +348,11 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let stoi (v : Ast.Str.term) =
-    let u = Ir.internal () in
+    match v with
+    | Ast.Str.Atom (Var v) -> Symbol (Ir.var v, [])
+    | _ -> failwith (Format.asprintf "TBD: %s %d" __FILE__ __LINE__)
+  ;;
+  (*let u = Ir.internal () in
     let v =
       match v with
       | Ast.Str.Atom (Var v) -> v
@@ -350,8 +360,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
         Format.eprintf "term = %a\n%!" Ast.Str.pp_term v;
         failwith (Format.asprintf "TBD: %s %d" __FILE__ __LINE__)
     in
-    Symbol (u, [ Ir.stoi u (Ir.var v) ])
-  ;;
+    Symbol (u, [ Ir.stoi u (Ir.var v) ]) *)
 end
 
 let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
@@ -706,7 +715,7 @@ let simpl_ir (ir : Ast.t) : Ast.t =
   in
   let rec simpl ir =
     let ir' = ir |> simply |> simpl_negation |> fold_ops |> algebraic in
-    Debug.printf "Simplify step: %a\n" Ast.pp ir';
+    Debug.printf "Simplify step: %a\n%!" Ast.pp ir';
     if Ast.equal ir' ir then ir' else simpl ir'
   in
   simpl ir

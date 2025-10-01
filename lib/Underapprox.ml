@@ -24,7 +24,7 @@ type env = (string, int) Base.Map.Poly.t
 let to_normal_env : env -> Env.t =
   Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
     let _ : Env.t = acc in
-    Env.extend_exn acc key (Ast.Eia.Atom (Ast.Const (Z.of_int data))))
+    Env.extend_exn acc key (`Eia (Ast.Eia.Atom (Ast.Const (Z.of_int data)))))
 ;;
 
 let pp_env ppf env =
