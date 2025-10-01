@@ -293,22 +293,19 @@ let () =
                let shrinked_ast =
                  Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
                    match key, data with
-                   | Lib.Ir.Var v, `Int ->
-                     Lib.Ast.(eia (Eia.leq (Atom (Var v)) (Atom (Const (Z.of_int 1)))))
-                     :: acc
-                   (* | Lib.Ir.Var v, `Str ->
+                   | Lib.Ir.Var v, `Str ->
                      Lib.Ast.(
                        eia
                          (Eia.leq
-                            (Len2 (Var v))
-                            (Atom (Const (Z.of_int Lib.Solver.max_longest_path)))))
-                     :: acc *)
+                            (Len (Atom (Var v)))
+                            (Atom (Const (Z.of_int 1000000000000000000)))))
+                     :: acc
                    | _ -> acc)
                  |> Lib.Ast.land_
                in
                Format.printf "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
                (match check_sat shrinked_ast with
-                | Unknown _ | Unsat -> Format.printf "; Can't shrink model\n%!"
+                | Unknown _ | Unsat -> Format.printf "; Can't shrink model. UNSAT\n%!"
                 | Sat (_, _, env, get_model) ->
                   (* let tys = merge_tys state in *)
                     (match get_model tys with
