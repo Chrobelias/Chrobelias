@@ -1,5 +1,5 @@
 test28
   $ export OCAMLRUNPARAM='b=0'
-  $ timeout 2 Chro ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/all/head/test28  || echo TIMEOUT
-  Fatal error: exception Failure("expected term, in (none.rem_s (none.rem_s (str.to_int x) 3089) 2534)")
+  $ timeout 2 Chro ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/all/head/test28  --no-simpl-alpha  || echo TIMEOUT
+  Fatal error: exception Failure("string constraints are not supported in EIA mode")
   TIMEOUT
