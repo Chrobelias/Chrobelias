@@ -1005,6 +1005,15 @@ struct
     | None -> None
   ;;
 
+  let max_longest_path =
+    match Sys.getenv_opt "CHRO_LONGEST_PATH" with
+    | None -> 10000000
+    | Some s ->
+      (match int_of_string_opt s with
+       | Some n -> n
+       | None -> exit 1)
+  ;;
+
   let combine_model_pieces s order (model, len) models =
     let vars = Map.keys s.vars |> List.filter_map Ir.var_val in
     Debug.printfln
@@ -1039,8 +1048,10 @@ struct
              Ir.pp_atom
              prev_var;
            let path_len = len_of_var exp - len_of_var prev_var in
-           if path_len > 10000000
-           then Result.Error `Too_long
+           if path_len > max_longest_path
+           then
+             (* let () = Format.eprintf "Calculated path_len = %d\n%!" path_len in *)
+             Result.Error `Too_long
            else (
              let model2 = part path_len |> Option.get in
              let new_model, new_len =
