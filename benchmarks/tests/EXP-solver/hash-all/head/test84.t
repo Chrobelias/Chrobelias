@@ -1,5 +1,5 @@
 test84
   $ export OCAMLRUNPARAM='b=0'
-  $ timeout 2 Chro ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/all/head/test84  || echo TIMEOUT
-  Fatal error: exception Failure("expected term, in (none.rem_s (none.rem_s (str.to_int x) 330229) 268060)")
+  $ timeout 2 Chro ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/all/head/test84  --no-simpl-alpha  || echo TIMEOUT
+  timeout
   TIMEOUT
