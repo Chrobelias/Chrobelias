@@ -4,6 +4,15 @@
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 
+let max_longest_path =
+  match Sys.getenv_opt "CHRO_LONGEST_PATH" with
+  | None -> 10000000
+  | Some s ->
+    (match int_of_string_opt s with
+     | Some n -> n
+     | None -> exit 1)
+;;
+
 type t =
   { vars : (Ir.atom, int) Map.t
   ; internal_counter : int
@@ -1003,15 +1012,6 @@ struct
     |> function
     | Some x -> x
     | None -> None
-  ;;
-
-  let max_longest_path =
-    match Sys.getenv_opt "CHRO_LONGEST_PATH" with
-    | None -> 10000000
-    | Some s ->
-      (match int_of_string_opt s with
-       | Some n -> n
-       | None -> exit 1)
   ;;
 
   let combine_model_pieces s order (model, len) models =

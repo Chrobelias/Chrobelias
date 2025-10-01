@@ -11,7 +11,19 @@
   > (get-model)
   > EOF
 
-  $ export CHRO_LONGEST_PATH=10
+  $ export CHRO_LONGEST_PATH=100
   $ timeout 2 Chro -no-over-approx -bound 0 2.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
-  ; model is TOO big
+
+  ; model is TOO big on 1st attempt
+  Shrinked AST: (and
+                  (<= z 1)
+                  (and
+                    (= (str.len y) (* 2 z))
+                    (= (+ 2 (str.len x)) (str.to.int y))
+                    (str.in_re y (re.++ (re.++ (str.to.re "9") (re.* (str.to.re "9"))) (re.* (str.to.re ""))))
+                    (str.in_re x (re.++ (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "0")) (re.++ (str.to.re "9") (str.to.re "9")))) (str.to.re "1")) (re.* (str.to.re ""))))))
+  ((define-fun x () (_ String) "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+   (define-fun y () (_ String) "99")
+   (define-fun z () (_ Int) 1))
+
