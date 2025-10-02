@@ -511,11 +511,15 @@ let make_main_symantics env =
       | Eia.Mul [ Atom (Const c); Atom (Var v) ], Eia.Atom (Const rhs)
         when op = Leq && Z.(abs c <> one) ->
         (* optimizing single bounds *)
-        if Z.(c < zero) && Z.(rhs < zero)
+        if Z.(equal zero rhs)
+        then ofop Eia.(Mul [ Atom (Const (Z.of_int (Z.sign c))); Atom (Var v) ]) r
+        else if Z.(c < zero) && Z.(rhs < zero)
         then
           ofop
             Eia.(Mul [ Atom (Const Z.minus_one); Atom (Var v) ])
             (mul [ Atom (Const Z.minus_one); Atom (Const Z.((abs rhs + one) / abs c)) ])
+        else if Z.(c > zero) && Z.(rhs > zero)
+        then ofop Eia.(Atom (Var v)) (Atom (Const Z.(abs rhs / c)))
         else
           (* TODO(Kakadu): Support other three cases *)
           ofop l r
