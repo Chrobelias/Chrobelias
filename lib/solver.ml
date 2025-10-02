@@ -899,6 +899,43 @@ struct
     order, nfa
   ;;
 
+  let hack_orderings =
+    match Sys.getenv_opt "CHRO_HACK_ORDERINGS" with
+    | None -> false
+    | _ -> true
+  ;;
+
+  let prepare_order_check =
+    if hack_orderings
+    then (
+      fun ir ->
+        Format.printf "Ir = @[%a@]\n%!" Ir.pp_smtlib2 ir;
+        let o = Orderings.prepare_order_check ir in
+        Format.printf "ORDER: @[%a@]\n%!" Orderings.pp o;
+        fun xs ->
+          let exception Bad in
+          try
+            let _ : Ir.atom list =
+              List.fold_left
+                (fun acc x ->
+                   let _ : _ list = acc in
+                   List.iter
+                     (fun small ->
+                        match Orderings.compare ~small x o with
+                        | `LT | `Unknown -> ()
+                        | `GT -> raise_notrace Bad)
+                     acc;
+                   (* BAD!!!!*)
+                   x :: acc)
+                [ List.hd xs ]
+                (List.tl xs)
+            in
+            true
+          with
+          | Bad -> false)
+    else fun _ _ -> true
+  ;;
+
   let eval_semenov return next formula =
     (* if
       Ast.for_some
@@ -970,7 +1007,25 @@ struct
       Map.filteri ~f:(fun ~key:k ~data:_ -> is_exp k || Map.mem vars (to_exp k)) vars
     in
     let s = { vars = powered_vars; internal_counter = 0 } in
+    let check_order = prepare_order_check formula in
     decide_order powered_vars
+    |> (fun xs ->
+    if hack_orderings then Format.printf "There are %d orderings\n%!" (List.length xs);
+    xs)
+    |> List.filter check_order
+    |> (fun xs ->
+    if hack_orderings
+    then (
+      Format.printf "There are %d orderings\n%!" (List.length xs);
+      List.iteri
+        (fun i o ->
+           Format.printf
+             "%d: %a\n%!"
+             i
+             Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") Ir.pp_atom)
+             o)
+        (List.take 10 xs));
+    xs)
     |> List.to_seq
     |> Seq.map (prepare_order s nfa)
     (*Filtering of orderings w.r.t. the simple overapproximation idea:
@@ -1410,7 +1465,13 @@ let check_sat ir
   | `Str -> begin
     match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
-      let ir = Me.ir_of_ast ast |> Result.get_ok in
+      let ir =
+        match Me.ir_of_ast ast with
+        | Result.Ok x -> x
+        | Error s ->
+          Format.eprintf "Can't convert AST to IR: %s\n%!" s;
+          exit 1
+      in
       let res = LsbStr.check_sat ir in
       (match res with
        | `Sat model ->
