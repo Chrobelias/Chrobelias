@@ -23,6 +23,5 @@
 
   $ OCAMLRUNPARAM='b=0' Chro -dpresimpl ./2.smt2
   (= x (str.to.int "123451234123412341234123"))
-  term = "123451234123412341234123"
-  Fatal error: exception Failure("TBD: lib/me.ml 351")
+  Fatal error: exception Failure("TBD: lib/me.ml 353")
   [2]

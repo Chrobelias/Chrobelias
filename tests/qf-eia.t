@@ -76,10 +76,10 @@ Test EXP-solver simplified problems
 
   $ Chro ./examples/hash_3_6.smt2
   sat (nfa)
-  ((define-fun u () (_ Int) 1)
-   (define-fun v () (_ Int) 3)
-   (define-fun w () (_ Int) 20576667)
-   (define-fun x () (_ String) "123459999"))
+  ((define-fun u () (_ Int) 0)
+   (define-fun v () (_ Int) 0)
+   (define-fun w () (_ Int) 20575685)
+   (define-fun x () (_ String) "123454110"))
 
   $ Chro ./examples/hash_130_137.smt2
   sat (nfa)

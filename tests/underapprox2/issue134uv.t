@@ -28,9 +28,9 @@ $ export CHRO_DEBUG=1
             (= (+ eee2 (* (- 1) u1) (* (- 1) y) )  0)
             )
   )
+  (assert (<= (+ eee2 (* (- 1) pow2(eee2)) )  -1) )
+  (assert (<= (+ y (* (- 1) pow2(y)) )  -1) )
   (assert (<= (+ (* (- 1) eee2) pow2(y) )  0) )
-  (assert (<= (+ eee2 (* (- 1) pow2(eee2)) )  0) )
-  (assert (<= (+ y (* (- 1) pow2(y)) )  0) )
   
   (assert (= (* (- 1) u1)  -3)
   )
