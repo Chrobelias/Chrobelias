@@ -77,7 +77,7 @@ let find_files path =
   let rec loop acc =
     try
       match Unix.readdir dir with
-      | ".." | "." | ".DS_Store" -> loop acc
+      | "paras" | ".." | "." | ".DS_Store" -> loop acc
       | s ->
         let newacc =
           match is_good_smt2_file ~path s with
@@ -137,6 +137,37 @@ let get_extra_flags =
 
 let dune_str = "dune build --no-print-directory --profile=benchmark"
 
+let t_file ~file smt2_file =
+  let tfilename = file ^ ".t" in
+  Out_channel.with_open_text
+    (config.outdir ^ "/" ^ tfilename)
+    (fun tch ->
+       let tfmt = Format.formatter_of_out_channel tch in
+       let printf fmt = Format.fprintf tfmt fmt in
+       let extra_flags = get_extra_flags smt2_file in
+       printf "%s\n%!" file;
+       printf "  $ export OCAMLRUNPARAM='b=0'\n";
+       let smt2_file =
+         if Base.String.is_substring smt2_file ~substring:"EXP-solver"
+         then (
+           let custom_in = Filename.basename smt2_file ^ ".smt2" in
+           printf "  $ printf '(set-logic QF_S)\\n' > %s\n" custom_in;
+           printf "  $ grep -v set-logic %s >> %s\n" smt2_file custom_in;
+           printf "$ cat %s\n" custom_in;
+           custom_in)
+         else smt2_file
+       in
+       if config.timeout > 0
+       then
+         printf
+           "  $ timeout %d Chro %s %s || echo TIMEOUT\n"
+           config.timeout
+           smt2_file
+           extra_flags
+       else printf "  $ Chro %s\n" smt2_file;
+       Format.pp_print_flush tfmt ())
+;;
+
 let () =
   let mk_joined_makefile ppf files =
     Format.fprintf ppf "\n.PHONY: fast\n";
@@ -181,26 +212,6 @@ let () =
         dprintf " (enabled_if";
         dprintf "  (= benchmark %%{profile}))";
         dprintf " (deps %s))\n" smt2_file
-      in
-      let t_file ~file smt2_file =
-        let tfilename = file ^ ".t" in
-        Out_channel.with_open_text
-          (config.outdir ^ "/" ^ tfilename)
-          (fun tch ->
-             let tfmt = Format.formatter_of_out_channel tch in
-             let extra_flags = get_extra_flags smt2_file in
-             Format.fprintf tfmt "%s\n%!" file;
-             Format.fprintf tfmt "  $ export OCAMLRUNPARAM='b=0'\n";
-             if config.timeout > 0
-             then
-               Format.fprintf
-                 tfmt
-                 "  $ timeout %d Chro %s %s || echo TIMEOUT\n"
-                 config.timeout
-                 smt2_file
-                 extra_flags
-             else Format.fprintf tfmt "  $ Chro %s\n" smt2_file;
-             Format.pp_print_flush tfmt ())
       in
       ListLabels.iter files ~f:(fun file ->
         makefile_single file;
