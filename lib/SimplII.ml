@@ -572,12 +572,12 @@ let apply_term_symantics
   =
   fun (module S : SYM with type term = Ast.Eia.term) ->
   let rec helperS = function
-          | Ast.Str.Atom (Var s) -> S.str_var s
-          | Ast.Str.Atom (Const s) -> failwith "tbd"
-          | Ast.Str.Const c -> S.str_const c
-          | Ast.Str.Concat (lhs, rhs) -> S.str_concat (helperS lhs) (helperS rhs)
-          | Ast.Str.FromEia (Var s) -> S.str_from_eia s
-          | Ast.Str.FromEia (Const c) -> S.str_from_eia_const c
+    | Ast.Str.Atom (Var s) -> S.str_var s
+    | Ast.Str.Atom (Const s) -> failwith "tbd"
+    | Ast.Str.Const c -> S.str_const c
+    | Ast.Str.Concat (lhs, rhs) -> S.str_concat (helperS lhs) (helperS rhs)
+    | Ast.Str.FromEia (Var s) -> S.str_from_eia s
+    | Ast.Str.FromEia (Const c) -> S.str_from_eia_const c
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) as c -> c
     | Atom (Ast.Var s) -> S.var s
@@ -588,12 +588,12 @@ let apply_term_symantics
     | Bwor (l, r) -> S.bw Bwor (helperT l) (helperT r)
     | Bwxor (l, r) -> S.bw Bwxor (helperT l) (helperT r)
     | Len (Ast.Str.Const s) -> S.const (String.length s)
-    | Len (s) -> S.str_len (helperS s)
+    | Len s -> S.str_len (helperS s)
     | Stoi (Ast.Str.Const s) ->
       (match int_of_string_opt s with
        | Some n -> S.const n
        | None -> S.str_atoi (S.str_const s))
-    | Stoi (s) -> S.str_atoi (helperS s)
+    | Stoi s -> S.str_atoi (helperS s)
     | Stoi2 (Var s) -> S.stoi2 s
     | Stoi2 (Const _) -> failwith "TBD"
     | Len2 (Var s) -> S.str_len2 s
