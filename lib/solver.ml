@@ -1467,7 +1467,18 @@ let check_sat ir
                    match ty with
                    | `Int -> begin
                      try
-                       `Int (Z.of_string (List.rev v |> List.to_seq |> String.of_seq))
+                       let s =
+                         List.rev v
+                         |> List.to_seq
+                         |> Seq.map (fun c ->
+                           if c = Nfa.Str.u_eos
+                           then '0'
+                           else if c = Nfa.Str.u_null
+                           then '0'
+                           else c)
+                         |> String.of_seq
+                       in
+                       if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
                      with
                      | Invalid_argument _ ->
                        `Str

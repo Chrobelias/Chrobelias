@@ -12,9 +12,9 @@
               )
             )
   )
+  (assert (<= (+ eee2 (* (- 1) pow2(eee2)) )  -1) )
+  (assert (<= (+ u1 (* (- 1) pow2(u1)) )  -1) )
   (assert (<= (+ (* (- 1) eee2) pow2(u1) )  0) )
-  (assert (<= (+ eee2 (* (- 1) pow2(eee2)) )  0) )
-  (assert (<= (+ u1 (* (- 1) pow2(u1)) )  0) )
   
   (assert (<= (+ (* (- 1) eee2) u1 )  0) )
   (assert (<= (+ eee2 (* (- 1) pow2(u1)) )  0) )

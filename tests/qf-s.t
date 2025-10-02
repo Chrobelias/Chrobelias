@@ -15,7 +15,7 @@ Basic QF_S tests
   sat (nfa)
   unsat
   sat (nfa)
-  ((define-fun %36 () (_ Int) 12) (define-fun a () (_ String) "100100100100"))
+  ((define-fun %27 () (_ Int) 12) (define-fun a () (_ String) "100100100100"))
   ((define-fun a () (_ String) "BaLyuLyuLyuLyuLyuLyuLyu")
    (define-fun x () (_ Int) 23))
   ((define-fun a () (_ String) "Ba") (define-fun b () (_ String) "20"))
