@@ -22,10 +22,24 @@ let alpha_compare =
   let rec helper (subst : subst) (l, r) =
     match l, r with
     | Lnot l, Lnot r -> helper subst (l, r)
-    | Rel (Eq, _, _), Rel (Leq, _, _)
-    | Rel (Leq, _, _), Rel (Eq, _, _)
-    | Exists _, Rel _
-    | Rel _, Exists _
+    | Rel (Eq, _, _), (Rel (Leq, _, _) | SEq _ | SReg _)
+    | SLen _, (SEq _ | SReg _)
+    | Rel (Eq, _, _), SLen (_, _)
+    | Rel (Leq, _, _), SLen (_, _)
+    | SEq (_, _), Exists (_, _)
+    | ( SEq (_, _)
+      , ( True
+        | Reg (_, _)
+        | SReg (_, _)
+        | SLen (_, _)
+        | SEq (_, _)
+        | Stoi (_, _)
+        | Lnot _ | Land _ | Lor _ ) )
+    | (Rel (Leq, _, _) | SEq _), Rel (Eq, _, _)
+    | (Exists _ | Stoi _ | Reg _ | SEq _), Rel _
+    | Rel _, (Exists _ | Stoi _ | Reg _ | SEq _)
+    | Rel _, SReg _
+    | SReg _, Rel _
     | Lnot _, Rel _
     | Rel _, Lnot _
     | Land _, Lnot _
@@ -33,8 +47,12 @@ let alpha_compare =
     | Rel _, Land _
     | Lor _, Rel _
     | Rel _, Lor _
+    | Stoi _, SReg _
+    | Lnot _, (SReg (_, _) | SLen (_, _) | SEq (_, _) | Stoi (_, _))
     | Lnot _, (True | Reg (_, _) | Land _ | Lor _ | Exists _)
-    | Rel (_, _, _), (True | Reg (_, _))
+    | Exists _, SLen _
+    | SLen _, (Exists _ | Rel _ | Stoi _)
+    | Rel (_, _, _), True
     | Exists _, Lnot _
     (* Multiple variables are postponed for later *)
     | Exists (_ :: _ :: _, _), _
