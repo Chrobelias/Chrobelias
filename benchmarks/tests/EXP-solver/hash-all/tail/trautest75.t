@@ -1,5 +1,8 @@
 trautest75
   $ export OCAMLRUNPARAM='b=0'
-  $ timeout 2 Chro ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/all/head/trautest75  --no-simpl-alpha  || echo TIMEOUT
-  Fatal error: exception Failure("string constraints are not supported in EIA mode")
+  $ printf '(set-logic QF_S)\n' > trautest75.smt2
+  $ grep -v set-logic ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/all/head/trautest75 >> trautest75.smt2
+$ cat trautest75.smt2
+  $ timeout 2 Chro trautest75.smt2  || echo TIMEOUT
+  timeout
   TIMEOUT
