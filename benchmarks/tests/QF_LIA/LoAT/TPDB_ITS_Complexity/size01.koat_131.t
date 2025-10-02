@@ -12,9 +12,7 @@ size01.koat_131
     7) (exp it13 3)
     8) (exp it436 2)
     9) (exp it436 3)
-    10) (exp it441 2)
-    11) (exp it48 2)
-    12) (exp it48 3)
-    13) (exp (+ (- 1) it441) 2)
+    10) (exp it48 2)
+    11) (exp it48 3)
     
   unknown (non-linear)

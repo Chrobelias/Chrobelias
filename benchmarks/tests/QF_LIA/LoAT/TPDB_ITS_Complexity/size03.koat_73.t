@@ -14,7 +14,5 @@ size03.koat_73
     9) (exp it13 3)
     10) (exp it152 2)
     11) (exp it152 3)
-    12) (exp it157 2)
-    13) (exp (+ (- 1) it157) 2)
     
   unknown (non-linear)

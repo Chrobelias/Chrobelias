@@ -6,6 +6,5 @@ size02.koat_254
     1) (exp i3 2)
     2) (exp it13 2)
     3) (exp it13 3)
-    4) (exp it868 2)
     
   unknown (non-linear)
