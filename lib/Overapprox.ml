@@ -130,3 +130,25 @@ let check ast =
     `Unknown ast
   | `Sat -> `Unknown ast
 ;;
+
+let check ast =
+  (* Skip expressions with "forall" quantifier: Z3 stucks when evaluating them. *)
+  if
+    Ast.forsome
+      (function
+        | Ast.Exists (atoms, ast) ->
+          Ast.forsome
+            (function
+              | Ast.Lnot ast ->
+                Ast.forsome
+                  (function
+                    | Ast.Exists _ -> true
+                    | _ -> false)
+                  ast
+              | _ -> false)
+            ast
+        | _ -> false)
+      ast
+  then `Unknown ast
+  else check ast
+;;

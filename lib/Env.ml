@@ -83,7 +83,8 @@ let enrich m other =
   let _ : (Ast.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t = other in
   Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
     match key, data with
-    | Ast.Var s, `Int z -> Base.Map.Poly.add_exn acc ~key:s ~data:(`Eia (Ast.Eia.Atom (Const z)))
+    | Ast.Var s, `Int z ->
+      Base.Map.Poly.add_exn acc ~key:s ~data:(`Eia (Ast.Eia.Atom (Const z)))
     | _, `Str _ ->
       (* TODO(Kakadu): implememt it sooner or later  *)
       acc

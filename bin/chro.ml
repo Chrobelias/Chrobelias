@@ -220,7 +220,7 @@ let join_int_model prefix m =
   let rec seek key =
     let term = Map.find_exn prefix key in
     match term with
-    | `Eia (eia) -> begin
+    | `Eia eia -> begin
       match SimplII.subst_term prefix eia with
       | Ast.Eia.Atom (Ast.Const c) -> Option.some (`Int c)
       | Ast.Eia.Atom (Ast.Var v) -> seek v

@@ -410,10 +410,10 @@ let rec fold f acc ast =
   | True -> f acc ast
   | Eia _ -> f acc ast
   | Str _ -> f acc ast
-  | Lnot ast -> f (fold f acc ast) ast
+  | Lnot ast' -> f (fold f acc ast') ast
   | Land asts -> f (List.fold_left (fold f) acc asts) ast
   | Lor asts -> f (List.fold_left (fold f) acc asts) ast
-  | Exists (_, ast) -> f (fold f acc ast) ast
+  | Exists (_, ast') -> f (fold f acc ast') ast
   | Pred _ -> f acc ast
 ;;
 
