@@ -14,6 +14,10 @@
  (deps ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2))
 
 (cram
+ (applies_to issue150)
+ (deps ../examples/issue150.smt2))
+
+(cram
  (applies_to koat36mini)
  (deps koat36mini.smt2))
 
