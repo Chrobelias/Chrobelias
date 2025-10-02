@@ -111,8 +111,7 @@ let get_extra_flags =
     [ "Norn/HammingDistance/norn-benchmark-5"
     ; "Norn/ab/norn-benchmark-69"
     ; "Norn/ChunkSplit/norn-benchmark-7"
-    ; "stringfuzz"
-    ; "EXP-solver/Benchmark/HashFunction/all"
+    ; "stringfuzz" (* ; "EXP-solver/Benchmark/HashFunction/all" *)
     ]
   in
   let list_contains (cond : _ -> bool) xs =

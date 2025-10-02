@@ -125,11 +125,11 @@ gen-EXP:
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/tail
 	#
 	mkdir -p benchmarks/tests/EXP-solver/flatten/head
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/flatten/head
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -o benchmarks/tests/EXP-solver/flatten/head
 	mkdir -p benchmarks/tests/EXP-solver/flatten/head-tail
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/flatten/head-tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -o benchmarks/tests/EXP-solver/flatten/head-tail
 	mkdir -p benchmarks/tests/EXP-solver/flatten/tail
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/flatten/tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -o benchmarks/tests/EXP-solver/flatten/tail
 	dune b @benchmarks/tests/EXP-solver/fmt --au 2> /dev/null || exit 0
 
 promote_benchmarks: promote_benchmarks_string
