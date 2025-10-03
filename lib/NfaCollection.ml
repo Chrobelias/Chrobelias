@@ -17,10 +17,10 @@ module type Type = sig
   val strlen_post : t -> dest:int -> src:int -> t
   val stoi_post : t -> dest:int -> src:int -> t
   val seq_post : t -> dest:int -> src:int -> t
-  val strlen : dest:int -> src:int -> t
+  val strlen : ?alpha:char list -> dest:int -> src:int -> unit -> t
   val stoi : dest:int -> src:int -> t
   val itos : dest:int -> src:int -> t
-  val seq : dest:int -> src:int -> t
+  val seq : ?alpha:char list -> dest:int -> src:int -> unit -> t
   val base : int
 end
 
@@ -221,13 +221,19 @@ module Lsb = struct
   let stoi_post = strlen_post
   let seq_post = strlen_post
 
-  let strlen ~(dest : int) ~(src : int) =
+  let strlen ?alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let stoi = strlen
+  let stoi ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let seq = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -235,7 +241,6 @@ module Lsb = struct
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let seq = strlen
   let base = 2
 end
 
@@ -402,13 +407,19 @@ module Msb = struct
   let stoi_post = strlen_post
   let seq_post = strlen_post
 
-  let strlen ~(dest : int) ~(src : int) =
+  let strlen ?alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let stoi = strlen
+  let stoi ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let seq = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -416,7 +427,6 @@ module Msb = struct
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let seq = strlen
   let base = 2
 end
 
@@ -493,13 +503,19 @@ module MsbNat = struct
   let stoi_post = strlen_post
   let seq_post = strlen_post
 
-  let strlen ~(dest : int) ~(src : int) =
+  let strlen ?alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let stoi = strlen
+  let stoi ~(dest : int) ~(src : int) =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let seq = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -507,7 +523,6 @@ module MsbNat = struct
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let seq = strlen
   let base = 2
 end
 
@@ -558,10 +573,9 @@ module Str = struct
     |> Nfa.minimize
   ;;
 
-  let strlen ~(dest : int) ~(src : int) =
-    let alpha_transitions =
-      List.map (fun c -> 0, [ c; itoc (base - 1) ], 0) full_alphabet
-    in
+  let strlen ?alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:full_alphabet alpha in
+    let alpha_transitions = List.map (fun c -> 0, [ c; itoc (base - 1) ], 0) alpha in
     let transitions = [ 0, [ Str.u_eos; Str.u_zero ], 0 ] @ alpha_transitions in
     Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
   ;;
@@ -626,9 +640,10 @@ module Str = struct
     |> Nfa.minimize
   ;;
 
-  let seq ~(dest : int) ~(src : int) =
+  let seq ?alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:full_alphabet alpha in
     let transitions =
-      (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) full_alphabet
+      (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
     in
     Nfa.create_nfa
       ~transitions
