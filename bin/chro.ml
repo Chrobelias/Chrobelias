@@ -223,7 +223,7 @@ let () =
         | _ -> state.tys
       in
       { state with tys }
-    | Smtml.Ast.Set_logic Smtml.Logic.QF_S ->
+    | Smtml.Ast.Set_logic Smtml.Logic.QF_S | Smtml.Ast.Set_logic Smtml.Logic.QF_SLIA ->
       Lib.Config.config.logic <- `Str;
       Lib.Config.config.mode <- `Lsb;
       Lib.Config.config.under_approx <- 0;

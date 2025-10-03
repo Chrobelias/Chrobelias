@@ -96,6 +96,7 @@ let make_collector () =
     let add = List.fold_left ( ++ ) []
     let bw _ = ( ++ )
     let pow = ( ++ )
+    let mod_ x _ = x
     let true_ = empty
     let false_ = empty
 
@@ -145,6 +146,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | Atom (Ast.Var s) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
+    | Mod (l, r) -> S.mod_ (helperT l) r
     | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op

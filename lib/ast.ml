@@ -68,6 +68,7 @@ module Eia = struct
     | Stoi of Str.term
     | Add of term list
     | Mul of term list
+    | Mod of term * Z.t
     | Bwand of term * term
     | Bwor of term * term
     | Bwxor of term * term
@@ -117,6 +118,7 @@ module Eia = struct
     | Bwor (term, term') -> f (bwor (map_term f term) (map_term f term'))
     | Bwxor (term, term') -> f (bwxor (map_term f term) (map_term f term'))
     | Pow (term, term') -> f (pow (map_term f term) (map_term f term'))
+    | Mod (t, c) -> f (mod_ (map_term f t) c)
   ;;
 
   let rec fold_term f acc term =
@@ -127,6 +129,7 @@ module Eia = struct
     | Bwor (term', term'')
     | Bwxor (term', term'')
     | Pow (term', term'') -> f (fold_term f (fold_term f acc term') term'') term
+    | Mod (t, _) -> f (fold_term f acc t) term
   ;;
 
   let rec pp_term ppf = function
@@ -151,6 +154,7 @@ module Eia = struct
     | Pow (a, b) -> Format.fprintf ppf "(%a ** %a)" pp_term a pp_term b
     | Len2 a -> Format.fprintf ppf "(chrob.len %a)" pp_atom a
     | Stoi2 a -> Format.fprintf ppf "(chrob.stoi %a)" pp_atom a
+    | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
   ;;
 
   type t =
