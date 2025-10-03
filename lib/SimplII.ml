@@ -273,7 +273,7 @@ let apply_symantics_unsugared (type a) (module S : SYM with type ph = a) =
 
 let make_main_symantics env =
   let _ : Env.t = env in
-  let module Main_symantics_ (*: SYM with type repr = Ast.t*) = struct
+  let module Main_symantics_ = struct
     open Ast
     include Id_symantics
 
@@ -289,21 +289,6 @@ let make_main_symantics env =
 
     let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
 
-    let fold_and_sort init op xs =
-      let c, xs =
-        List.fold_left
-          (fun (cacc, phacc) -> function
-             | Eia.Atom (Const c) -> op c cacc, phacc
-             | Eia.Pow ((Atom (Const base) as b), Eia.Add (Atom (Const minus1) :: sums))
-               when Z.(cacc mod base = Z.zero) && -1 = Z.to_int minus1 ->
-               Z.(cacc / base), Eia.Pow (b, Eia.Add sums) :: phacc
-             | ph -> cacc, ph :: phacc)
-          (init, [])
-          xs
-      in
-      c, List.sort compare_term xs
-    ;;
-
     let collect_inside_mul xs =
       List.fold_right
         (fun x acc : term list ->
@@ -316,15 +301,28 @@ let make_main_symantics env =
            | ( Atom (Const c)
              , Eia.Pow ((Atom (Const basec) as base), Add (Atom (Const d) :: ss)) :: tl )
              when Z.(equal (abs c) basec) && d = Z.minus_one ->
-             Atom (Const Z.(c / basec)) :: Eia.Pow (base, Add ss) :: tl
+             Eia.Atom (Const Z.(c / basec)) :: Eia.Pow (base, Add ss) :: tl
            | x, _ -> x :: acc)
         xs
         []
     ;;
 
     let rec mul xs =
-      let xs = collect_inside_mul xs in
-      match fold_and_sort Z.one Z.( * ) xs with
+      let fold_and_sort init op xs =
+        let c, xs =
+          List.fold_left
+            (fun (cacc, phacc) -> function
+               | Eia.Atom (Const c) -> op c cacc, phacc
+               | Eia.Pow ((Atom (Const base) as b), Eia.Add (Atom (Const minus1) :: sums))
+                 when Z.(cacc mod base = Z.zero) && Z.equal Z.minus_one minus1 ->
+                 Z.(cacc / base), Eia.Pow (b, Eia.Add sums) :: phacc
+               | ph -> cacc, ph :: phacc)
+            (init, [])
+            xs
+        in
+        c, List.sort compare_term xs
+      in
+      match fold_and_sort Z.one Z.( * ) (collect_inside_mul xs) with
       | c, _ when Z.(equal c zero) -> Eia.atom (Const Z.zero)
       | c, [] -> Eia.atom (Const c)
       | c, [ h ] when Z.equal c Z.one -> h
@@ -382,8 +380,19 @@ let make_main_symantics env =
           xs
           []
       in
-      let xs = collect_inside_add xs in
-      match fold_and_sort Z.zero Z.( + ) xs with
+      let fold_and_sort init op xs =
+        (* TODO(Kakadu): Maybe this presorting is not really needed... *)
+        let c, xs =
+          List.fold_left
+            (fun (cacc, phacc) -> function
+               | Eia.Atom (Const c) -> op c cacc, phacc
+               | ph -> cacc, ph :: phacc)
+            (init, [])
+            xs
+        in
+        c, List.sort compare_term xs
+      in
+      match fold_and_sort Z.zero Z.( + ) (collect_inside_add xs) with
       | c, [ Eia.Atom (Var x); Mul [ Eia.Atom (Const x1); Eia.Atom (Var x2) ] ]
         when Z.(c = zero) && x = x2 && x1 = Z.minus_one -> const 0
       | c, Mul [ Eia.Atom (Const c1); t1 ] :: Mul [ Eia.Atom (Const c2); t2 ] :: tl
@@ -393,7 +402,9 @@ let make_main_symantics env =
         else add (constz c :: Mul [ Eia.Atom (Const Z.(c1 + c2)); t1 ] :: tl)
       | c, [ h ] when Z.(equal c zero) -> h
       | c, [] when Z.(equal c zero) -> const 0
-      | c, xs when Z.(equal c zero) -> Ast.Eia.add (List.sort compare_term xs)
+      | c, xs when Z.(equal c zero) ->
+        let ans = Ast.Eia.add (List.sort compare_term xs) in
+        ans
       | c, [] -> constz c
       | c, xs -> Ast.Eia.add (constz c :: List.sort compare_term xs)
     ;;
@@ -809,10 +820,8 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
     try
       match c1, Info.is_in_expo v1 info, c2, Info.is_in_expo v2 info with
       | 1, false, _, _ when Env.is_absent_key v1 env && Env.is_absent_key v2 env ->
-        (* Format.printf "%s %d v1=%s, v2=%s\n%!" __FILE__ __LINE__ v1 v2; *)
         Env.extend_exn env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
       | _, _, 1, false when Env.is_absent_key v2 env && Env.is_absent_key v2 env ->
-        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
         Env.extend_exn env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
       | _ -> env
       (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
