@@ -77,6 +77,21 @@ let collect_free (ir : Ir.t) =
     ir
 ;;
 
+let collect_alpha (ir : Ir.t) =
+  let alpha =
+    Set.diff
+      (Ir.fold
+         (fun acc -> function
+            | Ir.SReg (_, re) ->
+              Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc
+            | _ -> acc)
+         Set.empty
+         ir)
+      (Set.of_list [ Nfa.Str.u_eos; Nfa.Str.u_null ])
+  in
+  if Set.is_empty alpha then Set.singleton '0' else alpha
+;;
+
 let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
   | Ir.Var s -> Ast.Eia.atom (Ast.var s)
   | Ir.Pow2 s ->
@@ -476,6 +491,7 @@ struct
   ;;
 
   let eval ir =
+    let alpha = collect_alpha ir |> Set.to_list in
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let ir = trivial ir in
     let ir = if Config.config.simpl_mono then Ir.simpl_monotonicty ir else ir in
@@ -575,7 +591,6 @@ struct
          let rec eval_and = function
            | hd :: [] -> hd
            | hd :: hd' :: tl ->
-             (* Format.printf "Intersecting %d %d\n%!" (Nfa.length hd) (Nfa.length hd'); *)
              let nfa = Nfa.intersect hd hd' in
              let nfas =
                nfa :: tl |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
@@ -638,13 +653,19 @@ struct
          NfaCollection.itos ~src:(Map.find_exn vars atom') ~dest:(Map.find_exn vars atom)
        | Ir.SLen (atom, atom') ->
          NfaCollection.strlen
+           ~alpha
            ~dest:(Map.find_exn vars atom)
            ~src:(Map.find_exn vars atom')
+           ()
        | Ir.Stoi (atom, atom') ->
          NfaCollection.n ()
          (*NfaCollection.stoi ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')*)
        | Ir.SEq (atom, atom') ->
-         NfaCollection.seq ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')
+         NfaCollection.seq
+           ~alpha
+           ~dest:(Map.find_exn vars atom)
+           ~src:(Map.find_exn vars atom')
+           ()
        | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;
@@ -1529,8 +1550,8 @@ let check_sat ir
                        | Some v -> Option.some (`Int v)
                        | None ->
                          Format.printf
-                           "Warning: some of the model pieces are likely to be missed: \
-                            %s = %a\n\
+                           "Warning: some of the eia model pieces are likely to be \
+                            missed: %s = %a\n\
                             %!"
                            key
                            Ast.pp_term_smtlib2
@@ -1539,8 +1560,8 @@ let check_sat ir
                      end
                      | `Str data ->
                        Format.printf
-                         "Warning: some of the model pieces are likely to be missed: %s \
-                          = %a\n\
+                         "Warning: some of the str model pieces are likely to be missed: \
+                          %s = %a\n\
                           %!"
                          key
                          Ast.Str.pp_term
