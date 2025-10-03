@@ -200,7 +200,7 @@ let check bound ast =
            let ph = apply_symnatics sym ast in
            let module Z3 = Smtml.Z3_mappings.Solver in
            (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
-           let solver = Z3.make () in
+           let solver = Z3.make ~params:Smtml.Params.(default () $ (Timeout, 20000)) () in
            Z3.reset solver;
            let __ _ = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
            match Z3.check solver ~assumptions:[ ph ] with
