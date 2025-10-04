@@ -1,4 +1,5 @@
 
+  $ export CHRO_TRACE_OPT=1
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound -1 -dpresimpl -dir -stop-after simpl ../examples/issue150.smt2 2>&1 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= %0 (str.len x))
@@ -111,16 +112,28 @@
              (<= u 2)
              (<= (* (- 1) u) 0)
              (str.in_re x (re.++ (re.++ (re.++ (re.++ (str.to.re "9") (re.++ (str.to.re "8") (re.++ (str.to.re "7") (str.to.re "6")))) (re.* (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (str.to.re "0") (str.to.re "1")) (str.to.re "2")) (str.to.re "3")) (str.to.re "4")) (str.to.re "5")) (str.to.re "6")) (str.to.re "7")) (str.to.re "8")) (str.to.re "9")))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
-  Simplify step: (%2 = (chrob.len x) & (+ (* -444 * u) + (* 1171 * w)) = (chrob.stoi x) & (+ (* -1 * %2) + (10 ** %1)) = 1 & %1 <= 99 & u <= 2 & (* -1 * u) <= 0 & (str.in_re x (re.++ (re.++ (re.++ (re.++ (str.to.re "9") (re.++ (str.to.re "8") (re.++ (str.to.re "7") (str.to.re "6")))) (re.* (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (str.to.re "0") (str.to.re "1")) (str.to.re "2")) (str.to.re "3")) (str.to.re "4")) (str.to.re "5")) (str.to.re "6")) (str.to.re "7")) (str.to.re "8")) (str.to.re "9")))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
+
+
+  new ast: (and
+             (= %2 (chrob.len x))
+             (= (+ (* (- 444) u) (* 1171 w)) (chrob.stoi x))
+             (= (+ (* (- 1) %2) (exp 10 %1)) 1)
+             (<= %1 99)
+             (<= u 2)
+             (<= (* (- 1) u) 0)
+             (str.in_re x (re.++ (re.++ (re.++ (re.++ (str.to.re "9") (re.++ (str.to.re "8") (re.++ (str.to.re "7") (str.to.re "6")))) (re.* (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (str.to.re "0") (str.to.re "1")) (str.to.re "2")) (str.to.re "3")) (str.to.re "4")) (str.to.re "5")) (str.to.re "6")) (str.to.re "7")) (str.to.re "8")) (str.to.re "9")))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
+
+
+  Simplify step: (%2 = (chrob.len x) & (+ (* -444 * u) + (* 1171 * w)) = (chrob.stoi x) & (+ (* -1 * %2) + (10 ** %1)) = 1 & (10 ** %1) <= (10 ** 99) & u <= 2 & (* -1 * u) <= 0 & (str.in_re x (re.++ (re.++ (re.++ (re.++ (str.to.re "9") (re.++ (str.to.re "8") (re.++ (str.to.re "7") (str.to.re "6")))) (re.* (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (str.to.re "0") (str.to.re "1")) (str.to.re "2")) (str.to.re "3")) (str.to.re "4")) (str.to.re "5")) (str.to.re "6")) (str.to.re "7")) (str.to.re "8")) (str.to.re "9")))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
   Simplified expression: (and
                            (= %2 (chrob.len x))
                            (= (+ (* (- 444) u) (* 1171 w)) (chrob.stoi x))
                            (= (+ (* (- 1) %2) (exp 10 %1)) 1)
-                           (<= %1 99)
+                           (<= (exp 10 %1) (exp 10 99))
                            (<= u 2)
                            (<= (* (- 1) u) 0)
                            (str.in_re x (re.++ (re.++ (re.++ (re.++ (str.to.re "9") (re.++ (str.to.re "8") (re.++ (str.to.re "7") (str.to.re "6")))) (re.* (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (str.to.re "0") (str.to.re "1")) (str.to.re "2")) (str.to.re "3")) (str.to.re "4")) (str.to.re "5")) (str.to.re "6")) (str.to.re "7")) (str.to.re "8")) (str.to.re "9")))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
-  Fatal error: exception Invalid_argument("result is Error _")
+  Can't convert AST to IR: unimplemented (+ (* -444 * u) + (* 1171 * w)) = (chrob.stoi x)
 
 $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
 
