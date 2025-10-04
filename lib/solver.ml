@@ -60,6 +60,28 @@ let collect_vars ir =
   |> Map.of_alist_exn
 ;;
 
+let collect_atoms ir =
+  Ir.fold
+    (fun acc -> function
+       (*| Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
+       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | Ir.SReg (atom, _) -> Set.add acc atom
+       | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function
+              | Ir.Var _ as ir -> [ ir ]
+              | Ir.Pow2 _ as ir -> [ ir ])
+            |> Set.of_list)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
 let collect_free (ir : Ir.t) =
   Ir.fold
     (fun acc -> function
@@ -1072,17 +1094,28 @@ struct
       ~vars:(Map.to_alist vars)
       Nfa.format_nfa
       nfa;
+    let atoms = collect_atoms formula in
     let nfa =
-      nfa |> Nfa.to_nat
-      (*|> NfaNat.minimize *)
+      Set.fold
+        ~f:(fun acc k ->
+          if is_exp k && not (Set.mem atoms k)
+          then Nfa.project [ Map.find_exn vars k ] acc
+          else acc)
+        ~init:nfa
+        atoms
     in
+    let nfa = nfa |> Nfa.to_nat in
     Debug.dump_nfa
       ~msg:"Minimized original nfa: %s"
       ~vars:(Map.to_alist vars)
       NfaNat.format_nfa
       nfa;
     let powered_vars =
-      Map.filteri ~f:(fun ~key:k ~data:_ -> is_exp k || Map.mem vars (to_exp k)) vars
+      Map.filteri
+        ~f:(fun ~key:k ~data:_ ->
+          (is_exp k && Set.mem atoms (get_exp k))
+          || ((not (is_exp k)) && Set.mem atoms k && Set.mem atoms (to_exp k)))
+        vars
     in
     let s = { vars = powered_vars; internal_counter = 0 } in
     decide_order powered_vars
@@ -1211,7 +1244,7 @@ struct
             let filter =
               fun k ->
               match k with
-              | Ir.Pow2 _ -> true
+              | Ir.Pow2 _ -> Map.mem map k
               | Ir.Var _ -> Map.mem map k
             in
             let c =
