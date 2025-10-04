@@ -28,6 +28,13 @@ let rec list_foldk f acc xs k =
     let* tl = list_map f tl in
     return (h :: tl)
 ;; *)
+let internalc = ref 0
+
+let internal_name () =
+  let r = String.concat "" [ "$"; !internalc |> Int.to_string ] in
+  internalc := !internalc + 1;
+  r
+;;
 
 let land_ = function
   | [] -> assert false
@@ -64,6 +71,23 @@ let rec to_string orig_expr k : Ast.t =
         to_string c (fun c ->
           let c = k c in
           Ast.lor_ [ land_ [ c; th ]; land_ [ Ast.lnot c; el ] ])))
+  | Expr.Triop (_, Ty.Triop.String_extract, str, from, to') ->
+    to_string str (fun str ->
+      to_eia_term from (fun from ->
+        let from' = Ast.var (internal_name ()) in
+        to_eia_term to' (fun to' ->
+          let to'' = Ast.var (internal_name ()) in
+          Ast.land_
+            [ k (Ast.Str.substr str from' to'')
+            ; Ast.eia (Ast.Eia.eq (Ast.Eia.atom from') from)
+            ; Ast.eia (Ast.Eia.eq (Ast.Eia.atom to'') to')
+            ])))
+  | Expr.Binop (_, Ty.Binop.At, str, sym) ->
+    to_string str (fun str ->
+      to_eia_term sym (fun sym ->
+        let sym' = Ast.var (internal_name ()) in
+        Ast.land_
+          [ k (Ast.Str.at str sym'); Ast.eia (Ast.Eia.eq (Ast.Eia.atom sym') sym) ]))
   | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
 
 and to_regex orig_expr k =
@@ -134,7 +158,7 @@ and to_regex orig_expr k =
     failwith "complements are not implemented yet since they would explode NFAs"
   | _ -> failf "unable to handle %a as regex" Expr.pp orig_expr
 
-and to_eia_term : Expr.t -> (Ast.Eia.term -> 'a) -> 'a =
+and to_eia_term : Expr.t -> (Ast.Eia.term -> Ast.t) -> Ast.t =
   let neg eia_term = Ast.Eia.mul [ Ast.Eia.atom (Ast.const Z.minus_one); eia_term ] in
   let rec fold1 op hd tl k =
     list_mapk helper (hd :: tl) (fun xs ->
@@ -283,6 +307,11 @@ and _to_ir orig_expr k =
     (* | Expr.App ({ name = Symbol.Simple "neg"; _ }, [ arg ]) -> failf "FUCK" *)
 
     (* Quantifiers and binders. *)
+  | Expr.App ({ name = Symbol.Simple "str.prefixof"; _ }, [ str; str' ])
+  | Expr.Binop (_, Ty.Binop.String_prefix, str, str') ->
+    to_string str (fun str ->
+      to_string str' (fun str' -> Ast.Str (Ast.Str.prefixof str str')))
+  (* Quantifiers and binders. *)
   | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
     let* c = _to_ir c in
     let* t = _to_ir t in

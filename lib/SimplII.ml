@@ -105,6 +105,9 @@ module type SYM0 = sig
   val exists : string list -> ph -> ph
   val str_len2 : string -> term
   val stoi2 : string -> term
+  val str_at : str -> string -> str
+  val str_substr : str -> string -> string -> str
+  val str_prefixof : str -> str -> ph
 end
 
 module type SYM = sig
@@ -166,14 +169,7 @@ module Id_symantics :
     | FT_SIG.Bwxor -> Ast.Eia.bwxor a b
   ;;
 
-  let str_atoi = function
-    | Ast.Str.Atom (Var s as a) -> Ast.Eia.Stoi (Ast.Str.Atom a)
-    | Const s -> Ast.Eia.Stoi (Ast.Str.Const s)
-    | x ->
-      log "%s %d: %a\n%!" __FILE__ __LINE__ Ast.Str.pp_term x;
-      assert false
-  ;;
-
+  let str_atoi = Ast.Eia.stoi
   let str_equal s1 s2 = Ast.str (Ast.Str.eq s1 s2)
   let str_const s = Ast.Str.Const s
   let str_var s = Ast.Str.Atom (Ast.Var s)
@@ -183,17 +179,11 @@ module Id_symantics :
     Ast.Str (Ast.Str.InRe (l, regex))
   ;;
 
-  let str_len = function
-    | Ast.Str.Atom (Var s) -> Ast.Eia.Len (Ast.Str.atom (Var s))
-    | Atom (Const _) -> assert false
-    | x ->
-      log "%s %d: %a\n%!" __FILE__ __LINE__ Ast.Str.pp_term x;
-      assert false
-  ;;
-
+  let str_len = Ast.Eia.len
   let str_len2 s1 = Ast.Eia.len2 (Ast.var s1)
   let stoi2 s1 = Ast.Eia.stoi2 (Ast.var s1)
   let str_from_eia s = Ast.Str.FromEia (Ast.var s)
+  let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
   let str_from_eia_const c = Ast.Str.Const (Z.to_string c)
   let str_concat s1 s2 = Ast.Str.concat s1 s2
   let len = Ast.Eia.len
@@ -216,6 +206,8 @@ module Id_symantics :
   let lt l r = Ast.Eia (Ast.Eia.lt l r)
   let prj = Fun.id
   let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
+  let str_at s a = Ast.Str.at s (Ast.Var a)
+  let str_substr s a b = Ast.Str.substr s (Ast.Var a) (Ast.Var b)
 end
 
 let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
@@ -237,6 +229,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
           vs
       in
       S.exists vs (helper ph)
+    | Str (Ast.Str.PrefixOf (term, term')) ->
+      S.str_prefixof (helper_str term) (helper_str term')
     | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helper_str term) regex
     | Str (Ast.Str.Eq (term, term')) ->
       let l = helper_str term in
@@ -250,6 +244,10 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | FromEia (Var eia) -> S.str_from_eia eia
     | FromEia (Const c) -> S.str_from_eia_const c
     | Concat (s1, s2) -> S.str_concat (helper_str s1) (helper_str s2)
+    | Substr (s1, Var a, Var b) -> S.str_substr (helper_str s1) a b
+    | Substr (s1, _, _) -> failwith "unimplemented"
+    | At (s1, Var a) -> S.str_at (helper_str s1) a
+    | At (s1, _) -> failwith "unimplemented"
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
     | Atom (Ast.Var s) -> S.var s
@@ -262,24 +260,20 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
     | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
     | Mod (t, z) -> S.mod_ (helperT t) z
-    | Len (Ast.Str.Atom (Var s)) ->
-      let l = S.str_var s in
-      (* Format.printf "%s %d: l = %a\n%!" __FUNCTION__ __LINE__ S.pp_str l; *)
-      S.str_len l
     | Len (Ast.Str.Const s) -> S.const (String.length s)
-    | Stoi (Ast.Str.Atom (Var s)) -> S.str_atoi (S.str_var s)
     | Stoi (Ast.Str.Const s) ->
       (match int_of_string_opt s with
        | Some n -> S.const n
        | None -> S.str_atoi (S.str_const s))
+    | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
+      Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
+      failwith "Strlen/Stoi should not be called from int constants. Types are bad"
+    | Len s -> S.str_len (helper_str s)
+    | Stoi s -> S.str_atoi (helper_str s)
     | Stoi2 (Var s) -> S.stoi2 s
     | Stoi2 (Const _) -> failwith "TBD"
     | Len2 (Var s) -> S.str_len2 s
     | Len2 (Const _) -> failwith "TBD"
-    | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
-      Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
-      failwith "Strlen/Stoi should not be called from int constants. Types are bad"
-    | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
@@ -596,6 +590,10 @@ let apply_term_symantics
     | Ast.Str.Concat (lhs, rhs) -> S.str_concat (helperS lhs) (helperS rhs)
     | Ast.Str.FromEia (Var s) -> S.str_from_eia s
     | Ast.Str.FromEia (Const c) -> S.str_from_eia_const c
+    | Ast.Str.Substr (lhs, Var s1, Var s2) -> S.str_substr (helperS lhs) s1 s2
+    | Ast.Str.Substr (lhs, _, _) -> failwith "tbd"
+    | Ast.Str.At (lhs, Var s1) -> S.str_at (helperS lhs) s1
+    | Ast.Str.At (lhs, _) -> failwith "tbd"
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) as c -> c
     | Atom (Ast.Var s) -> S.var s
@@ -741,6 +739,9 @@ module Who_in_exponents_ = struct
   ;;
 
   let stoi2 _ = empty
+  let str_at _ _ = empty
+  let str_substr _ _ _ = empty
+  let str_prefixof = ( ++ )
 
   let mul xs =
     let aaa = List.fold_left ( ++ ) empty xs in
@@ -910,6 +911,9 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let str_from_eia_const _ = failwith "not implemented"
     let str_concat _ = failwith "not implemented"
     let str_equal _ = failwith "not implemented"
+    let str_at _ = failwith "not implemented"
+    let str_substr _ = failwith "not implemented"
+    let str_prefixof _ = failwith "not implemented"
     let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
 
     let exists vars x =
@@ -1082,6 +1086,24 @@ let lower_strlen ast =
   let env = ref Env.empty in
   let names : (Ast.Eia.term, string) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
   let forgotten = ref Env.empty in
+  let gensym1 = gensym in
+  let gensym () =
+    let ans = gensym1 ~prefix:"ees" () in
+    ans
+  in
+  let module Pre = struct
+    open Ast.Eia
+    include Id_symantics
+
+    let str_len : str -> term = function
+      | Atom _ as v1 -> Id_symantics.str_len v1
+      | eia ->
+        let sym = gensym () in
+        env := Env.extend_exn !env sym (`Str eia);
+        Id_symantics.str_len (Ast.Str.atom (Ast.var sym))
+    ;;
+  end
+  in
   let module Collector = struct
     open Ast.Eia
     include Id_symantics
@@ -1119,6 +1141,7 @@ let lower_strlen ast =
     ;;
   end
   in
+  let ast : Ast.t = apply_symantics_unsugared (module Pre) ast in
   let _ : Ast.t = apply_symantics_unsugared (module Collector) ast in
   match apply_symantics_unsugared (module Lowering) ast with
   | Ast.Land xs ->
@@ -1419,6 +1442,10 @@ let flatten_concats { Info.all; _ } =
     extra_ph := Id_symantics.eq (Id_symantics.var v) other :: !extra_ph;
     mapping := Term_map.add (`Eia other) v !mapping
   in
+  let extend_leq v other =
+    extra_ph := Id_symantics.leq (Id_symantics.var v) other :: !extra_ph;
+    mapping := Term_map.add (`Eia other) v !mapping
+  in
   let module M_ = struct
     include Id_symantics
 
@@ -1442,6 +1469,35 @@ let flatten_concats { Info.all; _ } =
            ]);
       extend v (Ast.Eia.len rhs);
       Ast.Str.fromeia (Ast.var u)
+    ;;
+
+    let str_substr (term : str) (offset : string) (len : string) =
+      let evar v = Ast.Eia.atom (Ast.var v) in
+      let svar v = Ast.Str.atom (Ast.var v) in
+      let econst v = Ast.Eia.atom (Ast.const v) in
+      let z1 = gensym () in
+      let z2 = gensym () in
+      let u = gensym () in
+      let y = gensym () in
+      let y' = gensym () in
+      let base = econst (Config.base ()) in
+      let term' = gensym () in
+      extend term' (Ast.Eia.Stoi term);
+      extend_leq
+        z1
+        (Ast.Eia.add
+           [ Ast.Eia.pow base (evar offset); Ast.Eia.Atom (Ast.const Z.minus_one) ]);
+      extend y (Ast.Eia.stoi (svar y'));
+      extend len (Ast.Eia.len (svar y'));
+      extend u (Ast.Eia.add [ evar offset; evar len ]);
+      extend
+        term'
+        (Ast.Eia.add
+           [ evar z1
+           ; Ast.Eia.mul [ evar y; Ast.Eia.pow base (evar offset) ]
+           ; Ast.Eia.mul [ evar z2; Ast.Eia.pow base (evar u) ]
+           ]);
+      svar y'
     ;;
 
     let prj = function
