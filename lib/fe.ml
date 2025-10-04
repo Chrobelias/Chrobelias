@@ -32,6 +32,27 @@ let rec to_string orig_expr =
       | Ast.Eia.Atom atom -> Ast.Str.FromEia atom
       | _ -> failwith "TBD: from.int now only expects vars inside"
     end
+  | Expr.Triop (_, Ty.Triop.String_extract, str, from, to') ->
+    let str = to_string str in
+    let from =
+      match to_eia_term from with
+      | Ast.Eia.Atom atom -> atom
+      | _ -> failwith "tbd"
+    in
+    let to' =
+      match to_eia_term to' with
+      | Ast.Eia.Atom atom -> atom
+      | _ -> failwith "tbd"
+    in
+    Ast.Str.substr str from to'
+  | Expr.Binop (_, Ty.Binop.At, str, sym) ->
+    let str = to_string str in
+    let sym =
+      match to_eia_term sym with
+      | Ast.Eia.Atom atom -> atom
+      | _ -> failwith "tbd"
+    in
+    Ast.Str.at str sym
   | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
 
 and to_regex orig_expr =
@@ -223,6 +244,11 @@ and _to_ir orig_expr =
     let re = to_regex re in
     let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
     Ast.Str (Ast.Str.inre str re)
+  | Expr.App ({ name = Symbol.Simple "str.prefixof"; _ }, [ str; str' ])
+  | Expr.Binop (_, Ty.Binop.String_prefix, str, str') ->
+    let str = to_string str in
+    let str' = to_string str' in
+    Ast.Str (Ast.Str.prefixof str str')
   (* Quantifiers and binders. *)
   | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
     let c = _to_ir c in

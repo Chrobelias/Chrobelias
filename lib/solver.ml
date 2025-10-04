@@ -44,6 +44,7 @@ let collect_vars ir =
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Rel (_, term, _) ->
          Set.union
            acc
@@ -92,6 +93,7 @@ let collect_free (ir : Ir.t) =
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Exists (xs, ir) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
@@ -160,6 +162,8 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
   | SReg (atom, re) -> Ast.str (Ast.Str.inre (ir_atom_to_str_term atom) re)
   | SEq (atom, atom') ->
     Ast.str (Ast.Str.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
+  | SPrefixOf (atom, atom') ->
+    Ast.str (Ast.Str.prefixof (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SLen (atom, atom') ->
     Ast.eia
       (Ast.Eia.eq
@@ -692,6 +696,12 @@ struct
            ~alpha
            ~dest:(Map.find_exn vars atom)
            ~src:(Map.find_exn vars atom')
+           ()
+       | Ir.SPrefixOf (atom, atom') ->
+         NfaCollection.sprefixof
+           ~alpha
+           ~dest:(Map.find_exn vars atom')
+           ~src:(Map.find_exn vars atom)
            ()
        | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
       |> fun nfa ->
