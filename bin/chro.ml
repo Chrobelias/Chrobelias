@@ -219,6 +219,12 @@ let check_sat ?(verbose = false) ast : rez =
   end
 ;;
 
+let logBaseZ n =
+  let base = Lib.Config.base () in
+  let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base) in
+  helper Z.minus_one n
+;;
+
 let join_int_model prefix m =
   let open Lib in
   let _ : Ir.model = m in
@@ -341,6 +347,20 @@ let () =
             let tys = merge_tys state in
             (match get_model tys with
              | Result.Ok model ->
+               let model =
+                 model
+                 |> Map.mapi ~f:(fun ~key ~data ->
+                   match data with
+                   | `Str str -> `Str str
+                   | `Int eia -> begin
+                     match key with
+                     | Lib.Ir.Var _ -> data
+                     | Pow2 _ -> `Int (logBaseZ eia)
+                   end)
+                 |> Map.map_keys_exn ~f:(function
+                   | Lib.Ir.Var _ as v -> v
+                   | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
+               in
                let model = join_int_model env model in
                Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
              | Result.Error `Too_long ->
