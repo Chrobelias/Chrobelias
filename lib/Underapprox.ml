@@ -91,6 +91,7 @@ let make_collector () =
     let str_len _ = empty
     let str_var _ = empty
     let const _ = empty
+    let constz _ = empty
     let var _ = empty
     let mul = List.fold_left ( ++ ) []
     let add = List.fold_left ( ++ ) []
