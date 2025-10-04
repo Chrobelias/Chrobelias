@@ -105,6 +105,9 @@ module type SYM0 = sig
   val exists : string list -> ph -> ph
   val str_len2 : string -> term
   val stoi2 : string -> term
+  val str_at : str -> string -> str
+  val str_substr : str -> string -> string -> str
+  val str_prefixof : str -> str -> ph
 end
 
 module type SYM = sig
@@ -194,6 +197,7 @@ module Id_symantics :
   let str_len2 s1 = Ast.Eia.len2 (Ast.var s1)
   let stoi2 s1 = Ast.Eia.stoi2 (Ast.var s1)
   let str_from_eia s = Ast.Str.FromEia (Ast.var s)
+  let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
   let str_from_eia_const c = Ast.Str.Const (Z.to_string c)
   let str_concat s1 s2 = Ast.Str.concat s1 s2
   let len = Ast.Eia.len
@@ -216,6 +220,8 @@ module Id_symantics :
   let lt l r = Ast.Eia (Ast.Eia.lt l r)
   let prj = Fun.id
   let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
+  let str_at s a = Ast.Str.at s (Ast.Var a)
+  let str_substr s a b = Ast.Str.substr s (Ast.Var a) (Ast.Var b)
 end
 
 let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
@@ -235,6 +241,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
           vs
       in
       S.exists vs (helper ph)
+    | Str (Ast.Str.PrefixOf (term, term')) ->
+      S.str_prefixof (helper_str term) (helper_str term')
     | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helper_str term) regex
     | Str (Ast.Str.Eq (term, term')) ->
       let l = helper_str term in
@@ -248,6 +256,10 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | FromEia (Var eia) -> S.str_from_eia eia
     | FromEia (Const c) -> S.str_from_eia_const c
     | Concat (s1, s2) -> S.str_concat (helper_str s1) (helper_str s2)
+    | Substr (s1, Var a, Var b) -> S.str_substr (helper_str s1) a b
+    | Substr (s1, _, _) -> failwith "unimplemented"
+    | At (s1, Var a) -> S.str_at (helper_str s1) a
+    | At (s1, _) -> failwith "unimplemented"
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
     | Atom (Ast.Var s) -> S.var s
@@ -619,6 +631,10 @@ let apply_term_symantics
     | Ast.Str.Concat (lhs, rhs) -> S.str_concat (helperS lhs) (helperS rhs)
     | Ast.Str.FromEia (Var s) -> S.str_from_eia s
     | Ast.Str.FromEia (Const c) -> S.str_from_eia_const c
+    | Ast.Str.Substr (lhs, Var s1, Var s2) -> S.str_substr (helperS lhs) s1 s2
+    | Ast.Str.Substr (lhs, _, _) -> failwith "tbd"
+    | Ast.Str.At (lhs, Var s1) -> S.str_at (helperS lhs) s1
+    | Ast.Str.At (lhs, _) -> failwith "tbd"
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) as c -> c
     | Atom (Ast.Var s) -> S.var s
@@ -764,6 +780,9 @@ module Who_in_exponents_ = struct
   ;;
 
   let stoi2 _ = empty
+  let str_at _ _ = empty
+  let str_substr _ _ _ = empty
+  let str_prefixof = ( ++ )
 
   let mul xs =
     let aaa = List.fold_left ( ++ ) empty xs in
@@ -933,6 +952,9 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let str_from_eia_const _ = failwith "not implemented"
     let str_concat _ = failwith "not implemented"
     let str_equal _ = failwith "not implemented"
+    let str_at _ = failwith "not implemented"
+    let str_substr _ = failwith "not implemented"
+    let str_prefixof _ = failwith "not implemented"
     let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
 
     let exists vars x =
@@ -1488,6 +1510,10 @@ let flatten_concats { Info.all; _ } =
     extra_ph := Id_symantics.eq (Id_symantics.var v) other :: !extra_ph;
     mapping := Term_map.add (`Eia other) v !mapping
   in
+  let extend_leq v other =
+    extra_ph := Id_symantics.leq (Id_symantics.var v) other :: !extra_ph;
+    mapping := Term_map.add (`Eia other) v !mapping
+  in
   let module M_ = struct
     include Id_symantics
 
@@ -1511,6 +1537,35 @@ let flatten_concats { Info.all; _ } =
            ]);
       extend v (Ast.Eia.len rhs);
       Ast.Str.fromeia (Ast.var u)
+    ;;
+
+    let str_substr (term : str) (offset : string) (len : string) =
+      let evar v = Ast.Eia.atom (Ast.var v) in
+      let svar v = Ast.Str.atom (Ast.var v) in
+      let econst v = Ast.Eia.atom (Ast.const v) in
+      let z1 = gensym () in
+      let z2 = gensym () in
+      let u = gensym () in
+      let y = gensym () in
+      let y' = gensym () in
+      let base = econst (Config.base ()) in
+      let term' = gensym () in
+      extend term' (Ast.Eia.Stoi term);
+      extend_leq
+        z1
+        (Ast.Eia.add
+           [ Ast.Eia.pow base (evar offset); Ast.Eia.Atom (Ast.const Z.minus_one) ]);
+      extend y (Ast.Eia.stoi (svar y'));
+      extend len (Ast.Eia.len (svar y'));
+      extend u (Ast.Eia.add [ evar offset; evar len ]);
+      extend
+        term'
+        (Ast.Eia.add
+           [ evar z1
+           ; Ast.Eia.mul [ evar y; Ast.Eia.pow base (evar offset) ]
+           ; Ast.Eia.mul [ evar z2; Ast.Eia.pow base (evar u) ]
+           ]);
+      svar y'
     ;;
 
     let prj = function

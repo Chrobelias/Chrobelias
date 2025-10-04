@@ -20,6 +20,7 @@ module type Type = sig
   val stoi : dest:int -> src:int -> t
   val itos : dest:int -> src:int -> t
   val seq : alpha:char list option -> dest:int -> src:int -> unit -> t
+  val sprefixof : alpha:char list option -> dest:int -> src:int -> unit -> t
   val base : int
 end
 

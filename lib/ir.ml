@@ -71,6 +71,7 @@ type t =
   | True
   | Reg of bool list Regex.t * atom list
   | SReg of atom * char list Regex.t
+  | SPrefixOf of atom * atom
   | SLen of atom * atom
   | SEq of atom * atom
   | Stoi of atom * atom
@@ -85,6 +86,8 @@ type t =
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
+  | SPrefixOf (atom, atom') ->
+    Format.fprintf fmt "(str.prefixof %a %a)" pp_atom atom pp_atom atom'
   | SEq (atom, atom') -> Format.fprintf fmt "(= %a %a)" pp_atom atom pp_atom atom'
   | SReg (atom, re) ->
     Format.fprintf
@@ -189,7 +192,7 @@ let pp_smtlib2 ppf ir =
         rhs;
       (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
       fprintf ppf ")@]" *)
-    | (SLen _ | Stoi _ | SReg _ | SEq (_, _) | Itos (_, _)) as ir ->
+    | (SLen _ | Stoi _ | SReg _ | SEq (_, _) | SPrefixOf (_, _) | Itos (_, _)) as ir ->
       Format.fprintf ppf "%a" pp ir
     | Land [ x ] ->
       (* TODO: should be eliminated in simplifier *)
@@ -306,6 +309,7 @@ let rec equal ir ir' =
     List.equal ( = ) atoms atoms' && equal ir ir'
   | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
   | SEq (atom, atom'), SEq (atom'', atom''')
+  | SPrefixOf (atom, atom'), SPrefixOf (atom'', atom''')
   | SLen (atom, atom'), SLen (atom'', atom''')
   | Stoi (atom, atom'), Stoi (atom'', atom''')
   | Itos (atom, atom'), Itos (atom'', atom''') -> atom = atom'' && atom' = atom'''
@@ -322,6 +326,7 @@ let rec map2 f fleaf ir =
   | Stoi (_, _) -> fleaf ir
   | Itos (_, _) -> fleaf ir
   | SEq (_, _) -> fleaf ir
+  | SPrefixOf (_, _) -> fleaf ir
   | Lnot ir' -> f (lnot (map2 f fleaf ir'))
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
   | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
@@ -340,6 +345,7 @@ let rec fold f acc ir =
   | Stoi (_, _) -> f acc ir
   | Itos (_, _) -> f acc ir
   | SEq (_, _) -> f acc ir
+  | SPrefixOf (_, _) -> f acc ir
   | Lnot ir' -> f (fold f acc ir') ir
   | Land irs -> f (List.fold_left (fold f) acc irs) ir
   | Lor irs -> f (List.fold_left (fold f) acc irs) ir
