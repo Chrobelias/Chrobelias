@@ -644,6 +644,17 @@ module Info = struct
       (Base.Set.Poly.to_list exp)
   ;;
 
+  let pp_hum ppf { exp; all } =
+    let open Format in
+    let pp_list =
+      pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ ")
+    in
+    fprintf ppf "@[<v>";
+    fprintf ppf "@[Exp: @[%a@]@]@," pp_list (Base.Set.Poly.to_list exp);
+    fprintf ppf "@[ALL: @[%a@]@]" pp_list (Base.Set.Poly.to_list all);
+    fprintf ppf "@]"
+  ;;
+
   let union e1 e2 =
     let ( ++ ) = Base.Set.Poly.union in
     { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all }
@@ -1460,4 +1471,42 @@ let%expect_test " -2x <= -1" =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-1));
   [%expect "(<= (* (- 1) x) (- 1))"]
+;;
+
+let tracing_on =
+  match Sys.getenv "CHRO_TRACE_OPT" with
+  | exception Not_found -> false
+  | "1" -> true
+  | _ -> false
+;;
+
+let log ppf =
+  if tracing_on
+  then Format.kasprintf (Format.printf "%s%!") ppf
+  else Format.ifprintf Format.std_formatter ppf
+;;
+
+let shrink_variables ast =
+  let _ : Ast.t = ast in
+  let info = apply_symantics (module Who_in_exponents) ast in
+  log "@[<v 2>@[Old info:@]@ @[%a@]@]\n" Info.pp_hum info;
+  (* Now let's make exponential variables more exponential *)
+  let module Sy = struct
+    open Ast
+    include Id_symantics
+
+    let leq l r =
+      match l, r with
+      | Eia.Atom (Var v), Eia.Atom (Const rhs) when Info.is_in_expo v info ->
+        (* log "HERE: %a" Ast.pp_smtlib2 (Eia (Eia.leq l r)); *)
+        Id_symantics.leq (pow (const 10) l) (pow (const 10) r)
+      | _ -> Id_symantics.leq l r
+    ;;
+  end
+  in
+  let ast2 = apply_symantics_unsugared (module Sy) ast in
+  let info2 = apply_symantics (module Who_in_exponents) ast in
+  log "new ast: @[%a@]\n" Ast.pp_smtlib2 ast2;
+  log "@[<v 2>@[New info:@]@ @[%a@]@]\n" Info.pp_hum info2;
+  ast2
 ;;

@@ -1474,6 +1474,7 @@ let check_sat ir
   | `Str -> begin
     match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
+      let ast = SimplII.shrink_variables ast in
       let ir =
         match Me.ir_of_ast ast with
         | Result.Ok x -> x
