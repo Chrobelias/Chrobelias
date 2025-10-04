@@ -23,16 +23,22 @@ module Str = struct
     | FromEia of atom
     | Const of string
     | Concat of term * term
+    | At of term * atom
+    | Substr of term * atom * atom
   [@@deriving variants, compare]
 
   let rec fold_term f acc = function
     | (Atom _ | FromEia _ | Const _) as term -> f acc term
     | Concat (lhs, rhs) as term -> f (fold_term f (fold_term f acc lhs) rhs) term
+    | Substr (term', _, _) as term -> f (fold_term f acc term') term
+    | At (term', _) as term -> f (fold_term f acc term') term
   ;;
 
   let rec map_term f = function
     | (Atom _ | FromEia _ | Const _) as term -> f term
     | Concat (lhs, rhs) -> f (concat (map_term f lhs) (map_term f rhs))
+    | Substr (term', a, b) -> f (substr (map_term f term') a b)
+    | At (term', a) -> f (at (map_term f term') a)
   ;;
 
   let rec pp_term ppf = function
@@ -40,11 +46,15 @@ module Str = struct
     | FromEia eia -> Format.fprintf ppf "(str.from_int %a)" pp_atom eia
     | Const s -> Format.fprintf ppf "\"%s\"" s
     | Concat (s1, s2) -> Format.fprintf ppf "(str.++ %a %a)" pp_term s1 pp_term s2
+    | Substr (term', a, b) ->
+      Format.fprintf ppf "(str.substr %a %a %a)" pp_term term' pp_atom a pp_atom b
+    | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_atom a
   ;;
 
   type t =
     | InRe of term * char list Regex.t
     | Eq of term * term
+    | PrefixOf of term * term
   [@@deriving variants, compare (* , show *)]
 
   let pp fmt = function
@@ -57,18 +67,23 @@ module Str = struct
         (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
         re
     | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re'
+    | PrefixOf (term, term') ->
+      Format.fprintf fmt "(str.prefixof %a %a)" pp_term term pp_term term'
   ;;
 
   let equal str str' =
     match str, str' with
     | InRe (str, re), InRe (str', re') -> str = str' && re = re'
     | Eq (re, re'), Eq (re'', re''') -> re = re'' && re' = re'''
+    | PrefixOf (re, re'), PrefixOf (re'', re''') -> re = re'' && re' = re'''
     | _, _ -> false
   ;;
 
   let fold2 f fterm acc = function
     | InRe (term, re) as ast -> f (fold_term fterm acc term) ast
     | Eq (re, re') as ast -> f (fold_term fterm (fold_term fterm acc re) re') ast
+    | PrefixOf (term, term') as ast ->
+      f (fold_term fterm (fold_term fterm acc term) term') ast
   ;;
 end
 

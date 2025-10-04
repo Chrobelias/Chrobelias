@@ -674,4 +674,9 @@ evrything goes south
     4) (exp it554 3)
     5) (exp it554 5)
     
+<<<<<<< HEAD
   unknown (non-linear)
+=======
+  unknown
+  ; non-linear
+>>>>>>> a3e7a3807 (solver: introduce basic substring operator)

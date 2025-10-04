@@ -90,6 +90,8 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
       let u = Ir.internal () in
       (u, [ Ir.eq (Map.singleton u Z.one) c ]) |> return
     | Ast.Str.Concat _ -> failf "concatenation makes the formula undecideable"
+    | Ast.Str.At _ -> failf "indexation likely makes the formula undecideable"
+    | Ast.Str.Substr _ -> failf "substrings makes the formula undecideable"
     | _ -> failwith "expected atom"
   in
   function
@@ -100,6 +102,10 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
     let* a, sup_a = of_str_atom a in
     let* b, sup_b = of_str_atom b in
     (Ir.seq a b :: sup_a) @ sup_b |> Ir.land_ |> return
+  | Ast.Str.PrefixOf (a, b) ->
+    let* a, sup_a = of_str_atom a in
+    let* b, sup_b = of_str_atom b in
+    (Ir.sprefixof a b :: sup_a) @ sup_b |> Ir.land_ |> return
 ;;
 
 (*| s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)*)
