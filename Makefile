@@ -6,31 +6,31 @@ all:
 
 test: dune test
 
-gentests: genCHCcomp22lia genTPDB_ITS_Termination genTPDB_ITS_Complexity genPURRS
+gentests: genCHCcomp22lia genTPDB_ITS_Termination genTPDB_ITS_Complexity genPURRS gen-tests-string gen-EXP
 
 genCHCcomp22lia: DIR = QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
 genCHCcomp22lia:
 	mkdir -p benchmarks/tests/$(DIR)
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
-	dune b @benchmarks/tests/$(DIR)/fmt --au
+	dune b @benchmarks/tests/$(DIR)/fmt --au 2> /dev/null || exit 0
 
 genTPDB_ITS_Termination: DIR = QF_LIA/LoAT/TPDB_ITS_Termination
 genTPDB_ITS_Termination:
 	mkdir -p benchmarks/tests/$(DIR)
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
-	dune b @benchmarks/tests/$(DIR)/fmt --au
+	dune b @benchmarks/tests/$(DIR)/fmt --au 2> /dev/null || exit 0
 
 genTPDB_ITS_Complexity: DIR = QF_LIA/LoAT/TPDB_ITS_Complexity
 genTPDB_ITS_Complexity:
 	mkdir -p benchmarks/tests/$(DIR)
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
-	dune b @benchmarks/tests/$(DIR)/fmt --au
+	dune b @benchmarks/tests/$(DIR)/fmt --au 2> /dev/null || exit 0
 
 genPURRS: DIR = QF_LIA/PURRS
 genPURRS:
 	mkdir -p benchmarks/tests/$(DIR)
 	dune exec benchmarks/gen.exe -- -ddc 4 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
-	dune b @benchmarks/tests/$(DIR)/fmt --au
+	dune b @benchmarks/tests/$(DIR)/fmt --au 2> /dev/null || exit 0
 
 define ADD_STRING_BENCH
 gen$(1):
