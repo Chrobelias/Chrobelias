@@ -4,5 +4,17 @@ trautest37
   $ grep -v set-logic ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/all/head/trautest37 >> trautest37.smt2
 $ cat trautest37.smt2
   $ timeout 2 Chro trautest37.smt2  || echo TIMEOUT
-  timeout
-  TIMEOUT
+  sat (nfa)
+  Warning: some of the eia model pieces are likely to be missed: x = (+ 
+                                                                     (* 
+                                                                     (* (- 8779)
+                                                                     q2) (- 1))
+                                                                     (* 
+                                                                     (* (- 1)
+                                                                     (* 1470
+                                                                     q4))
+                                                                     (- 1)))
+  ((define-fun q4 () (_ Int) 5)
+   (define-fun r1 () (_ Int) 7350)
+   (define-fun r3 () (_ Int) 0)
+   (define-fun x () (_ String) "123459999"))
