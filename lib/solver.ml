@@ -1237,16 +1237,16 @@ struct
            (fun fmt (a, b) ->
               Format.fprintf fmt "%a -> %a" Ir.pp_atom a Z.pp_print (Extra.model_to_int b)))
         (Map.to_alist map);
+      let filter =
+        fun k ->
+        match k with
+        | Ir.Pow2 _ -> Map.mem map (get_exp k)
+        | Ir.Var _ -> Map.mem map k
+      in
       let f =
         f
         |> Ir.map (function
           | Ir.Rel (rel, term, c) ->
-            let filter =
-              fun k ->
-              match k with
-              | Ir.Pow2 _ -> Map.mem map k
-              | Ir.Var _ -> Map.mem map k
-            in
             let c =
               term
               |> Map.filter_keys ~f:filter
@@ -1269,10 +1269,19 @@ struct
       in
       Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
       let model = get_model_normal f () in
-      Map.merge map model ~f:(fun ~key:_ -> function
+      Map.merge map model ~f:(fun ~key -> function
         | `Left x -> Some x
         | `Right x -> Some x
-        | `Both _ -> failwith "Should be unreachable")
+        | `Both (x, y) ->
+          failwith
+            (Format.asprintf
+               "Should be unreachable, two models for %a: %a %a"
+               Ir.pp_atom
+               key
+               Z.pp_print
+               (Extra.nat_model_to_int x)
+               Z.pp_print
+               (Extra.nat_model_to_int y)))
   ;;
 
   let get_model_semenov f s order (model, len) models =
