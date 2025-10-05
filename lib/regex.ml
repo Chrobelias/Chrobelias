@@ -276,7 +276,12 @@ let%expect_test "To nfa and predicate" =
 ;;
 *)
 
-let s bv = Bitv.fold_right (fun b acc -> b :: acc) (Bitv.of_int_us bv) []
+let s bv =
+  Bitv.fold_left
+    (fun acc b -> b :: acc)
+    []
+    (Bitv.of_list_with_length (Bitv.of_int_us bv |> Bitv.to_list) 3)
+;;
 
 let bwand =
   kleene
