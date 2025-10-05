@@ -176,9 +176,7 @@ module Id_symantics :
 
   let in_re l regex =
     let _ : str = l in
-    match l with
-    | Ast.Str.Atom (Var s) -> Ast.Str (Ast.Str.InRe (Ast.Str.Atom (Var s), regex))
-    | _ -> assert false
+    Ast.Str (Ast.Str.InRe (l, regex))
   ;;
 
   let str_len = function
