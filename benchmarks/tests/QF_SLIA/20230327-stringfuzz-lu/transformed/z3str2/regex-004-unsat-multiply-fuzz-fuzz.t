@@ -1,6 +1,5 @@
 regex-004-unsat-multiply-fuzz-fuzz
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-004-unsat-multiply-fuzz-fuzz.smt2  --no-simpl-alpha  || echo TIMEOUT
-  lib/SimplII.ml 226 (= x "xYWs'apj:4exzbgR`@,hVtBk;^?f%d''-vOzik\\8\\oaDqUqTXUVPbanOAjm1vPm*DC:0pN:{.-jDffW,Sb(}WH4|g-E>}za/Skr]Azd7CO}`2g-\\7MW`'hEF}qzq"aM[o/(v29X%}cO'\x0b'gIbc'@Z'\n'?'\r'Z]ld(?bAZPL]{8Tvj-*WAWw]TOT+G4#%Wu5PHDw?f\\D' '|&z5/9'\x0c'wqYP_cU<`d.^1Q{\\'\x0b'nYe^VUcU=9i"KN\\\\X5o'\x0b'6i'\x0c'xq]t?VCb\\}D=7zFL6?*uGWf'\t'$' '/z[vY,0c##'\n'ZM' '9iBx{=z'\n'm'\r'OiOD;i'+t'\t'<\\vK9A=n'\x0b''\t')B"48k;'\n''\x0c'}6C''\t'g;BM#5%+'\x0b'7]jN^zXoS{SibqTdb&m^J89{fsKbvI"<|@_X:PIu1Zjm(i-8tN;XoF_S'\x0c'Mv)M~zuxs;T/`V?83=uTnLLK$@_M3'\x0b'h'\n'ZTD'\x0b'6{'\n'krg9KK`&\\N3K/qpZ`Q!l['\r'|/RKvT.'\t'6s{d)j17?jNnw&0|4;-W{?7wtm@r'\t'_LFA'\x0b'}C^5~YWrd*']d,"' '=jCGOo4#'BY*=+Z:2][=taTPVgNWL4:f,&X|k' 'o`;h'\x0c'Z'\r'fGzuI-A5B0NHpPxP'\x0c'3]^y,._K2/FrWIZpJ1)'Iux{'2VX@kqbBbu%{$tLXzNo{ii+xU[|IrxT7'\x0c'[u:zyY@D[7Ts['\x0b''\x0c';tJ5x*vW"/K\\2phN' '.$yI|pV'\n'IVCOk5@Iq&'' 'oY"b1M>.' 'Fbs8T,3;Ff9K-u/$aK8|"JcCj*e!n='\t'UHbjg3jQmmy:1' 'z~#YK,Cz[;l%hSZfwce"f'\x0b'$;A7TIId..$0l7y^R'\x0b'_raGzG;r'\t'ogESa&xHlAI$f/;/$'\x0c'4X'\x0c'ZCtbR{5'\n'2Fcld^GUQ!g^Z0'\t'1LBJ$`DXq")
-  Fatal error: exception Failure("TBD")
+  Fatal error: exception Failure("Unimplemented for string bitvectors")
   TIMEOUT

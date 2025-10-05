@@ -10,4 +10,5 @@ twn09.koat_1
     5) (exp i5 4)
     6) (exp (+ i4 (* (- 1) i5)) 4)
     
-  unknown (non-linear)
+  unknown
+  ; non-linear

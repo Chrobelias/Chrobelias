@@ -6,4 +6,6 @@ twn17.koat_7
     1) (exp i6 3)
     2) (exp i6 5)
     
-  unknown (non-linear)
+  ; Need to improve --- UNSAT is expected
+  unknown
+  ; non-linear

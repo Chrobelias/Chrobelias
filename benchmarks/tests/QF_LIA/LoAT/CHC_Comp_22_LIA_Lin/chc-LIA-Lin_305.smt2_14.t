@@ -2,10 +2,10 @@ chc-LIA-Lin_305.smt2_14
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_14.smt2 || echo TIMEOUT
   Non linear arithmetic between
-    0) (* it135 it390)
-    1) (* it215 it324)
-    2) (exp it215 2)
-    3) (exp it324 2)
-    4) (exp it390 2)
+    0) (exp it215 2)
+    1) (exp it324 2)
+    2) (exp it390 2)
     
-  unknown (non-linear)
+  ; Need to improve --- UNSAT is expected
+  unknown
+  ; non-linear

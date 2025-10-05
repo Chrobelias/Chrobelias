@@ -4,4 +4,6 @@ chc-LIA-Lin_300.smt2_22
   Non linear arithmetic between
     0) (exp it172 2)
     
-  unknown (non-linear)
+  ; Need to improve --- SAT is expected
+  unknown
+  ; non-linear

@@ -4,5 +4,6 @@ test25
   $ grep -v set-logic ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head/test25 >> test25.smt2
 $ cat test25.smt2
   $ timeout 2 Chro test25.smt2  || echo TIMEOUT
+  sat ; nfa
   timeout
   TIMEOUT

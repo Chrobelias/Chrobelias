@@ -2,17 +2,14 @@ size01.koat_13
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size01.koat_13.smt2 || echo TIMEOUT
   Non linear arithmetic between
-    0) (* i3 it13)
-    1) (* i3 it48)
-    2) (* it13 it48)
-    3) (* it13 it73)
-    4) (* it48 it73)
-    5) (exp i3 2)
-    6) (exp it13 2)
-    7) (exp it13 3)
-    8) (exp it48 2)
-    9) (exp it48 3)
-    10) (exp it73 2)
-    11) (exp it73 3)
+    0) (exp i3 2)
+    1) (exp it13 2)
+    2) (exp it13 3)
+    3) (exp it48 2)
+    4) (exp it48 3)
+    5) (exp it73 2)
+    6) (exp it73 3)
     
-  unknown (non-linear)
+  ; Need to improve --- SAT is expected
+  unknown
+  ; non-linear
