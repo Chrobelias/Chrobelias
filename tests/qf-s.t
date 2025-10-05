@@ -1,20 +1,20 @@
 Basic QF_S tests
 
   $ Chro ./qf-s.smt2
-  sat (nfa)
+  sat ; nfa
   ((define-fun a () (_ String) "abc"))
-  sat (nfa)
-  sat (nfa)
+  sat ; nfa
+  sat ; nfa
   unsat
-  sat (nfa)
+  sat ; nfa
   unsat
   unsat
-  sat (nfa)
-  sat (nfa)
+  sat ; nfa
+  sat ; nfa
   unsat
-  sat (nfa)
+  sat ; nfa
   unsat
-  sat (nfa)
+  sat ; nfa
   ((define-fun %27 () (_ Int) 12) (define-fun a () (_ String) "100100100100"))
   ((define-fun a () (_ String) "BaLyuLyuLyuLyuLyuLyuLyu")
    (define-fun x () (_ Int) 23))
@@ -26,7 +26,7 @@ Basic QF_S tests
    (define-fun b () (_ String) "2")
    (define-fun q () (_ Int) 24))
   ((define-fun a () (_ String) "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"))
-  sat (nfa)
+  sat ; nfa
 
 +  1 sat
 +  2 sat

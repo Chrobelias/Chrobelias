@@ -261,7 +261,8 @@
     1) (exp i6 3)
     2) (exp i6 5)
   
-  unknown (non-linear)
+  unknown
+  ; non-linear
 $ time -f "%U"
 
   $ CHRO_DEBUG=1 timeout 5 Chro -pre-simpl input.smt2  -bound 0
@@ -525,7 +526,8 @@ $ time -f "%U"
     1) (exp i6 3)
     2) (exp i6 5)
     
-  unknown (non-linear)
+  unknown
+  ; non-linear
 
 $ time -f "%U"
 It's luck that Z3 gives an answer. If we add
@@ -540,4 +542,5 @@ evrything goes south
     4) (exp it554 3)
     5) (exp it554 5)
     
-  unknown (non-linear)
+  unknown
+  ; non-linear

@@ -5,7 +5,7 @@
   Something ready to substitute:  y -> (+ 13 (* (- 1) x));
   iter(2)= (= (+ x y) 13)
   iter(3)= True
-  sat (presimpl)
+  sat ; presimpl
 
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and

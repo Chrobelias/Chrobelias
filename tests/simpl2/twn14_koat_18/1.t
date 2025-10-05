@@ -267,7 +267,8 @@ $ cat input1.smt2
     1) (exp i6 3)
     2) (exp i6 5)
   
-  unknown (non-linear)
+  unknown
+  ; non-linear
 
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 5 Chro -pre-simpl input1.smt2 | echo "timeout"
@@ -283,5 +284,6 @@ $ /usr/bin/time -f "TIME: %U"
     4) (exp it377 3)
     5) (exp it377 5)
   
-  unknown (non-linear)
+  unknown
+  ; non-linear
 

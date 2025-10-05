@@ -18,7 +18,7 @@ $ cat baba3.smt2
             (str.in.re b (re.++ (re.++ (re.union (str.to.re "3") (str.to.re "2")) (re.* (re.union (str.to.re "3") (str.to.re "2")))) (re.* (str.to.re "")))))
   )
   $ Chro ./baba3.smt2
-  sat (nfa)
+  sat ; nfa
   ((define-fun a () (_ String) "BabBabBabLyubaLyubaLyuba")
    (define-fun b () (_ String) "2")
    (define-fun q () (_ Int) 24))

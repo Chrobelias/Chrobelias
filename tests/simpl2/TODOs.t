@@ -16,7 +16,7 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->0 x2->0 |}
-  sat (underapprox1)
+  sat ; underapprox1
 Should be (<= x 2)
   $ cat > TODO2.smt2 <<-EOF
   > (set-logic ALL)
@@ -35,7 +35,7 @@ Should be (<= x 2)
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->0 |}
-  sat (underapprox1)
+  sat ; underapprox1
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -47,7 +47,7 @@ Should be (<= x 2)
   iter(1)= (and
              (= (+ 2 6) 8))
   iter(2)= True
-  sat (presimpl)
+  sat ; presimpl
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -60,7 +60,7 @@ Should be (<= x 2)
   iter(1)= (and
              (<= (+ x1 (* (* (- 1) 1) x1)) 8))
   iter(2)= True
-  sat (presimpl)
+  sat ; presimpl
 
 Fold exps
   $ cat > i3.smt2 <<-EOF
@@ -98,7 +98,7 @@ Fold exps
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->0 x2->0 x3->0 |}
-  sat (underapprox1)
+  sat ; underapprox1
 
   $ cat > i3.smt2 <<-EOF
   > (set-logic ALL)
@@ -142,7 +142,7 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   
   lib/Underapprox.ml gives early Sat.
   env = {| it646->1 |}
-  sat (underapprox1)
+  sat ; underapprox1
 
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)
@@ -185,4 +185,5 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   Non linear arithmetic between
     0) (exp it362 3)
   
-  unknown (non-linear)
+  unknown
+  ; non-linear

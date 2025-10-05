@@ -13,7 +13,7 @@
   iter(2)= (and
              (= x 12345))
   iter(3)= True
-  sat (presimpl)
+  sat ; presimpl
 
   $ cat > 2.smt2 <<-EOF
   > (set-logic ALL)

@@ -18,7 +18,7 @@
   iter(2)= (= (+ (* (- 2) (exp 2 (+ n))) (exp 2 n) (exp 2 n)) 0)
   iter(3)= (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)
   iter(4)= True
-  sat (presimpl)
+  sat ; presimpl
   $ cat > 2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun n () Int)

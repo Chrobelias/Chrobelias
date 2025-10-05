@@ -9,8 +9,9 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ OCAMLRUNPARAM='b=0' Chro -no-over-approx -bound 6 -lsb 0.smt2
-  unknown (converting to automaton expression: unimplemented (= (+ (* (- 1) a (exp 2 z)) (* (- 1) (exp 2 (+ u z)))
-                   (* (- 1) (exp 2 (+ v z)))) (- 113)))
+  unknown
+  ; converting to automaton expression: unimplemented (= (+ (* (- 1) a (exp 2 z)) (* (- 1) (exp 2 (+ u z)))
+                   (* (- 1) (exp 2 (+ v z)))) (- 113))
 
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)
@@ -34,7 +35,7 @@ $ export CHRO_DEBUG=1
   
   (assert (= (* (- 1) u1)  -3)
   )
-  sat (under II)
+  sat ; under II
 
   $ echo '(2^10-2^8+1)* 2^2' | bc
   3076
@@ -79,9 +80,10 @@ which is needed to be fixed first
             (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3076)
             )
   )
-  unknown (Under2 resigns)
-  unknown (converting to automaton expression: unable to multiply var by var: (pow2(z) )  with (x )
-  )
+  unknown
+  ; Under2 resigns
+  unknown
+  ; converting to automaton expression: unable to multiply var by var: (pow2(z) )  with (x )
   no model
 
   $ echo '(2^12-2^10+1)* 2^0' | bc
@@ -107,7 +109,7 @@ which is needed to be fixed first
             (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3073)
             )
   )
-  sat (under II)
+  sat ; under II
 
   $ echo '(2^13-2^7+2^5)*2^0' | bc
   8096
@@ -165,4 +167,4 @@ which is needed to be fixed first
             (<= (* (- 1) u3)  0)
             )
   )
-  sat (under II)
+  sat ; under II
