@@ -106,7 +106,7 @@ let find_files path =
     files *)
 
 let get_extra_flags =
-  let data = [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -under2 -amin 1 -amax 1" ] in
+  let data = [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -flat 0 -amin 1 -amax 1" ] in
   let conflicts_simpl_alpah =
     [ "Norn/HammingDistance/norn-benchmark-5"
     ; "Norn/ab/norn-benchmark-69"
