@@ -24,13 +24,13 @@ $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #-stop-after simpl
   (assert (exists (u1)
           (and
-            (= (+ (* (- 1) pow2(eee2)) (* (- 5) pow2(y)) )  -52)
             (= (+ eee2 (* (- 1) u1) (* (- 1) y) )  0)
+            (= (+ (* (- 1) pow2(eee2)) (* (- 5) pow2(y)) )  -52)
             )
   )
   (assert (<= (+ eee2 (* (- 1) pow2(eee2)) )  -1) )
-  (assert (<= (+ y (* (- 1) pow2(y)) )  -1) )
   (assert (<= (+ (* (- 1) eee2) pow2(y) )  0) )
+  (assert (<= (+ y (* (- 1) pow2(y)) )  -1) )
   
   (assert (= (* (- 1) u1)  -3)
   )
@@ -70,13 +70,13 @@ The test below should be SAT but there is an issue #143
 which is needed to be fixed first
   $ timeout 2 $RUN -amin 1 -amax 1 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
           (and
-            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
-            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3076)
             (exists (u1)
             (and
-              (<= (+ (* (- 1) u1) v2 )  0)
               (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0)
+              (<= (+ (* (- 1) u1) v2 )  0)
               )
+            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
+            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3076)
             )
   )
   unknown (Under2 resigns)
@@ -98,13 +98,13 @@ which is needed to be fixed first
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 3.smt2'
   $ timeout 2 $RUN -amin 1 -amax 1 -lsb 3.smt2 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
           (and
-            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
-            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3073)
             (exists (u1)
             (and
-              (<= (+ (* (- 1) u1) v2 )  0)
               (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0)
+              (<= (+ (* (- 1) u1) v2 )  0)
               )
+            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
+            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3073)
             )
   )
   sat (under II)
@@ -147,22 +147,22 @@ which is needed to be fixed first
              (<= 0 u3))
   $ timeout 2 $RUN -flat 2 | grep -v assert | sed -r '/^\s*$/d'
           (and
-            (<= (* (- 1) u3)  0)
-            (= (+ (* (- 1) pow2(eee4)) pow2(eee5) pow2(eee6) )  8096)
             (exists (z)
             (and
-              (= (+ eee6 (* (- 1) u3) (* (- 1) z) )  0)
               (exists (u2)
               (and
-                (<= (+ (* (- 1) u2) u3 )  0)
-                (= (+ eee4 (* (- 1) u2) (* (- 1) z) )  0)
                 (exists (u1)
                 (and
-                  (<= (+ (* (- 1) u1) u2 )  0)
                   (= (+ eee5 (* (- 1) u1) (* (- 1) z) )  0)
+                  (<= (+ (* (- 1) u1) u2 )  0)
                   )
+                (= (+ eee4 (* (- 1) u2) (* (- 1) z) )  0)
+                (<= (+ (* (- 1) u2) u3 )  0)
                 )
+              (= (+ eee6 (* (- 1) u3) (* (- 1) z) )  0)
               )
+            (= (+ (* (- 1) pow2(eee4)) pow2(eee5) pow2(eee6) )  8096)
+            (<= (* (- 1) u3)  0)
             )
   )
   sat (under II)

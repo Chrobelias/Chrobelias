@@ -38,12 +38,12 @@ Habermehl demo
   $ Chro -bound 0 -dsimpl -stop-after simpl Habermehl.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (y)
           (and
-            (<= (* 5 y)  42)
             (exists (x)
             (and
-              (<= (+ x (* (- 3) y) z )  0)
               (= (+ x pow2(z) )  52)
+              (<= (+ x (* (- 3) y) z )  0)
               )
+            (<= (* 5 y)  42)
             )
   )
 
