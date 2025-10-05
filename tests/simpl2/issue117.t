@@ -42,5 +42,5 @@
     (= (exp 2 x) (* 32 v))
     (<= (+ (* (- 53) v) (* (- 1) x)) (- 100)))
   $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
-  sat (nfa)
+  sat ; nfa
 

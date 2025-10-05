@@ -514,8 +514,8 @@
   lib/Underapprox.ml gives early Sat.
   env = {| i2->-11 i3->5 it273->1 it645->0 it648->2 it649->2 it730->9 it87->1
          |}
-  sat (underapprox1)
+  sat ; underapprox1
   $ timeout 2 Chro -pre-simpl input.smt2 || echo "timeout"
-  sat (underapprox1)
+  sat ; underapprox1
 
 $ CHRO_DEBUG=1 Chro -dsimpl -no-pre-simpl -stop-after simpl input.smt2 | sed 's/[[:space:]]*$//'

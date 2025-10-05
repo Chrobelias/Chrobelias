@@ -9,7 +9,7 @@
   > (check-sat)
   > EOF
   $ timeout 2 Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  sat (underapprox1)
+  sat ; underapprox1
 We can't do anything below, because y exists in two polarities
   $ cat > testS2.smt2 <<-EOF
   > (set-logic ALL)
@@ -22,7 +22,7 @@ We can't do anything below, because y exists in two polarities
   > (check-sat)
   > EOF
   $ timeout 2 Chro -bound 0 -dsimpl -stop-after simpl testS2.smt2 | sed 's/[[:space:]]*$//'
-  sat (underapprox1)
+  sat ; underapprox1
 
 Habermehl demo
   $ cat > Habermehl.smt2 <<-EOF

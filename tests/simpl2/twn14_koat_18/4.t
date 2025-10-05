@@ -85,7 +85,8 @@ $ cat input4.smt2
     1) (exp i6 3)
     2) (exp i6 5)
   
-  unknown (non-linear)
+  unknown
+  ; non-linear
 
   $ timeout 5 Chro -pre-simpl input4.smt2 || echo "timeout"
   Non linear arithmetic between
@@ -93,6 +94,7 @@ $ cat input4.smt2
     1) (exp i6 3)
     2) (exp i6 5)
     
-  unknown (non-linear)
+  unknown
+  ; non-linear
 
   $ export CHRO_DEBUG=1

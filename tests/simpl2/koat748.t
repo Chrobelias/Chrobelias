@@ -568,12 +568,12 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| it134->1 it57->1 |}
-  sat (underapprox1)
+  sat ; underapprox1
 
 
   $ unset CHRO_DEBUG
   $ OCAMLRUNPARAM='b=0' Chro -no-pre-simpl input.smt2
-  sat (underapprox1)
+  sat ; underapprox1
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
-  sat (underapprox1)
+  sat ; underapprox1
 

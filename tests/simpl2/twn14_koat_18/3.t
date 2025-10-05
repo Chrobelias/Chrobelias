@@ -112,7 +112,8 @@ $ cat input3.smt2
     1) (exp i6 3)
     2) (exp i6 5)
   
-  unknown (non-linear)
+  unknown
+  ; non-linear
 
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 5 Chro -pre-simpl input3.smt2 || echo "timeout"
@@ -121,7 +122,8 @@ $ /usr/bin/time -f "TIME: %U"
     1) (exp i6 3)
     2) (exp i6 5)
     
-  unknown (non-linear)
+  unknown
+  ; non-linear
 
 $ export CHRO_DEBUG=1
 $ /usr/bin/time -f "TIME: %U"
@@ -133,6 +135,7 @@ $ /usr/bin/time -f "TIME: %U"
     3) (exp (* (* (- 1) 2) it360) 2)
     4) (exp (exp 4 (+ (* (- 1) 1) it140)) 2)
   
-  unknown (non-linear)
+  unknown
+  ; non-linear
 
 

@@ -40,11 +40,11 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->1 x2->0 |}
-  sat (underapprox1)
+  sat ; underapprox1
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
   $ Chro -no-over-approx -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
-  sat (underapprox1)
+  sat ; underapprox1
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
