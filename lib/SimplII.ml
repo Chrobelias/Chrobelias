@@ -1488,6 +1488,7 @@ let log ppf =
 
 let shrink_variables ast =
   let _ : Ast.t = ast in
+  log "old ast: @[%a@]\n" Ast.pp_smtlib2 ast;
   let info = apply_symantics (module Who_in_exponents) ast in
   log "@[<v 2>@[Old info:@]@ @[%a@]@]\n" Info.pp_hum info;
   let is_in_expo v = Info.is_in_expo v info in
@@ -1505,7 +1506,7 @@ let shrink_variables ast =
       let open Eia in
       (* Format.printf "TRACE: @[%a@]\n%!" Ast.pp_smtlib2 (Id_symantics.leq l r); *)
         match l, r with
-        | Atom (Var v), Atom (Const rhs) when is_in_expo v ->
+        | Atom (Var v), Atom (Const rhs) when is_in_expo v && Z.(lt rhs (of_int 10)) ->
           (* v<=c ~~> 10^v <= 10^c *)
           Id_symantics.leq (10 ** l) (10 ** r)
         | Add [ Atom (Var v); Mul [ Atom (Const m1); Atom (Var v2) ] ], Eia.Atom (Const z)
