@@ -7,6 +7,8 @@ module Map = Base.Map.Poly
 
 let () = Lib.Config.parse_args ()
 let log = Lib.Debug.printfln
+let answer_guess = ref None
+let set_guess v = answer_guess := Some v
 
 let () =
   Sys.set_signal
@@ -60,15 +62,21 @@ let check_sat ?(verbose = false) ast : rez =
         exit 0
       | _ -> assert false)
   in
-  let report_result2 =
+  let report_result2 rez =
+    let () =
+      match rez, !answer_guess with
+      | _, None | _, Some `Unknown | `Unsat, Some `Unsat | `Sat _, Some `Sat -> ()
+      | (`Unknown _ | `Unsat), Some `Sat | (`Unknown _ | `Sat _), Some `Unsat ->
+        Printf.eprintf "Une mauvaise réponse est possible!"
+    in
     if verbose
-    then
-      function
+    then (
+      match rez with
       | `Sat s -> Format.printf "sat (%s)\n%!" s
       | `Unsat -> Format.printf "unsat\n%!"
       | `Unknown s ->
-        Format.printf "unknown%s\n%!" (if s <> "" then " (" ^ s ^ ")" else "")
-    else fun _ -> ()
+        Format.printf "unknown%s\n%!" (if s <> "" then " (" ^ s ^ ")" else ""))
+    else ()
   in
   begin
     let rez =
@@ -355,7 +363,21 @@ let () =
       let ast = expr |> Lib.Fe._to_ir in
       { state with asserts = ast :: state.asserts }
     end
-    | _ -> state
+    | Smtml.Ast.Set_info e ->
+      let open Smtml in
+      (match Expr.view e with
+       | Smtml.Expr.App ({ Smtml.Symbol.name = Smtml.Symbol.Simple ":status"; _ }, [ r ])
+         ->
+         (match Smtml.Expr.view r with
+          | Expr.Symbol { name = Smtml.Symbol.Simple "sat"; _ } -> set_guess `Sat
+          | Expr.Symbol { name = Smtml.Symbol.Simple "unsat"; _ } -> set_guess `Unsat
+          | Expr.Symbol { name = Smtml.Symbol.Simple "unknown"; _ } -> set_guess `Unknown
+          | _ -> Format.eprintf "%d\n%!" __LINE__)
+       | _ -> ());
+      state
+    | _ast ->
+      (* Format.eprintf "skipped: @[%a@]\n%!" Smtml.Ast.pp ast; *)
+      state
   in
   let _ =
     List.fold_left

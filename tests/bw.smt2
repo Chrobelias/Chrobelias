@@ -9,6 +9,7 @@
   (assert (= y 3))
   (assert (= (bwand x y) 1))
   (assert (= (bwor x y) 7))
+  (set-info :status sat)
   (check-sat) ; sat
 (pop 1)
 
