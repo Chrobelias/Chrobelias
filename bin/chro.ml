@@ -63,7 +63,7 @@ let check_sat ?(verbose = false) ast : rez =
       | _ -> assert false)
   in
   let report_result2 rez =
-    let () =
+    let check_answer () =
       Format.printf "%!";
       Format.eprintf "%!";
       match rez, !answer_guess with
@@ -77,6 +77,7 @@ let check_sat ?(verbose = false) ast : rez =
       | `Sat _, Some `Unsat ->
         Printf.eprintf "; Une mauvaise réponse est possible (UNSAT est attendu)!\n%!"
     in
+    let () = if Lib.Debug.flag () then () else check_answer () in
     if verbose
     then (
       match rez with
