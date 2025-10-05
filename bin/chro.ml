@@ -65,6 +65,7 @@ let check_sat ?(verbose = false) ast : rez =
   let report_result2 rez =
     let () =
       Format.printf "%!";
+      Format.eprintf "%!";
       match rez, !answer_guess with
       | _, None | _, Some `Unknown | `Unsat, Some `Unsat | `Sat _, Some `Sat -> ()
       | `Unknown _, Some `Sat ->
