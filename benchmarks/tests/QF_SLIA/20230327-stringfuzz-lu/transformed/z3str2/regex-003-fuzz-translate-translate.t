@@ -1,6 +1,5 @@
 regex-003-fuzz-translate-translate
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-003-fuzz-translate-translate.smt2  --no-simpl-alpha  || echo TIMEOUT
-  lib/SimplII.ml 226 (= x "M9b}.q0' '}TH<l/'\x0b'n/a/2g}y/'\x0b'-0B/d-1kBu('\n'6{mV/'\x0b'}.q0=}/}.q0' '}<DD;,Q")
-  Fatal error: exception Failure("TBD")
+  Fatal error: exception Failure("Unimplemented for string bitvectors")
   TIMEOUT

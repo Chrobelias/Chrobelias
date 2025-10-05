@@ -1,8 +1,5 @@
 6
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/2019-full_str_int/py-conbyte_cvc4/lib_int-smtpd_parseargs/6.smt2  || echo TIMEOUT
-  Not implemented comparison:
-  	(= %5 (str.len arg2))
-  	(= %3 (str.len arg1))
-  Fatal error: exception File "lib/Simpl_alpha.ml", line 50, characters 6-12: Assertion failed
+  Fatal error: exception Failure("Unimplemented for string bitvectors")
   TIMEOUT

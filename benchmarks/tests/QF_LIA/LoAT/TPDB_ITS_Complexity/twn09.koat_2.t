@@ -6,4 +6,5 @@ twn09.koat_2
     1) (exp i4 4)
     2) (exp i5 2)
     
-  unknown (non-linear)
+  unknown
+  ; non-linear

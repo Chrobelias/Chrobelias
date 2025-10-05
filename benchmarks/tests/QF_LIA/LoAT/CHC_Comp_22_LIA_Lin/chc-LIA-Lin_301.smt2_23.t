@@ -4,4 +4,6 @@ chc-LIA-Lin_301.smt2_23
   Non linear arithmetic between
     0) (exp it142 2)
     
-  unknown (non-linear)
+  ; Need to improve --- UNSAT is expected
+  unknown
+  ; non-linear

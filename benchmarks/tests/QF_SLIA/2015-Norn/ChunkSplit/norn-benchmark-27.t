@@ -1,5 +1,5 @@
 norn-benchmark-27
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_SLIA/2015-Norn/ChunkSplit/norn-benchmark-27.smt2  || echo TIMEOUT
-  Fatal error: exception Failure("unable to handle (str.++ (var_5, var_6, var_7, \"z\", var_5)) as string")
+  Fatal error: exception File "lib/SimplII.ml", line 181, characters 11-17: Assertion failed
   TIMEOUT

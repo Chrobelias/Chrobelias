@@ -1,5 +1,5 @@
 norn-benchmark-422
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../benchmarks/QF_SLIA/2015-Norn/HammingDistance/norn-benchmark-422.smt2  --no-simpl-alpha  || echo TIMEOUT
-  Fatal error: exception Failure("unable to handle (str.++ (var_4, \"z\", var_5)) as string")
+  Fatal error: exception Failure("unable to handle re.none as regex")
   TIMEOUT

@@ -1,6 +1,5 @@
 regex-002-unsat-multiply-fuzz
   $ export OCAMLRUNPARAM='b=0'
   $ timeout 2 Chro ../../../../../../benchmarks/QF_SLIA/20230327-stringfuzz-lu/transformed/z3str2/regex-002-unsat-multiply-fuzz.smt2  --no-simpl-alpha  || echo TIMEOUT
-  lib/SimplII.ml 226 (= x "?~t6~s'\x0b'_m#,Dq[EjG~N3=[ejWwF'\x0b'a@iI'\x0c'vWTXQrNl.g%,@aaaaaaaa")
-  Fatal error: exception Failure("TBD")
+  Fatal error: exception Failure("Unimplemented for string bitvectors")
   TIMEOUT

@@ -5,4 +5,6 @@ twn02.koat_0
     0) (exp i4 2)
     1) (exp i5 2)
     
-  unknown (non-linear)
+  ; Need to improve --- SAT is expected
+  unknown
+  ; non-linear

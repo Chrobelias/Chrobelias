@@ -25,6 +25,7 @@ a.03.koat_36
     -flat  <N> Underapproximation 2 of (* x (exp 2 y)). N >=0. 
     -amin  <n> Parameter of underapprox.2. Matters when N>=2
     -amax  <n> Parameter of underapprox.2. Matters when N>=2
+    -under3  Enable underapprox 3 for string concatenation
     -help  Display this list of options
     --help  Display this list of options
   TIMEOUT
