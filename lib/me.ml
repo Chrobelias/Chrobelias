@@ -720,7 +720,7 @@ let simpl_ir (ir : Ast.t) : Ast.t =
   in
   simpl ir
   |> fun x ->
-  Debug.printf "Simplified expression: %a\n" Ast.pp x;
+  Debug.printf "Simplified expression: %a\n" Ast.pp_smtlib2 x;
   x
 ;;
 

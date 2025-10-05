@@ -60,6 +60,28 @@ let collect_vars ir =
   |> Map.of_alist_exn
 ;;
 
+let collect_atoms ir =
+  Ir.fold
+    (fun acc -> function
+       (*| Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
+       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | Ir.SReg (atom, _) -> Set.add acc atom
+       | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function
+              | Ir.Var _ as ir -> [ ir ]
+              | Ir.Pow2 _ as ir -> [ ir ])
+            |> Set.of_list)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
 let collect_free (ir : Ir.t) =
   Ir.fold
     (fun acc -> function
@@ -1072,17 +1094,28 @@ struct
       ~vars:(Map.to_alist vars)
       Nfa.format_nfa
       nfa;
+    let atoms = collect_atoms formula in
     let nfa =
-      nfa |> Nfa.to_nat
-      (*|> NfaNat.minimize *)
+      Set.fold
+        ~f:(fun acc k ->
+          if is_exp k && not (Set.mem atoms k)
+          then Nfa.project [ Map.find_exn vars k ] acc
+          else acc)
+        ~init:nfa
+        atoms
     in
+    let nfa = nfa |> Nfa.to_nat in
     Debug.dump_nfa
       ~msg:"Minimized original nfa: %s"
       ~vars:(Map.to_alist vars)
       NfaNat.format_nfa
       nfa;
     let powered_vars =
-      Map.filteri ~f:(fun ~key:k ~data:_ -> is_exp k || Map.mem vars (to_exp k)) vars
+      Map.filteri
+        ~f:(fun ~key:k ~data:_ ->
+          (is_exp k && Set.mem atoms (get_exp k))
+          || ((not (is_exp k)) && Set.mem atoms k && Set.mem atoms (to_exp k)))
+        vars
     in
     let s = { vars = powered_vars; internal_counter = 0 } in
     decide_order powered_vars
@@ -1204,16 +1237,16 @@ struct
            (fun fmt (a, b) ->
               Format.fprintf fmt "%a -> %a" Ir.pp_atom a Z.pp_print (Extra.model_to_int b)))
         (Map.to_alist map);
+      let filter =
+        fun k ->
+        match k with
+        | Ir.Pow2 _ -> Map.mem map (get_exp k)
+        | Ir.Var _ -> Map.mem map k
+      in
       let f =
         f
         |> Ir.map (function
           | Ir.Rel (rel, term, c) ->
-            let filter =
-              fun k ->
-              match k with
-              | Ir.Pow2 _ -> true
-              | Ir.Var _ -> Map.mem map k
-            in
             let c =
               term
               |> Map.filter_keys ~f:filter
@@ -1236,10 +1269,19 @@ struct
       in
       Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
       let model = get_model_normal f () in
-      Map.merge map model ~f:(fun ~key:_ -> function
+      Map.merge map model ~f:(fun ~key -> function
         | `Left x -> Some x
         | `Right x -> Some x
-        | `Both _ -> failwith "Should be unreachable")
+        | `Both (x, y) ->
+          failwith
+            (Format.asprintf
+               "Should be unreachable, two models for %a: %a %a"
+               Ir.pp_atom
+               key
+               Z.pp_print
+               (Extra.nat_model_to_int x)
+               Z.pp_print
+               (Extra.nat_model_to_int y)))
   ;;
 
   let get_model_semenov f s order (model, len) models =
@@ -1474,7 +1516,14 @@ let check_sat ir
   | `Str -> begin
     match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
-      let ir = Me.ir_of_ast ast |> Result.get_ok in
+      let ast = SimplII.shrink_variables ast in
+      let ir =
+        match Me.ir_of_ast ast with
+        | Result.Ok x -> x
+        | Error s ->
+          Format.eprintf "Can't convert AST to IR: %s\n%!" s;
+          exit 1
+      in
       let res = LsbStr.check_sat ir in
       (match res with
        | `Sat model ->

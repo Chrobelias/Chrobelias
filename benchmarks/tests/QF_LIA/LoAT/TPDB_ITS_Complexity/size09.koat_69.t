@@ -13,9 +13,7 @@ size09.koat_69
     8) (* it442 it444)
     9) (exp it15 2)
     10) (exp it15 3)
-    11) (exp it434 2)
-    12) (exp (+ (- 1) it434) 2)
-    13) (exp (+ (- 1) (* (- 1) i7) (* 2 it190 it425 it81)
+    11) (exp (+ (- 1) (* (- 1) i7) (* 2 it190 it425 it81)
              (* 2 it373 it424 it425)) 2)
     
   unknown (non-linear)

@@ -22,8 +22,7 @@ module type s_term = sig
   val add : term list -> term
   val bw : sup_binop -> term -> term -> term
   val const : int -> term
-
-  (* val constz : Z.t -> term *)
+  val constz : Z.t -> term
   val var : string -> term
 end
 
@@ -47,6 +46,7 @@ module type s_extra = sig
   type term
   type ph
 
+  val ( ** ) : int -> term -> term
   val ( <= ) : term -> term -> ph
   val ( < ) : term -> term -> ph
   val ( = ) : term -> term -> ph
@@ -56,6 +56,8 @@ module Sugar (S : sig
     type term
     type ph
 
+    val pow : term -> term -> term
+    val const : int -> term
     val eq : term -> term -> ph
     val leq : term -> term -> ph
     val lt : term -> term -> ph
@@ -64,6 +66,7 @@ struct
   let ( = ) = S.eq
   let ( < ) = S.lt
   let ( <= ) = S.leq
+  let ( ** ) b e = S.pow (S.const b) e
 end
 
 module To_smtml_symantics : sig
@@ -142,4 +145,5 @@ end = struct
   let ( = ) = eq
   let ( < ) = lt
   let ( <= ) = leq
+  let ( ** ) b e = pow (const b) e
 end

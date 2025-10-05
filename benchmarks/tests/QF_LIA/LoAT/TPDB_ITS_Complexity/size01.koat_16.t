@@ -14,6 +14,5 @@ size01.koat_16
     9) (exp it48 3)
     10) (exp it73 2)
     11) (exp it73 3)
-    12) (exp it78 2)
     
   unknown (non-linear)

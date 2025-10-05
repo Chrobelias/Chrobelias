@@ -4,9 +4,7 @@ size01.koat_66
   Non linear arithmetic between
     0) (* i3 it48)
     1) (exp i3 2)
-    2) (exp it376 2)
-    3) (exp it48 2)
-    4) (exp it48 3)
-    5) (exp (+ (- 1) it376) 2)
+    2) (exp it48 2)
+    3) (exp it48 3)
     
   unknown (non-linear)

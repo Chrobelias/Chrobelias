@@ -1,5 +1,16 @@
 type t = (string, [ `Eia of Ast.Eia.term | `Str of Ast.Str.term ]) Base.Map.Poly.t
 
+let pp : Format.formatter -> t -> unit =
+  fun ppf s ->
+  Format.fprintf ppf "@[ ";
+  Base.Map.iteri s ~f:(fun ~key ~data ->
+    match data with
+    | `Eia data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data
+    | `Str data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.Str.pp_term data);
+  Format.fprintf ppf "@]"
+[@@ocaml.warning "-32"]
+;;
+
 let walk =
   fun env ->
   Ast.map_term
@@ -17,29 +28,41 @@ let walk =
       | t -> t)
 ;;
 
-let occurs_var : string -> [ `Eia of Ast.Eia.term | `Str of Ast.Str.term ] -> bool =
-  fun v term ->
-  try
-    Ast.fold_term
-      (fun () -> function
-         | Ast.(Eia.Atom (Var v2)) when String.equal v v2 -> raise Exit
-         | _ -> ())
-      (fun () -> function
-         | Ast.(Str.Atom (Var v2)) when String.equal v v2 -> raise Exit
-         | _ -> ())
-      ()
-      term;
-    false
-  with
-  | Exit -> true
-;;
+let is_absent_key k map = not (Base.Map.Poly.mem map k)
 
 exception Occurs
 
+let rec occurs_var_exn =
+  fun env v term ->
+  Ast.fold_term
+    (fun () ->
+       let open Ast in
+       function
+       | Eia.Atom (Var v2) when String.equal v v2 -> raise Occurs
+       | Eia.Atom (Var v2) when not (is_absent_key v2 env) ->
+         occurs_var_exn env v (Base.Map.Poly.find_exn env v2)
+       | Eia.Len (Str.Atom (Var v2)) when String.equal v v2 -> raise Occurs
+       | Eia.Stoi (Str.Atom (Var v2)) when String.equal v v2 -> raise Occurs
+       | _ -> ())
+    (fun () -> function
+       | Ast.(Str.Atom (Var v2)) when String.equal v v2 -> raise Exit
+       | _ -> ())
+    ()
+    term
+;;
+
+let occurs_var env v term =
+  try
+    occurs_var_exn env v term;
+    false
+  with
+  | Occurs -> true
+;;
+
 let extend_exn : t -> _ -> _ -> t =
-  fun m key data ->
-  let data = walk m data in
-  if occurs_var key data then raise Occurs else Base.Map.Poly.add_exn m ~key ~data
+  fun env key data ->
+  let data = walk env data in
+  if occurs_var env key data then raise Occurs else Base.Map.Poly.add_exn env ~key ~data
 ;;
 
 let empty : t = Base.Map.Poly.empty
@@ -58,17 +81,6 @@ let merge : t -> t -> t =
       (*Format.eprintf "v1 = %a\n%!" Ast.pp_term_smtlib2 v1;
       Format.eprintf "v2 = %a\n%!" Ast.pp_term_smtlib2 v2;*)
       failwith "We tried to subtitute a varible by two different terms")
-;;
-
-let pp : Format.formatter -> t -> unit =
-  fun ppf s ->
-  Format.fprintf ppf "@[ ";
-  Base.Map.iteri s ~f:(fun ~key ~data ->
-    match data with
-    | `Eia data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data
-    | `Str data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.Str.pp_term data);
-  Format.fprintf ppf "@]"
-[@@ocaml.warning "-32"]
 ;;
 
 let to_eqs : t -> Ast.t list =

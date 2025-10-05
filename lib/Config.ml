@@ -68,6 +68,9 @@ let parse_args () =
     ; ( "--no-simpl-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , " Don't try simplifications based on alpha-equivalence" )
+    ; ( "--simpl-alpha"
+      , Arg.Unit (fun () -> config.simpl_alpha <- true)
+      , " DO simplifications based on alpha-equivalence" )
     ; "--no-simpl-mono", Arg.Unit (fun () -> config.simpl_mono <- false), " "
     ; "-dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), " Dump simplifications"
     ; "-dir", Arg.Unit (fun () -> config.dump_ir <- true), " Dump IR"

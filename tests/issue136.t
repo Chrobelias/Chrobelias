@@ -13,7 +13,7 @@
   > EOF
 
   $ export CHRO_LONGEST_PATH=100
-  $ timeout 4 Chro -no-over-approx -bound 0 2.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 4 Chro --simpl-alpha -no-over-approx -bound 0 2.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   ((define-fun x () (_ String) "1999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999")
    (define-fun y () (_ String) "99")
@@ -32,8 +32,8 @@
   > (get-model)
   > EOF
 
-  $ export CHRO_LONGEST_PATH=10000
-  $ timeout 5 Chro 3.smt2 | sed 's/[[:space:]]*$//'
+  $ export CHRO_LONGEST_PATH=1024
+  $ timeout 5 Chro --simpl-alpha 3.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   Warning: some of the eia model pieces are likely to be missed: x = y
   ((define-fun x () (_ String) "000")

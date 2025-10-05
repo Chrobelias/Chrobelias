@@ -26,6 +26,7 @@ val run_under1 : int -> Ast.t -> [ `Sat of string * Env.t | `Unknown ]
 val run_under2 : Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val run_under3 : Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val pp_error : Format.formatter -> error -> unit
+val shrink_variables : Ast.t -> Ast.t
 
 (** Underapproximation 2 related functions *)
 

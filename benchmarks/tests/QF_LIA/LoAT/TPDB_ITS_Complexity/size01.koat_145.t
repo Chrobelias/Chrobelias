@@ -6,7 +6,5 @@ size01.koat_145
     1) (exp i3 2)
     2) (exp it48 2)
     3) (exp it48 3)
-    4) (exp it840 2)
-    5) (exp (+ (- 1) it840) 2)
     
   unknown (non-linear)
