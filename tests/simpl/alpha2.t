@@ -17,33 +17,28 @@ $ export CHRO_DEBUG=1
   $ timeout 2 Chro -bound -1 -no-over-approx -dsimpl -stop-after simpl testA2.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (P)
           (and
-            (<= (* (- 1) P)  0)
+            (exists (Q) (= (+ (* (- 1) P) (* (- 1) Q) )  -101) )
             (not (exists (x1)
                  (and
-                   (<= (* (- 1) x1)  0)
                    (exists (x0)
                    (and
-                     (<= (* (- 1) x0)  0)
                      (= (+ (* (- 1) P) (* 199 x0) (* 211 x1) )  0)
+                     (<= (* (- 1) x0)  0)
                      )
+                   (<= (* (- 1) x1)  0)
                    )
             )(not (exists (R)
                   (and
-                    (not (<= (+ (* (- 1) P) R )  0) )(not (exists (x1)
-                                                          (and
-                                                            (<= (* (- 1) x1)
-                                                             0)
-                                                            (exists (x0)
-                                                            (and
-                                                              (<= (* (- 1) x0)
-                                                               0)
-                                                              (= (+ (* (- 1) R)
-                                                                 (* 199 x0)
-                                                                 (* 211 x1) )
-                                                               0)
-                                                              )
-                                                            )
-                                                     ))
-             )(exists (Q) (= (+ (* (- 1) P) (* (- 1) Q) )  -101) )
+                    (not (exists (x1)
+                         (and
+                           (exists (x0)
+                           (and
+                             (= (+ (* (- 1) R) (* 199 x0) (* 211 x1) )  0)
+                             (<= (* (- 1) x0)  0)
+                             )
+                           (<= (* (- 1) x1)  0)
+                           )
+                    )(not (<= (+ (* (- 1) P) R )  0) ))
+             )(<= (* (- 1) P)  0)
             )
   )

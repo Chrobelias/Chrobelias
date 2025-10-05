@@ -22,7 +22,6 @@
   Can't decide in lib/Underapprox.ml
   Simplify step: ((<= (exp 2 x) x) & (<= (exp 2 y) x))
   Simplified expression: ((<= (exp 2 x) x) & (<= (exp 2 y) x))
-    subst = {| |}
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   
