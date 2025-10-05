@@ -1,5 +1,6 @@
 (executable
  (name gen)
+ (modules gen)
  (libraries base unix str))
 
 (cram
@@ -17,3 +18,8 @@
    (run tar -xf %{project_root}/vendor/QF_SLIA.tar.zst)
    (run mv non-incremental/QF_SLIA .)
    (run rm -rf non-incremental))))
+
+(executable
+ (name promote_info)
+ (modules promote_info)
+ (libraries base unix str))
