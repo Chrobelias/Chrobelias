@@ -1,6 +1,7 @@
   $ cp ../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/twn14.koat_27.smt2 input.smt2
   $ export OCAMLRUNPARAM='b=0'
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
+  ; Need to improve --- SAT is expected
   iter(1)= (and
              (and
                (<= (+ 0 1) (* it552 (* (- 1) 2)))
@@ -526,6 +527,7 @@ $ time -f "%U"
     1) (exp i6 3)
     2) (exp i6 5)
     
+  ; Need to improve --- SAT is expected
   unknown
   ; non-linear
 
@@ -542,5 +544,6 @@ evrything goes south
     4) (exp it554 3)
     5) (exp it554 5)
     
+  ; Need to improve --- SAT is expected
   unknown
   ; non-linear
