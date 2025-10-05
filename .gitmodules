@@ -4,7 +4,7 @@
 	shallow = true
 [submodule "benchmarks/QF_LIA"]
 	path = benchmarks/QF_LIA
-	url = https://github.com/ffrohn/QF_EIA.git
+	url = https://github.com/Chrobelias/QF_EIA.git
 	shallow = true	
 [submodule "benchmarks/EXP-solver"]
 	path = benchmarks/EXP-solver
