@@ -63,20 +63,25 @@ let check_sat ?(verbose = false) ast : rez =
       | _ -> assert false)
   in
   let report_result2 rez =
-    Format.printf "%!";
     let () =
+      Format.printf "%!";
       match rez, !answer_guess with
       | _, None | _, Some `Unknown | `Unsat, Some `Unsat | `Sat _, Some `Sat -> ()
-      | (`Unknown _ | `Unsat), Some `Sat | (`Unknown _ | `Sat _), Some `Unsat ->
-        Printf.eprintf "Une mauvaise réponse est possible!\n%!"
+      | `Unknown _, Some `Sat ->
+        Printf.eprintf "; Need to improve --- SAT is expected\n%!"
+      | `Unknown _, Some `Unsat ->
+        Printf.eprintf "; Need to improve --- UNSAT is expected\n%!"
+      | `Unsat, Some `Sat ->
+        Printf.eprintf "; Une mauvaise réponse est possible (SAT est attendu)!\n%!"
+      | `Sat _, Some `Unsat ->
+        Printf.eprintf "; Une mauvaise réponse est possible (UNSAT est attendu)!\n%!"
     in
     if verbose
     then (
       match rez with
-      | `Sat s -> Format.printf "sat (%s)\n%!" s
+      | `Sat s -> Format.printf "sat ; %s\n%!" s
       | `Unsat -> Format.printf "unsat\n%!"
-      | `Unknown s ->
-        Format.printf "unknown%s\n%!" (if s <> "" then " (" ^ s ^ ")" else ""))
+      | `Unknown s -> Format.printf "unknown%s\n%!" (if s <> "" then "\n; " ^ s else ""))
     else ()
   in
   begin
