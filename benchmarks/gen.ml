@@ -131,33 +131,45 @@ let find_files path =
     files *)
 
 let get_extra_flags =
-  let data = [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -flat 0 -amin 1 -amax 1" ] in
-  let conflicts_simpl_alpah =
+  let data =
+    [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -flat 0 -amin 1 -amax 1"
+    ; "EXP-solver/Benchmark/HashFunction/", "-huge 100"
+    ]
+  in
+  let _conflicts_simpl_alpah =
     [ "Norn/HammingDistance/norn-benchmark-5"
     ; "Norn/ab/norn-benchmark-69"
     ; "Norn/ChunkSplit/norn-benchmark-7"
     ; "stringfuzz" (* ; "EXP-solver/Benchmark/HashFunction/all" *)
     ]
   in
-  let list_contains (cond : _ -> bool) xs =
+  (* let list_contains (cond : _ -> bool) xs =
     try
       let _ = List.find cond xs in
       true
     with
     | Not_found -> false
-  in
+  in *)
   fun s ->
-    let file = Filename.basename s in
     (* Printf.printf "file = %s\n%!" file; *)
-      try List.assoc file data with
+    let _file = Filename.basename s in
+    try
+      let _, opts =
+        List.find (fun (substring, _) -> Base.String.is_substring ~substring s) data
+      in
+      opts
+    with
+    | Not_found -> ""
+;;
+
+(* try List.assoc file data with
       | Not_found ->
         if
           list_contains
             (fun substring -> Base.String.is_substring ~substring s)
             conflicts_simpl_alpah
         then " --no-simpl-alpha "
-        else ""
-;;
+        else "" *)
 
 let dune_str = "dune build --no-print-directory --profile=benchmark"
 
