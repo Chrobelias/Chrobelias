@@ -95,3 +95,5 @@
 $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
 
 
+  $ timeout 5 Chro -no-over-approx -bound -1 ../examples/issue150.smt2 2>&1 | sed 's/[[:space:]]*$//'
+  timeout

@@ -1540,20 +1540,27 @@ let shrink_variables ast =
 
     (* TODO(Kakadu): maybe a syntax extension for better matching? *)
     (* TODO: detect base from variable usage  *)
+    let good_enough_constant rhs = Z.lt rhs (Z.of_int (Config.i150const ()))
 
     let leq l r =
       let open Eia in
       (* Format.printf "TRACE: @[%a@]\n%!" Ast.pp_smtlib2 (Id_symantics.leq l r); *)
         match l, r with
-        | Atom (Var v), Atom (Const rhs) when is_in_expo v && Z.(lt rhs (of_int 10)) ->
+        | Atom (Var v), Atom (Const rhs) when is_in_expo v && good_enough_constant rhs ->
           (* v<=c ~~> 10^v <= 10^c *)
           Id_symantics.leq (10 ** l) (10 ** r)
         | Add [ Atom (Var v); Mul [ Atom (Const m1); Atom (Var v2) ] ], Eia.Atom (Const z)
-          when same_base v v2 && Z.(equal z zero) && Z.(equal m1 minus_one)
+          when same_base v v2
+               && Z.(equal z zero)
+               && Z.(equal m1 minus_one)
+               && good_enough_constant z
                (* v - v2 <=0 ~~>  10^v <= 10^v2  *) ->
           Id_symantics.leq (10 ** var v) (10 ** var v2)
         | Add [ Atom (Var v); Mul [ Atom (Const c); Atom (Var v2) ] ], Eia.Atom (Const z)
-          when same_base v v2 && Z.(equal z zero) && Z.(lt c zero)
+          when same_base v v2
+               && Z.(equal z zero)
+               && Z.(lt c zero)
+               && good_enough_constant z
                (* v - c*v2 <= 0 ~~>  10^v2 <= (10^c)^v) *) ->
           Id_symantics.leq (10 ** var v2) (pow (10 ** constz (Z.abs c)) (var v))
         | _ -> Id_symantics.leq l r
