@@ -18,6 +18,10 @@
  (deps ../examples/issue150.smt2))
 
 (cram
+ (applies_to exp-test27)
+ (deps ../examples/exp-test27.smt2))
+
+(cram
  (applies_to koat36mini)
  (deps koat36mini.smt2))
 
