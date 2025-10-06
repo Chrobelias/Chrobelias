@@ -113,6 +113,7 @@ module type SYM = sig
   type repr
 
   val prj : ph -> repr [@@warning "-32"]
+  val pp_str : Format.formatter -> str -> unit
 end
 
 module type SYM_SUGAR = sig
@@ -151,6 +152,9 @@ module Id_symantics :
    and type str = Ast.Str.term = struct
   type term = Ast.Eia.term
   type str = Ast.Str.term
+
+  let pp_str = Ast.Str.pp_term
+
   type ph = Ast.t
   type repr = Ast.t
 
@@ -232,7 +236,11 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       in
       S.exists vs (helper ph)
     | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helper_str term) regex
-    | Str (Ast.Str.Eq (term, term')) -> S.str_equal (helper_str term) (helper_str term')
+    | Str (Ast.Str.Eq (term, term')) ->
+      let l = helper_str term in
+      let r = helper_str term' in
+      (* Format.printf "Apply Str.Eq: l = %a, r = %a\n%!" S.pp_str l S.pp_str r; *)
+      S.str_equal l r
   and helper_str : Ast.Str.term -> S.str = function
     | Ast.Str.Const s -> S.str_const s
     | Ast.Str.Atom (Ast.Var s) -> S.str_var s
@@ -252,7 +260,10 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
     | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
     | Mod (t, z) -> S.mod_ (helperT t) z
-    | Len (Ast.Str.Atom (Var s)) -> S.str_len (S.str_var s)
+    | Len (Ast.Str.Atom (Var s)) ->
+      let l = S.str_var s in
+      (* Format.printf "%s %d: l = %a\n%!" __FUNCTION__ __LINE__ S.pp_str l; *)
+      S.str_len l
     | Len (Ast.Str.Const s) -> S.const (String.length s)
     | Stoi (Ast.Str.Atom (Var s)) -> S.str_atoi (S.str_var s)
     | Stoi (Ast.Str.Const s) ->
@@ -622,17 +633,19 @@ module Info = struct
   type t =
     { exp : names
     ; all : names
+    ; str : names
     }
 
   let is_in_expo name { exp; _ } = Base.Set.Poly.mem exp name
+  let is_in_string name { str; _ } = Base.Set.Poly.mem str name
 
-  let make ~exp ~all ~under =
+  let make ~exp ~all ~str =
     (* TODO: check subsumtion *)
     let of_list = Base.Set.Poly.of_list in
-    { exp = of_list exp; all = of_list all }
+    { exp = of_list exp; all = of_list all; str = of_list str }
   ;;
 
-  let empty = make ~exp:[] ~all:[] ~under:[]
+  let empty = make ~exp:[] ~all:[] ~str:[]
 
   let pp_exp ppf { exp; _ } =
     Format.fprintf
@@ -643,20 +656,21 @@ module Info = struct
       (Base.Set.Poly.to_list exp)
   ;;
 
-  let pp_hum ppf { exp; all } =
+  let pp_hum ppf { exp; all; str } =
     let open Format in
     let pp_list =
       pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ ")
     in
     fprintf ppf "@[<v>";
     fprintf ppf "@[Exp: @[%a@]@]@," pp_list (Base.Set.Poly.to_list exp);
+    fprintf ppf "@[Str: @[%a@]@]@," pp_list (Base.Set.Poly.to_list str);
     fprintf ppf "@[ALL: @[%a@]@]" pp_list (Base.Set.Poly.to_list all);
     fprintf ppf "@]"
   ;;
 
   let union e1 e2 =
     let ( ++ ) = Base.Set.Poly.union in
-    { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all }
+    { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all; str = e1.str ++ e2.str }
   ;;
 end
 
@@ -665,6 +679,8 @@ module Who_in_exponents_ = struct
 
   type term = Info.t
   type str = Info.t
+
+  let pp_str = Info.pp_hum
 
   open Info
 
@@ -691,17 +707,37 @@ module Who_in_exponents_ = struct
 
   let in_re _ _ = empty
   let str_atoi _ = empty
-  let str_len _ = empty
+  let str_len s = s
   let str_const _ = empty
-  let str_var _ = empty
-  let str_from_eia s = empty
+
+  let str_var v =
+    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
+    { empty with str = S.singleton v }
+  ;;
+
+  let str_from_eia s =
+    (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+    empty
+  ;;
+
   let str_from_eia_const s = empty
   let str_concat = ( ++ )
-  let str_equal = ( ++ )
+
+  let str_equal l r =
+    let ans = l ++ r in
+    (* Format.printf "%s %d: %a\n%!" __FILE__ __LINE__ Info.pp_hum ans; *)
+    ans
+  ;;
+
   let const _ = empty
   let constz _ = empty
   let var s = { empty with all = S.singleton s }
-  let str_len2 _ = empty
+
+  let str_len2 v =
+    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
+    { empty with str = S.singleton v }
+  ;;
+
   let stoi2 _ = empty
 
   let mul xs =
@@ -735,7 +771,7 @@ module Who_in_exponents_ = struct
 
   let pow2var v =
     let all = [ v ] in
-    Info.make ~all ~exp:all ~under:all
+    Info.make ~all ~exp:all ~str:[]
   ;;
 
   let pow base e = { e with all = S.union base.all e.all }
@@ -883,6 +919,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
 
     let str_len2 _ = failwith "not implemented"
     let stoi2 _ = failwith "not implemented"
+    let pp_str = Smtml.Expr.pp
   end
   in
   (module struct
@@ -898,8 +935,9 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let single info env c1 v1 c2 v2 rhs =
     let c1 = Z.to_int c1 in
     let c2 = Z.to_int c2 in
+    let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
     try
-      match c1, Info.is_in_expo v1 info, c2, Info.is_in_expo v2 info with
+      match c1, is_bad v1, c2, is_bad v2 with
       | 1, false, _, _ when Env.is_absent_key v1 env && Env.is_absent_key v2 env ->
         (* Format.printf "%s %d v1=%s, v2=%s\n%!" __FILE__ __LINE__ v1 v2; *)
         Env.extend_exn env v1 (`Eia S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ]))
@@ -951,17 +989,17 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       let maybe_extend env v data ~fk =
         if not (Env.occurs_var env v data) then Env.extend_exn env v data else fk ()
       in
+      let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
       let rec loop acc = function
         | Eia.Atom (Var v) :: _ when not (Env.is_absent_key v env) -> raise Exit
-        | Eia.Atom (Var v) :: xs
-          when Env.is_absent_key v env && not (Info.is_in_expo v info) ->
+        | Eia.Atom (Var v) :: xs when Env.is_absent_key v env && not (is_bad v) ->
           let data = S.(mul [ const (-1); add (acc @ xs) ]) in
           if not (Env.occurs_var env v (`Eia data))
           then Env.extend_exn env v (`Eia data)
           else loop (Eia.Atom (Var v) :: acc) xs
         | (Mul [ Atom (Const c); Eia.Atom (Var v) ] as leftmost) :: xs
           when Env.is_absent_key v env
-               && (not (Info.is_in_expo v info))
+               && (not (is_bad v))
                && Z.(equal (of_int (-1)) c)
                && not_touched_by_env env (Eia.Add acc)
                && not_touched_by_env env (Eia.Add xs) ->
@@ -985,7 +1023,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ?(env = [ "x"; "y"; "z" ]) ?(exp = []) ph =
-    let info = Info.make ~all:env ~exp ~under:[] in
+    let info = Info.make ~all:env ~exp ~str:[] in
     let env2 = eq_propagation info Env.empty ph in
     Format.printf "@[%a@]\n%!" Env.pp env2
   in
@@ -1094,6 +1132,7 @@ let basic_simplify step (env : Env.t) ast =
     let ast2 = Symantics.prj rez in
     let ast2 = propagate_exponents ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
+    (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
     let env2 = eq_propagation var_info env ast in
     let __ _ = log "env2 = %a" Env.pp env2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
