@@ -137,7 +137,7 @@ $ export CHRO_TRACE_OPT=1
                            (<= (* (- 1) u) 0)
                            (str.in_re x (re.++ (re.++ (re.++ (re.++ (str.to.re "9") (re.++ (str.to.re "8") (re.++ (str.to.re "7") (str.to.re "6")))) (re.* (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (str.to.re "0") (str.to.re "1")) (str.to.re "2")) (str.to.re "3")) (str.to.re "4")) (str.to.re "5")) (str.to.re "6")) (str.to.re "7")) (str.to.re "8")) (str.to.re "9")))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
 
-  $ Chro -no-over-approx -bound -1 ../examples/issue150.smt2 2>&1 | sed 's/[[:space:]]*$//'
+  $ timeout 5 Chro -no-over-approx -bound -1 ../examples/issue150.smt2 2>&1 | sed 's/[[:space:]]*$//'
   sat (nfa)
   Warning: some of the eia model pieces are likely to be missed: x = (+
                                                                      (* (- 444)

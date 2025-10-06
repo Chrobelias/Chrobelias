@@ -43,6 +43,10 @@ type under2_config =
   ; mutable flat : int [@warning "-69"]
   }
 
+type issue150_config = { mutable i150const : int }
+
+let issue150_config = { i150const = 10 }
+let i150const () = issue150_config.i150const
 let under2_config = { amin = 5; amax = 11; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
@@ -101,6 +105,12 @@ let parse_args () =
     ; ( "-under3"
       , Arg.Unit (fun () -> config.under_3 <- true)
       , " Enable underapprox 3 for string concatenation" )
+    ; ( "-i150c"
+      , Arg.Int (fun n -> issue150_config.i150const <- n)
+      , Printf.sprintf
+          " <n> Apply reduction of variable count when constant (DEFAULT=%d) is below \
+           this (issue 150)"
+          (i150const ()) )
     ]
     (fun s ->
        if Sys.file_exists s
