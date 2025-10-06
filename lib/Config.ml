@@ -111,6 +111,9 @@ let parse_args () =
           " <n> Apply reduction of variable count when constant (DEFAULT=%d) is below \
            this (issue 150)"
           (i150const ()) )
+    ; ( "-huge"
+      , Arg.Int (fun n -> issue150_config.i150const <- n)
+      , " The same as '-i150c N'" )
     ]
     (fun s ->
        if Sys.file_exists s
