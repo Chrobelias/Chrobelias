@@ -6,3 +6,4 @@
 (assert (< (str.len x) 100))
 (check-sat)
 (get-model)
+; benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head/test27
