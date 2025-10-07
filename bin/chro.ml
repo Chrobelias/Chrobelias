@@ -397,10 +397,15 @@ let () =
       state
   in
   let _ =
-    List.fold_left
-      exec
-      { asserts = []; prev = None; last_result = None; tys = Map.empty }
-      f
+    try
+      List.fold_left
+        exec
+        { asserts = []; prev = None; last_result = None; tys = Map.empty }
+        f
+    with
+    | Lib.Fe.Frontend_error s when Lib.Config.is_quiet () ->
+      Format.eprintf "\027[31mFronted error\027[0m\n%!";
+      exit 1
   in
   ()
 ;;
