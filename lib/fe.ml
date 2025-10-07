@@ -3,7 +3,9 @@ module Symbol = Smtml.Symbol
 module Ty = Smtml.Ty
 module Binder = Smtml.Binder
 
-let failf fmt = Format.kasprintf failwith fmt
+exception Frontend_error of string
+
+let failf fmt = Format.kasprintf (fun s -> raise (Frontend_error s)) fmt
 
 let rec to_string orig_expr =
   let expr = Expr.view orig_expr in
@@ -286,5 +288,5 @@ and _to_ir orig_expr =
       ast
       bindings
   end
-  | _ -> Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr |> failwith
+  | _ -> failf "Expression %a can't be handled" Expr.pp orig_expr
 ;;
