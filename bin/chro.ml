@@ -295,13 +295,16 @@ let () =
     end
     | Smtml.Ast.Check_sat exprs ->
       Lib.Config.config.with_check_sat <- true;
-      let expr_irs = List.map Lib.Fe._to_ir exprs in
+      let expr_irs =
+        let open Lib.Fe in
+        list_mapk _to_ir exprs Lib.Ast.land_
+      in
       let rec get_ast { asserts; prev; _ } =
         match prev with
         | Some state -> asserts @ get_ast state
         | None -> asserts
       in
-      let ast = Lib.Ast.land_ (expr_irs @ get_ast state) in
+      let ast = Lib.Ast.land_ (expr_irs :: get_ast state) in
       let rez = check_sat ~verbose:true ast in
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
@@ -381,7 +384,7 @@ let () =
         in
         state)
     | Smtml.Ast.Assert expr -> begin
-      let ast = expr |> Lib.Fe._to_ir in
+      let ast = Lib.Fe._to_ir expr Fun.id in
       { state with asserts = ast :: state.asserts }
     end
     | Smtml.Ast.Set_info e ->
