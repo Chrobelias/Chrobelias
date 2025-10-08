@@ -2,6 +2,5 @@
  (deps %{bin:Chro}))
 
 (cram
- (deps
-  ../../benchmarks/QF_SLIA/2019-full_str_int/py-conbyte_cvc4/leetcode_int-add_binary/692.smt2)
+ (deps 692.smt2)
  (applies_to 692ite))
