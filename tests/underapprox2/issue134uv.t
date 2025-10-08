@@ -57,13 +57,17 @@ $ export CHRO_DEBUG=1
   all as: 1
   
   iter(1)= (and
-             (= (+ (* (exp 2 u1) (exp 2 z)) (* (* (- 1) (exp 2 v2)) (exp 2 z))
+             (= (+ (* (+ (exp 2 u1) (* (- 1) (exp 2 v2))) (exp 2 z))
                 (* 1 (exp 2 z))) 3076)
              (<= v2 u1))
   iter(2)= (and
-             (= (+ (* (- 1) (exp 2 v2) (exp 2 z)) (exp 2 z) (exp 2 (+ u1 z))) 3076)
+             (= (+ (* (* (- 1) (exp 2 v2)) (exp 2 z)) (* (exp 2 u1) (exp 2 z))
+                (exp 2 z)) 3076)
              (<= v2 u1))
   iter(3)= (and
+             (= (+ (* (- 1) (exp 2 v2) (exp 2 z)) (exp 2 z) (exp 2 (+ u1 z))) 3076)
+             (<= v2 u1))
+  iter(4)= (and
              (= (+ (* (- 1) (exp 2 (+ v2 z))) (exp 2 z) (exp 2 (+ u1 z))) 3076)
              (<= v2 u1))
   $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 -under2b 3 -stop-after presimpl
@@ -75,15 +79,19 @@ $ export CHRO_DEBUG=1
   all as: 1
   
   iter(1)= (and
-             (= (+ (* (exp 2 u1) (exp 2 z)) (* (* (- 1) (exp 2 v2)) (exp 2 z))
-                (* (* 3 1) (exp 2 z))) 3076)
+             (= (+ (* (* 3 (+ (exp 2 u1) (* (- 1) (exp 2 v2)))) (exp 2 z))
+                (* 1 (exp 2 z))) 3076)
              (<= v2 u1))
   iter(2)= (and
-             (= (+ (* (- 1) (exp 2 v2) (exp 2 z)) (* 3 (exp 2 z))
-                (exp 2 (+ u1 z))) 3076)
+             (= (+ (* (* (* (- 1) (exp 2 v2)) 3) (exp 2 z))
+                (* (* (exp 2 u1) 3) (exp 2 z)) (exp 2 z)) 3076)
              (<= v2 u1))
   iter(3)= (and
-             (= (+ (* (- 1) (exp 2 (+ v2 z))) (* 3 (exp 2 z)) (exp 2 (+ u1 z))) 3076)
+             (= (+ (* (- 3) (exp 2 v2) (exp 2 z)) (* 3 (exp 2 u1) (exp 2 z))
+                (exp 2 z)) 3076)
+             (<= v2 u1))
+  iter(4)= (and
+             (= (+ (* (- 3) (exp 2 (+ v2 z))) (* 3 (exp 2 (+ u1 z))) (exp 2 z)) 3076)
              (<= v2 u1))
 
 The test below should be SAT but there is an issue #143
