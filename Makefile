@@ -163,6 +163,7 @@ make_bench_scripts:
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -b bench_EXP-flatten-head.sh
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/tail -b bench_EXP-flatten-tail.sh
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head-tail -b bench_EXP-flatten-headtail.sh
+	find ./benchmarks/QF_SLIA/2019-full_str_int/ -iname '*.smt2' | dune exec benchmarks/gen.exe -- -b bench-full_str_int -t 10 -
 
 
 
