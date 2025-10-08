@@ -89,6 +89,11 @@ and to_regex orig_expr =
     let lhs = to_regex lhs in
     let rhs = to_regex rhs in
     Regex.mand lhs rhs
+  | Expr.Unop (_ty, Ty.Unop.Regexp_loop (l, r), stmt) ->
+    let stmt = to_regex stmt in
+    let lhs = List.init l (fun _ -> stmt) |> List.fold_left Regex.concat Regex.epsilon in
+    let rhs = List.init r (fun _ -> Regex.opt stmt) |> List.fold_left Regex.concat lhs in
+    rhs
   | Expr.Unop (_ty, Ty.Unop.Regexp_opt, expr) -> to_regex expr |> Regex.opt
   | Expr.Unop (_ty, Ty.Unop.Regexp_plus, expr) -> to_regex expr |> Regex.plus
   | Expr.Unop (_ty, Ty.Unop.Regexp_star, expr) -> to_regex expr |> Regex.kleene
