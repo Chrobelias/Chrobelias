@@ -44,6 +44,7 @@ let is_quiet () = config.quiet
 type under2_config =
   { mutable amin : int
   ; mutable amax : int
+  ; mutable b : int
   ; mutable flat : int [@warning "-69"]
   }
 
@@ -51,7 +52,7 @@ type issue150_config = { mutable i150const : int }
 
 let issue150_config = { i150const = 10 }
 let i150const () = issue150_config.i150const
-let under2_config = { amin = 5; amax = 11; flat = -1 }
+let under2_config = { amin = 5; amax = 11; b = 1; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
@@ -107,6 +108,14 @@ let parse_args () =
     ; ( "-amax"
       , Arg.Int (fun n -> under2_config.amax <- n)
       , " <n> Parameter of underapprox.2. Matters when N>=2" )
+    ; ( "-under2b"
+      , Arg.Int
+          (fun n ->
+            assert (n > 0);
+            under2_config.b <- n)
+      , Printf.sprintf
+          " <n> Parameter of underapprox.2. Matters when N>=2. DEFAULT=%d"
+          under2_config.b )
     ; ( "-under3"
       , Arg.Unit (fun () -> config.under_3 <- true)
       , " Enable underapprox 3 for string concatenation" )

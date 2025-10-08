@@ -1199,10 +1199,15 @@ let try_under2_heuristics env ast =
       Base.Set.Poly.fold
         ~f:(fun acc name ->
           let* a = all_as in
+          let ca =
+            let b = Config.(under2_config.b) in
+            if b = 1
+            then Id_symantics.const a
+            else Id_symantics.(mul [ const b; const a ])
+          in
           let* acc, phs = acc in
           let u = gensym ~prefix:"u" () in
-          [ Env.extend_exn acc name (`Eia Id_symantics.(add [ pow2var u; const a ])), phs
-          ])
+          [ Env.extend_exn acc name (`Eia Id_symantics.(add [ pow2var u; ca ])), phs ])
         ~init:[ env, [] ]
         under2vars
     | 1 ->
@@ -1214,6 +1219,12 @@ let try_under2_heuristics env ast =
       Base.Set.Poly.fold
         ~f:(fun acc name ->
           let* a = all_as in
+          let ca =
+            let b = Config.(under2_config.b) in
+            if b = 1
+            then Id_symantics.const a
+            else Id_symantics.(mul [ const b; const a ])
+          in
           let* acc, phs = acc in
           let u = gensym ~prefix:"u" () in
           let v = gensym ~prefix:"v" () in
@@ -1222,8 +1233,7 @@ let try_under2_heuristics env ast =
                 name
                 (`Eia
                     Id_symantics.(
-                      Ast.Eia.Add
-                        [ pow2var u; Ast.Eia.Mul [ const (-1); pow2var v ]; const a ]))
+                      Ast.Eia.Add [ pow2var u; Ast.Eia.Mul [ const (-1); pow2var v ]; ca ]))
             , Id_symantics.(prj (leq (var v) (var u))) :: phs )
           ])
         ~init:[ env, [] ]
