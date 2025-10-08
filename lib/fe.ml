@@ -154,6 +154,15 @@ and to_regex orig_expr k =
     to_regex expr (fun x -> k (Regex.plus x))
   | Expr.Unop (_ty, Ty.Unop.Regexp_star, expr) ->
     to_regex expr (fun x -> k (Regex.kleene x))
+  | Expr.Unop (_ty, Ty.Unop.Regexp_loop (l, r), stmt) ->
+    to_regex stmt (fun stmt ->
+      let lhs =
+        List.init l (fun _ -> stmt) |> List.fold_left Regex.concat Regex.epsilon
+      in
+      let rhs =
+        List.init r (fun _ -> Regex.opt stmt) |> List.fold_left Regex.concat lhs
+      in
+      k rhs)
   | Expr.Unop (_ty, Ty.Unop.Regexp_comp, expr) ->
     failwith "complements are not implemented yet since they would explode NFAs"
   | _ -> failf "unable to handle %a as regex" Expr.pp orig_expr
