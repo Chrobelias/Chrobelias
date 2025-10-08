@@ -9,6 +9,7 @@ type opponent =
 type config =
   { mutable outdir : string
   ; mutable path : string
+  ; mutable stdin : bool
   ; mutable timeout : int
   ; mutable dot_dot_count : int
     (** This is needed to insert right number of ../ to access benchmarks.
@@ -21,6 +22,7 @@ type config =
 let config =
   { outdir = "."
   ; path = "."
+  ; stdin = false
   ; timeout = 2
   ; dot_dot_count = 5
   ; suffix = ".smt2"
@@ -47,6 +49,7 @@ let () =
             | "no" -> config.opponent <- Without
             | _ -> failwith "bad argument")
       , " " )
+    ; "-", Arg.Unit (fun () -> config.stdin <- true), " "
     ]
     (fun s -> config.path <- s)
     "help"
@@ -207,8 +210,6 @@ let t_file ~file smt2_file =
        Format.pp_print_flush tfmt ())
 ;;
 
-let files = find_files config.path
-
 let make_smt2_file file =
   Printf.sprintf
     "%s/%s/%s%s"
@@ -216,6 +217,18 @@ let make_smt2_file file =
     config.path
     file
     config.suffix
+;;
+
+let files =
+  if config.stdin
+  then
+    List.filter_map
+      (function
+        | "" -> None
+        | s -> Some (Base.String.chop_suffix_if_exists s ~suffix:".smt2"))
+      (In_channel.input_lines stdin)
+    |> List.sort String.compare
+  else find_files config.path
 ;;
 
 let prepare_default () =
