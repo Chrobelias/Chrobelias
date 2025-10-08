@@ -403,7 +403,7 @@ let () =
         { asserts = []; prev = None; last_result = None; tys = Map.empty }
         f
     with
-    | Lib.Fe.Frontend_error s when Lib.Config.is_quiet () ->
+    | Lib.Fe.Frontend_error _ when Lib.Config.is_quiet () ->
       Format.eprintf "\027[31mFronted error\027[0m\n%!";
       exit 1
   in
