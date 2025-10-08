@@ -17,13 +17,13 @@ Target solver: CVC4, Z3, Z3str3, Z3-Trau
 (assert ( >= (+ ( str.len a)  (- (- (- (- 1) 1)  1)  1) )  0) )
 
 (assert (not (>=
-    (+ (ite (str.prefixof "-" (str.at a (+ ( str.len a) (- 3)) ) )
+    (+ (ite true;(str.prefixof "-" (str.at a (+ ( str.len a) (- 3)) ) )
             (- (str.to_int
                 (str.substr (str.at a (+ (str.len a)  (- 3)) )
                     1
                     (- (str.len (str.at a (+ (str.len a)  (- 3)) ) )  1) ) ) )
             (str.to_int ( str.at a (+ ( str.len a)  (- 3)) ) ) )
-       (ite (str.prefixof "-" ( str.at b (+ ( str.len b)  (- 3)) ) )
+       (ite true ;(str.prefixof "-" ( str.at b (+ ( str.len b)  (- 3)) ) )
             (- ( str.to_int ( str.substr ( str.at b (+ ( str.len b)  (- 3)) )  1 (- ( str.len ( str.at b (+ ( str.len b)  (- 3)) ) )  1) ) ) )
             ( str.to_int ( str.at b (+ ( str.len b)  (- 3)) ) ) ) )
     2) ))
