@@ -58,6 +58,12 @@ let rec to_string orig_expr k : Ast.t =
       match str with
       | Ast.Eia.Atom atom -> land_ (k (Ast.Str.FromEia atom) :: acc)
       | _ -> failwith "TBD: from.int now only expects vars inside") *)
+  | Expr.Triop (_, Ty.Triop.Ite, c, th, el) ->
+    _to_ir th (fun th ->
+      _to_ir el (fun el ->
+        to_string c (fun c ->
+          let c = k c in
+          Ast.lor_ [ land_ [ c; th ]; land_ [ Ast.lnot c; el ] ])))
   | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
 
 and to_regex orig_expr k =
@@ -143,6 +149,7 @@ and to_eia_term : Expr.t -> (Ast.Eia.term -> 'a) -> 'a =
        | Int d -> k (Ast.Eia.atom (Ast.const (Z.of_int d)))
        | _ -> failf "unable to handle %a as integer term" Expr.pp orig_expr)
     | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ e ])
+    | Expr.App ({ name = Symbol.Simple "str.to_int"; _ }, [ e ])
     | Expr.Cvtop (_, Ty.Cvtop.String_to_int, e) ->
       to_string e (fun str -> k (Ast.Eia.stoi str))
     | Expr.Symbol symbol ->
@@ -201,7 +208,7 @@ and _to_ir orig_expr k =
   (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
-  let is_str expr =
+  let rec is_str expr =
     (Expr.ty expr = Ty.Ty_str
      &&
        match Expr.view expr with
@@ -214,6 +221,7 @@ and _to_ir orig_expr k =
       | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ _ ])
       | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ _ ])
       | Expr.Cvtop (_, Ty.Cvtop.ToString, _) -> true
+      | Expr.Triop (_, Ty.Triop.Ite, _, then_, _) -> is_str then_
       | _ -> false
   in
   let expr = Expr.view orig_expr in
