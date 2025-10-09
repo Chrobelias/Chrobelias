@@ -28,7 +28,7 @@ Should be (<= x 2)
   $ Chro -pre-simpl -dsimpl -stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (* 5 x1) 13))
-  iter(2)= (<= (* 5 x1) 13)
+  iter(2)= (<= x1 2)
   Interesting:
   
   Expecting 1 choices ...
