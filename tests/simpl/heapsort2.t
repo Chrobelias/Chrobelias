@@ -15,11 +15,11 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  sat (presimpl)
+  sat ; presimpl
 
   $ export CHRO_EIA=old
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  sat (presimpl)
+  sat ; presimpl
 
 
 
