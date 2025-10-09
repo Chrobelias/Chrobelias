@@ -60,6 +60,5 @@ $ export CHRO_DEBUG=1
     Exp: %1
     Str: x
     ALL: %1 %2 q2 q4 x
-  `Unknown  in lib/Overapprox.ml
   timeout
   [124]
