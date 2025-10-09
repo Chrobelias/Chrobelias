@@ -90,6 +90,6 @@ Test EXP-solver simplified problems
                                                                      (* (- 130)
                                                                      u)
                                                                      (* 137 w))
-  ((define-fun u () (_ Int) 0)
-   (define-fun v () (_ Int) 0)
+  ((define-fun u () (_ Int) 1)
+   (define-fun v () (_ Int) 130)
    (define-fun x () (_ String) "12286789"))
