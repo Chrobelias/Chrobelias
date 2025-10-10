@@ -307,9 +307,13 @@ and _to_ir orig_expr k =
   | Expr.App ({ name = Symbol.Simple "str.in.re"; _ }, [ str; re ])
   | Expr.Binop (_, Ty.Binop.String_in_re, str, re) ->
     to_string str (fun str ->
-      let* re = to_regex re in
-      let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
-      Ast.Str (Ast.Str.inre str re))
+      to_regex re (fun re ->
+        let re =
+          Regex.concat
+            (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
+            (Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])))
+        in
+        k (Ast.Str (Ast.Str.inre str re))))
   | Expr.Unop (_, Ty.Unop.Neg, arg) ->
     let* arg = _to_ir arg in
     Ast.lnot arg
