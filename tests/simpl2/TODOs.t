@@ -178,12 +178,15 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > EOF
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
-             (and
-               (= (+ (+ it376 (* (* (- 1) 3) it361)) (* 2 (exp it362 3))) 0)
-               (= (* 0 it360) 0)))
-  iter(2)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
-  Something ready to substitute:  it376 -> (+ (* (* (- 3) it361) (- 1))
-                                           (* (* 2 (exp it362 3)) (- 1)));
+             (= (+ (+ it376 (* (* (- 1) 3) it361)) (* 2 (exp it362 3))) 0)
+             (= (* 0 it360) 0))
+  Something ready to substitute:  it360 -> 0;
+  iter(2)= (and
+             (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0))
+  Something ready to substitute:  it360 -> 0; it376 -> (+ (* (* (- 3) it361)
+                                                          (- 1))
+                                                       (* (* 2 (exp it362 3))
+                                                       (- 1)));
   iter(3)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
   iter(4)= (= (+ (* (- 3) it361) (* 2 (exp it362 3)) (* (* (- 3) it361) (- 1))
               (* (* 2 (exp it362 3)) (- 1))) 0)
