@@ -242,13 +242,17 @@ and _to_ir orig_expr =
   | Expr.Binop (_, Ty.Binop.String_in_re, str, re) ->
     let str = to_string str in
     let re = to_regex re in
-    let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
+    let re =
+      Regex.concat
+        (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
+        (Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])))
+    in
     Ast.Str (Ast.Str.inre str re)
   | Expr.App ({ name = Symbol.Simple "str.prefixof"; _ }, [ str; str' ])
   | Expr.Binop (_, Ty.Binop.String_prefix, str, str') ->
     let str = to_string str in
     let str' = to_string str' in
-    Ast.Str (Ast.Str.prefixof str str')
+    Ast.str (Ast.Str.prefixof str str')
   (* Quantifiers and binders. *)
   | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
     let c = _to_ir c in
