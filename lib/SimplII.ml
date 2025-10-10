@@ -225,7 +225,9 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Lnot x -> S.not (helper x)
     | True -> S.true_
     | Eia e -> helper_eia e
-    | Pred s -> assert false
+    | Pred _ as x ->
+      Format.eprintf "Unknown part of the ast: @[%a@]\n%!" Ast.pp_smtlib2 x;
+      assert false
     | Exists (vs, ph) ->
       let vs =
         List.filter_map

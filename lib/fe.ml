@@ -14,6 +14,12 @@ let rec list_mapk f xs k =
   | h :: tl -> f h (fun h -> list_mapk f tl (fun tl -> k (h :: tl)))
 ;;
 
+let rec list_foldk f acc xs k =
+  match xs with
+  | [] -> k acc
+  | h :: tl -> f acc h (fun acc -> list_foldk f acc tl k)
+;;
+
 (*
    let rec list_map f = function
   | [] -> return []
@@ -129,13 +135,13 @@ and to_eia_term : Expr.t -> (Ast.Eia.term -> 'a) -> 'a =
       let hd = List.hd xs in
       let tl = List.tl xs in
       k (List.fold_left op hd tl))
-  and helper expr k =
+  and helper orig_expr k =
     let ( let* ) x f = x (fun z -> k (f z)) in
-    match Expr.view expr with
+    match Expr.view orig_expr with
     | Expr.Val v ->
       (match v with
        | Int d -> k (Ast.Eia.atom (Ast.const (Z.of_int d)))
-       | _ -> failf "unable to handle %a as integer term" Expr.pp expr)
+       | _ -> failf "unable to handle %a as integer term" Expr.pp orig_expr)
     | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ e ])
     | Expr.Cvtop (_, Ty.Cvtop.String_to_int, e) ->
       to_string e (fun str -> k (Ast.Eia.stoi str))
@@ -164,7 +170,7 @@ and to_eia_term : Expr.t -> (Ast.Eia.term -> 'a) -> 'a =
     | Expr.Unop (_ty, Ty.Unop.Neg, expr) -> helper expr (fun t -> k (neg t))
     (* Arithmetic operations. *)
     | Expr.Binop (_ty, Ty.Binop.Add, lhs, rhs) ->
-      helper lhs (fun lhs -> helper rhs (fun rhs -> k (Ast.Eia.Add [ lhs; rhs ])))
+      helper lhs (fun lhs -> helper rhs (fun rhs -> k @@ Ast.Eia.Add [ lhs; rhs ]))
     | Expr.Binop (_ty, Ty.Binop.Sub, lhs, rhs) ->
       helper lhs (fun lhs -> helper rhs (fun rhs -> k (Ast.Eia.Add [ lhs; neg rhs ])))
     | Expr.Binop (_ty, Ty.Binop.Mul, lhs, rhs) ->
@@ -179,16 +185,16 @@ and to_eia_term : Expr.t -> (Ast.Eia.term -> 'a) -> 'a =
        | Expr.Val (Int d) ->
          let* lhs = helper lhs in
          Ast.Eia.Mod (lhs, Z.of_int d)
-       | _ -> failf "I expected term, in %a" Expr.pp expr)
+       | _ -> failf "I expected term, in %a" Expr.pp orig_expr)
     | Expr.Triop (_, Ty.Triop.Ite, c, th, el) ->
       _to_ir th (fun th ->
         _to_ir el (fun el ->
           helper c (fun c ->
             let c = k c in
             Ast.lor_ [ land_ [ c; th ]; land_ [ Ast.lnot c; el ] ])))
-    | _ -> failf "II expected term, in %a" Expr.pp expr
+    | _ -> failf "expected term, in %a" Expr.pp orig_expr
   in
-  fun orig_expr k -> helper orig_expr k
+  helper
 
 and _to_ir orig_expr k =
   let ( let* ) x f = x (fun z -> k (f z)) in
@@ -220,7 +226,7 @@ and _to_ir orig_expr k =
     | _ -> failf "unable to handle %a as boolean term" Expr.pp orig_expr
   end
   (* Variables. *)
-  | Expr.Symbol symbol -> Ast.pred (Symbol.to_string symbol)
+  | Expr.Symbol symbol -> k (Ast.pred (Symbol.to_string symbol))
   (* Yes, probably this stuff is kinda over-engineered. *)
   (* Logical operations. *)
   (* Not. *)
@@ -235,13 +241,16 @@ and _to_ir orig_expr k =
   | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) ->
     list_mapk _to_ir exprs (fun xs -> k (Ast.lor_ xs))
   (* Implication *)
-  | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) -> assert false
-  (* Ast.limpl (_to_ir lhs) (_to_ir rhs) *)
+  | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) ->
+    let* lhs = _to_ir lhs in
+    let* rhs = _to_ir rhs in
+    Ast.limpl lhs rhs
   (* Integer comparisons. *)
   | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str lhs || is_str rhs ->
     let build t c = Ast.str (Ast.Str.eq t c) in
-    to_string lhs (fun lhs -> to_string rhs (fun rhs -> build lhs rhs))
+    to_string lhs (fun lhs -> to_string rhs (fun rhs -> k @@ build lhs rhs))
   | Expr.Relop (_ty, rel, lhs, rhs) ->
+    (* Format.printf "%s %d: expr = @[%a@]\n%!" __FILE__ __LINE__ Smtml.Expr.pp orig_expr; *)
     let build =
       match rel with
       | Ty.Relop.Eq -> fun t c -> Ast.eia (Ast.Eia.eq t c)
@@ -252,14 +261,14 @@ and _to_ir orig_expr k =
       | Ty.Relop.Gt -> fun t c -> Ast.eia (Ast.Eia.gt t c)
       | _ -> failwith "Unsupported relational operator in EIA"
     in
-    to_eia_term lhs (fun lhs -> to_eia_term rhs (build lhs))
+    to_eia_term lhs (fun lhs -> to_eia_term rhs (fun rhs -> k @@ build lhs rhs))
   (* Strings. *)
   | Expr.App ({ name = Symbol.Simple "str.in.re"; _ }, [ str; re ])
   | Expr.Binop (_, Ty.Binop.String_in_re, str, re) ->
     to_string str (fun str ->
-      to_regex re (fun re ->
-        let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
-        Ast.Str (Ast.Str.inre str re)))
+      let* re = to_regex re in
+      let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
+      Ast.Str (Ast.Str.inre str re))
   | Expr.Unop (_, Ty.Unop.Neg, arg) ->
     let* arg = _to_ir arg in
     Ast.lnot arg
@@ -291,39 +300,64 @@ and _to_ir orig_expr k =
            | _ -> failwith "Unexpected value in quantifier")
         atoms
     in
-    let* rhs = _to_ir formula in
-    binder atoms rhs
+    let rhs = _to_ir formula Fun.id in
+    k (binder atoms rhs)
   | Expr.Binder (Binder.Let_in, bindings, expr) -> begin
-    let* ast = _to_ir expr in
-    List.fold_left
-      (fun acc binding ->
-         match Expr.view binding with
-         | Expr.App (symbol, [ expr ]) ->
-           let symbol = Symbol.to_string symbol in
-           (match _to_ir expr Fun.id with
-            | ast' ->
-              Ast.map
-                (function
-                  | Ast.Pred symbol' when symbol = symbol' -> ast'
-                  | ast -> ast)
-                acc
-            | exception _ ->
-              to_eia_term expr (fun eia' ->
-                Ast.map
-                  (function
-                    | Ast.Eia eia ->
-                      Ast.eia
-                        (Ast.Eia.map2
-                           Fun.id
-                           (function
-                             | Ast.Eia.Atom (Ast.Var v) when v = symbol -> eia'
-                             | term -> term)
-                           eia)
-                    | ast -> ast)
-                  acc))
-         | _ -> failwith "Unexpected construction in let-in binding")
-      ast
-      bindings
+    let bnds =
+      List.map
+        (fun e ->
+           match Expr.view e with
+           | Expr.App (symbol, [ expr ]) -> Symbol.to_string symbol, expr
+           | _ -> failwith "Unexpected construction in let-in binding")
+        bindings
+    in
+    let subst_symbol symbol ~by where =
+      (* Format.printf
+        "%s: [%s -> @[%a@]]%a\n%!"
+        __FUNCTION__
+        symbol
+        Ast.pp_smtlib2
+        by
+        Ast.pp_smtlib2
+        where; *)
+      Ast.map
+        (function
+          | Ast.Pred symbol' when symbol = symbol' -> by
+          | ast -> ast)
+        where
+    in
+    let subst_var symbol ~by where =
+      (* Format.printf
+        "%s: [%s -> @[%a@]]%a\n%!"
+        __FUNCTION__
+        symbol
+        Ast.Eia.pp_term
+        by
+        Ast.pp_smtlib2
+        where; *)
+      Ast.map
+        (function
+          | Ast.Eia eia ->
+            Ast.eia
+              (Ast.Eia.map2
+                 Fun.id
+                 (function
+                   | Ast.Eia.Atom (Ast.Var v) when v = symbol -> by
+                   | term -> term)
+                 eia)
+          | ast -> ast)
+        where
+    in
+    _to_ir expr (fun ast ->
+      list_foldk
+        (fun acc (symbol, expr) k ->
+           match _to_ir expr Fun.id with
+           | ast' -> k @@ subst_symbol symbol ~by:ast' acc
+           | exception _ ->
+             k @@ to_eia_term expr (fun eia' -> k @@ subst_var symbol ~by:eia' acc))
+        ast
+        (List.rev bnds)
+        k)
   end
-  | _ -> Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr |> failwith
+  | _ -> failf "Expression %a can't be handled" Expr.pp orig_expr
 ;;
