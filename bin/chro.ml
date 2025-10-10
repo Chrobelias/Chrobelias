@@ -302,16 +302,24 @@ let () =
     end
     | Smtml.Ast.Check_sat exprs ->
       Lib.Config.config.with_check_sat <- true;
-      let expr_irs =
-        let open Lib.Fe in
-        list_mapk _to_ir exprs Lib.Ast.land_
+      let expr_irs : Lib.Ast.t list -> Lib.Ast.t =
+        match exprs with
+        | [] ->
+          (function
+            | [ h ] -> h
+            | xs -> Lib.Ast.land_ xs)
+        | exprs ->
+          fun tl ->
+            let open Lib.Fe in
+            list_mapk _to_ir exprs (function xs -> Lib.Ast.land_ (xs @ tl))
       in
       let rec get_ast { asserts; prev; _ } =
         match prev with
         | Some state -> asserts @ get_ast state
         | None -> asserts
       in
-      let ast = Lib.Ast.land_ (expr_irs :: get_ast state) in
+      let ast = expr_irs (get_ast state) in
+      (* Format.printf "Whole expr: @[%a@]\n%!" Lib.Ast.pp_smtlib2 ast; *)
       let rez = check_sat ~verbose:true ast in
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
@@ -392,6 +400,7 @@ let () =
         state)
     | Smtml.Ast.Assert expr -> begin
       let ast = Lib.Fe._to_ir expr Fun.id in
+      (* Format.printf "Parsed expr: @[%a@]\n%!" Lib.Ast.pp_smtlib2 ast; *)
       { state with asserts = ast :: state.asserts }
     end
     | Smtml.Ast.Set_info e ->
