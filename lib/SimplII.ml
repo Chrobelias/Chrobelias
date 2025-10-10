@@ -1188,6 +1188,10 @@ let try_under2_heuristics env ast =
   let ( let* ) xs f = List.concat_map f xs in
   let _k = 0 in
   let envs =
+    let cb e =
+      let b = Config.(under2_config.b) in
+      if b = 1 then e else Id_symantics.(mul [ const b; e ])
+    in
     match Config.under2_config.flat with
     | n when n < 0 -> failwith "bad config"
     | 0 ->
@@ -1199,9 +1203,10 @@ let try_under2_heuristics env ast =
       Base.Set.Poly.fold
         ~f:(fun acc name ->
           let* a = all_as in
+          let ca = Id_symantics.const a in
           let* acc, phs = acc in
           let u = gensym ~prefix:"u" () in
-          [ Env.extend_exn acc name (`Eia Id_symantics.(add [ pow2var u; const a ])), phs
+          [ Env.extend_exn acc name (`Eia Id_symantics.(add [ cb (pow2var u); ca ])), phs
           ])
         ~init:[ env, [] ]
         under2vars
@@ -1214,6 +1219,7 @@ let try_under2_heuristics env ast =
       Base.Set.Poly.fold
         ~f:(fun acc name ->
           let* a = all_as in
+          let ca = Id_symantics.const a in
           let* acc, phs = acc in
           let u = gensym ~prefix:"u" () in
           let v = gensym ~prefix:"v" () in
@@ -1223,7 +1229,11 @@ let try_under2_heuristics env ast =
                 (`Eia
                     Id_symantics.(
                       Ast.Eia.Add
-                        [ pow2var u; Ast.Eia.Mul [ const (-1); pow2var v ]; const a ]))
+                        [ cb
+                            (Ast.Eia.Add
+                               [ pow2var u; Ast.Eia.Mul [ const (-1); pow2var v ] ])
+                        ; ca
+                        ]))
             , Id_symantics.(prj (leq (var v) (var u))) :: phs )
           ])
         ~init:[ env, [] ]
@@ -1250,7 +1260,7 @@ let try_under2_heuristics env ast =
               (Id_symantics.const 0, [])
             |> snd
           in
-          [ Env.extend_exn acc name (`Eia (Ast.Eia.Add sum)), constraints @ phs ])
+          [ Env.extend_exn acc name (`Eia (cb (Ast.Eia.Add sum))), constraints @ phs ])
         ~init:[ env, [] ]
         under2vars
   in
