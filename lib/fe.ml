@@ -227,6 +227,13 @@ and to_eia_term : Expr.t -> (Ast.Eia.term -> Ast.t) -> Ast.t =
          Ast.Eia.Mod (lhs, Z.of_int d)
        | _ -> failf "I expected term, in %a" Expr.pp orig_expr)
     | Expr.Triop (_, Ty.Triop.Ite, c, th, el) ->
+      Format.printf
+        "%s %d ITE.\n%!@[expr = @[%a@]@]\n%!"
+        __FUNCTION__
+        __LINE__
+        Expr.pp
+        orig_expr;
+      (* TODO(Kakadu): Need to write something different here but I'm not sure what exactly *)
       _to_ir th (fun th ->
         _to_ir el (fun el ->
           helper c (fun c ->
@@ -403,7 +410,8 @@ and _to_ir orig_expr k =
         (fun acc (symbol, expr) k ->
            match _to_ir expr Fun.id with
            | ast' -> k @@ subst_symbol symbol ~by:ast' acc
-           | exception _ ->
+           | exception Failure s ->
+             Format.printf "Exception about '%s' ignored\n%!" s;
              k @@ to_eia_term expr (fun eia' -> k @@ subst_var symbol ~by:eia' acc))
         ast
         (List.rev bnds)
