@@ -1500,6 +1500,12 @@ let flatten_concats { Info.all; _ } =
       svar y'
     ;;
 
+    let str_at term offset =
+      let u = gensym () in
+      extend u (Ast.Eia.Atom (Ast.const Z.one));
+      str_substr term offset u
+    ;;
+
     let prj = function
       | Ast.Land xs -> land_ (!extra_ph @ xs)
       | ph -> land_ (!extra_ph @ [ ph ])

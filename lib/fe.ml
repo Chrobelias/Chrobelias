@@ -36,6 +36,8 @@ let internal_name () =
   r
 ;;
 
+let internal () = Ast.var (internal_name ())
+
 let land_ = function
   | [] -> assert false
   | [ h ] -> h
@@ -66,17 +68,21 @@ let rec to_string orig_expr k : Ast.t =
       | Ast.Eia.Atom atom -> land_ (k (Ast.Str.FromEia atom) :: acc)
       | _ -> failwith "TBD: from.int now only expects vars inside") *)
   | Expr.Triop (_, Ty.Triop.Ite, c, th, el) ->
-    _to_ir th (fun th ->
-      _to_ir el (fun el ->
-        to_string c (fun c ->
-          let c = k c in
-          Ast.lor_ [ land_ [ c; th ]; land_ [ Ast.lnot c; el ] ])))
+    to_string th (fun th ->
+      to_string el (fun el ->
+        _to_ir c (fun c ->
+          let u = Ast.Str.atom (internal ()) in
+          let p = k u in
+          let th = Ast.str (Ast.Str.eq u th) in
+          let el = Ast.str (Ast.Str.eq u el) in
+          Ast.lor_ [ land_ [ c; p; th ]; land_ [ Ast.lnot c; p; el ] ])))
+    (* ite (bool) (str1) (str2) *)
   | Expr.Triop (_, Ty.Triop.String_extract, str, from, to') ->
     to_string str (fun str ->
       to_eia_term from (fun from ->
-        let from' = Ast.var (internal_name ()) in
+        let from' = internal () in
         to_eia_term to' (fun to' ->
-          let to'' = Ast.var (internal_name ()) in
+          let to'' = internal () in
           Ast.land_
             [ k (Ast.Str.substr str from' to'')
             ; Ast.eia (Ast.Eia.eq (Ast.Eia.atom from') from)
@@ -85,7 +91,7 @@ let rec to_string orig_expr k : Ast.t =
   | Expr.Binop (_, Ty.Binop.At, str, sym) ->
     to_string str (fun str ->
       to_eia_term sym (fun sym ->
-        let sym' = Ast.var (internal_name ()) in
+        let sym' = internal () in
         Ast.land_
           [ k (Ast.Str.at str sym'); Ast.eia (Ast.Eia.eq (Ast.Eia.atom sym') sym) ]))
   | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
@@ -227,18 +233,14 @@ and to_eia_term : Expr.t -> (Ast.Eia.term -> Ast.t) -> Ast.t =
          Ast.Eia.Mod (lhs, Z.of_int d)
        | _ -> failf "I expected term, in %a" Expr.pp orig_expr)
     | Expr.Triop (_, Ty.Triop.Ite, c, th, el) ->
-      Format.printf
-        "%s %d ITE.\n%!@[expr = @[%a@]@]\n%!"
-        __FUNCTION__
-        __LINE__
-        Expr.pp
-        orig_expr;
-      (* TODO(Kakadu): Need to write something different here but I'm not sure what exactly *)
-      _to_ir th (fun th ->
-        _to_ir el (fun el ->
-          helper c (fun c ->
-            let c = k c in
-            Ast.lor_ [ land_ [ c; th ]; land_ [ Ast.lnot c; el ] ])))
+      to_eia_term th (fun th ->
+        to_eia_term el (fun el ->
+          _to_ir c (fun c ->
+            let u = Ast.Eia.atom (internal ()) in
+            let p = k u in
+            let th = Ast.eia (Ast.Eia.eq u th) in
+            let el = Ast.eia (Ast.Eia.eq u el) in
+            Ast.lor_ [ land_ [ c; p; th ]; land_ [ Ast.lnot c; p; el ] ])))
     | _ -> failf "expected term, in %a" Expr.pp orig_expr
   in
   helper
@@ -321,11 +323,6 @@ and _to_ir orig_expr k =
             (Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])))
         in
         k (Ast.Str (Ast.Str.inre str re))))
-  | Expr.Unop (_, Ty.Unop.Neg, arg) ->
-    let* arg = _to_ir arg in
-    Ast.lnot arg
-    (* | Expr.App ({ name = Symbol.Simple "neg"; _ }, [ arg ]) -> failf "FUCK" *)
-
     (* Quantifiers and binders. *)
   | Expr.App ({ name = Symbol.Simple "str.prefixof"; _ }, [ str; str' ])
   | Expr.Binop (_, Ty.Binop.String_prefix, str, str') ->
@@ -411,7 +408,7 @@ and _to_ir orig_expr k =
            match _to_ir expr Fun.id with
            | ast' -> k @@ subst_symbol symbol ~by:ast' acc
            | exception Failure s ->
-             Format.printf "Exception about '%s' ignored\n%!" s;
+             (*Format.printf "Exception about '%s' ignored\n%!" s;*)
              k @@ to_eia_term expr (fun eia' -> k @@ subst_var symbol ~by:eia' acc))
         ast
         (List.rev bnds)

@@ -91,9 +91,9 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
     | Ast.Str.FromEia (Const c) ->
       let u = Ir.internal () in
       (u, [ Ir.eq (Map.singleton u Z.one) c ]) |> return
-    | Ast.Str.Concat _ -> failf "concatenation makes the formula undecideable"
-    | Ast.Str.At _ -> failf "indexation likely makes the formula undecideable"
-    | Ast.Str.Substr _ -> failf "substrings makes the formula undecideable"
+    | Ast.Str.Concat _ -> failf "concatenation is not supported in the decision procedure"
+    | Ast.Str.At _ -> failf "indexation is not supported in the decision procedure"
+    | Ast.Str.Substr _ -> failf "substrings is not supported in the decision procedure"
     | _ -> failwith "expected atom"
   in
   function
