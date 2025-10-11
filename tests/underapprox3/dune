@@ -1,0 +1,7 @@
+(cram
+ (applies_to basic)
+ (deps basic.smt2))
+
+(cram
+ (applies_to subst)
+ (deps subst.smt2 subst-2.smt2 subst-3.smt2))

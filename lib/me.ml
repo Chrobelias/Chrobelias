@@ -71,17 +71,19 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
     | Ast.Str.Const s ->
       let re' =
         Regex.concat
-          (Regex.concat
-             (s
-              |> String.to_seq
-              |> Seq.map (fun c -> Regex.symbol [ c ])
-              |> Seq.fold_left
-                   (fun acc a ->
-                      (* String constraints use LSB representation, we intentionally reverse the concat. *)
-                      Regex.concat a acc)
-                   Regex.epsilon)
-             (Regex.kleene (Regex.symbol [ Nfa.Str.u_zero ])))
           (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
+          (Regex.concat
+             (Regex.concat
+                (s
+                 |> String.to_seq
+                 |> Seq.map (fun c -> Regex.symbol [ c ])
+                 |> Seq.fold_left
+                      (fun acc a ->
+                         (* String constraints use LSB representation, we intentionally reverse the concat. *)
+                         Regex.concat a acc)
+                      Regex.epsilon)
+                (Regex.kleene (Regex.symbol [ Nfa.Str.u_zero ])))
+             (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])))
       in
       let u = Ir.internal () in
       (u, [ Ir.sreg u re' ]) |> return
@@ -89,7 +91,9 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
     | Ast.Str.FromEia (Const c) ->
       let u = Ir.internal () in
       (u, [ Ir.eq (Map.singleton u Z.one) c ]) |> return
-    | Ast.Str.Concat _ -> failf "concatenation makes the formula undecideable"
+    | Ast.Str.Concat _ -> failf "concatenation is not supported in the decision procedure"
+    | Ast.Str.At _ -> failf "indexation is not supported in the decision procedure"
+    | Ast.Str.Substr _ -> failf "substrings is not supported in the decision procedure"
     | _ -> failwith "expected atom"
   in
   function
@@ -100,6 +104,10 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
     let* a, sup_a = of_str_atom a in
     let* b, sup_b = of_str_atom b in
     (Ir.seq a b :: sup_a) @ sup_b |> Ir.land_ |> return
+  | Ast.Str.PrefixOf (a, b) ->
+    let* a, sup_a = of_str_atom a in
+    let* b, sup_b = of_str_atom b in
+    (Ir.sprefixof a b :: sup_a) @ sup_b |> Ir.land_ |> return
 ;;
 
 (*| s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)*)

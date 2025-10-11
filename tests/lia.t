@@ -23,8 +23,8 @@ Basic LIA tests
    (define-fun x () (_ Int) 6)
    (define-fun y () (_ Int) 16)
    (define-fun z () (_ Int) 100))
-  ((define-fun eee2 () (_ Int) 100)
-   (define-fun u () (_ Int) 0)
+  ((define-fun eee2 () (_ Int) 0)
+   (define-fun u () (_ Int) -100)
    (define-fun x () (_ Int) -1)
    (define-fun z () (_ Int) 0))
 

@@ -676,6 +676,5 @@ evrything goes south
     4) (exp it554 3)
     5) (exp it554 5)
     
-  ; Need to improve --- SAT is expected
   unknown
   ; non-linear

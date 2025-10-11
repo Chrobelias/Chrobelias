@@ -21,6 +21,7 @@ module type Type = sig
   val stoi : dest:int -> src:int -> t
   val itos : dest:int -> src:int -> t
   val seq : ?alpha:char list -> dest:int -> src:int -> unit -> t
+  val sprefixof : ?alpha:char list -> dest:int -> src:int -> unit -> t
   val base : int
 end
 
@@ -234,6 +235,7 @@ module Lsb = struct
   ;;
 
   let seq = strlen
+  let sprefixof = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -420,6 +422,7 @@ module Msb = struct
   ;;
 
   let seq = strlen
+  let sprefixof = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -516,6 +519,7 @@ module MsbNat = struct
   ;;
 
   let seq = strlen
+  let sprefixof = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -644,6 +648,19 @@ module Str = struct
     let alpha = Option.value ~default:full_alphabet alpha in
     let transitions =
       (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
+    in
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
+  ;;
+
+  let sprefixof ?alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:full_alphabet alpha in
+    let transitions =
+      (0, [ Str.u_eos; Str.u_null ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
     in
     Nfa.create_nfa
       ~transitions

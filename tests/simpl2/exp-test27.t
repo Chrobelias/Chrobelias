@@ -9,7 +9,7 @@ $ export CHRO_DEBUG=1
     (<= %0 99)
     (<= r1 5296)
     (<= 0 r1)
-    (str.in_re x (re.++ (re.++ (re.++ (re.++ (re.++ (str.to.re "6") (str.to.re "2")) (re.* (re.++ (str.to.re "6") (str.to.re "2")))) (re.++ (re.++ (str.to.re "2") (str.to.re "8")) (re.* (re.++ (str.to.re "2") (str.to.re "8"))))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
+    (str.in_re x (re.++ (re.* (str.to.re "")) (re.++ (re.++ (re.++ (re.++ (re.++ (str.to.re "6") (str.to.re "2")) (re.* (re.++ (str.to.re "6") (str.to.re "2")))) (re.++ (re.++ (str.to.re "2") (str.to.re "8")) (re.* (re.++ (str.to.re "2") (str.to.re "8"))))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re ""))))))
   old ast: (and
              (= %2 (chrob.len x))
              (= (+ x (* (- 5297) q2) (* (- 811) q4)) 0)
@@ -17,7 +17,7 @@ $ export CHRO_DEBUG=1
              (<= %1 99)
              (<= q4 6)
              (<= (* (- 1) q4) 0)
-             (str.in_re x (re.++ (re.++ (re.++ (re.++ (re.++ (str.to.re "6") (str.to.re "2")) (re.* (re.++ (str.to.re "6") (str.to.re "2")))) (re.++ (re.++ (str.to.re "2") (str.to.re "8")) (re.* (re.++ (str.to.re "2") (str.to.re "8"))))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
+             (str.in_re x (re.++ (re.* (str.to.re "")) (re.++ (re.++ (re.++ (re.++ (re.++ (str.to.re "6") (str.to.re "2")) (re.* (re.++ (str.to.re "6") (str.to.re "2")))) (re.++ (re.++ (str.to.re "2") (str.to.re "8")) (re.* (re.++ (str.to.re "2") (str.to.re "8"))))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re ""))))))
   Old info:
     Exp: %1
     Str: x
@@ -29,7 +29,7 @@ $ export CHRO_DEBUG=1
              (<= (exp 10 %1) (exp 10 99))
              (<= q4 6)
              (<= (* (- 1) q4) 0)
-             (str.in_re x (re.++ (re.++ (re.++ (re.++ (re.++ (str.to.re "6") (str.to.re "2")) (re.* (re.++ (str.to.re "6") (str.to.re "2")))) (re.++ (re.++ (str.to.re "2") (str.to.re "8")) (re.* (re.++ (str.to.re "2") (str.to.re "8"))))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
+             (str.in_re x (re.++ (re.* (str.to.re "")) (re.++ (re.++ (re.++ (re.++ (re.++ (str.to.re "6") (str.to.re "2")) (re.* (re.++ (str.to.re "6") (str.to.re "2")))) (re.++ (re.++ (str.to.re "2") (str.to.re "8")) (re.* (re.++ (str.to.re "2") (str.to.re "8"))))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re ""))))))
   New info:
     Exp: %1
     Str: x
