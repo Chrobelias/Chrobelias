@@ -94,7 +94,8 @@ module type SYM0 = sig
   type str
   type ph
 
-  include FT_SIG.s_term with type term := term and type str := str
+  include FT_SIG.s_term with type term := term
+  include FT_SIG.term_strings with type term := term and type str := str
   include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
 
   val str_from_eia : string -> str
@@ -843,29 +844,7 @@ let propagate_exponents ast =
   | _ -> ast
 ;;
 
-let find_vars_for_under2 ast =
-  let module S = Base.Set.Poly in
-  Ast.fold
-    (fun acc ->
-       let open Ast.Eia in
-       function
-       | Ast.Eia (Ast.Eia.Eq (l, r)) | Eia (Ast.Eia.Leq (l, r)) ->
-         let f =
-           fun acc -> function
-             | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
-               when Z.(equal (Config.base ()) base) -> S.add acc v
-             | Mul [ Atom (Const _); Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
-               when Z.(equal (Config.base ()) base) -> S.add acc v
-             | Mul [ Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
-               when Z.(equal (Config.base ()) base) -> S.add acc v
-             | Mul [ Atom (Var v1); Atom (Var v2) ] -> S.add (S.add acc v1) v2
-             | _ -> acc
-         in
-         Ast.Eia.fold_term f (Ast.Eia.fold_term f acc r) l
-       | _ -> acc)
-    S.empty
-    ast
-;;
+let find_vars_for_under2 = Under2.find_vars_for_under2
 
 let gensym =
   let n = ref 0 in
@@ -1151,6 +1130,23 @@ let lower_strlen ast =
   let env = ref Env.empty in
   let names : (Ast.Eia.term, string) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
   let forgotten = ref Env.empty in
+  (* let gensym1 = gensym in *)
+  (* let gensym () =
+    let ans = gensym1 ~prefix:"ees" () in
+    ans
+  in *)
+  (* let module Pre = struct
+    include Id_symantics
+
+    let str_len : str -> term = function
+      | Atom _ as v1 -> Id_symantics.str_len v1
+      | eia ->
+        let sym = gensym () in
+        env := Env.extend_exn !env sym (`Str eia);
+        Id_symantics.str_len (Ast.Str.atom (Ast.var sym))
+    ;;
+  end
+  in *)
   let module Collector = struct
     open Ast.Eia
     include Id_symantics
@@ -1251,7 +1247,7 @@ let subst env ast =
 ;;
 
 let try_under2_heuristics env ast =
-  let under2vars = find_vars_for_under2 ast in
+  let under2vars = find_vars_for_under2 ~base:(Config.basen ()) ast in
   log
     "vars_for_under2: %a\n%!"
     Format.(pp_print_list pp_print_string)
@@ -1342,7 +1338,7 @@ let try_under2_heuristics env ast =
     envs
 ;;
 
-let simpl bound ast =
+let simpl ?(run_underI = true) bound ast =
   let prepare_choices env var_info =
     let ( let* ) xs f = List.concat_map f xs in
     let choice1 = List.init (bound + 1) Fun.id in
@@ -1412,7 +1408,9 @@ let simpl bound ast =
   in
   let ast, env = loop Env.empty ast in
   (* Underapprox I *)
-    match if bound >= 0 then Underapprox.check bound ast else `Unknown ast with
+    match
+      if run_underI && bound >= 0 then Underapprox.check bound ast else `Unknown ast
+    with
     | `Sat (reason, e) -> `Sat (reason, Env.merge e env)
     | `Unknown _ ->
       (try
@@ -1725,6 +1723,89 @@ let%test_module "about shrinking" =
         (and
           (<= (+ (exp 2 x) (exp 2 y)) 52)
           (<= (exp 10 y) (exp (exp 10 3) x)))
+        |}]
+    ;;
+  end)
+;;
+
+let%test_module "Under2" =
+  (module struct
+    open Under2
+
+    let wrap ~fLat ~base ph =
+      Format.printf "%a\n%!" Ast.pp_smtlib2 ph;
+      let phs = try_under2_heuristics ~fLat ~base Env.empty ph in
+      Format.printf "=========\n\n%!";
+      let _ =
+        phs
+        |> List.map (fun ph ->
+          match simpl ~run_underI:false 0 ph with
+          | `Unknown ph -> Format.printf "@[%d: @[%a@]]\n%!" 0 Ast.pp_smtlib2 ph
+          | `Sat _ -> Format.printf "SAT\n"
+          | `Unsat -> Format.printf "UNSAT\n"
+          | `Error (ph, es) ->
+            Format.printf "@[Error in@]@,\n@[%a@]]\n%!" Ast.pp_smtlib2 ph
+          | _ -> assert false)
+      in
+      ()
+    ;;
+
+    let%expect_test _ =
+      let ph base = Sy.(eq (const 3) (mul [ var "x"; pow (const base) (var "y") ])) in
+      wrap ~fLat:1 ~base:2 (ph 2);
+      [%expect
+        {|
+        (= (* 1 3) (* 1 (* x (exp 2 y))))
+        =========
+
+
+        |}];
+      wrap ~fLat:1 ~base:10 (ph 10);
+      [%expect
+        {|
+        (= (* 1 3) (* 1 (* x (exp 10 y))))
+        =========
+
+        0: (and
+             (= (+ (* (- 486) (exp 10 y)) (* (- 90) (exp 10 (+ u0 y)))
+                (* 90 (exp 10 (+ u1 y)))) (- 27))
+             (<= u1 u0)
+             (<= 0 u1))]
+        0: (and
+             (= (+ (* (- 486) (exp 10 y)) (* (- 180) (exp 10 (+ u2 y)))
+                (* 180 (exp 10 (+ u3 y)))) (- 27))
+             (<= u3 u2)
+             (<= 0 u3))]
+        0: (and
+             (= (+ (* (- 54) (exp 10 y)) (* (- 30) (exp 10 (+ u4 y)))
+                (* 30 (exp 10 (+ u5 y)))) (- 9))
+             (<= u5 u4)
+             (<= 0 u5))]
+        0: (and
+             (= (+ (* (- 486) (exp 10 y)) (* (- 360) (exp 10 (+ u6 y)))
+                (* 360 (exp 10 (+ u7 y)))) (- 27))
+             (<= u7 u6)
+             (<= 0 u7))]
+        0: (and
+             (= (+ (* (- 486) (exp 10 y)) (* (- 450) (exp 10 (+ u8 y)))
+                (* 450 (exp 10 (+ u9 y)))) (- 27))
+             (<= u9 u8)
+             (<= 0 u9))]
+        0: (and
+             (= (+ (* (- 60) (exp 10 (+ u10 y))) (* (- 54) (exp 10 y))
+                (* 60 (exp 10 (+ u11 y)))) (- 9))
+             (<= u11 u10)
+             (<= 0 u11))]
+        0: (and
+             (= (+ (* (- 630) (exp 10 (+ u12 y))) (* (- 486) (exp 10 y))
+                (* 630 (exp 10 (+ u13 y)))) (- 27))
+             (<= u13 u12)
+             (<= 0 u13))]
+        0: (and
+             (= (+ (* (- 720) (exp 10 (+ u14 y))) (* (- 486) (exp 10 y))
+                (* 720 (exp 10 (+ u15 y)))) (- 27))
+             (<= u15 u14)
+             (<= 0 u15))]
         |}]
     ;;
   end)

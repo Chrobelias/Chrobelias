@@ -9,7 +9,8 @@ val subst : Env.t -> Ast.t -> Ast.t
 val subst_term : Env.t -> Ast.Eia.term -> Ast.Eia.term
 
 val simpl
-  :  int
+  :  ?run_underI:bool
+  -> int
   -> Ast.t
   -> [> `Unknown of Ast.t
      | `Sat of string * Env.t

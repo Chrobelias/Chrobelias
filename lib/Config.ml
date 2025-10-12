@@ -51,7 +51,8 @@ let i150const () = issue150_config.i150const
 let under2_config = { amin = 5; amax = 11; b = 1; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
-let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
+let basen () = if config.logic = `Str then 10 else 2
+let base () = Z.of_int (basen ())
 let is_under3_enabled () = config.under_3
 
 let parse_args () =
