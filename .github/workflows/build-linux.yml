@@ -15,7 +15,7 @@ jobs:
           submodules: true
       - uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 5
+          ocaml-compiler: 5.3
 
       - name: Install Smtml depedencies
         working-directory: ./vendor/smtml
