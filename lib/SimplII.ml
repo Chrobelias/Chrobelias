@@ -994,24 +994,47 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       then env
       else if Env.occurs_var env v (`Eia rhs)
       then env
-      else (
-        let () = log "%d: extend %s ~~> @[%a@]" __LINE__ v Eia.pp_term rhs in
-        Env.extend_exn env v (`Eia rhs))
+      else Env.extend_exn env v (`Eia rhs)
     | Eia (Eia.Eq (Atom (Var v), (Atom (Const c) as rhs))) when Env.is_absent_key v env ->
+      (* (= v c) *)
       Env.extend_exn env v (`Eia rhs)
     | Eia (Eia.Eq (Mul [ Atom (Const _); Atom (Var v) ], (Atom (Const z) as rhs)))
-      when Z.(equal z zero) && Env.is_absent_key v env -> Env.extend_exn env v (`Eia rhs)
+      when Z.(equal z zero) && Env.is_absent_key v env ->
+      (* (= ( * c v) 0) *)
+      Env.extend_exn env v (`Eia rhs)
     | Eia (Eia.Eq (Mul [ Atom (Const cl); Atom (Var v) ], Atom (Const cr)))
       when Z.(cr mod cl = zero) && Env.is_absent_key v env ->
       Env.extend_exn env v (`Eia (Eia.Atom (Const Z.(cr / cl))))
     | Eia (Eia.Eq ((Mul [ Atom (Const cl); Atom (Var v) ] as lhs), Atom (Var r)))
-      when Env.is_absent_key r env -> Env.extend_exn env r (`Eia lhs)
+      when Env.is_absent_key r env ->
+      (* (= ( * c v) vr) *)
+      Env.extend_exn env r (`Eia lhs)
+    | Eia
+        (Eia.Eq
+           ( Add [ Atom (Var v1); Mul [ Atom (Const c); (Atom (Var v2) as vv2) ] ]
+           , Atom (Const z0) ))
+      when Z.(equal z0 zero) && Env.is_absent_key v1 env ->
+      (* (= (+ v1 v2) rhs) *)
+      if Env.occurs_var env v1 (`Eia vv2)
+      then env
+      else (
+        let new_rhs =
+          if Z.(equal c minus_one)
+          then Eia.Atom (Var v2)
+          else Eia.Mul [ Atom (Const Z.(-c)); Atom (Var v2) ]
+        in
+        Env.extend_exn env v1 (`Eia new_rhs))
     | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) when v1 <> v2 ->
+      (* (= (+ v1 v2) rhs) *)
       single info env Z.one v1 Z.one v2 rhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs))
-      when v1 <> v2 -> single info env Z.one v1 c2 v2 rhs
+      when v1 <> v2 ->
+      (* (= (+ v1 ( * c v2)) rhs) *)
+      single info env Z.one v1 c2 v2 rhs
     | Eia (Eia.Eq (Add [ Mul [ Atom (Const c1); Atom (Var v1) ]; Atom (Var v2) ], rhs))
-      when v1 <> v2 -> single info env c1 v1 Z.one v2 rhs
+      when v1 <> v2 ->
+      (* (= (+ ( * c v1) v2) rhs) *)
+      single info env c1 v1 Z.one v2 rhs
     | Eia
         (Eia.Eq
            ( Add
@@ -1021,6 +1044,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
            , rhs ))
       when v1 <> v2 -> single info env c1 v1 c2 v2 rhs
     | Eia (Eia.Eq (Add sums, Atom (Const rhs))) when Z.(zero = rhs) ->
+      (* (= (+ ...) 0) *)
       let not_touched_by_env env term =
         try
           let f env = function
