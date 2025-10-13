@@ -11,6 +11,10 @@
  (deps baba3.smt2))
 
 (cram
+ (applies_to baba4)
+ (deps baba4.smt2))
+
+(cram
  (applies_to simple-len)
  (deps simple-len.smt2))
 
