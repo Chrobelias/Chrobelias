@@ -42,6 +42,8 @@ module Str = struct
     | Concat (s1, s2) -> Format.fprintf ppf "(str.++ %a %a)" pp_term s1 pp_term s2
   ;;
 
+  let eq_term l r = 0 = compare l r
+
   type t =
     | InRe of term * char list Regex.t
     | Eq of term * term
@@ -56,7 +58,9 @@ module Str = struct
         str
         (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
         re
-    | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re'
+    | Eq (re, re') ->
+      (* TODO(Kakadu): For sanity of developers we should start printing string equality differently *)
+      Format.fprintf fmt "(= %a %a)" pp_term re pp_term re'
   ;;
 
   let equal str str' =
@@ -188,7 +192,7 @@ module Eia = struct
   type t =
     | Eq of term * term
     | Leq of term * term
-  [@@deriving variants, compare (* , show *)]
+  [@@deriving variants, compare]
 
   let geq a b = leq b a
   let lt a b = leq (add [ a; atom (const Z.one) ]) b

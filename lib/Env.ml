@@ -45,7 +45,7 @@ let rec occurs_var_exn =
        | Eia.Stoi (Str.Atom (Var v2)) when String.equal v v2 -> raise Occurs
        | _ -> ())
     (fun () -> function
-       | Ast.(Str.Atom (Var v2)) when String.equal v v2 -> raise Exit
+       | Ast.(Str.Atom (Var v2)) when String.equal v v2 -> raise Occurs
        | _ -> ())
     ()
     term

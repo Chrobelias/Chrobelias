@@ -314,6 +314,15 @@ let make_main_symantics env =
          | `Str str -> Eia.Atom (Ast.var s))
     ;;
 
+    let str_var s : str =
+      match Env.lookup s env with
+      | None -> Str.atom (Ast.var s)
+      | Some c ->
+        (match c with
+         | `Eia eia -> Str.Atom (Ast.var s)
+         | `Str str -> str)
+    ;;
+
     let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
 
     let str_from_eia s =
@@ -321,6 +330,8 @@ let make_main_symantics env =
       | Some (`Eia (Ast.Eia.Atom (Ast.Const c))) -> Ast.Str.fromeia (Ast.const c)
       | _ -> Ast.Str.fromeia (Ast.var s)
     ;;
+
+    let str_equal l r = if Str.eq_term l r then true_ else Id_symantics.str_equal l r
 
     let fold_and_sort init op xs =
       let c, xs =
@@ -950,7 +961,20 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
     with
     | Env.Occurs -> env
   in
-  let helper info env = function
+  let helper info env ast =
+    match ast with
+    | Str (Str.Eq (Str.Atom (Var v), (Str.Atom (Var v2) as rhs))) ->
+      if not (Env.is_absent_key v env)
+      then env
+      else if Env.occurs_var env v (`Str rhs)
+      then env
+      else Env.extend_exn env v (`Str rhs)
+    | Eia (Eia.Eq (Atom (Var v), (Atom (Var v2) as rhs))) ->
+      if not (Env.is_absent_key v env)
+      then env
+      else if Env.occurs_var env v (`Eia rhs)
+      then env
+      else Env.extend_exn env v (`Eia rhs)
     | Eia (Eia.Eq (Atom (Var v), (Atom (Const c) as rhs))) when Env.is_absent_key v env ->
       Env.extend_exn env v (`Eia rhs)
     | Eia (Eia.Eq (Mul [ Atom (Const _); Atom (Var v) ], (Atom (Const z) as rhs)))
@@ -1010,14 +1034,15 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       in
       (try loop [] sums with
        | Exit -> env)
-    | x -> env
+    | _ ->
+      (* log "OTHERWISE  ast part = @[%a@]" Ast.pp_smtlib2 ast; *)
+      env
   in
   fun info env ast ->
-    (* log "ast = %a\n%!" Ast.pp_smtlib2 ast; *)
-      match ast with
-      | Land xs -> List.fold_left (helper info) env xs
-      | Eia _ -> helper info env ast
-      | _ -> env
+    match ast with
+    | Land xs -> List.fold_left (helper info) env xs
+    | Eia _ -> helper info env ast
+    | _ -> env
 ;;
 
 let%expect_test _ =
