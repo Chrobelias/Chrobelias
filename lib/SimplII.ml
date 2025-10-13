@@ -331,7 +331,15 @@ let make_main_symantics env =
       | _ -> Ast.Str.fromeia (Ast.var s)
     ;;
 
-    let str_equal l r = if Str.eq_term l r then true_ else Id_symantics.str_equal l r
+    let str_equal l r =
+      if Str.eq_term l r
+      then true_
+      else (
+        match l, r with
+        | Str.FromEia (Var v1 as l), Str.FromEia (Var v2 as r) ->
+          Str (Str.Eq (Str.Atom l, Str.Atom r))
+        | _ -> Id_symantics.str_equal l r)
+    ;;
 
     let fold_and_sort init op xs =
       let c, xs =
