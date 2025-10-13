@@ -228,7 +228,10 @@ let logBaseZ n =
 let join_int_model prefix m =
   let open Lib in
   let _ : Ir.model = m in
-  (* log "prefix.length = %d, n.length = %d" (Env.length prefix) (Base.Map.Poly.length m); *)
+  (* Format.printf
+    "prefix.length = %d, n.length = %d\n%!"
+    (Env.length prefix)
+    (Base.Map.Poly.length m); *)
   let prefix =
     let shrink_ir_model =
       Base.Map.Poly.map_keys_exn m ~f:(function
@@ -238,10 +241,8 @@ let join_int_model prefix m =
     Env.enrich prefix shrink_ir_model
   in
   (* log "prefix.length = %d" (Env.length prefix); *)
-  (* log "Ir.model = @[%a@]" Ir.pp_model_smtlib2 m; *)
   let rec seek key =
-    let term = Map.find_exn prefix key in
-    match term with
+    match Map.find_exn prefix key with
     | `Eia eia -> begin
       match SimplII.subst_term prefix eia with
       | Ast.Eia.Atom (Ast.Const c) -> Option.some (`Int c)
@@ -250,11 +251,23 @@ let join_int_model prefix m =
     end
     | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z)
     | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term)
+    | exception Base.Not_found_s _ when Solver.is_internal key -> None
+    | exception Base.Not_found_s _ -> None
   in
   Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek key with
     | Some value -> Map.set acc ~key:(Var key) ~data:value
-    | None -> failwith "not implemented")
+    | None ->
+      Format.eprintf "; Can't join models. Something may be missing\n%!";
+      acc
+    (* Format.eprintf "Env.pp = %a\n%!" Env.pp prefix;
+      Format.eprintf "Ir.model = @[%a@]\n%!" Ir.pp_model_smtlib2 m;
+      failwith
+        (Format.asprintf
+           "not implemented in %s. What to do with key '%s'?"
+           __FUNCTION__
+           key)
+    *))
 ;;
 
 type state =

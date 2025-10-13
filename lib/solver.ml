@@ -1467,9 +1467,11 @@ module Msb =
       let nat_model_to_int = z_of_list_msb_nat
     end)
 
+let is_internal = String.starts_with ~prefix:"%"
+
 let filter_internal =
   Map.filter_keys ~f:(function
-    | Ir.Var s -> not (String.starts_with ~prefix:"%" s)
+    | Ir.Var s -> not (is_internal s)
     | _ -> true)
 ;;
 
