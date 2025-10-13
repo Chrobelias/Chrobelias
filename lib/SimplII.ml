@@ -311,7 +311,10 @@ let make_main_symantics env =
       | Some c ->
         (match c with
          | `Eia eia -> eia
-         | `Str str -> Eia.Atom (Ast.var s))
+         | `Str (Str.Atom v2) -> Eia.Atom v2
+         | `Str str ->
+           Format.eprintf "; Warning: Eia var '%s' is left as is!\n%!" s;
+           Eia.Atom (Ast.var s))
     ;;
 
     let str_var s : str =
@@ -319,7 +322,10 @@ let make_main_symantics env =
       | None -> Str.atom (Ast.var s)
       | Some c ->
         (match c with
-         | `Eia eia -> Str.Atom (Ast.var s)
+         | `Eia (Eia.Atom (Var v2)) -> Str.Atom (Var v2)
+         | `Eia eia ->
+           Format.eprintf "; Warning. Str var '%s' is left as is!\n%!" s;
+           Str.Atom (Ast.var s)
          | `Str str -> str)
     ;;
 
@@ -971,18 +977,26 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   in
   let helper info env ast =
     match ast with
+    (* **************************** String stuff *********************************** *)
     | Str (Str.Eq (Str.Atom (Var v), (Str.Atom (Var v2) as rhs))) ->
       if not (Env.is_absent_key v env)
       then env
       else if Env.occurs_var env v (`Str rhs)
       then env
       else Env.extend_exn env v (`Str rhs)
+    | Str (Str.Eq (Str.Atom (Var v), (Str.Const s2 as rhs))) ->
+      if not (Env.is_absent_key v env) then env else Env.extend_exn env v (`Str rhs)
+    | _ when false ->
+      assert false
+      (* **************************** integer stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var v), (Atom (Var v2) as rhs))) ->
       if not (Env.is_absent_key v env)
       then env
       else if Env.occurs_var env v (`Eia rhs)
       then env
-      else Env.extend_exn env v (`Eia rhs)
+      else (
+        let () = log "%d: extend %s ~~> @[%a@]" __LINE__ v Eia.pp_term rhs in
+        Env.extend_exn env v (`Eia rhs))
     | Eia (Eia.Eq (Atom (Var v), (Atom (Const c) as rhs))) when Env.is_absent_key v env ->
       Env.extend_exn env v (`Eia rhs)
     | Eia (Eia.Eq (Mul [ Atom (Const _); Atom (Var v) ], (Atom (Const z) as rhs)))
