@@ -78,3 +78,7 @@
 (cram
  (deps issue117.smt2)
  (applies_to issue117))
+
+(cram
+ (deps strings3.smt2)
+ (applies_to strings3))

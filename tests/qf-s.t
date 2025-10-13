@@ -21,11 +21,11 @@ Basic QF_S tests
   ((define-fun %27 () (_ Int) 12) (define-fun a () (_ String) "100100100100"))
   ((define-fun a () (_ String) "BaLyuLyuLyuLyuLyuLyuLyu")
    (define-fun x () (_ Int) 23))
+  Warning: some of the eia model pieces are likely to be missed: %33 = %35
   ; Can't join models. Something may be missing
   ((define-fun a () (_ String) "Ba") (define-fun b () (_ String) "20"))
-  ((define-fun a () (_ String) "Ba")
-   (define-fun b () (_ String) "01")
-   (define-fun q () (_ Int) 2))
+  Warning: some of the eia model pieces are likely to be missed: q = %39
+  ((define-fun a () (_ String) "Ba") (define-fun b () (_ String) "01"))
   ((define-fun a () (_ String) "BabBabBabLyubaLyubaLyuba")
    (define-fun b () (_ String) "2")
    (define-fun q () (_ Int) 24))

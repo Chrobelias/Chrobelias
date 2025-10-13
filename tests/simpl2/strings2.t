@@ -43,7 +43,6 @@
              (= eeb4 (str.to.int x))
              (= eeb3 123)
              (= (str.from_int eeb1) (str.from_int eeb5)))
-  998: extend eeb6 ~~> eeb2
   Something ready to substitute:  eeb3 -> 123; eeb6 -> eeb2; eeb7 -> 321;
   iter(2)= (and
              (= eeb1 (+ eeb4 (* eeb3 (exp 10 eeb2))))
@@ -112,10 +111,13 @@
              (= (+ eeb5 (* (- 123) (exp 10 eeb2)) (* (- 1) eeb4)) 0)
              (= (+ eeb8 (* (- 1) x)) 0)
              (= (+ (* (- 1) %1) (exp 10 %0)) 1))
-  Something ready to substitute:  eeb4 -> x; eeb5 -> (+ (* (* (- 321)
-                                                           (exp 10 eeb2))
-                                                        (- 1))
-                                                     (* (* (- 1) eeb8) (- 1))); eeb8 ->
+  Something ready to substitute:  eeb2 -> %0; eeb4 -> x; eeb5 -> (+ (*
+                                                                    (* (- 321)
+                                                                    (exp 10 %0))
+                                                                    (- 1))
+                                                                 (* (* (- 1)
+                                                                    eeb8)
+                                                                 (- 1))); eeb8 ->
                                  x;
   iter(3)= (and
              (= %1 (chrob.len x))
@@ -127,29 +129,25 @@
              (= (+ (* (- 1) %1) (exp 10 %0)) 1))
   iter(4)= (and
              (= %1 (chrob.len x))
-             (= (+ eeb2 (* (- 1) %0)) 0)
-             (= (+ (* (- 321) (exp 10 eeb2)) (* (- 1) x)
-                (* (* (- 321) (exp 10 eeb2)) (- 1)) (* (* (- 1) eeb8) (- 1))) 0)
-             (= (+ (* (- 123) (exp 10 eeb2)) (* (- 1) x)
-                (* (* (- 321) (exp 10 eeb2)) (- 1)) (* (* (- 1) eeb8) (- 1))) 0)
+             (= (+ (* (- 321) (exp 10 %0)) (* (- 1) x)
+                (* (* (- 321) (exp 10 %0)) (- 1)) (* (* (- 1) eeb8) (- 1))) 0)
+             (= (+ (* (- 123) (exp 10 %0)) (* (- 1) x)
+                (* (* (- 321) (exp 10 %0)) (- 1)) (* (* (- 1) eeb8) (- 1))) 0)
              (= (+ (* (- 1) %1) (exp 10 %0)) 1))
   iter(5)= (and
              (= %1 (chrob.len x))
-             (= (+ eeb2 (* (- 1) %0)) 0)
              (= (+ (* (- 1) %1) (exp 10 %0)) 1)
-             (= (* 198 (exp 10 eeb2)) 0))
-  Simplify step: ((= %1 (chrob.len x)) & (= (+ eeb2 (* (- 1) %0)) 0) & (=
-  (+ (* (- 1) %1) (exp 10 %0)) 1) & (= (* 198 (exp 10 eeb2)) 0))
+             (= (* 198 (exp 10 %0)) 0))
+  Simplify step: ((= %1 (chrob.len x)) & (= (+ (* (- 1) %1) (exp 10 %0)) 1) & (=
+  (* 198 (exp 10 %0)) 0))
   Simplified expression: (and
                            (= %1 (chrob.len x))
-                           (= (+ eeb2 (* (- 1) %0)) 0)
                            (= (+ (* (- 1) %1) (exp 10 %0)) 1)
-                           (= (* 198 (exp 10 eeb2)) 0))
+                           (= (* 198 (exp 10 %0)) 0))
   (assert (exists (%1)
           (and
             (exists (x) (= %1 (chrob.len x)))
-            (= (+ (* (- 1) %0) eeb2 )  0)
             (= (+ (* (- 1) %1) pow2(%0) )  1)
-            (= (* 198 pow2(eeb2))  0)
+            (= (* 198 pow2(%0))  0)
             )
   )
