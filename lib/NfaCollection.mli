@@ -16,10 +16,10 @@ module type Type = sig
   val strlen_post : t -> dest:int -> src:int -> t
   val stoi_post : t -> dest:int -> src:int -> t
   val seq_post : t -> dest:int -> src:int -> t
-  val strlen : ?alpha:char list -> dest:int -> src:int -> unit -> t
+  val strlen : alpha:char list option -> dest:int -> src:int -> unit -> t
   val stoi : dest:int -> src:int -> t
   val itos : dest:int -> src:int -> t
-  val seq : ?alpha:char list -> dest:int -> src:int -> unit -> t
+  val seq : alpha:char list option -> dest:int -> src:int -> unit -> t
   val base : int
 end
 

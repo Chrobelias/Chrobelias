@@ -46,6 +46,28 @@ let collect_free =
     Set.empty
 ;;
 
+let as_var = function
+  | Ir.Pow2 var -> Ir.var var
+  | Ir.Var var -> Ir.var var
+;;
+
+let collect_free_ir (ir : Ir.t) =
+  Ir.fold
+    (fun acc -> function
+       | Ir.Rel (_, term, _) ->
+         term |> Map.keys |> List.map as_var |> Set.of_list |> Set.union acc
+       | Ir.SReg (atom, _) -> Set.add acc atom
+       | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | Ir.Exists (xs, ir) -> Set.diff acc (Set.of_list xs)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
 (** Final-tagless style for building our representation  *)
 module type S = sig
   type t
@@ -95,11 +117,28 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
   function
   | Ast.Str.InRe (str, re) ->
     let* str, sup = of_str_atom str in
-    Ir.sreg str re :: sup |> Ir.land_ |> return
+    let atoms =
+      List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
+    in
+    let ir = Ir.sreg str re in
+    begin
+      match atoms with
+      | [] -> ir :: sup |> Ir.land_ |> return
+      | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+    end
   | Ast.Str.Eq (a, b) ->
     let* a, sup_a = of_str_atom a in
     let* b, sup_b = of_str_atom b in
-    (Ir.seq a b :: sup_a) @ sup_b |> Ir.land_ |> return
+    let sup = sup_a @ sup_b in
+    let atoms =
+      List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
+    in
+    let ir = Ir.seq a b in
+    begin
+      match atoms with
+      | [] -> ir :: sup |> Ir.land_ |> return
+      | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+    end
 ;;
 
 (*| s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)*)

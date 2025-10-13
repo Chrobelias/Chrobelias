@@ -353,17 +353,12 @@ module Str = struct
   ;;
 
   let pp_u = Format.pp_print_char
+  let full_alpha = 32 -- 126 |> List.map Char.chr
 
   (* FIXME: this should support different bases and symbols. *)
   let variations _alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
-    let alpha =
-      [ u_eos ]
-      :: ("0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~a/"
-          |> String.to_seq
-          |> Seq.map (fun c -> [ c ])
-          |> List.of_seq)
-    in
+    let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
       | 0 -> []
       | 1 -> alpha
@@ -380,11 +375,14 @@ module Str = struct
     in
     let length = Array.length vec in
     (*Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)*)
-    powerset (List.length mask_list)
-    |> Iter.of_list
-    |> Iter.map (fun c -> Array.init (List.length mask_list) (fun i -> List.nth c i))
-    |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
-    |> Iter.to_list
+      match mask_list with
+      | [] -> [ Array.init length (fun _ -> u_null) ]
+      | _ ->
+        powerset (List.length mask_list)
+        |> Iter.of_list
+        |> Iter.map (fun c -> Array.init (List.length mask_list) (fun i -> List.nth c i))
+        |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
+        |> Iter.to_list
   ;;
 
   let reenumerate map vec =
@@ -1555,15 +1553,7 @@ module Lsb (Label : L) = struct
     |> remove_unreachable_from_start
   ;;
 
-  let minimize_strong nfa =
-    nfa
-    |> to_dfa
-    |> reverse
-    |> to_dfa
-    |> reverse
-    |> to_dfa
-    |> remove_unreachable_from_final
-  ;;
+  let minimize_strong nfa = nfa |> to_dfa |> reverse |> to_dfa |> reverse |> to_dfa
 end
 
 module MsbNat (Label : L) = struct
