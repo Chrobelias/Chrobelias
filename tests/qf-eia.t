@@ -4,13 +4,13 @@ Basic QF_EIA tests
   sat ; nfa
   unsat
   unsat
-  sat ; underapprox1
+  sat ; presimpl
   unsat
   sat ; underapprox1
   unsat
   unsat
   unsat
-  sat ; underapprox1
+  sat ; presimpl
   unsat
   sat ; underapprox1
   unsat
@@ -22,13 +22,13 @@ Basic QF_EIA tests using only NFAs
   sat ; nfa
   unsat
   unsat
-  sat ; nfa
+  sat ; presimpl
   unsat
   sat ; nfa
   unsat
   unsat
   unsat
-  sat ; nfa
+  sat ; presimpl
   unsat
   sat ; nfa
   unsat
@@ -40,13 +40,13 @@ Same basic QF_EIA tests using only NFAs but in the LSB mode
   sat ; nfa
   unsat
   unsat
-  sat ; nfa
+  sat ; presimpl
   unsat
   sat ; nfa
   unsat
   unsat
   unsat
-  sat ; nfa
+  sat ; presimpl
   unsat
   sat ; nfa
   unsat

@@ -9,108 +9,108 @@
 
   $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl 1.smt2 -flat 1 -under3 -amin 2 -amax 2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
-             (= (str.++ "999" [x]) (str.++ [y] [x])))
-  iter(2)= (= (str.++ "999" [x]) (str.++ [y] [x]))
+             (= (str.++ "999" x) (str.++ y x)))
+  iter(2)= (= (str.++ "999" x) (str.++ y x))
   vars_for_under2:
   
   all as: 2
   
-  iter(1)= (= (str.++ "999" [x]) (str.++ [y] [x]))
-  (= (str.++ "999" [x]) (str.++ [y] [x]))
+  iter(1)= (= (str.++ "999" x) (str.++ y x))
+  (= (str.++ "999" x) (str.++ y x))
   Looking for SAT in 1 asts...
-  Simplify step: (= (str.++ "999" [x]) (str.++ [y] [x]))
-  Simplify step: (= (str.++ "999" [x]) (str.++ [y] [x]))
-  Simplified expression: (= (str.++ "999" [x]) (str.++ [y] [x]))
+  Simplify step: (= (str.++ "999" x) (str.++ y x))
+  Simplify step: (= (str.++ "999" x) (str.++ y x))
+  Simplified expression: (= (str.++ "999" x) (str.++ y x))
   unknown
   ; Under2 resigns
   iter(1)= (and
-             (= eeb6 (str.len [x]))
-             (= eeb2 (str.len [x]))
+             (= eeb6 (str.len x))
+             (= eeb2 (str.len x))
              (= eeb6 eeb2)
              (= eeb5 (+ (* eeb7 (exp 10 eeb6)) eeb8))
-             (= eeb8 (str.to.int [x]))
-             (= eeb7 (str.to.int [y]))
+             (= eeb8 (str.to.int x))
+             (= eeb7 (str.to.int y))
              (= eeb2 eeb2)
              (= eeb1 (+ (* eeb3 (exp 10 eeb2)) eeb4))
-             (= eeb4 (str.to.int [x]))
+             (= eeb4 (str.to.int x))
              (= eeb3 999)
              (= (str.from_int eeb1) (str.from_int eeb5)))
   Something ready to substitute:  eeb3 -> 999; eeb6 -> eeb2;
   iter(2)= (and
              (= eeb1 (+ eeb4 (* eeb3 (exp 10 eeb2))))
-             (= eeb2 (str.len [x]))
+             (= eeb2 (str.len x))
              (= eeb3 999)
-             (= eeb4 (str.to.int [x]))
+             (= eeb4 (str.to.int x))
              (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6))))
              (= eeb6 eeb2)
-             (= eeb6 (str.len [x]))
-             (= eeb7 (str.to.int [y]))
-             (= eeb8 (str.to.int [x]))
-             (= [eeb1] [eeb5]))
-  Something ready to substitute:  eeb1 -> [eeb5]; eeb3 -> 999; eeb6 -> eeb2;
+             (= eeb6 (str.len x))
+             (= eeb7 (str.to.int y))
+             (= eeb8 (str.to.int x))
+             (= eeb1 eeb5))
+  Something ready to substitute:  eeb1 -> eeb5; eeb3 -> 999; eeb6 -> eeb2;
   iter(3)= (and
              (= eeb1 (+ eeb4 (* 999 (exp 10 eeb2))))
-             (= eeb2 (str.len [x]))
-             (= eeb4 (str.to.int [x]))
+             (= eeb2 (str.len x))
+             (= eeb4 (str.to.int x))
              (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb2))))
-             (= eeb7 (str.to.int [y]))
-             (= eeb8 (str.to.int [x]))
-             (= [eeb1] [eeb5]))
+             (= eeb7 (str.to.int y))
+             (= eeb8 (str.to.int x))
+             (= eeb1 eeb5))
   iter(4)= (and
              (= eeb1 (+ eeb4 (* 999 (exp 10 eeb2))))
-             (= eeb2 (str.len [x]))
-             (= eeb4 (str.to.int [x]))
+             (= eeb2 (str.len x))
+             (= eeb4 (str.to.int x))
              (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb2))))
-             (= eeb7 (str.to.int [y]))
-             (= eeb8 (str.to.int [x])))
+             (= eeb7 (str.to.int y))
+             (= eeb8 (str.to.int x)))
   vars_for_under2: eeb7
   
   all as: 2
   
   iter(1)= (and
              (= eeb1 (+ eeb4 (* 999 (exp 10 eeb2))))
-             (= eeb2 (str.len [x]))
-             (= eeb4 (str.to.int [x]))
+             (= eeb2 (str.len x))
+             (= eeb4 (str.to.int x))
              (= eeb5 (+ eeb8 (* 2 (exp 10 eeb2))
                      (* (* (- 1) (exp 10 v10)) (exp 10 eeb2))
                      (* (exp 10 u9) (exp 10 eeb2))))
-             (= eeb8 (str.to.int [x]))
-             (= (+ (exp 10 u9) (* (- 1) (exp 10 v10)) 2) (str.to.int [y]))
+             (= eeb8 (str.to.int x))
+             (= (+ (exp 10 u9) (* (- 1) (exp 10 v10)) 2) (str.to.int y))
              (<= v10 u9))
   iter(2)= (and
              (= eeb1 (+ eeb4 (* 999 (exp 10 eeb2))))
-             (= eeb2 (str.len [x]))
-             (= eeb4 (str.to.int [x]))
+             (= eeb2 (str.len x))
+             (= eeb4 (str.to.int x))
              (= eeb5 (+ eeb8 (* (- 1) (exp 10 eeb2) (exp 10 v10))
                      (* 2 (exp 10 eeb2)) (exp 10 (+ u9 eeb2))))
-             (= eeb8 (str.to.int [x]))
-             (= (+ 2 (* (- 1) (exp 10 v10)) (exp 10 u9)) (str.to.int [y]))
+             (= eeb8 (str.to.int x))
+             (= (+ 2 (* (- 1) (exp 10 v10)) (exp 10 u9)) (str.to.int y))
              (<= v10 u9))
   iter(3)= (and
              (= eeb1 (+ eeb4 (* 999 (exp 10 eeb2))))
-             (= eeb2 (str.len [x]))
-             (= eeb4 (str.to.int [x]))
+             (= eeb2 (str.len x))
+             (= eeb4 (str.to.int x))
              (= eeb5 (+ eeb8 (* (- 1) (exp 10 (+ eeb2 v10)))
                      (* 2 (exp 10 eeb2)) (exp 10 (+ eeb2 u9))))
-             (= eeb8 (str.to.int [x]))
-             (= (+ 2 (* (- 1) (exp 10 v10)) (exp 10 u9)) (str.to.int [y]))
+             (= eeb8 (str.to.int x))
+             (= (+ 2 (* (- 1) (exp 10 v10)) (exp 10 u9)) (str.to.int y))
              (<= v10 u9))
-  (= (str.++ "999" [x]) (str.++ [y] [x]))
+  (= (str.++ "999" x) (str.++ y x))
   Looking for SAT in 1 asts...
   Simplify step: ((= eee12 (+ eeb2 u9)) & (= eee11 (+ eeb2 v10)) & (= eeb1
-  (+ eeb4 (* 999 (exp 10 eeb2)))) & (= eeb2 (str.len [x])) & (= eeb4 (str.to.int [x])) & (= eeb5
-  (+ eeb8 (* (- 1) (exp 10 eee11)) (* 2 (exp 10 eeb2)) (exp 10 eee12))) & (= eeb8 (str.to.int [x])) & (=
-  (+ 2 (* (- 1) (exp 10 v10)) (exp 10 u9)) (str.to.int [y])) & (<= v10 u9))
+  (+ eeb4 (* 999 (exp 10 eeb2)))) & (= eeb2 (str.len x)) & (= eeb4 (str.to.int x)) & (= eeb5
+  (+ eeb8 (* (- 1) (exp 10 eee11)) (* 2 (exp 10 eeb2)) (exp 10 eee12))) & (= eeb8 (str.to.int x)) & (=
+  (+ 2 (* (- 1) (exp 10 v10)) (exp 10 u9)) (str.to.int y)) & (<= v10 u9))
   Simplified expression: (and
                            (= eee12 (+ eeb2 u9))
                            (= eee11 (+ eeb2 v10))
                            (= eeb1 (+ eeb4 (* 999 (exp 10 eeb2))))
-                           (= eeb2 (str.len [x]))
-                           (= eeb4 (str.to.int [x]))
+                           (= eeb2 (str.len x))
+                           (= eeb4 (str.to.int x))
                            (= eeb5 (+ eeb8 (* (- 1) (exp 10 eee11))
                                    (* 2 (exp 10 eeb2)) (exp 10 eee12)))
-                           (= eeb8 (str.to.int [x]))
-                           (= (+ 2 (* (- 1) (exp 10 v10)) (exp 10 u9)) (str.to.int [y]))
+                           (= eeb8 (str.to.int x))
+                           (= (+ 2 (* (- 1) (exp 10 v10)) (exp 10 u9)) (str.to.int y))
                            (<= v10 u9))
   iter(1)= (and
              (and
