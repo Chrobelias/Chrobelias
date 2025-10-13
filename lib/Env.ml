@@ -6,7 +6,7 @@ let pp : Format.formatter -> t -> unit =
   Base.Map.iteri s ~f:(fun ~key ~data ->
     match data with
     | `Eia data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data
-    | `Str data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.Str.pp_term data);
+    | `Str data -> Format.fprintf ppf "%s ->s @[%a@]; " key Ast.Str.pp_term data);
   Format.fprintf ppf "@]"
 [@@ocaml.warning "-32"]
 ;;
