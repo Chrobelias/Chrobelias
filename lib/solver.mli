@@ -11,3 +11,6 @@ val check_sat
      | `Unsat
      | `Unknown of Ir.t
      ]
+
+(* TODO(Kakadu): Move somewhere else... *)
+val is_internal : string -> bool
