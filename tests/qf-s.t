@@ -18,15 +18,16 @@ Basic QF_S tests
   ((define-fun %27 () (_ Int) 12) (define-fun a () (_ String) "100100100100"))
   ((define-fun a () (_ String) "BaLyuLyuLyuLyuLyuLyuLyu")
    (define-fun x () (_ Int) 23))
-  Fatal error: exception Sexplib0__Sexp.Not_found_s(_)
-  Raised at Base__Map.Tree0.find_exn.if_not_found in file "src/map.ml", line 632, characters 6-84
-  Called from Base__Map.Accessors.find_exn in file "src/map.ml" (inlined), lines 2202-2206, characters 4-41
-  Called from Dune__exe__Chro.join_int_model.seek in file "bin/chro.ml", line 243, characters 15-38
-  Called from Dune__exe__Chro.join_int_model.(fun) in file "bin/chro.ml", line 255, characters 10-18
-  Called from Dune__exe__Chro.exec in file "bin/chro.ml", line 364, characters 27-51
-  Called from Stdlib__List.fold_left in file "list.ml", line 123, characters 24-34
-  Called from Dune__exe__Chro in file "bin/chro.ml", lines 411-414, characters 4-7
-  [2]
+  ; Can't join models. Something may be missing
+  ((define-fun a () (_ String) "Ba") (define-fun b () (_ String) "20"))
+  ((define-fun a () (_ String) "Ba")
+   (define-fun b () (_ String) "01")
+   (define-fun q () (_ Int) 2))
+  ((define-fun a () (_ String) "BabBabBabLyubaLyubaLyuba")
+   (define-fun b () (_ String) "2")
+   (define-fun q () (_ Int) 24))
+  ((define-fun a () (_ String) "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"))
+  sat ; nfa
 
 +  1 sat
 +  2 sat
