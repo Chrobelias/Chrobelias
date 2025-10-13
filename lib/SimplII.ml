@@ -1130,23 +1130,6 @@ let lower_strlen ast =
   let env = ref Env.empty in
   let names : (Ast.Eia.term, string) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
   let forgotten = ref Env.empty in
-  (* let gensym1 = gensym in *)
-  (* let gensym () =
-    let ans = gensym1 ~prefix:"ees" () in
-    ans
-  in *)
-  (* let module Pre = struct
-    include Id_symantics
-
-    let str_len : str -> term = function
-      | Atom _ as v1 -> Id_symantics.str_len v1
-      | eia ->
-        let sym = gensym () in
-        env := Env.extend_exn !env sym (`Str eia);
-        Id_symantics.str_len (Ast.Str.atom (Ast.var sym))
-    ;;
-  end
-  in *)
   let module Collector = struct
     open Ast.Eia
     include Id_symantics
@@ -1734,7 +1717,7 @@ let%test_module "Under2" =
 
     let wrap ~fLat ~base ph =
       Format.printf "%a\n%!" Ast.pp_smtlib2 ph;
-      let phs = try_under2_heuristics ~fLat ~base Env.empty ph in
+      let phs = try_under2_heuristics ~fLat ~base ~all_bs:[ 6 ] Env.empty ph in
       Format.printf "=========\n\n%!";
       let _ =
         phs

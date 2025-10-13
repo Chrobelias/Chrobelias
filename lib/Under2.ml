@@ -209,15 +209,20 @@ let bitlen ~base b =
 
 let%test _ = bitlen ~base:2 7 = 3
 
-let try_under2_heuristics ~base:k ?(all_as = List.init (k - 2) (( + ) 1)) ~fLat:l env ast =
+let try_under2_heuristics
+      ~base:k
+      ?(all_as = List.init (k - 2) (( + ) 1))
+      ?(all_bs = [ k - 1 ])
+      ~fLat:l
+      env
+      ast
+  =
   let under2vars = find_vars_for_under2 ~base:k ast in
   log
     "vars_for_under2: %a\n%!"
     Format.(pp_print_list pp_print_string)
     (Base.Set.to_list under2vars);
   let ( let* ) xs f = List.concat_map f xs in
-  (* let all_as = [ 7 ] in *)
-  let all_bs = [ 6 ] in
   let envs =
     match l with
     | n when n < 0 -> failwith "bad config"
