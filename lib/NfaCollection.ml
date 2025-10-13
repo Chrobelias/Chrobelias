@@ -17,10 +17,10 @@ module type Type = sig
   val strlen_post : t -> dest:int -> src:int -> t
   val stoi_post : t -> dest:int -> src:int -> t
   val seq_post : t -> dest:int -> src:int -> t
-  val strlen : ?alpha:char list -> dest:int -> src:int -> unit -> t
+  val strlen : alpha:char list option -> dest:int -> src:int -> unit -> t
   val stoi : dest:int -> src:int -> t
   val itos : dest:int -> src:int -> t
-  val seq : ?alpha:char list -> dest:int -> src:int -> unit -> t
+  val seq : alpha:char list option -> dest:int -> src:int -> unit -> t
   val base : int
 end
 
@@ -221,7 +221,7 @@ module Lsb = struct
   let stoi_post = strlen_post
   let seq_post = strlen_post
 
-  let strlen ?alpha ~(dest : int) ~(src : int) () =
+  let strlen ~alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
@@ -407,7 +407,7 @@ module Msb = struct
   let stoi_post = strlen_post
   let seq_post = strlen_post
 
-  let strlen ?alpha ~(dest : int) ~(src : int) () =
+  let strlen ~alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
@@ -503,7 +503,7 @@ module MsbNat = struct
   let stoi_post = strlen_post
   let seq_post = strlen_post
 
-  let strlen ?alpha ~(dest : int) ~(src : int) () =
+  let strlen ~alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
@@ -541,13 +541,6 @@ module Str = struct
   let i = '1'
   let base = 10
   let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
-
-  let full_alphabet =
-    "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~/"
-    |> Iter.of_str
-    |> Iter.to_list
-  ;;
-
   let itoc i = alphabet.(i)
 
   let ( -- ) i j =
@@ -555,6 +548,7 @@ module Str = struct
     aux j []
   ;;
 
+  let full_alphabet = 32 -- 126 |> List.map Char.chr
   let ( let* ) = Option.bind
 
   let strlen_post (nfa : t) ~(dest : int) ~(src : int) =
@@ -573,7 +567,7 @@ module Str = struct
     |> Nfa.minimize
   ;;
 
-  let strlen ?alpha ~(dest : int) ~(src : int) () =
+  let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:full_alphabet alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; itoc (base - 1) ], 0) alpha in
     let transitions = [ 0, [ Str.u_eos; Str.u_zero ], 0 ] @ alpha_transitions in
@@ -640,7 +634,7 @@ module Str = struct
     |> Nfa.minimize
   ;;
 
-  let seq ?alpha ~(dest : int) ~(src : int) () =
+  let seq ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:full_alphabet alpha in
     let transitions =
       (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha

@@ -100,18 +100,23 @@ let collect_free (ir : Ir.t) =
 ;;
 
 let collect_alpha (ir : Ir.t) =
-  let alpha =
-    Set.diff
-      (Ir.fold
-         (fun acc -> function
-            | Ir.SReg (_, re) ->
-              Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc
-            | _ -> acc)
-         Set.empty
-         ir)
-      (Set.of_list [ Nfa.Str.u_eos; Nfa.Str.u_null ])
+  let ( let* ) = Option.bind in
+  let return = Option.some in
+  let* alpha =
+    Ir.fold
+      (fun acc -> function
+         | Ir.SReg (_, re) ->
+           let* acc = acc in
+           Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
+         | Ir.Lnot _ -> Option.none
+         | _ ->
+           let* acc = acc in
+           return acc)
+      (Some Set.empty)
+      ir
   in
-  if Set.is_empty alpha then Set.singleton '0' else alpha
+  let alpha = Set.diff alpha (Set.of_list [ Nfa.Str.u_eos; Nfa.Str.u_null ]) in
+  return (if Set.is_empty alpha then Set.singleton '0' else alpha)
 ;;
 
 let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
@@ -513,7 +518,7 @@ struct
   ;;
 
   let eval ir =
-    let alpha = collect_alpha ir |> Set.to_list in
+    let alpha = collect_alpha ir |> Option.map Set.to_list in
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let ir = trivial ir in
     let ir = if Config.config.simpl_mono then Ir.simpl_monotonicty ir else ir in
