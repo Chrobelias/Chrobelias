@@ -38,9 +38,7 @@ let config =
 ;;
 
 type under2_config =
-  { mutable amin : int
-  ; mutable amax : int
-  ; mutable b : int
+  { mutable b : int option
   ; mutable flat : int [@warning "-69"]
   }
 
@@ -48,7 +46,7 @@ type issue150_config = { mutable i150const : int }
 
 let issue150_config = { i150const = 10 }
 let i150const () = issue150_config.i150const
-let under2_config = { amin = 5; amax = 11; b = 1; flat = -1 }
+let under2_config = { b = None; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let basen () = if config.logic = `Str then 10 else 2
@@ -98,20 +96,9 @@ let parse_args () =
     ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
       , " <N> Underapproximation 2 of (* x (exp 2 y)). N >=0. " )
-    ; ( "-amin"
-      , Arg.Int (fun n -> under2_config.amin <- n)
-      , " <n> Parameter of underapprox.2. Matters when N>=2" )
-    ; ( "-amax"
-      , Arg.Int (fun n -> under2_config.amax <- n)
-      , " <n> Parameter of underapprox.2. Matters when N>=2" )
-    ; ( "-under2b"
-      , Arg.Int
-          (fun n ->
-            assert (n > 0);
-            under2_config.b <- n)
-      , Printf.sprintf
-          " <n> Parameter of underapprox.2. Matters when N>=2. DEFAULT=%d"
-          under2_config.b )
+    ; ( "-bmax"
+      , Arg.Int (fun n -> under2_config.b <- Some n)
+      , " <n> Parameter of underapprox.2." )
     ; ( "-under3"
       , Arg.Unit (fun () -> config.under_3 <- true)
       , " Enable underapprox 3 for string concatenation" )

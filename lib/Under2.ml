@@ -211,10 +211,9 @@ let%test _ = bitlen ~base:2 7 = 3
 
 let try_under2_heuristics
       ~base:k
-      ?(all_as = List.init (k - 2) (( + ) 1))
-      ?(all_bs = [ k - 1 ])
+      ?(all_as = List.init (k - 1) (( + ) 1))
+      ?(all_bs = List.init k Fun.id)
       ~fLat:l
-      env
       ast
   =
   let under2vars = find_vars_for_under2 ~base:k ast in
@@ -222,6 +221,8 @@ let try_under2_heuristics
     "vars_for_under2: %a\n%!"
     Format.(pp_print_list pp_print_string)
     (Base.Set.to_list under2vars);
+  (* log "base = %d" k; *)
+  (* log "There are %d as and %d bs" (List.length all_as) (List.length all_bs); *)
   let ( let* ) xs f = List.concat_map f xs in
   let envs =
     match l with
@@ -259,7 +260,7 @@ let try_under2_heuristics
               (Sy.const 0, [])
           in
           [ Env.extend_exn name ans acc, constraints @ phs ])
-        ~init:[ env, [] ]
+        ~init:[ Env.empty, [] ]
         under2vars
   in
   List.map (fun (e, phs) -> apply_symantics e (module Sy) (Sy.land_ (ast :: phs))) envs

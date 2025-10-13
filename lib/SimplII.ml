@@ -844,7 +844,7 @@ let propagate_exponents ast =
   | _ -> ast
 ;;
 
-let find_vars_for_under2 = Under2.find_vars_for_under2
+(* let find_vars_for_under2 = Under2.find_vars_for_under2 *)
 
 let gensym =
   let n = ref 0 in
@@ -1211,114 +1211,24 @@ let run_basic_simplify ast =
   | `Unknown (ast, e, _, _) -> `Unknown (ast, e)
 ;;
 
-let get_range () =
-  let ans =
-    List.init
-      (1 + Config.under2_config.amax - Config.under2_config.amin)
-      (( + ) Config.under2_config.amin)
-  in
-  assert (
-    List.for_all
-      (fun x -> x >= Config.under2_config.amin && x <= Config.under2_config.amax)
-      ans);
-  ans
-;;
-
 let subst env ast =
   let (module S : SYM_SUGAR_AST) = make_main_symantics env in
   apply_symantics_unsugared (module S) ast
 ;;
 
 let try_under2_heuristics env ast =
-  let under2vars = find_vars_for_under2 ~base:(Config.basen ()) ast in
-  log
-    "vars_for_under2: %a\n%!"
-    Format.(pp_print_list pp_print_string)
-    (Base.Set.to_list under2vars);
-  let ( let* ) xs f = List.concat_map f xs in
-  let _k = 0 in
-  let envs =
-    let cb e =
-      let b = Config.(under2_config.b) in
-      if b = 1 then e else Id_symantics.(mul [ const b; e ])
+  let base = Config.basen () in
+  let all_as = List.init (base - 1) (( + ) 1) in
+  let all_bs =
+    let count =
+      match Config.under2_config.b with
+      | None -> base
+      | Some b -> b + 1
     in
-    match Config.under2_config.flat with
-    | n when n < 0 -> failwith "bad config"
-    | 0 ->
-      let all_as = get_range () in
-      log
-        "all as: @[%a@]\n%!"
-        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
-        all_as;
-      Base.Set.Poly.fold
-        ~f:(fun acc name ->
-          let* a = all_as in
-          let ca = Id_symantics.const a in
-          let* acc, phs = acc in
-          let u = gensym ~prefix:"u" () in
-          [ Env.extend_exn acc name (`Eia Id_symantics.(add [ cb (pow2var u); ca ])), phs
-          ])
-        ~init:[ env, [] ]
-        under2vars
-    | 1 ->
-      let all_as = get_range () in
-      log
-        "all as: @[%a@]\n%!"
-        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
-        all_as;
-      Base.Set.Poly.fold
-        ~f:(fun acc name ->
-          let* a = all_as in
-          let ca = Id_symantics.const a in
-          let* acc, phs = acc in
-          let u = gensym ~prefix:"u" () in
-          let v = gensym ~prefix:"v" () in
-          [ ( Env.extend_exn
-                acc
-                name
-                (`Eia
-                    Id_symantics.(
-                      Ast.Eia.Add
-                        [ cb
-                            (Ast.Eia.Add
-                               [ pow2var u; Ast.Eia.Mul [ const (-1); pow2var v ] ])
-                        ; ca
-                        ]))
-            , Id_symantics.(prj (leq (var v) (var u))) :: phs )
-          ])
-        ~init:[ env, [] ]
-        under2vars
-    | n ->
-      Base.Set.Poly.fold
-        ~f:(fun acc name ->
-          let* acc, phs = acc in
-          let vars = List.init (1 + n) (fun _ -> gensym ~prefix:"u" ()) in
-          let sum =
-            List.mapi
-              (fun i u ->
-                 if i mod 2 = 1
-                 then Id_symantics.(mul [ const (-1); pow2var u ])
-                 else Id_symantics.(pow2var u))
-              vars
-          in
-          let constraints =
-            List.fold_right
-              (fun v (oldv, acc) ->
-                 let v = Id_symantics.var v in
-                 v, Id_symantics.(prj (leq oldv v)) :: acc)
-              vars
-              (Id_symantics.const 0, [])
-            |> snd
-          in
-          [ Env.extend_exn acc name (`Eia (cb (Ast.Eia.Add sum))), constraints @ phs ])
-        ~init:[ env, [] ]
-        under2vars
+    List.init count Fun.id
   in
-  List.map
-    (fun (e, phs) ->
-       let (module Symantics) = make_main_symantics e in
-       apply_symantics (module Symantics) (Symantics.land_ (ast :: phs)))
-    envs
+  let fLat = Config.get_flat () in
+  Under2.try_under2_heuristics ~base ~all_as ~all_bs ~fLat ast
 ;;
 
 let simpl ?(run_underI = true) bound ast =
@@ -1717,7 +1627,7 @@ let%test_module "Under2" =
 
     let wrap ~fLat ~base ph =
       Format.printf "%a\n%!" Ast.pp_smtlib2 ph;
-      let phs = try_under2_heuristics ~fLat ~base ~all_bs:[ 6 ] Env.empty ph in
+      let phs = try_under2_heuristics ~fLat ~base ~all_bs:[ 6 ] ph in
       Format.printf "=========\n\n%!";
       let _ =
         phs
@@ -1741,7 +1651,11 @@ let%test_module "Under2" =
         (= (* 1 3) (* 1 (* x (exp 2 y))))
         =========
 
-
+        0: (and
+             (= (+ (* (- 8) (exp 2 (+ u0 y))) (* (- 6) (exp 2 y))
+                (* 8 (exp 2 (+ u1 y)))) (- 3))
+             (<= u1 u0)
+             (<= 0 u1))]
         |}];
       wrap ~fLat:1 ~base:10 (ph 10);
       [%expect
@@ -1750,45 +1664,50 @@ let%test_module "Under2" =
         =========
 
         0: (and
-             (= (+ (* (- 486) (exp 10 y)) (* (- 90) (exp 10 (+ u0 y)))
-                (* 90 (exp 10 (+ u1 y)))) (- 27))
-             (<= u1 u0)
-             (<= 0 u1))]
-        0: (and
-             (= (+ (* (- 486) (exp 10 y)) (* (- 180) (exp 10 (+ u2 y)))
-                (* 180 (exp 10 (+ u3 y)))) (- 27))
+             (= (+ (* (- 486) (exp 10 y)) (* (- 90) (exp 10 (+ u2 y)))
+                (* 90 (exp 10 (+ u3 y)))) (- 27))
              (<= u3 u2)
              (<= 0 u3))]
         0: (and
-             (= (+ (* (- 54) (exp 10 y)) (* (- 30) (exp 10 (+ u4 y)))
-                (* 30 (exp 10 (+ u5 y)))) (- 9))
+             (= (+ (* (- 486) (exp 10 y)) (* (- 180) (exp 10 (+ u4 y)))
+                (* 180 (exp 10 (+ u5 y)))) (- 27))
              (<= u5 u4)
              (<= 0 u5))]
         0: (and
-             (= (+ (* (- 486) (exp 10 y)) (* (- 360) (exp 10 (+ u6 y)))
-                (* 360 (exp 10 (+ u7 y)))) (- 27))
+             (= (+ (* (- 54) (exp 10 y)) (* (- 30) (exp 10 (+ u6 y)))
+                (* 30 (exp 10 (+ u7 y)))) (- 9))
              (<= u7 u6)
              (<= 0 u7))]
         0: (and
-             (= (+ (* (- 486) (exp 10 y)) (* (- 450) (exp 10 (+ u8 y)))
-                (* 450 (exp 10 (+ u9 y)))) (- 27))
+             (= (+ (* (- 486) (exp 10 y)) (* (- 360) (exp 10 (+ u8 y)))
+                (* 360 (exp 10 (+ u9 y)))) (- 27))
              (<= u9 u8)
              (<= 0 u9))]
         0: (and
-             (= (+ (* (- 60) (exp 10 (+ u10 y))) (* (- 54) (exp 10 y))
-                (* 60 (exp 10 (+ u11 y)))) (- 9))
+             (= (+ (* (- 486) (exp 10 y)) (* (- 450) (exp 10 (+ u10 y)))
+                (* 450 (exp 10 (+ u11 y)))) (- 27))
              (<= u11 u10)
              (<= 0 u11))]
         0: (and
-             (= (+ (* (- 630) (exp 10 (+ u12 y))) (* (- 486) (exp 10 y))
-                (* 630 (exp 10 (+ u13 y)))) (- 27))
+             (= (+ (* (- 60) (exp 10 (+ u12 y))) (* (- 54) (exp 10 y))
+                (* 60 (exp 10 (+ u13 y)))) (- 9))
              (<= u13 u12)
              (<= 0 u13))]
         0: (and
-             (= (+ (* (- 720) (exp 10 (+ u14 y))) (* (- 486) (exp 10 y))
-                (* 720 (exp 10 (+ u15 y)))) (- 27))
+             (= (+ (* (- 630) (exp 10 (+ u14 y))) (* (- 486) (exp 10 y))
+                (* 630 (exp 10 (+ u15 y)))) (- 27))
              (<= u15 u14)
              (<= 0 u15))]
+        0: (and
+             (= (+ (* (- 720) (exp 10 (+ u16 y))) (* (- 486) (exp 10 y))
+                (* 720 (exp 10 (+ u17 y)))) (- 27))
+             (<= u17 u16)
+             (<= 0 u17))]
+        0: (and
+             (= (+ (* (- 10) (exp 10 (+ u18 y))) (* (- 6) (exp 10 y))
+                (* 10 (exp 10 (+ u19 y)))) (- 3))
+             (<= u19 u18)
+             (<= 0 u19))]
         |}]
     ;;
   end)
