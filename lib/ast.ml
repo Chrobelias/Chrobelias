@@ -21,6 +21,7 @@ module Str = struct
   type term =
     | Atom of atom
     | FromEia of atom
+      (* TODO(Kakadu): if FromEia is printed as 'from_int' than we should rename it? *)
     | Const of string
     | Concat of term * term
   [@@deriving variants, compare]
