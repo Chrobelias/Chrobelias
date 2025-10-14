@@ -58,6 +58,8 @@ module Str = struct
     | InRe of term * char list Regex.t
     | Eq of term * term
     | PrefixOf of term * term
+    | Contains of term * term
+    | SuffixOf of term * term
   [@@deriving variants, compare (* , show *)]
 
   let pp fmt = function
@@ -72,20 +74,26 @@ module Str = struct
     | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re'
     | PrefixOf (term, term') ->
       Format.fprintf fmt "(str.prefixof %a %a)" pp_term term pp_term term'
+    | Contains (term, term') ->
+      Format.fprintf fmt "(str.contains %a %a)" pp_term term pp_term term'
+    | SuffixOf (term, term') ->
+      Format.fprintf fmt "(str.suffixof %a %a)" pp_term term pp_term term'
   ;;
 
   let equal str str' =
     match str, str' with
     | InRe (str, re), InRe (str', re') -> str = str' && re = re'
     | Eq (re, re'), Eq (re'', re''') -> re = re'' && re' = re'''
-    | PrefixOf (re, re'), PrefixOf (re'', re''') -> re = re'' && re' = re'''
+    | PrefixOf (re, re'), PrefixOf (re'', re''')
+    | SuffixOf (re, re'), SuffixOf (re'', re''')
+    | Contains (re, re'), Contains (re'', re''') -> re = re'' && re' = re'''
     | _, _ -> false
   ;;
 
   let fold2 f fterm acc = function
     | InRe (term, re) as ast -> f (fold_term fterm acc term) ast
     | Eq (re, re') as ast -> f (fold_term fterm (fold_term fterm acc re) re') ast
-    | PrefixOf (term, term') as ast ->
+    | (PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term')) as ast ->
       f (fold_term fterm (fold_term fterm acc term) term') ast
   ;;
 end

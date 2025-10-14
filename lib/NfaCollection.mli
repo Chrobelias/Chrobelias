@@ -21,6 +21,8 @@ module type Type = sig
   val itos : dest:int -> src:int -> t
   val seq : alpha:char list option -> dest:int -> src:int -> unit -> t
   val sprefixof : alpha:char list option -> dest:int -> src:int -> unit -> t
+  val scontains : alpha:char list option -> dest:int -> src:int -> unit -> t
+  val ssuffixof : alpha:char list option -> dest:int -> src:int -> unit -> t
   val base : int
 end
 

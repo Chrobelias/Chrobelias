@@ -22,6 +22,8 @@ module type Type = sig
   val itos : dest:int -> src:int -> t
   val seq : alpha:char list option -> dest:int -> src:int -> unit -> t
   val sprefixof : alpha:char list option -> dest:int -> src:int -> unit -> t
+  val scontains : alpha:char list option -> dest:int -> src:int -> unit -> t
+  val ssuffixof : alpha:char list option -> dest:int -> src:int -> unit -> t
   val base : int
 end
 
@@ -236,6 +238,8 @@ module Lsb = struct
 
   let seq = strlen
   let sprefixof = strlen
+  let scontains = strlen
+  let ssuffixof = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -423,6 +427,8 @@ module Msb = struct
 
   let seq = strlen
   let sprefixof = strlen
+  let scontains = strlen
+  let ssuffixof = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -520,6 +526,8 @@ module MsbNat = struct
 
   let seq = strlen
   let sprefixof = strlen
+  let scontains = strlen
+  let ssuffixof = strlen
 
   let itos ~(dest : int) ~(src : int) =
     let _src = src in
@@ -654,12 +662,43 @@ module Str = struct
   let sprefixof ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:full_alphabet alpha in
     let transitions =
+      (1, [ Str.u_eos; Str.u_eos ], 1)
+      :: (0, [ Str.u_eos; Str.u_eos ], 1)
+      :: (0, [ Str.u_eos; Str.u_null ], 0)
+      :: List.map (fun c -> 0, [ c; c ], 0) alpha
+    in
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 1 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
+  ;;
+
+  let scontains ~alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:full_alphabet alpha in
+    let transitions =
       (0, [ Str.u_eos; Str.u_null ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
     in
     Nfa.create_nfa
       ~transitions
       ~start:[ 0 ]
       ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
+  ;;
+
+  let ssuffixof ~alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:full_alphabet alpha in
+    let transitions =
+      (1, [ Str.u_eos; Str.u_null ], 1)
+      :: (0, [ Str.u_eos; Str.u_null ], 1)
+      :: List.map (fun c -> 0, [ c; c ], 0) alpha
+    in
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 1 ]
       ~vars:[ src; dest ]
       ~deg:(max dest src + 1)
   ;;

@@ -129,3 +129,14 @@
   (assert (= eeb5 (* 10 (exp 10 (exp 10 p)))))
   (check-sat)
 (pop 1) ; sat
+
+(push 1)
+  (assert (= x "abc"))
+  (assert (= y "abcdef"))
+  (assert (= z "def"))
+  (assert (= a "cde"))
+  (assert (str.prefixof x y))
+  (assert (str.suffixof z y))
+  (assert (str.contains y a))
+  (check-sat)
+(pop 1) ; sat

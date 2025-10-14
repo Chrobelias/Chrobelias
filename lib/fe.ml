@@ -37,12 +37,12 @@ let rec to_string orig_expr =
     let from =
       match to_eia_term from with
       | Ast.Eia.Atom atom -> atom
-      | _ -> failwith "tbd"
+      | _ -> failwith "tbd 1"
     in
     let to' =
       match to_eia_term to' with
       | Ast.Eia.Atom atom -> atom
-      | _ -> failwith "tbd"
+      | _ -> failwith "tbd 2"
     in
     Ast.Str.substr str from to'
   | Expr.Binop (_, Ty.Binop.At, str, sym) ->
@@ -50,7 +50,7 @@ let rec to_string orig_expr =
     let sym =
       match to_eia_term sym with
       | Ast.Eia.Atom atom -> atom
-      | _ -> failwith "tbd"
+      | _ -> failwith "tbd 3"
     in
     Ast.Str.at str sym
   | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
@@ -174,11 +174,11 @@ and to_eia_term orig_expr =
     dune b @benchmarks/tests/EXP-solver/flatten/head/test24 --profile=benchmark *)
   | _ -> failf "expected term, in %a" Expr.pp orig_expr
 
-and _to_ir orig_expr =
+and _to_ir tys orig_expr =
   (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
-  let is_str expr =
+  let is_str tys expr =
     (Expr.ty expr = Ty.Ty_str
      &&
        match Expr.view expr with
@@ -188,6 +188,13 @@ and _to_ir orig_expr =
        | _ -> true)
     ||
       match Expr.view expr with
+      | Expr.Symbol symbol ->
+        Option.bind
+          (Base.Map.Poly.find tys (Ir.var (Symbol.to_string symbol)))
+          (function
+            | `Str -> Option.some true
+            | _ -> Option.none)
+        |> Option.is_some
       | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ _ ])
       | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ _ ])
       | Expr.Cvtop (_, Ty.Cvtop.ToString, _) -> true
@@ -207,18 +214,20 @@ and _to_ir orig_expr =
   (* Yes, probably this stuff is kinda over-engineered. *)
   (* Logical operations. *)
   (* Not. *)
-  | Expr.Unop (_ty, Ty.Unop.Not, expr) -> Ast.lnot (_to_ir expr)
-  | Expr.Binop (_ty, Ty.Binop.And, lhs, rhs) -> Ast.land_ [ _to_ir lhs; _to_ir rhs ]
-  | Expr.Naryop (_ty, Ty.Naryop.Logand, exprs) -> Ast.land_ (List.map _to_ir exprs)
+  | Expr.Unop (_ty, Ty.Unop.Not, expr) -> Ast.lnot (_to_ir tys expr)
+  | Expr.Binop (_ty, Ty.Binop.And, lhs, rhs) ->
+    Ast.land_ [ _to_ir tys lhs; _to_ir tys rhs ]
+  | Expr.Naryop (_ty, Ty.Naryop.Logand, exprs) -> Ast.land_ (List.map (_to_ir tys) exprs)
   (* Binary and arbitrary or *)
   | Expr.Binop (_ty, Ty.Binop.Or, lhs, rhs) -> begin
-    Ast.lor_ [ _to_ir lhs; _to_ir rhs ]
+    Ast.lor_ [ _to_ir tys lhs; _to_ir tys rhs ]
   end
-  | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) -> Ast.lor_ (List.map _to_ir exprs)
+  | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) -> Ast.lor_ (List.map (_to_ir tys) exprs)
   (* Implication *)
-  | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) -> Ast.limpl (_to_ir lhs) (_to_ir rhs)
+  | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) ->
+    Ast.limpl (_to_ir tys lhs) (_to_ir tys rhs)
   (* Integer comparisons. *)
-  | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str lhs || is_str rhs ->
+  | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
     let build t c = Ast.str (Ast.Str.eq t c) in
     let lhs = to_string lhs in
     let rhs = to_string rhs in
@@ -253,11 +262,19 @@ and _to_ir orig_expr =
     let str = to_string str in
     let str' = to_string str' in
     Ast.str (Ast.Str.prefixof str str')
+  | Expr.Binop (_, Ty.Binop.String_suffix, str, str') ->
+    let str = to_string str in
+    let str' = to_string str' in
+    Ast.str (Ast.Str.suffixof str str')
+  | Expr.Binop (_, Ty.Binop.String_contains, str, str') ->
+    let str = to_string str in
+    let str' = to_string str' in
+    Ast.str (Ast.Str.contains str str')
   (* Quantifiers and binders. *)
   | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
-    let c = _to_ir c in
-    let t = _to_ir t in
-    let e = _to_ir e in
+    let c = _to_ir tys c in
+    let t = _to_ir tys t in
+    let e = _to_ir tys e in
     Ast.lor_ [ Ast.land_ [ c; t ]; Ast.land_ [ Ast.lnot c; e ] ]
   | Expr.Binder (((Binder.Forall | Binder.Exists) as q), atoms, formula) ->
     let binder =
@@ -281,9 +298,9 @@ and _to_ir orig_expr =
         end
         atoms
     in
-    binder atoms (_to_ir formula)
+    binder atoms (_to_ir tys formula)
   | Expr.Binder (Binder.Let_in, bindings, expr) -> begin
-    let ast = _to_ir expr in
+    let ast = _to_ir tys expr in
     List.fold_left
       begin
         fun acc binding ->
@@ -291,7 +308,7 @@ and _to_ir orig_expr =
           | Expr.App (symbol, [ expr ]) ->
             let symbol = Symbol.to_string symbol in
             begin
-              match expr |> _to_ir with
+              match expr |> _to_ir tys with
               | ast' ->
                 Ast.map
                   (function

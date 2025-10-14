@@ -45,6 +45,8 @@ let collect_vars ir =
        | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Rel (_, term, _) ->
          Set.union
            acc
@@ -70,6 +72,9 @@ let collect_atoms ir =
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Rel (_, term, _) ->
          Set.union
            acc
@@ -94,6 +99,8 @@ let collect_free (ir : Ir.t) =
        | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Exists (xs, ir) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
@@ -164,6 +171,10 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
     Ast.str (Ast.Str.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SPrefixOf (atom, atom') ->
     Ast.str (Ast.Str.prefixof (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
+  | SContains (atom, atom') ->
+    Ast.str (Ast.Str.contains (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
+  | SSuffixOf (atom, atom') ->
+    Ast.str (Ast.Str.suffixof (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SLen (atom, atom') ->
     Ast.eia
       (Ast.Eia.eq
@@ -632,6 +643,7 @@ struct
          eval_and nfas
        | Ir.Lor (hd :: tl) ->
          List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
+       | Ir.Lor [] -> NfaCollection.z ()
        | Ir.Rel (rel, term, c) -> begin
          match rel with
          | Ir.Eq ->
@@ -703,7 +715,18 @@ struct
            ~dest:(Map.find_exn vars atom')
            ~src:(Map.find_exn vars atom)
            ()
-       | _ -> Format.asprintf "Unsupported IR %a to evaluate to" Ir.pp ir |> failwith)
+       | Ir.SContains (atom, atom') ->
+         NfaCollection.scontains
+           ~alpha
+           ~dest:(Map.find_exn vars atom)
+           ~src:(Map.find_exn vars atom')
+           ()
+       | Ir.SSuffixOf (atom, atom') ->
+         NfaCollection.ssuffixof
+           ~alpha
+           ~dest:(Map.find_exn vars atom')
+           ~src:(Map.find_exn vars atom)
+           ())
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;
       Debug.dump_nfa ~msg:"Evaluated %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;

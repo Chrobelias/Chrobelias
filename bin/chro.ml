@@ -146,7 +146,7 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Config.is_under3_enabled ()
       then (
         match Lib.SimplII.run_under3 ast with
-        | `Sat -> sat "under3" ast e (fun _ -> Result.ok Map.empty)
+        | `Sat -> sat "under III" ast e (fun _ -> Result.ok Map.empty)
         | `Underapprox asts ->
           if Lib.Config.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -260,14 +260,11 @@ let join_int_model prefix m =
     | None ->
       Format.eprintf "; Can't join models. Something may be missing\n%!";
       acc
-    (* Format.eprintf "Env.pp = %a\n%!" Env.pp prefix;
-      Format.eprintf "Ir.model = @[%a@]\n%!" Ir.pp_model_smtlib2 m;
-      failwith
+    (*failwith
         (Format.asprintf
            "not implemented in %s. What to do with key '%s'?"
            __FUNCTION__
-           key)
-    *))
+           key)*))
 ;;
 
 type state =
@@ -315,7 +312,7 @@ let () =
     end
     | Smtml.Ast.Check_sat exprs ->
       Lib.Config.config.with_check_sat <- true;
-      let expr_irs = List.map Lib.Fe._to_ir exprs in
+      let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs in
       let rec get_ast { asserts; prev; _ } =
         match prev with
         | Some state -> asserts @ get_ast state
@@ -401,7 +398,7 @@ let () =
         in
         state)
     | Smtml.Ast.Assert expr -> begin
-      let ast = expr |> Lib.Fe._to_ir in
+      let ast = expr |> Lib.Fe._to_ir state.tys in
       { state with asserts = ast :: state.asserts }
     end
     | Smtml.Ast.Set_info e ->

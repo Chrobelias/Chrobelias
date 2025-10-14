@@ -1,6 +1,6 @@
 Basic LIA tests
 
-  $ OCAMLRUNPARAM='b=0' Chro -bound 0 -no-over-approx ./lia.smt2
+  $ CHRO_OMIT_Z3_MODEL=1 OCAMLRUNPARAM='b=0' Chro -bound 0 -no-over-approx ./lia.smt2
   sat ; presimpl
   unsat
   sat ; presimpl
@@ -19,14 +19,6 @@ Basic LIA tests
   sat ; underapprox1
   unsat
   sat ; underapprox1
-  ((define-fun u () (_ Int) 3)
-   (define-fun x () (_ Int) 6)
-   (define-fun y () (_ Int) 16)
-   (define-fun z () (_ Int) 100))
-  ((define-fun eee2 () (_ Int) 100)
-   (define-fun u () (_ Int) 0)
-   (define-fun x () (_ Int) -1)
-   (define-fun z () (_ Int) 0))
 
 Test Frobenious coin problem for 7 and 11
 

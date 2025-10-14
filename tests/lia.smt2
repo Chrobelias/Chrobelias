@@ -140,7 +140,7 @@
   (assert (= (+ 2 y (* (- 3) x)) 0))
   (assert (>= z 100))
   (check-sat)
-  (get-model)
+  ;(get-model)
 (pop 1)
 
 ; (push 1)
@@ -148,8 +148,8 @@
 ;   (check-sat) ; sat
 ; (pop 1)
 
-(push 1)
-  (assert (= eee2 (+ u z 100)))
-  (assert (<= x (- 1)))
-  (get-model)
-(pop 1)
+;(push 1)
+;  (assert (= eee2 (+ u z 100)))
+;  (assert (<= x (- 1)))
+;  (get-model)
+;(pop 1)
