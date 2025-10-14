@@ -108,6 +108,8 @@ module type SYM0 = sig
   val str_at : str -> string -> str
   val str_substr : str -> string -> string -> str
   val str_prefixof : str -> str -> ph
+  val str_contains : str -> str -> ph
+  val str_suffixof : str -> str -> ph
 end
 
 module type SYM = sig
@@ -186,18 +188,13 @@ module Id_symantics :
     Ast.Str (Ast.Str.InRe (l, regex))
   ;;
 
-  let str_len = function
-    | Ast.Str.Atom (Var s) -> Ast.Eia.Len (Ast.Str.atom (Var s))
-    | Atom (Const _) -> assert false
-    | x ->
-      log "%s %d: %a\n%!" __FILE__ __LINE__ Ast.Str.pp_term x;
-      assert false
-  ;;
-
+  let str_len s = Ast.Eia.Len s
   let str_len2 s1 = Ast.Eia.len2 (Ast.var s1)
   let stoi2 s1 = Ast.Eia.stoi2 (Ast.var s1)
   let str_from_eia s = Ast.Str.FromEia (Ast.var s)
   let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
+  let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
+  let str_suffixof s1 s2 = Ast.str (Ast.Str.suffixof s1 s2)
   let str_from_eia_const c = Ast.Str.Const (Z.to_string c)
   let str_concat s1 s2 = Ast.Str.concat s1 s2
   let len = Ast.Eia.len
@@ -243,6 +240,10 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       S.exists vs (helper ph)
     | Str (Ast.Str.PrefixOf (term, term')) ->
       S.str_prefixof (helper_str term) (helper_str term')
+    | Str (Ast.Str.Contains (term, term')) ->
+      S.str_contains (helper_str term) (helper_str term')
+    | Str (Ast.Str.SuffixOf (term, term')) ->
+      S.str_suffixof (helper_str term) (helper_str term')
     | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helper_str term) regex
     | Str (Ast.Str.Eq (term, term')) ->
       let l = helper_str term in
@@ -334,6 +335,7 @@ let make_main_symantics env =
       | None -> Str.atom (Ast.var s)
       | Some c ->
         (match c with
+         | `Eia (Ast.Eia.Atom (Ast.Const c)) -> Str.Const (Z.to_string c)
          | `Eia (Eia.Atom (Var v2)) -> Str.Atom (Var v2)
          | `Eia eia ->
            Format.eprintf "; Warning. Str var '%s' is left as is!\n%!" s;
@@ -358,6 +360,10 @@ let make_main_symantics env =
           Str (Str.Eq (Str.Atom l, Str.Atom r))
         | _ -> Id_symantics.str_equal l r)
     ;;
+
+    let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
+    let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
+    let str_suffixof s1 s2 = Ast.str (Ast.Str.suffixof s1 s2)
 
     let fold_and_sort init op xs =
       let c, xs =
@@ -626,15 +632,21 @@ let apply_term_symantics
   fun (module S : SYM with type term = Ast.Eia.term) ->
   let rec helperS = function
     | Ast.Str.Atom (Var s) -> S.str_var s
-    | Ast.Str.Atom (Const s) -> failwith "tbd"
+    | Ast.Str.Atom (Const s) as ast ->
+      Format.eprintf "%a\n%!" Ast.Str.pp_term ast;
+      failwith "tbd"
     | Ast.Str.Const c -> S.str_const c
     | Ast.Str.Concat (lhs, rhs) -> S.str_concat (helperS lhs) (helperS rhs)
     | Ast.Str.FromEia (Var s) -> S.str_from_eia s
     | Ast.Str.FromEia (Const c) -> S.str_from_eia_const c
     | Ast.Str.Substr (lhs, Var s1, Var s2) -> S.str_substr (helperS lhs) s1 s2
-    | Ast.Str.Substr (lhs, _, _) -> failwith "tbd"
+    | Ast.Str.Substr (lhs, _, _) as ast ->
+      Format.eprintf "%a\n%!" Ast.Str.pp_term ast;
+      failwith "tbd"
     | Ast.Str.At (lhs, Var s1) -> S.str_at (helperS lhs) s1
-    | Ast.Str.At (lhs, _) -> failwith "tbd"
+    | Ast.Str.At (lhs, _) as ast ->
+      Format.eprintf "%a\n%!" Ast.Str.pp_term ast;
+      failwith "tbd"
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) as c -> c
     | Atom (Ast.Var s) -> S.var s
@@ -783,6 +795,8 @@ module Who_in_exponents_ = struct
   let str_at _ _ = empty
   let str_substr _ _ _ = empty
   let str_prefixof = ( ++ )
+  let str_contains = ( ++ )
+  let str_suffixof = ( ++ )
 
   let mul xs =
     let aaa = List.fold_left ( ++ ) empty xs in
@@ -955,6 +969,8 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let str_at _ = failwith "not implemented"
     let str_substr _ = failwith "not implemented"
     let str_prefixof _ = failwith "not implemented"
+    let str_contains _ = failwith "not implemented"
+    let str_suffixof _ = failwith "not implemented"
     let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
 
     let exists vars x =
@@ -1587,7 +1603,8 @@ let run_under3 ast =
   let ast = flatten_concats var_info ast in
   match run_basic_simplify ast with
   | `Unknown (ast, _env) -> run_under2 ast
-  | _ -> failwith "tbd"
+  | `Sat _ -> `Sat
+  | `Unsat -> `Underapprox []
 ;;
 
 let test_distr xs =

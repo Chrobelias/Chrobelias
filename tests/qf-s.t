@@ -3,11 +3,8 @@ Basic QF_S tests
   $ Chro ./qf-s.smt2
   sat ; nfa
   ((define-fun a () (_ String) "abc"))
-  ; Warning. Str var 'a' is left as is!
   sat ; nfa
-  ; Warning. Str var 'a' is left as is!
   sat ; nfa
-  ; Warning. Str var 'a' is left as is!
   unsat
   sat ; nfa
   unsat
@@ -30,6 +27,7 @@ Basic QF_S tests
    (define-fun b () (_ String) "2")
    (define-fun q () (_ Int) 24))
   ((define-fun a () (_ String) "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"))
+  sat ; nfa
   sat ; nfa
 
 +  1 sat

@@ -1,4 +1,7 @@
 (cram
+ (deps %{bin:Chro}))
+
+(cram
  (applies_to basic)
  (deps basic.smt2))
 

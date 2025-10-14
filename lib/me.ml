@@ -156,6 +156,32 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
       | [] -> ir :: sup |> Ir.land_ |> return
       | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
     end
+  | Ast.Str.Contains (a, b) ->
+    let* a, sup_a = of_str_atom a in
+    let* b, sup_b = of_str_atom b in
+    let sup = sup_a @ sup_b in
+    let ir = Ir.scontains a b in
+    let atoms =
+      List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
+    in
+    begin
+      match atoms with
+      | [] -> ir :: sup |> Ir.land_ |> return
+      | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+    end
+  | Ast.Str.SuffixOf (a, b) ->
+    let* a, sup_a = of_str_atom a in
+    let* b, sup_b = of_str_atom b in
+    let sup = sup_a @ sup_b in
+    let ir = Ir.ssuffixof a b in
+    let atoms =
+      List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
+    in
+    begin
+      match atoms with
+      | [] -> ir :: sup |> Ir.land_ |> return
+      | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+    end
 ;;
 
 (*| s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)*)
