@@ -497,7 +497,32 @@ let make_main_symantics env =
         let ans = Ast.Eia.add (List.sort compare_term xs) in
         ans
       | c, [] -> constz c
-      | c, xs -> Ast.Eia.add (constz c :: List.sort compare_term xs)
+      | c, xs ->
+        let rec try_remove_contra key acc ~from:xs =
+          match xs with
+          | [] -> None
+          | Ast.Eia.Mul [ Atom (Const m1); c ] :: tl
+            when Z.(equal m1 minus_one) && Ast.Eia.eq_term key c ->
+            Some (List.rev_append acc tl)
+          | h :: tl -> try_remove_contra key (h :: acc) ~from:tl
+        in
+        Ast.Eia.add (constz c :: List.sort compare_term xs)
+        |> (function
+         | Ast.Eia.Add sumns ->
+           let sumns =
+             let rec loop acc = function
+               | [] -> acc
+               | h :: tl ->
+                 (match try_remove_contra h [] ~from:tl with
+                  | Some tl -> loop acc tl
+                  | None -> loop (h :: acc) tl)
+             in
+             loop [] sumns
+           in
+           (match sumns with
+            | [] -> Ast.Eia.Atom (Const Z.zero)
+            | sumns -> Ast.Eia.Add (List.sort Eia.compare_term sumns))
+         | other -> other)
     ;;
 
     let rec negate = function
@@ -588,17 +613,84 @@ let make_main_symantics env =
     let leq = relop Leq
 
     let eq x y =
+      let x, y =
+        match x, y with
+        | Eia.Add xs, Eia.Add ys ->
+          Eia.Add (xs @ List.map (fun x -> mul [ const (-1); x ]) ys), const 0
+        | _ -> x, y
+      in
+      let the_gcd r sumns =
+        List.fold_left
+          (fun acc -> function
+             | Eia.Atom (Const c) -> Z.gcd acc c
+             | Mul (Atom (Const c) :: _other) -> Z.gcd acc c
+             | _ -> Z.one)
+          r
+          sumns
+      in
+      let apply_the_gcd the_gcd sumns =
+        List.map
+          (function
+            | Eia.Mul (Atom (Const c) :: []) when Z.equal the_gcd c ->
+              Eia.Atom (Const Z.one)
+            | Eia.Atom (Const c) when Z.equal the_gcd c -> Eia.Atom (Const Z.one)
+            | Eia.Atom (Const c) -> Eia.Atom (Const (Z.gcd c the_gcd))
+            | Mul (Atom (Const c) :: _other) ->
+              Eia.Mul (Atom (Const Z.(c / the_gcd)) :: _other)
+            | _ -> assert false)
+          sumns
+      in
       let ans = relop Eq x y in
-      match ans with
-      | Eia (Eia.Eq (Mul (Atom (Const l) :: ltl), Mul (Atom (Const r) :: rtl))) ->
-        let gcd1 = Z.gcd l r in
-        if Z.(equal gcd1 one)
-        then ans
-        else
-          Eia
-            (Eia.eq (mul (constz Z.(l / gcd1) :: ltl)) (mul (constz Z.(r / gcd1) :: rtl)))
-      | Eia (Eia.Eq (l, r)) when Eia.eq_term l r -> true_
-      | _ -> ans
+      let ans =
+        match ans with
+        | Eia (Eia.Eq (Mul (Atom (Const l) :: ltl), Mul (Atom (Const r) :: rtl))) ->
+          let gcd1 = Z.gcd l r in
+          if Z.(equal gcd1 one)
+          then ans
+          else
+            Eia
+              (Eia.eq
+                 (mul (constz Z.(l / gcd1) :: ltl))
+                 (mul (constz Z.(r / gcd1) :: rtl)))
+        | Eia (Eia.Eq (l, r)) when Eia.eq_term l r -> true_
+        | Str (Str.Eq (Str.FromEia a, Str.FromEia b)) ->
+          Str (Ast.Str.Eq (Str.Atom a, Str.Atom b))
+        | ( Eia (Eia.Eq (Add sumns, Atom (Const r)))
+          | Eia (Eia.Eq (Atom (Const r), Add sumns)) ) as ans ->
+          let the_gcd = the_gcd r sumns in
+          if Z.(equal one the_gcd)
+          then ans
+          else (
+            let sumns = apply_the_gcd the_gcd sumns in
+            let r = Z.(r / the_gcd) in
+            Eia (Eia.Eq (Add sumns, Atom (Const r))))
+        | ( Eia (Eia.Eq (Add sumns, Mul (Atom (Const r) :: mulns)))
+          | Eia (Eia.Eq (Mul (Atom (Const r) :: mulns), Add sumns)) ) as ans ->
+          let the_gcd = the_gcd r sumns in
+          if Z.(equal one the_gcd)
+          then ans
+          else (
+            let sumns = apply_the_gcd the_gcd sumns in
+            let r = Z.(r / the_gcd) in
+            Eia (Eia.Eq (Add sumns, Mul (Atom (Const r) :: mulns))))
+        | _ -> ans
+      in
+      let ans =
+        match ans with
+        | Eia (Eia.Eq (Add [ Mul ml1; Mul ml2 ], Atom (Const r))) ->
+          let sml1 = Base.Set.Poly.of_list ml1 in
+          let sml2 = Base.Set.Poly.of_list ml2 in
+          let ml1, ml2 =
+            Base.Set.Poly.fold
+              (Base.Set.Poly.inter sml1 sml2)
+              ~init:(ml1, ml2)
+              ~f:(fun (ml1, ml2) x ->
+                List.filter (( <> ) x) ml1, List.filter (( <> ) x) ml2)
+          in
+          Eia (Eia.Eq (Add [ mul ml1; mul ml2 ], Atom (Const r)))
+        | ans -> ans
+      in
+      ans
     ;;
 
     let in_re s re =
@@ -1142,6 +1234,79 @@ let%expect_test _ =
   [%expect "x -> (+ (* z z) (* (- 2) y));"];
   test ~exp:[ "x" ] TS.(add [ var "x"; var "y" ] = mul [ var "z"; var "z" ]);
   [%expect "y -> (+ (* z z) (* (- 1) x));"];
+  test
+    ~exp:[]
+    TS.(
+      land_
+        [ var "x" = add [ var "z"; mul [ var "z"; var "z" ] ]
+        ; var "x" = add [ var "y"; mul [ var "y"; var "y" ] ]
+        ]);
+  [%expect ""];
+  ()
+;;
+
+let eq_propagation2 asts =
+  let open Ast in
+  let m : (string, Ast.Eia.term list) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
+  let extend name v =
+    let data =
+      match Base.Map.Poly.find !m name with
+      | None -> [ v ]
+      | Some vs -> v :: vs
+    in
+    m := Base.Map.Poly.set !m ~key:name ~data
+  in
+  let asts2 =
+    List.filter_map
+      (function
+        | Ast.Eia (Eia.Eq (Atom (Var v), (Eia.Add _ as rhs))) ->
+          extend v rhs;
+          None
+        | ph -> Some ph)
+      asts
+  in
+  let __ _ =
+    Format.printf "@[<v>@[eq_propagation2 data:@]@,";
+    Base.Map.Poly.iteri !m ~f:(fun ~key ~data ->
+      Format.printf
+        "@[%s ~~> [%a]@]@ "
+        key
+        (Format.pp_print_list
+           ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+           Ast.Eia.pp_term)
+        data;
+      ());
+    Format.printf "@]\n%!"
+  in
+  let prefix_formulas =
+    Base.Map.Poly.to_alist !m
+    |> List.concat_map (function
+      | _, [] -> assert false
+      | v, h :: tl ->
+        Ast.Eia (Eia.Eq (Atom (Var v), h))
+        :: List.map
+             (function
+               | Eia.Atom (Var v2) as rhs -> Ast.Eia (Eia.Eq (Atom (Var v), rhs))
+               (* variables are paired with variables  *)
+               | rhs -> Ast.Eia (Eia.Eq (h, rhs)))
+             tl)
+  in
+  asts2 @ prefix_formulas
+;;
+
+let%expect_test "eq propagation 2" =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ?(env = [ "x"; "y"; "z" ]) ?(exp = []) phs =
+    let phs = eq_propagation2 phs in
+    Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 (Ast.Land phs)
+  in
+  test
+    ~exp:[]
+    TS.
+      [ var "x" = add [ var "z"; mul [ var "z"; var "z" ] ]
+      ; var "x" = add [ var "y"; mul [ var "y"; var "y" ] ]
+      ];
+  [%expect "\n (and\n   (= x (+ y (* y y)))\n   (= (+ y (* y y)) (+ z (* z z))))\n "];
   ()
 ;;
 
@@ -1240,9 +1405,15 @@ let basic_simplify step (env : Env.t) ast =
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
     let ast2 = propagate_exponents ast2 in
+    let ast2 =
+      match ast2 with
+      | Ast.Land phs -> Ast.land_ (eq_propagation2 phs)
+      | ph -> ph
+    in
+    (* log "After eq_propagation2: @[%a@]" Ast.pp_smtlib2 ast2; *)
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
-    let env2 = eq_propagation var_info env ast in
+    let env2 = eq_propagation var_info env ast2 in
     let __ _ = log "env2 = %a" Env.pp env2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
