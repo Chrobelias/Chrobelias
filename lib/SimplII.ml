@@ -573,6 +573,27 @@ let make_main_symantics env =
     let leq = relop Leq
 
     let eq x y =
+      let the_gcd r sumns =
+        List.fold_left
+          (fun acc -> function
+             | Eia.Atom (Const c) -> Z.gcd acc c
+             | Mul (Atom (Const c) :: _other) -> Z.gcd acc c
+             | _ -> Z.one)
+          r
+          sumns
+      in
+      let apply_the_gcd the_gcd sumns =
+        List.map
+          (function
+            | Eia.Mul (Atom (Const c) :: []) when Z.equal the_gcd c ->
+              Eia.Atom (Const Z.one)
+            | Eia.Atom (Const c) when Z.equal the_gcd c -> Eia.Atom (Const Z.one)
+            | Eia.Atom (Const c) -> Eia.Atom (Const (Z.gcd c the_gcd))
+            | Mul (Atom (Const c) :: _other) ->
+              Eia.Mul (Atom (Const Z.(c / the_gcd)) :: _other)
+            | _ -> assert false)
+          sumns
+      in
       let ans = relop Eq x y in
       match ans with
       | Eia (Eia.Eq (Mul (Atom (Const l) :: ltl), Mul (Atom (Const r) :: rtl))) ->
@@ -585,6 +606,24 @@ let make_main_symantics env =
       | Eia (Eia.Eq (l, r)) when Eia.eq_term l r -> true_
       | Str (Str.Eq (Str.FromEia a, Str.FromEia b)) ->
         Str (Ast.Str.Eq (Str.Atom a, Str.Atom b))
+      | ( Eia (Eia.Eq (Add sumns, Atom (Const r)))
+        | Eia (Eia.Eq (Atom (Const r), Add sumns)) ) as ans ->
+        let the_gcd = the_gcd r sumns in
+        if Z.(equal one the_gcd)
+        then ans
+        else (
+          let sumns = apply_the_gcd the_gcd sumns in
+          let r = Z.(r / the_gcd) in
+          Eia (Eia.Eq (Add sumns, Atom (Const r))))
+      | ( Eia (Eia.Eq (Add sumns, Mul (Atom (Const r) :: mulns)))
+        | Eia (Eia.Eq (Mul (Atom (Const r) :: mulns), Add sumns)) ) as ans ->
+        let the_gcd = the_gcd r sumns in
+        if Z.(equal one the_gcd)
+        then ans
+        else (
+          let sumns = apply_the_gcd the_gcd sumns in
+          let r = Z.(r / the_gcd) in
+          Eia (Eia.Eq (Add sumns, Mul (Atom (Const r) :: mulns))))
       | _ -> ans
     ;;
 
