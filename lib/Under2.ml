@@ -187,12 +187,10 @@ let apply_symantics env (module S : SYM) =
     | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
       Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
       failwith "Strlen/Stoi should not be called from int constants. Types are bad"
-    | Len s -> failwith "TBD"
-    | Stoi s -> failwith "TBD"
-    | Stoi2 (Var s) -> failwith "TBD"
-    | Stoi2 (Const _) -> failwith "TBD"
-    | Len2 (Var s) -> failwith "TBD"
-    | Len2 (Const _) -> failwith "TBD"
+    | (Len _ | Stoi _ | Stoi2 (Var _) | Stoi2 (Const _) | Len2 (Var _) | Len2 (Const _))
+      as term -> Q.one, term
+  (* Format.eprintf "@[%a@]\n%!" Ast.pp_term_smtlib2 term;
+      failwith (Format.asprintf "Unsupported case in %s" __FUNCTION__) *)
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.eq (helperT l) (helperT r)
