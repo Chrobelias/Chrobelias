@@ -7,14 +7,14 @@
   > (check-sat)
   > EOF
 
-  $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl 1.smt2 -flat 1 -under3 -amin 2 -amax 2 | sed 's/[[:space:]]*$//'
+  $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl 1.smt2 -flat 1 -under3 -bmax 2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (str.++ "999" x) (str.++ y x)))
   iter(2)= (= (str.++ "999" x) (str.++ y x))
   vars_for_under2:
-  
+
   all as: 2
-  
+
   iter(1)= (= (str.++ "999" x) (str.++ y x))
   (= (str.++ "999" x) (str.++ y x))
   Looking for SAT in 1 asts...
@@ -64,9 +64,9 @@
              (= eeb7 (str.to.int y))
              (= eeb8 (str.to.int x)))
   vars_for_under2: eeb7
-  
+
   all as: 2
-  
+
   iter(1)= (and
              (= eeb2 (str.len x))
              (= eeb4 (str.to.int x))
