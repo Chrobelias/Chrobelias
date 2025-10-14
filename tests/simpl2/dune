@@ -82,3 +82,7 @@
 (cram
  (deps strings3.smt2)
  (applies_to strings3))
+
+(cram
+ (deps strings4.smt2)
+ (applies_to strings4))
