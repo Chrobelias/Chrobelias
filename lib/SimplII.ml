@@ -1170,9 +1170,25 @@ let lower_mod ast =
 ;;
 
 let lower_strlen ast =
-  let env = ref Env.empty in
-  let names : (Ast.Eia.term, string) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
-  let forgotten = ref Env.empty in
+  let names : (Ast.Eia.term, string list) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
+  let extend ~key v =
+    let data =
+      match Base.Map.Poly.find !names key with
+      | None -> [ v ]
+      | Some vs -> v :: vs
+    in
+    names := Base.Map.Poly.set !names ~key ~data
+  in
+  let ast_of_names map =
+    let _ : (Ast.Eia.term, string list) Base.Map.Poly.t = map in
+    map
+    |> Base.Map.Poly.to_alist
+    |> List.concat_map (function
+      | _, [] -> assert false
+      | term, h :: tl ->
+        Ast.Eia Ast.Eia.(eq (atom (Var h)) term)
+        :: List.map (fun v2 -> Ast.Str Ast.Str.(eq (atom (Var h)) (atom (Var v2)))) [])
+  in
   let module Collector = struct
     open Ast.Eia
     include Id_symantics
@@ -1181,17 +1197,14 @@ let lower_strlen ast =
       let () =
         match l, r with
         | Atom (Var v), ((Len _ | Len2 _ | Stoi _) as rhs)
-        | ((Len _ | Len2 _ | Stoi _) as rhs), Atom (Var v) ->
-          if Env.is_absent_key v !env
-          then env := Env.extend_exn !env v (`Eia rhs)
-          else forgotten := Env.extend_exn !forgotten v (`Eia rhs);
-          names := Base.Map.Poly.set !names ~key:rhs ~data:v
+        | ((Len _ | Len2 _ | Stoi _) as rhs), Atom (Var v) -> extend ~key:rhs v
         | _ -> ()
       in
       eq l r
     ;;
   end
   in
+  let env = ref Env.empty in
   let module Lowering = struct
     open Ast.Eia
     include Id_symantics
@@ -1204,26 +1217,23 @@ let lower_strlen ast =
            let newvar = Ir.internal_name () in
            let lent = Id_symantics.str_len lv in
            env := Env.extend_exn !env newvar (`Eia lent);
-           names := Base.Map.Poly.set !names ~key:lent ~data:newvar;
-           log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar;
+           extend ~key:lent newvar;
+           (* log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar; *)
            var newvar
-         | t -> Id_symantics.var t)
+         | vs -> Id_symantics.var (List.hd vs))
       | _ -> failwith (Printf.sprintf "Not implemented: %s %d" __FILE__ __LINE__)
     ;;
 
     let str_len2 lv =
-      log "got stlen2 of '%s'%!" lv;
       match Base.Map.Poly.find_exn !names (Len2 (Var lv)) with
       | exception Base.Not_found_s _ ->
         let newvar = Ir.internal_name () in
         let lent = Id_symantics.str_len2 lv in
         env := Env.extend_exn !env newvar (`Eia lent);
-        names := Base.Map.Poly.set !names ~key:lent ~data:newvar;
-        log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar;
+        extend ~key:lent newvar;
+        (* log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar; *)
         var newvar
-      | t ->
-        (* log "FUCK"; *)
-        Len2 (Var lv)
+      | vs -> Id_symantics.var (List.hd vs)
     ;;
 
     let str_atoi : str -> term = function
@@ -1232,12 +1242,11 @@ let lower_strlen ast =
         (match Base.Map.Poly.find_exn !names (Stoi lv) with
          | exception Base.Not_found_s _ ->
            let newvar = Ir.internal_name () in
-           let lent = Id_symantics.str_len lv in
+           let lent = Id_symantics.str_atoi lv in
            env := Env.extend_exn !env newvar (`Eia lent);
-           names := Base.Map.Poly.set !names ~key:lent ~data:newvar;
-           log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar;
+           (* log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar; *)
            var newvar
-         | t -> Stoi lv)
+         | vs -> Id_symantics.var (List.hd vs))
       | _ -> failwith (Printf.sprintf "Not implemented: %s %d" __FILE__ __LINE__)
     ;;
   end
@@ -1246,14 +1255,14 @@ let lower_strlen ast =
   let _ =
     Format.printf "@[<v>@[strlen data:@]@,";
     Base.Map.Poly.iteri !names ~f:(fun ~key ~data ->
-      Format.printf "@[%a ~~> %s@]@ " Ast.Eia.pp_term key data;
+      Format.printf "@[%a ~~> [%s]@]@ " Ast.Eia.pp_term key (String.concat "," data);
       ());
     Format.printf "@]\n%!"
   in
   match apply_symantics_unsugared (module Lowering) ast with
   | Ast.Land xs ->
-    Ast.Land (Env.to_eqs !env @ Env.to_eqs !forgotten @ List.map Id_symantics.prj xs)
-  | ph -> Ast.Land ((ph :: Env.to_eqs !env) @ Env.to_eqs !forgotten)
+    Ast.Land (Env.to_eqs !env @ ast_of_names !names @ List.map Id_symantics.prj xs)
+  | ph -> Ast.Land ((ph :: Env.to_eqs !env) @ ast_of_names !names)
 ;;
 
 let basic_simplify step (env : Env.t) ast =
@@ -1281,6 +1290,14 @@ let basic_simplify step (env : Env.t) ast =
   try `Unknown (loop step env ast) with
   | Unsat -> `Unsat
   | Sat (_, env) -> `Sat env
+;;
+
+let basic_simplify_naive env ph =
+  match basic_simplify [ 0 ] env ph with
+  | `Sat env -> Ast.Land (Env.to_eqs env)
+  | `Unsat -> Ast.false_
+  | `Unknown (Ast.Land phs, env, _, _) -> Ast.land_ (Env.to_eqs env @ phs)
+  | `Unknown (ph, env, _, _) -> Ast.land_ (Env.to_eqs env @ [ ph ])
 ;;
 
 let run_basic_simplify ast =
@@ -1442,8 +1459,11 @@ let run_under2 ast =
   let asts =
     List.filter_map
       (fun ast ->
+         let ast = basic_simplify_naive Env.empty ast in
+         let _ =
+           log "run_underapprox2: Before strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast
+         in
          let ast = lower_strlen ast in
-         (* let ast = lower_mod ast in *)
          let _ =
            log "run_underapprox2: After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast
          in
