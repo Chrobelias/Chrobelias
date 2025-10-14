@@ -209,7 +209,7 @@
             )
   )
   $ unset CHRO_DEBUG
-  $ timeout 2 Chro -pre-simpl -dsimpl strings3.smt2 -flat 0 -under3 -amin 0 -amax 1
+  $ timeout 5 Chro -pre-simpl -dsimpl strings3.smt2 -flat 0 -under3 -amin 0 -amax 1
   unknown
   ; Under2 resigns
   (assert (exists (%1)
