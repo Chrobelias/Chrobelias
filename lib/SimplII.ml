@@ -1311,7 +1311,10 @@ let lower_strlen ast =
       | _, [] -> assert false
       | term, h :: tl ->
         Ast.Eia Ast.Eia.(eq (atom (Var h)) term)
-        :: List.map (fun v2 -> Ast.Str Ast.Str.(eq (atom (Var h)) (atom (Var v2)))) [])
+        :: ListLabels.concat_map tl ~f:(fun v2 ->
+          if String.equal v2 h
+          then []
+          else [ Ast.Str Ast.Str.(eq (atom (Var h)) (atom (Var v2))) ]))
   in
   let module Collector = struct
     open Ast.Eia
@@ -1376,7 +1379,7 @@ let lower_strlen ast =
   end
   in
   let _ : Ast.t = apply_symantics_unsugared (module Collector) ast in
-  let _ =
+  let __ _ =
     Format.printf "@[<v>@[strlen data:@]@,";
     Base.Map.Poly.iteri !names ~f:(fun ~key ~data ->
       Format.printf "@[%a ~~> [%s]@]@ " Ast.Eia.pp_term key (String.concat "," data);
@@ -1431,9 +1434,10 @@ let basic_simplify_naive env ph =
 ;;
 
 let run_basic_simplify ast =
+  let __ _ = log "Before strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   let ast = lower_strlen ast in
   let ast = lower_mod ast in
-  let _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
+  let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat ("presimpl", env)
   | `Unsat -> `Unsat

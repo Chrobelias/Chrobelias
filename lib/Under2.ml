@@ -1,3 +1,4 @@
+let failf fmt = Format.kasprintf failwith fmt
 let log = Utils.log
 
 let find_vars_for_under2 ~base:b ast =
@@ -224,7 +225,7 @@ let try_under2_heuristics
   let ( let* ) xs f = List.concat_map f xs in
   let envs =
     match l with
-    | n when n < 0 -> failwith "bad config"
+    | n when n < 0 -> failf "Bad argument in try_under2_heiristics: %d<0" n
     | l ->
       Base.Set.Poly.fold
         ~f:(fun acc name ->
