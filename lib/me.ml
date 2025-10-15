@@ -93,19 +93,17 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
     | Ast.Str.Const s ->
       let re' =
         Regex.concat
-          (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
           (Regex.concat
-             (Regex.concat
-                (s
-                 |> String.to_seq
-                 |> Seq.map (fun c -> Regex.symbol [ c ])
-                 |> Seq.fold_left
-                      (fun acc a ->
-                         (* String constraints use LSB representation, we intentionally reverse the concat. *)
-                         Regex.concat a acc)
-                      Regex.epsilon)
-                (Regex.kleene (Regex.symbol [ Nfa.Str.u_zero ])))
-             (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])))
+             (s
+              |> String.to_seq
+              |> Seq.map (fun c -> Regex.symbol [ c ])
+              |> Seq.fold_left
+                   (fun acc a ->
+                      (* String constraints use LSB representation, we intentionally reverse the concat. *)
+                      Regex.concat a acc)
+                   Regex.epsilon)
+             (Regex.kleene (Regex.symbol [ Nfa.Str.u_zero ])))
+          (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
       in
       let u = Ir.internal () in
       (u, [ Ir.sreg u re' ]) |> return
