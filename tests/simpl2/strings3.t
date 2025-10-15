@@ -4,16 +4,11 @@
   (declare-const x String)
   (declare-const y String)
   (assert (= (str.++ "999" x) (str.++ y x)))
+  (set-info :status sat)
   (check-sat)
 
 $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -under3 -bmax 1 | sed 's/[[:space:]]*$//'
   $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -under3 -bmax 1 #| head -n 50
-  strlen data:
-  
-  After strlen lowering:
-  (and
-    (= (str.++ "999" x) (str.++ y x)))
-  
   iter(1)= (and
              (= (str.++ "999" x) (str.++ y x)))
   iter(2)= (= (str.++ "999" x) (str.++ y x))
@@ -25,8 +20,6 @@ $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -un
   run_underapprox2: Before strlen lowering:
   (and
     (= (str.++ "999" x) (str.++ y x)))
-  
-  strlen data:
   
   run_underapprox2: After strlen lowering:
   (and
@@ -42,29 +35,11 @@ $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -un
   Simplified expression: (= (str.++ "999" x) (str.++ y x))
   unknown
   ; Under2 resigns
-  strlen data:
-  (str.len x) ~~> [eeb2,eeb6]
-  (str.to.int x) ~~> [eeb4,eeb8]
-  (str.to.int y) ~~> [eeb7]
-  
-  After strlen lowering:
-  (and
-    (= eeb2 (str.len x))
-    (= eeb4 (str.to.int x))
-    (= eeb7 (str.to.int y))
-    (= eeb6 eeb2)
-    (= eeb5 (+ (* eeb7 (exp 10 eeb6)) eeb8))
-    (= eeb8 eeb4)
-    (= eeb7 eeb7)
-    (= eeb2 eeb2)
-    (= eeb1 (+ (* eeb3 (exp 10 eeb2)) eeb4))
-    (= eeb4 eeb4)
-    (= eeb3 999)
-    (= (str.from_int eeb1) (str.from_int eeb5)))
-  
   iter(1)= (and
              (= eeb2 (str.len x))
+             (= eeb2 eeb6)
              (= eeb4 (str.to.int x))
+             (= eeb4 eeb8)
              (= eeb7 (str.to.int y))
              (= eeb6 eeb2)
              (= eeb5 (+ (* eeb7 (exp 10 eeb6)) eeb8))
@@ -85,6 +60,8 @@ $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -un
              (= eeb7 (str.to.int y))
              (= eeb8 eeb4)
              (= eeb1 eeb5)
+             (= eeb2 eeb6)
+             (= eeb4 eeb8)
              (= eeb1 (+ eeb4 (* eeb3 (exp 10 eeb2))))
              (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6)))))
   iter(3)= (and
@@ -138,10 +115,6 @@ $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -un
     (= 999 (str.to.int y))
     (= eeb5 (+ eeb4 (* 999 (exp 10 eeb2)))))
   
-  strlen data:
-  (str.len x) ~~> [eeb2]
-  (str.to.int x) ~~> [eeb4]
-  
   run_underapprox2: After strlen lowering:
   (and
     (= %0 (str.to.int y))
@@ -176,25 +149,6 @@ $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -un
                            (= eeb4 (str.to.int x))
                            (= 999 %0)
                            (= eeb5 (+ eeb4 (* 999 (exp 10 eeb2)))))
-  strlen data:
-  (chrob.len x) ~~> [%2]
-  
-  After strlen lowering:
-  (and
-    (= %2 (chrob.len x))
-    (and
-      (= (+ (* (- 1) y) (* 1 %0)) 0))
-    (and
-      (= (+ (* 1 eeb2) (* (- 1) %1)) 0)
-      (= %2 %2)
-      (= (+ (* 1 (exp 10 %1)) (* (- 1) %2)) 1))
-    (and
-      (= (+ (* (- 1) x) (* 1 eeb4)) 0))
-    (and
-      (= (+ (* (- 1) %0)) (- 999)))
-    (and
-      (= (+ (* (- 999) (exp 10 eeb2)) (* 1 eeb5) (* (- 1) eeb4)) 0)))
-  
   iter(1)= (and
              (= %2 (chrob.len x))
              (and
@@ -244,26 +198,11 @@ $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -un
   )
   $ unset CHRO_DEBUG
   $ timeout 2 Chro -pre-simpl -dpresimpl -dsimpl strings3.smt2 -flat 0 -under3 -bmax 1 #| head -n 50
-  strlen data:
-  
-  strlen data:
-  
   (= (str.++ "999" x) (str.++ y x))
+  ; Need to improve --- SAT is expected
   unknown
   ; Under2 resigns
-  strlen data:
-  (str.len x) ~~> [eeb2,eeb6]
-  (str.to.int x) ~~> [eeb4,eeb8]
-  (str.to.int y) ~~> [eeb7]
-  
-  strlen data:
-  (str.len x) ~~> [eeb2]
-  (str.to.int x) ~~> [eeb4]
-  
   (= (str.++ "999" x) (str.++ y x))
-  strlen data:
-  (chrob.len x) ~~> [%2]
-  
   (assert (exists (%2)
           (and
             (exists (x) (= %2 (chrob.len x)))
