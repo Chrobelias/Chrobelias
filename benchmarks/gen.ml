@@ -2,6 +2,10 @@ type mode =
   | Default
   | Script of string
 
+type opponent =
+  | Without [@ocaml.warnerror "-37"]
+  | Swine
+
 type config =
   { mutable outdir : string
   ; mutable path : string
@@ -11,6 +15,7 @@ type config =
         Probably it could be calculated from two paths, but it is postponed for later. *)
   ; mutable suffix : string
   ; mutable mode : mode
+  ; mutable opponent : opponent
   }
 
 let config =
@@ -20,6 +25,7 @@ let config =
   ; dot_dot_count = 5
   ; suffix = ".smt2"
   ; mode = Default
+  ; opponent = Swine
   }
 ;;
 
@@ -34,6 +40,13 @@ let () =
             config.timeout <- n)
       , "" )
     ; "-b", Arg.String (fun s -> config.mode <- Script s), " "
+    ; ( "-opp"
+      , Arg.String
+          (function
+            | "swine" -> config.opponent <- Swine
+            | "no" -> config.opponent <- Without
+            | _ -> failwith "bad argument")
+      , " " )
     ]
     (fun s -> config.path <- s)
     "help"
@@ -256,10 +269,16 @@ let prepare_default () =
       Format.pp_print_flush dfmt ()))
 ;;
 
-let prepare_script ~script =
-  let on_file ppf file =
+let prepare_script ?(opp = Swine) ~script () =
+  let on_file ppf ~total curi file =
     let printfn fmt = Format.kasprintf (Format.fprintf ppf "%s\n") fmt in
     let smt2file = Printf.sprintf "%s/%s%s" config.path file config.suffix in
+    let pretty_file =
+      smt2file
+      |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/QF_LIA/LoAT/"
+      |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/QF_LIA/"
+      |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/QF_LIA/LoAT/"
+    in
     let extra_flags =
       String.concat
         " "
@@ -274,26 +293,61 @@ let prepare_script ~script =
     printfn "#";
     printfn "sed 's/QF_SLIA/QF_S/g' -i %s" smt2file;
     printfn "export TIMEOUT=%d" config.timeout;
-    printfn "SECONDS=0";
-    printfn "printf '%s...\n'" smt2file;
+    (* printfn "SECONDS=0"; *)
+    printfn "printf '\n%s (%d/%d)...\n'" smt2file curi total;
     printfn
-      "if timeout $TIMEOUT /usr/bin/time -f '%%U' dune exec Chro --profile=release -- %s \
-       -q %s > .log"
+      "if timeout $TIMEOUT /usr/bin/time -f 'THETIME %%U' dune exec Chro \
+       --profile=release -- %s -q %s > .log 2> .errlog"
       smt2file
       extra_flags;
     printfn "then";
-    printfn "  grep '^unsat' .log || true";
-    printfn "  grep '^sat' .log || true";
-    printfn "  grep '^unknown' .log || true";
-    printfn "  #echo \"seconds = $SECONDS\"";
-    printfn "fi"
+    printfn "  TIME=$(grep THETIME .errlog | awk '{print $2}')";
+    printfn "  echo time is '$TIME'";
+    printfn "  if grep -q '^unsat' .log; then";
+    printfn "    echo \" \\%sUNSAT{$TIME}{%s}\"" "CHRO" pretty_file;
+    printfn "  fi";
+    printfn "  if grep -q '^sat' .log; then";
+    printfn "    echo \"\\%sSAT{$TIME}{%s}\"" "CHRO" pretty_file;
+    printfn "  fi";
+    printfn "  if grep -q '^unknown' .log; then";
+    printfn "    echo \"\\%sUNK{$TIME}{%s}\"" "CHRO" pretty_file;
+    printfn "  fi";
+    printfn "else";
+    printfn "    echo \"\\%sTIMEOUT{$TIMEOUT}{%s}\"" "CHRO" pretty_file;
+    printfn "fi";
+    match opp with
+    | Without -> ()
+    | Swine ->
+      printfn "echo '\nExecuting Swine on %s'" smt2file;
+      printfn "echo '' > .log";
+      printfn
+        "if timeout $TIMEOUT /usr/bin/time -f 'THETIME %%U' dune exec bin/swine \
+         --profile=release -- %s > .log 2> .errlog"
+        smt2file;
+      printfn "then";
+      printfn "  #pr -T -o 11 .log";
+      printfn "  TIME=$(grep THETIME .errlog | awk '{print $2}')";
+      printfn "  echo time is \"$TIME\"";
+      printfn "  if grep -q '^unsat' .log; then";
+      printfn "    echo \"\\%sUNSAT{$TIME}{%s}\"" "SWINE" pretty_file;
+      printfn "  elif grep -q '^sat' .log; then";
+      printfn "    echo \"\\%sSAT{$TIME}{%s}\"" "SWINE" pretty_file;
+      printfn "  elif grep -q '^unknown' .log; then";
+      printfn "    echo \"\\%sUNK{$TIME}{%s}\"" "SWINE" pretty_file;
+      printfn "  else";
+      printfn "    echo 'BAD'";
+      printfn "  fi";
+      printfn "else";
+      printfn "    echo \"\\%sTIMEOUT{$TIMEOUT}{%s}\"" "SWINE" pretty_file;
+      printfn "fi"
   in
   Out_channel.with_open_text script (fun ch ->
     let ppf = Format.formatter_of_out_channel ch in
     Format.fprintf ppf "#!/usr/bin/env bash\n\n%!";
     Format.fprintf ppf "export OCAMLRUNPARAM='b=0'\n%!";
     Format.fprintf ppf "dune b bin/chro.exe --profile=release\n";
-    List.iter (on_file ppf) files;
+    let total = List.length files in
+    List.iteri (on_file ppf ~total) files;
     Format.pp_print_flush ppf ();
     flush ch)
 ;;
@@ -301,5 +355,5 @@ let prepare_script ~script =
 let () =
   match config.mode with
   | Default -> prepare_default ()
-  | Script script -> prepare_script ~script
+  | Script script -> prepare_script ~opp:config.opponent ~script ()
 ;;

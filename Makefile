@@ -144,25 +144,25 @@ make_bench_scripts:
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity -b bench_Complexity.sh
 	dune exec benchmarks/gen.exe -- -ddc 4 -t 60 benchmarks/QF_LIA/PURRS -b bench_PURRS.sh
 	# string
-	dune exec benchmarks/gen.exe -- -ddc 4 -t 60 benchmarks/QF_SLIA/20230329-denghang -b bench_s_denghang.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/20230329-woorpje-lu/track05 -b bench_s_woorpje-05.sh
-	dune exec benchmarks/gen.exe -- -ddc 4 -t 60 benchmarks/QF_SLIA/20250410-matching -b bench_s_Matching.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/2015-Norn/ab -b bench_s_norn-ab.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/2015-Norn/ChunkSplit -b bench_s_norn-ChunkSplit.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/2015-Norn/HammingDistance -b bench_s_norn-Hamming.sh
+	# dune exec benchmarks/gen.exe -- -ddc 4 -t 60 benchmarks/QF_SLIA/20230329-denghang -b bench_s_denghang.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/20230329-woorpje-lu/track05 -b bench_s_woorpje-05.sh
+	# dune exec benchmarks/gen.exe -- -ddc 4 -t 60 benchmarks/QF_SLIA/20250410-matching -b bench_s_Matching.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/2015-Norn/ab -b bench_s_norn-ab.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/2015-Norn/ChunkSplit -b bench_s_norn-ChunkSplit.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/2015-Norn/HammingDistance -b bench_s_norn-Hamming.sh
 
 
-	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 benchmarks/QF_SLIA/2019-full_str_int/py-conbyte_cvc4/leetcode_int-numDecodings -b bench_s_norn-leetcode_int-numDecodings.sh
+	# dune exec benchmarks/gen.exe -- -ddc 6 -t 60 benchmarks/QF_SLIA/2019-full_str_int/py-conbyte_cvc4/leetcode_int-numDecodings -b bench_s_norn-leetcode_int-numDecodings.sh
 
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/20240411-redos_attack_detection/sat -b bench_s_redos-sat.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/20240411-redos_attack_detection/unsat -b bench_s_redos-unsat.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/20240411-redos_attack_detection/sat -b bench_s_redos-sat.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/20240411-redos_attack_detection/unsat -b bench_s_redos-unsat.sh
 	# EXP-solver
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -b bench_EXP-all-head.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/all/tail -b bench_EXP-all-tail.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/all/head-tail -b bench_EXP-all-headtail.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -b bench_EXP-flatten-head.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/tail -b bench_EXP-flatten-tail.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head-tail -b bench_EXP-flatten-headtail.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -b bench_EXP-all-head.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/all/tail -b bench_EXP-all-tail.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/all/head-tail -b bench_EXP-all-headtail.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -b bench_EXP-flatten-head.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/tail -b bench_EXP-flatten-tail.sh
+	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head-tail -b bench_EXP-flatten-headtail.sh
 
 
 
