@@ -49,10 +49,6 @@
              (= eeb1 eeb5)
              (= eeb1 (+ eeb4 (* eeb3 (exp 10 eeb2))))
              (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6)))))
-  Substitute eeb3 ~~> 999
-  Substitute eeb1 ~~> eeb5
-  Substitute eeb3 ~~> 999
-  Substitute eeb1 ~~> eeb5
   iter(3)= (and
              (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6))))
              (= (+ eeb8 (* eeb7 (exp 10 eeb6))) (+ eeb4 (* 999 (exp 10 eeb2)))))
@@ -64,8 +60,6 @@
   
   all as: 2
   
-  Substitute eeb7 ~~> (+ (exp 10 u9) (* (- 1) (exp 10 v10)) 2)
-  Substitute eeb7 ~~> (+ (exp 10 u9) (* (- 1) (exp 10 v10)) 2)
   iter(1)= (and
              (= eeb5 (+ eeb8 (* 2 (exp 10 eeb6))
                      (* (* (- 1) (exp 10 v10)) (exp 10 eeb6))
@@ -88,16 +82,6 @@
              (<= v10 u9)
              (= eeb5 (+ eeb8 (* (- 1) (exp 10 eeb6) (exp 10 v10))
                      (* 2 (exp 10 eeb6)) (exp 10 (+ u9 eeb6)))))
-  Substitute eeb8 ~~> (+ (* (* (- 999) (exp 10 eeb2)) (- 1))
-                      (* (* (- 1) eeb4) (- 1))
-                      (* (* (- 1) (exp 10 eeb6) (exp 10 v10)) (- 1))
-                      (* (* 2 (exp 10 eeb6)) (- 1))
-                      (* (exp 10 (+ u9 eeb6)) (- 1)))
-  Substitute eeb8 ~~> (+ (* (* (- 999) (exp 10 eeb2)) (- 1))
-                      (* (* (- 1) eeb4) (- 1))
-                      (* (* (- 1) (exp 10 eeb6) (exp 10 v10)) (- 1))
-                      (* (* 2 (exp 10 eeb6)) (- 1))
-                      (* (exp 10 (+ u9 eeb6)) (- 1)))
   iter(3)= (and
              (= (+ (* (- 999) (exp 10 eeb2)) (* (- 1) eeb4)
                 (* (- 1) (exp 10 (+ eeb6 v10))) (* 2 (exp 10 eeb6))
@@ -137,8 +121,6 @@
   iter(2)= (and
              (= (+ eeb5 (* (- 999) (exp 10 eeb2)) (* (- 1) eeb4)) 0)
              (<= (+ v10 (* (- 1) u9)) 0))
-  Substitute eeb5 ~~> (+ (* (* (- 999) (exp 10 eeb2)) (- 1))
-                      (* (* (- 1) eeb4) (- 1)))
   iter(3)= (and
              (= (+ (* (- 999) (exp 10 eeb2)) (* (- 1) eeb4)
                 (* (* (- 999) (exp 10 eeb2)) (- 1)) (* (* (- 1) eeb4) (- 1))) 0)

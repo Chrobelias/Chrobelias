@@ -11,20 +11,15 @@
              (= (str.to.int x) (+ (* 11111 q2) r1))
              (<= (+ r1 1) 11111)
              (<= 0 r1))
+  Something ready to substitute:  r1 -> 42;
   iter(2)= (and
              (= r1 42)
              (= (str.to.int x) (+ r1 (* 11111 q2)))
              (<= r1 11110)
              (<= 0 r1))
-  Something ready to substitute:  r1 -> 42;
   iter(3)= (and
-             (= r1 42)
-             (= (str.to.int x) (+ r1 (* 11111 q2)))
-             (<= r1 11110)
-             (<= 0 r1))
-  iter(4)= (and
              (= (str.to.int x) (+ 42 (* 11111 q2))))
-  iter(5)= (= (str.to.int x) (+ 42 (* 11111 q2)))
+  iter(4)= (= (str.to.int x) (+ 42 (* 11111 q2)))
 
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)
@@ -43,24 +38,16 @@ $ cat 1.smt2
              (= (str.to.int x) (+ (* 442271 q2) r1))
              (<= (+ r1 1) 442271)
              (<= 0 r1))
-  iter(2)= (and
-             (= r1 (+ r3 (* 417677 q4)))
-             (= r3 0)
-             (= (str.to.int x) (+ r1 (* 442271 q2)))
-             (<= r1 442270)
-             (<= r3 417676)
-             (<= 0 r1)
-             (<= 0 r3))
   Something ready to substitute:  r3 -> 0;
-  iter(3)= (and
-             (= r1 (+ r3 (* 417677 q4)))
+  iter(2)= (and
              (= r3 0)
              (= (str.to.int x) (+ r1 (* 442271 q2)))
              (<= r1 442270)
              (<= r3 417676)
              (<= 0 r1)
-             (<= 0 r3))
-  iter(4)= (and
+             (<= 0 r3)
+             (= r1 (+ r3 (* 417677 q4))))
+  iter(3)= (and
              (= r1 (* 417677 q4))
              (= (str.to.int x) (+ r1 (* 442271 q2)))
              (<= r1 442270)

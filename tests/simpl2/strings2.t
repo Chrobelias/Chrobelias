@@ -17,8 +17,6 @@
   iter(2)= (and
              (= y "321")
              (= (str.++ "123" x) (str.++ y x)))
-  Substitute y ~~> "321"
-  Substitute y ~~> "321"
   iter(3)= (and
              (= (str.++ "123" x) (str.++ "321" x)))
   iter(4)= (= (str.++ "123" x) (str.++ "321" x))
@@ -59,12 +57,6 @@
              (= eeb1 eeb5)
              (= eeb1 (+ eeb4 (* eeb3 (exp 10 eeb2))))
              (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6)))))
-  Substitute eeb3 ~~> 123
-  Substitute eeb7 ~~> 321
-  Substitute eeb1 ~~> eeb5
-  Substitute eeb3 ~~> 123
-  Substitute eeb1 ~~> eeb5
-  Substitute eeb7 ~~> 321
   iter(3)= (and
              (= eeb5 (+ eeb8 (* 321 (exp 10 eeb6))))
              (= (+ eeb8 (* 321 (exp 10 eeb6))) (+ eeb4 (* 123 (exp 10 eeb2)))))
@@ -88,10 +80,6 @@
              (= (+ eeb8 (* (- 123) (exp 10 eeb2)) (* (- 1) eeb4)
                 (* 321 (exp 10 eeb6))) 0)
              (= eeb5 (+ eeb8 (* 321 (exp 10 eeb6)))))
-  Substitute eeb8 ~~> (+ (* (* (- 123) (exp 10 eeb2)) (- 1))
-                      (* (* (- 1) eeb4) (- 1)) (* (* 321 (exp 10 eeb6)) (- 1)))
-  Substitute eeb8 ~~> (+ (* (* (- 123) (exp 10 eeb2)) (- 1))
-                      (* (* (- 1) eeb4) (- 1)) (* (* 321 (exp 10 eeb6)) (- 1)))
   iter(3)= (and
              (= (+ (* (- 123) (exp 10 eeb2)) (* (- 1) eeb4)
                 (* 321 (exp 10 eeb6)) (* (* (- 123) (exp 10 eeb2)) (- 1))
@@ -113,8 +101,6 @@
                                              (- 1))
                                           (* (* (- 1) eeb4) (- 1)));
   iter(2)= (= (+ eeb5 (* (- 123) (exp 10 eeb2)) (* (- 1) eeb4)) 0)
-  Substitute eeb5 ~~> (+ (* (* (- 123) (exp 10 eeb2)) (- 1))
-                      (* (* (- 1) eeb4) (- 1)))
   iter(3)= (= (+ (* (- 123) (exp 10 eeb2)) (* (- 1) eeb4)
               (* (* (- 123) (exp 10 eeb2)) (- 1)) (* (* (- 1) eeb4) (- 1))) 0)
   iter(4)= True

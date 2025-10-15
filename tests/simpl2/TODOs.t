@@ -134,8 +134,7 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   iter(1)= (and
              (<= (+ (+ it646 (* (* (- 1) 2) it646)) (* (* (- 1) 1) it646))
              (* (- 1) 2)))
-  iter(2)= (<= (+ it646 (* (- 2) it646) (* (- 1) it646)) (- 2))
-  iter(3)= (<= (+ it646 (* (- 3) it646)) (- 2))
+  iter(2)= (<= (* (- 1) it646) (- 1))
   Interesting:
   
   Expecting 1 choices ...
@@ -158,11 +157,12 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= 0 (* (+ (* (- 1) 2) (* 3 i3)) (exp 2 it134))))
-  iter(2)= (= (+ (* (- 1) (* 3 i3) (exp 2 it134)) (* 2 (exp 2 it134))) 0)
-  iter(3)= (= (+ (* (- 3) i3 (exp 2 it134)) (* 2 (exp 2 it134))) 0)
-  Interesting: it134
+  iter(2)= (= (+ (* (- 3) i3) 2) 0)
+  iter(3)= (= (+ (* (- 3) i3)) (- 2))
+  iter(4)= (= (* (- 3) i3) (- 2))
+  Interesting:
   
-  Expecting 2 choices ...
+  Expecting 1 choices ...
   
   Can't decide in lib/Underapprox.ml
   $ cat > XXXX.smt2 <<-EOF
@@ -181,11 +181,10 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
              (and
                (= (+ (+ it376 (* (* (- 1) 3) it361)) (* 2 (exp it362 3))) 0)
                (= (* 0 it360) 0)))
-  iter(2)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
   Something ready to substitute:  it376 -> (+ (* (* (- 3) it361) (- 1))
                                            (* (* 2 (exp it362 3)) (- 1)));
-  iter(3)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
-  iter(4)= (= (+ (* (- 3) it361) (* 2 (exp it362 3)) (* (* (- 3) it361) (- 1))
+  iter(2)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
+  iter(3)= (= (+ (* (- 3) it361) (* 2 (exp it362 3)) (* (* (- 3) it361) (- 1))
               (* (* 2 (exp it362 3)) (- 1))) 0)
-  iter(5)= True
+  iter(4)= True
   sat ; presimpl
