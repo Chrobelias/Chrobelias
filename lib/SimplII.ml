@@ -369,10 +369,10 @@ let make_main_symantics env =
       | Some c ->
         (match c with
          | `Eia eia ->
-           log "Substitute %s ~~> %a" s Ast.Eia.pp_term eia;
+           (* log "Substitute %s ~~> %a" s Ast.Eia.pp_term eia; *)
            eia
-         | `Str (Str.Atom v2 as eia) ->
-           log "Substitute %s ~~> %a" s Ast.Str.pp_term eia;
+         | `Str (Str.Atom v2 as _eia) ->
+           (* log "Substitute %s ~~> %a" s Ast.Str.pp_term eia; *)
            Eia.Atom v2
          | `Str str ->
            Format.eprintf "; Warning: Eia var '%s' is left as is!\n%!" s;
@@ -393,7 +393,7 @@ let make_main_symantics env =
            Format.eprintf "; Warning. Str var '%s' is left as is!\n%!" s;
            Str.Atom (Ast.var s)
          | `Str str ->
-           log "Substitute %s ~~> %a" s Ast.Str.pp_term str;
+           (* log "Substitute %s ~~> %a" s Ast.Str.pp_term str; *)
            str)
     ;;
 
