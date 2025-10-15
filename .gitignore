@@ -1,3 +1,7 @@
 _build/
 debugs/
 dumps/
+/*.output
+/.log
+/.errlog
+
