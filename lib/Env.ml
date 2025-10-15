@@ -1,4 +1,14 @@
-type t = (string, [ `Eia of Ast.Eia.term | `Str of Ast.Str.term ]) Base.Map.Poly.t
+type data =
+  [ `Eia of Ast.Eia.term
+  | `Str of Ast.Str.term
+  ]
+
+let pp_data ppf = function
+  | `Eia t -> Format.fprintf ppf "Eia %a" Ast.Eia.pp_term t
+  | `Str t -> Format.fprintf ppf "Str %a" Ast.Str.pp_term t
+;;
+
+type t = (string, data) Base.Map.Poly.t
 
 let pp : Format.formatter -> t -> unit =
   fun ppf s ->
@@ -77,10 +87,10 @@ let merge : t -> t -> t =
   Base.Map.Poly.merge_skewed ~combine:(fun ~key v1 v2 ->
     if Stdlib.(v1 = v2)
     then v1
-    else
-      (*Format.eprintf "v1 = %a\n%!" Ast.pp_term_smtlib2 v1;
-      Format.eprintf "v2 = %a\n%!" Ast.pp_term_smtlib2 v2;*)
-      failwith "We tried to subtitute a varible by two different terms")
+    else (
+      let () = Format.eprintf "v1 = %a\n%!" pp_data v1 in
+      let () = Format.eprintf "v2 = %a\n%!" pp_data v2 in
+      failwith "We tried to subtitute a varible by two different terms"))
 ;;
 
 let to_eqs : t -> Ast.t list =
