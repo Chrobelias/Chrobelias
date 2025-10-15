@@ -361,8 +361,11 @@ let make_main_symantics env =
     let const c = constz (Z.of_int c)
 
     let var s : term =
+      let default = Eia.Atom (Ast.var s) in
       match Env.lookup s env with
-      | None -> Eia.Atom (Ast.var s)
+      | None -> default
+      | Some (`Eia (Ast.Eia.Len _)) -> default
+      | Some (`Eia (Ast.Eia.Stoi _)) -> default
       | Some c ->
         (match c with
          | `Eia eia ->
@@ -377,8 +380,11 @@ let make_main_symantics env =
     ;;
 
     let str_var s : str =
+      let default = Str.atom (Ast.var s) in
       match Env.lookup s env with
-      | None -> Str.atom (Ast.var s)
+      | None -> default
+      | Some (`Eia (Ast.Eia.Len _)) -> default
+      | Some (`Eia (Ast.Eia.Stoi _)) -> default
       | Some c ->
         (match c with
          | `Eia (Ast.Eia.Atom (Ast.Const c)) -> Str.Const (Z.to_string c)
@@ -689,6 +695,12 @@ let make_main_symantics env =
       (* log "Calculate Eq of  %a and %a" Ast.pp_term_smtlib2 x Ast.pp_term_smtlib2 y; *)
       let x, y =
         match x, y with
+        | Eia.Atom (Var v), (Eia.Len _ as rhs) when Env.lookup v env = Some (`Eia rhs) ->
+          Eia.Atom (Var v), Eia.Atom (Var v)
+        | Eia.Atom (Var v), (Eia.Stoi _ as rhs) when Env.lookup v env = Some (`Eia rhs) ->
+          Eia.Atom (Var v), Eia.Atom (Var v)
+        | Eia.Atom (Var v1), Eia.Atom (Var v2) when Env.lookup v1 env = Env.lookup v2 env
+          -> Eia.Atom (Var v1), Eia.Atom (Var v1)
         (* | _ when Eia.eq_term x y -> Ast.Tr *)
         | Eia.Add xs, Eia.Add ys ->
           (* log "Joining @[%a@] and @[%a@]" Ast.pp_term_smtlib2 x Ast.pp_term_smtlib2 y; *)
@@ -1203,6 +1215,12 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       else Env.extend_exn env v (`Str rhs)
     | Str (Str.Eq (Str.Atom (Var v), (Str.Const s2 as rhs))) ->
       if not (Env.is_absent_key v env) then env else Env.extend_exn env v (`Str rhs)
+    | Str (Str.Eq (Str.Atom (Var v), (Str.FromEia _ as rhs))) ->
+      if not (Env.is_absent_key v env) then env else Env.extend_exn env v (`Str rhs)
+    | Eia (Eia.Eq (Eia.Atom (Var v), (Eia.Len _ as rhs))) ->
+      if not (Env.is_absent_key v env) then env else Env.extend_exn env v (`Eia rhs)
+    | Eia (Eia.Eq (Eia.Atom (Var v), (Eia.Stoi _ as rhs))) ->
+      if not (Env.is_absent_key v env) then env else Env.extend_exn env v (`Eia rhs)
     | _ when false ->
       assert false
       (* **************************** integer stuff *********************************** *)
@@ -1489,18 +1507,18 @@ let basic_simplify step (env : Env.t) ast =
   let rec loop step (env : Env.t) ast =
     log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
-    log "Before apply_symantics: @[%a@]" Ast.pp_smtlib2 ast;
+    (* log "Before apply_symantics: @[%a@]" Ast.pp_smtlib2 ast; *)
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
-    log "Before propag_exponents: @[%a@]" Ast.pp_smtlib2 ast2;
+    (* log "Before propag_exponents: @[%a@]" Ast.pp_smtlib2 ast2; *)
     let ast2 = propagate_exponents ast2 in
-    log "Before eq_propagation2: @[%a@]" Ast.pp_smtlib2 ast2;
+    (* log "Before eq_propagation2: @[%a@]" Ast.pp_smtlib2 ast2; *)
     let ast2 =
       match ast2 with
       | Ast.Land phs -> Ast.land_ (eq_propagation2 phs)
       | ph -> ph
     in
-    log "After eq_propagation2: @[%a@]" Ast.pp_smtlib2 ast2;
+    (* log "After eq_propagation2: @[%a@]" Ast.pp_smtlib2 ast2; *)
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
     let env2 = eq_propagation var_info env ast2 in
