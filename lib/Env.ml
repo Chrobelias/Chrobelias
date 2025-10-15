@@ -11,18 +11,20 @@ let pp : Format.formatter -> t -> unit =
 [@@ocaml.warning "-32"]
 ;;
 
-let walk =
+let walk : t -> _ =
   fun env ->
   Ast.map_term
     (function
       | Ast.Eia.Atom (Ast.Var s) as orig ->
         (match Base.Map.Poly.find_exn env s with
+         | `Str (Ast.Str.Atom (Var v)) -> Ast.Eia.Atom (Var v)
          | (exception Base.Not_found_s _) | `Str _ -> orig
          | `Eia t -> t)
       | t -> t)
     (function
       | Ast.Str.Atom (Ast.Var s) as orig ->
         (match Base.Map.Poly.find_exn env s with
+         | `Eia (Ast.Eia.Atom (Var v)) -> Ast.Str.Atom (Var v)
          | (exception Base.Not_found_s _) | `Eia _ -> orig
          | `Str t -> t)
       | t -> t)
@@ -46,6 +48,8 @@ let rec occurs_var_exn =
        | _ -> ())
     (fun () -> function
        | Ast.(Str.Atom (Var v2)) when String.equal v v2 -> raise Occurs
+       | Ast.Str.Atom (Var v2) when not (is_absent_key v2 env) ->
+         occurs_var_exn env v (Base.Map.Poly.find_exn env v2)
        | _ -> ())
     ()
     term
