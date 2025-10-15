@@ -8,7 +8,7 @@
   > (assert (< 111111 (+ (exp 2 x) (exp 2 y)) ))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over-approx -bound -1 -pre-simpl -dsimpl -stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (+ 111111 1) (+ (exp 2 x) (exp 2 y)))
              (= (+ z x) 32)
@@ -19,10 +19,9 @@
              (= (+ y z) 52)
              (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
   iter(3)= (and
+             (= (+ ) 0)
              (= (+ y (* (- 1) x)) 20)
              (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
-  Interesting: x y
-  
-  Expecting 0 choices ...
-  
-  Can't decide in lib/Underapprox.ml
+  iter(4)= (and
+             (= (+ y (* (- 1) x)) 20)
+             (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
