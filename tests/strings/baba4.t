@@ -9,12 +9,12 @@ $ cat baba4.smt2
               (and
                 (= %3 (chrob.len a))(= (+ (* (- 1) %3) pow2(%4) )  1)
                 )
-              (str.in.re a (re.++ (re.* (str.to.re "")) (re.++ (re.++ (str.to.re "a") (str.to.re "B")) (re.* (str.to.re ""))))))
+              (str.in.re a (re.++ (re.++ (str.to.re "a") (str.to.re "B")) (re.* (str.to.re "")))))
             (exists (%5)
             (and
               (= %5 (chrob.len b))(= (+ (* (- 1) %5) pow2(%4) )  1)
               )
-            (str.in.re b (re.++ (re.* (str.to.re "")) (re.++ (re.++ (str.to.re "0") (str.to.re "2")) (re.* (str.to.re ""))))))
+            (str.in.re b (re.++ (re.++ (str.to.re "0") (str.to.re "2")) (re.* (str.to.re "")))))
   )
 $ export CHRO_DEBUG=1
   $ Chro ./baba4.smt2
