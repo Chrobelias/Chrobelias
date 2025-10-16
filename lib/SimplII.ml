@@ -775,7 +775,7 @@ module Who_in_exponents_ = struct
   type ph = term
   type repr = ph
 
-  let in_re _ _ = empty
+  let in_re l _ = l
   let str_atoi _ = empty
   let str_len s = s
   let str_const _ = empty
@@ -1009,7 +1009,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     with type ph = Smtml.Expr.t)
 ;;
 
-let smart = false
+let smart = true
 
 let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let open Ast in
@@ -1061,17 +1061,24 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       (* (= ( * c v) 0) *)
       Env.extend_exn env v (`Eia rhs)
     | Eia (Eia.Eq (Mul [ Atom (Const cl); Atom (Var v) ], Atom (Const cr)))
-      when Z.(cr mod cl = zero) && Env.is_absent_key v env && smart ->
+      when Z.(cr mod cl = zero)
+           && Env.is_absent_key v env
+           && smart
+           && not (Info.is_in_string v info) ->
       Env.extend_exn env v (`Eia (Eia.Atom (Const Z.(cr / cl))))
     | Eia (Eia.Eq ((Mul [ Atom (Const cl); Atom (Var v) ] as lhs), Atom (Var r)))
-      when Env.is_absent_key r env && smart ->
+      when Env.is_absent_key r env && smart && not (Info.is_in_string v info) ->
       (* (= ( * c v) vr) *)
       Env.extend_exn env r (`Eia lhs)
     | Eia
         (Eia.Eq
            ( Add [ Atom (Var v1); Mul [ Atom (Const c); (Atom (Var v2) as vv2) ] ]
            , Atom (Const z0) ))
-      when Z.(equal z0 zero) && Env.is_absent_key v1 env && smart ->
+      when Z.(equal z0 zero)
+           && Env.is_absent_key v1 env
+           && smart
+           && (not (Info.is_in_string v1 info))
+           && not (Info.is_in_string v2 info) ->
       (* (= (+ v1 v2) rhs) *)
       if Env.occurs_var env v1 (`Eia vv2)
       then env
@@ -1082,15 +1089,25 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
           else Eia.Mul [ Atom (Const Z.(-c)); Atom (Var v2) ]
         in
         Env.extend_exn env v1 (`Eia new_rhs))
-    | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) when v1 <> v2 && smart ->
+    | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs))
+      when v1 <> v2
+           && smart
+           && (not (Info.is_in_string v1 info))
+           && not (Info.is_in_string v2 info) ->
       (* (= (+ v1 v2) rhs) *)
       single info env Z.one v1 Z.one v2 rhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs))
-      when v1 <> v2 && smart ->
+      when v1 <> v2
+           && smart
+           && (not (Info.is_in_string v1 info))
+           && not (Info.is_in_string v2 info) ->
       (* (= (+ v1 ( * c v2)) rhs) *)
       single info env Z.one v1 c2 v2 rhs
     | Eia (Eia.Eq (Add [ Mul [ Atom (Const c1); Atom (Var v1) ]; Atom (Var v2) ], rhs))
-      when v1 <> v2 && smart ->
+      when v1 <> v2
+           && smart
+           && (not (Info.is_in_string v1 info))
+           && not (Info.is_in_string v2 info) ->
       (* (= (+ ( * c v1) v2) rhs) *)
       single info env c1 v1 Z.one v2 rhs
     | Eia
@@ -1100,7 +1117,10 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
                ; Mul [ Atom (Const c2); Atom (Var v2) ]
                ]
            , rhs ))
-      when v1 <> v2 && smart -> single info env c1 v1 c2 v2 rhs
+      when v1 <> v2
+           && smart
+           && (not (Info.is_in_string v1 info))
+           && not (Info.is_in_string v2 info) -> single info env c1 v1 c2 v2 rhs
     | Eia (Eia.Eq (Add sums, Atom (Const rhs))) when Z.(zero = rhs) && smart ->
       (* (= (+ ...) 0) *)
       let not_touched_by_env env term =
@@ -1115,7 +1135,9 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
         | Exit -> false
       in
       let maybe_extend env v data ~fk =
-        if not (Env.occurs_var env v data) then Env.extend_exn env v data else fk ()
+        if (not (Env.occurs_var env v data)) && not (Info.is_in_string v info)
+        then Env.extend_exn env v data
+        else fk ()
       in
       let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
       let rec loop acc = function
