@@ -587,6 +587,18 @@ let make_main_symantics env =
     let lt l r = relop Leq (add [ const 1; l ]) r
     let leq = relop Leq
 
+    let calc_log ~base rez =
+      let rec loop acc power =
+        let r = Z.(base * acc) in
+        match Z.compare r rez with
+        | -1 -> loop r Z.(power + one)
+        | 1 -> None
+        | 0 -> Some power
+        | _ -> assert false
+      in
+      if Z.(equal rez one) then Some Z.zero else loop Z.one Z.one
+    ;;
+
     let eq x y =
       let ans = relop Eq x y in
       match ans with
@@ -598,6 +610,10 @@ let make_main_symantics env =
           Eia
             (Eia.eq (mul (constz Z.(l / gcd1) :: ltl)) (mul (constz Z.(r / gcd1) :: rtl)))
       | Eia (Eia.Eq (l, r)) when Eia.eq_term l r -> true_
+      | Eia (Eia.Eq (Pow (Atom (Const base), (Atom (Var _) as p)), Atom (Const rhs))) ->
+        (match calc_log ~base rhs with
+         | None -> false_
+         | Some v -> Eia (Eia.Eq (p, Atom (Const v))))
       | _ -> ans
     ;;
 
@@ -992,6 +1008,8 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     with type ph = Smtml.Expr.t)
 ;;
 
+let smart = false
+
 let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
@@ -1022,6 +1040,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       else if Env.occurs_var env v (`Str rhs)
       then env
       else Env.extend_exn env v (`Str rhs)
+    | Str (Str.Eq ((Str.Const s2 as rhs), Str.Atom (Var v)))
     | Str (Str.Eq (Str.Atom (Var v), (Str.Const s2 as rhs))) ->
       if not (Env.is_absent_key v env) then env else Env.extend_exn env v (`Str rhs)
     | _ when false ->
@@ -1044,7 +1063,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       when Z.(cr mod cl = zero) && Env.is_absent_key v env ->
       Env.extend_exn env v (`Eia (Eia.Atom (Const Z.(cr / cl))))
     | Eia (Eia.Eq ((Mul [ Atom (Const cl); Atom (Var v) ] as lhs), Atom (Var r)))
-      when Env.is_absent_key r env ->
+      when Env.is_absent_key r env && smart ->
       (* (= ( * c v) vr) *)
       Env.extend_exn env r (`Eia lhs)
     | Eia
@@ -1062,15 +1081,15 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
           else Eia.Mul [ Atom (Const Z.(-c)); Atom (Var v2) ]
         in
         Env.extend_exn env v1 (`Eia new_rhs))
-    | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) when v1 <> v2 ->
+    | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) when v1 <> v2 && smart ->
       (* (= (+ v1 v2) rhs) *)
       single info env Z.one v1 Z.one v2 rhs
     | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs))
-      when v1 <> v2 ->
+      when v1 <> v2 && smart ->
       (* (= (+ v1 ( * c v2)) rhs) *)
       single info env Z.one v1 c2 v2 rhs
     | Eia (Eia.Eq (Add [ Mul [ Atom (Const c1); Atom (Var v1) ]; Atom (Var v2) ], rhs))
-      when v1 <> v2 ->
+      when v1 <> v2 && smart ->
       (* (= (+ ( * c v1) v2) rhs) *)
       single info env c1 v1 Z.one v2 rhs
     | Eia
@@ -1080,7 +1099,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
                ; Mul [ Atom (Const c2); Atom (Var v2) ]
                ]
            , rhs ))
-      when v1 <> v2 -> single info env c1 v1 c2 v2 rhs
+      when v1 <> v2 && smart -> single info env c1 v1 c2 v2 rhs
     | Eia (Eia.Eq (Add sums, Atom (Const rhs))) when Z.(zero = rhs) ->
       (* (= (+ ...) 0) *)
       let not_touched_by_env env term =

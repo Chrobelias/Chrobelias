@@ -1,0 +1,6 @@
+(set-logic QF_S)
+(declare-const x String)
+(declare-const y String)
+(assert (= (str.++ "10001" x) (str.++ y x)))
+(assert (= (str.len x) (+ 1 (str.to.int y))))
+(check-sat)
