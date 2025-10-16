@@ -108,6 +108,9 @@ let collect_free (ir : Ir.t) =
     ir
 ;;
 
+let base = 10
+let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
+
 let collect_alpha (ir : Ir.t) =
   let ( let* ) = Option.bind in
   let return = Option.some in
@@ -125,7 +128,7 @@ let collect_alpha (ir : Ir.t) =
       ir
   in
   let alpha = Set.diff alpha (Set.of_list [ Nfa.Str.u_eos; Nfa.Str.u_null ]) in
-  return (if Set.is_empty alpha then Set.singleton '0' else alpha)
+  return (if Set.is_empty alpha then Set.of_array alphabet else alpha)
 ;;
 
 let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
