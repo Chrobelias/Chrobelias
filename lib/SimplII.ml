@@ -37,6 +37,7 @@ let check_errors ph =
       (match xs with
        | [ Atom (Const _) ] -> assert false
        | [ Pow (Atom (Const _), _) ] | [ Atom (Var _) ] | [] -> acc
+       | [ Stoi _ ] -> acc
        | xs -> Non_linear_arith xs :: acc)
     | Pow (base, Atom (Const _)) as ans when not_a_const base ->
       Non_linear_arith [ ans ] :: acc
@@ -1060,7 +1061,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       (* (= ( * c v) 0) *)
       Env.extend_exn env v (`Eia rhs)
     | Eia (Eia.Eq (Mul [ Atom (Const cl); Atom (Var v) ], Atom (Const cr)))
-      when Z.(cr mod cl = zero) && Env.is_absent_key v env ->
+      when Z.(cr mod cl = zero) && Env.is_absent_key v env && smart ->
       Env.extend_exn env v (`Eia (Eia.Atom (Const Z.(cr / cl))))
     | Eia (Eia.Eq ((Mul [ Atom (Const cl); Atom (Var v) ] as lhs), Atom (Var r)))
       when Env.is_absent_key r env && smart ->
@@ -1070,7 +1071,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
         (Eia.Eq
            ( Add [ Atom (Var v1); Mul [ Atom (Const c); (Atom (Var v2) as vv2) ] ]
            , Atom (Const z0) ))
-      when Z.(equal z0 zero) && Env.is_absent_key v1 env ->
+      when Z.(equal z0 zero) && Env.is_absent_key v1 env && smart ->
       (* (= (+ v1 v2) rhs) *)
       if Env.occurs_var env v1 (`Eia vv2)
       then env
@@ -1100,7 +1101,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
                ]
            , rhs ))
       when v1 <> v2 && smart -> single info env c1 v1 c2 v2 rhs
-    | Eia (Eia.Eq (Add sums, Atom (Const rhs))) when Z.(zero = rhs) ->
+    | Eia (Eia.Eq (Add sums, Atom (Const rhs))) when Z.(zero = rhs) && smart ->
       (* (= (+ ...) 0) *)
       let not_touched_by_env env term =
         try
