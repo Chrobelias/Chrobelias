@@ -302,7 +302,7 @@ let prepare_script ?(opp = Swine) ~script () =
       extra_flags;
     printfn "then";
     printfn "  TIME=$(grep THETIME .errlog | awk '{print $2}')";
-    printfn "  echo time is '$TIME'";
+    printfn "  echo time is \"$TIME\"";
     printfn "  if grep -q '^unsat' .log; then";
     printfn "    echo \" \\%sUNSAT{$TIME}{%s}\"" "CHRO" pretty_file;
     printfn "  fi";
