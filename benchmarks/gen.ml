@@ -297,7 +297,7 @@ let prepare_script ?(opp = Swine) ~script () =
     printfn "printf '\n%s (%d/%d)...\n'" smt2file curi total;
     printfn
       "if timeout $TIMEOUT /usr/bin/time -f 'THETIME %%U' dune exec Chro \
-       --profile=release -- %s -q %s > .log 2> .errlog"
+       --profile=release -- -flat 0 -amin 0 -amax 100000 %s -q %s > .log 2> .errlog"
       smt2file
       extra_flags;
     printfn "then";
@@ -305,9 +305,11 @@ let prepare_script ?(opp = Swine) ~script () =
     printfn "  echo time is \"$TIME\"";
     printfn "  if grep -q '^unsat' .log; then";
     printfn "    echo \" \\%sUNSAT{$TIME}{%s}\"" "CHRO" pretty_file;
+    printfn "    grep '^unsat' -A 1 .log || true";
     printfn "  fi";
     printfn "  if grep -q '^sat' .log; then";
     printfn "    echo \"\\%sSAT{$TIME}{%s}\"" "CHRO" pretty_file;
+    printfn "    grep '^sat' -A 1 .log || true";
     printfn "  fi";
     printfn "  if grep -q '^unknown' .log; then";
     printfn "    echo \"\\%sUNK{$TIME}{%s}\"" "CHRO" pretty_file;
@@ -345,7 +347,7 @@ let prepare_script ?(opp = Swine) ~script () =
     let ppf = Format.formatter_of_out_channel ch in
     Format.fprintf ppf "#!/usr/bin/env bash\n\n%!";
     Format.fprintf ppf "export OCAMLRUNPARAM='b=0'\n%!";
-    Format.fprintf ppf "dune b bin/chro.exe --profile=release\n";
+    Format.fprintf ppf "dune b bin/chro.exe --profile=release || exit 1\n";
     let total = List.length files in
     List.iteri (on_file ppf ~total) files;
     Format.pp_print_flush ppf ();
