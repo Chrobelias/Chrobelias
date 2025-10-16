@@ -1,7 +1,8 @@
 let log = Debug.printfln
 
 module type Smtml_symantics = sig
-  include FT_SIG.s_term with type term := Smtml.Expr.t and type str = Smtml.Expr.t
+  include FT_SIG.s_term with type term := Smtml.Expr.t
+  include FT_SIG.term_strings with type term = Smtml.Expr.t and type str = Smtml.Expr.t
 
   include
     FT_SIG.s_ph

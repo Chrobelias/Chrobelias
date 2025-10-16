@@ -3,7 +3,7 @@ type sup_binop =
   | Bwor
   | Bwxor
 
-module type s_term = sig
+module type term_strings = sig
   type term
   type str
 
@@ -13,6 +13,10 @@ module type s_term = sig
   val str_len : str -> term
   val str_const : string -> str
   val str_var : string -> str
+end
+
+module type s_term = sig
+  type term
 
   (** Arithmetic *)
   val mod_ : term -> Z.t -> term
@@ -70,7 +74,8 @@ struct
 end
 
 module To_smtml_symantics : sig
-  include s_term with type term = Smtml.Expr.t and type str = Smtml.Expr.t
+  include s_term with type term = Smtml.Expr.t
+  include term_strings with type term = Smtml.Expr.t and type str = Smtml.Expr.t
 
   include
     s_ph

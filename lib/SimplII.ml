@@ -94,7 +94,8 @@ module type SYM0 = sig
   type str
   type ph
 
-  include FT_SIG.s_term with type term := term and type str := str
+  include FT_SIG.s_term with type term := term
+  include FT_SIG.term_strings with type term := term and type str := str
   include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
 
   val str_from_eia : string -> str
@@ -278,7 +279,9 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       (* Format.printf "%s %d: l = %a\n%!" __FUNCTION__ __LINE__ S.pp_str l; *)
       S.str_len l
     | Len (Ast.Str.Const s) -> S.const (String.length s)
-    | Stoi (Ast.Str.Atom (Var s)) -> S.str_atoi (S.str_var s)
+    | Stoi (Ast.Str.Atom (Var s)) as _x ->
+      (* Format.printf "%s %d: l = %a\n%!" __FUNCTION__ __LINE__ Ast.Eia.pp_term x; *)
+      S.str_atoi (S.str_var s)
     | Stoi (Ast.Str.Const s) ->
       (match int_of_string_opt s with
        | Some n -> S.const n
@@ -497,7 +500,32 @@ let make_main_symantics env =
         let ans = Ast.Eia.add (List.sort compare_term xs) in
         ans
       | c, [] -> constz c
-      | c, xs -> Ast.Eia.add (constz c :: List.sort compare_term xs)
+      | c, xs ->
+        let rec try_remove_contra key acc ~from:xs =
+          match xs with
+          | [] -> None
+          | Ast.Eia.Mul [ Atom (Const m1); c ] :: tl
+            when Z.(equal m1 minus_one) && Ast.Eia.eq_term key c ->
+            Some (List.rev_append acc tl)
+          | h :: tl -> try_remove_contra key (h :: acc) ~from:tl
+        in
+        Ast.Eia.add (constz c :: List.sort compare_term xs)
+        |> (function
+         | Ast.Eia.Add sumns ->
+           let sumns =
+             let rec loop acc = function
+               | [] -> acc
+               | h :: tl ->
+                 (match try_remove_contra h [] ~from:tl with
+                  | Some tl -> loop acc tl
+                  | None -> loop (h :: acc) tl)
+             in
+             loop [] sumns
+           in
+           (match sumns with
+            | [] -> Ast.Eia.Atom (Const Z.zero)
+            | sumns -> Ast.Eia.Add (List.sort Eia.compare_term sumns))
+         | other -> other)
     ;;
 
     let rec negate = function
@@ -588,17 +616,84 @@ let make_main_symantics env =
     let leq = relop Leq
 
     let eq x y =
+      let x, y =
+        match x, y with
+        | Eia.Add xs, Eia.Add ys ->
+          Eia.Add (xs @ List.map (fun x -> mul [ const (-1); x ]) ys), const 0
+        | _ -> x, y
+      in
+      let the_gcd r sumns =
+        List.fold_left
+          (fun acc -> function
+             | Eia.Atom (Const c) -> Z.gcd acc c
+             | Mul (Atom (Const c) :: _other) -> Z.gcd acc c
+             | _ -> Z.one)
+          r
+          sumns
+      in
+      let apply_the_gcd the_gcd sumns =
+        List.map
+          (function
+            | Eia.Mul (Atom (Const c) :: []) when Z.equal the_gcd c ->
+              Eia.Atom (Const Z.one)
+            | Eia.Atom (Const c) when Z.equal the_gcd c -> Eia.Atom (Const Z.one)
+            | Eia.Atom (Const c) -> Eia.Atom (Const (Z.gcd c the_gcd))
+            | Mul (Atom (Const c) :: _other) ->
+              Eia.Mul (Atom (Const Z.(c / the_gcd)) :: _other)
+            | _ -> assert false)
+          sumns
+      in
       let ans = relop Eq x y in
-      match ans with
-      | Eia (Eia.Eq (Mul (Atom (Const l) :: ltl), Mul (Atom (Const r) :: rtl))) ->
-        let gcd1 = Z.gcd l r in
-        if Z.(equal gcd1 one)
-        then ans
-        else
-          Eia
-            (Eia.eq (mul (constz Z.(l / gcd1) :: ltl)) (mul (constz Z.(r / gcd1) :: rtl)))
-      | Eia (Eia.Eq (l, r)) when Eia.eq_term l r -> true_
-      | _ -> ans
+      let ans =
+        match ans with
+        | Eia (Eia.Eq (Mul (Atom (Const l) :: ltl), Mul (Atom (Const r) :: rtl))) ->
+          let gcd1 = Z.gcd l r in
+          if Z.(equal gcd1 one)
+          then ans
+          else
+            Eia
+              (Eia.eq
+                 (mul (constz Z.(l / gcd1) :: ltl))
+                 (mul (constz Z.(r / gcd1) :: rtl)))
+        | Eia (Eia.Eq (l, r)) when Eia.eq_term l r -> true_
+        | Str (Str.Eq (Str.FromEia a, Str.FromEia b)) ->
+          Str (Ast.Str.Eq (Str.Atom a, Str.Atom b))
+        | ( Eia (Eia.Eq (Add sumns, Atom (Const r)))
+          | Eia (Eia.Eq (Atom (Const r), Add sumns)) ) as ans ->
+          let the_gcd = the_gcd r sumns in
+          if Z.(equal one the_gcd)
+          then ans
+          else (
+            let sumns = apply_the_gcd the_gcd sumns in
+            let r = Z.(r / the_gcd) in
+            Eia (Eia.Eq (Add sumns, Atom (Const r))))
+        | ( Eia (Eia.Eq (Add sumns, Mul (Atom (Const r) :: mulns)))
+          | Eia (Eia.Eq (Mul (Atom (Const r) :: mulns), Add sumns)) ) as ans ->
+          let the_gcd = the_gcd r sumns in
+          if Z.(equal one the_gcd)
+          then ans
+          else (
+            let sumns = apply_the_gcd the_gcd sumns in
+            let r = Z.(r / the_gcd) in
+            Eia (Eia.Eq (Add sumns, Mul (Atom (Const r) :: mulns))))
+        | _ -> ans
+      in
+      let ans =
+        match ans with
+        | Eia (Eia.Eq (Add [ Mul ml1; Mul ml2 ], Atom (Const r))) ->
+          let sml1 = Base.Set.Poly.of_list ml1 in
+          let sml2 = Base.Set.Poly.of_list ml2 in
+          let ml1, ml2 =
+            Base.Set.Poly.fold
+              (Base.Set.Poly.inter sml1 sml2)
+              ~init:(ml1, ml2)
+              ~f:(fun (ml1, ml2) x ->
+                List.filter (( <> ) x) ml1, List.filter (( <> ) x) ml2)
+          in
+          Eia (Eia.Eq (Add [ mul ml1; mul ml2 ], Atom (Const r)))
+        | ans -> ans
+      in
+      ans
     ;;
 
     let in_re s re =
@@ -876,29 +971,7 @@ let propagate_exponents ast =
   | _ -> ast
 ;;
 
-let find_vars_for_under2 ast =
-  let module S = Base.Set.Poly in
-  Ast.fold
-    (fun acc ->
-       let open Ast.Eia in
-       function
-       | Ast.Eia (Ast.Eia.Eq (l, r)) | Eia (Ast.Eia.Leq (l, r)) ->
-         let f =
-           fun acc -> function
-             | Ast.Eia.Mul [ Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
-               when Z.(equal (Config.base ()) base) -> S.add acc v
-             | Mul [ Atom (Const _); Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
-               when Z.(equal (Config.base ()) base) -> S.add acc v
-             | Mul [ Atom (Var v); Pow (Atom (Const base), Atom (Var _)) ]
-               when Z.(equal (Config.base ()) base) -> S.add acc v
-             | Mul [ Atom (Var v1); Atom (Var v2) ] -> S.add (S.add acc v1) v2
-             | _ -> acc
-         in
-         Ast.Eia.fold_term f (Ast.Eia.fold_term f acc r) l
-       | _ -> acc)
-    S.empty
-    ast
-;;
+(* let find_vars_for_under2 = Under2.find_vars_for_under2 *)
 
 let gensym =
   let n = ref 0 in
@@ -1142,6 +1215,79 @@ let%expect_test _ =
   [%expect "x -> (+ (* z z) (* (- 2) y));"];
   test ~exp:[ "x" ] TS.(add [ var "x"; var "y" ] = mul [ var "z"; var "z" ]);
   [%expect "y -> (+ (* z z) (* (- 1) x));"];
+  test
+    ~exp:[]
+    TS.(
+      land_
+        [ var "x" = add [ var "z"; mul [ var "z"; var "z" ] ]
+        ; var "x" = add [ var "y"; mul [ var "y"; var "y" ] ]
+        ]);
+  [%expect ""];
+  ()
+;;
+
+let eq_propagation2 asts =
+  let open Ast in
+  let m : (string, Ast.Eia.term list) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
+  let extend name v =
+    let data =
+      match Base.Map.Poly.find !m name with
+      | None -> [ v ]
+      | Some vs -> v :: vs
+    in
+    m := Base.Map.Poly.set !m ~key:name ~data
+  in
+  let asts2 =
+    List.filter_map
+      (function
+        | Ast.Eia (Eia.Eq (Atom (Var v), (Eia.Add _ as rhs))) ->
+          extend v rhs;
+          None
+        | ph -> Some ph)
+      asts
+  in
+  let __ _ =
+    Format.printf "@[<v>@[eq_propagation2 data:@]@,";
+    Base.Map.Poly.iteri !m ~f:(fun ~key ~data ->
+      Format.printf
+        "@[%s ~~> [%a]@]@ "
+        key
+        (Format.pp_print_list
+           ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+           Ast.Eia.pp_term)
+        data;
+      ());
+    Format.printf "@]\n%!"
+  in
+  let prefix_formulas =
+    Base.Map.Poly.to_alist !m
+    |> List.concat_map (function
+      | _, [] -> assert false
+      | v, h :: tl ->
+        Ast.Eia (Eia.Eq (Atom (Var v), h))
+        :: List.map
+             (function
+               | Eia.Atom (Var v2) as rhs -> Ast.Eia (Eia.Eq (Atom (Var v), rhs))
+               (* variables are paired with variables  *)
+               | rhs -> Ast.Eia (Eia.Eq (h, rhs)))
+             tl)
+  in
+  asts2 @ prefix_formulas
+;;
+
+let%expect_test "eq propagation 2" =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ?(env = [ "x"; "y"; "z" ]) ?(exp = []) phs =
+    let phs = eq_propagation2 phs in
+    Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 (Ast.Land phs)
+  in
+  test
+    ~exp:[]
+    TS.
+      [ var "x" = add [ var "z"; mul [ var "z"; var "z" ] ]
+      ; var "x" = add [ var "y"; mul [ var "y"; var "y" ] ]
+      ];
+  [%expect "\n (and\n   (= x (+ y (* y y)))\n   (= (+ y (* y y)) (+ z (* z z))))\n "];
   ()
 ;;
 
@@ -1186,9 +1332,28 @@ let lower_mod ast =
 ;;
 
 let lower_strlen ast =
-  let env = ref Env.empty in
-  let names : (Ast.Eia.term, string) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
-  let forgotten = ref Env.empty in
+  let names : (Ast.Eia.term, string list) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
+  let extend ~key v =
+    let data =
+      match Base.Map.Poly.find !names key with
+      | None -> [ v ]
+      | Some vs -> v :: vs
+    in
+    names := Base.Map.Poly.set !names ~key ~data
+  in
+  let ast_of_names map =
+    let _ : (Ast.Eia.term, string list) Base.Map.Poly.t = map in
+    map
+    |> Base.Map.Poly.to_alist
+    |> List.concat_map (function
+      | _, [] -> assert false
+      | term, h :: tl ->
+        Ast.Eia Ast.Eia.(eq (atom (Var h)) term)
+        :: ListLabels.concat_map tl ~f:(fun v2 ->
+          if String.equal v2 h
+          then []
+          else [ Ast.Str Ast.Str.(eq (atom (Var h)) (atom (Var v2))) ]))
+  in
   let module Collector = struct
     open Ast.Eia
     include Id_symantics
@@ -1196,17 +1361,15 @@ let lower_strlen ast =
     let eq l r =
       let () =
         match l, r with
-        | Atom (Var v), Len l | Len l, Atom (Var v) ->
-          if Env.is_absent_key v !env
-          then env := Env.extend_exn !env v (`Eia (Len l))
-          else forgotten := Env.extend_exn !forgotten v (`Eia (Len l));
-          names := Base.Map.Poly.set !names ~key:(Len l) ~data:v
+        | Atom (Var v), ((Len _ | Len2 _ | Stoi _) as rhs)
+        | ((Len _ | Len2 _ | Stoi _) as rhs), Atom (Var v) -> extend ~key:rhs v
         | _ -> ()
       in
       eq l r
     ;;
   end
   in
+  let env = ref Env.empty in
   let module Lowering = struct
     open Ast.Eia
     include Id_symantics
@@ -1219,18 +1382,52 @@ let lower_strlen ast =
            let newvar = Ir.internal_name () in
            let lent = Id_symantics.str_len lv in
            env := Env.extend_exn !env newvar (`Eia lent);
-           names := Base.Map.Poly.set !names ~key:lent ~data:newvar;
+           extend ~key:lent newvar;
+           (* log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar; *)
            var newvar
-         | t -> Id_symantics.var t)
+         | vs -> Id_symantics.var (List.hd vs))
+      | _ -> failwith (Printf.sprintf "Not implemented: %s %d" __FILE__ __LINE__)
+    ;;
+
+    let str_len2 lv =
+      match Base.Map.Poly.find_exn !names (Len2 (Var lv)) with
+      | exception Base.Not_found_s _ ->
+        let newvar = Ir.internal_name () in
+        let lent = Id_symantics.str_len2 lv in
+        env := Env.extend_exn !env newvar (`Eia lent);
+        extend ~key:lent newvar;
+        (* log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar; *)
+        var newvar
+      | vs -> Id_symantics.var (List.hd vs)
+    ;;
+
+    let str_atoi : str -> term = function
+      | Atom (Var v) ->
+        let lv = Ast.Str.Atom (Var v) in
+        (match Base.Map.Poly.find_exn !names (Stoi lv) with
+         | exception Base.Not_found_s _ ->
+           let newvar = Ir.internal_name () in
+           let lent = Id_symantics.str_atoi lv in
+           env := Env.extend_exn !env newvar (`Eia lent);
+           (* log "extend %a ~~> %s" Ast.Eia.pp_term lent newvar; *)
+           var newvar
+         | vs -> Id_symantics.var (List.hd vs))
       | _ -> failwith (Printf.sprintf "Not implemented: %s %d" __FILE__ __LINE__)
     ;;
   end
   in
   let _ : Ast.t = apply_symantics_unsugared (module Collector) ast in
+  let __ _ =
+    Format.printf "@[<v>@[strlen data:@]@,";
+    Base.Map.Poly.iteri !names ~f:(fun ~key ~data ->
+      Format.printf "@[%a ~~> [%s]@]@ " Ast.Eia.pp_term key (String.concat "," data);
+      ());
+    Format.printf "@]\n%!"
+  in
   match apply_symantics_unsugared (module Lowering) ast with
   | Ast.Land xs ->
-    Ast.Land (Env.to_eqs !env @ Env.to_eqs !forgotten @ List.map Id_symantics.prj xs)
-  | ph -> Ast.Land ((ph :: Env.to_eqs !env) @ Env.to_eqs !forgotten)
+    Ast.Land (Env.to_eqs !env @ ast_of_names !names @ List.map Id_symantics.prj xs)
+  | ph -> Ast.Land ((ph :: Env.to_eqs !env) @ ast_of_names !names)
 ;;
 
 let basic_simplify step (env : Env.t) ast =
@@ -1240,9 +1437,15 @@ let basic_simplify step (env : Env.t) ast =
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
     let ast2 = propagate_exponents ast2 in
+    let ast2 =
+      match ast2 with
+      | Ast.Land phs -> Ast.land_ (eq_propagation2 phs)
+      | ph -> ph
+    in
+    (* log "After eq_propagation2: @[%a@]" Ast.pp_smtlib2 ast2; *)
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
-    let env2 = eq_propagation var_info env ast in
+    let env2 = eq_propagation var_info env ast2 in
     let __ _ = log "env2 = %a" Env.pp env2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
@@ -1260,7 +1463,16 @@ let basic_simplify step (env : Env.t) ast =
   | Sat (_, env) -> `Sat env
 ;;
 
+let basic_simplify_naive env ph =
+  match basic_simplify [ 0 ] env ph with
+  | `Sat env -> Ast.Land (Env.to_eqs env)
+  | `Unsat -> Ast.false_
+  | `Unknown (Ast.Land phs, env, _, _) -> Ast.land_ (Env.to_eqs env @ phs)
+  | `Unknown (ph, env, _, _) -> Ast.land_ (Env.to_eqs env @ [ ph ])
+;;
+
 let run_basic_simplify ast =
+  let __ _ = log "Before strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   let ast = lower_strlen ast in
   let ast = lower_mod ast in
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
@@ -1270,107 +1482,27 @@ let run_basic_simplify ast =
   | `Unknown (ast, e, _, _) -> `Unknown (ast, e)
 ;;
 
-let get_range () =
-  let ans =
-    List.init
-      (1 + Config.under2_config.amax - Config.under2_config.amin)
-      (( + ) Config.under2_config.amin)
-  in
-  assert (
-    List.for_all
-      (fun x -> x >= Config.under2_config.amin && x <= Config.under2_config.amax)
-      ans);
-  ans
-;;
-
 let subst env ast =
   let (module S : SYM_SUGAR_AST) = make_main_symantics env in
   apply_symantics_unsugared (module S) ast
 ;;
 
 let try_under2_heuristics env ast =
-  let under2vars = find_vars_for_under2 ast in
-  log
-    "vars_for_under2: %a\n%!"
-    Format.(pp_print_list pp_print_string)
-    (Base.Set.to_list under2vars);
-  let ( let* ) xs f = List.concat_map f xs in
-  let _k = 0 in
-  let envs =
-    match Config.under2_config.flat with
-    | n when n < 0 -> failwith "bad config"
-    | 0 ->
-      let all_as = get_range () in
-      log
-        "all as: @[%a@]\n%!"
-        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
-        all_as;
-      Base.Set.Poly.fold
-        ~f:(fun acc name ->
-          let* a = all_as in
-          let* acc, phs = acc in
-          let u = gensym ~prefix:"u" () in
-          [ Env.extend_exn acc name (`Eia Id_symantics.(add [ pow2var u; const a ])), phs
-          ])
-        ~init:[ env, [] ]
-        under2vars
-    | 1 ->
-      let all_as = get_range () in
-      log
-        "all as: @[%a@]\n%!"
-        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
-        all_as;
-      Base.Set.Poly.fold
-        ~f:(fun acc name ->
-          let* a = all_as in
-          let* acc, phs = acc in
-          let u = gensym ~prefix:"u" () in
-          let v = gensym ~prefix:"v" () in
-          [ ( Env.extend_exn
-                acc
-                name
-                (`Eia
-                    Id_symantics.(
-                      Ast.Eia.Add
-                        [ pow2var u; Ast.Eia.Mul [ const (-1); pow2var v ]; const a ]))
-            , Id_symantics.(prj (leq (var v) (var u))) :: phs )
-          ])
-        ~init:[ env, [] ]
-        under2vars
-    | n ->
-      Base.Set.Poly.fold
-        ~f:(fun acc name ->
-          let* acc, phs = acc in
-          let vars = List.init (1 + n) (fun _ -> gensym ~prefix:"u" ()) in
-          let sum =
-            List.mapi
-              (fun i u ->
-                 if i mod 2 = 1
-                 then Id_symantics.(mul [ const (-1); pow2var u ])
-                 else Id_symantics.(pow2var u))
-              vars
-          in
-          let constraints =
-            List.fold_right
-              (fun v (oldv, acc) ->
-                 let v = Id_symantics.var v in
-                 v, Id_symantics.(prj (leq oldv v)) :: acc)
-              vars
-              (Id_symantics.const 0, [])
-            |> snd
-          in
-          [ Env.extend_exn acc name (`Eia (Ast.Eia.Add sum)), constraints @ phs ])
-        ~init:[ env, [] ]
-        under2vars
+  let base = Config.basen () in
+  let all_as = List.init (base - 1) (( + ) 1) in
+  let all_bs =
+    let count =
+      match Config.under2_config.b with
+      | None -> base
+      | Some b -> b + 1
+    in
+    List.init count Fun.id
   in
-  List.map
-    (fun (e, phs) ->
-       let (module Symantics) = make_main_symantics e in
-       apply_symantics (module Symantics) (Symantics.land_ (ast :: phs)))
-    envs
+  let fLat = Config.get_flat () in
+  Under2.try_under2_heuristics ~base ~all_as ~all_bs ~fLat ast
 ;;
 
-let simpl bound ast =
+let simpl ?(run_underI = true) bound ast =
   let prepare_choices env var_info =
     let ( let* ) xs f = List.concat_map f xs in
     let choice1 = List.init (bound + 1) Fun.id in
@@ -1440,7 +1572,9 @@ let simpl bound ast =
   in
   let ast, env = loop Env.empty ast in
   (* Underapprox I *)
-    match if bound >= 0 then Underapprox.check bound ast else `Unknown ast with
+    match
+      if run_underI && bound >= 0 then Underapprox.check bound ast else `Unknown ast
+    with
     | `Sat (reason, e) -> `Sat (reason, Env.merge e env)
     | `Unknown _ ->
       (try
@@ -1497,6 +1631,14 @@ let run_under2 ast =
   let asts =
     List.filter_map
       (fun ast ->
+         let ast = basic_simplify_naive Env.empty ast in
+         let _ =
+           log "run_underapprox2: Before strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast
+         in
+         let ast = lower_strlen ast in
+         let _ =
+           log "run_underapprox2: After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast
+         in
          match basic_simplify [ 1 ] env ast with
          | `Unsat -> None
          | `Sat env -> raise_notrace (Underapprox_fired env)
@@ -1787,6 +1929,98 @@ let%test_module "about shrinking" =
         (and
           (<= (+ (exp 2 x) (exp 2 y)) 52)
           (<= (exp 10 y) (exp (exp 10 3) x)))
+        |}]
+    ;;
+  end)
+;;
+
+let%test_module "Under2" =
+  (module struct
+    open Under2
+
+    let wrap ~fLat ~base ph =
+      Format.printf "%a\n%!" Ast.pp_smtlib2 ph;
+      let phs = try_under2_heuristics ~fLat ~base ~all_bs:[ 6 ] ph in
+      Format.printf "=========\n\n%!";
+      let _ =
+        phs
+        |> List.map (fun ph ->
+          match simpl ~run_underI:false 0 ph with
+          | `Unknown ph -> Format.printf "@[%d: @[%a@]]\n%!" 0 Ast.pp_smtlib2 ph
+          | `Sat _ -> Format.printf "SAT\n"
+          | `Unsat -> Format.printf "UNSAT\n"
+          | `Error (ph, es) ->
+            Format.printf "@[Error in@]@,\n@[%a@]]\n%!" Ast.pp_smtlib2 ph
+          | _ -> assert false)
+      in
+      ()
+    ;;
+
+    let%expect_test _ =
+      let ph base = Sy.(eq (const 3) (mul [ var "x"; pow (const base) (var "y") ])) in
+      wrap ~fLat:1 ~base:2 (ph 2);
+      [%expect
+        {|
+        (= (* 1 3) (* 1 (* x (exp 2 y))))
+        =========
+
+        0: (and
+             (= (+ (* (- 8) (exp 2 (+ u0 y))) (* (- 6) (exp 2 y))
+                (* 8 (exp 2 (+ u1 y)))) (- 3))
+             (<= u1 u0)
+             (<= 0 u1))]
+        |}];
+      wrap ~fLat:1 ~base:10 (ph 10);
+      [%expect
+        {|
+        (= (* 1 3) (* 1 (* x (exp 10 y))))
+        =========
+
+        0: (and
+             (= (+ (* (- 54) (exp 10 y)) (* (- 10) (exp 10 (+ u2 y)))
+                (* 10 (exp 10 (+ u3 y)))) (- 3))
+             (<= u3 u2)
+             (<= 0 u3))]
+        0: (and
+             (= (+ (* (- 54) (exp 10 y)) (* (- 20) (exp 10 (+ u4 y)))
+                (* 20 (exp 10 (+ u5 y)))) (- 3))
+             (<= u5 u4)
+             (<= 0 u5))]
+        0: (and
+             (= (+ (* (- 18) (exp 10 y)) (* (- 10) (exp 10 (+ u6 y)))
+                (* 10 (exp 10 (+ u7 y)))) (- 3))
+             (<= u7 u6)
+             (<= 0 u7))]
+        0: (and
+             (= (+ (* (- 54) (exp 10 y)) (* (- 40) (exp 10 (+ u8 y)))
+                (* 40 (exp 10 (+ u9 y)))) (- 3))
+             (<= u9 u8)
+             (<= 0 u9))]
+        0: (and
+             (= (+ (* (- 54) (exp 10 y)) (* (- 50) (exp 10 (+ u10 y)))
+                (* 50 (exp 10 (+ u11 y)))) (- 3))
+             (<= u11 u10)
+             (<= 0 u11))]
+        0: (and
+             (= (+ (* (- 20) (exp 10 (+ u12 y))) (* (- 18) (exp 10 y))
+                (* 20 (exp 10 (+ u13 y)))) (- 3))
+             (<= u13 u12)
+             (<= 0 u13))]
+        0: (and
+             (= (+ (* (- 70) (exp 10 (+ u14 y))) (* (- 54) (exp 10 y))
+                (* 70 (exp 10 (+ u15 y)))) (- 3))
+             (<= u15 u14)
+             (<= 0 u15))]
+        0: (and
+             (= (+ (* (- 80) (exp 10 (+ u16 y))) (* (- 54) (exp 10 y))
+                (* 80 (exp 10 (+ u17 y)))) (- 3))
+             (<= u17 u16)
+             (<= 0 u17))]
+        0: (and
+             (= (+ (* (- 10) (exp 10 (+ u18 y))) (* (- 6) (exp 10 y))
+                (* 10 (exp 10 (+ u19 y)))) (- 3))
+             (<= u19 u18)
+             (<= 0 u19))]
         |}]
     ;;
   end)

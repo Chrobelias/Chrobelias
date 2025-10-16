@@ -3,7 +3,8 @@ module type SYM0 = sig
   type str
   type ph
 
-  include FT_SIG.s_term with type term := term and type str := str
+  include FT_SIG.s_term with type term := term
+  include FT_SIG.term_strings with type term := term and type str := str
   include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
   include FT_SIG.s_extra with type ph := ph and type term := term
 
