@@ -295,9 +295,10 @@ let prepare_script ?(opp = Swine) ~script () =
     printfn "export TIMEOUT=%d" config.timeout;
     (* printfn "SECONDS=0"; *)
     printfn "printf '\n%s (%d/%d)...\n'" smt2file curi total;
+    printfn "FLAT='' #-flat 0 -amin 0 -amax 100000";
     printfn
       "if timeout $TIMEOUT /usr/bin/time -f 'THETIME %%U' dune exec Chro \
-       --profile=release -- -flat 0 -amin 0 -amax 100000 %s -q %s > .log 2> .errlog"
+       --profile=release -- $FLAT %s -q %s > .log 2> .errlog"
       smt2file
       extra_flags;
     printfn "then";
