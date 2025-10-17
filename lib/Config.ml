@@ -15,6 +15,7 @@ type config =
   ; mutable logic : [ `Eia | `Str ]
   ; mutable with_check_sat : bool
   ; mutable under_3 : bool
+  ; mutable quiet : bool
   }
 
 let config =
@@ -34,8 +35,11 @@ let config =
   ; logic = `Eia
   ; with_check_sat = false
   ; under_3 = false
+  ; quiet = false
   }
 ;;
+
+let is_quiet () = config.quiet
 
 type under2_config =
   { mutable amin : int
@@ -69,6 +73,7 @@ let parse_args () =
     ; "-no-error-check", Arg.Unit (fun () -> config.error_check <- false), " "
     ; "-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), " "
     ; "-no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), " "
+    ; "-q", Arg.Unit (fun () -> config.quiet <- true), " "
     ; ( "--no-simpl-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , " Don't try simplifications based on alpha-equivalence" )
