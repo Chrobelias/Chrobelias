@@ -6,7 +6,7 @@
   (assert (= (str.++ "999" x) (str.++ y x)))
   (check-sat)
 
-  $ Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl strings3.smt2 -flat 0 -under3 -amin 0 -amax 1 | sed 's/[[:space:]]*$//'
+  $ Chro -pre-simpl -stop-after simpl strings3.smt2 -flat 0 -amin 0 -amax 1 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (str.++ "999" x) (str.++ y x)))
   iter(2)= (= (str.++ "999" x) (str.++ y x))
