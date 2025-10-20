@@ -2,16 +2,17 @@
 
 $ export CHRO_DEBUG=1
   $ Chro -dsimpl -pre-simpl -stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
-  sat ; underapprox1
+  sat (under I)
 
 
   $ unset CHRO_DEBUG
   $ OCAMLRUNPARAM='b=0' Chro -no-pre-simpl input.smt2
   unknown
-  ; converting to automaton expression: unimplemented (<= 0 (+ 2 (* (- 1) it1095 (exp 2 (+ (- 1) it134)))
-                      (* (- 1) (exp 2 it134))))
+   Exception in NFA for expression: unimplemented (<= 0 (+ (+ it1141
+                         (* it1143 (exp 2 (+ it57 (* (- 1) 1))) (* (- 1) 1)))
+                      (* (- 1) 1)))
 
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
-  sat ; underapprox1
+  sat (under I)
 
 

@@ -1,10 +1,22 @@
 
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound -1 -dpresimpl -stop-after presimpl issue117.smt2  | sed 's/[[:space:]]*$//'
+  Simplify step: ((<= 100 (+ x y z u v)) & (= (exp 2 (+ x (* (- 5)))) v) & (= (exp 2
+  (+ x (* (- 3)))) u) & (= (exp 2 (+ x (* (- 1)))) z) & (= (exp 2 x) y))
+  Simplify step: ((<= 100 (+ x y z u v)) & (= (exp 2 (+ (- 5) x)) v) & (= (exp 2
+  (+ (- 3) x)) u) & (= (exp 2 (+ (- 1) x)) z) & (= (exp 2 x) y))
+  Simplify step: ((<= 100 (+ x y z u v)) & (= (exp 2 (+ (- 5) x)) v) & (= (exp 2
+  (+ (- 3) x)) u) & (= (exp 2 (+ (- 1) x)) z) & (= (exp 2 x) y))
+  Simplified expression: (and
+                           (<= 100 (+ x y z u v))
+                           (= (exp 2 (+ (- 5) x)) v)
+                           (= (exp 2 (+ (- 3) x)) u)
+                           (= (exp 2 (+ (- 1) x)) z)
+                           (= (exp 2 x) y))
   iter(1)= (and
-             (<= 100 (+ (+ (+ (+ x y) z) u) v))
-             (= (exp 2 (+ x (* (- 1) 5))) v)
-             (= (exp 2 (+ x (* (- 1) 3))) u)
-             (= (exp 2 (+ x (* (- 1) 1))) z)
+             (<= 100 (+ x y z u v))
+             (= (exp 2 (+ (- 5) x)) v)
+             (= (exp 2 (+ (- 3) x)) u)
+             (= (exp 2 (+ (- 1) x)) z)
              (= (exp 2 x) y))
   Lib__SimplII.propagate_exponents.check: (exp 2 (+ x)) -> (* 32 v)
   Lib__SimplII.propagate_exponents.check: (exp 2 (+ x)) -> (* 32 v)
@@ -42,5 +54,5 @@
     (= (exp 2 x) (* 32 v))
     (<= (+ (* (- 53) v) (* (- 1) x)) (- 100)))
   $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
-  sat ; nfa
+  sat (nfa)
 

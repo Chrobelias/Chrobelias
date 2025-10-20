@@ -9,8 +9,18 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  Simplify step: ((<= (+ 111112) (+ (exp 2 x) (exp 2 y))) & (= (+ z x) 32) & (=
+  (+ z y) 52))
+  Simplify step: ((<= 111112 (+ (exp 2 x) (exp 2 y))) & (= (+ z x) 32) & (=
+  (+ z y) 52))
+  Simplify step: ((<= 111112 (+ (exp 2 x) (exp 2 y))) & (= (+ z x) 32) & (=
+  (+ z y) 52))
+  Simplified expression: (and
+                           (<= 111112 (+ (exp 2 x) (exp 2 y)))
+                           (= (+ z x) 32)
+                           (= (+ z y) 52))
   iter(1)= (and
-             (<= (+ 111111 1) (+ (exp 2 x) (exp 2 y)))
+             (<= 111112 (+ (exp 2 x) (exp 2 y)))
              (= (+ z x) 32)
              (= (+ z y) 52))
   Something ready to substitute:  z -> (+ 32 (* (- 1) x));

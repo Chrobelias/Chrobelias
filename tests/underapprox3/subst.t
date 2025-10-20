@@ -1,16 +1,8 @@
-  $ Chro -flat 0 -amin 0 -amax 0 ./subst.smt2 
-  unknown
-  ; Under2 resigns
-  sat ; under III
+  $ Chro ./subst.smt2 
+  sat (under I)
 
-  $ Chro -flat 0 -amin 0 -amax 0 ./subst-2.smt2 
-  unknown
-  ; Under2 resigns
-  unknown
-  ; Under3 resigns
+  $ Chro ./subst-2.smt2 
+  unsat
 
-  $ Chro -flat 0 -amin 0 -amax 0 ./subst-3.smt2 
-  unknown
-  ; Under2 resigns
-  unknown
-  ; Under3 resigns
+  $ Chro ./subst-3.smt2 
+  sat (under I)

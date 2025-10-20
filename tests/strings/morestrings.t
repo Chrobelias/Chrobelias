@@ -6,14 +6,20 @@
   > EOF
 
   $ CHRO_DEBUG=1 Chro -dpresimpl ./1.smt2
+  Simplify step: ((= x 12345) & (= 5 (+ 5)))
+  Simplify step: ((= x 12345) & (= 5 5))
+  Simplify step: ((= x 12345) & (= 5 5))
+  Simplified expression: (and
+                           (= x 12345)
+                           (= 5 5))
   iter(1)= (and
              (= x 12345)
-             (= 5 (+ 0 5)))
+             (= 5 5))
   Something ready to substitute:  x -> 12345; 
   iter(2)= (and
              (= x 12345))
   iter(3)= True
-  sat ; presimpl
+  sat (presimpl)
 
   $ cat > 2.smt2 <<-EOF
   > (set-logic ALL)
@@ -23,5 +29,5 @@
 
   $ OCAMLRUNPARAM='b=0' Chro -dpresimpl ./2.smt2
   (= x (str.to.int "123451234123412341234123"))
-  Fatal error: exception Failure("TBD: lib/me.ml 433")
+  Fatal error: exception Failure("TBD: lib/me.ml 395")
   [2]

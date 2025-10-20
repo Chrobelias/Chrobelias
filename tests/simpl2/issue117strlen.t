@@ -11,12 +11,24 @@
 $ ls
 $ cat len1.smt2
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound -1 -pre-simpl -dpresimpl -stop-after presimpl len1.smt2 | sed 's/[[:space:]]*$//'
+  Simplify step: ((= %1 (str.len y)) & (= %0 (str.len x)) & (<= (+ 2) %0) & (<=
+  (+ 1 %0) %1) & (<= (+ 1001) %1))
+  Simplify step: ((= %1 (str.len y)) & (= %0 (str.len x)) & (<= 2 %0) & (<=
+  (+ 1 %0) %1) & (<= 1001 %1))
+  Simplify step: ((= %1 (str.len y)) & (= %0 (str.len x)) & (<= 2 %0) & (<=
+  (+ 1 %0) %1) & (<= 1001 %1))
+  Simplified expression: (and
+                           (= %1 (str.len y))
+                           (= %0 (str.len x))
+                           (<= 2 %0)
+                           (<= (+ 1 %0) %1)
+                           (<= 1001 %1))
   iter(1)= (and
              (= %1 (str.len y))
              (= %0 (str.len x))
-             (<= (+ 1 1) %0)
-             (<= (+ %0 1) %1)
-             (<= (+ 1000 1) %1))
+             (<= 2 %0)
+             (<= (+ 1 %0) %1)
+             (<= 1001 %1))
   iter(2)= (and
              (= %0 (str.len x))
              (= %1 (str.len y))

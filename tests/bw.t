@@ -12,4 +12,4 @@ Why automata gives unsat?
   (and
     (= (5 & 3) 1)
     (= (5 | 3) 7))
-  sat ; nfa
+  sat (nfa)

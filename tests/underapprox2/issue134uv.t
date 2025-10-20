@@ -10,7 +10,7 @@ $ export OCAMLRUNPARAM='b=0'
   > EOF
   $ OCAMLRUNPARAM='b=0' Chro -no-over-approx -bound 6 -lsb 0.smt2
   unknown
-  ; converting to automaton expression: unimplemented (= (+ (* (- 1) a (exp 2 z)) (* (- 1) (exp 2 (+ u z)))
+   Exception in NFA for expression: unimplemented (= (+ (* (- 1) a (exp 2 z)) (* (- 1) (exp 2 (+ u z)))
                    (* (- 1) (exp 2 (+ v z)))) (- 113))
 
   $ cat > 1.smt2 <<-EOF
@@ -35,7 +35,7 @@ $ export CHRO_DEBUG=1
   
   (assert (= (* (- 1) u1)  -3)
   )
-  sat ; under II
+  sat (under II)
 
   $ echo '(2^10-2^8+1)* 2^2' | bc
   3076
@@ -50,9 +50,10 @@ $ export CHRO_DEBUG=1
 
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 2.smt2'
   $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 -stop-after presimpl
-  iter(1)= (and
-             (= (* x (exp 2 z)) 3076))
-  iter(2)= (= (* x (exp 2 z)) 3076)
+  Simplify step: (= (* x (exp 2 z)) 3076)
+  Simplify step: (= (* x (exp 2 z)) 3076)
+  Simplified expression: (= (* x (exp 2 z)) 3076)
+  iter(1)= (= (* x (exp 2 z)) 3076)
   vars_for_under2: x
   
   all as: 1
@@ -81,9 +82,9 @@ which is needed to be fixed first
             )
   )
   unknown
-  ; Under2 resigns
+   under II
   unknown
-  ; converting to automaton expression: unable to multiply var by var: (pow2(z) )  with (x )
+   Exception in NFA for expression: unable to multiply var by var: (pow2(z) )  with (x )
   no model
 
   $ echo '(2^12-2^10+1)* 2^0' | bc
@@ -109,7 +110,7 @@ which is needed to be fixed first
             (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3073)
             )
   )
-  sat ; under II
+  sat (under II)
 
   $ echo '(2^13-2^7+2^5)*2^0' | bc
   8096
@@ -124,9 +125,10 @@ which is needed to be fixed first
   > EOF
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 4.smt2'
   $ CHRO_DEBUG=1 $RUN -flat 2 -stop-after presimpl
-  iter(1)= (and
-             (= (* x (exp 2 z)) 8096))
-  iter(2)= (= (* x (exp 2 z)) 8096)
+  Simplify step: (= (* x (exp 2 z)) 8096)
+  Simplify step: (= (* x (exp 2 z)) 8096)
+  Simplified expression: (= (* x (exp 2 z)) 8096)
+  iter(1)= (= (* x (exp 2 z)) 8096)
   vars_for_under2: x
   
   iter(1)= (and
@@ -167,4 +169,4 @@ which is needed to be fixed first
             (<= (* (- 1) u3)  0)
             )
   )
-  sat ; under II
+  sat (under II)

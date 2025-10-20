@@ -1,8 +1,18 @@
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test1.smt2 | sed 's/[[:space:]]*$//'
+  Simplify step: ((<= (+ 14) (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z))) & (=
+  (+ z y) 52) & (<= (* x (+ (* (- 5)))) 13))
+  Simplify step: ((<= 14 (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z))) & (= (+ z y) 52) & (<=
+  (* (- 5) x) 13))
+  Simplify step: ((<= 14 (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z))) & (= (+ z y) 52) & (<=
+  (* (- 5) x) 13))
+  Simplified expression: (and
+                           (<= 14 (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z)))
+                           (= (+ z y) 52)
+                           (<= (* (- 5) x) 13))
   iter(1)= (and
-             (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
+             (<= 14 (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z)))
              (= (+ z y) 52)
-             (<= (* x (+ 0 (* (- 1) 5))) 13))
+             (<= (* (- 5) x) 13))
   Something ready to substitute:  z -> (+ 52 (* (- 1) y));
   iter(2)= (and
              (= (+ y z) 52)
@@ -21,7 +31,7 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x->0 y->0 |}
-  sat ; underapprox1
+  sat (under I)
 
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
@@ -34,10 +44,20 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  Simplify step: ((<= (+ 14) (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z))) & (=
+  (+ z y) 52) & (<= (* x (+ (* (- 5)))) 13))
+  Simplify step: ((<= 14 (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z))) & (= (+ z y) 52) & (<=
+  (* (- 5) x) 13))
+  Simplify step: ((<= 14 (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z))) & (= (+ z y) 52) & (<=
+  (* (- 5) x) 13))
+  Simplified expression: (and
+                           (<= 14 (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z)))
+                           (= (+ z y) 52)
+                           (<= (* (- 5) x) 13))
   iter(1)= (and
-             (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
+             (<= 14 (+ (* 5 x) (* 8 (exp 2 y)) (* 7 z)))
              (= (+ z y) 52)
-             (<= (* x (+ 0 (* (- 1) 5))) 13))
+             (<= (* (- 5) x) 13))
   Something ready to substitute:  z -> (+ 52 (* (- 1) y));
   iter(2)= (and
              (= (+ y z) 52)
@@ -56,7 +76,7 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x->0 y->0 |}
-  sat ; underapprox1
+  sat (under I)
   $ cat > sum_join1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)
@@ -67,10 +87,12 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl sum_join1.smt2 | sed 's/[[:space:]]*$//'
-  iter(1)= (and
-             (= (+ (* n (exp 2 n)) (* (* (- 1) 1) n (exp 2 n))) 0))
+  Simplify step: (= (+ (* n (exp 2 n)) (* (- 1) n (exp 2 n))) 0)
+  Simplify step: (= (+ (* n (exp 2 n)) (* (- 1) n (exp 2 n))) 0)
+  Simplified expression: (= (+ (* n (exp 2 n)) (* (- 1) n (exp 2 n))) 0)
+  iter(1)= (= (+ (* n (exp 2 n)) (* (- 1) n (exp 2 n))) 0)
   iter(2)= True
-  sat ; presimpl
+  sat (presimpl)
   $ cat > sum_join2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun n () Int)
@@ -78,7 +100,9 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl sum_join2.smt2 | sed 's/[[:space:]]*$//'
-  iter(1)= (and
-             (not (= (+ (* (* (- 1) 1) (exp 2 n)) (exp 2 n)) 0)))
+  Simplify step: (~ (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0))
+  Simplify step: (~ (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0))
+  Simplified expression: (not (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0))
+  iter(1)= (not (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0))
   iter(2)= (not True)
   unsat
