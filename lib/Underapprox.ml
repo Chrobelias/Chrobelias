@@ -239,7 +239,7 @@ let check bound ast =
     | Early env ->
       log "%s gives early Sat." __FILE__;
       log "env = %a" pp_env env;
-      `Sat ("underapprox1", to_normal_env env)
+      `Sat ("under I", to_normal_env env)
   with
   | String_op | Bitwise_op -> `Unknown ast
 ;;

@@ -69,9 +69,9 @@ let check_sat ?(verbose = false) ast : rez =
       match rez, !answer_guess with
       | _, None | _, Some `Unknown | `Unsat, Some `Unsat | `Sat _, Some `Sat -> ()
       | `Unknown _, Some `Sat ->
-        Printf.eprintf "; Need to improve --- SAT is expected\n%!"
+        Printf.eprintf "; Need to improve --- sat is expected\n%!"
       | `Unknown _, Some `Unsat ->
-        Printf.eprintf "; Need to improve --- UNSAT is expected\n%!"
+        Printf.eprintf "; Need to improve --- unsat is expected\n%!"
       | `Unsat, Some `Sat ->
         Printf.eprintf "; Une mauvaise réponse est possible (SAT est attendu)!\n%!"
       | `Sat _, Some `Unsat ->
@@ -81,14 +81,46 @@ let check_sat ?(verbose = false) ast : rez =
     if verbose
     then (
       match rez with
-      | `Sat s -> Format.printf "sat ; %s\n%!" s
+      | `Sat s -> Format.printf "sat (%s)\n%!" s
       | `Unsat -> Format.printf "unsat\n%!"
-      | `Unknown s -> Format.printf "unknown%s\n%!" (if s <> "" then "\n; " ^ s else ""))
+      | `Unknown s -> Format.printf "unknown%s\n%!" (if s <> "" then "\n " ^ s else ""))
     else ()
   in
   begin
     let rez =
       unknown ast Lib.Env.empty
+      <+> (fun ast e ->
+      if Lib.Config.config.logic = `Str
+      then unknown (Lib.SimplII.arithmetize ast) e
+      else unknown ast e)
+      (* match Lib.SimplII.rewrite_concat ast with
+        | `Sat -> sat "under III" ast e (fun _ -> Result.ok Map.empty)
+        | `Underapprox asts ->
+          if Lib.Config.config.dump_pre_simpl
+          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+          if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
+          log "Looking for SAT in %d asts..." (List.length asts);
+          let exception Sat_found in
+          (try
+             let f ast =
+               let ir =
+                 Lib.Me.ir_of_ast ast
+                 |> Result.map_error (fun c -> Format.eprintf "ERROR: %s\n%!" c)
+                 |> Result.get_ok
+               in
+               match Lib.Solver.check_sat ir with
+               | `Sat _ -> raise Sat_found
+               | _ -> ()
+             in
+             List.iter f asts;
+             report_result2 (`Unknown "Under3 resigns");
+             (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
+             exit 0
+           with
+           | Sat_found ->
+             report_result2 (`Sat "under III");
+             exit 0)) *)
+      (* else unknown ast e) *)
       <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
       then unknown ast e
@@ -115,7 +147,7 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Config.is_under2_enabled ()
       then (
         match Lib.SimplII.run_under2 ast with
-        | `Sat -> sat "under2" ast e (fun _ -> Result.Ok Map.empty)
+        | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty)
         | `Underapprox asts ->
           if Lib.Config.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -134,43 +166,12 @@ let check_sat ?(verbose = false) ast : rez =
                | Error _ -> ()
              in
              List.iter f asts;
-             report_result2 (`Unknown "Under2 resigns");
+             report_result2 (`Unknown "under II");
              (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
              unknown ast e
            with
            | Sat_found ->
              report_result2 (`Sat "under II");
-             exit 0))
-      else unknown ast e)
-      <+> (fun ast e ->
-      if Lib.Config.is_under3_enabled ()
-      then (
-        match Lib.SimplII.run_under3 ast with
-        | `Sat -> sat "under III" ast e (fun _ -> Result.ok Map.empty)
-        | `Underapprox asts ->
-          if Lib.Config.config.dump_pre_simpl
-          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-          if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
-          log "Looking for SAT in %d asts..." (List.length asts);
-          let exception Sat_found in
-          (try
-             let f ast =
-               let ir =
-                 Lib.Me.ir_of_ast ast
-                 |> Result.map_error (fun c -> Format.eprintf "ERROR: %s\n%!" c)
-                 |> Result.get_ok
-               in
-               match Lib.Solver.check_sat ir with
-               | `Sat _ -> raise Sat_found
-               | _ -> ()
-             in
-             List.iter f asts;
-             report_result2 (`Unknown "Under3 resigns");
-             (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
-             exit 0
-           with
-           | Sat_found ->
-             report_result2 (`Sat "under III");
              exit 0))
       else unknown ast e)
       <+> (fun ast e ->
@@ -211,7 +212,7 @@ let check_sat ?(verbose = false) ast : rez =
              rez)
         | Error s ->
           report_result2
-            (`Unknown (Format.sprintf "converting to automaton expression: %s" s));
+            (`Unknown (Format.sprintf "Exception in NFA for expression: %s" s));
           rez
       end
     in
