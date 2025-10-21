@@ -184,7 +184,7 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
     Ast.eia
       (Ast.Eia.eq
          (Ast.Eia.atom (ir_atom_to_atom atom))
-         (Ast.Eia.stoi2 (ir_atom_to_atom atom')))
+         (Ast.Eia.stoi (Ast.Str.atom (ir_atom_to_atom atom'))))
   | Itos (atom, atom') ->
     Ast.str
       (Ast.Str.eq
