@@ -1,10 +1,11 @@
 module type SYM0 = sig
   type term
-  type str
   type ph
 
-  include FT_SIG.s_term with type term := term and type str := str
-  include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
+  include FT_SIG.z_term with type term := term
+
+  (* include FT_SIG.z_term with type term := term and  *)
+  include FT_SIG.s_ph with type ph := ph and type term := term
   include FT_SIG.s_extra with type ph := ph and type term := term
 
   val pow2var : string -> term
@@ -19,12 +20,14 @@ module type SYM = sig
   val prj : ph -> repr
 end
 
+(* TODO(Kakadu): Maybe it's time to use Z.t here  *)
 type env = (string, int) Base.Map.Poly.t
 
 let to_normal_env : env -> Env.t =
   Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
     let _ : Env.t = acc in
-    Env.extend_exn acc key (`Eia (Ast.Eia.Atom (Ast.Const (Z.of_int data)))))
+    let open Ast in
+    Env.extend_exn acc (Var (key, I)) (Eia.Const (Z.of_int data)))
 ;;
 
 let pp_env ppf env =
@@ -44,10 +47,10 @@ let make_sym (env : env) onvar bound =
     let var s =
       match Base.Map.Poly.find env s with
       | None -> Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
-      | Some c -> const c
+      | Some c -> constz (Z.of_int c)
     ;;
 
-    let pow2var s = pow (const 2) (var s)
+    let pow2var s = pow (constz (Z.of_int 2)) (var s)
     let prj = Fun.id
 
     let exists vars x =
@@ -72,7 +75,7 @@ let make_sym (env : env) onvar bound =
   in
   (module struct
     include M
-    include FT_SIG.Sugar (M)
+    (* include FT_SIG.Sugar (M) *)
   end : SYM
     with type repr = Smtml.Expr.t)
 ;;
@@ -82,12 +85,16 @@ let make_collector () =
     type term = string list
     type str = term
     type ph = term
-    type repr = ph
+    type repr = term
 
     let ( ++ ) = List.append
     let empty = []
+
+    [@@@warning "-32"]
+
     let str_const _ = empty
-    let str_atoi _ = empty
+    let sofi _ = empty
+    let iofs _ = empty
     let str_len _ = empty
     let str_var _ = empty
     let const _ = empty
@@ -106,7 +113,8 @@ let make_collector () =
     let not = Fun.id
     let lor_ = List.fold_left ( ++ ) []
     let land_ = List.fold_left ( ++ ) []
-    let eq = ( ++ )
+    let eqz = ( ++ )
+    let eq_str = ( ++ )
     let lt = ( ++ )
     let leq = ( ++ )
     let prj xs = Base.List.dedup_and_sort xs ~compare:String.compare
@@ -136,27 +144,28 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
       let vs =
         List.filter_map
           (function
-            | Ast.Var s -> Some s
-            | Ast.Const _ -> None)
+            | Ast.Any_atom (Ast.Var (s, _)) -> Some s)
           vs
       in
       S.exists vs (helper ph)
-    | Str _ -> raise String_op
+    | Unsupp _ -> S.true_
   and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
-    | Atom (Ast.Var s) -> S.var s
+    | Ast.Eia.Const n -> S.constz n
+    | Atom (Ast.Var (s, _)) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Mod (l, r) -> S.mod_ (helperT l) r
-    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 -> S.pow2var x
+    | Pow (Const base, Atom (Var (x, _))) when base = Z.of_int 2 -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
-    | Len _ | Stoi _ -> raise String_op
-    | Len2 _ | Stoi2 _ -> raise String_op
+    | Len _ | Iofs _ | Sofi _ | Concat _ | At _ | Substr _ | Str_const _ | Len2 _ ->
+      raise String_op
   and helper_eia eia =
     match eia with
-    | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
+    | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
+    | Eq (_, _, S) -> raise String_op
     | Leq (l, r) -> S.(helperT l <= helperT r)
+    | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ -> raise String_op
   in
   fun x -> S.prj (helper x)
 ;;
@@ -231,8 +240,8 @@ let check bound ast =
       (* TODO: if all Unsat, add a constraints (x>bound), becuase we have already checked values in [0.. bound] *)
       let newast =
         let vars = Base.Set.to_list !vars in
-        let b = Ast.Eia.Atom (Ast.Const (Z.of_int bound)) in
-        let extend = fun v -> Ast.eia (Ast.Eia.lt b (Ast.Eia.atom (Ast.var v))) in
+        let b = Ast.Eia.Const (Z.of_int bound) in
+        let extend v = Ast.eia (Ast.Eia.lt b (Ast.Eia.atom (Ast.Var (v, I)))) in
         Ast.land_ (ast :: List.map extend vars)
       in
       log "Can't decide in %s" __FILE__;

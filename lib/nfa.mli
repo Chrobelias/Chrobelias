@@ -39,6 +39,7 @@ module Str : sig
 
   val u_null : u
   val u_eos : u
+  val is_end_char : u -> bool
   val nth : int -> t -> u
   val is_eos_at : int -> t -> bool
   val is_any_at : int -> t -> bool
@@ -85,10 +86,15 @@ module type Type = sig
   val to_nat : t -> u
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
+  val find_c_d' : t -> (int * int) Seq.t
+  val split : t -> (t * t) list
+  val equal_start_and_final : t -> t -> bool
 end
 
 module type NatType = sig
   include Type
+
+  val chrobak : t -> (int * int) Seq.t
 
   val get_chrobaks_sub_nfas
     :  t

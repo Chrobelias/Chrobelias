@@ -4,9 +4,9 @@ type relop =
 
 type error
 
-val has_unsupported_nonlinearity : Ast.t -> (unit, Ast.Eia.term list) Result.t
+val has_unsupported_nonlinearity : Ast.t -> (unit, Z.t Ast.Eia.term list) Result.t
 val subst : Env.t -> Ast.t -> Ast.t
-val subst_term : Env.t -> Ast.Eia.term -> Ast.Eia.term
+val subst_term : Env.t -> 'a Ast.Eia.term -> 'a Ast.Eia.term
 
 (** Independant pre-simplifications. Not necessary for the solver. **)
 val simpl
@@ -19,16 +19,20 @@ val simpl
      | `Underapprox of Ast.t list
      ]
 
+val arithmetize : Ast.t -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t * Env.t ]
+
 val run_basic_simplify
   :  Ast.t
   -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t * Env.t ]
 
 val run_under1 : int -> Ast.t -> [ `Sat of string * Env.t | `Unknown ]
-val run_under2 : Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
+val run_under2 : Env.t -> Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val check_nia : Ast.t -> [ `Sat | `Unsat | `Unknown ]
-val arithmetize : Ast.t -> Ast.t
+
+(* val arithmetize : Ast.t -> Ast.t *)
 val pp_error : Format.formatter -> error -> unit
 val shrink_variables : Ast.t -> Ast.t
+val rewrite_len : Ast.t -> Ast.t
 
 (** Underapproximation 2 related functions *)
 

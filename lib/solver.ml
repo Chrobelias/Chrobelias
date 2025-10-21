@@ -20,85 +20,7 @@ let internal s =
   c, s
 ;;
 
-let as_var = function
-  | Ir.Pow2 var -> Ir.var var
-  | Ir.Var var -> Ir.var var
-;;
-
-let collect_vars ir =
-  Ir.fold
-    (fun acc -> function
-       (*| Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
-       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> List.map as_var |> Set.of_list)
-       | Ir.SReg (atom, _) -> Set.add acc atom
-       | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.Rel (_, term, _) ->
-         Set.union
-           acc
-           (Map.keys term
-            |> List.concat_map (function
-              | Ir.Var _ as ir -> [ ir ]
-              | Ir.Pow2 a as ir -> [ ir; Ir.var a ])
-            |> Set.of_list)
-       | _ -> acc)
-    Set.empty
-    ir
-  |> Set.to_list
-  |> List.mapi (fun i var -> var, i)
-  |> Map.of_alist_exn
-;;
-
-let collect_atoms ir =
-  Ir.fold
-    (fun acc -> function
-       (*| Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
-       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
-       | Ir.SReg (atom, _) -> Set.add acc atom
-       | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.Rel (_, term, _) ->
-         Set.union
-           acc
-           (Map.keys term
-            |> List.concat_map (function
-              | Ir.Var _ as ir -> [ ir ]
-              | Ir.Pow2 _ as ir -> [ ir ])
-            |> Set.of_list)
-       | _ -> acc)
-    Set.empty
-    ir
-;;
-
-let collect_free (ir : Ir.t) =
-  Ir.fold
-    (fun acc -> function
-       | Ir.Rel (_, term, _) ->
-         term |> Map.keys |> List.map as_var |> Set.of_list |> Set.union acc
-       | Ir.SReg (atom, _) -> Set.add acc atom
-       | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
-       | Ir.Exists (xs, ir) -> Set.diff acc (Set.of_list xs)
-       | _ -> acc)
-    Set.empty
-    ir
-;;
-
+let get_exp = Ir.get_exp
 let base = 10
 let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
 
@@ -122,14 +44,14 @@ let collect_alpha (ir : Ir.t) =
   return (if Set.is_empty alpha then Set.of_array alphabet else alpha)
 ;;
 
-let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
+(*let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
   | Ir.Var s -> Ast.Eia.atom (Ast.var s)
   | Ir.Pow2 s ->
     Ast.Eia.pow (Ast.Eia.atom (Ast.const (Config.base ()))) (Ast.Eia.atom (Ast.var s))
 ;;
 
 let ir_atom_to_str_term : Ir.atom -> Ast.Str.term = function
-  | Ir.Var s -> Ast.Str.atom (Ast.var s)
+  | Ir.Var s -> Ast.Eia.atom (Ast.var s)
   | Ir.Pow2 _ -> failwith "only vars are supported inside string IRs"
 ;;
 
@@ -162,7 +84,7 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
     Ast.eia (build lhs rhs)
   | SReg (atom, re) -> Ast.str (Ast.Str.inre (ir_atom_to_str_term atom) re)
   | SEq (atom, atom') ->
-    Ast.str (Ast.Str.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
+    Ast.eia (Ast.Eia.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SPrefixOf (atom, atom') ->
     Ast.str (Ast.Str.prefixof (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SContains (atom, atom') ->
@@ -178,15 +100,15 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
     Ast.eia
       (Ast.Eia.eq
          (Ast.Eia.atom (ir_atom_to_atom atom))
-         (Ast.Eia.stoi2 (ir_atom_to_atom atom')))
+         (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
   | Itos (atom, atom') ->
-    Ast.str
-      (Ast.Str.eq
-         (Ast.Str.atom (ir_atom_to_atom atom))
-         (Ast.Str.fromeia (ir_atom_to_atom atom')))
+    Ast.eia
+      (Ast.Eia.eq
+         (Ast.Eia.atom (ir_atom_to_atom atom))
+         (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
   | Exists ([], lhs) -> ir_to_ast lhs
   | Exists (atoms, lhs) -> Ast.exists (List.map ir_atom_to_atom atoms) (ir_to_ast lhs)
-;;
+;;*)
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -199,7 +121,7 @@ let ( -- ) i j =
   | EqVar of Ir.atom * Ir.atom
 *)
 
-let trivial ir =
+(* let antiprenex ir =
   (*let rec infer_bounds : Ir.t -> _ = function
                 | Ir.Land irs ->
                                 let bounds = List.map infer_bounds irs in
@@ -349,136 +271,6 @@ in
         if c' < c then Ir.true_ else ir
               | ir -> ir)
                                       in*)
-  let quantifiers_closer : Ir.t -> Ir.t =
-    fun ir ->
-    Ir.map
-      (function
-        | Ir.Exists ([], ir) -> ir
-        | Ir.Exists (atoms, Ir.Exists (atoms', ir)) ->
-          Ir.exists (Base.List.dedup_and_sort ~compare (atoms @ atoms')) ir
-        | Ir.Exists ((a :: b :: tl as atoms), Ir.Land irs) as orig_ir ->
-          let atoms =
-            (*List.filter
-              (fun atom ->
-                 not
-                   (Ir.for_some
-                      (function
-                        | Ir.SReg (atom', _)
-                        | Ir.SLen (atom', _)
-                        | Ir.Stoi (atom', _)
-                        | Ir.SEq (atom', _)
-                          when atom = atom' -> true
-                        | _ -> false)
-                      ir))*)
-            atoms
-          in
-          let atoms_set = Set.of_list atoms in
-          if atoms_set |> Set.is_empty
-          then orig_ir
-          else (
-            let irs_using_var =
-              List.mapi
-                begin
-                  fun i ir ->
-                    let free_vars = collect_free ir in
-                    let used_vars = Set.inter atoms_set free_vars in
-                    i, used_vars
-                end
-                irs
-            in
-            let var_is_used_in =
-              List.map
-                begin
-                  fun atom ->
-                    ( atom
-                    , List.filter_map
-                        (fun (i, s) -> if Set.mem s atom then Some i else None)
-                        irs_using_var )
-                end
-                atoms
-              |> Map.of_alist_exn
-            in
-            let atom_to_move, used_in =
-              var_is_used_in
-              |> Map.to_alist
-              |> List.sort (fun (_, used_in) (_, used_in') ->
-                List.length used_in - List.length used_in')
-              |> List.hd
-            in
-            if List.length irs = List.length used_in
-            then orig_ir
-            else (
-              let atoms = List.filter (fun atom -> atom <> atom_to_move) atoms in
-              let irs_used, irs_free =
-                irs
-                |> List.mapi (fun i ir -> i, ir)
-                |> List.partition (fun (i, ir) -> List.mem i used_in)
-              in
-              let irs_used = List.map snd irs_used in
-              let irs_free = List.map snd irs_free in
-              let ir =
-                Ir.land_ (Ir.exists [ atom_to_move ] (Ir.land_ irs_used) :: irs_free)
-              in
-              if atoms <> [] then Ir.exists atoms ir else ir))
-        | Ir.Exists (atoms, Ir.Lor irs) -> Ir.lor_ (List.map (Ir.exists atoms) irs)
-        | ir -> ir)
-      ir
-  in
-  let simpl ir =
-    ir
-    |> Ir.map (function
-      | Ir.Rel (Ir.Eq, term, c)
-        when Map.for_all ~f:(fun v -> Z.(equal v zero)) term && c = Z.zero -> Ir.true_
-      | Ir.Rel (Ir.Leq, term, c) when Map.length term = 0 && Z.(c >= zero) -> Ir.true_
-      | Ir.Rel (Ir.Leq, term, c) when Map.length term = 0 && Z.(c < zero) -> Ir.false_
-      | ir -> ir)
-    |> Ir.map (function
-      | Ir.Lor [] -> Ir.false_
-      | Ir.Land [] -> Ir.true_
-      | Ir.Land [ ir ] -> ir
-      | Ir.Lor [ ir ] -> ir
-      | Ir.Land irs
-        when List.exists
-               (function
-                 | Ir.Lnot Ir.True -> true
-                 | _ -> false)
-               irs -> Ir.Lnot Ir.True
-      | Ir.Land irs ->
-        Ir.land_
-          (List.filter_map
-             (function
-               | Ir.True -> None
-               | ir' -> Some ir')
-             irs)
-      | Ir.Lor irs
-        when List.exists
-               (function
-                 | Ir.True -> true
-                 | _ -> false)
-               irs -> Ir.True
-      | Ir.Lor irs ->
-        Ir.lor_
-          (List.filter_map
-             (function
-               | Ir.Lnot Ir.True -> None
-               | ir' -> Some ir')
-             irs)
-      | ir -> ir)
-    |> Ir.map (function
-      | Ir.Land lst ->
-        Ir.Land
-          (lst
-           |> List.concat_map (function
-             | Ir.Land lst -> lst
-             | ir -> [ ir ]))
-      | Ir.Lor lst ->
-        Ir.Lor
-          (lst
-           |> List.concat_map (function
-             | Ir.Lor lst -> lst
-             | ir -> [ ir ]))
-      | ir -> ir)
-  in
   (*let aux ir =
           Ir.map
       (function
@@ -499,15 +291,17 @@ in
       ir
 in*)
   let rec aux2 ir =
-    let ir' = (*aux *) ir |> simpl |> quantifiers_closer in
+    let ir' = (*aux *) ir |> Ir.simpl |> Ir.antiprenex in
     if Ir.equal ir ir' then ir' else aux2 ir'
   in
   aux2 ir
-;;
+;; *)
 
 open Config
 
 let level = ref 0
+
+module NfaS = Nfa.Lsb (Nfa.Str)
 
 module Make
     (NfaNat : Nfa.NatType)
@@ -516,93 +310,25 @@ module Make
     (NfaCollection : NfaCollection.Type with type t = Nfa.t)
     (Extra : sig
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
+       val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
        val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
        val model_to_int : Nfa.v list -> Z.t
        val nat_model_to_int : NfaNat.v list -> Z.t
      end) =
 struct
-  let is_exp = function
-    | Ir.Pow2 _ -> true
-    | Ir.Var _ -> false
-  ;;
+  let is_exp = Ir.is_exp
 
   let eval ir =
-    let alpha = collect_alpha ir |> Option.map Set.to_list in
-    (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
-    let ir = trivial ir in
+    let ir = Ir.simpl ir in
     let ir = if Config.config.simpl_mono then Ir.simpl_monotonicty ir else ir in
     let ir = if Config.config.simpl_alpha then Simpl_alpha.simplify ir else ir in
+    let ir = Ir.antiprenex ir in
+    let alpha = collect_alpha ir |> Option.map Set.to_list in
+    (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
+    let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
     if Config.config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
     if Config.config.stop_after = `Simpl then exit 0;
-    let vars = collect_vars ir in
-    let _apply_post_strings atoms =
-      fun nfa ->
-      let slens =
-        Ir.fold
-          (fun acc -> function
-             | SLen (atom, atom') -> (atom, atom') :: acc
-             | _ -> acc)
-          []
-          ir
-      in
-      let stois =
-        Ir.fold
-          (fun acc -> function
-             | Stoi (atom, atom') -> (atom, atom') :: acc
-             | _ -> acc)
-          []
-          ir
-      in
-      let seqs =
-        Ir.fold
-          (fun acc -> function
-             | SEq (atom, atom') -> (atom, atom') :: acc
-             | _ -> acc)
-          []
-          ir
-      in
-      let nfa =
-        List.fold_left
-          (fun nfa (atom, atom') ->
-             if List.mem atom atoms
-             then
-               NfaCollection.strlen_post
-                 nfa
-                 ~src:(Map.find_exn vars atom')
-                 ~dest:(Map.find_exn vars atom)
-             else nfa)
-          nfa
-          slens
-      in
-      let nfa =
-        List.fold_left
-          (fun nfa (atom, atom') ->
-             if List.mem atom atoms
-             then
-               NfaCollection.stoi_post
-                 nfa
-                 ~src:(Map.find_exn vars atom')
-                 ~dest:(Map.find_exn vars atom)
-             else nfa)
-          nfa
-          stois
-      in
-      let nfa =
-        List.fold_left
-          (fun nfa (atom, atom') ->
-             if List.mem atom atoms
-             then
-               NfaCollection.seq_post
-                 nfa
-                 ~src:(Map.find_exn vars atom')
-                 ~dest:(Map.find_exn vars atom)
-             else nfa)
-          nfa
-          seqs
-      in
-      nfa
-    in
     let rec eval ir =
       if Config.config.dump_ir
       then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
@@ -669,7 +395,7 @@ struct
        end
        | Ir.Reg (reg, atoms) -> Extra.eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
-         let latest_var = Set.equal (collect_free ir) (Set.of_list atoms) in
+         let latest_var = Set.equal (Ir.collect_free ir) (Set.of_list atoms) in
          let nfa =
            eval ir
            (*|> apply_post_strings atoms*)
@@ -680,12 +406,15 @@ struct
          else if Nfa.run nfa
          then NfaCollection.n ()
          else NfaCollection.z ()
-         (* APOHZ technique legacy.
-       |> NfaO.lsb_of_msb:
-               |> NfaO.Lsb.minimize
-           |> NfaO.msb_of_lsb
-         *)
-       | Ir.SReg (atom, reg) -> Extra.eval_sreg vars atom reg
+       | Ir.SReg (atom, reg) ->
+         Extra.eval_sreg vars atom reg
+         |> fun nfa ->
+         Debug.printf "(c, d)\n%!";
+         Seq.iter
+           (fun (c, d) -> Debug.printf "(%d, %d)\n%!" c d)
+           (NfaNat.chrobak (nfa |> Nfa.to_nat));
+         nfa
+       | Ir.SRegRaw (atom, reg) -> Extra.eval_sregraw vars atom reg
        | Ir.Itos (atom, atom') ->
          NfaCollection.itos ~src:(Map.find_exn vars atom') ~dest:(Map.find_exn vars atom)
        | Ir.SLen (atom, atom') ->
@@ -728,7 +457,7 @@ struct
       nfa
     in
     let nfa = eval ir in
-    (*let nfa = apply_post_strings ( collect_free ir |> Set.to_list in*)
+    (*let nfa = apply_post_strings ( Ir.collect_free ir |> Set.to_list in*)
     nfa, vars
   ;;
 
@@ -749,11 +478,6 @@ struct
   let pow2z n =
     List.init (Z.to_int n) (Fun.const (NfaCollection.base |> Z.of_int))
     |> List.fold_left Z.( * ) Z.one
-  ;;
-
-  let get_exp = function
-    | Ir.Pow2 var -> Ir.var var
-    | Ir.Var _ -> failwith "Expected exponent, found var"
   ;;
 
   let to_exp = function
@@ -1044,12 +768,12 @@ struct
           | [] -> failwith ""
           | comps -> Ir.land_ comps
         in
-        let* () =
+        (*let* () =
           match Overapprox.check (ir_to_ast (Ir.land_ [ ir; order_ir ])) with
           | `Unknown ast -> Some ()
           | `Unsat -> None
           | _ -> Some ()
-        in
+        in*)
         let order_nfa, order_vars = eval order_ir in
         Debug.dump_nfa ~msg:"Nfa order1: %s" Nfa.format_nfa order_nfa;
         order_vars
@@ -1082,7 +806,7 @@ struct
          formulas might be undecidable. We still try to evaluate them though to try out the \
          limitations of the algorithm.\n\
          %!"; *)
-    let vars = collect_vars formula in
+    let vars = Ir.collect_vars formula in
     let formula =
       formula
       |> Ir.exists
@@ -1126,7 +850,7 @@ struct
       ~vars:(Map.to_alist vars)
       Nfa.format_nfa
       nfa;
-    let atoms = collect_atoms formula in
+    let atoms = Ir.collect_atoms formula in
     let nfa =
       Set.fold
         ~f:(fun acc k ->
@@ -1248,7 +972,7 @@ struct
 
   let get_model_normal ir () =
     let nfa, vars = ir |> eval in
-    let free_vars = ir |> collect_free |> Set.to_list in
+    let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
     let model, _ =
       Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) |> Option.get
     in
@@ -1333,7 +1057,7 @@ struct
       | `Unknown
       ]
     =
-    let run_semenov = collect_vars ir |> Map.keys |> List.exists is_exp in
+    let run_semenov = Ir.collect_vars ir |> Map.keys |> List.exists is_exp in
     if run_semenov
     then
       if Config.config.no_model
@@ -1369,7 +1093,7 @@ struct
              | `Ok x -> `Sat (Result.Ok x)) *)
         end)
     else (
-      let free_vars = collect_free ir in
+      let free_vars = Ir.collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
       Debug.printf "Trying to use PrA deciding procedure over  %a\n" Ir.pp ir;
       if ir' |> eval |> fst |> Nfa.run
@@ -1390,6 +1114,16 @@ module LsbStr =
         let nfa = reg |> Nfa.of_regex in
         Debug.dump_nfa ~msg:"SREG %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
         (*let reenum = Map.singleton (Map.find_exn vars atom) 0 in*)
+        let j = Map.find_exn vars atom in
+        Nfa.filter_map nfa (fun (label, q') ->
+          Some
+            ( Array.init (Map.length vars) (fun i ->
+                if i = j then label.(0) else Char.chr 0)
+            , q' ))
+      ;;
+
+      let eval_sregraw vars atom reg =
+        let nfa = reg in
         let j = Map.find_exn vars atom in
         Nfa.filter_map nfa (fun (label, q') ->
           Some
@@ -1440,6 +1174,10 @@ module Lsb =
       ;;
 
       let eval_sreg _vars _atom _regex =
+        failwith "string constraints are not supported in EIA mode"
+      ;;
+
+      let eval_sregraw _vars _atom _regex =
         failwith "string constraints are not supported in EIA mode"
       ;;
 
@@ -1495,6 +1233,10 @@ module Msb =
         failwith "string constraints are not supported in EIA mode"
       ;;
 
+      let eval_sregraw _vars _atom _regex =
+        failwith "string constraints are not supported in EIA mode"
+      ;;
+
       let model_to_int c = z_of_list_msb c
       let nat_model_to_int = z_of_list_msb_nat
     end)
@@ -1524,85 +1266,97 @@ let check_sat ir
     in
     match checker ir with
     | `Sat model ->
-      let f tys =
-        match model () with
-        | Result.Error _ -> assert false
-        | Result.Ok model ->
-          Result.Ok
-            (model
-             |> Map.mapi ~f:(fun ~key:k ~data:v ->
-               match Map.find tys k with
-               | None | Some `Int ->
-                 `Int
-                   (if Config.config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)
-               | Some `Str ->
-                 failwith "it is something strange: there is string variable in EIA")
-             |> filter_internal)
-      in
-      `Sat f
+      (match model () with
+       | Result.Error _ -> assert false
+       | Result.Ok model ->
+         let f tys =
+           Result.Ok
+             (model
+              |> Map.mapi ~f:(fun ~key:k ~data:v ->
+                match Map.find tys k with
+                | None | Some `Int ->
+                  let v =
+                    if Config.config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v
+                  in
+                  let v =
+                    match k with
+                    | Ir.Var _ -> v
+                    | Pow2 _ ->
+                      let logBase =
+                        match Config.config.mode with
+                        | `Lsb -> Lsb.logBaseZ
+                        | `Msb -> Msb.logBaseZ
+                      in
+                      logBase v |> Z.of_int
+                  in
+                  `Int v
+                | Some `Str ->
+                  failwith "it is something strange: there is string variable in EIA")
+              |> Map.map_keys_exn ~f:(function
+                | Ir.Pow2 k as atom -> get_exp atom
+                | atom -> atom)
+              |> filter_internal)
+         in
+         `Sat f)
     | `Unsat -> `Unsat
     | `Unknown -> `Unknown ir
   in
   match Config.config.logic with
   | `Eia -> on_no_strings ir
   | `Str -> begin
-    match ir |> ir_to_ast |> SimplII.run_basic_simplify with
+    (*match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
       let ast = SimplII.shrink_variables ast in
+      (* Format.printf "Ast = @[%a@]\n%!" Ast.pp_smtlib2 ast; *)
       let ir =
         match Me.ir_of_ast ast with
         | Result.Ok x -> x
         | Error s ->
           Format.eprintf "Can't convert AST to IR: %s\n%!" s;
           exit 1
-      in
-      let res = LsbStr.check_sat ir in
-      (match res with
-       | `Sat model ->
-         `Sat
-           (fun tys ->
-             let* model = model () in
-             let main_model =
-               Map.mapi
-                 ~f:(fun ~key:k ~data:v ->
-                   let ty = Map.find tys k |> Option.value ~default:`Int in
-                   match ty with
-                   | `Int -> begin
-                     try
-                       let s =
-                         List.rev v
-                         |> List.to_seq
-                         |> Seq.map (fun c ->
-                           if c = Nfa.Str.u_eos
-                           then '0'
-                           else if c = Nfa.Str.u_null
-                           then '0'
-                           else c)
-                         |> String.of_seq
-                       in
-                       if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
-                     with
-                     | Invalid_argument _ ->
-                       `Str
-                         (v
-                          |> List.rev
-                          |> List.to_seq
-                          |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                          |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                          |> String.of_seq)
-                   end
-                   | `Str ->
-                     `Str
-                       (v
-                        |> List.rev
-                        |> List.to_seq
-                        |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                        |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                        |> String.of_seq))
-                 model
-             in
-             let env_model =
-               Map.filter_mapi
+      in*)
+    let res = LsbStr.check_sat ir in
+    match res with
+    | `Sat model ->
+      `Sat
+        (fun tys ->
+          let* model = model () in
+          let main_model =
+            Map.mapi
+              ~f:(fun ~key:k ~data:v ->
+                let ty = Map.find tys k |> Option.value ~default:`Int in
+                match ty with
+                | `Int -> begin
+                  try
+                    let s =
+                      List.rev v
+                      |> List.to_seq
+                      |> Seq.map (fun c -> if Nfa.Str.is_end_char c then '0' else c)
+                      |> String.of_seq
+                    in
+                    if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
+                  with
+                  | Invalid_argument _ ->
+                    `Str
+                      (v
+                       |> List.rev
+                       |> List.to_seq
+                       |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                       |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+                       |> String.of_seq)
+                end
+                | `Str ->
+                  `Str
+                    (v
+                     |> List.rev
+                     |> List.to_seq
+                     |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                     |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+                     |> String.of_seq))
+              model
+          in
+          (*let env_model =
+               Env.filter_mapi
                  ~f:(fun ~key ~data ->
                    let ( let* ) = Option.bind in
                    let rec aux = function
@@ -1612,8 +1366,8 @@ let check_sat ir
                      | Ast.Eia.Add ls ->
                        let* ls = Base.Option.all (List.map aux ls) in
                        Option.some (List.fold_left Z.( + ) Z.zero ls)
-                     | Ast.Eia.Atom (Ast.Const v) -> Option.some v
-                     | Ast.Eia.Atom (Ast.Var v) -> begin
+                     | Ast.Eia.Const (v) -> Option.some v
+                     | Ast.Eia.Atom (Ast.Var (v, _)) -> begin
                        match Map.find main_model (Ir.var v) with
                        | Some (`Int v) -> Option.some v
                        | Some (`Str _) | None -> None
@@ -1626,7 +1380,7 @@ let check_sat ir
                    in
                    begin
                      match data with
-                     | `Eia data -> begin
+                     | data -> begin
                        match aux data with
                        | Some v -> Option.some (`Int v)
                        | None ->
@@ -1639,23 +1393,15 @@ let check_sat ir
                            data;
                          None
                      end
-                     | `Str data ->
-                       Format.printf
-                         "Warning: some of the str model pieces are likely to be missed: \
-                          %s = %a\n\
-                          %!"
-                         key
-                         Ast.Str.pp_term
-                         data;
-                       None
                    end)
                  env
                |> Map.map_keys_exn ~f:(fun v -> Ir.var v)
              in
-             Map.merge_disjoint_exn main_model env_model |> filter_internal |> return)
-       | `Unsat -> `Unsat
-       | `Unknown -> `Unknown ir)
-    | `Sat (_, env) -> `Sat (fun _ -> Result.Ok Map.empty)
+             Map.merge_disjoint_exn main_model env_model |> filter_internal |> return*)
+          return (main_model |> filter_internal))
     | `Unsat -> `Unsat
+    | `Unknown -> `Unknown ir
+    (*| `Sat (_, env) -> `Sat (fun _ -> Result.Ok Map.empty)
+    | `Unsat -> `Unsat*)
   end
 ;;

@@ -1,7 +1,8 @@
 let log = Debug.printfln
 
 module type Smtml_symantics = sig
-  include FT_SIG.s_term with type term := Smtml.Expr.t and type str = Smtml.Expr.t
+  include FT_SIG.z_term with type term := Smtml.Expr.t
+  include FT_SIG.str_term with type term := Smtml.Expr.t and type str := Smtml.Expr.t
 
   include
     FT_SIG.s_ph
@@ -59,38 +60,49 @@ exception String_op
 
 let apply_symnatics (module S : Smtml_symantics) =
   let rec helper = function
-    | Ast.Land xs -> S.land_ (List.map helper xs)
-    | Lor xs -> S.lor_ (List.map helper xs)
+    | Ast.True -> S.true_
+    | Lnot (Eia (InRe _))
+    | Lnot (Eia (InReRaw _))
+    | Lnot (Eia (SuffixOf _))
+    | Lnot (Eia (PrefixOf _))
+    | Lnot (Eia (Contains _)) -> S.true_
     | Lnot x -> S.not (helper x)
-    | True -> S.true_
+    | Land xs -> S.land_ (List.map helper xs)
+    | Lor xs -> S.lor_ (List.map helper xs)
     | Eia e -> helper_eia e
     | Pred s -> assert false
     | Exists (vs, ph) ->
       let vs =
         List.filter_map
           (function
-            | Ast.Var s -> Some s
-            | Ast.Const _ -> None)
+            | Ast.Any_atom (Ast.Var (s, _)) -> Some s)
           vs
       in
       S.exists vs (helper ph)
-    | Str _ -> Symantics.true_
+    | Unsupp _ -> S.true_
   and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
-    | Atom (Ast.Var s) -> S.var s
+    | Ast.Eia.Const n -> S.constz n
+    | Atom (Ast.Var (s, _)) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 ->
+    | Pow (Const base, Atom (Ast.Var (x, _k))) when base = Z.of_int 2 ->
       Symantics.var (gensym x)
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Mod (t, z) -> S.mod_ (helperT t) z
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
-    | Len _ | Stoi _ | Len2 _ | Stoi2 _ -> raise String_op
-  and helper_eia eia =
+    | Concat _ | At _ | Substr _ | Ast.Eia.Str_const _ | Len _ | Sofi _ | Iofs _ | Len2 _
+      -> raise String_op
+  and helper_eia ph =
     try
-      match eia with
-      | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
+      let open Ast in
+      let open Ast.Eia in
+      match ph with
       | Leq (l, r) -> S.(helperT l <= helperT r)
+      (*| Eq (Atom (Var (name, I)), r, I) -> S.(helperT (Atom (Var (name, I))) = helperT r)
+      | Eq (Atom (Var (_, S)), _, S) -> raise String_op*)
+      | Eq (l, r, I) -> S.(helperT l = helperT r)
+      | Eq (l, r, S) -> raise String_op
+      | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ -> raise String_op
     with
     | String_op | Bitwise_op -> Symantics.true_
   in

@@ -46,6 +46,7 @@ let lift ?(unsat_info = "") ast = function
 ;;
 
 let check_sat ?(verbose = false) ast : rez =
+  let used_under2 = ref false in
   let __ () =
     if Lib.Config.config.stop_after = `Pre_simplify
     then (
@@ -92,9 +93,7 @@ let check_sat ?(verbose = false) ast : rez =
       unknown ast Lib.Env.empty
       <+> (fun ast e ->
       if Lib.Config.config.logic = `Str
-      then (
-        let ast = Lib.SimplII.arithmetize ast in
-        unknown ast e)
+      then lift ast (Lib.SimplII.arithmetize ast)
       else unknown ast e)
       <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
@@ -103,8 +102,13 @@ let check_sat ?(verbose = false) ast : rez =
       <+> (fun ast e ->
       if Lib.Config.config.under_approx >= 0
       then (
+        let merge =
+          Lib.Env.merge
+            ~sf:(fun ~key:_ ~data1 ~data2:_ -> data1)
+            ~zf:(fun ~key:_ ~data1 ~data2:_ -> data1)
+        in
         match Lib.Underapprox.check Lib.Config.config.under_approx ast with
-        | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Result.Ok Map.empty)
+        | `Sat (s, e0) -> Sat (s, ast, merge e0 e, fun _ -> Result.Ok Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
@@ -137,7 +141,8 @@ let check_sat ?(verbose = false) ast : rez =
       <+> (fun ast e ->
       if Lib.Config.is_under2_enabled ()
       then (
-        match Lib.SimplII.run_under2 ast with
+        used_under2 := true;
+        match Lib.SimplII.run_under2 e ast with
         | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty)
         | `Underapprox asts ->
           if Lib.Config.config.dump_pre_simpl
@@ -147,17 +152,25 @@ let check_sat ?(verbose = false) ast : rez =
           let exception Sat_found in
           (try
              let f ast =
-               let ir = Lib.Me.ir_of_ast ast in
+               let ir = Lib.Me.ir_of_ast e ast in
                match ir with
                | Ok ir -> begin
                  match Lib.Solver.check_sat ir with
                  | `Sat _ -> raise Sat_found
-                 | _ -> ()
+                 | _ -> Result.ok ()
                end
-               | Error _ -> ()
+               | Error s -> Result.error s
              in
-             List.iter f asts;
-             report_result2 (`Unknown "under II");
+             let results = List.map f asts in
+             let extra =
+               List.map
+                 (function
+                   | Ok _ -> "unsat;"
+                   | Error s -> s)
+                 results
+               |> String.concat " "
+             in
+             report_result2 (`Unknown (Format.sprintf "under II %s" extra));
              (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
              unknown ast e
            with
@@ -172,14 +185,19 @@ let check_sat ?(verbose = false) ast : rez =
       <+> (fun ast e ->
       if Lib.Config.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
       <+> fun ast e ->
-      if Lib.Config.config.over_approx
-      then (
-        match Lib.Overapprox.check ast with
-        | `Unknown ast -> unknown ast e
-        | `Sat _ -> unknown ast e
-        | `Unsat ->
-          Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
-      else unknown ast e
+      if Lib.Config.config.stop_after = `Pre_simplify
+      then exit 0
+      else
+        unknown ast e
+        <+> fun ast e ->
+        if Lib.Config.config.over_approx
+        then (
+          match Lib.Overapprox.check ast with
+          | `Unknown ast -> unknown ast e
+          | `Sat _ -> unknown ast e
+          | `Unsat ->
+            Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
+        else unknown ast e
     in
     let rez =
       match rez with
@@ -190,7 +208,7 @@ let check_sat ?(verbose = false) ast : rez =
         report_result2 (`Unsat s);
         rez
       | Unknown (ast, e) -> begin
-        match Lib.Me.ir_of_ast ast with
+        match Lib.Me.ir_of_ast e ast with
         | Ok ir ->
           (match Lib.Solver.check_sat ir with
            | `Sat get_model ->
@@ -203,7 +221,8 @@ let check_sat ?(verbose = false) ast : rez =
              report_result2 (`Unknown "nfa");
              rez)
         | Error s ->
-          report_result2 (`Unknown (Format.sprintf "nfa; %s" s));
+          if !used_under2 |> not
+          then report_result2 (`Unknown (Format.sprintf "nfa; %s" s));
           rez
       end
     in
@@ -227,36 +246,43 @@ let join_int_model prefix m =
   let prefix =
     let shrink_ir_model =
       Base.Map.Poly.map_keys_exn m ~f:(function
-        | Ir.Var s -> Ast.Var s
+        | Ir.Var s -> Ast.Any_atom (Ast.var s Ast.I)
         | Ir.Pow2 _ -> assert false)
     in
     Env.enrich prefix shrink_ir_model
   in
   (* log "prefix.length = %d" (Env.length prefix); *)
   let rec seek key =
-    match Map.find_exn prefix key with
-    | `Eia eia -> begin
+    match Env.lookup_int key prefix with
+    | Some eia -> begin
       match SimplII.subst_term prefix eia with
-      | Ast.Eia.Atom (Ast.Const c) -> Option.some (`Int c)
-      | Ast.Eia.Atom (Ast.Var v) -> seek v
-      | _ -> failwith "tbd"
+      | Ast.Eia.Const c -> Option.some (`Int c)
+      | Ast.Eia.Str_const s -> Option.some (`Str s)
+      | Ast.Eia.Atom (Var (v, _)) -> seek v
+      | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
     end
-    | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z)
-    | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term)
-    | exception Base.Not_found_s _ when Solver.is_internal key -> None
-    | exception Base.Not_found_s _ -> None
+    (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
+    (* | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term) *)
+    | None -> begin
+      match Env.lookup_string key prefix with
+      | Some str -> begin
+        match SimplII.subst_term prefix str with
+        | Ast.Eia.Const c -> Option.some (`Int c)
+        | Ast.Eia.Str_const s -> Option.some (`Str s)
+        | Ast.Eia.Atom (Var (v, _)) -> seek v
+        | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
+      end
+      | None when Solver.is_internal key -> None
+      | None -> None
+    end
   in
   Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek key with
-    | Some value -> Map.set acc ~key:(Var key) ~data:value
+    | Some value -> Map.set acc ~key:(Ir.var key) ~data:value
     | None ->
-      Format.eprintf "; Can't join models. Something may be missing\n%!";
-      acc
-    (*failwith
-        (Format.asprintf
-           "not implemented in %s. What to do with key '%s'?"
-           __FUNCTION__
-           key)*))
+      if Solver.is_internal key |> not
+      then Format.eprintf "; Can't join models. Something may be missing\n%!";
+      acc)
 ;;
 
 type state =
@@ -292,7 +318,7 @@ let () =
       Lib.Config.config.under_approx <- 0;
       Lib.Config.config.over_approx <- false;
       Lib.Config.config.simpl_alpha <- false;
-      Lib.Config.config.simpl_mono <- false;
+      Lib.Config.config.simpl_mono <- true;
       (* Lib.Config.config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
@@ -376,7 +402,7 @@ let () =
                    match key, data with
                    | Lib.Ir.Var v, `Str ->
                      Lib.Ast.(
-                       eia (Eia.leq (Len (Atom (Var v))) (Atom (Const (Z.of_int 100000)))))
+                       eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int 100000))))
                      :: acc
                    | _ -> acc)
                  |> Lib.Ast.land_
@@ -420,7 +446,7 @@ let () =
         { asserts = []; prev = None; last_result = None; tys = Map.empty }
         f
     with
-    | Lib.Fe.Frontend_error _ when Lib.Config.is_quiet () ->
+    | Lib.Fe.UnsupportedException _ when Lib.Config.is_quiet () ->
       Format.eprintf "\027[31mFronted error\027[0m\n%!";
       exit 1
   in
