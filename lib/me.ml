@@ -30,6 +30,21 @@ let collect_free_ir (ir : Ir.t) =
     ir
 ;;
 
+let str_to_re s =
+  Regex.concat
+    (Regex.concat
+       (s
+        |> String.to_seq
+        |> Seq.map (fun c -> Regex.symbol [ c ])
+        |> Seq.fold_left
+             (fun acc a ->
+                (* String constraints use LSB representation, we intentionally reverse the concat. *)
+                Regex.concat a acc)
+             Regex.epsilon)
+       (Regex.kleene (Regex.symbol [ Nfa.Str.u_zero ])))
+    (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
+;;
+
 (** Final-tagless style for building our representation  *)
 module type S = sig
   type t
@@ -53,22 +68,9 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
   let of_str_atom = function
     | Ast.Str.Atom (Var atom) -> (Ir.var atom, []) |> return
     | Ast.Str.Const s ->
-      let re' =
-        Regex.concat
-          (Regex.concat
-             (s
-              |> String.to_seq
-              |> Seq.map (fun c -> Regex.symbol [ c ])
-              |> Seq.fold_left
-                   (fun acc a ->
-                      (* String constraints use LSB representation, we intentionally reverse the concat. *)
-                      Regex.concat a acc)
-                   Regex.epsilon)
-             (Regex.kleene (Regex.symbol [ Nfa.Str.u_zero ])))
-          (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
-      in
+      let re = str_to_re s in
       let u = Ir.internal () in
-      (u, [ Ir.sreg u re' ]) |> return
+      (u, [ Ir.sreg u re ]) |> return
     | Ast.Str.FromEia (Var atom) -> (Ir.var atom, []) |> return
     | Ast.Str.FromEia (Const c) ->
       let u = Ir.internal () in
@@ -392,7 +394,11 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   let stoi (v : Ast.Str.term) =
     match v with
     | Ast.Str.Atom (Var v) -> Symbol (Ir.var v, [])
-    | _ -> failwith (Format.asprintf "TBD: %s %d" __FILE__ __LINE__)
+    | Ast.Str.Const s ->
+      let u = Ir.internal () in
+      let re = str_to_re s in
+      Symbol (u, [ Ir.sreg u re ])
+    | _ -> failwith (Format.asprintf "TBD: %a %s %d" Ast.Str.pp_term v __FILE__ __LINE__)
   ;;
   (*let u = Ir.internal () in
     let v =
