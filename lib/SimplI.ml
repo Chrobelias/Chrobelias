@@ -15,17 +15,17 @@ let collect_free =
            (fun acc _ -> acc)
            (fun acc -> function
               | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
-              | Ast.Eia.Stoi str ->
-                Ast.Str.fold_term
+              | Ast.Eia.Iofs str ->
+                Ast.Eia.fold_term
                   (fun acc -> function
-                     | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+                     | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
                      | _ -> acc)
                   acc
                   str
               | Ast.Eia.Len str ->
-                Ast.Str.fold_term
+                Ast.Eia.fold_term
                   (fun acc -> function
-                     | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+                     | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
                      | _ -> acc)
                   acc
                   str
@@ -36,7 +36,7 @@ let collect_free =
          Ast.Str.fold2
            (fun acc _ -> acc)
            (fun acc -> function
-              | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+              | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
               | _ -> acc)
            acc
            str

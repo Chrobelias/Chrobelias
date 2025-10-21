@@ -1,54 +1,61 @@
-type t = (string, [ `Eia of Ast.Eia.term | `Str of Ast.Str.term ]) Base.Map.Poly.t
+type t = (string, Ast.Eia.term) Base.Map.Poly.t
 
-let pp : Format.formatter -> t -> unit =
+let pp ?(title = "") : Format.formatter -> t -> unit =
+  let open Format in
   fun ppf s ->
-  Format.fprintf ppf "@[ ";
-  Base.Map.iteri s ~f:(fun ~key ~data ->
-    match data with
-    | `Eia data -> Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data
-    | `Str data -> Format.fprintf ppf "%s ->s @[%a@]; " key Ast.Str.pp_term data);
-  Format.fprintf ppf "@]"
+    if title = ""
+    then (
+      fprintf ppf "@[<hov> ";
+      Base.Map.iteri s ~f:(fun ~key ~data ->
+        fprintf ppf "@[%s -> @[%a@];@]@ " key Ast.pp_term_smtlib2 data);
+      fprintf ppf "@]")
+    else (
+      fprintf ppf "@[<v 6>@[%s@]@," title;
+      Base.Map.iteri s ~f:(fun ~key ~data ->
+        fprintf ppf "@[%s -> @[%a@]@]@," key Ast.pp_term_smtlib2 data);
+      fprintf ppf "@]")
 [@@ocaml.warning "-32"]
 ;;
 
 let walk =
   fun env ->
-  Ast.map_term
-    (function
-      | Ast.Eia.Atom (Ast.Var s) as orig ->
-        (match Base.Map.Poly.find_exn env s with
-         | (exception Base.Not_found_s _) | `Str _ -> orig
-         | `Eia t -> t)
-      | t -> t)
-    (function
-      | Ast.Str.Atom (Ast.Var s) as orig ->
-        (match Base.Map.Poly.find_exn env s with
-         | (exception Base.Not_found_s _) | `Eia _ -> orig
-         | `Str t -> t)
-      | t -> t)
+  let f = function
+    | Ast.Eia.Atom (Ast.Var s) as orig ->
+      (match Base.Map.Poly.find_exn env s with
+       | exception Base.Not_found_s _ -> orig
+       | t -> t)
+    | t -> t
+  in
+  Ast.map_term f
 ;;
 
-let is_absent_key k map = not (Base.Map.Poly.mem map k)
+(* let is_absent_key k map = not (Base.Map.Poly.mem map k) *)
 
 exception Occurs
 
-let rec occurs_var_exn =
-  fun env v term ->
-  Ast.fold_term
-    (fun () ->
-       let open Ast in
-       function
-       | Eia.Atom (Var v2) when String.equal v v2 -> raise Occurs
-       | Eia.Atom (Var v2) when not (is_absent_key v2 env) ->
-         occurs_var_exn env v (Base.Map.Poly.find_exn env v2)
-       | Eia.Len (Str.Atom (Var v2)) when String.equal v v2 -> raise Occurs
-       | Eia.Stoi (Str.Atom (Var v2)) when String.equal v v2 -> raise Occurs
-       | _ -> ())
-    (fun () -> function
-       | Ast.(Str.Atom (Var v2)) when String.equal v v2 -> raise Occurs
-       | _ -> ())
-    ()
-    term
+let occurs_var_exn =
+  let rec helper env v term =
+    let _ : Ast.Eia.term = term in
+    Ast.fold_term
+      (fun () ->
+         let open Ast in
+         function
+         | Eia.Atom (Var v2) when String.equal v v2 -> raise Occurs
+         | Eia.Atom (Var v2) ->
+           (match Base.Map.Poly.find env v2 with
+            | None -> ()
+            | Some t -> helper env v t)
+         | Atom (Const _) | Atom (Str_const _) -> ()
+         | Eia.Add xs | Eia.Mul xs -> List.iter (helper env v) xs
+         | Eia.Pow (l, r) ->
+           helper env v l;
+           helper env v r
+         | Eia.Sofi x | Eia.Iofs x | Eia.Len x -> helper env v x
+         | x -> Format.kasprintf failwith "not implemented: %a" Ast.pp_term_smtlib2 x)
+      ()
+      term
+  in
+  fun env v t -> helper env v t
 ;;
 
 let occurs_var env v term =
@@ -86,8 +93,7 @@ let merge : t -> t -> t =
 let to_eqs : t -> Ast.t list =
   Base.Map.Poly.fold ~init:[] ~f:(fun ~key ~data acc ->
     match data with
-    | `Eia data -> Ast.Eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.Var key)) data) :: acc
-    | `Str data -> Ast.Str (Ast.Str.eq (Ast.Str.Atom (Ast.Var key)) data) :: acc)
+    | data -> Ast.Eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.Var key)) data) :: acc)
 ;;
 
 let enrich m other =
@@ -95,10 +101,14 @@ let enrich m other =
   let _ : (Ast.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t = other in
   Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
     match key, data with
-    | Ast.Var s, `Int z ->
-      Base.Map.Poly.add_exn acc ~key:s ~data:(`Eia (Ast.Eia.Atom (Const z)))
-    | _, `Str _ ->
-      (* TODO(Kakadu): implememt it sooner or later  *)
-      acc
-    | _ -> failwith "Enriching model is not fully implemented")
+    | Ast.Var s, `Int z -> Base.Map.Poly.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Const z))
+    | Ast.Var s, `Str z ->
+      Base.Map.Poly.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Str_const z))
+    | key, `Int z ->
+      Format.eprintf "@[%a ~~> %a@]\n" Ast.pp_atom key Z.pp_print z;
+      failwith "Enriching model is not fully implemented"
+    | key, `Str z ->
+      Format.eprintf "@[%a ~~> %S@]\n" Ast.pp_atom key z;
+      failwith "Enriching model is not fully implemented"
+    (* | _ -> failwith "Enriching model is not fully implemented" *))
 ;;

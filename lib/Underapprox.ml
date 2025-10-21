@@ -1,10 +1,9 @@
 module type SYM0 = sig
   type term
-  type str
   type ph
 
-  include FT_SIG.s_term with type term := term and type str := str
-  include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
+  include FT_SIG.s_term with type term := term
+  include FT_SIG.s_ph with type ph := ph and type term := term
   include FT_SIG.s_extra with type ph := ph and type term := term
 
   val pow2var : string -> term
@@ -24,7 +23,7 @@ type env = (string, int) Base.Map.Poly.t
 let to_normal_env : env -> Env.t =
   Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
     let _ : Env.t = acc in
-    Env.extend_exn acc key (`Eia (Ast.Eia.Atom (Ast.Const (Z.of_int data)))))
+    Env.extend_exn acc key (Ast.Eia.Atom (Ast.Const (Z.of_int data))))
 ;;
 
 let pp_env ppf env =
@@ -80,14 +79,14 @@ let make_sym (env : env) onvar bound =
 let make_collector () =
   let module M = struct
     type term = string list
-    type str = term
     type ph = term
     type repr = ph
 
     let ( ++ ) = List.append
     let empty = []
     let str_const _ = empty
-    let str_atoi _ = empty
+    let sofi _ = empty
+    let iofs _ = empty
     let str_len _ = empty
     let str_var _ = empty
     let const _ = empty
@@ -137,7 +136,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
         List.filter_map
           (function
             | Ast.Var s -> Some s
-            | Ast.Const _ -> None)
+            | Str_const _ | Ast.Const _ -> None)
           vs
       in
       S.exists vs (helper ph)
@@ -151,8 +150,8 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
-    | Len _ | Stoi _ -> raise String_op
-    | Len2 _ | Stoi2 _ -> raise String_op
+    | Len _ | Iofs _ | Sofi _ | Concat _ | At _ | Substr _ | Atom (Str_const _) | Len2 _
+      -> raise String_op
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)

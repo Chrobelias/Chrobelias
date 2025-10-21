@@ -10,17 +10,17 @@ let rec to_string orig_expr =
   match expr with
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
-    Ast.Str.Atom (Ast.var var)
+    Ast.Eia.Atom (Ast.var var)
   | Expr.Val v -> begin
     match v with
-    | Str s -> Ast.Str.Const s
+    | Str s -> Ast.Eia.Atom (Str_const s)
     | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
   end
   | Expr.Naryop (_, Ty.Naryop.Concat, ls) ->
     let ls = List.map to_string ls in
     begin
       match ls with
-      | hd :: tl -> List.fold_left Ast.Str.concat hd tl
+      | hd :: tl -> List.fold_left Ast.Eia.concat hd tl
       | _ -> failf "unable to concat 0 strings"
     end
   | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ expr ])
@@ -29,7 +29,7 @@ let rec to_string orig_expr =
     let str : Ast.Eia.term = to_eia_term expr in
     begin
       match str with
-      | Ast.Eia.Atom atom -> Ast.Str.FromEia atom
+      | Ast.Eia.Atom atom -> Ast.Eia.Sofi (Atom atom)
       | _ -> failwith "TBD: from.int now only expects vars inside"
     end
   | Expr.Triop (_, Ty.Triop.String_extract, str, from, to') ->
@@ -44,7 +44,7 @@ let rec to_string orig_expr =
       | Ast.Eia.Atom atom -> atom
       | _ -> failwith "tbd 2"
     in
-    Ast.Str.substr str from to'
+    Ast.Eia.substr str from to'
   | Expr.Binop (_, Ty.Binop.At, str, sym) ->
     let str = to_string str in
     let sym =
@@ -52,7 +52,7 @@ let rec to_string orig_expr =
       | Ast.Eia.Atom atom -> atom
       | _ -> failwith "tbd 3"
     in
-    Ast.Str.at str sym
+    Ast.Eia.at str sym
   | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
 
 and to_regex orig_expr =
@@ -64,7 +64,7 @@ and to_regex orig_expr =
   | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
     let str =
       match to_string expr with
-      | Ast.Str.Const s -> s
+      | Atom (Ast.Str_const s) -> s
       | _ -> failf "unable to create regex dynamically in %a" Expr.pp expr
     in
     str
@@ -82,12 +82,12 @@ and to_regex orig_expr =
     in
     let lhs =
       match to_string lhs with
-      | Ast.Str.Const s -> s
+      | Ast.Eia.Atom (Str_const s) -> s
       | _ -> failf "unable to create regex dynamically in %a" Expr.pp orig_expr
     in
     let rhs =
       match to_string rhs with
-      | Ast.Str.Const s -> s
+      | Ast.Eia.Atom (Str_const s) -> s
       | _ -> failf "unable to create regex dynamically in %a" Expr.pp orig_expr
     in
     let () =
@@ -134,7 +134,7 @@ and to_eia_term orig_expr =
   | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.String_to_int, expr) ->
     let str = to_string expr in
-    Ast.Eia.stoi str
+    Ast.Eia.iofs str
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
     Ast.Eia.atom (Ast.var var)
@@ -228,7 +228,7 @@ and _to_ir tys orig_expr =
     Ast.limpl (_to_ir tys lhs) (_to_ir tys rhs)
   (* Integer comparisons. *)
   | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
-    let build t c = Ast.str (Ast.Str.eq t c) in
+    let build t c = Ast.eia (Ast.Eia.eq t c) in
     let lhs = to_string lhs in
     let rhs = to_string rhs in
     build lhs rhs

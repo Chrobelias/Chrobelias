@@ -105,11 +105,11 @@ let rec pp fmt = function
          Format.fprintf ppf "%a" (Format.pp_print_list Format.pp_print_char) bv))
       re (* TODO: print regex *)
   | SLen (atom, atom') ->
-    Format.fprintf fmt "(= %a (chrob.len %a))" pp_atom atom pp_atom atom'
+    Format.fprintf fmt "@[(= %a (chrob.len %a))@]" pp_atom atom pp_atom atom'
   | Stoi (atom, atom') ->
-    Format.fprintf fmt "(= %a (chrob.to.int %a))" pp_atom atom pp_atom atom'
+    Format.fprintf fmt "@[(= %a (chrob.to.int %a))@]" pp_atom atom pp_atom atom'
   | Itos (atom, atom') ->
-    Format.fprintf fmt "(= %a (chrob.from.int %a))" pp_atom atom pp_atom atom'
+    Format.fprintf fmt "@[(= %a (chrob.from.int %a))@]" pp_atom atom pp_atom atom'
   | Rel (rel, term, c) ->
     Format.fprintf
       fmt
@@ -209,7 +209,7 @@ let pp_smtlib2 ppf ir =
       helper ppf x
     | Land xs ->
       fprintf ppf "@[<v 2>@[(and@]@ ";
-      List.iter (helper ppf) xs;
+      List.iter (fprintf ppf "@[%a@]@ " helper) xs;
       fprintf ppf "@]"
     | Lor xs ->
       fprintf ppf "@[<v 2>@[(or@]@ ";
