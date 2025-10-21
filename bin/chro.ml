@@ -91,40 +91,30 @@ let check_sat ?(verbose = false) ast : rez =
       unknown ast Lib.Env.empty
       <+> (fun ast e ->
       if Lib.Config.config.logic = `Str
-      then unknown (Lib.SimplII.arithmetize ast) e
+      then (
+        let ast = Lib.SimplII.arithmetize ast in
+        let ast =
+          match Lib.Me.ir_of_ast ast with
+          | Ok ir ->
+            Format.printf "I am going to ir_to_ast...\n%!";
+            Lib.Solver.ir_to_ast ir
+          | Error _ ->
+            Format.printf "I did not run ir_to_ast...\n%!";
+            ast
+        in
+        unknown ast e)
       else unknown ast e)
-      (* match Lib.SimplII.rewrite_concat ast with
-        | `Sat -> sat "under III" ast e (fun _ -> Result.ok Map.empty)
-        | `Underapprox asts ->
-          if Lib.Config.config.dump_pre_simpl
-          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-          if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
-          log "Looking for SAT in %d asts..." (List.length asts);
-          let exception Sat_found in
-          (try
-             let f ast =
-               let ir =
-                 Lib.Me.ir_of_ast ast
-                 |> Result.map_error (fun c -> Format.eprintf "ERROR: %s\n%!" c)
-                 |> Result.get_ok
-               in
-               match Lib.Solver.check_sat ir with
-               | `Sat _ -> raise Sat_found
-               | _ -> ()
-             in
-             List.iter f asts;
-             report_result2 (`Unknown "Under3 resigns");
-             (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
-             exit 0
-           with
-           | Sat_found ->
-             report_result2 (`Sat "under III");
-             exit 0)) *)
-      (* else unknown ast e) *)
       <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
       then unknown ast e
       else lift ast (Lib.SimplII.run_basic_simplify ast))
+      <+> (fun ast e ->
+      if Lib.Config.config.under_approx >= 0
+      then (
+        match Lib.Underapprox.check Lib.Config.config.under_approx ast with
+        | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Result.Ok Map.empty)
+        | `Unknown _ -> unknown ast e)
+      else unknown ast e)
       <+> (fun ast e ->
       match Lib.SimplII.has_unsupported_nonlinearity ast with
       | Result.Ok () -> unknown ast e
@@ -136,13 +126,6 @@ let check_sat ?(verbose = false) ast : rez =
         Format.printf "@]@,";
         let () = report_result2 (`Unknown "non-linear") in
         exit 0)
-      <+> (fun ast e ->
-      if Lib.Config.config.under_approx >= 0
-      then (
-        match Lib.Underapprox.check Lib.Config.config.under_approx ast with
-        | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Result.Ok Map.empty)
-        | `Unknown _ -> unknown ast e)
-      else unknown ast e)
       <+> (fun ast e ->
       if Lib.Config.is_under2_enabled ()
       then (
