@@ -20,11 +20,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  Non linear arithmetic between
-    0) (exp x1 2)
-  
-  unknown
-   non-linear
+  sat (under I)
 
 
 

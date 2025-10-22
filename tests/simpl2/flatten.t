@@ -11,6 +11,11 @@
   Simplify step: (= (exp x 2) 32)
   Simplified expression: (= (exp x 2) 32)
   iter(1)= (= (exp x 2) 32)
+  Interesting:
+  
+  Expecting 1 choices ...
+  
+  Can't decide in lib/Underapprox.ml
   Non linear arithmetic between
     0) (exp x 2)
   

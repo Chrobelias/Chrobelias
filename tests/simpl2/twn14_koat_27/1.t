@@ -369,13 +369,13 @@
                  (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
                  (* (exp i6 3) (exp 9 it140)) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  Non linear arithmetic between
-    0) (exp i3 2)
-    1) (exp i6 3)
-    2) (exp i6 5)
+  Interesting:
   
-  unknown
-   non-linear
+  Expecting 1 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| i3->1 i6->1 i7->5 it140->2 |}
+  sat (under I)
 $ time -f "%U"
 
   $ CHRO_DEBUG=1 timeout 5 Chro -pre-simpl input.smt2  -bound 0
@@ -747,27 +747,17 @@ $ time -f "%U"
                  (* 16 (exp i3 2) (exp 4 (+ (- 2) (* 2 it140))))
                  (* (exp i6 3) (exp 9 it140)) (exp i6 5)) (- 1))
              (<= (* (- 1) it140) (- 1)))
-  Non linear arithmetic between
-    0) (exp i3 2)
-    1) (exp i6 3)
-    2) (exp i6 5)
-    
-  unknown
-   non-linear
+  Interesting: 
+  
+  Expecting 1 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| i3->1 i6->1 i7->5 it140->2 |}
+  sat (under I)
 
 $ time -f "%U"
 It's luck that Z3 gives an answer. If we add
 (assert (<= 1000 it140))
 evrything goes south
   $ timeout 2 Chro -no-pre-simpl input.smt2 --no-simpl-alpha --no-simpl-mono -bound 1
-  Non linear arithmetic between
-    0) (exp it544 2)
-    1) (exp it546 3)
-    2) (exp it546 5)
-    3) (exp it552 2)
-    4) (exp it554 3)
-    5) (exp it554 5)
-    
-  ; Need to improve --- sat is expected
-  unknown
-   non-linear
+  sat (under I)
