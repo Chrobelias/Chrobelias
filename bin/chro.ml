@@ -46,7 +46,7 @@ let lift ast = function
 ;;
 
 let check_sat ?(verbose = false) ast : rez =
-  let __ () =
+  (* let __ () =
     if Lib.Config.config.stop_after = `Pre_simplify
     then (
       match Lib.SimplII.simpl 0 ast with
@@ -61,7 +61,7 @@ let check_sat ?(verbose = false) ast : rez =
         Format.printf "%a\n%!" Lib.Ast.pp_smtlib2 ast;
         exit 0
       | _ -> assert false)
-  in
+  in *)
   let report_result2 rez =
     let check_answer () =
       Format.printf "%!";
@@ -93,15 +93,6 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Config.config.logic = `Str
       then (
         let ast = Lib.SimplII.arithmetize ast in
-        let ast =
-          match Lib.Me.ir_of_ast ast with
-          | Ok ir ->
-            Format.printf "I am going to ir_to_ast...\n%!";
-            Lib.Solver.ir_to_ast ir
-          | Error _ ->
-            Format.printf "I did not run ir_to_ast...\n%!";
-            ast
-        in
         unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
