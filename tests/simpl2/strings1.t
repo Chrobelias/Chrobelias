@@ -7,7 +7,7 @@
   > (check-sat)
   > EOF
 
-  $ Chro -pre-simpl -stop-after simpl 1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro 1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (str.++ "999" x) (str.++ y x)))
   iter(2)= (= (str.++ "999" x) (str.++ y x))

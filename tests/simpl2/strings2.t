@@ -8,7 +8,7 @@
   > (check-sat)
   > EOF
 
-  $ Chro -pre-simpl -stop-after simpl 1.smt2 -flat 1 -amin 2 -amax 2 | sed 's/[[:space:]]*$//'
+  $ Chro 1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= y "321")
              (= (str.++ "123" x) (str.++ y x)))
