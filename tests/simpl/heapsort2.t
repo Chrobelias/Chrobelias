@@ -56,28 +56,33 @@ $ export CHRO_DEBUG=1
               (<= (* (- 1) it11)  0)
               (= it11  1)
               )
+  
             (exists (it5)
             (and
               (<= it5  13)
               (<= (* (- 1) it5)  -13)
               (= it5  13)
               )
+  
             (exists (it6)
             (and
               (exists (it152) (= (+ (* (- 14) it147) it152 (* (- 1) it6) )  0)
               )
               (exists (i2) (= (+ (* (- 1) i2) it6 )  12) )
               )
+  
             (exists (it4)
             (and
               (exists (it153) (= (+ it153 (* (- 1) it4) )  0) )
               (<= (* (- 1) it4)  -1)
               )
+  
             (exists (it2)
             (and
               (exists (it156) (= (+ it156 (* (- 1) it2) )  0) )
               (<= it2  0)
               )
+  
             (exists (i5 it9) (= (+ (* (- 1) i5) it9 )  0) )
             (exists (i4 it8) (= (+ (* (- 1) i4) it8 )  0) )
             (exists (i3 it7) (= (+ (* (- 1) i3) it7 )  0) )
@@ -106,7 +111,7 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_DEBUG
   $ export CHRO_EIA=old
-  $ Chro -bound 0 -no-pre-simpl -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
+  $ Chro -bound 0 -no-pre-simpl -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (it14)
           (and
             (exists (it11)
@@ -117,28 +122,33 @@ $ export CHRO_DEBUG=1
               (<= (* (- 1) it11)  0)
               (= it11  1)
               )
+  
             (exists (it5)
             (and
               (<= it5  13)
               (<= (* (- 1) it5)  -13)
               (= it5  13)
               )
+  
             (exists (it6)
             (and
               (exists (it152) (= (+ (* (- 14) it147) it152 (* (- 1) it6) )  0)
               )
               (exists (i2) (= (+ (* (- 1) i2) it6 )  12) )
               )
+  
             (exists (it4)
             (and
               (exists (it153) (= (+ it153 (* (- 1) it4) )  0) )
               (<= (* (- 1) it4)  -1)
               )
+  
             (exists (it2)
             (and
               (exists (it156) (= (+ it156 (* (- 1) it2) )  0) )
               (<= it2  0)
               )
+  
             (exists (i5 it9) (= (+ (* (- 1) i5) it9 )  0) )
             (exists (i4 it8) (= (+ (* (- 1) i4) it8 )  0) )
             (exists (i3 it7) (= (+ (* (- 1) i3) it7 )  0) )

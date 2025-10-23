@@ -4,9 +4,7 @@
   $ export OCAMLRUNPARAM="b=0"
   $ Chro -no-pre-simpl -over-approx -dsimpl -stop-after simpl ../overapprox/NIA2334test5.smt2  | sed -r '/^\s*$/d' | sed 's/[[:space:]]*$//'
   Interesting: x1 x2
-
   Expecting 4 choices ...
-
   Can't decide in lib/Underapprox.ml
   whole: (bool.and
           (bool.and
@@ -80,6 +78,5 @@
             (int.le_s 0 x3)) (int.le_s 0 x2)) (int.le_s 0 x1))
          (int.lt_s x1 exp_2_1)
          (int.lt_s x2 exp_2_2)
-
   Early Unsat in lib/Overapprox.ml
   unsat
