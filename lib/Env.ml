@@ -1,11 +1,19 @@
 type t = (string, Ast.Eia.term) Base.Map.Poly.t
 
-let pp : Format.formatter -> t -> unit =
+let pp ?(title = "") : Format.formatter -> t -> unit =
+  let open Format in
   fun ppf s ->
-  (* Format.fprintf ppf "@[<v> "; *)
-  Base.Map.iteri s ~f:(fun ~key ~data ->
-    Format.fprintf ppf "@[%s -> @[%a@];@]@ " key Ast.pp_term_smtlib2 data)
-  (* Format.fprintf ppf "@]" *)
+    if title = ""
+    then (
+      fprintf ppf "@[<hov> ";
+      Base.Map.iteri s ~f:(fun ~key ~data ->
+        fprintf ppf "@[%s -> @[%a@];@]@ " key Ast.pp_term_smtlib2 data);
+      fprintf ppf "@]")
+    else (
+      fprintf ppf "@[<v 6>@[%s@]@," title;
+      Base.Map.iteri s ~f:(fun ~key ~data ->
+        fprintf ppf "@[%s -> @[%a@]@]@," key Ast.pp_term_smtlib2 data);
+      fprintf ppf "@]")
 [@@ocaml.warning "-32"]
 ;;
 

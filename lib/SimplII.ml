@@ -978,6 +978,16 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     with type ph = Smtml.Expr.t)
 ;;
 
+(* TODO: run this inside eq_propagation *)
+let trivial_simplify env ast =
+  let (module Symantics) = make_main_symantics env in
+  let rec loop ast =
+    let rez : Ast.t = apply_symantics (module Symantics) ast in
+    if rez = ast then ast else loop rez
+  in
+  loop ast
+;;
+
 let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
@@ -1120,7 +1130,7 @@ let%expect_test _ =
   let test ?(env = [ "x"; "y"; "z" ]) ?(exp = []) ph =
     let info = Info.make ~all:env ~exp ~str:[] in
     let env2 = eq_propagation info Env.empty ph in
-    Format.printf "@[%a@]\n%!" Env.pp env2
+    Format.printf "@[%a@]\n%!" (Env.pp ~title:"") env2
   in
   test TS.(add [ mul [ const 1; var "x" ]; mul [ const 2; var "y" ] ] = var "z");
   [%expect "x -> (+ z (* (- 2) y));"];
@@ -1243,10 +1253,10 @@ let basic_simplify step (env : Env.t) ast =
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
     let env2 = eq_propagation var_info env ast in
-    let __ _ = log "env2 = %a" Env.pp env2 in
+    let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
-      let () = log "Something ready to substitute:\n@[<hov>%a@]" Env.pp env2 in
+      let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       loop (next_step step) (Env.merge env2 env) ast2
     | false, false -> loop (next_step step) env ast2
     | false, true ->

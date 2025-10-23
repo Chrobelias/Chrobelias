@@ -11,7 +11,7 @@ val lookup : string -> t -> Ast.Eia.term option
 val lookup_exn : string -> t -> Ast.Eia.term
 val is_absent_key : string -> t -> bool
 val extend_exn : t -> string -> Ast.Eia.term -> t
-val pp : Format.formatter -> t -> unit
+val pp : ?title:string -> Format.formatter -> t -> unit
 val to_eqs : t -> Ast.t list
 val enrich : t -> (Ast.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
 val occurs_var : t -> string -> Ast.Eia.term -> bool
