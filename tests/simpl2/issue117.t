@@ -23,7 +23,11 @@
              (= (exp 2 x) (* 32 v))
              (<= (+ (* (- 1) u) (* (- 1) v) (* (- 1) x) (* (- 1) y)
                  (* (- 1) z)) (- 100)))
-  Something ready to substitute:  u -> (* 4 v); y -> (* 32 v); z -> (* 16 v);
+  Something ready to substitute
+        u -> (* 4 v)
+        y -> (* 32 v)
+        z -> (* 16 v)
+  
   iter(4)= (and
              (= (* 4 v) u)
              (= (* 16 v) z)

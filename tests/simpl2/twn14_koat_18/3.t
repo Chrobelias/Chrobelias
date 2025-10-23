@@ -61,10 +61,15 @@ $ cat input3.smt2
                  (* (exp it362 3) (exp 9 (+ (- 1) it140))) (exp it362 5)) (- 1))
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
-  Something ready to substitute:  it358 -> (+ 3 i2); it359 -> i3; it360 ->
-                                 i3; it361 -> i7; it362 -> i6; it363 ->
-                                 i7; it376 -> (+ (* (* (- 3) i7) (- 1))
-                                              (* (* 2 (exp i6 3)) (- 1)));
+  Something ready to substitute
+        it358 -> (+ 3 i2)
+        it359 -> i3
+        it360 -> i3
+        it361 -> i7
+        it362 -> i6
+        it363 -> i7
+        it376 -> (+ (* (* (- 3) i7) (- 1)) (* (* 2 (exp i6 3)) (- 1)))
+  
   iter(3)= (and
              (= (+ it358 (* (- 1) i2)) 3)
              (= (+ it359 (* (- 1) i3)) 0)
