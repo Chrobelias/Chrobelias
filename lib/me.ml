@@ -134,7 +134,7 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
       | [] -> ir :: sup |> Ir.land_ |> return
       | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
     end
-  | Ast.Str.Eq (a, b) ->
+  (* | Ast.Eia.Eq (a, b) ->
     let* a, sup_a = of_str_atom a in
     let* b, sup_b = of_str_atom b in
     let sup = sup_a @ sup_b in
@@ -146,7 +146,7 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
       match atoms with
       | [] -> ir :: sup |> Ir.land_ |> return
       | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
-    end
+    end *)
   | Ast.Str.PrefixOf (a, b) ->
     let* a, sup_a = of_str_atom a in
     let* b, sup_b = of_str_atom b in
@@ -468,7 +468,7 @@ end
 
 let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
   fun eia ->
-  log "%s: %a" __FUNCTION__ Ast.Eia.pp eia;
+  (* log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
   let rec helper = function
     | Ast.Eia.Atom (Var v) -> return (Symantics.symbol v)
     | Atom (Const c) -> return (Symantics.poly_of_const c)

@@ -228,7 +228,7 @@ and _to_ir tys orig_expr =
     Ast.limpl (_to_ir tys lhs) (_to_ir tys rhs)
   (* Integer comparisons. *)
   | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
-    let build t c = Ast.str (Ast.Str.eq t c) in
+    let build t c = Ast.eia (Ast.Eia.eq t c) in
     let lhs = to_string lhs in
     let rhs = to_string rhs in
     build lhs rhs

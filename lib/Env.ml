@@ -2,10 +2,10 @@ type t = (string, Ast.Eia.term) Base.Map.Poly.t
 
 let pp : Format.formatter -> t -> unit =
   fun ppf s ->
-  Format.fprintf ppf "@[ ";
+  (* Format.fprintf ppf "@[<v> "; *)
   Base.Map.iteri s ~f:(fun ~key ~data ->
-    Format.fprintf ppf "%s -> @[%a@]; " key Ast.pp_term_smtlib2 data);
-  Format.fprintf ppf "@]"
+    Format.fprintf ppf "@[%s -> @[%a@];@]@ " key Ast.pp_term_smtlib2 data)
+  (* Format.fprintf ppf "@]" *)
 [@@ocaml.warning "-32"]
 ;;
 

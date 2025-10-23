@@ -138,10 +138,10 @@ module Eia = struct
     | Bwxor (a, b) -> Format.fprintf ppf "(%a ^ %a)" pp_term a pp_term b
     | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
     | Pow (a, b) -> Format.fprintf ppf "(exp %a %a)" pp_term a pp_term b
-    | Len2 a -> Format.fprintf ppf "(chrob.len %a)" pp_atom a
+    | Len2 a -> Format.fprintf ppf "@[(chrob.len %a)@]" pp_atom a
     | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
     (* Strings  *)
-    | Concat (s1, s2) -> Format.fprintf ppf "(str.++ %a %a)" pp_term s1 pp_term s2
+    | Concat (s1, s2) -> Format.fprintf ppf "@[(str.++ %a %a)@]" pp_term s1 pp_term s2
     | Substr (term', a, b) ->
       Format.fprintf ppf "(str.substr %a %a %a)" pp_term term' pp_atom a pp_atom b
     | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_atom a
@@ -172,8 +172,8 @@ module Eia = struct
   ;;
 
   let pp fmt = function
-    | Eq (term, term') -> Format.fprintf fmt "(= %a %a)" pp_term term pp_term term'
-    | Leq (term, term') -> Format.fprintf fmt "(<= %a %a)" pp_term term pp_term term'
+    | Eq (term, term') -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
+    | Leq (term, term') -> Format.fprintf fmt "@[(<= %a %a)@]" pp_term term pp_term term'
   ;;
 
   let equal eia eia' =
@@ -194,7 +194,6 @@ module Str = struct
 
   type t =
     | InRe of term * char list Regex.t
-    (* | Eq of term * term *)
     | PrefixOf of term * term
     | Contains of term * term
     | SuffixOf of term * term
@@ -209,7 +208,7 @@ module Str = struct
         str
         (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
         re
-    | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re'
+    (* | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re' *)
     | PrefixOf (term, term') ->
       Format.fprintf fmt "(str.prefixof %a %a)" pp_term term pp_term term'
     | Contains (term, term') ->
@@ -221,7 +220,6 @@ module Str = struct
   let equal str str' =
     match str, str' with
     | InRe (str, re), InRe (str', re') -> str = str' && re = re'
-    | Eq (re, re'), Eq (re'', re''') -> re = re'' && re' = re'''
     | PrefixOf (re, re'), PrefixOf (re'', re''')
     | SuffixOf (re, re'), SuffixOf (re'', re''')
     | Contains (re, re'), Contains (re'', re''') -> re = re'' && re' = re'''
@@ -230,7 +228,6 @@ module Str = struct
 
   let fold2 f fterm acc = function
     | InRe (term, re) as ast -> f (Eia.fold_term fterm acc term) ast
-    | Eq (re, re') as ast -> f (Eia.fold_term fterm (Eia.fold_term fterm acc re) re') ast
     | (PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term')) as ast ->
       f (Eia.fold_term fterm (Eia.fold_term fterm acc term) term') ast
   ;;
@@ -325,8 +322,12 @@ let pp_smtlib2 =
     | Pred a -> Format.fprintf ppf "(P %s)" a
     | Lnot a -> Format.fprintf ppf "(not %a)" pp a
     | Land irs ->
-      Format.fprintf ppf "@[<v 2>(and";
-      List.iter (fprintf ppf "@ @[%a@]" pp) irs;
+      Format.fprintf ppf "@[<v 2>(and@,";
+      List.iteri
+        (fun i ->
+           if i <> 0 then fprintf ppf "@,";
+           fprintf ppf "@[%a@]" pp)
+        irs;
       fprintf ppf ")@]"
     | Lor irs ->
       Format.fprintf
@@ -355,6 +356,8 @@ let pp_term_smtlib2 =
       fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
     | Atom a -> fprintf ppf "%a" pp_atom a
     | Add xs -> fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+    | Mul [ Atom (Const c); (Atom (Var _) as v) ] when Z.(equal c minus_one) ->
+      fprintf ppf "@[(- %a)@]" pp_eia v
     | Mul xs -> fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
     | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
     | x -> Eia.pp_term ppf x

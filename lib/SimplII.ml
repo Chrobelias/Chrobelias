@@ -178,7 +178,7 @@ module Id_symantics :
       assert false
   ;; *)
 
-  let str_equal s1 s2 = Ast.str (Ast.Str.eq s1 s2)
+  let str_equal s1 s2 = Ast.eia (Ast.Eia.eq s1 s2)
   let str_var s = Ast.Eia.Atom (Ast.Var s)
   let in_re l regex = Ast.Str (Ast.Str.InRe (l, regex))
   let str_len s = Ast.Eia.Len s
@@ -242,11 +242,11 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Str (Ast.Str.SuffixOf (term, term')) ->
       S.str_suffixof (helperT term) (helperT term')
     | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helperT term) regex
-    | Str (Ast.Str.Eq (term, term')) ->
+  (* | Str (Ast.Str.Eq (term, term')) ->
       let l = helperT term in
       let r = helperT term' in
       (* Format.printf "Apply Str.Eq: l = %a, r = %a\n%!" S.pp_str l S.pp_str r; *)
-      S.str_equal l r
+      S.str_equal l r *)
   and helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
     | Atom (Str_const s) -> S.str_const s
@@ -1246,7 +1246,7 @@ let basic_simplify step (env : Env.t) ast =
     let __ _ = log "env2 = %a" Env.pp env2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
-      let () = log "Something ready to substitute: %a" Env.pp env2 in
+      let () = log "Something ready to substitute:\n@[<hov>%a@]" Env.pp env2 in
       loop (next_step step) (Env.merge env2 env) ast2
     | false, false -> loop (next_step step) env ast2
     | false, true ->

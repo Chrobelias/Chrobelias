@@ -168,7 +168,7 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
     Ast.eia (build lhs rhs)
   | SReg (atom, re) -> Ast.str (Ast.Str.inre (ir_atom_to_str_term atom) re)
   | SEq (atom, atom') ->
-    Ast.str (Ast.Str.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
+    Ast.eia (Ast.Eia.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SPrefixOf (atom, atom') ->
     Ast.str (Ast.Str.prefixof (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SContains (atom, atom') ->
@@ -186,8 +186,8 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
          (Ast.Eia.atom (ir_atom_to_atom atom))
          (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
   | Itos (atom, atom') ->
-    Ast.str
-      (Ast.Str.eq
+    Ast.eia
+      (Ast.Eia.eq
          (Ast.Eia.atom (ir_atom_to_atom atom))
          (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
   | Exists ([], lhs) -> ir_to_ast lhs
@@ -1557,7 +1557,7 @@ let check_sat ir
     match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
       let ast = SimplII.shrink_variables ast in
-      Format.printf "Ast = @[%a@]\n%!" Ast.pp_smtlib2 ast;
+      (* Format.printf "Ast = @[%a@]\n%!" Ast.pp_smtlib2 ast; *)
       let ir =
         match Me.ir_of_ast ast with
         | Result.Ok x -> x
