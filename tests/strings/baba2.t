@@ -1,5 +1,5 @@
-
 $ cat baba2.smt2
+$ export CHRO_DEBUG=1
   $ Chro  -dpresimpl ./baba2.smt2
   (and
     (= q (str.len a))

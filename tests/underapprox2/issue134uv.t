@@ -25,8 +25,8 @@ $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #-stop-after simpl
   (assert (exists (u1)
           (and
-            (= (+ eee2 (* (- 1) u1) (* (- 1) y) )  0)
-            (= (+ (* (- 1) pow2(eee2)) (* (- 5) pow2(y)) )  -52)
+            (= (+ eee2 (* (- 1) u1) (* (- 1) y) )  0) 
+            (= (+ (* (- 1) pow2(eee2)) (* (- 5) pow2(y)) )  -52) 
             )
   )
   (assert (<= (+ eee2 (* (- 1) pow2(eee2)) )  -1) )
@@ -73,11 +73,11 @@ which is needed to be fixed first
           (and
             (exists (u1)
             (and
-              (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0)
-              (<= (+ (* (- 1) u1) v2 )  0)
+              (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0) 
+              (<= (+ (* (- 1) u1) v2 )  0) 
               )
-            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
-            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3076)
+            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0) 
+            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3076) 
             )
   )
   unknown
@@ -102,11 +102,11 @@ which is needed to be fixed first
           (and
             (exists (u1)
             (and
-              (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0)
-              (<= (+ (* (- 1) u1) v2 )  0)
+              (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0) 
+              (<= (+ (* (- 1) u1) v2 )  0) 
               )
-            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
-            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3073)
+            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0) 
+            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3073) 
             )
   )
   sat ; under II
@@ -147,7 +147,7 @@ which is needed to be fixed first
              (<= u2 u1)
              (<= u3 u2)
              (<= 0 u3))
-  $ timeout 2 $RUN -flat 2 | grep -v assert | sed -r '/^\s*$/d'
+  $ timeout 2 $RUN -flat 2 | grep -v assert | sed -r '/^\s*$/d' | sed 's/[[:space:]]*$//'
           (and
             (exists (z)
             (and
