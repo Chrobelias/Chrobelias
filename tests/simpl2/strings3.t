@@ -129,194 +129,125 @@
                (= %1 (chrob.len x))
                (= (+ (* 1 (exp 10 %0)) (* (- 1) %1)) 1))
              (and
-               (= (+ (* (- 1) x) (* 1 eeb4)) 0))
+               (= eeb4 (str.to.int x)))
              (and
                (= (+ (* (- 999) (exp 10 eeb2)) (* 1 eeb5) (* (- 1) eeb4)) 0))
              (and
                (= (+ (* (- 1) (exp 10 eee11)) (* (- 1) eeb8) (* 1 eeb5)) 0))
              (and
-               (= (+ (* (- 1) x) (* 1 eeb8)) 0))
+               (= eeb8 (str.to.int x)))
              (and
                (= (+ (* 1 (exp 10 u9)) (* (- 1) y)) 0)))
   iter(2)= (and
              (= %1 (chrob.len x))
+             (= eeb4 (str.to.int x))
+             (= eeb8 (str.to.int x))
              (= (+ eeb2 (* (- 1) %0)) 0)
-             (= (+ eeb4 (* (- 1) x)) 0)
              (= (+ eeb5 (* (- 999) (exp 10 eeb2)) (* (- 1) eeb4)) 0)
              (= (+ eeb5 (* (- 1) eeb8) (* (- 1) (exp 10 eee11))) 0)
-             (= (+ eeb8 (* (- 1) x)) 0)
              (= (+ eee11 (* (- 1) eeb2) (* (- 1) u9)) 0)
              (= (+ (* (- 1) %1) (exp 10 %0)) 1)
              (= (+ (* (- 1) y) (exp 10 u9)) 0))
-  Something ready to substitute:  eeb2 -> %0; eeb4 -> x; eeb5 -> (+ (*
-                                                                    (* (- 999)
-                                                                    (exp 10 %0))
-                                                                    (- 1))
-                                                                 (* (* (- 1) x)
-                                                                 (- 1))); eeb8 ->
-                                 x; y -> (exp 10 u9);
+  Something ready to substitute:  eeb2 -> %0; eeb5 -> (+ (* (* (- 999)
+                                                            (exp 10 %0))
+                                                         (- 1))
+                                                      (* (* (- 1) eeb4) (- 1))); y ->
+                                 (exp 10 u9);
   iter(3)= (and
              (= %1 (chrob.len x))
+             (= eeb4 (str.to.int x))
+             (= eeb8 (str.to.int x))
              (= (+ eeb2 (* (- 1) %0)) 0)
-             (= (+ eeb4 (* (- 1) x)) 0)
              (= (+ eeb5 (* (- 999) (exp 10 eeb2)) (* (- 1) eeb4)) 0)
              (= (+ eeb5 (* (- 1) eeb8) (* (- 1) (exp 10 eee11))) 0)
-             (= (+ eeb8 (* (- 1) x)) 0)
              (= (+ eee11 (* (- 1) eeb2) (* (- 1) u9)) 0)
              (= (+ (* (- 1) %1) (exp 10 %0)) 1)
              (= (+ (* (- 1) y) (exp 10 u9)) 0))
   iter(4)= (and
              (= %1 (chrob.len x))
+             (= eeb4 (str.to.int x))
+             (= eeb8 (str.to.int x))
              (= (+ eee11 (* (- 1) %0) (* (- 1) u9)) 0)
-             (= (+ (* (- 999) (exp 10 %0)) (* (- 1) x)
-                (* (* (- 999) (exp 10 %0)) (- 1)) (* (* (- 1) x) (- 1))) 0)
+             (= (+ (* (- 999) (exp 10 %0)) (* (- 1) eeb4)
+                (* (* (- 999) (exp 10 %0)) (- 1)) (* (* (- 1) eeb4) (- 1))) 0)
              (= (+ (* (- 1) %1) (exp 10 %0)) 1)
-             (= (+ (* (- 1) x) (* (- 1) (exp 10 eee11))
-                (* (* (- 999) (exp 10 %0)) (- 1)) (* (* (- 1) x) (- 1))) 0))
-  Something ready to substitute:  eeb2 -> %0; eeb4 -> x; eeb5 -> (+ (*
-                                                                    (* (- 999)
-                                                                    (exp 10 %0))
-                                                                    (- 1))
-                                                                 (* (* (- 1) x)
-                                                                 (- 1))); eeb8 ->
-                                 x; u9 -> (+ eee11 (* (- 1) %0)); y ->
+             (= (+ (* (- 1) eeb8) (* (- 1) (exp 10 eee11))
+                (* (* (- 999) (exp 10 %0)) (- 1)) (* (* (- 1) eeb4) (- 1))) 0))
+  Something ready to substitute:  eeb2 -> %0; eeb5 -> (+ (* (* (- 999)
+                                                            (exp 10 %0))
+                                                         (- 1))
+                                                      (* (* (- 1) eeb4) (- 1))); eeb8 ->
+                                 (+ (* (- 1) (exp 10 eee11))
+                                 (* (* (- 999) (exp 10 %0)) (- 1))
+                                 (* (* (- 1) eeb4) (- 1))); u9 -> (+ eee11
+                                                                  (* (- 1) %0)); y ->
                                  (exp 10 u9);
   iter(5)= (and
              (= %1 (chrob.len x))
+             (= eeb4 (str.to.int x))
+             (= eeb8 (str.to.int x))
+             (= (+ eeb4 (* (- 1) eeb8) (* (- 1) (exp 10 eee11))
+                (* 999 (exp 10 %0))) 0)
              (= (+ eee11 (* (- 1) %0) (* (- 1) u9)) 0)
-             (= (+ (* (- 1) %1) (exp 10 %0)) 1)
-             (= (+ (* (- 1) (exp 10 eee11)) (* 999 (exp 10 %0))) 0))
+             (= (+ (* (- 1) %1) (exp 10 %0)) 1))
   iter(6)= (and
              (= %1 (chrob.len x))
+             (= eeb4 (str.to.int x))
+             (= (+ eeb4 (* (- 1) (exp 10 eee11)) (* 999 (exp 10 %0))
+                (* (* (- 1) (exp 10 eee11)) (- 1))
+                (* (* (* (- 999) (exp 10 %0)) (- 1)) (- 1))
+                (* (* (* (- 1) eeb4) (- 1)) (- 1))) 0)
              (= (+ eee11 (* eee11 (- 1)) (* (- 1) %0) (* (* (- 1) %0) (- 1))) 0)
              (= (+ (* (- 1) %1) (exp 10 %0)) 1)
-             (= (+ (* (- 1) (exp 10 eee11)) (* 999 (exp 10 %0))) 0))
+             (= (+ (* (- 1) (exp 10 eee11)) (* (* (- 999) (exp 10 %0)) (- 1))
+                (* (* (- 1) eeb4) (- 1))) (str.to.int x)))
   iter(7)= (and
              (= %1 (chrob.len x))
-             (= (+ (* (- 1) %1) (exp 10 %0)) 1)
-             (= (+ (* (- 1) (exp 10 eee11)) (* 999 (exp 10 %0))) 0))
-  Simplify step: ((= %1 (chrob.len x)) & (= (+ (* (- 1) %1) (exp 10 %0)) 1) & (=
-  (+ (* (- 1) (exp 10 eee11)) (* 999 (exp 10 %0))) 0))
+             (= eeb4 (str.to.int x))
+             (= (+ eeb4 (* (- 1) (exp 10 eee11)) (* 999 (exp 10 %0))) (str.to.int x))
+             (= (+ (* (- 1) %1) (exp 10 %0)) 1))
+  Simplify step: ((= %1 (chrob.len x)) & (= eeb4 (str.to.int x)) & (= (+ eeb4
+                                                                      (* (- 1)
+                                                                      (exp 10 eee11))
+                                                                      (* 999
+                                                                      (exp 10 %0))) (str.to.int x)) & (=
+  (+ (* (- 1) %1) (exp 10 %0)) 1))
   Simplified expression: (and
                            (= %1 (chrob.len x))
-                           (= (+ (* (- 1) %1) (exp 10 %0)) 1)
-                           (= (+ (* (- 1) (exp 10 eee11)) (* 999 (exp 10 %0))) 0))
-  (assert (exists (%1)
+                           (= eeb4 (str.to.int x))
+                           (= (+ eeb4 (* (- 1) (exp 10 eee11))
+                              (* 999 (exp 10 %0))) (str.to.int x))
+                           (= (+ (* (- 1) %1) (exp 10 %0)) 1))
+  (assert (exists (x)
           (and
-            (exists (x) (= %1 (chrob.len x)))
-            (= (+ (* (- 1) %1) pow2(%0) )  1)
-            (= (+ (* 999 pow2(%0)) (* (- 1) pow2(eee11)) )  0)
+            (exists (eeb4)
+            (and
+              (= eeb4 (chrob.to.int x))(= (+ eeb4 (* (- 1) x) (* 999 pow2(%0))
+                                          (* (- 1) pow2(eee11)) )
+                                        0)
+              )
+            (exists (%1)
+            (and
+              (= %1 (chrob.len x))(= (+ (* (- 1) %1) pow2(%0) )  1)
+              )
             )
   )
   $ unset CHRO_DEBUG
   $ timeout 5 Chro -pre-simpl -dsimpl strings3.smt2 -flat 0 -under3 -amin 0 -amax 1
   unknown
   ; Under2 resigns
-  (assert (exists (%1)
+  (assert (exists (x)
           (and
-            (exists (x) (= %1 (chrob.len x)))
-            (= (+ (* (- 1) %1) pow2(%0) )  1)
-            (= (+ (* 999 pow2(%0)) (* (- 1) pow2(eee11)) )  0)
+            (exists (eeb4)
+            (and
+              (= eeb4 (chrob.to.int x))(= (+ eeb4 (* (- 1) x) (* 999 pow2(%0))
+                                          (* (- 1) pow2(eee11)) )
+                                        0)
+              )
+            (exists (%1)
+            (and
+              (= %1 (chrob.len x))(= (+ (* (- 1) %1) pow2(%0) )  1)
+              )
             )
   )
-  (assert (exists (%3)
-          (and
-            (exists (y) (= (+ (* (- 1) y) pow2(u10) )  -1) )
-            (exists (x) (= %3 (chrob.len x)))
-            (= (+ (* (- 1) %2) eee12 (* (- 1) u10) )  0)
-            (= (+ (* (- 1) %3) pow2(%2) )  1)
-            (= (+ (* 998 pow2(%2)) (* (- 1) pow2(eee12)) )  0)
-            )
-  )
-  (assert (<= (+ eee12 (* (- 1) pow2(eee12)) )  -1) )
-  (assert (<= (+ (* (- 1) eee12) pow2(%2) )  0) )
-  (assert (<= (+ %2 (* (- 1) pow2(%2)) )  -1) )
-  (assert (<= (+ (* (- 1) %2) pow2(u10) )  0) )
-  (assert (<= (+ u10 (* (- 1) pow2(u10)) )  -1) )
-  
-  (assert (<= (+ eee12 (* (- 1) pow2(eee12)) )  -1) )
-  (assert (<= (+ (* (- 1) eee12) pow2(%2) )  0) )
-  (assert (<= (+ (* (- 1) pow2(%2)) pow2(u10) )  0) )
-  (assert (<= (+ %2 (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ (* (- 1) %2) u10 )  0) )
-  
-  (assert (<= (+ eee12 (* (- 1) pow2(eee12)) )  -1) )
-  (assert (<= (+ (* (- 1) eee12) pow2(u10) )  0) )
-  (assert (<= (+ u10 (* (- 1) pow2(u10)) )  -1) )
-  (assert (<= (+ (* (- 1) u10) pow2(%2) )  0) )
-  (assert (<= (+ %2 (* (- 1) pow2(%2)) )  -1) )
-  
-  (assert (<= (+ eee12 (* (- 1) pow2(eee12)) )  -1) )
-  (assert (<= (+ (* (- 1) eee12) pow2(u10) )  0) )
-  (assert (<= (+ pow2(%2) (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ u10 (* (- 1) pow2(%2)) )  0) )
-  (assert (<= (+ %2 (* (- 1) u10) )  0) )
-  
-  (assert (<= (+ pow2(%2) (* (- 1) pow2(eee12)) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(%2)) )  0) )
-  (assert (<= (+ %2 (* (- 1) eee12) )  0) )
-  (assert (<= (+ (* (- 1) %2) pow2(u10) )  0) )
-  (assert (<= (+ u10 (* (- 1) pow2(u10)) )  -1) )
-  
-  (assert (<= (+ pow2(%2) (* (- 1) pow2(eee12)) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(%2)) )  0) )
-  (assert (<= (+ (* (- 1) eee12) pow2(u10) )  0) )
-  (assert (<= (+ %2 (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ (* (- 1) %2) u10 )  0) )
-  
-  (assert (<= (+ pow2(%2) (* (- 1) pow2(eee12)) )  0) )
-  (assert (<= (+ (* (- 1) pow2(%2)) pow2(u10) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ %2 (* (- 1) eee12) )  0) )
-  (assert (<= (+ (* (- 1) %2) u10 )  0) )
-  
-  (assert (<= (+ (* (- 1) pow2(eee12)) pow2(u10) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ (* (- 1) eee12) u10 )  0) )
-  (assert (<= (+ (* (- 1) u10) pow2(%2) )  0) )
-  (assert (<= (+ %2 (* (- 1) pow2(%2)) )  -1) )
-  
-  (assert (<= (+ (* (- 1) pow2(eee12)) pow2(u10) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ (* (- 1) eee12) pow2(%2) )  0) )
-  (assert (<= (+ u10 (* (- 1) pow2(%2)) )  0) )
-  (assert (<= (+ %2 (* (- 1) u10) )  0) )
-  
-  (assert (<= (+ (* (- 1) pow2(eee12)) pow2(u10) )  0) )
-  (assert (<= (+ pow2(%2) (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(%2)) )  0) )
-  (assert (<= (+ (* (- 1) eee12) u10 )  0) )
-  (assert (<= (+ %2 (* (- 1) u10) )  0) )
-  
-  (assert (<= (+ u10 (* (- 1) pow2(u10)) )  -1) )
-  (assert (<= (+ (* (- 1) u10) pow2(eee12) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(eee12)) )  -1) )
-  (assert (<= (+ (* (- 1) eee12) pow2(%2) )  0) )
-  (assert (<= (+ %2 (* (- 1) pow2(%2)) )  -1) )
-  
-  (assert (<= (+ u10 (* (- 1) pow2(u10)) )  -1) )
-  (assert (<= (+ (* (- 1) u10) pow2(eee12) )  0) )
-  (assert (<= (+ pow2(%2) (* (- 1) pow2(eee12)) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(%2)) )  0) )
-  (assert (<= (+ %2 (* (- 1) eee12) )  0) )
-  
-  (assert (<= (+ pow2(eee12) (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ u10 (* (- 1) pow2(eee12)) )  0) )
-  (assert (<= (+ eee12 (* (- 1) u10) )  0) )
-  (assert (<= (+ (* (- 1) eee12) pow2(%2) )  0) )
-  (assert (<= (+ %2 (* (- 1) pow2(%2)) )  -1) )
-  
-  (assert (<= (+ pow2(eee12) (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ u10 (* (- 1) pow2(eee12)) )  0) )
-  (assert (<= (+ (* (- 1) u10) pow2(%2) )  0) )
-  (assert (<= (+ eee12 (* (- 1) pow2(%2)) )  0) )
-  (assert (<= (+ %2 (* (- 1) eee12) )  0) )
-  
-  (assert (<= (+ pow2(eee12) (* (- 1) pow2(u10)) )  0) )
-  (assert (<= (+ pow2(%2) (* (- 1) pow2(eee12)) )  0) )
-  (assert (<= (+ u10 (* (- 1) pow2(%2)) )  0) )
-  (assert (<= (+ eee12 (* (- 1) u10) )  0) )
-  (assert (<= (+ %2 (* (- 1) eee12) )  0) )
-  
-  unknown
-  ; Under3 resigns
+  sat ; under III
