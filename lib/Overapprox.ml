@@ -1,14 +1,8 @@
 let log = Debug.printfln
 
 module type Smtml_symantics = sig
-  include FT_SIG.s_term with type term := Smtml.Expr.t and type str = Smtml.Expr.t
-
-  include
-    FT_SIG.s_ph
-    with type ph := Smtml.Expr.t
-     and type term = Smtml.Expr.t
-     and type str = Smtml.Expr.t
-
+  include FT_SIG.s_term with type term := Smtml.Expr.t
+  include FT_SIG.s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
   include FT_SIG.s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 
   val exists : string list -> Smtml.Expr.t -> Smtml.Expr.t
@@ -70,7 +64,7 @@ let apply_symnatics (module S : Smtml_symantics) =
         List.filter_map
           (function
             | Ast.Var s -> Some s
-            | Ast.Const _ -> None)
+            | Str_const _ | Const _ -> None)
           vs
       in
       S.exists vs (helper ph)
@@ -85,7 +79,9 @@ let apply_symnatics (module S : Smtml_symantics) =
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Mod (t, z) -> S.mod_ (helperT t) z
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
-    | Len _ | Stoi _ | Len2 _ -> raise String_op
+    | Concat _ | At _ | Substr _
+    | Ast.Eia.Atom (Str_const _)
+    | Len _ | Sofi _ | Iofs _ | Len2 _ -> raise String_op
   and helper_eia eia =
     try
       match eia with

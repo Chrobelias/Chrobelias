@@ -243,14 +243,14 @@ let join_int_model prefix m =
   (* log "prefix.length = %d" (Env.length prefix); *)
   let rec seek key =
     match Map.find_exn prefix key with
-    | `Eia eia -> begin
+    | eia -> begin
       match SimplII.subst_term prefix eia with
       | Ast.Eia.Atom (Ast.Const c) -> Option.some (`Int c)
       | Ast.Eia.Atom (Ast.Var v) -> seek v
       | _ -> failwith "tbd"
     end
-    | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z)
-    | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term)
+    (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
+    (* | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term) *)
     | exception Base.Not_found_s _ when Solver.is_internal key -> None
     | exception Base.Not_found_s _ -> None
   in

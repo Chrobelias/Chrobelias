@@ -16,31 +16,31 @@ let collect_free =
            (fun acc _ -> acc)
            (fun acc -> function
               | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
-              | Ast.Eia.Stoi str ->
-                Ast.Str.fold_term
+              | Ast.Eia.Sofi str | Ast.Eia.Iofs str ->
+                Ast.Eia.fold_term
                   (fun acc -> function
-                     | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+                     | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
                      | _ -> acc)
                   acc
                   str
               | Ast.Eia.Len str ->
-                Ast.Str.fold_term
+                Ast.Eia.fold_term
                   (fun acc -> function
-                     | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+                     | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
                      | _ -> acc)
                   acc
                   str
               | _ -> acc)
            acc
            eia
-       | Ast.Str str ->
-         Ast.Str.fold2
+       (* | Ast.Eia str ->
+         Ast.Eia.fold2
            (fun acc _ -> acc)
            (fun acc -> function
-              | Ast.Str.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+              | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
               | _ -> acc)
            acc
-           str
+           str *)
        | Ast.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
     Set.empty
@@ -96,27 +96,31 @@ module type S = sig
   val bwop : FT_SIG.sup_binop -> t -> t -> t
   val pow : base:t -> t -> t
   val prj : t -> repr
-  val len : Ast.Str.term -> t
-  val stoi : Ast.Str.term -> t
+  val len : Ast.Eia.term -> t
+
+  (* Alias for [iofs] *)
+  val stoi : Ast.Eia.term -> t
+  val sofi : Ast.Eia.term -> t
+  val iofs : Ast.Eia.term -> t
 end
 
 [@@@warnerror "-32-37-39"]
 
 let of_str : Ast.Str.t -> (Ir.t, string) result =
   let of_str_atom = function
-    | Ast.Str.Atom (Var atom) -> (Ir.var atom, []) |> return
-    | Ast.Str.Const s ->
+    | Ast.Eia.Atom (Var atom) -> (Ir.var atom, []) |> return
+    | Ast.Eia.Atom (Str_const s) ->
       let re = str_to_re s in
       let u = Ir.internal () in
       (u, [ Ir.sreg u re ]) |> return
-    | Ast.Str.FromEia (Var atom) -> (Ir.var atom, []) |> return
-    | Ast.Str.FromEia (Const c) ->
+    (* | Ast.Eia.Stoi (Atom (Var atom)) -> (Ir.var atom, []) |> return
+    | Ast.Eia.Stoi (Atom (Const c)) ->
       let u = Ir.internal () in
-      (u, [ Ir.eq (Map.singleton u Z.one) c ]) |> return
-    | Ast.Str.Concat _ -> failf "concatenation makes the formula undecideable"
-    | Ast.Str.At _ -> failf "indexation likely makes the formula undecideable"
-    | Ast.Str.Substr _ -> failf "substrings makes the formula undecideable"
-    | _ -> failwith "expected atom"
+      (u, [ Ir.eq (Map.singleton u Z.one) c ]) |> return *)
+    | Ast.Eia.Concat _ -> failf "concatenation makes the formula undecideable"
+    | Ast.Eia.At _ -> failf "indexation likely makes the formula undecideable"
+    | Ast.Eia.Substr _ -> failf "substrings makes the formula undecideable"
+    | x -> Format.kasprintf failwith "expected atom, got %a" Ast.pp_term_smtlib2 x
   in
   function
   | Ast.Str.InRe (str, re) ->
@@ -184,7 +188,7 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
     end
 ;;
 
-(*| s -> failf "unsupported string expression %a" Ast.pp (Ast.str s)*)
+(*| s -> failf "unsupported string expression %a" Ast.pp (Ast.Eia s)*)
 
 module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = struct
   let failf fmt = Format.kasprintf failwith fmt
@@ -413,9 +417,9 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
            base_c)
   ;;
 
-  let len (v : Ast.Str.term) =
+  let len (v : Ast.Eia.term) =
     match v with
-    | Ast.Str.Atom (Var v) ->
+    | Ast.Eia.Atom (Var v) ->
       let pow_r, r = Ir.internal_pow () in
       let u = Ir.internal () in
       (* u ~ v && u = 2**r - 1 *)
@@ -426,25 +430,37 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
               (Map.singleton pow_r Z.one |> Map.add_exn ~key:u ~data:Z.minus_one)
               Z.one
           ] )
-    | Ast.Str.Const s -> Poly (Map.empty, Z.of_string s, [])
+    | Ast.Eia.Atom (Str_const s) -> Poly (Map.empty, Z.of_string s, [])
     | _ -> failwith "unreachable"
   ;;
 
-  let stoi (v : Ast.Str.term) =
+  let stoi (v : Ast.Eia.term) =
     match v with
-    | Ast.Str.Atom (Var v) -> Symbol (Ir.var v, [])
-    | Ast.Str.Const s ->
+    | Ast.Eia.Atom (Var v) -> Symbol (Ir.var v, [])
+    | Ast.Eia.Atom (Str_const s) ->
       let u = Ir.internal () in
       let re = str_to_re s in
       Symbol (u, [ Ir.sreg u re ])
-    | _ -> failwith (Format.asprintf "TBD: %a %s %d" Ast.Str.pp_term v __FILE__ __LINE__)
+    | _ -> failwith (Format.asprintf "TBD: %a %s %d" Ast.Eia.pp_term v __FILE__ __LINE__)
+  ;;
+
+  let iofs = stoi
+
+  let sofi = function
+    | Ast.Eia.Atom (Var v) -> Symbol (Ir.var v, [])
+    | Ast.Eia.Atom (Const n) ->
+      failwith "This should be simplified before"
+      (* let u = Ir.internal () in
+      let re = str_to_re s in
+      Symbol (u, [ Ir.sreg u re ]) *)
+    | v -> failwith (Format.asprintf "TBD: %a %s %d" Ast.Eia.pp_term v __FILE__ __LINE__)
   ;;
   (*let u = Ir.internal () in
     let v =
       match v with
-      | Ast.Str.Atom (Var v) -> v
+      | Ast.Eia.Atom (Var v) -> v
       | _ ->
-        Format.eprintf "term = %a\n%!" Ast.Str.pp_term v;
+        Format.eprintf "term = %a\n%!" Ast.Eia.pp_term v;
         failwith (Format.asprintf "TBD: %s %d" __FILE__ __LINE__)
     in
     Symbol (u, [ Ir.stoi u (Ir.var v) ]) *)
@@ -452,7 +468,7 @@ end
 
 let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
   fun eia ->
-  (* log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
+  log "%s: %a" __FUNCTION__ Ast.Eia.pp eia;
   let rec helper = function
     | Ast.Eia.Atom (Var v) -> return (Symantics.symbol v)
     | Atom (Const c) -> return (Symantics.poly_of_const c)
@@ -489,14 +505,15 @@ let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
         | _ -> failwith "unreachable"
       in
       return (regex lhs rhs)
-    | Stoi v -> return (Symantics.stoi v)
+    | Sofi v -> return (Symantics.sofi v)
+    | Iofs v -> return (Symantics.stoi v)
     | Len v -> return (Symantics.len v)
     | other ->
       (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
       failf "unimplemented %a" Ast.Eia.pp eia
   in
   let get_eia_stoi = function
-    | Ast.Eia.Stoi (Ast.Str.Atom (Ast.Var v)) -> Option.some v
+    | Ast.Eia.Iofs (Ast.Eia.Atom (Ast.Var v)) -> Option.some v
     | _ -> Option.none
   in
   match eia with
@@ -831,7 +848,7 @@ let ir_of_ast ir =
         List.map
           (function
             | Ast.Var v -> Ir.var v
-            | Const _ -> failwith "unreachable (I hope)")
+            | Str_const _ | Const _ -> failwith "unreachable (I hope)")
           atoms
       in
       let* ir = ir_of_ast ast in
