@@ -102,8 +102,13 @@ let enrich m other =
   Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
     match key, data with
     | Ast.Var s, `Int z -> Base.Map.Poly.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Const z))
-    (* | _, `Str _ ->
-      (* TODO(Kakadu): implememt it sooner or later  *)
-      acc *)
-    | _ -> failwith "Enriching model is not fully implemented")
+    | Ast.Var s, `Str z ->
+      Base.Map.Poly.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Str_const z))
+    | key, `Int z ->
+      Format.eprintf "@[%a ~~> %a@]\n" Ast.pp_atom key Z.pp_print z;
+      failwith "Enriching model is not fully implemented"
+    | key, `Str z ->
+      Format.eprintf "@[%a ~~> %S@]\n" Ast.pp_atom key z;
+      failwith "Enriching model is not fully implemented"
+    (* | _ -> failwith "Enriching model is not fully implemented" *))
 ;;
