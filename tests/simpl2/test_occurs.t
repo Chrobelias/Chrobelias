@@ -1,8 +1,4 @@
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test3rec.smt2 | sed 's/[[:space:]]*$//'
-  Simplify step: ((= (+ y x) 13) & (= (+ x y) 13))
-  Simplified expression: (and
-                           (= (+ y x) 13)
-                           (= (+ x y) 13))
   iter(1)= (and
              (= (+ y x) 13)
              (= (+ x y) 13))
@@ -12,11 +8,6 @@
   sat (presimpl)
 
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
-  Simplify step: ((= (+ z x) 10000) & (= (+ y z) 100) & (= (+ x y) 1))
-  Simplified expression: (and
-                           (= (+ z x) 10000)
-                           (= (+ y z) 100)
-                           (= (+ x y) 1))
   iter(1)= (and
              (= (+ z x) 10000)
              (= (+ y z) 100)
@@ -48,11 +39,9 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -bound 1 -pre-simpl   -stop-after pre-simpl xxx.smt2 | sed 's/[[:space:]]*$//'
-  Simplify step: (= (+ y y) (* (- 9899)))
-  Simplify step: (= (+ y y) (- 9899))
-  Simplify step: (= (+ y y) (- 9899))
-  Simplified expression: (= (+ y y) (- 9899))
-  iter(1)= (= (+ y y) (- 9899))
+  iter(1)= (and
+             (= (+ y y) (* (- 1) 9899)))
+  iter(2)= (= (+ y y) (- 9899))
   Interesting:
   
   Expecting 1 choices ...
@@ -72,19 +61,12 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -bound 1 -pre-simpl   -stop-after pre-simpl 4.smt2 | sed 's/[[:space:]]*$//'
-  Simplify step: ((= (+ it19 it23 (* (- 1) i4)) (* (- 1))) & (= (+ it21 it57
-                                                                (* (- 1) it21)
-                                                                (* (- 1) it57)) 0))
-  Simplify step: ((= (+ it19 it23 (* (- 1) i4)) (- 1)) & (= (+ it21 it57
-                                                            (* (- 1) it21)
-                                                            (* (- 1) it57)) 0))
-  Simplify step: ((= (+ it19 it23 (* (- 1) i4)) (- 1)) & (= (+ it21 it57
-                                                            (* (- 1) it21)
-                                                            (* (- 1) it57)) 0))
-  Simplified expression: (and
-                           (= (+ it19 it23 (* (- 1) i4)) (- 1))
-                           (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0))
   iter(1)= (and
+             (and
+               (= (+ (+ it19 it23) (* (* (- 1) 1) i4)) (* (- 1) 1))
+               (= (+ (+ (+ it21 it57) (* (* (- 1) 1) it21))
+                  (* (* (- 1) 1) it57)) 0)))
+  iter(2)= (and
              (= (+ it19 it23 (* (- 1) i4)) (- 1))
              (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0))
   Interesting:
@@ -111,38 +93,32 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -bound 1 -pre-simpl   -stop-after pre-simpl 5.smt2 | sed 's/[[:space:]]*$//'
-  Simplify step: ((= (+ it19 (* (- 1) it200) z) 0) & (= (+ (* (- 1) it199)
-                                                        it233) 0) & (=
-  (+ (* (- 1) it198) it232 (* (- 3) it19)) 0))
-  Simplify step: ((= (+ it19 (* (- 1) it200) z) 0) & (= (+ (* (- 1) it199)
-                                                        it233) 0) & (=
-  (+ (* (- 1) it198) it232 (* (- 3) it19)) 0))
-  Simplified expression: (and
-                           (= (+ it19 (* (- 1) it200) z) 0)
-                           (= (+ (* (- 1) it199) it233) 0)
-                           (= (+ (* (- 1) it198) it232 (* (- 3) it19)) 0))
   iter(1)= (and
-             (= (+ it19 (* (- 1) it200) z) 0)
-             (= (+ (* (- 1) it199) it233) 0)
-             (= (+ (* (- 1) it198) it232 (* (- 3) it19)) 0))
-  Something ready to substitute:  it19 -> (+ (* z (- 1))
-                                          (* (* (- 1) it200) (- 1))); it232 ->
-                                 (+ (* (* (- 3)
-                                       (+ (* z (- 1))
-                                       (* (* (- 1) it200) (- 1))))
-                                    (- 1))
-                                 (* (* (- 1) it198) (- 1))); it233 -> it199;
+             (= (+ (+ it19 (* it200 (* (- 1) 1))) z) 0)
+             (= (+ (* it199 (* (- 1) 1)) it233) 0)
+             (= (+ (+ (* it198 (* (- 1) 1)) it232) (* it19 (* (- 1) 3))) 0))
+  Something ready to substitute:  it233 -> (* (- 1) it199 (* (- 1) 1)); z ->
+                                 (+ (* it19 (- 1))
+                                 (* (* it200 (* (- 1) 1)) (- 1)));
   iter(2)= (and
              (= (+ it19 z (* (- 1) it200)) 0)
              (= (+ it232 (* (- 3) it19) (* (- 1) it198)) 0)
              (= (+ it233 (* (- 1) it199)) 0))
+  Something ready to substitute:  it232 -> (+ (* (* (- 3) it19) (- 1))
+                                           (* (* (- 1) it198) (- 1))); it233 ->
+                                 (* (- 1) it199 (* (- 1) 1)); z -> (+ (* it19
+                                                                      (- 1))
+                                                                   (* (* it200
+                                                                      (* (- 1)
+                                                                      1))
+                                                                   (- 1)));
   iter(3)= (and
-             (= (+ z (* z (- 1)) (* (- 1) it200) (* (* (- 1) it200) (- 1))) 0)
-             (= (+ (* (- 1) it198) (* (* z (- 1)) (- 3))
-                (* (* (- 3) (+ (* z (- 1)) (* (* (- 1) it200) (- 1)))) (- 1))
-                (* (* (- 1) it198) (- 1)) (* (* (* (- 1) it200) (- 1)) (- 3))) 0))
+             (= (+ it19 (* it19 (- 1)) (* (- 1) it200)
+                (* (* it200 (* (- 1) 1)) (- 1))) 0)
+             (= (+ it232 (* (- 3) it19) (* (- 1) it198)) 0)
+             (= (+ (* (- 1) it199) (* (- 1) it199 (* (- 1) 1))) 0))
   iter(4)= (and
-             (= (+ it198 (* (- 3) it200) (* (- 1) it198) (* 3 z)
-                (* (* it200 (- 3)) (- 1)) (* (* (* (- 1) z) (- 3)) (- 1))) 0))
+             (= (+ (* (- 3) it19) (* (- 1) it198) (* (* (- 3) it19) (- 1))
+                (* (* (- 1) it198) (- 1))) 0))
   iter(5)= True
   sat (presimpl)

@@ -1255,7 +1255,7 @@ let basic_simplify step (env : Env.t) ast =
 let run_basic_simplify ast =
   let ast = lower_strlen ast in
   let ast = lower_mod ast in
-  let ast = SimplI.run_simplify ast in
+  (* let ast = SimplI.run_simplify ast in *)
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat ("presimpl", env)

@@ -6,15 +6,9 @@
   > EOF
 
   $ CHRO_DEBUG=1 Chro -dpresimpl ./1.smt2
-  Simplify step: ((= x 12345) & (= 5 (+ 5)))
-  Simplify step: ((= x 12345) & (= 5 5))
-  Simplify step: ((= x 12345) & (= 5 5))
-  Simplified expression: (and
-                           (= x 12345)
-                           (= 5 5))
   iter(1)= (and
              (= x 12345)
-             (= 5 5))
+             (= 5 (+ 0 5)))
   Something ready to substitute:  x -> 12345; 
   iter(2)= (and
              (= x 12345))

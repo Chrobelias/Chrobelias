@@ -8,17 +8,15 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  Simplify step: ((= (* (- 2) z) 0) & (= (+ it2 (* (- 1) i2)) 2))
-  Simplify step: ((= (* (- 2) z) 0) & (= (+ it2 (* (- 1) i2)) 2))
-  Simplified expression: (and
-                           (= (* (- 2) z) 0)
-                           (= (+ it2 (* (- 1) i2)) 2))
   iter(1)= (and
-             (= (* (- 2) z) 0)
-             (= (+ it2 (* (- 1) i2)) 2))
-  Something ready to substitute:  it2 -> (+ 2 i2); z -> 0;
+             (= (* (* (- 1) 2) z) 0)
+             (= (+ it2 (* (* (- 1) 1) i2)) 2))
   iter(2)= (and
              (= (+ it2 (* (- 1) i2)) 2)
              (= (* (- 2) z) 0))
-  iter(3)= True
+  Something ready to substitute:  it2 -> (+ 2 i2); z -> 0;
+  iter(3)= (and
+             (= (+ it2 (* (- 1) i2)) 2)
+             (= (* (- 2) z) 0))
+  iter(4)= True
   sat (presimpl)

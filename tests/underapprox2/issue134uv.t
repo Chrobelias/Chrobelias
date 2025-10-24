@@ -50,10 +50,9 @@ $ export CHRO_DEBUG=1
 
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 2.smt2'
   $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 -stop-after presimpl
-  Simplify step: (= (* x (exp 2 z)) 3076)
-  Simplify step: (= (* x (exp 2 z)) 3076)
-  Simplified expression: (= (* x (exp 2 z)) 3076)
-  iter(1)= (= (* x (exp 2 z)) 3076)
+  iter(1)= (and
+             (= (* x (exp 2 z)) 3076))
+  iter(2)= (= (* x (exp 2 z)) 3076)
   vars_for_under2: x
   
   all as: 1
@@ -125,10 +124,9 @@ which is needed to be fixed first
   > EOF
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 4.smt2'
   $ CHRO_DEBUG=1 $RUN -flat 2 -stop-after presimpl
-  Simplify step: (= (* x (exp 2 z)) 8096)
-  Simplify step: (= (* x (exp 2 z)) 8096)
-  Simplified expression: (= (* x (exp 2 z)) 8096)
-  iter(1)= (= (* x (exp 2 z)) 8096)
+  iter(1)= (and
+             (= (* x (exp 2 z)) 8096))
+  iter(2)= (= (* x (exp 2 z)) 8096)
   vars_for_under2: x
   
   iter(1)= (and

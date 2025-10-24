@@ -3,17 +3,9 @@ $ cat  sum3exp.smt2
 $ export CHRO_TRACE_OPT=1
  -under2 -amin 0 -amax 11
   $ Chro -no-over-approx -bound 3 -dsimpl  sum3exp.smt2
-  Simplify step: ((<= (+ (exp 2 x1) (exp 2 x2) (exp 2 x3)) (+ 10 x1 x2 x3)) & (<= (exp 2 x1) x2) & (<= 2 x2) & (<= 1 x2) & (<= 0 x1))
-  Simplify step: ((<= (+ (exp 2 x1) (exp 2 x2) (exp 2 x3)) (+ 10 x1 x2 x3)) & (<= (exp 2 x1) x2) & (<= 2 x2) & (<= 1 x2) & (<= 0 x1))
-  Simplified expression: (and
-                           (<= (+ (exp 2 x1) (exp 2 x2) (exp 2 x3)) (+ 10 x1 x2
-                                                                    x3))
-                           (<= (exp 2 x1) x2)
-                           (<= 2 x2)
-                           (<= 1 x2)
-                           (<= 0 x1))
   iter(1)= (and
-             (<= (+ (exp 2 x1) (exp 2 x2) (exp 2 x3)) (+ 10 x1 x2 x3))
+             (<= (+ (+ (exp 2 x1) (exp 2 x2)) (exp 2 x3)) (+ (+ (+ x1 x2) x3)
+                                                          10))
              (<= (exp 2 x1) x2)
              (<= 2 x2)
              (<= 1 x2)
