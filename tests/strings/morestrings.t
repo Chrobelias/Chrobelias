@@ -16,7 +16,7 @@
   sat (presimpl)
 
   $ cat > 2.smt2 <<-EOF
-  > (set-logic ALL)
+  > (set-logic QF_S)
   > (declare-const x Int)
   > (assert (= x (str.to.int "123451234123412341234123")) )
   > (check-sat)

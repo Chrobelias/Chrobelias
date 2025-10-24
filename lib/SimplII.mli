@@ -8,7 +8,8 @@ val has_unsupported_nonlinearity : Ast.t -> (unit, Ast.Eia.term list) Result.t
 val subst : Env.t -> Ast.t -> Ast.t
 val subst_term : Env.t -> Ast.Eia.term -> Ast.Eia.term
 
-(* val simpl
+(** Independant pre-simplifications. Not necessary for the solver. **)
+val simpl
   :  int
   -> Ast.t
   -> [> `Unknown of Ast.t
@@ -16,7 +17,7 @@ val subst_term : Env.t -> Ast.Eia.term -> Ast.Eia.term
      | `Unsat
      | `Error of Ast.t * error list
      | `Underapprox of Ast.t list
-     ] *)
+     ]
 
 val run_basic_simplify
   :  Ast.t

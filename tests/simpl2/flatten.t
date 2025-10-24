@@ -18,5 +18,4 @@
   Non linear arithmetic between
     0) (exp x 2)
   
-  unknown
-   non-linear
+  unknown (non-linear)

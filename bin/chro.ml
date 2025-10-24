@@ -46,7 +46,7 @@ let lift ast = function
 ;;
 
 let check_sat ?(verbose = false) ast : rez =
-  (* let __ () =
+  let __ () =
     if Lib.Config.config.stop_after = `Pre_simplify
     then (
       match Lib.SimplII.simpl 0 ast with
@@ -61,7 +61,7 @@ let check_sat ?(verbose = false) ast : rez =
         Format.printf "%a\n%!" Lib.Ast.pp_smtlib2 ast;
         exit 0
       | _ -> assert false)
-  in *)
+  in
   let report_result2 rez =
     let check_answer () =
       Format.printf "%!";
@@ -83,7 +83,8 @@ let check_sat ?(verbose = false) ast : rez =
       match rez with
       | `Sat s -> Format.printf "sat (%s)\n%!" s
       | `Unsat -> Format.printf "unsat\n%!"
-      | `Unknown s -> Format.printf "unknown%s\n%!" (if s <> "" then "\n " ^ s else ""))
+      | `Unknown s ->
+        Format.printf "unknown (%s)\n%!" s (*(if s <> "" then "\n " ^ s else ""))*))
     else ()
   in
   begin
@@ -152,16 +153,20 @@ let check_sat ?(verbose = false) ast : rez =
       if Lib.Config.config.dump_pre_simpl
       then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
       unknown ast e)
-      <+> (fun ast e ->
-      if Lib.Config.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
       <+> fun ast e ->
-      if Lib.Config.config.over_approx
-      then (
-        match Lib.Overapprox.check ast with
-        | `Unknown ast -> unknown ast e
-        | `Unsat -> Unsat
-        | `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty))
-      else unknown ast e
+      if Lib.Config.config.stop_after = `Pre_simplify
+      then exit 0
+      else
+        unknown ast e
+        <+> fun ast e ->
+        if Lib.Config.config.over_approx
+        then (
+          match Lib.Overapprox.check ast with
+          | `Unknown ast -> unknown ast e
+          | `Sat _ -> unknown ast e
+          | `Unsat ->
+            Unsat (* | `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty) *))
+        else unknown ast e
     in
     let rez =
       match rez with
@@ -185,8 +190,7 @@ let check_sat ?(verbose = false) ast : rez =
              report_result2 (`Unknown "nfa");
              rez)
         | Error s ->
-          report_result2
-            (`Unknown (Format.sprintf "Exception in NFA for expression: %s" s));
+          report_result2 (`Unknown (Format.sprintf "nfa; %s" s));
           rez
       end
     in

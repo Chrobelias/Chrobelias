@@ -1371,7 +1371,7 @@ let try_under2_heuristics env ast =
     envs
 ;;
 
-(* let simpl bound ast =
+let simpl bound ast =
   let prepare_choices env var_info =
     let ( let* ) xs f = List.concat_map f xs in
     let choice1 = List.init (bound + 1) Fun.id in
@@ -1480,7 +1480,7 @@ let try_under2_heuristics env ast =
        | Underapprox_fired env -> `Sat ("underappox2", env)
        | Sat (reason, env) -> `Sat (reason, env)
        | Error (ast, errs) -> `Error (ast, errs))
-;; *)
+;;
 
 let run_under1 bound ast : [> `Sat of string * Env.t | `Unknown ] =
   if bound >= 0
