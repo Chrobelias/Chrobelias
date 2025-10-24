@@ -85,7 +85,7 @@ let apply_symnatics (module S : Smtml_symantics) =
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Mod (t, z) -> S.mod_ (helperT t) z
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
-    | Len _ | Stoi _ | Len2 _ -> raise String_op
+    | Len _ | Stoi _ | Len2 _ | Stoi2 _ -> raise String_op
   and helper_eia eia =
     try
       match eia with

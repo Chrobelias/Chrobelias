@@ -113,6 +113,7 @@ module Eia = struct
     | Bwxor of term * term
     | Pow of term * term
     | Len2 of atom
+    | Stoi2 of atom
   [@@deriving variants, compare]
 
   let is_constant_term =
@@ -162,7 +163,7 @@ module Eia = struct
   ;;
 
   let rec map_term f = function
-    | (Atom _ | Len _ | Stoi _ | Len2 _) as term -> f term
+    | (Atom _ | Len _ | Stoi _ | Len2 _ | Stoi2 _) as term -> f term
     | Add terms -> f (add (List.map (map_term f) terms))
     | Mul terms -> f (mul (List.map (map_term f) terms))
     | Bwand (term, term') -> f (bwand (map_term f term) (map_term f term'))
@@ -174,7 +175,7 @@ module Eia = struct
 
   let rec fold_term f acc term =
     match term with
-    | Atom _ | Len _ | Stoi _ | Len2 _ -> f acc term
+    | Atom _ | Len _ | Stoi _ | Len2 _ | Stoi2 _ -> f acc term
     | Add terms | Mul terms -> f (List.fold_left (fold_term f) acc terms) term
     | Bwand (term', term'')
     | Bwor (term', term'')
@@ -206,6 +207,7 @@ module Eia = struct
     | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
     | Pow (a, b) -> Format.fprintf ppf "(exp %a %a)" pp_term a pp_term b
     | Len2 a -> Format.fprintf ppf "(chrob.len %a)" pp_atom a
+    | Stoi2 a -> Format.fprintf ppf "(chrob.stoi %a)" pp_atom a
     | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
   ;;
 

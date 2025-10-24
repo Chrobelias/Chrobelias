@@ -376,26 +376,28 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let len (v : Ast.Str.term) =
-    match v with
-    | Ast.Str.Atom (Var v) ->
-      let pow_r, r = Ir.internal_pow () in
-      let u = Ir.internal () in
-      (* u ~ v && u = 2**r - 1 *)
-      Symbol
-        ( r
-        , [ Ir.slen u (Ir.var v)
-          ; Ir.eq
-              (Map.singleton pow_r Z.one |> Map.add_exn ~key:u ~data:Z.minus_one)
-              Z.one
-          ] )
-    | Ast.Str.Const s -> Poly (Map.empty, Z.of_string s, [])
-    | _ -> failwith "unreachable"
+    let pow_r, r = Ir.internal_pow () in
+    let u = Ir.internal () in
+    let v =
+      match v with
+      | Ast.Str.Atom (Var v) -> v
+      | _ -> failwith "unreachable"
+    in
+    (* u ~ v && u = 2**r - 1 *)
+    Symbol
+      ( r
+      , [ Ir.slen u (Ir.var v)
+        ; Ir.eq (Map.singleton pow_r Z.one |> Map.add_exn ~key:u ~data:Z.minus_one) Z.one
+        ] )
   ;;
 
   let stoi (v : Ast.Str.term) =
     match v with
     | Ast.Str.Atom (Var v) -> Symbol (Ir.var v, [])
-    | Ast.Str.Const s -> Poly (Map.empty, Z.of_string s, [])
+    | Ast.Str.Const s ->
+      let u = Ir.internal () in
+      let re = str_to_re s in
+      Symbol (u, [ Ir.sreg u re ])
     | _ -> failwith (Format.asprintf "TBD: %a %s %d" Ast.Str.pp_term v __FILE__ __LINE__)
   ;;
   (*let u = Ir.internal () in
@@ -454,19 +456,17 @@ let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
       failf "unimplemented %a" Ast.Eia.pp eia
   in
-  let get_eia_stoi = function
-    | Ast.Eia.Stoi (Ast.Str.Atom (Ast.Var v)) -> Option.some v
-    | _ -> Option.none
-  in
   match eia with
   | Eq (Ast.Eia.Atom (Ast.Var v), Ast.Eia.Len2 (Ast.Var v')) ->
     return (Ir.slen (Ir.var v) (Ir.var v'))
+  | Eq (Ast.Eia.Atom (Ast.Var v), Ast.Eia.Stoi2 (Ast.Var v')) ->
+    return (Ir.stoi (Ir.var v) (Ir.var v'))
   | Eq (Ast.Eia.Atom (Ast.Const v), Ast.Eia.Len2 (Ast.Var v')) ->
     let u = Ir.internal () in
     return (Ir.land_ [ Ir.slen u (Ir.var v'); Ir.eq (Map.singleton u Z.one) v ])
-  | Eq (Ast.Eia.Atom (Ast.Var v), other) when get_eia_stoi other |> Option.is_some ->
-    let u = get_eia_stoi other |> Option.get in
-    return (Ir.land_ [ Ir.stoi (Ir.var v) (Ir.var u) ])
+  | Eq (Ast.Eia.Atom (Ast.Const v), Ast.Eia.Stoi2 (Ast.Var v')) ->
+    let u = Ir.internal () in
+    return (Ir.land_ [ Ir.stoi u (Ir.var v'); Ir.eq (Map.singleton u Z.one) v ])
   | Eq (lhs, rhs) | Leq (lhs, rhs) ->
     let* lhs = helper lhs in
     let* rhs = helper rhs in

@@ -293,8 +293,6 @@ let algebraic : Ast.t -> Ast.t =
   aux
 ;;
 
-(*let flatten_strings (ast : Ast.t) : Ast.t =*)
-
 let run_simplify (ir : Ast.t) : Ast.t =
   let simply =
     Ast.map (function

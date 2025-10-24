@@ -104,6 +104,7 @@ module type SYM0 = sig
   val pow2var : string -> term
   val exists : string list -> ph -> ph
   val str_len2 : string -> term
+  val stoi2 : string -> term
   val str_at : str -> string -> str
   val str_substr : str -> string -> string -> str
   val str_prefixof : str -> str -> ph
@@ -189,6 +190,7 @@ module Id_symantics :
 
   let str_len s = Ast.Eia.Len s
   let str_len2 s1 = Ast.Eia.len2 (Ast.var s1)
+  let stoi2 s1 = Ast.Eia.stoi2 (Ast.var s1)
   let str_from_eia s = Ast.Str.FromEia (Ast.var s)
   let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
   let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
@@ -281,6 +283,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       (match int_of_string_opt s with
        | Some n -> S.const n
        | None -> S.str_atoi (S.str_const s))
+    | Stoi2 (Var s) -> S.stoi2 s
+    | Stoi2 (Const _) -> failwith "TBD"
     | Len2 (Var s) -> S.str_len2 s
     | Len2 (Const _) -> failwith "TBD"
     | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
@@ -660,6 +664,8 @@ let apply_term_symantics
        | Some n -> S.const n
        | None -> S.str_atoi (S.str_const s))
     | Stoi s -> S.str_atoi (helperS s)
+    | Stoi2 (Var s) -> S.stoi2 s
+    | Stoi2 (Const _) -> failwith "TBD"
     | Len2 (Var s) -> S.str_len2 s
     | Len2 (Const _) -> failwith "TBD"
   in
@@ -785,6 +791,7 @@ module Who_in_exponents_ = struct
     { empty with str = S.singleton v }
   ;;
 
+  let stoi2 _ = empty
   let str_at _ _ = empty
   let str_substr _ _ _ = empty
   let str_prefixof = ( ++ )
@@ -974,6 +981,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     ;;
 
     let str_len2 _ = failwith "not implemented"
+    let stoi2 _ = failwith "not implemented"
     let pp_str = Smtml.Expr.pp
   end
   in
