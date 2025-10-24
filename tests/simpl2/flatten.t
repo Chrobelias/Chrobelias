@@ -10,8 +10,12 @@
   iter(1)= (and
              (= (exp x 2) 32))
   iter(2)= (= (exp x 2) 32)
+  Interesting:
+  
+  Expecting 1 choices ...
+  
+  Can't decide in lib/Underapprox.ml
   Non linear arithmetic between
     0) (exp x 2)
   
-  unknown
-  ; non-linear
+  unknown (non-linear)

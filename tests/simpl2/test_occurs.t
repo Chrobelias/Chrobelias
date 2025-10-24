@@ -5,7 +5,7 @@
   Something ready to substitute:  y -> (+ 13 (* (- 1) x));
   iter(2)= (= (+ x y) 13)
   iter(3)= True
-  sat ; presimpl
+  sat (presimpl)
 
   $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
@@ -75,7 +75,7 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| i4->0 it19->-1 it21->0 it23->0 it57->0 |}
-  sat ; underapprox1
+  sat (under I)
 
   $ cat > 5.smt2 <<-EOF
   > (set-logic ALL)
@@ -121,4 +121,4 @@
              (= (+ (* (- 3) it19) (* (- 1) it198) (* (* (- 3) it19) (- 1))
                 (* (* (- 1) it198) (- 1))) 0))
   iter(5)= True
-  sat ; presimpl
+  sat (presimpl)

@@ -29,7 +29,7 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| u->0 x->-1 z->100 |}
-  sat ; underapprox1
+  sat (under I)
   ((define-fun u () (_ Int) 0)
    (define-fun x () (_ Int) -1)
    (define-fun y () (_ Int) -5)
@@ -44,5 +44,5 @@ TODO: fix this later
   > (get-model)
   > EOF
   $ Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl 2.smt2 | sed 's/[[:space:]]*$//'
-  sat ; presimpl
+  sat (presimpl)
   ()

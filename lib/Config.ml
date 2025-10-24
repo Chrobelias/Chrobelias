@@ -14,7 +14,6 @@ type config =
   ; mutable no_model : bool
   ; mutable logic : [ `Eia | `Str ]
   ; mutable with_check_sat : bool
-  ; mutable under_3 : bool
   }
 
 let config =
@@ -33,7 +32,6 @@ let config =
   ; no_model = false
   ; logic = `Eia
   ; with_check_sat = false
-  ; under_3 = false
   }
 ;;
 
@@ -51,7 +49,6 @@ let under2_config = { amin = 5; amax = 11; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
-let is_under3_enabled () = config.under_3
 
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -102,9 +99,6 @@ let parse_args () =
     ; ( "-amax"
       , Arg.Int (fun n -> under2_config.amax <- n)
       , " <n> Parameter of underapprox.2. Matters when N>=2" )
-    ; ( "-under3"
-      , Arg.Unit (fun () -> config.under_3 <- true)
-      , " Enable underapprox 3 for string concatenation" )
     ; ( "-i150c"
       , Arg.Int (fun n -> issue150_config.i150const <- n)
       , Printf.sprintf

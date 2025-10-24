@@ -8,4 +8,4 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x->0 y->0 z->0 |}
-  sat ; underapprox1
+  sat (under I)

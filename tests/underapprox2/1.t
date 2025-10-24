@@ -25,4 +25,4 @@
   (assert (<= y  1050000) )
   (assert (<= (* (- 1) z)  -10) )
   
-  sat ; under II
+  sat (under II)

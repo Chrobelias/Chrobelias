@@ -21,7 +21,7 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x->0 y->0 |}
-  sat ; underapprox1
+  sat (under I)
 
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
@@ -56,7 +56,7 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x->0 y->0 |}
-  sat ; underapprox1
+  sat (under I)
   $ cat > sum_join1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)
@@ -70,7 +70,7 @@
   iter(1)= (and
              (= (+ (* n (exp 2 n)) (* (* (- 1) 1) n (exp 2 n))) 0))
   iter(2)= True
-  sat ; presimpl
+  sat (presimpl)
   $ cat > sum_join2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun n () Int)

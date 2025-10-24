@@ -19,4 +19,4 @@
              (= (+ it2 (* (- 1) i2)) 2)
              (= (* (- 2) z) 0))
   iter(4)= True
-  sat ; presimpl
+  sat (presimpl)

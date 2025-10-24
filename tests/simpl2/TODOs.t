@@ -16,7 +16,7 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->0 x2->0 |}
-  sat ; underapprox1
+  sat (under I)
 Should be (<= x 2)
   $ cat > TODO2.smt2 <<-EOF
   > (set-logic ALL)
@@ -35,7 +35,7 @@ Should be (<= x 2)
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->0 |}
-  sat ; underapprox1
+  sat (under I)
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -47,7 +47,7 @@ Should be (<= x 2)
   iter(1)= (and
              (= (+ 2 6) 8))
   iter(2)= True
-  sat ; presimpl
+  sat (presimpl)
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -60,7 +60,7 @@ Should be (<= x 2)
   iter(1)= (and
              (<= (+ x1 (* (* (- 1) 1) x1)) 8))
   iter(2)= True
-  sat ; presimpl
+  sat (presimpl)
 
 Fold exps
   $ cat > i3.smt2 <<-EOF
@@ -98,7 +98,7 @@ Fold exps
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->0 x2->0 x3->0 |}
-  sat ; underapprox1
+  sat (under I)
 
   $ cat > i3.smt2 <<-EOF
   > (set-logic ALL)
@@ -142,7 +142,7 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   
   lib/Underapprox.ml gives early Sat.
   env = {| it646->1 |}
-  sat ; underapprox1
+  sat (under I)
 
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)
@@ -188,4 +188,4 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   iter(4)= (= (+ (* (- 3) it361) (* 2 (exp it362 3)) (* (* (- 3) it361) (- 1))
               (* (* 2 (exp it362 3)) (- 1))) 0)
   iter(5)= True
-  sat ; presimpl
+  sat (presimpl)

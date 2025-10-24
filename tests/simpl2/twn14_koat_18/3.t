@@ -159,35 +159,21 @@ $ cat input3.smt2
                  (* (exp i6 3) (exp 9 it140)) (exp i6 5)) (- 1))
              (<= (* (- 1) i6) 5)
              (<= (* (- 1) it140) (- 1)))
-  Non linear arithmetic between
-    0) (exp i3 2)
-    1) (exp i6 3)
-    2) (exp i6 5)
+  Interesting:
   
-  unknown
-  ; non-linear
+  Expecting 1 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| i3->2 i6->0 i7->14 it140->2 |}
+  sat (under I)
 
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 5 Chro -pre-simpl input3.smt2 || echo "timeout"
-  Non linear arithmetic between
-    0) (exp i3 2)
-    1) (exp i6 3)
-    2) (exp i6 5)
-    
-  unknown
-  ; non-linear
+  sat (under I)
 
 $ export CHRO_DEBUG=1
 $ /usr/bin/time -f "TIME: %U"
   $ Chro -no-pre-simpl input3.smt2 -dir -dsimpl 2>&1 | sed 's/[[:space:]]*$//'
-  Non linear arithmetic between
-    0) (exp it360 2)
-    1) (exp it362 3)
-    2) (exp it362 5)
-    3) (exp (* (* (- 1) 2) it360) 2)
-    4) (exp (exp 4 (+ (* (- 1) 1) it140)) 2)
-  
-  unknown
-  ; non-linear
+  sat (under I)
 
 

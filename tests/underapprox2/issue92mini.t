@@ -450,6 +450,6 @@ $ export CHRO_DEBUG=1
   (assert (= (* (- 1) y)  -1184) )
   (assert (<= y  1184) )
   
-  sat ; under II
+  sat (under II)
 
 

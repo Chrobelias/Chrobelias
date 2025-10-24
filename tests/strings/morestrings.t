@@ -13,15 +13,15 @@
   iter(2)= (and
              (= x 12345))
   iter(3)= True
-  sat ; presimpl
+  sat (presimpl)
 
   $ cat > 2.smt2 <<-EOF
-  > (set-logic ALL)
+  > (set-logic QF_S)
+  > (declare-const x Int)
   > (assert (= x (str.to.int "123451234123412341234123")) )
   > (check-sat)
   > EOF
 
   $ OCAMLRUNPARAM='b=0' Chro -dpresimpl ./2.smt2
   (= x (str.to.int "123451234123412341234123"))
-  Fatal error: exception Failure("TBD: lib/me.ml 433")
-  [2]
+  sat (nfa)

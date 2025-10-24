@@ -17,10 +17,6 @@
   Expecting 9 choices ...
   
   Can't decide in lib/Underapprox.ml
-  Simplify step: ((<= (exp 2 y) x) & (Ex (<= (exp 2 x) x)))
-  Simplified expression: (and
-                           (<= (exp 2 y) x)
-                           (exists (x) (<= (exp 2 x) x)))
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   (assert (exists (x) (<= (+ (* (- 1) x) pow2(x) )  0) ) )
   

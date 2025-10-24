@@ -30,5 +30,5 @@ $ export CHRO_TRACE_OPT=1
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->0 x2->2 x3->0 |}
-  sat ; underapprox1
+  sat (under I)
 

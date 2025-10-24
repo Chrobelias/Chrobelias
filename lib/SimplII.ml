@@ -1263,6 +1263,7 @@ let basic_simplify step (env : Env.t) ast =
 let run_basic_simplify ast =
   let ast = lower_strlen ast in
   let ast = lower_mod ast in
+  (* let ast = SimplI.run_simplify ast in *)
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat ("presimpl", env)
@@ -1514,7 +1515,7 @@ let run_under2 ast =
   `Underapprox asts
 ;;
 
-let flatten_concats { Info.all; _ } =
+let rewrite_concats { Info.all; _ } =
   let gensym1 = gensym in
   let rec gensym () =
     let ans = gensym1 ~prefix:"eeb" () in
@@ -1598,13 +1599,9 @@ let flatten_concats { Info.all; _ } =
   fun ph -> Sym.prj (apply_symantics (module Sym) ph)
 ;;
 
-let run_under3 ast =
+let arithmetize ast =
   let var_info = apply_symantics (module Who_in_exponents) ast in
-  let ast = flatten_concats var_info ast in
-  match run_basic_simplify ast with
-  | `Unknown (ast, _env) -> run_under2 ast
-  | `Sat _ -> `Sat
-  | `Unsat -> `Underapprox []
+  rewrite_concats var_info ast
 ;;
 
 let test_distr xs =

@@ -20,10 +20,6 @@
   Expecting 9 choices ...
   
   Can't decide in lib/Underapprox.ml
-  Simplify step: ((<= (exp 2 x) x) & (<= (exp 2 y) x))
-  Simplified expression: (and
-                           (<= (exp 2 x) x)
-                           (<= (exp 2 y) x))
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   
@@ -42,11 +38,11 @@
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->1 x2->0 |}
-  sat ; underapprox1
+  sat (under I)
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
   $ Chro -no-over-approx -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
-  sat ; underapprox1
+  sat (under I)
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
