@@ -1198,7 +1198,7 @@ let%expect_test _ =
   test TS.(add [ var "x"; mul [ const 2; var "y" ] ] = mul [ var "z"; var "z" ]);
   [%expect "x -> (+ (* z z) (* (- 2) y));"];
   test ~exp:[ "x" ] TS.(add [ var "x"; var "y" ] = mul [ var "z"; var "z" ]);
-  [%expect "y -> (+ (* z z) (* (- 1) x));"];
+  [%expect "y -> (+ (* z z) (- x));"];
   ()
 ;;
 
