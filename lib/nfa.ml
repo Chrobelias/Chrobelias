@@ -660,6 +660,7 @@ module type Type = sig
     -> t
 
   val run : t -> bool
+  val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
   val intersect : t -> t -> t
   val unite : t -> t -> t
@@ -1290,6 +1291,19 @@ struct
         , length )
     | None -> None
   ;;
+
+  let re_accepts path nfa =
+    let dfa =
+      create_dfa
+        ~start:0
+        ~final:[ List.length path ]
+        ~vars:[ 0 ]
+        ~deg:1
+        ~transitions:(List.mapi (fun i v -> i, [ v ], i + 1) path)
+      |> intersect nfa
+    in
+    any_path dfa [] |> Option.is_some
+  ;;
 end
 
 module Lsb (Label : L) = struct
@@ -1553,7 +1567,15 @@ module Lsb (Label : L) = struct
     |> remove_unreachable_from_start
   ;;
 
-  let minimize_strong nfa = nfa |> to_dfa |> reverse |> to_dfa |> reverse |> to_dfa
+  let minimize_strong nfa =
+    nfa
+    |> remove_unreachable_from_final
+    |> remove_unreachable_from_start
+    |> reverse
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+  ;;
 end
 
 module MsbNat (Label : L) = struct

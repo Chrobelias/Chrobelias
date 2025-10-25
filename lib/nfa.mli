@@ -70,6 +70,7 @@ module type Type = sig
     -> t
 
   val run : t -> bool
+  val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
   val intersect : t -> t -> t
   val unite : t -> t -> t

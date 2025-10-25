@@ -1,0 +1,10 @@
+(cram
+ (deps %{bin:Chro}))
+
+(cram
+ (applies_to simple)
+ (deps ../regular/simple.smt2))
+
+(cram
+ (applies_to simple-nfa)
+ (deps ../regular/simple-nfa.smt2))

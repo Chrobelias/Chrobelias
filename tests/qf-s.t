@@ -15,13 +15,13 @@ Basic QF_S tests
   sat (nfa)
   unsat
   sat (nfa)
-  ((define-fun %27 () (_ Int) 12) (define-fun a () (_ String) "100100100100"))
+  ((define-fun %24 () (_ Int) 12) (define-fun a () (_ String) "100100100100"))
   ((define-fun a () (_ String) "BaLyuLyuLyuLyuLyuLyuLyu")
    (define-fun x () (_ Int) 23))
-  Warning: some of the eia model pieces are likely to be missed: %33 = %35
+  Warning: some of the eia model pieces are likely to be missed: %30 = %32
   ; Can't join models. Something may be missing
   ((define-fun a () (_ String) "Ba") (define-fun b () (_ String) "20"))
-  Warning: some of the eia model pieces are likely to be missed: q = %39
+  Warning: some of the eia model pieces are likely to be missed: q = %36
   ((define-fun a () (_ String) "Ba") (define-fun b () (_ String) "01"))
   ((define-fun a () (_ String) "BabBabBabLyubaLyubaLyuba")
    (define-fun b () (_ String) "2")
