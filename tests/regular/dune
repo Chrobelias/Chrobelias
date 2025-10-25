@@ -1,0 +1,6 @@
+(cram
+ (deps %{bin:Chro}))
+
+(cram
+ (applies_to simple)
+ (deps ../regular/simple.smt2))
