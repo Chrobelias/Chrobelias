@@ -37,6 +37,6 @@
   ppx_inline_test
   mdx
   (mdx :with-tests)
-  (ocamlformat :dev))
+  (ocamlformat (and :dev (= 0.27.0))))
  (tags
   (solver theorem)))
