@@ -1,13 +1,11 @@
 
-  $ Chro -dpresimpl ../examples/strings10001.smt2 -flat 0 -under3 -amin 0 -amax 13
+  $ Chro -dpresimpl ../examples/strings10001.smt2 -flat 0 -amin 0 -amax 13
   (and
-    (= %0 (str.len x))
-    (= %0 (+ 1 (str.to.int y)))
-    (= (str.++ "10001" x) (str.++ y x)))
-  unknown
-  ; Under2 resigns
-  (and
-    (= %0 (str.len x))
-    (= %0 (+ 1 (str.to.int y)))
-    (= (str.++ "10001" x) (str.++ y x)))
-  sat ; under III
+    (= eeb2 (str.len x))
+    (= eeb2 (+ 1 (str.to.int y)))
+    (= eeb4 (str.to.int x))
+    (= eeb5 (+ eeb4 (* 10001 (exp 10 eeb2))))
+    (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb2))))
+    (= eeb7 (str.to.int y))
+    (= eeb8 (str.to.int x)))
+  sat (under II)
