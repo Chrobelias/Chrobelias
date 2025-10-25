@@ -190,7 +190,10 @@ module Id_symantics :
   let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
   let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
   let str_suffixof s1 s2 = Ast.str (Ast.Str.suffixof s1 s2)
-  let str_from_eia_const c = Ast.Eia.Atom (Str_const (Z.to_string c))
+
+  (* let str_from_eia_const c = Ast.Eia.Atom (Str_const (Z.to_string c))
+  let str_concat s1 s2 = Ast.Eia.concat s1 s2 *)
+  let str_from_eia_const c = Ast.Eia.sofi (Atom (Const c))
   let str_concat s1 s2 = Ast.Eia.concat s1 s2
   let len = Ast.Eia.len
   let mod_ = Ast.Eia.mod_
@@ -344,7 +347,7 @@ let make_main_symantics env =
       then true_
       else (
         match l, r with
-        | Str.FromEia (Var v1 as l), Str.FromEia (Var v2 as r) ->
+        | Eia.Sofi (Var v1 as l), Str.FromEia (Var v2 as r) ->
           Str (Str.Eq (Str.Atom l, Str.Atom r))
         | Str.FromEia (Const v1), Str.Const r | Str.Const r, Str.FromEia (Const v1) ->
           let l = Z.to_string v1 in
@@ -585,6 +588,7 @@ let make_main_symantics env =
     let leq = relop Leq
 
     let eq x y =
+      (* TODO(Kakadu): rewrite to match twice for readability *)
       let ans = relop Eq x y in
       match ans with
       | Eia (Eia.Eq (Mul (Atom (Const l) :: ltl), Mul (Atom (Const r) :: rtl))) ->
@@ -595,6 +599,19 @@ let make_main_symantics env =
           Eia
             (Eia.eq (mul (constz Z.(l / gcd1) :: ltl)) (mul (constz Z.(r / gcd1) :: rtl)))
       | Eia (Eia.Eq (l, r)) when Eia.eq_term l r -> true_
+      | Eia (Eia.Eq (Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r))) ->
+        Eia (Eia.Eq (l, r))
+      | Eia (Eia.Eq (Eia.Sofi (Atom (Const v1)), Atom (Str_const r)))
+      | Eia (Eia.Eq (Atom (Str_const r), Eia.Sofi (Atom (Const v1)))) ->
+        let l = Z.to_string v1 in
+        if
+          String.length l <= String.length r
+          && String.ends_with ~suffix:l r
+          && String.for_all
+               (Char.equal '0')
+               (String.sub r (String.length l) (String.length r - String.length l))
+        then Ast.true_
+        else Ast.false_
       | _ -> ans
     ;;
 
