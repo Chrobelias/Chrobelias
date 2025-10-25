@@ -195,7 +195,7 @@ module Id_symantics :
   let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
   let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
   let str_suffixof s1 s2 = Ast.str (Ast.Str.suffixof s1 s2)
-  let str_from_eia_const c = Ast.Str.Const (Z.to_string c)
+  let str_from_eia_const c = Ast.Str.fromeia (Ast.const c)
   let str_concat s1 s2 = Ast.Str.concat s1 s2
   let len = Ast.Eia.len
   let mod_ = Ast.Eia.mod_
@@ -335,7 +335,7 @@ let make_main_symantics env =
       | None -> Str.atom (Ast.var s)
       | Some c ->
         (match c with
-         | `Eia (Ast.Eia.Atom (Ast.Const c)) -> Str.Const (Z.to_string c)
+         | `Eia (Ast.Eia.Atom (Ast.Const c)) -> Str.FromEia (Ast.const c)
          | `Eia (Eia.Atom (Var v2)) -> Str.Atom (Var v2)
          | `Eia eia ->
            Format.eprintf "; Warning. Str var '%s' is left as is!\n%!" s;
@@ -358,6 +358,16 @@ let make_main_symantics env =
         match l, r with
         | Str.FromEia (Var v1 as l), Str.FromEia (Var v2 as r) ->
           Str (Str.Eq (Str.Atom l, Str.Atom r))
+        | Str.FromEia (Const v1), Str.Const r | Str.Const r, Str.FromEia (Const v1) ->
+          let l = Z.to_string v1 in
+          if
+            String.length l <= String.length r
+            && String.ends_with ~suffix:l r
+            && String.for_all
+                 (Char.equal '0')
+                 (String.sub r (String.length l) (String.length r - String.length l))
+          then Ast.true_
+          else Ast.false_
         | _ -> Id_symantics.str_equal l r)
     ;;
 
@@ -601,13 +611,57 @@ let make_main_symantics env =
       | _ -> ans
     ;;
 
+    let from_eia_nfa c =
+      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      let re =
+        List.fold_left
+          Regex.concat
+          Regex.epsilon
+          (Z.to_string c
+           |> String.to_seq
+           |> Seq.map (fun c -> [ c ])
+           |> Seq.map Regex.symbol
+           |> List.of_seq
+           |> List.rev)
+      in
+      let re = Regex.concat re (Regex.kleene (Regex.Symbol [ Nfa.Str.u_zero ])) in
+      NfaStr.of_regex re
+    ;;
+
     let in_re s re =
+      let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
       | Ast.Str.Atom (Ast.Var s) -> begin
         match Env.lookup s env with
         | Some (`Str c) -> Ast.str (Str.inre c re)
+        | Some (`Eia (Ast.Eia.Atom (Ast.Const c))) -> begin
+          match
+            NfaStr.of_regex re
+            |> NfaStr.intersect (from_eia_nfa c)
+            |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
+          with
+          | true -> Ast.true_
+          | false -> Ast.false_
+        end
         | Some (`Eia (Ast.Eia.Atom c)) -> Ast.str (Str.inre (Str.fromeia c) re)
         | None | _ -> Ast.str (Str.inre (Str.Atom (Ast.var s)) re)
+      end
+      | Ast.Str.FromEia (Ast.Const c) -> begin
+        match
+          NfaStr.of_regex re
+          |> NfaStr.intersect (from_eia_nfa c)
+          |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
+        with
+        | true -> Ast.true_
+        | false -> Ast.false_
+      end
+      | Ast.Str.Const str -> begin
+        match
+          NfaStr.of_regex re
+          |> NfaStr.re_accepts (String.to_seq str |> List.of_seq |> List.rev)
+        with
+        | true -> Ast.true_
+        | false -> Ast.false_
       end
       | _ -> Ast.str (Str.inre s re)
     ;;
