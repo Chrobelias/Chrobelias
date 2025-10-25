@@ -8,9 +8,10 @@ $ export OCAMLRUNPARAM='b=0'
   > (assert (= 113 (* (+ (exp 2 u) (exp 2 v) a) (exp 2 z)) ))
   > (check-sat)
   > EOF
-  $ OCAMLRUNPARAM='b=0' Chro -no-over-approx -bound 6 -lsb 0.smt2
-  unknown (nfa; unimplemented (= (+ (* (- 1) a (exp 2 z)) (* (- 1) (exp 2 (+ u z)))
-                   (* (- 1) (exp 2 (+ v z)))) (- 113)))
+$ export CHRO_DEBUG=1
+  $ OCAMLRUNPARAM='b=0' Chro -no-over-approx -bound 6 -lsb -flat 1 -amin 0 -amax 1  0.smt2 | sed 's/[[:space:]]*$//'
+  sat (under II)
+
 
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)
@@ -19,9 +20,9 @@ $ export OCAMLRUNPARAM='b=0'
   > (assert (= 52 (* x (exp 2 y)) ))
   > (check-sat)
   > EOF
-
+  $ unset CHRO_DEBUG
 $ export CHRO_DEBUG=1
-  $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #-stop-after simpl
+  $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (u1)
           (and
             (= (+ eee2 (* (- 1) u1) (* (- 1) y) )  0)
@@ -48,7 +49,7 @@ $ export CHRO_DEBUG=1
   > EOF
 
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 2.smt2'
-  $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 -stop-after presimpl
+  $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 -stop-after presimpl | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (* x (exp 2 z)) 3076))
   iter(2)= (= (* x (exp 2 z)) 3076)
@@ -72,11 +73,11 @@ which is needed to be fixed first
           (and
             (exists (u1)
             (and
-              (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0)
-              (<= (+ (* (- 1) u1) v2 )  0)
+              (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0) 
+              (<= (+ (* (- 1) u1) v2 )  0) 
               )
-            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
-            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3076)
+            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0) 
+            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3076) 
             )
   )
   unknown (under II)
@@ -100,11 +101,11 @@ which is needed to be fixed first
           (and
             (exists (u1)
             (and
-              (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0)
-              (<= (+ (* (- 1) u1) v2 )  0)
+              (= (+ eee4 (* (- 1) u1) (* (- 1) z) )  0) 
+              (<= (+ (* (- 1) u1) v2 )  0) 
               )
-            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0)
-            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3073)
+            (= (+ eee3 (* (- 1) v2) (* (- 1) z) )  0) 
+            (= (+ (* (- 1) pow2(eee3)) pow2(eee4) pow2(z) )  3073) 
             )
   )
   sat (under II)
@@ -121,7 +122,7 @@ which is needed to be fixed first
   > (get-model)
   > EOF
   $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 4.smt2'
-  $ CHRO_DEBUG=1 $RUN -flat 2 -stop-after presimpl
+  $ CHRO_DEBUG=1 $RUN -flat 2 -stop-after presimpl | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (* x (exp 2 z)) 8096))
   iter(2)= (= (* x (exp 2 z)) 8096)
@@ -145,7 +146,7 @@ which is needed to be fixed first
              (<= u2 u1)
              (<= u3 u2)
              (<= 0 u3))
-  $ timeout 2 $RUN -flat 2 | grep -v assert | sed -r '/^\s*$/d'
+  $ timeout 2 $RUN -flat 2 | sed 's/[[:space:]]*$//' | grep -v assert | sed -r '/^\s*$/d'
           (and
             (exists (z)
             (and

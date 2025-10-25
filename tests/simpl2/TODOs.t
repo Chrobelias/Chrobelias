@@ -182,8 +182,9 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
                (= (+ (+ it376 (* (* (- 1) 3) it361)) (* 2 (exp it362 3))) 0)
                (= (* 0 it360) 0)))
   iter(2)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
-  Something ready to substitute:  it376 -> (+ (* (* (- 3) it361) (- 1))
-                                           (* (* 2 (exp it362 3)) (- 1)));
+  Something ready to substitute
+        it376 -> (+ (* (* (- 3) it361) (- 1)) (* (* 2 (exp it362 3)) (- 1)))
+  
   iter(3)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
   iter(4)= (= (+ (* (- 3) it361) (* 2 (exp it362 3)) (* (* (- 3) it361) (- 1))
               (* (* 2 (exp it362 3)) (- 1))) 0)

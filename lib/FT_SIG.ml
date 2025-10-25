@@ -5,14 +5,14 @@ type sup_binop =
 
 module type s_term = sig
   type term
-  type str
 
-  (** Strings *)
+  (** String terms *)
 
-  val str_atoi : str -> term
-  val str_len : str -> term
-  val str_const : string -> str
-  val str_var : string -> str
+  val iofs : term -> term
+  val sofi : term -> term
+  val str_len : term -> term
+  val str_const : string -> term
+  val str_var : string -> term
 
   (** Arithmetic *)
   val mod_ : term -> Z.t -> term
@@ -29,7 +29,6 @@ end
 module type s_ph = sig
   type ph
   type term
-  type str
 
   val land_ : ph list -> ph
   val lor_ : ph list -> ph
@@ -39,7 +38,7 @@ module type s_ph = sig
   val eq : term -> term -> ph
   val leq : term -> term -> ph
   val lt : term -> term -> ph
-  val in_re : str -> char list Regex.t -> ph
+  val in_re : term -> char list Regex.t -> ph
 end
 
 module type s_extra = sig
@@ -70,24 +69,18 @@ struct
 end
 
 module To_smtml_symantics : sig
-  include s_term with type term = Smtml.Expr.t and type str = Smtml.Expr.t
-
-  include
-    s_ph
-    with type term = Smtml.Expr.t
-     and type ph = Smtml.Expr.t
-     and type str = Smtml.Expr.t
-
+  include s_term with type term = Smtml.Expr.t
+  include s_ph with type term = Smtml.Expr.t and type ph = Smtml.Expr.t
   include s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 end = struct
   open Smtml
 
   type term = Expr.t
-  type str = Expr.t
   type ph = term
 
   let str_len _ = failwith "not implemented"
-  let str_atoi _ = failwith "not implemented"
+  let sofi _ = failwith "not implemented"
+  let iofs _ = failwith "not implemented"
   let str_const _ = failwith "not implemented"
   let str_var _ = failwith "not implemented"
   let const n = Smtml.Expr.value (Value.Int n)

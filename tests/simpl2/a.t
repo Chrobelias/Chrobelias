@@ -3,7 +3,9 @@
              (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
              (= (+ z y) 52)
              (<= (* x (+ 0 (* (- 1) 5))) 13))
-  Something ready to substitute:  z -> (+ 52 (* (- 1) y));
+  Something ready to substitute
+        z -> (+ 52 (- y))
+  
   iter(2)= (and
              (= (+ y z) 52)
              (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 14))
@@ -38,7 +40,9 @@
              (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
              (= (+ z y) 52)
              (<= (* x (+ 0 (* (- 1) 5))) 13))
-  Something ready to substitute:  z -> (+ 52 (* (- 1) y));
+  Something ready to substitute
+        z -> (+ 52 (- y))
+  
   iter(2)= (and
              (= (+ y z) 52)
              (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 14))

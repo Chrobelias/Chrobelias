@@ -20,6 +20,8 @@ This test doesn't simplify (not True)
                            2))
                (<= (+ 0 1) (+ (+ it3 (* it13 (* (- 1) 2))) 1))
                (<= 0 (+ it92 (* (- 1) 1)))))
-  Something ready to substitute:  it418 -> (* (- 1) it388 (* (- 1) 1));
+  Something ready to substitute
+        it418 -> (* (- 1) it388 (* (- 1) 1))
+  
   iter(2)= (not True)
   unsat

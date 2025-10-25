@@ -2,7 +2,9 @@
   iter(1)= (and
              (= (+ y x) 13)
              (= (+ x y) 13))
-  Something ready to substitute:  y -> (+ 13 (* (- 1) x));
+  Something ready to substitute
+        y -> (+ 13 (- x))
+  
   iter(2)= (= (+ x y) 13)
   iter(3)= True
   sat (presimpl)
@@ -12,8 +14,10 @@
              (= (+ z x) 10000)
              (= (+ y z) 100)
              (= (+ x y) 1))
-  Something ready to substitute:  x -> (+ 1 (* (- 1) y)); z -> (+ 10000
-                                                               (* (- 1) x));
+  Something ready to substitute
+        x -> (+ 1 (- y))
+        z -> (+ 10000 (- x))
+  
   iter(2)= (and
              (= (+ x y) 1)
              (= (+ x z) 10000)
@@ -97,21 +101,19 @@
              (= (+ (+ it19 (* it200 (* (- 1) 1))) z) 0)
              (= (+ (* it199 (* (- 1) 1)) it233) 0)
              (= (+ (+ (* it198 (* (- 1) 1)) it232) (* it19 (* (- 1) 3))) 0))
-  Something ready to substitute:  it233 -> (* (- 1) it199 (* (- 1) 1)); z ->
-                                 (+ (* it19 (- 1))
-                                 (* (* it200 (* (- 1) 1)) (- 1)));
+  Something ready to substitute
+        it233 -> (* (- 1) it199 (* (- 1) 1))
+        z -> (+ (* it19 (- 1)) (* (* it200 (* (- 1) 1)) (- 1)))
+  
   iter(2)= (and
              (= (+ it19 z (* (- 1) it200)) 0)
              (= (+ it232 (* (- 3) it19) (* (- 1) it198)) 0)
              (= (+ it233 (* (- 1) it199)) 0))
-  Something ready to substitute:  it232 -> (+ (* (* (- 3) it19) (- 1))
-                                           (* (* (- 1) it198) (- 1))); it233 ->
-                                 (* (- 1) it199 (* (- 1) 1)); z -> (+ (* it19
-                                                                      (- 1))
-                                                                   (* (* it200
-                                                                      (* (- 1)
-                                                                      1))
-                                                                   (- 1)));
+  Something ready to substitute
+        it232 -> (+ (* (* (- 3) it19) (- 1)) (* (- it198) (- 1)))
+        it233 -> (* (- 1) it199 (* (- 1) 1))
+        z -> (+ (* it19 (- 1)) (* (* it200 (* (- 1) 1)) (- 1)))
+  
   iter(3)= (and
              (= (+ it19 (* it19 (- 1)) (* (- 1) it200)
                 (* (* it200 (* (- 1) 1)) (- 1))) 0)

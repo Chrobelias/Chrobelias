@@ -51,7 +51,10 @@
              (<= v 1170)
              (<= (* (- 1) v) 0)
              (str.in_re x (re.++ (re.++ (re.++ (re.++ (str.to.re "9") (re.++ (str.to.re "8") (re.++ (str.to.re "7") (str.to.re "6")))) (re.* (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (str.to.re "0") (str.to.re "1")) (str.to.re "2")) (str.to.re "3")) (str.to.re "4")) (str.to.re "5")) (str.to.re "6")) (str.to.re "7")) (str.to.re "8")) (str.to.re "9")))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
-  Something ready to substitute:  %0 -> %1; v -> (* 444 u);
+  Something ready to substitute
+        %0 -> %1
+        v -> (* 444 u)
+  
   iter(3)= (and
              (= %2 (chrob.len x))
              (= (+ %0 (* (- 1) %1)) 0)

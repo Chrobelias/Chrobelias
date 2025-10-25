@@ -15,7 +15,9 @@
              (= (+ y (* (- 7) u)) (- 5))
              (= (+ y (* (- 3) x)) (- 2))
              (<= 100 z))
-  Something ready to substitute:  y -> (+ (- 5) (* 7 u));
+  Something ready to substitute
+        y -> (+ (- 5) (* 7 u))
+  
   iter(3)= (and
              (= (+ y (* (- 7) u)) (- 5))
              (= (+ y (* (- 3) x)) (- 2))

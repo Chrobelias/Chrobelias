@@ -138,7 +138,7 @@ let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
 ;;
 
 let ir_atom_to_str_term : Ir.atom -> Ast.Str.term = function
-  | Ir.Var s -> Ast.Str.atom (Ast.var s)
+  | Ir.Var s -> Ast.Eia.atom (Ast.var s)
   | Ir.Pow2 _ -> failwith "only vars are supported inside string IRs"
 ;;
 
@@ -171,7 +171,7 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
     Ast.eia (build lhs rhs)
   | SReg (atom, re) -> Ast.str (Ast.Str.inre (ir_atom_to_str_term atom) re)
   | SEq (atom, atom') ->
-    Ast.str (Ast.Str.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
+    Ast.eia (Ast.Eia.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SPrefixOf (atom, atom') ->
     Ast.str (Ast.Str.prefixof (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
   | SContains (atom, atom') ->
@@ -187,12 +187,12 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
     Ast.eia
       (Ast.Eia.eq
          (Ast.Eia.atom (ir_atom_to_atom atom))
-         (Ast.Eia.stoi2 (ir_atom_to_atom atom')))
+         (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
   | Itos (atom, atom') ->
-    Ast.str
-      (Ast.Str.eq
-         (Ast.Str.atom (ir_atom_to_atom atom))
-         (Ast.Str.fromeia (ir_atom_to_atom atom')))
+    Ast.eia
+      (Ast.Eia.eq
+         (Ast.Eia.atom (ir_atom_to_atom atom))
+         (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
   | Exists ([], lhs) -> ir_to_ast lhs
   | Exists (atoms, lhs) -> Ast.exists (List.map ir_atom_to_atom atoms) (ir_to_ast lhs)
 ;;
@@ -1560,6 +1560,7 @@ let check_sat ir
     match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
       let ast = SimplII.shrink_variables ast in
+      (* Format.printf "Ast = @[%a@]\n%!" Ast.pp_smtlib2 ast; *)
       let ir =
         match Me.ir_of_ast ast with
         | Result.Ok x -> x
@@ -1637,7 +1638,7 @@ let check_sat ir
                    in
                    begin
                      match data with
-                     | `Eia data -> begin
+                     | data -> begin
                        match aux data with
                        | Some v -> Option.some (`Int v)
                        | None ->
@@ -1650,7 +1651,7 @@ let check_sat ir
                            data;
                          None
                      end
-                     | `Str data ->
+                     (* | `Str data ->
                        Format.printf
                          "Warning: some of the str model pieces are likely to be missed: \
                           %s = %a\n\
@@ -1658,7 +1659,7 @@ let check_sat ir
                          key
                          Ast.Str.pp_term
                          data;
-                       None
+                       None *)
                    end)
                  env
                |> Map.map_keys_exn ~f:(fun v -> Ir.var v)

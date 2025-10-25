@@ -43,6 +43,7 @@ Habermehl demo
               (= (+ x pow2(z) )  52)
               (<= (+ x (* (- 3) y) z )  0)
               )
+  
             (<= y  8)
             )
   )
