@@ -7,4 +7,6 @@
 (assert (= (str.substr "10" x y) "0"))
 (assert (= y 2))
 (assert (= x 0))
+
+(set-info :status unsat)
 (check-sat)

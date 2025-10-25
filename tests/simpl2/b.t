@@ -13,7 +13,9 @@
              (<= (+ 111111 1) (+ (exp 2 x) (exp 2 y)))
              (= (+ z x) 32)
              (= (+ z y) 52))
-  Something ready to substitute:  z -> (+ 32 (* (- 1) x));
+  Something ready to substitute
+        z -> (+ 32 (- x))
+  
   iter(2)= (and
              (= (+ x z) 32)
              (= (+ y z) 52)

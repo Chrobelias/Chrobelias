@@ -16,7 +16,9 @@
              (= (str.to.int x) (+ r1 (* 11111 q2)))
              (<= r1 11110)
              (<= 0 r1))
-  Something ready to substitute:  r1 -> 42;
+  Something ready to substitute
+        r1 -> 42
+  
   iter(3)= (and
              (= r1 42)
              (= (str.to.int x) (+ r1 (* 11111 q2)))
@@ -51,7 +53,9 @@ $ cat 1.smt2
              (<= r3 417676)
              (<= 0 r1)
              (<= 0 r3))
-  Something ready to substitute:  r3 -> 0;
+  Something ready to substitute
+        r3 -> 0
+  
   iter(3)= (and
              (= r1 (+ r3 (* 417677 q4)))
              (= r3 0)

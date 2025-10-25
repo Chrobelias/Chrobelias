@@ -1,8 +1,11 @@
-  $ Chro ./subst.smt2 
+$ cat subst-3.smt2
+
+  $ Chro ./subst.smt2
   sat (under I)
 
-  $ Chro ./subst-2.smt2 
+$ export CHRO_DEBUG=1
+  $ Chro ./subst-2.smt2
   unsat
 
-  $ Chro ./subst-3.smt2 
+  $ Chro ./subst-3.smt2
   sat (under I)
