@@ -96,19 +96,6 @@ let of_str : Ast.Str.t -> (Ir.t, string) result =
       | [] -> ir :: sup |> Ir.land_ |> return
       | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
     end
-  (* | Ast.Eia.Eq (a, b) ->
-    let* a, sup_a = of_str_atom a in
-    let* b, sup_b = of_str_atom b in
-    let sup = sup_a @ sup_b in
-    let atoms =
-      List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
-    in
-    let ir = Ir.seq a b in
-    begin
-      match atoms with
-      | [] -> ir :: sup |> Ir.land_ |> return
-      | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
-    end *)
   | Ast.Str.PrefixOf (a, b) ->
     let* a, sup_a = of_str_atom a in
     let* b, sup_b = of_str_atom b in
@@ -472,7 +459,7 @@ let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
     | Len v -> return (Symantics.len v)
     | other ->
       (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
-      failf "unimplemented %a" Ast.Eia.pp eia
+      failf "```unimplemented %a" Ast.Eia.pp eia
   in
   let get_eia_stoi = function
     | Ast.Eia.Iofs (Ast.Eia.Atom (Ast.Var v)) -> Option.some v
@@ -487,6 +474,23 @@ let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
   | Eq (Ast.Eia.Atom (Ast.Var v), other) when get_eia_stoi other |> Option.is_some ->
     let u = get_eia_stoi other |> Option.get in
     return (Ir.land_ [ Ir.stoi (Ir.var v) (Ir.var u) ])
+  | Eq (Atom (Var v), Atom (Str_const str)) ->
+    let l = Ir.var v in
+    return (Ir.sreg l (str_to_re str))
+  (*
+     | Ast.Eia.Eq (a, b) ->
+      let* a, sup_a = of_str a in
+      let* b, sup_b = of_str_atom b in
+      let sup = sup_a @ sup_b in
+      let atoms =
+        List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
+      in
+      let ir = Ir.seq a b in
+      begin
+        match atoms with
+        | [] -> ir :: sup |> Ir.land_ |> return
+        | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+      end *)
   | Eq (lhs, rhs) | Leq (lhs, rhs) ->
     let* lhs = helper lhs in
     let* rhs = helper rhs in

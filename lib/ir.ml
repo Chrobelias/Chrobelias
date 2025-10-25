@@ -75,7 +75,7 @@ type t =
   | SSuffixOf of atom * atom
   | SContains of atom * atom
   | SLen of atom * atom
-  | SEq of atom * atom
+  | SEq of atom * atom (* String equality *)
   | Stoi of atom * atom
   | Itos of atom * atom
   | Rel of rel * polynom * Z.t

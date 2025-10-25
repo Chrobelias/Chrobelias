@@ -1067,6 +1067,10 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
   let helper info env ast =
     match ast with
     (* **************************** String stuff *********************************** *)
+    | Eia (Eia.Eq (Atom (Var v), (Atom (Str_const str) as rhs)))
+      when Env.is_absent_key v env ->
+      (* (= v 'str') *)
+      Env.extend_exn env v rhs
     (* | Str (Str.Eq (Eia.Atom (Var v), (Str.Atom (Var v2) as rhs))) ->
       if not (Env.is_absent_key v env)
       then env
