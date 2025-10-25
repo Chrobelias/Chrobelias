@@ -1032,8 +1032,8 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
 ;;
 
 (* TODO: run this inside eq_propagation *)
-let trivial_simplify env ast =
-  let (module Symantics) = make_main_symantics env in
+let trivial_simplify ast =
+  let (module Symantics) = make_main_symantics Env.empty in
   let rec loop ast =
     let rez : Ast.t = apply_symantics (module Symantics) ast in
     if rez = ast then ast else loop rez

@@ -398,10 +398,10 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   let sofi = function
     | Ast.Eia.Atom (Var v) -> Symbol (Ir.var v, [])
     | Ast.Eia.Atom (Const n) ->
-      failwith "This should be simplified before"
-      (* let u = Ir.internal () in
-      let re = str_to_re s in
-      Symbol (u, [ Ir.sreg u re ]) *)
+      (* TODO(Kakadu): Goshan, please double check three lines below *)
+      let u = Ir.internal () in
+      let re = str_to_re (Format.asprintf "%a" Z.pp_print n) in
+      Symbol (u, [ Ir.sreg u re ])
     | v -> failwith (Format.asprintf "TBD: %a %s %d" Ast.Eia.pp_term v __FILE__ __LINE__)
   ;;
   (*let u = Ir.internal () in
@@ -459,7 +459,7 @@ let of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
     | Len v -> return (Symantics.len v)
     | other ->
       (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
-      failf "```unimplemented %a" Ast.Eia.pp eia
+      failf "unimplemented %a" Ast.Eia.pp eia
   in
   let get_eia_stoi = function
     | Ast.Eia.Iofs (Ast.Eia.Atom (Ast.Var v)) -> Option.some v
