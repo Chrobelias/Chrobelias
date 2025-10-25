@@ -1567,7 +1567,15 @@ module Lsb (Label : L) = struct
     |> remove_unreachable_from_start
   ;;
 
-  let minimize_strong nfa = nfa |> to_dfa |> reverse |> to_dfa |> reverse |> to_dfa
+  let minimize_strong nfa =
+    nfa
+    |> remove_unreachable_from_final
+    |> remove_unreachable_from_start
+    |> reverse
+    |> to_dfa
+    |> reverse
+    |> to_dfa
+  ;;
 end
 
 module MsbNat (Label : L) = struct
