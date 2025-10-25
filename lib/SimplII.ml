@@ -312,27 +312,8 @@ let make_main_symantics env =
     let var s : term =
       match Env.lookup s env with
       | None -> Eia.Atom (Ast.var s)
-      | Some c ->
-        (match c with
-         | eia ->
-           eia
-           (* | `Str str ->
-           Format.eprintf "; Warning: Eia var '%s' is left as is!\n%!" s;
-           Eia.Atom (Ast.var s) *))
+      | Some c -> c
     ;;
-
-    (* let str_var s : term =
-      match Env.lookup s env with
-      | None -> Eia.atom (Ast.var s)
-      | Some c ->
-        (match c with
-         | `Eia (Ast.Eia.Atom (Ast.Const c)) -> Str.FromEia (Ast.const c)
-         | `Eia (Eia.Atom (Var v2)) -> Str.Atom (Var v2)
-         | `Eia eia ->
-           Format.eprintf "; Warning. Str var '%s' is left as is!\n%!" s;
-           Str.Atom (Ast.var s)
-         | `Str str -> str)
-    ;; *)
 
     let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
 
@@ -1087,6 +1068,10 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
     | Eia (Eia.Eq (Atom (Var v), (Atom (Str_const str) as rhs)))
       when Env.is_absent_key v env ->
       (* (= v 'str') *)
+      Env.extend_exn env v rhs
+    | Eia (Eia.Eq ((Atom (Str_const str) as rhs), Atom (Var v)))
+      when Env.is_absent_key v env ->
+      (* (= 'str' v) *)
       Env.extend_exn env v rhs
     (* | Str (Str.Eq (Eia.Atom (Var v), (Str.Atom (Var v2) as rhs))) ->
       if not (Env.is_absent_key v env)
