@@ -130,4 +130,4 @@ $ export CHRO_DEBUG=1
   )
 
   $ Chro 1.smt2 | sed 's/[[:space:]]*$//'
-  unsat
+  unsat (nfa)

@@ -2,22 +2,22 @@ Basic LIA tests
 
   $ CHRO_OMIT_Z3_MODEL=1 OCAMLRUNPARAM='b=0' Chro -bound 0 -no-over-approx ./lia.smt2
   sat (presimpl)
-  unsat
+  unsat (presimpl)
   sat (presimpl)
   sat (presimpl)
   sat (under I)
   sat (under I)
   sat (under I)
-  unsat
+  unsat (nfa)
   sat (under I)
   sat (under I)
   sat (under I)
-  unsat
+  unsat (nfa)
   sat (under I)
-  unsat
-  unsat
+  unsat (presimpl)
+  unsat (nfa)
   sat (under I)
-  unsat
+  unsat (nfa)
   sat (under I)
 
 Test Frobenious coin problem for 7 and 11
@@ -35,7 +35,7 @@ Test Frobenious coin problem for 7, 11, and 13
 Test Frobenious coin problem for 2 and 4
 
   $ Chro -bound 4 -no-over-approx examples/LIA/fcp_2_4.smt2
-  unsat
+  unsat (nfa)
   no model
 
 Test for all nats exists bigger

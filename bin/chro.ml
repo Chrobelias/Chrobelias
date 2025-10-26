@@ -160,7 +160,7 @@ let check_sat ?(verbose = false) ast : rez =
       then (
         match Lib.Overapprox.check ast with
         | `Unknown ast -> unknown ast e
-        | `Sat r -> unknown ast e
+        | `Sat _ -> unknown ast e
         | `Unsat ->
           Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
       else unknown ast e

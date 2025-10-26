@@ -2,54 +2,54 @@ Basic QF_EIA tests
 
   $ Chro ./qf-eia.smt2
   sat (nfa)
-  unsat
-  unsat
+  unsat (nfa)
+  unsat (nfa)
   sat (presimpl)
-  unsat
+  unsat (nfa)
   sat (under I)
-  unsat
-  unsat
-  unsat
+  unsat (nfa)
+  unsat (presimpl)
+  unsat (presimpl)
   sat (presimpl)
-  unsat
+  unsat (nfa)
   sat (under I)
-  unsat
+  unsat (nfa)
   sat (presimpl)
 
 Basic QF_EIA tests using only NFAs
 
   $ Chro -bound -1 -no-over-approx ./qf-eia.smt2
   sat (nfa)
-  unsat
-  unsat
+  unsat (nfa)
+  unsat (nfa)
   sat (presimpl)
-  unsat
+  unsat (nfa)
   sat (nfa)
-  unsat
-  unsat
-  unsat
+  unsat (nfa)
+  unsat (presimpl)
+  unsat (presimpl)
   sat (presimpl)
-  unsat
+  unsat (nfa)
   sat (nfa)
-  unsat
+  unsat (nfa)
   sat (presimpl)
 
 Same basic QF_EIA tests using only NFAs but in the LSB mode
 
   $ Chro -lsb -bound -1 -no-over-approx ./qf-eia.smt2
   sat (nfa)
-  unsat
-  unsat
+  unsat (nfa)
+  unsat (nfa)
   sat (presimpl)
-  unsat
+  unsat (nfa)
   sat (nfa)
-  unsat
-  unsat
-  unsat
+  unsat (nfa)
+  unsat (presimpl)
+  unsat (presimpl)
   sat (presimpl)
-  unsat
+  unsat (nfa)
   sat (nfa)
-  unsat
+  unsat (nfa)
   sat (presimpl)
 
 Test ExEy y >=0 x & 2**y = x & x > 4
@@ -60,7 +60,7 @@ Test ExEy y >=0 x & 2**y = x & x > 4
 Test Ex x > 2**x
 
   $ Chro ./examples/QF_EIA/basic-exp-unsat.smt2
-  unsat
+  unsat (over)
 
 Test Frobenius coin problem with exponential restrictions
 
@@ -70,7 +70,7 @@ Test Frobenius coin problem with exponential restrictions
 Test Double exponent theorem
 
   $ Chro ./examples/double_exp.smt2
-  unsat
+  unsat (nfa)
 
 Test EXP-solver simplified problems
 
