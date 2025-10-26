@@ -9,6 +9,7 @@ type config =
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
+  ; mutable over_approx_early : bool
   ; mutable under_approx : int
   ; mutable input_file : string
   ; mutable no_model : bool
@@ -28,6 +29,7 @@ let config =
   ; simpl_alpha = false
   ; simpl_mono = true
   ; over_approx = true
+  ; over_approx_early = false
   ; under_approx = 2
   ; input_file = ""
   ; no_model = false
@@ -89,6 +91,9 @@ let parse_args () =
     ; ( "-over-approx"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , " Simple overapproximation (issue #75)" )
+    ; ( "-over-early"
+      , Arg.Unit (fun () -> config.over_approx_early <- true)
+      , " Simple overapproximation before under II" )
     ; ( "-no-over-approx"
       , Arg.Unit (fun () -> config.over_approx <- false)
       , " Disable simple overapproximation (issue #75)" )

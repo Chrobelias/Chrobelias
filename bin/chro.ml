@@ -118,52 +118,62 @@ let check_sat ?(verbose = false) ast : rez =
         Format.printf "@]@,";
         let () = report_result2 (`Unknown "non-linear") in
         exit 0)
-      <+> (fun ast e ->
-      if Lib.Config.is_under2_enabled ()
-      then (
-        match Lib.SimplII.run_under2 ast with
-        | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty)
-        | `Underapprox asts ->
-          if Lib.Config.config.dump_pre_simpl
-          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-          if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
-          log "Looking for SAT in %d asts..." (List.length asts);
-          let exception Sat_found in
-          (try
-             let f ast =
-               let ir = Lib.Me.ir_of_ast ast in
-               match ir with
-               | Ok ir -> begin
-                 match Lib.Solver.check_sat ir with
-                 | `Sat _ -> raise Sat_found
-                 | _ -> ()
-               end
-               | Error _ -> ()
-             in
-             List.iter f asts;
-             report_result2 (`Unknown "under II");
-             (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
-             unknown ast e
-           with
-           | Sat_found ->
-             report_result2 (`Sat "under II");
-             exit 0))
-      else unknown ast e)
-      <+> (fun ast e ->
-      if Lib.Config.config.dump_pre_simpl
-      then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-      unknown ast e)
-      <+> (fun ast e ->
-      if Lib.Config.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
       <+> fun ast e ->
-      if Lib.Config.config.over_approx
+      if Lib.Config.config.over_approx_early
       then (
         match Lib.Overapprox.check ast with
         | `Unknown ast -> unknown ast e
         | `Sat _ -> unknown ast e
         | `Unsat ->
-          Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
-      else unknown ast e
+          Unsat "over early" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
+      else
+        unknown ast e
+        <+> (fun ast e ->
+        if Lib.Config.is_under2_enabled ()
+        then (
+          match Lib.SimplII.run_under2 ast with
+          | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty)
+          | `Underapprox asts ->
+            if Lib.Config.config.dump_pre_simpl
+            then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+            if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
+            log "Looking for SAT in %d asts..." (List.length asts);
+            let exception Sat_found in
+            (try
+               let f ast =
+                 let ir = Lib.Me.ir_of_ast ast in
+                 match ir with
+                 | Ok ir -> begin
+                   match Lib.Solver.check_sat ir with
+                   | `Sat _ -> raise Sat_found
+                   | _ -> ()
+                 end
+                 | Error _ -> ()
+               in
+               List.iter f asts;
+               report_result2 (`Unknown "under II");
+               (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
+               unknown ast e
+             with
+             | Sat_found ->
+               report_result2 (`Sat "under II");
+               exit 0))
+        else unknown ast e)
+        <+> (fun ast e ->
+        if Lib.Config.config.dump_pre_simpl
+        then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+        unknown ast e)
+        <+> (fun ast e ->
+        if Lib.Config.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
+        <+> fun ast e ->
+        if Lib.Config.config.over_approx
+        then (
+          match Lib.Overapprox.check ast with
+          | `Unknown ast -> unknown ast e
+          | `Sat _ -> unknown ast e
+          | `Unsat ->
+            Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
+        else unknown ast e
     in
     let rez =
       match rez with
