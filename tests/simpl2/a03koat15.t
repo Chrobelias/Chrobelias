@@ -678,4 +678,4 @@ $ cat input.smt2
              (<= (* (- 1) it92) 0)
              (<= (* (- 1) it92) 1))
   iter(10)= (not True)
-  unsat
+  unsat (presimpl)

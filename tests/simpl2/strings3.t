@@ -50,7 +50,7 @@
   unknown (nfa; unable to multiply var by var: (pow2(eeb2) )  with (eeb7 )
   )
   $ unset CHRO_DEBUG
-  $ timeout 6 Chro -dsimpl strings3.smt2 -flat 0 -amin 0 -amax 1
+  $ timeout 8 Chro -dsimpl strings3.smt2 -flat 0 -amin 0 -amax 1
   (assert (exists (%1)
           (and
             (exists (x) (= %1 (chrob.len x)))

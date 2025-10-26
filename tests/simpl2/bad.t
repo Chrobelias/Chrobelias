@@ -25,7 +25,7 @@ $ export OCAMLRUNPARAM='b=0'
 
 
   $ Chro -pre-simpl -dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2 | sed 's/[[:space:]]*$//'
-  unsat
+  unsat (presimpl)
 
   $ cat > TODO1.smt2 <<-EOF
   > (set-logic ALL)
@@ -38,7 +38,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  unsat
+  unsat (presimpl)
 
 
   $ cat > UnderDoesntHelp1.smt2 <<-EOF

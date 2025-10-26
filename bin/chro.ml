@@ -26,7 +26,7 @@ type rez =
       * Lib.Env.t
       * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> (Lib.Ir.model, [ `Too_long ]) Result.t)
   | Unknown of Lib.Ast.t * Lib.Env.t
-  | Unsat
+  | Unsat of string
 [@@deriving show]
 
 let unknown ast e = Unknown (ast, e)
@@ -36,12 +36,12 @@ let ( <+> ) =
   fun rez f ->
   match rez with
   | Unknown (ast, e) -> f ast e
-  | Sat _ | Unsat -> rez
+  | Sat _ | Unsat _ -> rez
 ;;
 
-let lift ast = function
+let lift ?(unsat_info = "") ast = function
   | `Unknown (ast, e) -> Unknown (ast, e)
-  | `Unsat -> Unsat
+  | `Unsat -> Unsat unsat_info
   | `Sat (s, e) -> Sat (s, ast, e, fun _ -> Result.Ok Map.empty)
 ;;
 
@@ -67,22 +67,22 @@ let check_sat ?(verbose = false) ast : rez =
       Format.printf "%!";
       Format.eprintf "%!";
       match rez, !answer_guess with
-      | _, None | _, Some `Unknown | `Unsat, Some `Unsat | `Sat _, Some `Sat -> ()
+      | _, None | _, Some `Unknown | `Unsat _, Some `Unsat | `Sat _, Some `Sat -> ()
       | `Unknown _, Some `Sat ->
         Printf.eprintf "; Need to improve --- sat is expected\n%!"
       | `Unknown _, Some `Unsat ->
         Printf.eprintf "; Need to improve --- unsat is expected\n%!"
-      | `Unsat, Some `Sat ->
-        Printf.eprintf "; Une mauvaise réponse est possible (SAT est attendu)!\n%!"
+      | `Unsat _, Some `Sat ->
+        Printf.eprintf "; Une mauvaise réponse est possible ('sat' est attendu)!\n%!"
       | `Sat _, Some `Unsat ->
-        Printf.eprintf "; Une mauvaise réponse est possible (UNSAT est attendu)!\n%!"
+        Printf.eprintf "; Une mauvaise réponse est possible ('unsat' est attendu)!\n%!"
     in
     let () = if Lib.Debug.flag () then () else check_answer () in
     if verbose
     then (
       match rez with
       | `Sat s -> Format.printf "sat (%s)\n%!" s
-      | `Unsat -> Format.printf "unsat\n%!"
+      | `Unsat s -> Format.printf "unsat (%s)\n%!" s
       | `Unknown s ->
         Format.printf "unknown (%s)\n%!" s (*(if s <> "" then "\n " ^ s else ""))*))
     else ()
@@ -99,7 +99,7 @@ let check_sat ?(verbose = false) ast : rez =
       <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
       then unknown ast e
-      else lift ast (Lib.SimplII.run_basic_simplify ast))
+      else lift ~unsat_info:"presimpl" ast (Lib.SimplII.run_basic_simplify ast))
       <+> (fun ast e ->
       if Lib.Config.config.under_approx >= 0
       then (
@@ -118,46 +118,53 @@ let check_sat ?(verbose = false) ast : rez =
         Format.printf "@]@,";
         let () = report_result2 (`Unknown "non-linear") in
         exit 0)
-      <+> (fun ast e ->
-      if Lib.Config.is_under2_enabled ()
-      then (
-        match Lib.SimplII.run_under2 ast with
-        | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty)
-        | `Underapprox asts ->
-          if Lib.Config.config.dump_pre_simpl
-          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-          if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
-          log "Looking for SAT in %d asts..." (List.length asts);
-          let exception Sat_found in
-          (try
-             let f ast =
-               let ir = Lib.Me.ir_of_ast ast in
-               match ir with
-               | Ok ir -> begin
-                 match Lib.Solver.check_sat ir with
-                 | `Sat _ -> raise Sat_found
-                 | _ -> ()
-               end
-               | Error _ -> ()
-             in
-             List.iter f asts;
-             report_result2 (`Unknown "under II");
-             (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
-             unknown ast e
-           with
-           | Sat_found ->
-             report_result2 (`Sat "under II");
-             exit 0))
-      else unknown ast e)
-      <+> (fun ast e ->
-      if Lib.Config.config.dump_pre_simpl
-      then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-      unknown ast e)
       <+> fun ast e ->
-      if Lib.Config.config.stop_after = `Pre_simplify
-      then exit 0
+      if Lib.Config.config.over_approx_early
+      then (
+        match Lib.Overapprox.check ast with
+        | `Unknown ast -> unknown ast e
+        | `Sat _ -> unknown ast e
+        | `Unsat ->
+          Unsat "over early" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
       else
         unknown ast e
+        <+> (fun ast e ->
+        if Lib.Config.is_under2_enabled ()
+        then (
+          match Lib.SimplII.run_under2 ast with
+          | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty)
+          | `Underapprox asts ->
+            if Lib.Config.config.dump_pre_simpl
+            then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+            if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
+            log "Looking for SAT in %d asts..." (List.length asts);
+            let exception Sat_found in
+            (try
+               let f ast =
+                 let ir = Lib.Me.ir_of_ast ast in
+                 match ir with
+                 | Ok ir -> begin
+                   match Lib.Solver.check_sat ir with
+                   | `Sat _ -> raise Sat_found
+                   | _ -> ()
+                 end
+                 | Error _ -> ()
+               in
+               List.iter f asts;
+               report_result2 (`Unknown "under II");
+               (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
+               unknown ast e
+             with
+             | Sat_found ->
+               report_result2 (`Sat "under II");
+               exit 0))
+        else unknown ast e)
+        <+> (fun ast e ->
+        if Lib.Config.config.dump_pre_simpl
+        then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+        unknown ast e)
+        <+> (fun ast e ->
+        if Lib.Config.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
         <+> fun ast e ->
         if Lib.Config.config.over_approx
         then (
@@ -165,7 +172,7 @@ let check_sat ?(verbose = false) ast : rez =
           | `Unknown ast -> unknown ast e
           | `Sat _ -> unknown ast e
           | `Unsat ->
-            Unsat (* | `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty) *))
+            Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
         else unknown ast e
     in
     let rez =
@@ -173,8 +180,8 @@ let check_sat ?(verbose = false) ast : rez =
       | Sat (s, _, _, _) ->
         report_result2 (`Sat s);
         rez
-      | Unsat ->
-        report_result2 `Unsat;
+      | Unsat s ->
+        report_result2 (`Unsat s);
         rez
       | Unknown (ast, e) -> begin
         match Lib.Me.ir_of_ast ast with
@@ -184,7 +191,7 @@ let check_sat ?(verbose = false) ast : rez =
              report_result2 (`Sat "nfa");
              sat "nfa" ast e get_model
            | `Unsat ->
-             report_result2 `Unsat;
+             report_result2 (`Unsat "nfa");
              rez
            | `Unknown _ir ->
              report_result2 (`Unknown "nfa");
@@ -331,7 +338,7 @@ let () =
         in
         let () =
           match rez with
-          | Unknown _ | Unsat -> print_endline "no model"
+          | Unknown _ | Unsat _ -> print_endline "no model"
           | Sat (_, _, env, get_model) ->
             let tys = merge_tys state in
             (match get_model tys with
@@ -366,7 +373,7 @@ let () =
                in
                log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
                (match check_sat shrinked_ast with
-                | Unknown _ | Unsat -> Format.printf "no short model\n%!"
+                | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
                 | Sat (_, _, env, get_model) ->
                   (* let tys = merge_tys state in *)
                     (match get_model tys with
@@ -397,10 +404,15 @@ let () =
       state
   in
   let _ =
-    List.fold_left
-      exec
-      { asserts = []; prev = None; last_result = None; tys = Map.empty }
-      f
+    try
+      List.fold_left
+        exec
+        { asserts = []; prev = None; last_result = None; tys = Map.empty }
+        f
+    with
+    | Lib.Fe.Frontend_error _ when Lib.Config.is_quiet () ->
+      Format.eprintf "\027[31mFronted error\027[0m\n%!";
+      exit 1
   in
   ()
 ;;

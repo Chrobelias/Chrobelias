@@ -81,4 +81,4 @@
   iter(1)= (and
              (not (= (+ (* (* (- 1) 1) (exp 2 n)) (exp 2 n)) 0)))
   iter(2)= (not True)
-  unsat
+  unsat (presimpl)

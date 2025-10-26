@@ -9,11 +9,13 @@ type config =
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
+  ; mutable over_approx_early : bool
   ; mutable under_approx : int
   ; mutable input_file : string
   ; mutable no_model : bool
   ; mutable logic : [ `Eia | `Str ]
   ; mutable with_check_sat : bool
+  ; mutable quiet : bool
   }
 
 let config =
@@ -27,13 +29,17 @@ let config =
   ; simpl_alpha = false
   ; simpl_mono = true
   ; over_approx = true
+  ; over_approx_early = false
   ; under_approx = 2
   ; input_file = ""
   ; no_model = false
   ; logic = `Eia
   ; with_check_sat = false
+  ; quiet = false
   }
 ;;
+
+let is_quiet () = config.quiet
 
 type under2_config =
   { mutable amin : int
@@ -66,6 +72,7 @@ let parse_args () =
     ; "-no-error-check", Arg.Unit (fun () -> config.error_check <- false), " "
     ; "-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), " "
     ; "-no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), " "
+    ; "-q", Arg.Unit (fun () -> config.quiet <- true), " "
     ; ( "--no-simpl-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , " Don't try simplifications based on alpha-equivalence" )
@@ -84,6 +91,9 @@ let parse_args () =
     ; ( "-over-approx"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , " Simple overapproximation (issue #75)" )
+    ; ( "-over-early"
+      , Arg.Unit (fun () -> config.over_approx_early <- true)
+      , " Simple overapproximation before under II" )
     ; ( "-no-over-approx"
       , Arg.Unit (fun () -> config.over_approx <- false)
       , " Disable simple overapproximation (issue #75)" )

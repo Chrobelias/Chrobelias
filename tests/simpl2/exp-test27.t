@@ -37,5 +37,5 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_TRACE_OPT
   $ timeout 15 Chro ../examples/exp-test27.smt2 -huge 100
-  unsat
+  unsat (nfa)
   no model

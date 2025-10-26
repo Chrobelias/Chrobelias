@@ -19,6 +19,6 @@
                      (* (- 1) (exp 2 n)) (exp 2 (+ n))) 0))
              (<= 1 n))
   iter(4)= (not True)
-  unsat
+  unsat (presimpl)
 
 

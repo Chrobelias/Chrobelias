@@ -22,4 +22,4 @@ This test doesn't simplify (not True)
                (<= 0 (+ it92 (* (- 1) 1)))))
   Something ready to substitute:  it418 -> (* (- 1) it388 (* (- 1) 1));
   iter(2)= (not True)
-  unsat
+  unsat (presimpl)

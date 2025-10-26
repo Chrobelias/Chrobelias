@@ -5,15 +5,15 @@ Basic QF_S tests
   ((define-fun a () (_ String) "abc"))
   sat (nfa)
   sat (nfa)
-  unsat
+  unsat (nfa)
   sat (nfa)
-  unsat
-  unsat
+  unsat (nfa)
+  unsat (nfa)
   sat (nfa)
   sat (nfa)
-  unsat
+  unsat (nfa)
   sat (nfa)
-  unsat
+  unsat (nfa)
   sat (nfa)
   ((define-fun %24 () (_ Int) 12) (define-fun a () (_ String) "100100100100"))
   ((define-fun a () (_ String) "BaLyuLyuLyuLyuLyuLyuLyu")
