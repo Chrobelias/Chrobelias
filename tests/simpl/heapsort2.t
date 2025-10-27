@@ -46,20 +46,12 @@ $ export CHRO_DEBUG=1
 
 $ export CHRO_DEBUG=1
   $ Chro -bound 0  -no-pre-simpl -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
-  unknown (nfa; unimplemented (= (+ (+ (+ (* (+ 0 it11) (exp 2 (+ it147 (* (- 1) 1)))
-                            (+ 0 (* (- 1) 2)))
-                         (+ 0 it159))
-                      (* (exp 2 (+ it147 (* (- 1) 1))) (+ 0 (* (- 1) 2))))
-                   (+ 0 1)) (+ 0 0)))
+  unknown (nfa; unimplemented (* (+ 0 it11) (exp 2 (+ it147 (* (- 1) 1))) (+ 0 (* (- 1) 2))))
 
   $ unset CHRO_DEBUG
   $ export CHRO_EIA=old
   $ Chro -bound 0 -no-pre-simpl -dsimpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
-  unknown (nfa; unimplemented (= (+ (+ (+ (* (+ 0 it11) (exp 2 (+ it147 (* (- 1) 1)))
-                            (+ 0 (* (- 1) 2)))
-                         (+ 0 it159))
-                      (* (exp 2 (+ it147 (* (- 1) 1))) (+ 0 (* (- 1) 2))))
-                   (+ 0 1)) (+ 0 0)))
+  unknown (nfa; unimplemented (* (+ 0 it11) (exp 2 (+ it147 (* (- 1) 1))) (+ 0 (* (- 1) 2))))
 
 Run solver
   $ unset CHRO_EIA
