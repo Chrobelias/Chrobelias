@@ -66,8 +66,15 @@ let occurs_var env v term =
   | Occurs -> true
 ;;
 
+let find_exn = Base.Map.Poly.find_exn
+
 let extend_exn : t -> _ -> _ -> t =
   fun env key data ->
+  if Base.Map.Poly.mem env key
+  then (
+    Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 (find_exn env key);
+    Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
+    failwith (Format.sprintf "key %s aready exists." key));
   let data = walk env data in
   if occurs_var env key data then raise Occurs else Base.Map.Poly.add_exn env ~key ~data
 ;;

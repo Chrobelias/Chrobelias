@@ -220,37 +220,8 @@ module Id_symantics :
   let str_substr s a b = Ast.Eia.substr s (Ast.Var a) (Ast.Var b)
 end
 
-let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
-  let rec helper = function
-    | Ast.Land xs -> S.land_ (List.map helper xs)
-    | Lor xs -> S.lor_ (List.map helper xs)
-    | Lnot x -> S.not (helper x)
-    | True -> S.true_
-    | Eia e -> helper_eia e
-    | Pred s -> assert false
-    | Exists (vs, ph) ->
-      let vs =
-        List.filter_map
-          (function
-            (* These repeats very often  *)
-            | Ast.Var s -> Some s
-            | Str_const _ | Const _ -> None)
-          vs
-      in
-      S.exists vs (helper ph)
-    | Str (Ast.Str.PrefixOf (term, term')) ->
-      S.str_prefixof (helperT term) (helperT term')
-    | Str (Ast.Str.Contains (term, term')) ->
-      S.str_contains (helperT term) (helperT term')
-    | Str (Ast.Str.SuffixOf (term, term')) ->
-      S.str_suffixof (helperT term) (helperT term')
-    | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helperT term) regex
-  (* | Str (Ast.Str.Eq (term, term')) ->
-      let l = helperT term in
-      let r = helperT term' in
-      (* Format.printf "Apply Str.Eq: l = %a, r = %a\n%!" S.pp_str l S.pp_str r; *)
-      S.str_equal l r *)
-  and helperT = function
+let apply_term_symantics (type a) (module S : SYM_SUGAR with type term = a) =
+  let rec helperT = function
     | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
     | Atom (Str_const s) -> S.str_const s
     | Atom (Ast.Var s) -> S.var s
@@ -282,6 +253,41 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | At (s1, Var a) -> S.str_at (helperT s1) a
     | At (s1, _) -> failwith "unimplemented"
     | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
+  in
+  helperT
+;;
+
+let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
+  let helperT = apply_term_symantics (module S) in
+  let rec helper = function
+    | Ast.Land xs -> S.land_ (List.map helper xs)
+    | Lor xs -> S.lor_ (List.map helper xs)
+    | Lnot x -> S.not (helper x)
+    | True -> S.true_
+    | Eia e -> helper_eia e
+    | Pred s -> assert false
+    | Exists (vs, ph) ->
+      let vs =
+        List.filter_map
+          (function
+            (* These repeats very often  *)
+            | Ast.Var s -> Some s
+            | Str_const _ | Const _ -> None)
+          vs
+      in
+      S.exists vs (helper ph)
+    | Str (Ast.Str.PrefixOf (term, term')) ->
+      S.str_prefixof (helperT term) (helperT term')
+    | Str (Ast.Str.Contains (term, term')) ->
+      S.str_contains (helperT term) (helperT term')
+    | Str (Ast.Str.SuffixOf (term, term')) ->
+      S.str_suffixof (helperT term) (helperT term')
+    | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helperT term) regex
+  (* | Str (Ast.Str.Eq (term, term')) ->
+      let l = helperT term in
+      let r = helperT term' in
+      (* Format.printf "Apply Str.Eq: l = %a, r = %a\n%!" S.pp_str l S.pp_str r; *)
+      S.str_equal l r *)
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
@@ -311,8 +317,14 @@ let make_main_symantics env =
 
     let var s : term =
       match Env.lookup s env with
+      | Some (Eia.Iofs _)
+      | Some (Eia.Sofi _)
+      | Some (Eia.Len _)
+      | Some (Eia.Len2 _)
       | None -> Eia.Atom (Ast.var s)
-      | Some c -> c
+      | Some c ->
+        log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c;
+        c
     ;;
 
     let pow2var v = Ast.Eia.Pow (const Z.(Config.base () |> to_int), var v)
@@ -667,7 +679,7 @@ let make_main_symantics env =
      and type term = Ast.Eia.term)
 ;;
 
-let apply_term_symantics
+(* let apply_term_symantics
   : (module SYM with type term = Ast.Eia.term) -> Ast.Eia.term -> Ast.Eia.term
   =
   fun (module S : SYM with type term = Ast.Eia.term) ->
@@ -711,7 +723,7 @@ let apply_term_symantics
       failwith "tbd"
   in
   helperT
-;;
+;; *)
 
 let subst_term env ast =
   let (module S : SYM_SUGAR_AST) = make_main_symantics env in
@@ -1032,18 +1044,33 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
 ;;
 
 (* TODO: run this inside eq_propagation *)
-let trivial_simplify ast =
-  let (module Symantics) = make_main_symantics Env.empty in
+let trivial_simplify : Ast.Eia.term -> Ast.Eia.term =
+  let (module S) = make_main_symantics Env.empty in
   let rec loop ast =
-    let rez : Ast.t = apply_symantics (module Symantics) ast in
+    let rez : _ = apply_term_symantics (module S) ast in
     if rez = ast then ast else loop rez
   in
-  loop ast
+  loop
 ;;
 
-let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
+let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  let extend_exn env v rhs = Env.extend_exn env v (trivial_simplify rhs) in
+  let fold_and_filter f acc xs =
+    let acc = ref acc in
+    let xs =
+      List.filter_map
+        (fun h ->
+           match f !acc h with
+           | Some acc2 ->
+             acc := acc2;
+             None
+           | None -> Some h)
+        xs
+    in
+    !acc, xs
+  in
   let single info env c1 v1 c2 v2 rhs =
     let c1 = Z.to_int c1 in
     let c2 = Z.to_int c2 in
@@ -1052,10 +1079,10 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       match c1, is_bad v1, c2, is_bad v2 with
       | 1, false, _, _ when Env.is_absent_key v1 env && Env.is_absent_key v2 env ->
         (* Format.printf "%s %d v1=%s, v2=%s\n%!" __FILE__ __LINE__ v1 v2; *)
-        Env.extend_exn env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
+        extend_exn env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
       | _, _, 1, false when Env.is_absent_key v2 env && Env.is_absent_key v2 env ->
         (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
-        Env.extend_exn env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
+        extend_exn env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
       | _ -> env
       (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
       (* Note: presence of key means we already simplified this variable in another equality *)
@@ -1068,42 +1095,41 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
     | Eia (Eia.Eq (Atom (Var v), (Atom (Str_const str) as rhs)))
       when Env.is_absent_key v env ->
       (* (= v 'str') *)
-      Env.extend_exn env v rhs
+      Some (extend_exn env v rhs)
     | Eia (Eia.Eq ((Atom (Str_const str) as rhs), Atom (Var v)))
       when Env.is_absent_key v env ->
       (* (= 'str' v) *)
-      Env.extend_exn env v rhs
-    (* | Str (Str.Eq (Eia.Atom (Var v), (Str.Atom (Var v2) as rhs))) ->
-      if not (Env.is_absent_key v env)
-      then env
-      else if Env.occurs_var env v (`Str rhs)
-      then env
-      else Env.extend_exn env v (`Str rhs)
-    | Str (Str.Eq (Str.Atom (Var v), (Str.Const s2 as rhs))) ->
-      if not (Env.is_absent_key v env) then env else Env.extend_exn env v (`Str rhs)
-    | _ when false ->
-      assert false *)
+      Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var v), (Eia.Sofi (Atom (Var _)) as rhs)))
+      when Env.is_absent_key v env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var v), (Eia.Iofs (Atom (Var _)) as rhs)))
+      when Env.is_absent_key v env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var v), (Eia.Len (Atom (Var _)) as rhs)))
+      when Env.is_absent_key v env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var v), (Eia.Len2 (Var _) as rhs))) when Env.is_absent_key v env
+      -> Some (extend_exn env v rhs)
     (* **************************** integer stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var v), (Atom (Var v2) as rhs))) ->
       if not (Env.is_absent_key v env)
-      then env
+      then None
       else if Env.occurs_var env v rhs
-      then env
-      else Env.extend_exn env v rhs
+      then None
+      else Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var v), (Atom (Const c) as rhs))) when Env.is_absent_key v env ->
       (* (= v c) *)
-      Env.extend_exn env v rhs
+      Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Mul [ Atom (Const _); Atom (Var v) ], (Atom (Const z) as rhs)))
       when Z.(equal z zero) && Env.is_absent_key v env ->
       (* (= ( * c v) 0) *)
-      Env.extend_exn env v rhs
+      Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Mul [ Atom (Const cl); Atom (Var v) ], Atom (Const cr)))
       when Z.(cr mod cl = zero) && Env.is_absent_key v env ->
-      Env.extend_exn env v (Eia.Atom (Const Z.(cr / cl)))
+      let rhs = Eia.Atom (Const Z.(cr / cl)) in
+      Some (extend_exn env v rhs)
     | Eia (Eia.Eq ((Mul [ Atom (Const cl); Atom (Var v) ] as lhs), Atom (Var r)))
       when Env.is_absent_key r env ->
       (* (= ( * c v) vr) *)
-      Env.extend_exn env r lhs
+      Some (extend_exn env r lhs)
     | Eia
         (Eia.Eq
            ( Add [ Atom (Var v1); Mul [ Atom (Const c); (Atom (Var v2) as vv2) ] ]
@@ -1111,25 +1137,25 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
       when Z.(equal z0 zero) && Env.is_absent_key v1 env ->
       (* (= (+ v1 v2) rhs) *)
       if Env.occurs_var env v1 vv2
-      then env
+      then None
       else (
         let new_rhs =
           if Z.(equal c minus_one)
           then Eia.Atom (Var v2)
           else Eia.Mul [ Atom (Const Z.(-c)); Atom (Var v2) ]
         in
-        Env.extend_exn env v1 new_rhs)
+        Some (extend_exn env v1 new_rhs))
     | Eia (Eia.Eq (Add [ Atom (Var v1); Atom (Var v2) ], rhs)) when v1 <> v2 ->
       (* (= (+ v1 v2) rhs) *)
-      single info env Z.one v1 Z.one v2 rhs
+      Some (single info env Z.one v1 Z.one v2 rhs)
     | Eia (Eia.Eq (Add [ Atom (Var v1); Mul [ Atom (Const c2); Atom (Var v2) ] ], rhs))
       when v1 <> v2 ->
       (* (= (+ v1 ( * c v2)) rhs) *)
-      single info env Z.one v1 c2 v2 rhs
+      Some (single info env Z.one v1 c2 v2 rhs)
     | Eia (Eia.Eq (Add [ Mul [ Atom (Const c1); Atom (Var v1) ]; Atom (Var v2) ], rhs))
       when v1 <> v2 ->
       (* (= (+ ( * c v1) v2) rhs) *)
-      single info env c1 v1 Z.one v2 rhs
+      Some (single info env c1 v1 Z.one v2 rhs)
     | Eia
         (Eia.Eq
            ( Add
@@ -1137,7 +1163,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
                ; Mul [ Atom (Const c2); Atom (Var v2) ]
                ]
            , rhs ))
-      when v1 <> v2 -> single info env c1 v1 c2 v2 rhs
+      when v1 <> v2 -> Some (single info env c1 v1 c2 v2 rhs)
     | Eia (Eia.Eq (Add sums, Atom (Const rhs))) when Z.(zero = rhs) ->
       (* (= (+ ...) 0) *)
       let not_touched_by_env env term =
@@ -1152,7 +1178,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
         | Exit -> false
       in
       let maybe_extend env v data ~fk =
-        if not (Env.occurs_var env v data) then Env.extend_exn env v data else fk ()
+        if not (Env.occurs_var env v data) then extend_exn env v data else fk ()
       in
       let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
       let rec loop acc = function
@@ -1160,7 +1186,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
         | Eia.Atom (Var v) :: xs when Env.is_absent_key v env && not (is_bad v) ->
           let data = S.(mul [ const (-1); add (acc @ xs) ]) in
           if not (Env.occurs_var env v data)
-          then Env.extend_exn env v data
+          then extend_exn env v data
           else loop (Eia.Atom (Var v) :: acc) xs
         | (Mul [ Atom (Const c); Eia.Atom (Var v) ] as leftmost) :: xs
           when Env.is_absent_key v env
@@ -1173,24 +1199,29 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t =
         | h :: tl -> loop (h :: acc) tl
         | [] -> raise Exit
       in
-      (try loop [] sums with
-       | Exit -> env)
+      (try Some (loop [] sums) with
+       | Exit -> None)
     | _ ->
       (* log "OTHERWISE  ast part = @[%a@]" Ast.pp_smtlib2 ast; *)
-      env
+      None
   in
   fun info env ast ->
     match ast with
-    | Land xs -> List.fold_left (helper info) env xs
-    | Eia _ -> helper info env ast
-    | _ -> env
+    | Land xs ->
+      let env, xs = fold_and_filter (helper info) env xs in
+      env, Land xs
+    | Eia _ ->
+      (match helper info env ast with
+       | Some e -> e, Ast.True
+       | None -> env, ast)
+    | ph -> env, ph
 ;;
 
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ?(env = [ "x"; "y"; "z" ]) ?(exp = []) ph =
     let info = Info.make ~all:env ~exp ~str:[] in
-    let env2 = eq_propagation info Env.empty ph in
+    let env2, _ = eq_propagation info Env.empty ph in
     Format.printf "@[%a@]\n%!" (Env.pp ~title:"") env2
   in
   test TS.(add [ mul [ const 1; var "x" ]; mul [ const 2; var "y" ] ] = var "z");
@@ -1310,10 +1341,12 @@ let basic_simplify step (env : Env.t) ast =
     let (module Symantics) = make_main_symantics env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
+    (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
     let ast2 = propagate_exponents ast2 in
+    let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
-    let env2 = eq_propagation var_info env ast in
+    let env2, ast2 = eq_propagation var_info env ast2 in
     let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
@@ -1335,7 +1368,7 @@ let run_basic_simplify ast =
   let ast = lower_strlen ast in
   let ast = lower_mod ast in
   (* let ast = SimplI.run_simplify ast in *)
-  let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
+  let _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat ("presimpl", env)
   | `Unsat -> `Unsat
@@ -1366,6 +1399,8 @@ let try_under2_heuristics env ast =
     "vars_for_under2: %a\n%!"
     Format.(pp_print_list pp_print_string)
     (Base.Set.to_list under2vars);
+  log "@[%a@]" (Env.pp ~title:"env = ") env;
+  log "ast = @[%a@]" Ast.pp_smtlib2 ast;
   let ( let* ) xs f = List.concat_map f xs in
   let _k = 0 in
   let envs =
@@ -1522,6 +1557,7 @@ let simpl bound ast =
            (* Underapprox II *)
            (* TODO(Kakadu): enrich environment  *)
            let env = Env.empty in
+           log "%s %d" __FILE__ __LINE__;
            let asts = try_under2_heuristics env ast in
            let asts =
              List.filter_map
@@ -1560,9 +1596,7 @@ let run_under1 bound ast : [> `Sat of string * Env.t | `Unknown ] =
   else `Unknown
 ;;
 
-let run_under2 ast =
-  (* TODO(Kakadu): enrich environment  *)
-  let env = Env.empty in
+let run_under2 env ast =
   let asts = try_under2_heuristics env ast in
   let asts =
     List.filter_map

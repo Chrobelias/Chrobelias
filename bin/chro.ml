@@ -121,7 +121,7 @@ let check_sat ?(verbose = false) ast : rez =
       <+> (fun ast e ->
       if Lib.Config.is_under2_enabled ()
       then (
-        match Lib.SimplII.run_under2 ast with
+        match Lib.SimplII.run_under2 e ast with
         | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty)
         | `Underapprox asts ->
           if Lib.Config.config.dump_pre_simpl
