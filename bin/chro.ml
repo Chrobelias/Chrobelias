@@ -107,17 +107,6 @@ let check_sat ?(verbose = false) ast : rez =
         | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Result.Ok Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
-      <+> (fun ast e ->
-      match Lib.SimplII.has_unsupported_nonlinearity ast with
-      | Result.Ok () -> unknown ast e
-      | Error terms ->
-        (* TODO(Kakadu): Print leftover AST too *)
-        Format.printf "@[<v 2>";
-        Format.printf "@[Non linear arithmetic between@]@,";
-        List.iteri (fun i -> Format.printf "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
-        Format.printf "@]@,";
-        let () = report_result2 (`Unknown "non-linear") in
-        exit 0)
       <+> fun ast e ->
       if Lib.Config.config.over_approx_early
       then (
@@ -128,6 +117,19 @@ let check_sat ?(verbose = false) ast : rez =
           Unsat "over early" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
       else
         unknown ast e
+        <+> (fun ast e ->
+        match Lib.SimplII.has_unsupported_nonlinearity ast with
+        | Result.Ok () -> unknown ast e
+        | Error terms ->
+          (* TODO(Kakadu): Print leftover AST too *)
+          Format.printf "@[<v 2>";
+          Format.printf "@[Non linear arithmetic between@]@,";
+          List.iteri
+            (fun i -> Format.printf "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2)
+            terms;
+          Format.printf "@]@,";
+          let () = report_result2 (`Unknown "non-linear") in
+          exit 0)
         <+> (fun ast e ->
         if Lib.Config.is_under2_enabled ()
         then (
@@ -304,7 +306,11 @@ let () =
         | Some state -> asserts @ get_ast state
         | None -> asserts
       in
-      let ast = Lib.Ast.land_ (expr_irs @ get_ast state) in
+      let all_asserts = expr_irs @ get_ast state in
+      let ast =
+        Lib.Ast.land_
+          (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
+      in
       let rez = check_sat ~verbose:true ast in
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
