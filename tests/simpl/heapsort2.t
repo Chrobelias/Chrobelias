@@ -21,12 +21,6 @@ $ export CHRO_DEBUG=1
   $ timeout 2 Chro -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   sat (presimpl)
 
-
-
-
-
-
-
   $ cat > test.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun it1 () Int)
@@ -66,3 +60,5 @@ Run solver
   $ timeout 2  Chro  -no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
   sat (under I)
 
+  $ Chro -dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_617.smt2
+  sat (presimpl)
