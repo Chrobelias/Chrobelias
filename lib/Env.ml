@@ -67,7 +67,8 @@ let occurs_var_exn =
          | Eia.Pow (l, r) ->
            helper env v l;
            helper env v r
-         | Eia.Sofi x | Eia.Iofs x | Eia.Len x -> helper env v x
+         | Eia.Sofi x | Iofs x | Len x -> helper env v x
+         | Len2 (Var v2) -> if String.equal v v2 then raise Occurs
          | x -> Format.kasprintf failwith "not implemented: %a" Ast.pp_term_smtlib2 x)
       ()
       term
@@ -106,7 +107,8 @@ let extend_exn : t -> _ -> _ -> t =
   then raise Occurs
   else (
     match data with
-    | Ast.Eia.Sofi _ -> { e with cstrts = add_cstrt e.cstrts ~key data }
+    | Ast.Eia.Iofs _ | Len _ | Len2 _ | Sofi _ ->
+      { e with cstrts = add_cstrt e.cstrts ~key data }
     | _ -> { e with env = SM.add_exn e.env ~key ~data })
 ;;
 
