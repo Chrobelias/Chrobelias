@@ -1284,11 +1284,16 @@ let lower_strlen ast =
     let eq l r =
       let () =
         match l, r with
-        | Atom (Var v), Len l | Len l, Atom (Var v) ->
+        | Atom (Var v), (Iofs l as rhs)
+        | (Iofs l as rhs), Atom (Var v)
+        | Atom (Var v), (Sofi l as rhs)
+        | (Sofi l as rhs), Atom (Var v)
+        | Atom (Var v), (Len l as rhs)
+        | (Len l as rhs), Atom (Var v) ->
           if Env.is_absent_key v !env
-          then env := Env.extend_exn !env v (Len l)
-          else forgotten := Env.extend_exn !forgotten v (Len l);
-          names := Base.Map.Poly.set !names ~key:(Len l) ~data:v
+          then env := Env.extend_exn !env v rhs
+          else forgotten := Env.extend_exn !forgotten v rhs;
+          names := Base.Map.Poly.set !names ~key:rhs ~data:v
         | _ -> ()
       in
       eq l r
