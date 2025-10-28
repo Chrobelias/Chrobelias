@@ -1,35 +1,45 @@
-type t = (string, Ast.Eia.term) Base.Map.Poly.t
+module SM = struct
+  include Map.Make (Base.String)
+
+  let iteri ~f m = iter (fun key data -> f ~key ~data) m
+  let find_exn m k = find k m
+  let find m k = find_opt k m
+  let mem env k = mem k env
+  let add_exn m ~key ~data = add key data m
+end
+
+type t = { env : Ast.Eia.term SM.t }
 
 let pp ?(title = "") : Format.formatter -> t -> unit =
   let open Format in
-  fun ppf s ->
+  fun ppf { env = s } ->
     if title = ""
     then (
       fprintf ppf "@[<hov> ";
-      Base.Map.iteri s ~f:(fun ~key ~data ->
+      SM.iteri s ~f:(fun ~key ~data ->
         fprintf ppf "@[%s -> @[%a@];@]@ " key Ast.pp_term_smtlib2 data);
       fprintf ppf "@]")
     else (
       fprintf ppf "@[<v 6>@[%s@]@," title;
-      Base.Map.iteri s ~f:(fun ~key ~data ->
+      SM.iteri s ~f:(fun ~key ~data ->
         fprintf ppf "@[%s -> @[%a@]@]@," key Ast.pp_term_smtlib2 data);
       fprintf ppf "@]")
 [@@ocaml.warning "-32"]
 ;;
 
-let walk =
-  fun env ->
+let walk : t -> _ =
+  fun e ->
   let f = function
     | Ast.Eia.Atom (Ast.Var s) as orig ->
-      (match Base.Map.Poly.find_exn env s with
-       | exception Base.Not_found_s _ -> orig
+      (match SM.find_exn e.env s with
+       | exception Not_found -> orig
        | t -> t)
     | t -> t
   in
   Ast.map_term f
 ;;
 
-(* let is_absent_key k map = not (Base.Map.Poly.mem map k) *)
+(* let is_absent_key k map = not (SM.mem map k) *)
 
 exception Occurs
 
@@ -42,7 +52,7 @@ let occurs_var_exn =
          function
          | Eia.Atom (Var v2) when String.equal v v2 -> raise Occurs
          | Eia.Atom (Var v2) ->
-           (match Base.Map.Poly.find env v2 with
+           (match SM.find env v2 with
             | None -> ()
             | Some t -> helper env v t)
          | Atom (Const _) | Atom (Str_const _) -> ()
@@ -55,7 +65,7 @@ let occurs_var_exn =
       ()
       term
   in
-  fun env v t -> helper env v t
+  fun env v t -> helper env.env v t
 ;;
 
 let occurs_var env v term =
@@ -66,51 +76,66 @@ let occurs_var env v term =
   | Occurs -> true
 ;;
 
-let find_exn = Base.Map.Poly.find_exn
-
 let extend_exn : t -> _ -> _ -> t =
-  fun env key data ->
-  if Base.Map.Poly.mem env key
+  fun e key data ->
+  if SM.mem e.env key
   then (
-    Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 (find_exn env key);
+    Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 (SM.find_exn e.env key);
     Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
     failwith (Format.sprintf "key %s aready exists." key));
-  let data = walk env data in
-  if occurs_var env key data then raise Occurs else Base.Map.Poly.add_exn env ~key ~data
+  let data = walk e data in
+  if occurs_var e key data then raise Occurs else { env = SM.add_exn e.env ~key ~data }
 ;;
 
-let empty : t = Base.Map.Poly.empty
-let is_empty = Base.Map.Poly.is_empty
-let length = Base.Map.Poly.length [@@warning "-32"]
-let lookup k map = Base.Map.Poly.find map k
-let lookup_exn k map = Base.Map.Poly.find_exn map k
-let is_absent_key k map = not (Base.Map.Poly.mem map k)
-let fold : t -> _ = Base.Map.Poly.fold
+let empty : t = { env = SM.empty }
+let is_empty { env } = SM.is_empty env
+let length { env } = SM.cardinal env [@@warning "-32"]
+let lookup k { env = map } = SM.find map k
+let lookup_exn k { env } = SM.find_exn env k
+let is_absent_key k { env } = not (SM.mem env k)
+let fold { env } ~init ~f = SM.fold (fun key data acc -> f ~key ~data acc) env init
+
+let filter_mapi ~f { env } : (string, _) Base.Map.Poly.t =
+  SM.fold
+    (fun key data acc ->
+       match f ~key ~data with
+       | None -> acc
+       | Some x -> Base.Map.Poly.add_exn acc ~key ~data:x)
+    env
+    Base.Map.Poly.empty
+;;
 
 let merge : t -> t -> t =
-  Base.Map.Poly.merge_skewed ~combine:(fun ~key v1 v2 ->
-    if Stdlib.(v1 = v2)
-    then v1
-    else
-      (*Format.eprintf "v1 = %a\n%!" Ast.pp_term_smtlib2 v1;
-      Format.eprintf "v2 = %a\n%!" Ast.pp_term_smtlib2 v2;*)
-      failwith "We tried to subtitute a varible by two different terms")
+  fun e1 e2 ->
+  let env =
+    SM.merge
+      (fun key v1 v2 ->
+         if Stdlib.(v1 = v2)
+         then v1
+         else failwith "We tried to subtitute a varible by two different terms")
+      e1.env
+      e2.env
+  in
+  { env }
 ;;
 
 let to_eqs : t -> Ast.t list =
-  Base.Map.Poly.fold ~init:[] ~f:(fun ~key ~data acc ->
-    match data with
-    | data -> Ast.Eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.Var key)) data) :: acc)
+  fun { env } ->
+  SM.fold
+    (fun key data acc ->
+       match data with
+       | data -> Ast.Eia (Ast.Eia.eq (Ast.Eia.Atom (Ast.Var key)) data) :: acc)
+    env
+    []
 ;;
 
 let enrich m other =
   let _ : t = m in
   let _ : (Ast.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t = other in
-  Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
+  Base.Map.fold other ~init:m.env ~f:(fun ~key ~data acc ->
     match key, data with
-    | Ast.Var s, `Int z -> Base.Map.Poly.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Const z))
-    | Ast.Var s, `Str z ->
-      Base.Map.Poly.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Str_const z))
+    | Ast.Var s, `Int z -> SM.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Const z))
+    | Ast.Var s, `Str z -> SM.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Str_const z))
     | key, `Int z ->
       Format.eprintf "@[%a ~~> %a@]\n" Ast.pp_atom key Z.pp_print z;
       failwith "Enriching model is not fully implemented"
@@ -118,4 +143,5 @@ let enrich m other =
       Format.eprintf "@[%a ~~> %S@]\n" Ast.pp_atom key z;
       failwith "Enriching model is not fully implemented"
     (* | _ -> failwith "Enriching model is not fully implemented" *))
+  |> fun env -> { env }
 ;;

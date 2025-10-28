@@ -1,4 +1,4 @@
-type t = (string, Ast.Eia.term) Base.Map.Poly.t
+type t
 
 exception Occurs
 
@@ -16,3 +16,8 @@ val to_eqs : t -> Ast.t list
 val enrich : t -> (Ast.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
 val occurs_var : t -> string -> Ast.Eia.term -> bool
 val walk : t -> Ast.Eia.term -> Ast.Eia.term
+
+val filter_mapi
+  :  f:(key:string -> data:Ast.Eia.term -> 'a option)
+  -> t
+  -> (string, 'a) Base.Map.Poly.t

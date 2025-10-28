@@ -255,6 +255,7 @@ module Str = struct
   let u_one = '1'
   let u_null = Char.chr 0
   let u_eos = Char.chr 3
+  let is_end_char c = c <> u_eos && c <> u_null
 
   let pp ppf (vec : t) =
     Array.to_seq vec

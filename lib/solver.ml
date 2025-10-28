@@ -1584,12 +1584,7 @@ let check_sat ir
                        let s =
                          List.rev v
                          |> List.to_seq
-                         |> Seq.map (fun c ->
-                           if c = Nfa.Str.u_eos
-                           then '0'
-                           else if c = Nfa.Str.u_null
-                           then '0'
-                           else c)
+                         |> Seq.map (fun c -> if Nfa.Str.is_end_char c then '0' else c)
                          |> String.of_seq
                        in
                        if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
@@ -1614,7 +1609,7 @@ let check_sat ir
                  model
              in
              let env_model =
-               Map.filter_mapi
+               Env.filter_mapi
                  ~f:(fun ~key ~data ->
                    let ( let* ) = Option.bind in
                    let rec aux = function
@@ -1651,15 +1646,6 @@ let check_sat ir
                            data;
                          None
                      end
-                     (* | `Str data ->
-                       Format.printf
-                         "Warning: some of the str model pieces are likely to be missed: \
-                          %s = %a\n\
-                          %!"
-                         key
-                         Ast.Str.pp_term
-                         data;
-                       None *)
                    end)
                  env
                |> Map.map_keys_exn ~f:(fun v -> Ir.var v)

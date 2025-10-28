@@ -221,7 +221,7 @@ let join_int_model prefix m =
   in
   (* log "prefix.length = %d" (Env.length prefix); *)
   let rec seek key =
-    match Map.find_exn prefix key with
+    match Env.lookup_exn key prefix with
     | eia -> begin
       match SimplII.subst_term prefix eia with
       | Ast.Eia.Atom (Ast.Const c) -> Option.some (`Int c)
