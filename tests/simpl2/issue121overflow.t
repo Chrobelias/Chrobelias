@@ -4,6 +4,7 @@
   > (declare-fun x () Int)
   > (assert (>= x (exp 2 1000)))
   > (check-sat)
+  > (get-model)
   > EOF
   $ Chro -no-over-approx -bound 0 -pre-simpl -dsimpl testS1.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
