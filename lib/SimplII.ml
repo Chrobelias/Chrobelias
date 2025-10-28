@@ -323,7 +323,7 @@ let make_main_symantics env =
       | Some (Eia.Len2 _)
       | None -> Eia.Atom (Ast.var s)
       | Some c ->
-        log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c;
+        (* log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c; *)
         c
     ;;
 
@@ -1208,8 +1208,9 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
   fun info env ast ->
     match ast with
     | Land xs ->
-      let env, xs = fold_and_filter (helper info) env xs in
-      env, Land xs
+      let env, ys = fold_and_filter (helper info) env xs in
+      let ans_ph = if ys = [] && xs <> [] then True else Land ys in
+      env, ans_ph
     | Eia _ ->
       (match helper info env ast with
        | Some e -> e, Ast.True
@@ -1336,7 +1337,10 @@ let lower_strlen ast =
   let _ : Ast.t = apply_symantics_unsugared (module Collector) ast in
   match apply_symantics_unsugared (module Lowering) ast with
   | Ast.Land xs ->
-    Ast.Land (Env.to_eqs !env @ Env.to_eqs !forgotten @ List.map Id_symantics.prj xs)
+    let new_phs =
+      Env.to_eqs !env @ Env.to_eqs !forgotten @ List.map Id_symantics.prj xs
+    in
+    if new_phs = [] && xs <> [] then Ast.True else Ast.Land new_phs
   | ph -> Ast.Land ((ph :: Env.to_eqs !env) @ Env.to_eqs !forgotten)
 ;;
 
