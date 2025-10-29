@@ -5,15 +5,20 @@ module Binder = Smtml.Binder
 
 let failf fmt = Format.kasprintf failwith fmt
 
+type r =
+  | Str of string Ast.Eia.term
+  | Int of Z.t Ast.Eia.term
+[@@deriving variants]
+
 let rec to_string orig_expr =
   let expr = Expr.view orig_expr in
   match expr with
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
-    Ast.Eia.Atom (Ast.var var)
+    Ast.Eia.Atom (Ast.str_var var)
   | Expr.Val v -> begin
     match v with
-    | Str s -> Ast.Eia.Atom (Str_const s)
+    | Str s -> Ast.Eia.(Str_const s)
     | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
   end
   | Expr.Naryop (_, Ty.Naryop.Concat, ls) ->
@@ -26,7 +31,7 @@ let rec to_string orig_expr =
   | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ expr ])
   | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.ToString, expr) ->
-    let str : Ast.Eia.term = to_eia_term expr in
+    let str : Z.t Ast.Eia.term = to_eia_term expr in
     begin
       match str with
       | Ast.Eia.Atom atom -> Ast.Eia.Sofi (Atom atom)
@@ -36,21 +41,18 @@ let rec to_string orig_expr =
     let str = to_string str in
     let from =
       match to_eia_term from with
-      | Ast.Eia.Atom atom -> atom
-      | _ -> failwith "tbd 1"
+      | atom -> atom
     in
     let to' =
       match to_eia_term to' with
-      | Ast.Eia.Atom atom -> atom
-      | _ -> failwith "tbd 2"
+      | atom -> atom
     in
     Ast.Eia.substr str from to'
   | Expr.Binop (_, Ty.Binop.At, str, sym) ->
     let str = to_string str in
     let sym =
       match to_eia_term sym with
-      | Ast.Eia.Atom atom -> atom
-      | _ -> failwith "tbd 3"
+      | atom -> atom
     in
     Ast.Eia.at str sym
   | _ -> failf "unable to handle %a as string" Expr.pp orig_expr
@@ -64,7 +66,7 @@ and to_regex orig_expr =
   | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
     let str =
       match to_string expr with
-      | Atom (Ast.Str_const s) -> s
+      | Ast.Eia.Str_const s -> s
       | _ -> failf "unable to create regex dynamically in %a" Expr.pp expr
     in
     str
@@ -82,12 +84,12 @@ and to_regex orig_expr =
     in
     let lhs =
       match to_string lhs with
-      | Ast.Eia.Atom (Str_const s) -> s
+      | Ast.Eia.(Str_const s) -> s
       | _ -> failf "unable to create regex dynamically in %a" Expr.pp orig_expr
     in
     let rhs =
       match to_string rhs with
-      | Ast.Eia.Atom (Str_const s) -> s
+      | Ast.Eia.(Str_const s) -> s
       | _ -> failf "unable to create regex dynamically in %a" Expr.pp orig_expr
     in
     let () =
@@ -122,13 +124,13 @@ and to_regex orig_expr =
     failwith "complements are not implemented yet since they would explode NFAs"
   | _ -> failf "unable to handle %a as regex" Expr.pp orig_expr
 
-and to_eia_term orig_expr =
-  let neg eia_term = Ast.Eia.mul [ Ast.Eia.atom (Ast.const Z.minus_one); eia_term ] in
+and to_eia_term orig_expr : Z.t Ast.Eia.term =
+  let neg eia_term = Ast.Eia.mul [ Ast.Eia.const Z.minus_one; eia_term ] in
   let expr = Expr.view orig_expr in
   match expr with
   | Expr.Val v -> begin
     match v with
-    | Int d -> Ast.Eia.atom (Ast.const (Z.of_int d))
+    | Int d -> Ast.Eia.const (Z.of_int d)
     | _ -> failf "unable to handle %a as integer term" Expr.pp orig_expr
   end
   | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ expr ])
@@ -137,12 +139,12 @@ and to_eia_term orig_expr =
     Ast.Eia.iofs str
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
-    Ast.Eia.atom (Ast.var var)
+    Ast.Eia.atom (Ast.int_var var)
   (* Semenov arithmetic, i.e. 2**x operators. *)
   | Expr.App ({ name = Symbol.Simple "pow2"; _ }, [ expr ]) ->
-    Ast.Eia.pow (Ast.Eia.atom (Ast.const (Z.of_int 2))) (to_eia_term expr)
+    Ast.Eia.pow (Ast.Eia.const (Z.of_int 2)) (to_eia_term expr)
   | Expr.App ({ name = Symbol.Simple "pow10"; _ }, [ expr ]) ->
-    Ast.Eia.pow (Ast.Eia.atom (Ast.const (Z.of_int 10))) (to_eia_term expr)
+    Ast.Eia.pow Ast.Eia.(const (Z.of_int 10)) (to_eia_term expr)
   | Expr.App ({ name = Symbol.Simple "exp"; _ }, [ base; exp ]) ->
     Ast.Eia.pow (to_eia_term base) (to_eia_term exp)
   (* Bit-wise operations *)
@@ -289,7 +291,7 @@ and _to_ir tys orig_expr =
                    | Symbol { name = Symbol.Simple "Int"; _ } -> true
                    | _ -> false ->
               let var = Symbol.to_string symbol in
-              Ast.var var
+              Ast.Any_atom (Ast.int_var var)
             | _ -> failwith "Unexpected value in quantifier"
         end
         atoms
@@ -298,39 +300,36 @@ and _to_ir tys orig_expr =
   | Expr.Binder (Binder.Let_in, bindings, expr) -> begin
     let ast = _to_ir tys expr in
     List.fold_left
-      begin
-        fun acc binding ->
-          match Expr.view binding with
-          | Expr.App (symbol, [ expr ]) ->
-            let symbol = Symbol.to_string symbol in
-            begin
-              match expr |> _to_ir tys with
-              | ast' ->
+      (fun acc binding ->
+         match Expr.view binding with
+         | Expr.App (symbol, [ expr ]) ->
+           let symbol = Symbol.to_string symbol in
+           (match expr |> _to_ir tys with
+            | ast' ->
+              Ast.map
+                (function
+                  | Ast.Pred symbol' when symbol = symbol' -> ast'
+                  | ast -> ast)
+                acc
+            | exception _ -> begin
+              match to_eia_term expr with
+              | eia' ->
                 Ast.map
                   (function
-                    | Ast.Pred symbol' when symbol = symbol' -> ast'
+                    | Ast.Eia eia ->
+                      Ast.eia
+                        (Ast.Eia.map2
+                           Fun.id
+                           (function
+                             | Ast.Eia.Atom (Ast.Var (v, _)) when v = symbol -> eia'
+                             | term -> term)
+                           Fun.id
+                           eia)
                     | ast -> ast)
                   acc
-              | exception _ -> begin
-                match expr |> to_eia_term with
-                | eia' ->
-                  Ast.map
-                    (function
-                      | Ast.Eia eia ->
-                        Ast.eia
-                          (Ast.Eia.map2
-                             Fun.id
-                             (function
-                               | Ast.Eia.Atom (Ast.Var v) when v = symbol -> eia'
-                               | term -> term)
-                             eia)
-                      | ast -> ast)
-                    acc
-                | exception _ -> failwith "Unexpected construction in let-in binding"
-              end
-            end
-          | _ -> failwith "Unexpected construction in let-in binding"
-      end
+              | exception _ -> failwith "Unexpected construction in let-in binding"
+            end)
+         | _ -> failwith "Unexpected construction in let-in binding")
       ast
       bindings
   end
