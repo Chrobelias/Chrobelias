@@ -63,30 +63,34 @@ let apply_symnatics (module S : Smtml_symantics) =
       let vs =
         List.filter_map
           (function
-            | Ast.Var s -> Some s
-            | Str_const _ | Const _ -> None)
+            | Ast.Any_atom (Ast.Var (s, _)) -> Some s)
           vs
       in
       S.exists vs (helper ph)
     | Str _ -> Symantics.true_
   and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
-    | Atom (Ast.Var s) -> S.var s
+    | Ast.Eia.Const n -> S.const (Z.to_int n)
+    | Atom (Ast.Var (s, _)) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.of_int 2 ->
+    | Pow (Const base, Atom (Ast.Var (x, _k))) when base = Z.of_int 2 ->
       Symantics.var (gensym x)
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Mod (t, z) -> S.mod_ (helperT t) z
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
-    | Concat _ | At _ | Substr _
-    | Ast.Eia.Atom (Str_const _)
-    | Len _ | Sofi _ | Iofs _ | Len2 _ -> raise String_op
-  and helper_eia eia =
+    | Concat _ | At _ | Substr _ | Ast.Eia.Str_const _ | Len _ | Sofi _ | Iofs _ | Len2 _
+      -> raise String_op
+  and helper_eia ph =
     try
-      match eia with
-      | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
+      let open Ast in
+      let open Ast.Eia in
+      match ph with
       | Leq (l, r) -> S.(helperT l <= helperT r)
+      | Eq (Atom (Var (name, I)), r) ->
+        (* assert false *)
+        S.(helperT (Atom (Var (name, I))) = helperT r)
+      | Eq (Atom (Var (_, S)), _) -> raise String_op
+      | _ -> failwith "Gosha, implement plz"
     with
     | String_op | Bitwise_op -> Symantics.true_
   in
