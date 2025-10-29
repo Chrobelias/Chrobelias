@@ -8,8 +8,6 @@ let compare_char = Char.compare
 type atom =
   | Var of string
   (* TODO: such constants should be in the EIA theory. *)
-  | Const of Z.t
-  | Str_const of string
 [@@deriving variants, compare]
 
 let pp_atom ppf = function
@@ -21,24 +19,26 @@ let pp_atom ppf = function
 module Eia = struct
   (** Exponential integer arithmetic, i.e. LIA with exponents.*)
 
-  type term =
-    | Atom of atom
-    | Len of term
-    | Add of term list
-    | Mul of term list
-    | Mod of term * Z.t
-    | Bwand of term * term
-    | Bwor of term * term
-    | Bwxor of term * term
-    | Pow of term * term
+  type 'a term =
+    | Const : Z.t -> Z.t term
+    | Str_const : string -> string term
+    | Atom : atom -> 'a term
+    | Len : string term -> Z.t term
+    | Add : Z.t term list -> Z.t term
+    | Mul :  Z.t term list -> Z.t term
+    | Mod : Z.t term * Z.t -> Z.t term
+    | Bwand : Z.t term * Z.t term -> Z.t term
+    | Bwor : Z.t term * Z.t term -> Z.t term
+    | Bwxor : Z.t term * Z.t term -> Z.t term
+    | Pow : Z.t term * Z.t term -> Z.t term
     (* String stuff *)
-    | Sofi of term (** String of int *)
-    | Iofs of term (** Int of string *)
+    | Sofi : Z.t term -> string term
+    | Iofs : string term -> Z.t term
     | Len2 of atom
-    | Concat of term * term
-    | At of term * atom
-    | Substr of term * atom * atom
-  [@@deriving variants, compare]
+    | Concat : string term * string term -> string term
+    | At : string term * Z.t term -> string term
+    | Substr : string term * Z.t term * Z.t term -> string term
+  [@@deriving variants]
 
   let is_constant_term =
     let exception Early of Z.t in
