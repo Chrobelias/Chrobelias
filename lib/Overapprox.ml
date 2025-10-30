@@ -2,8 +2,14 @@ let log = Debug.printfln
 
 module type Smtml_symantics = sig
   include FT_SIG.z_term with type term := Smtml.Expr.t
-  include FT_SIG.str_term with type term := Smtml.Expr.t
-  include FT_SIG.s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
+  include FT_SIG.str_term with type term := Smtml.Expr.t and type str := Smtml.Expr.t
+
+  include
+    FT_SIG.s_ph
+    with type ph := Smtml.Expr.t
+     and type term = Smtml.Expr.t
+     and type str = Smtml.Expr.t
+
   include FT_SIG.s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 
   val exists : string list -> Smtml.Expr.t -> Smtml.Expr.t

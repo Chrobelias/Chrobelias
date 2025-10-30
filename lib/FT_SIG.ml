@@ -34,6 +34,7 @@ end
 
 module type s_ph = sig
   type ph
+  type str
   type term
 
   val land_ : ph list -> ph
@@ -41,10 +42,11 @@ module type s_ph = sig
   val not : ph -> ph
   val true_ : ph
   val false_ : ph
-  val eq : term -> term -> ph
+  val eqz : term -> term -> ph
+  val eq_str : str -> str -> ph
   val leq : term -> term -> ph
   val lt : term -> term -> ph
-  val in_re : term -> char list Regex.t -> ph
+  val in_re : str -> char list Regex.t -> ph
 end
 
 module type s_extra = sig
@@ -64,12 +66,12 @@ module Sugar (S : sig
     val pow : term -> term -> term
 
     (* val constz : Z.t -> term *)
-    val eq : term -> term -> ph
+    val eqz : term -> term -> ph
     val leq : term -> term -> ph
     val lt : term -> term -> ph
   end) =
 struct
-  let ( = ) = S.eq
+  let ( = ) = S.eqz
   let ( < ) = S.lt
   let ( <= ) = S.leq
   let ( ** ) b e = S.pow b e
@@ -78,7 +80,13 @@ end
 module To_smtml_symantics : sig
   include str_term with type term = Smtml.Expr.t and type str = Smtml.Expr.t
   include z_term with type term = Smtml.Expr.t
-  include s_ph with type term = Smtml.Expr.t and type ph = Smtml.Expr.t
+
+  include
+    s_ph
+    with type term = Smtml.Expr.t
+     and type ph = Smtml.Expr.t
+     and type str = Smtml.Expr.t
+
   include s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 end = struct
   open Smtml
@@ -141,10 +149,11 @@ end = struct
   let in_re _ _ = failwith __FILE__
 
   (* let exists vars x = Smtml.Expr.exists (List.map var vars) x *)
-  let eq l r = Smtml.(Expr.relop Ty.Ty_bool Ty.Relop.Eq l r)
+  let eqz l r = Smtml.(Expr.relop Ty.Ty_bool Ty.Relop.Eq l r)
+  let eq_str _ _ = failwith "tbd"
   let leq l r = Smtml.(Expr.relop Ty.Ty_int Ty.Relop.Le l r)
   let lt l r = Smtml.(Expr.relop Ty.Ty_int Ty.Relop.Lt l r)
-  let ( = ) = eq
+  let ( = ) = eqz
   let ( < ) = lt
   let ( <= ) = leq
   let ( ** ) b e = pow b e

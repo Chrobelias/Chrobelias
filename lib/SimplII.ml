@@ -101,24 +101,26 @@ module type SYM0 = sig
 
   include FT_SIG.z_term with type term := term
   include FT_SIG.str_term with type term := term and type str := str
-  include FT_SIG.s_ph with type ph := ph and type term := term
+  include FT_SIG.s_ph with type ph := ph and type term := term and type str := str
 
-  val sofi : term -> term
-  val iofs : term -> term
-  val str_from_eia_const : Z.t -> term
+  val sofi : term -> str
+  val iofs : str -> term
+
+  (** TODO(Kakadu): I forgot what it is *)
+  val str_from_eia_const : Z.t -> str
+
   val str_len2 : string -> term
-  val str_at : term -> string -> term
-  val str_substr : term -> string -> string -> term
-  val str_prefixof : term -> term -> ph
-  val str_contains : term -> term -> ph
-  val str_suffixof : term -> term -> ph
+  val str_at : str -> string -> str
+  val str_substr : str -> term -> term -> str
+  val str_prefixof : str -> str -> ph
+  val str_contains : str -> str -> ph
+  val str_suffixof : str -> str -> ph
 
   (* String formulas *)
-  val str_concat : term -> term -> term
-  val str_equal : term -> term -> ph
+  val str_concat : str -> str -> str
 
   (* All formulas  *)
-  val pow2var : string -> term
+  (* val pow2var : string -> term *)
   val exists : Ast.any_atom list -> ph -> ph
 end
 
@@ -177,20 +179,10 @@ module Id_symantics :
     | FT_SIG.Bwxor -> Ast.Eia.bwxor a b
   ;;
 
-  (* let str_atoi = function
-    | Ast.Eia.Atom (Var s) as x -> x
-    (* *)
-    | Atom (Str_const s) -> Ast.Eia.Stoi (Ast.Str.Const s)
-    | x ->
-      log "%s %d: %a\n%!" __FILE__ __LINE__ Ast.Str.pp_term x;
-      assert false
-  ;; *)
-
   include struct
     open Ast.Eia
 
     let str_equal s1 s2 = Ast.eia (Ast.Eia.eq s1 s2 Ast.S)
-    let str_var s = Atom (Ast.Var (s, S))
     let in_re l regex = Ast.Str (Ast.Str.InRe (l, regex))
     let str_len s = Ast.Eia.Len s
     let str_len2 s1 = Ast.Eia.len2 (Ast.Eia.Atom (Ast.Var (s1, S)))
@@ -215,62 +207,78 @@ module Id_symantics :
   let land_ xs = Ast.Land xs
   let lor_ xs = Ast.Lor xs
   let not = Ast.lnot
-
-  include Ast
-
+  let str_var s : str = Atom (Ast.Var (s, S))
   let str_const s : str = Ast.Eia.Str_const s
   let constz s = Ast.Eia.Const s
   let const s : term = constz (Z.of_int s)
+
+  (* let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s) *)
+  let str_at s a = Ast.Eia.at s (Ast.Eia.Atom (Ast.Var (a, I)))
+  let str_substr s a b = failwith "tbd"
+
+  (* Ast.Eia.substr s a b *)
+  (* include Ast *)
+
+  (* Formulas *)
+
   let var s = Ast.Eia.Atom (Ast.Var (s, I))
   let exists atoms ph = Ast.exists atoms ph
-  let eq l r = Ast.Eia (Ast.Eia.eq l r)
+  let eqz l r = Ast.Eia (Ast.Eia.eq l r Ast.I)
+  let eq_str l r = Ast.Eia (Ast.Eia.eq l r Ast.S)
   let leq l r = Ast.Eia (Ast.Eia.leq l r)
   let lt l r = Ast.Eia (Ast.Eia.lt l r)
+  let true_ = Ast.true_
+  let false_ = Ast.false_
   let prj = Fun.id
-  let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
-  let str_at s a = Ast.Eia.at s (Ast.Var a)
-  let str_substr s a b = Ast.Eia.substr s (Ast.Var a) (Ast.Var b)
 end
 
-let apply_term_symantics (type a) (module S : SYM_SUGAR with type term = a) =
-  let rec helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
-    | Atom (Str_const s) -> S.str_const s
-    | Atom (Ast.Var s) -> S.var s
+let apply_term_symantics
+      (type a b)
+      (module S : SYM_SUGAR with type term = a and type str = b)
+  =
+  (* let helperS = apply_str_symantics (module S) in *)
+  let rec helperT : Z.t Ast.Eia.term -> a = function
+    | Ast.Eia.Const n -> S.constz n
+    | Atom (Ast.Var (s, I)) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Config.base () ->
-      S.pow2var x
+    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Config.base () ->
+      S.pow (S.constz base) (S.var x)
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
     | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
     | Mod (t, z) -> S.mod_ (helperT t) z
-    | (Iofs (Ast.Eia.Atom (Const _)) | Len (Ast.Eia.Atom (Const _))) as t ->
+    (* | (Iofs (Ast.Eia.Str_const _) | Len (Ast.Eia.Const _)) as t ->
       Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
-      failwith "Strlen/Stoi should not be called from int constants. Types are bad"
-    | Len (Ast.Eia.Atom (Str_const s)) -> S.const (String.length s)
-    | Len t -> S.str_len (helperT t)
-    | Iofs (Ast.Eia.Atom (Str_const s)) ->
+      failwith "Strlen/Stoi should not be called from int constants. Types are bad" *)
+    | Len Ast.Eia.(Str_const s) -> S.constz (Z.of_int (String.length s))
+    | Len t -> S.str_len (helperS t)
+    | Iofs Ast.Eia.(Str_const s) ->
       (match int_of_string_opt s with
-       | Some n -> S.const n
+       | Some n -> S.constz (Z.of_int n)
        | None -> S.iofs (S.str_const s))
-    | Iofs t -> S.iofs (helperT t)
-    | Len2 (Var s) -> S.str_len2 s
+    | Iofs t -> S.iofs (helperS t)
+    | Len2 (Atom (Var (s, _))) -> S.str_len2 s
     | Len2 (Const _) -> failwith "TBD"
-    | Sofi eia -> S.sofi (helperT eia)
-    | Concat (s1, s2) -> S.str_concat (helperT s1) (helperT s2)
-    | Substr (s1, Var a, Var b) -> S.str_substr (helperT s1) a b
-    | Substr (s1, _, _) -> failwith "unimplemented"
-    | At (s1, Var a) -> S.str_at (helperT s1) a
     | At (s1, _) -> failwith "unimplemented"
     | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
+  and helperS : string Ast.Eia.term -> S.str = function
+    | Str_const s -> S.str_const s
+    | Atom (Ast.Var (s, S)) -> S.str_var s
+    | Sofi eia -> S.sofi (helperT eia)
+    | At (s1, Atom (Var (a, I))) -> S.str_at (helperS s1) a
+    | Concat (s1, s2) -> S.str_concat (helperS s1) (helperS s2)
+    | Substr (s1, (Atom (Var (a, I)) as l), (Atom (Var (b, I)) as r)) ->
+      S.str_substr (helperS s1) (helperT l) (helperT r)
+    | Substr (s1, _, _) -> failwith "unimplemented"
+    | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
   in
-  helperT
+  (fun x -> helperT x), fun y -> helperS y
 ;;
 
 let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
-  let helperT = apply_term_symantics (module S) in
+  let helperT, helperS = apply_term_symantics (module S) in
   let rec helper = function
     | Ast.Land xs -> S.land_ (List.map helper xs)
     | Lor xs -> S.lor_ (List.map helper xs)
@@ -279,7 +287,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Eia e -> helper_eia e
     | Pred s -> assert false
     | Exists (vs, ph) ->
-      let vs =
+      failwith "tbd"
+      (* let vs =
         List.filter_map
           (function
             (* These repeats very often  *)
@@ -287,14 +296,14 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
             | Str_const _ | Const _ -> None)
           vs
       in
-      S.exists vs (helper ph)
+      S.exists vs (helper ph) *)
     | Str (Ast.Str.PrefixOf (term, term')) ->
-      S.str_prefixof (helperT term) (helperT term')
+      S.str_prefixof (helperS term) (helperS term')
     | Str (Ast.Str.Contains (term, term')) ->
-      S.str_contains (helperT term) (helperT term')
+      S.str_contains (helperS term) (helperS term')
     | Str (Ast.Str.SuffixOf (term, term')) ->
-      S.str_suffixof (helperT term) (helperT term')
-    | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helperT term) regex
+      S.str_suffixof (helperS term) (helperS term')
+    | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helperS term) regex
   (* | Str (Ast.Str.Eq (term, term')) ->
       let l = helperT term in
       let r = helperT term' in
@@ -302,10 +311,11 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       S.str_equal l r *)
   and helper_eia eia =
     match eia with
-    | Ast.Eia.Eq (l, r) -> S.(helperT l = helperT r)
+    | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
+    | Eq (l, r, S) -> S.eq_str (helperS l) (helperS r)
     | Leq (l, r) -> S.(helperT l <= helperT r)
   in
-  fun x -> helper x
+  helper
 ;;
 
 let apply_symantics_unsugared (type a) (module S : SYM with type ph = a) =
@@ -324,16 +334,16 @@ let make_main_symantics env =
     include Id_symantics
 
     let compare_term = Eia.compare_term
-    let constz c = Eia.Atom (Ast.const c)
+    let constz c = Ast.Eia.Const c
     let const c = constz (Z.of_int c)
 
     let var s : term =
-      match Env.lookup s env with
+      match Env.lookup_int s env with
       | Some (Eia.Iofs _)
       | Some (Eia.Sofi _)
       | Some (Eia.Len _)
       | Some (Eia.Len2 _)
-      | None -> Eia.Atom (Ast.var s)
+      | None -> Eia.Atom (Ast.Var (s, I))
       | Some c ->
         (* log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c; *)
         c
@@ -374,8 +384,8 @@ let make_main_symantics env =
       let c, xs =
         List.fold_left
           (fun (cacc, phacc) -> function
-             | Eia.Atom (Const c) -> op c cacc, phacc
-             | Eia.Pow ((Atom (Const base) as b), Eia.Add (Atom (Const minus1) :: sums))
+             | Eia.Const c -> op c cacc, phacc
+             | Eia.Pow ((Const base as b), Eia.Add (Const minus1 :: sums))
                when Z.(cacc mod base = Z.zero) && -1 = Z.to_int minus1 ->
                Z.(cacc / base), Eia.Pow (b, Eia.Add sums) :: phacc
              | ph -> cacc, ph :: phacc)
@@ -394,10 +404,9 @@ let make_main_symantics env =
              Add (List.map (fun x -> Eia.Mul [ x; e ]) ss) :: tl
            | Pow (base1, e1), Eia.Pow (base2, e2) :: tl when Stdlib.(base1 = base2) ->
              Eia.Pow (base1, Eia.Add [ e1; e2 ]) :: tl
-           | ( Atom (Const c)
-             , Eia.Pow ((Atom (Const basec) as base), Add (Atom (Const d) :: ss)) :: tl )
+           | Const c, Eia.Pow ((Const basec as base), Add (Const d :: ss)) :: tl
              when Z.(equal (abs c) basec) && d = Z.minus_one ->
-             Eia.Atom (Const Z.(c / basec)) :: Eia.Pow (base, Add ss) :: tl
+             Eia.(Const Z.(c / basec)) :: Eia.Pow (base, Add ss) :: tl
            | x, _ -> x :: acc)
         xs
         []
@@ -408,8 +417,8 @@ let make_main_symantics env =
         let c, xs =
           List.fold_left
             (fun (cacc, phacc) -> function
-               | Eia.Atom (Const c) -> op c cacc, phacc
-               | Eia.Pow ((Atom (Const base) as b), Eia.Add (Atom (Const minus1) :: sums))
+               | Eia.(Const c) -> op c cacc, phacc
+               | Eia.Pow ((Const base as b), Eia.Add (Const minus1 :: sums))
                  when Z.(cacc mod base = Z.zero) && Z.equal Z.minus_one minus1 ->
                  Z.(cacc / base), Eia.Pow (b, Eia.Add sums) :: phacc
                | ph -> cacc, ph :: phacc)
@@ -419,11 +428,11 @@ let make_main_symantics env =
         c, List.sort compare_term xs
       in
       match fold_and_sort Z.one Z.( * ) (collect_inside_mul xs) with
-      | c, _ when Z.(equal c zero) -> Eia.atom (Const Z.zero)
-      | c, [] -> Eia.atom (Const c)
+      | c, _ when Z.(equal c zero) -> Eia.Const Z.zero
+      | c, [] -> Eia.Const c
       | c, [ h ] when Z.equal c Z.one -> h
       | c, xs when Z.equal c Z.one -> Ast.Eia.mul (List.sort compare_term xs)
-      | c, [ Pow ((Atom (Const base_) as base), Add [ Atom (Const v1); v ]) ]
+      | c, [ Pow ((Const base_ as base), Add [ Const v1; v ]) ]
         when Z.(equal c (Config.base ())) && base_ = Config.base () && v1 = Z.minus_one ->
         pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
@@ -431,11 +440,11 @@ let make_main_symantics env =
 
     and pow base xs =
       match base, xs with
-      | _, Eia.Atom (Const c) when c = Z.zero -> const 1
+      | _, Eia.Const c when c = Z.zero -> const 1
       | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
-      | Mul ((Atom (Const c) as base0) :: tl), Eia.Atom (Const e) ->
+      | Mul ((Const c as base0) :: tl), Eia.Const e ->
         mul [ pow base0 xs; pow (Mul tl) xs ]
-      | Eia.Atom (Const b), Eia.Atom (Const exp) when Z.(exp > zero) ->
+      | Eia.Const b, Eia.Const exp when Z.(exp > zero) ->
         (try const (Z.to_int (Utils.powz ~base:b exp)) with
          | Z.Overflow -> Ast.Eia.Pow (base, xs))
       | _ -> Ast.Eia.Pow (base, xs)
@@ -448,16 +457,16 @@ let make_main_symantics env =
             | ph :: ptl when ph = Eia.Mul tl1 ->
               if Z.(equal c1 minus_one)
               then ptl
-              else Eia.Mul (Eia.Atom (Const Z.(one + c1)) :: tl1) :: ptl
-            | Eia.Mul (Eia.Atom (Const c2) :: tl2) :: ptl when Stdlib.(tl1 = tl2) ->
+              else Eia.Mul (Eia.Const Z.(one + c1) :: tl1) :: ptl
+            | Eia.Mul (Eia.Const c2 :: tl2) :: ptl when Stdlib.(tl1 = tl2) ->
               if Z.(c1 + c2 = zero)
               then ptl
-              else Eia.Mul (Eia.Atom (Const Z.(c1 + c2)) :: tl1) :: ptl
+              else Eia.Mul (Eia.Const Z.(c1 + c2) :: tl1) :: ptl
             | ph :: ptl -> ph :: loop c1 tl1 ptl
             | [] -> [ h ]
           in
           match h with
-          | Eia.Mul (Eia.Atom (Const c1) :: tl1) -> loop c1 tl1 tl
+          | Eia.Mul (Eia.Const c1 :: tl1) -> loop c1 tl1 tl
           | Eia.Mul tl1 -> loop Z.one tl1 tl
           | _ -> h :: tl
         in
@@ -465,13 +474,11 @@ let make_main_symantics env =
           (fun x acc ->
              match x, acc with
              | Eia.Add ts, _ -> ts @ acc
-             | Mul (Atom (Const c1) :: ph1), Eia.Mul (Atom (Const c2) :: ph2) :: tl
+             | Mul (Const c1 :: ph1), Eia.Mul (Const c2 :: ph2) :: tl
                when List.equal Ast.Eia.eq_term ph1 ph2 ->
-               if Z.(c1 + c2 = zero)
-               then tl
-               else mul (Atom (Const Z.(c1 + c2)) :: ph1) :: tl
-             | Mul [ Atom (Const c1); ph1 ], ph2 :: tl when Ast.Eia.eq_term ph1 ph2 ->
-               extend (mul [ Atom (Const Z.(of_int 1 + c1)); ph1 ]) tl
+               if Z.(c1 + c2 = zero) then tl else mul (Const Z.(c1 + c2) :: ph1) :: tl
+             | Mul [ Const c1; ph1 ], ph2 :: tl when Ast.Eia.eq_term ph1 ph2 ->
+               extend (mul [ Const Z.(of_int 1 + c1); ph1 ]) tl
              | a, _ -> extend a acc)
           xs
           []
@@ -481,7 +488,7 @@ let make_main_symantics env =
         let c, xs =
           List.fold_left
             (fun (cacc, phacc) -> function
-               | Eia.Atom (Const c) -> op c cacc, phacc
+               | Eia.Const c -> op c cacc, phacc
                | ph -> cacc, ph :: phacc)
             (init, [])
             xs
@@ -489,13 +496,13 @@ let make_main_symantics env =
         c, List.sort compare_term xs
       in
       match fold_and_sort Z.zero Z.( + ) (collect_inside_add xs) with
-      | c, [ Eia.Atom (Var x); Mul [ Eia.Atom (Const x1); Eia.Atom (Var x2) ] ]
+      | c, [ Eia.Atom (Var (x, I)); Mul [ Eia.(Const x1); Eia.Atom (Var (x2, _)) ] ]
         when Z.(c = zero) && x = x2 && x1 = Z.minus_one -> const 0
-      | c, Mul [ Eia.Atom (Const c1); t1 ] :: Mul [ Eia.Atom (Const c2); t2 ] :: tl
+      | c, Mul [ Eia.(Const c1); t1 ] :: Mul [ Eia.(Const c2); t2 ] :: tl
         when Stdlib.(t1 = t2) ->
         if c1 = Z.(minus_one * c2)
         then add (constz c :: tl)
-        else add (constz c :: Mul [ Eia.Atom (Const Z.(c1 + c2)); t1 ] :: tl)
+        else add (constz c :: Mul [ Eia.Const Z.(c1 + c2); t1 ] :: tl)
       | c, [ h ] when Z.(equal c zero) -> h
       | c, [] when Z.(equal c zero) -> const 0
       | c, xs when Z.(equal c zero) ->
@@ -511,7 +518,8 @@ let make_main_symantics env =
     ;;
 
     (** Formulas *)
-    let exists var ph = Ast.Exists (List.map Ast.var var, ph)
+    let exists var ph = failwith "tbd"
+    (* Ast.Exists (List.map Ast.var var, ph) *)
 
     let true_ = Ast.true_
     let false_ = Ast.false_
@@ -551,26 +559,25 @@ let make_main_symantics env =
         | Eq -> fun x y -> Eia (Eia.eq x y)
       in
       match l, r with
-      | Eia.Atom (Const l), Eia.Atom (Const r) ->
+      | Eia.(Const l), Eia.(Const r) ->
         (match op with
          | Eq when Z.equal l r -> true_
          | Eq -> false_
          | Leq when l <= r -> true_
          | Leq -> false_)
-      | Eia.(Add (Atom (Var v1) :: Mul [ Atom (Const c); Atom (Var v2) ] :: tl)), rhs
+      | Eia.(Add (Var v1 :: Mul [ Const c; Atom (Var v2) ] :: tl)), rhs
         when String.equal v1 v2 && c = Z.minus_one -> ofop (Eia.Add tl) rhs
       | Eia.Add ls, Eia.Add rs -> ofop (add (ls @ List.map negate rs)) (const 0)
-      | Eia.Add (Atom (Const c) :: tl), Atom (Const n) ->
-        ofop (add tl) (const Z.(to_int (n - c)))
-      | Atom (Const c), Add (Atom (Const n) :: tl) ->
+      | Eia.Add (Const c :: tl), Const n -> ofop (add tl) (const Z.(to_int (n - c)))
+      | Const c, Add (Const n :: tl) ->
         ofop (add (List.map negate tl)) (const Z.(to_int (n - c)))
       | Atom (Const c), Add xs -> ofop (add (List.map negate xs)) (const Z.(to_int (-c)))
       | Pow (basel, powl), Pow (baser, powr) when basel = baser -> ofop powl powr
-      | Eia.Mul [ Atom (Const c); Atom (Var v) ], Eia.Atom (Const rhs)
+      | Eia.Mul [ Const c; Atom (Var v) ], Eia.(Const rhs)
         when op = Leq && Z.(abs c <> one) ->
         (* optimizing single bounds *)
         if Z.(equal zero rhs)
-        then ofop Eia.(Mul [ Atom (Const (Z.of_int (Z.sign c))); Atom (Var v) ]) r
+        then ofop Eia.(Mul [ Const (Z.of_int (Z.sign c)); Atom (Var v) ]) r
         else if Z.(c < zero) && Z.(rhs < zero)
         then
           ofop
