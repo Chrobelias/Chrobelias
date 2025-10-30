@@ -147,20 +147,33 @@ module Eia = struct
     | Substr (term', a, b) -> f (substr (map_term f term') a b)
     | At (term', a) -> f (at (map_term f term') a) *)
 
-  (* let rec fold_term f acc term =
+  let rec fold_term
+    :  'acc 'a.
+       ('acc -> Z.t term -> 'acc)
+    -> ('acc -> string term -> 'acc)
+    -> 'acc
+    -> 'a term
+    -> 'acc
+    =
+    (* TODO(Kakadu): A toplevel mapper f was here that was applied to the whole term after folding.
+    It is removed, I don't know was it really neeeded *)
+    fun fz fs acc (type a) (term : a term) ->
     match term with
-    | Atom _ | Len _ | Sofi _ | Len2 _ -> f acc term
-    | Iofs _ -> f acc term
-    | Add terms | Mul terms -> f (List.fold_left (fold_term f) acc terms) term
+    | (Const _ | Atom (Var (_, I))) as term -> fz acc term
+    | (Str_const _ | Atom (Var (_, S))) as term -> fs acc term
+    | (Iofs ts | Len ts | Len2 ts) as term -> fz (fold_term fz fs acc ts) term
+    | Sofi t as term -> fs (fold_term fz fs acc t) term
+    | Add terms | Mul terms -> List.fold_left (fold_term fz fs) acc terms
     | Bwand (term', term'')
     | Bwor (term', term'')
     | Bwxor (term', term'')
-    | Pow (term', term'') -> f (fold_term f (fold_term f acc term') term'') term
-    | Mod (t, _) -> f (fold_term f acc t) term
-    | Concat (lhs, rhs) as term -> f (fold_term f (fold_term f acc lhs) rhs) term
-    | Substr (term', _, _) as term -> f (fold_term f acc term') term
-    | At (term', _) as term -> f (fold_term f acc term') term
-  ;; *)
+    | Pow (term', term'') -> fold_term fz fs (fold_term fz fs acc term') term''
+    | Mod (t, _) -> fold_term fz fs acc t
+    | Concat (lhs, rhs) -> fold_term fz fs (fold_term fz fs acc lhs) rhs
+    | Substr (term', tz1, tz2) ->
+      fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2
+    | At (term', tidx) -> fold_term fz fs (fold_term fz fs acc term') tidx
+  ;;
 
   let rec pp_term : 'a. Format.formatter -> 'a term -> unit =
     fun (type a) ppf : (a term -> unit) -> function
@@ -197,7 +210,7 @@ module Eia = struct
   ;;
 
   type t =
-    | Eq : 'a term * 'a term -> t
+    | Eq : 'a term * 'a term * 'a kind -> t
     | Leq : Z.t term * Z.t term -> t
   [@@deriving variants]
 
@@ -211,19 +224,24 @@ module Eia = struct
   ;;
 
   let map2 f fint fstring = function
-    | Eq (term, term') ->
-      f (eq (map_term fint fstring term) (map_term fint fstring term'))
+    | Eq (term, term', I) ->
+      f (Eq (map_term fint fstring term, map_term fint fstring term', I))
+    | Eq (l, r, S) -> f (Eq (map_term fint fstring l, map_term fint fstring r, S))
     | Leq (term, term') ->
       f (leq (map_term fint fstring term) (map_term fint fstring term'))
   ;;
 
-  (* let fold2 f fterm acc = function
-    | (Eq (term, term') | Leq (term, term')) as ast ->
-      f (fold_term fterm (fold_term fterm acc term) term') ast
-  ;; *)
+  let fold2 fz fs acc : t -> _ =
+    let _ : 'acc -> Z.t term -> 'acc = fz in
+    let _ : 'acc -> string term -> 'acc = fs in
+    function
+    | Eq (l, r, I) -> fz (fz acc l) r
+    | Eq (l, r, S) -> fs (fs acc l) r
+    | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
+  ;;
 
   let pp fmt = function
-    | Eq (term, term') -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
+    | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
     | Leq (term, term') -> Format.fprintf fmt "@[(<= %a %a)@]" pp_term term pp_term term'
   ;;
 
@@ -270,12 +288,12 @@ module Str = struct
     | Contains (re, re'), Contains (re'', re''') -> re = re'' && re' = re'''
     | _, _ -> false
   ;;
-  (*
-     let fold2 f fterm acc = function
-    | InRe (term, re) as ast -> f (Eia.fold_term fterm acc term) ast
-    | (PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term')) as ast ->
-      f (Eia.fold_term fterm (Eia.fold_term fterm acc term) term') ast
-  ;; *)
+
+  let fold2 fz fs acc = function
+    | InRe (term, re) -> Eia.fold_term fz fs acc term
+    | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
+      Eia.fold_term fz fs (Eia.fold_term fz fs acc term) term'
+  ;;
 end
 
 type t =

@@ -86,10 +86,8 @@ let apply_symnatics (module S : Smtml_symantics) =
       let open Ast.Eia in
       match ph with
       | Leq (l, r) -> S.(helperT l <= helperT r)
-      | Eq (Atom (Var (name, I)), r) ->
-        (* assert false *)
-        S.(helperT (Atom (Var (name, I))) = helperT r)
-      | Eq (Atom (Var (_, S)), _) -> raise String_op
+      | Eq (Atom (Var (name, I)), r, I) -> S.(helperT (Atom (Var (name, I))) = helperT r)
+      | Eq (Atom (Var (_, S)), _, S) -> raise String_op
       | _ -> failwith "Gosha, implement plz"
     with
     | String_op | Bitwise_op -> Symantics.true_
