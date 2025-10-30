@@ -156,10 +156,10 @@ let collect_free =
     Ir.land_ (build poly c :: sups)
 ;;*)
 
-type bound = EqConst of Z.t Ast.atom * Z.t
+(* type bound = EqConst of Z.t Ast.atom * Z.t *)
 
-let algebraic : Ast.t -> Ast.t =
-  let open Z in
+let algebraic : Ast.t -> Ast.t = Fun.id
+(* let open Z in
   let rec infer_bounds : Ast.t -> _ = function
     | Ast.Land irs ->
       let bounds = List.map infer_bounds irs in
@@ -182,18 +182,15 @@ let algebraic : Ast.t -> Ast.t =
       Set.singleton bound
     | Eia
         (Ast.Eia.Eq
-           ( Ast.Eia.Add
-               [ Ast.Eia.Atom (Ast.Const d)
-               ; Ast.Eia.Mul [ Ast.Eia.Atom (Ast.Const minus_one); Ast.Eia.Atom v ]
-               ]
-           , Ast.Eia.Atom (Ast.Const c) )) ->
+           (Ast.Eia.Add [ Const d; Mul [ Const minus_one; Ast.Eia.Atom v ] ], Const c, I))
+      ->
       let bound = EqConst (v, d - c) in
       Set.singleton bound
     | _ -> Set.empty
   in
-  let mapt f =
+  let mapt fz fs =
     Ast.map (function
-      | Ast.Eia eia -> Ast.eia (Ast.Eia.map2 Fun.id f eia)
+      | Ast.Eia eia -> Ast.eia (Ast.Eia.map2 Fun.id fz fs eia)
       | ir -> ir)
   in
   let apply_bounds bounds : Ast.t -> Ast.t =
@@ -209,12 +206,13 @@ let algebraic : Ast.t -> Ast.t =
           (Ast.Eia.map2
              Fun.id
              (function
-               | Ast.Eia.Atom v as term -> begin
+               | Ast.Eia.Atom _ as term -> begin
                  match Map.find bounded_atoms v with
-                 | Some bind -> Ast.Eia.atom (Ast.const bind)
+                 | Some bind -> Ast.const bind
                  | None -> term
                end
                | term -> term)
+             Fun.id
              eia)
       | ir -> ir)
   in
@@ -291,8 +289,7 @@ let algebraic : Ast.t -> Ast.t =
       let bounds = infer_bounds ir in
       apply_bounds bounds ir)
   in
-  aux
-;;
+  aux *)
 
 let run_simplify (ir : Ast.t) : Ast.t =
   let simply =
