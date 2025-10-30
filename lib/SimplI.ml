@@ -8,35 +8,37 @@ module Set = Base.Set.Poly
 let log = Utils.log
 
 let collect_free =
+  let add acc v = Set.add acc (Ast.Any_atom v) in
   Ast.fold
     (fun acc -> function
        | Ast.Eia eia ->
          Ast.Eia.fold2
-           (fun acc _ -> acc)
            (fun acc -> function
-              | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
-              | Ast.Eia.Iofs str ->
+              | Ast.Eia.Atom (Ast.Var (_, _) as v) -> add acc v
+              (* | Ast.Eia.Iofs str ->
                 Ast.Eia.fold_term
                   (fun acc -> function
-                     | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+                     | Ast.Eia.Atom (Ast.Var (_, _) as v) -> Set.add acc v
                      | _ -> acc)
                   acc
-                  str
+                  str *)
               | Ast.Eia.Len str ->
                 Ast.Eia.fold_term
+                  (fun acc _ -> acc (* TODO??? *))
                   (fun acc -> function
-                     | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+                     | Ast.Eia.Atom (Ast.Var _ as v) -> add acc v
                      | _ -> acc)
                   acc
                   str
               | _ -> acc)
+           (fun acc _ -> acc (* TODO(Kakadu) *))
            acc
            eia
        | Ast.Str str ->
          Ast.Str.fold2
            (fun acc _ -> acc)
            (fun acc -> function
-              | Ast.Eia.Atom (Ast.Var v) -> Set.add acc (Ast.var v)
+              | Ast.Eia.Atom (Ast.Var _ as v) -> add acc v
               | _ -> acc)
            acc
            str
@@ -154,7 +156,7 @@ let collect_free =
     Ir.land_ (build poly c :: sups)
 ;;*)
 
-type bound = EqConst of Ast.atom * Z.t
+type bound = EqConst of Z.t Ast.atom * Z.t
 
 let algebraic : Ast.t -> Ast.t =
   let open Z in
@@ -170,13 +172,12 @@ let algebraic : Ast.t -> Ast.t =
         | _ -> Set.empty
       end
     | True -> Set.empty
-    | Eia (Ast.Eia.Eq (Ast.Eia.Atom v, Ast.Eia.Atom (Ast.Const c))) ->
+    | Eia (Ast.Eia.Eq (Ast.Eia.Atom v, Ast.Eia.Const c, I)) ->
       let bound = EqConst (v, c) in
       Set.singleton bound
     | Eia
-        (Ast.Eia.Eq
-           ( Ast.Eia.Add [ Ast.Eia.Atom (Ast.Const d); Ast.Eia.Atom v ]
-           , Ast.Eia.Atom (Ast.Const c) )) ->
+        (Ast.Eia.Eq (Ast.Eia.Add [ Ast.Eia.Const d; Ast.Eia.Atom v ], Ast.Eia.Const c, I))
+      ->
       let bound = EqConst (v, c - d) in
       Set.singleton bound
     | Eia

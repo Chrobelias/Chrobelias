@@ -485,14 +485,14 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
   fun eia ->
   (* log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
     match eia with
-    | Eq (Ast.Eia.Atom (Ast.Var (v, _)), Ast.Eia.Len2 (Atom (Ast.Var (v', _)))) ->
+    | Eq (Ast.Eia.Atom (Ast.Var (v, _)), Ast.Eia.Len2 (Atom (Ast.Var (v', _))), I) ->
       return (Ir.slen (Ir.var v) (Ir.var v'))
-    | Eq (Ast.Eia.Const v, Ast.Eia.Len2 (Atom (Ast.Var (v', _)))) ->
+    | Eq (Ast.Eia.Const v, Ast.Eia.Len2 (Atom (Ast.Var (v', _))), I) ->
       let u = Ir.internal () in
       return (Ir.land_ [ Ir.slen u (Ir.var v'); Ir.eq (Map.singleton u Z.one) v ])
-    | Eq (Ast.Eia.Atom (Ast.Var (v, _)), Ast.Eia.Iofs (Ast.Eia.Atom (Ast.Var (u, _)))) ->
-      return (Ir.land_ [ Ir.stoi (Ir.var v) (Ir.var u) ])
-    | Eq (Atom (Var (v, _)), Str_const str) ->
+    | Eq (Ast.Eia.Atom (Ast.Var (v, _)), Ast.Eia.Iofs (Ast.Eia.Atom (Ast.Var (u, _))), I)
+      -> return (Ir.land_ [ Ir.stoi (Ir.var v) (Ir.var u) ])
+    | Eq (Atom (Var (v, _)), Str_const str, S) ->
       let l = Ir.var v in
       return (Ir.sreg l (str_to_re str))
     (*
@@ -509,7 +509,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
         | [] -> ir :: sup |> Ir.land_ |> return
         | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
       end *)
-    | Eq (((Const _ | Atom (Var (_, I))) as lhs), rhs) ->
+    | Eq (((Const _ | Atom (Var (_, I))) as lhs), rhs, I) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in
       let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in

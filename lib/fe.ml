@@ -230,15 +230,15 @@ and _to_ir tys orig_expr =
     Ast.limpl (_to_ir tys lhs) (_to_ir tys rhs)
   (* Integer comparisons. *)
   | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
-    let build t c = Ast.eia (Ast.Eia.eq t c) in
+    let build t c = Ast.eia (Ast.Eia.eq t c S) in
     let lhs = to_string lhs in
     let rhs = to_string rhs in
     build lhs rhs
   | Expr.Relop (_ty, rel, lhs, rhs) ->
     let build =
       match rel with
-      | Ty.Relop.Eq -> fun t c -> Ast.eia (Ast.Eia.eq t c)
-      | Ty.Relop.Ne -> fun t c -> Ast.lnot (Ast.eia (Ast.Eia.eq t c))
+      | Ty.Relop.Eq -> fun t c -> Ast.eia (Ast.Eia.eq t c I)
+      | Ty.Relop.Ne -> fun t c -> Ast.lnot (Ast.eia (Ast.Eia.eq t c I))
       | Ty.Relop.Le -> fun t c -> Ast.eia (Ast.Eia.leq t c)
       | Ty.Relop.Lt -> fun t c -> Ast.eia (Ast.Eia.lt t c)
       | Ty.Relop.Ge -> fun t c -> Ast.eia (Ast.Eia.geq t c)
