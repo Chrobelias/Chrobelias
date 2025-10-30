@@ -4,9 +4,9 @@ type relop =
 
 type error
 
-val has_unsupported_nonlinearity : Ast.t -> (unit, Ast.Eia.term list) Result.t
+val has_unsupported_nonlinearity : Ast.t -> (unit, Ast.typed_term list) Result.t
 val subst : Env.t -> Ast.t -> Ast.t
-val subst_term : Env.t -> Ast.Eia.term -> Ast.Eia.term
+val subst_term : Env.t -> 'a Ast.Eia.term -> 'a Ast.Eia.term
 
 (** Independant pre-simplifications. Not necessary for the solver. **)
 val simpl

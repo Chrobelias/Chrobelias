@@ -4,16 +4,16 @@
 
 let log = Utils.log
 
-module Term_map = Map.Make (struct
+(* module Term_map = Map.Make (struct
     type t =
       [ `Eia of Ast.Eia.term
       | `Str of Ast.Str.term
       ]
 
     let compare = Stdlib.compare
-  end)
+  end) *)
 
-type error = Non_linear_arith of Ast.Eia.term list
+type error = Non_linear_arith of Ast.typed_term list
 
 let compare_error : error -> _ = Stdlib.compare
 
@@ -27,19 +27,18 @@ let pp_error ppf = function
 
 let check_errors ph =
   let open Ast.Eia in
-  let not_a_const = function
-    | Atom (Const _) -> false
+  let not_a_const (type a) : a term -> bool = function
+    | Str_const _ | Const _ -> false
     | _ -> true
   in
   let on_term acc = function
     | Mul xs ->
       let xs = List.filter not_a_const xs in
       (match xs with
-       | [ Atom (Const _) ] -> assert false
-       | [ Pow (Atom (Const _), _) ] | [ Atom (Var _) ] | [] -> acc
+       | [ Str_const _ ] | [ Const _ ] -> assert false
+       | [ Pow (Const _, _) ] | [ Atom (Var _) ] | [] -> acc
        | xs -> Non_linear_arith xs :: acc)
-    | Pow (base, Atom (Const _)) as ans when not_a_const base ->
-      Non_linear_arith [ ans ] :: acc
+    | Pow (base, Const _) as ans when not_a_const base -> Non_linear_arith [ ans ] :: acc
     | _ -> acc
   in
   Ast.fold

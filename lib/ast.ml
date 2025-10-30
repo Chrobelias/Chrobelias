@@ -262,6 +262,8 @@ module Eia = struct
   let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
 end
 
+type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
+
 (** String theory. *)
 module Str = struct
   type term = string Eia.term
