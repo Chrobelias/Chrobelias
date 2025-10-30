@@ -3,25 +3,31 @@ type sup_binop =
   | Bwor
   | Bwxor
 
-module type s_term = sig
+module type str_term = sig
   type term
+  type str
 
   (** String terms *)
 
-  val iofs : term -> term
-  val sofi : term -> term
-  val str_len : term -> term
-  val str_const : string -> term
-  val str_var : string -> term
+  val iofs : str -> term
+  val sofi : term -> str
+  val str_len : str -> term
+  val str_const : string -> str
+  val str_var : string -> str
+end
+
+module type z_term = sig
+  type term
 
   (** Arithmetic *)
-  val mod_ : term -> Z.t -> term
 
+  val mod_ : term -> Z.t -> term
   val pow : term -> term -> term
   val mul : term list -> term
   val add : term list -> term
   val bw : sup_binop -> term -> term -> term
-  val const : int -> term
+
+  (* val const : int -> term *)
   val constz : Z.t -> term
   val var : string -> term
 end
@@ -45,7 +51,7 @@ module type s_extra = sig
   type term
   type ph
 
-  val ( ** ) : int -> term -> term
+  val ( ** ) : term -> term -> term
   val ( <= ) : term -> term -> ph
   val ( < ) : term -> term -> ph
   val ( = ) : term -> term -> ph
@@ -56,7 +62,8 @@ module Sugar (S : sig
     type ph
 
     val pow : term -> term -> term
-    val const : int -> term
+
+    (* val constz : Z.t -> term *)
     val eq : term -> term -> ph
     val leq : term -> term -> ph
     val lt : term -> term -> ph
@@ -65,17 +72,19 @@ struct
   let ( = ) = S.eq
   let ( < ) = S.lt
   let ( <= ) = S.leq
-  let ( ** ) b e = S.pow (S.const b) e
+  let ( ** ) b e = S.pow b e
 end
 
 module To_smtml_symantics : sig
-  include s_term with type term = Smtml.Expr.t
+  include str_term with type term = Smtml.Expr.t and type str = Smtml.Expr.t
+  include z_term with type term = Smtml.Expr.t
   include s_ph with type term = Smtml.Expr.t and type ph = Smtml.Expr.t
   include s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 end = struct
   open Smtml
 
   type term = Expr.t
+  type str = Expr.t
   type ph = term
 
   let str_len _ = failwith "not implemented"
@@ -138,5 +147,5 @@ end = struct
   let ( = ) = eq
   let ( < ) = lt
   let ( <= ) = leq
-  let ( ** ) b e = pow (const b) e
+  let ( ** ) b e = pow b e
 end

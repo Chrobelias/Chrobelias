@@ -1,7 +1,8 @@
 let log = Debug.printfln
 
 module type Smtml_symantics = sig
-  include FT_SIG.s_term with type term := Smtml.Expr.t
+  include FT_SIG.z_term with type term := Smtml.Expr.t
+  include FT_SIG.str_term with type term := Smtml.Expr.t
   include FT_SIG.s_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
   include FT_SIG.s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
 
@@ -69,7 +70,7 @@ let apply_symnatics (module S : Smtml_symantics) =
       S.exists vs (helper ph)
     | Str _ -> Symantics.true_
   and helperT = function
-    | Ast.Eia.Const n -> S.const (Z.to_int n)
+    | Ast.Eia.Const n -> S.constz n
     | Atom (Ast.Var (s, _)) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)

@@ -2,7 +2,9 @@ module type SYM0 = sig
   type term
   type ph
 
-  include FT_SIG.s_term with type term := term
+  include FT_SIG.z_term with type term := term
+
+  (* include FT_SIG.z_term with type term := term and  *)
   include FT_SIG.s_ph with type ph := ph and type term := term
   include FT_SIG.s_extra with type ph := ph and type term := term
 
@@ -18,6 +20,7 @@ module type SYM = sig
   val prj : ph -> repr
 end
 
+(* TODO(Kakadu): Maybe it's time to use Z.t here  *)
 type env = (string, int) Base.Map.Poly.t
 
 let to_normal_env : env -> Env.t =
@@ -44,10 +47,10 @@ let make_sym (env : env) onvar bound =
     let var s =
       match Base.Map.Poly.find env s with
       | None -> Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
-      | Some c -> const c
+      | Some c -> constz (Z.of_int c)
     ;;
 
-    let pow2var s = pow (const 2) (var s)
+    let pow2var s = pow (constz (Z.of_int 2)) (var s)
     let prj = Fun.id
 
     let exists vars x =
@@ -72,7 +75,7 @@ let make_sym (env : env) onvar bound =
   in
   (module struct
     include M
-    include FT_SIG.Sugar (M)
+    (* include FT_SIG.Sugar (M) *)
   end : SYM
     with type repr = Smtml.Expr.t)
 ;;
@@ -85,6 +88,9 @@ let make_collector () =
 
     let ( ++ ) = List.append
     let empty = []
+
+    [@@@warning "-32"]
+
     let str_const _ = empty
     let sofi _ = empty
     let iofs _ = empty
@@ -142,7 +148,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
       S.exists vs (helper ph)
     | Str _ -> raise String_op
   and helperT = function
-    | Ast.Eia.Const n -> S.const (Z.to_int n)
+    | Ast.Eia.Const n -> S.constz n
     | Atom (Ast.Var (s, _)) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)

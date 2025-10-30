@@ -16,6 +16,11 @@ let int_var name = Var (name, I)
 
 type any_atom = Any_atom : 'a atom -> any_atom
 
+let compare_any_atom l r =
+  match l, r with
+  | Any_atom (Var (v1, _)), Any_atom (Var (v2, _)) -> String.compare v1 v2
+;;
+
 let pp_atom ppf = function
   | Var (n, _) -> Format.fprintf ppf "%s" n
 ;;
@@ -222,10 +227,22 @@ module Eia = struct
     | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_term a
   ;;
 
+  let compare_term (type a) : a term -> a term -> int =
+    fun l r ->
+    match l, r with
+    | _ -> failwith "tbd"
+  ;;
+
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
     | Leq : Z.t term * Z.t term -> t
   [@@deriving variants]
+
+  let compare l r =
+    match l, r with
+    | Eq (_, _, I), Eq (_, _, S) -> -1
+    | _ -> failwith "tbd"
+  ;;
 
   let geq a b = leq b a
   let lt a b = leq (add [ a; const Z.one ]) b
@@ -268,6 +285,7 @@ type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
 module Str = struct
   type term = string Eia.term
 
+  let compare_term = Eia.compare_term
   let pp_term = Eia.pp_term
 
   type t =
@@ -275,7 +293,7 @@ module Str = struct
     | PrefixOf of term * term
     | Contains of term * term
     | SuffixOf of term * term
-  [@@deriving variants]
+  [@@deriving variants, compare]
 
   let pp fmt = function
     | InRe (str, re) ->
@@ -318,9 +336,9 @@ type t =
   | Lnot of t
   | Land of t list
   | Lor of t list
-  | Exists : any_atom list * t -> t
+  | Exists of any_atom list * t
   | Pred of string
-[@@deriving variants]
+[@@deriving variants, compare]
 
 let limpl a b = lor_ [ lnot a; b ]
 let any atoms ast = lnot (exists atoms (lnot ast))

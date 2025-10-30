@@ -13,7 +13,7 @@ let log = Utils.log
     let compare = Stdlib.compare
   end) *)
 
-type error = Non_linear_arith of Ast.typed_term list
+type error = Non_linear_arith : Z.t Ast.Eia.term list -> error
 
 let compare_error : error -> _ = Stdlib.compare
 
@@ -21,7 +21,9 @@ let pp_error ppf = function
   | Non_linear_arith ts ->
     Format.fprintf ppf "@[<v 2>";
     Format.fprintf ppf "@[Non linear arithmetic between@]@,";
-    List.iteri (fun i -> Format.fprintf ppf "@[%d) %a@]@," i Ast.pp_term_smtlib2) ts;
+    List.iteri
+      (fun i term -> Format.fprintf ppf "@[%d) %a@]@," i Ast.pp_term_smtlib2 term)
+      ts;
     Format.fprintf ppf "@]"
 ;;
 
@@ -31,7 +33,7 @@ let check_errors ph =
     | Str_const _ | Const _ -> false
     | _ -> true
   in
-  let on_term acc = function
+  let on_int_term acc = function
     | Mul xs ->
       let xs = List.filter not_a_const xs in
       (match xs with
@@ -41,9 +43,13 @@ let check_errors ph =
     | Pow (base, Const _) as ans when not_a_const base -> Non_linear_arith [ ans ] :: acc
     | _ -> acc
   in
+  let on_str_term acc _ =
+    Printf.eprintf "Implement me! %s %d\n" __FILE__ __LINE__;
+    acc
+  in
   Ast.fold
     (fun errs -> function
-       | Ast.Eia eia -> Ast.Eia.fold2 (fun acc _ -> acc) on_term errs eia
+       | Ast.Eia eia -> Ast.Eia.fold2 on_int_term on_str_term errs eia
        | _ -> errs)
     []
     ph
@@ -52,16 +58,16 @@ let check_errors ph =
 
 let has_unsupported_nonlinearity =
   let open Ast.Eia in
-  let not_a_const = function
-    | Atom (Const _) -> false
+  let not_a_const (type a) : a term -> bool = function
+    | Const _ -> false
     | _ -> true
   in
   let on_term acc = function
     | Mul xs ->
       let xs = List.filter not_a_const xs in
       (match xs with
-       | [ Atom (Const _) ] -> assert false
-       | [ Pow (Atom (Const _), _) ] | [ Atom (Var _) ] | [] -> acc
+       | [ Const _ ] -> assert false
+       | [ Pow (Const _, _) ] | [ Atom (Var _) ] | [] -> acc
        | xs ->
          let rec loop acc = function
            | [ _ ] | [] -> acc
@@ -69,12 +75,12 @@ let has_unsupported_nonlinearity =
            | h :: tl -> loop acc tl
          in
          loop acc xs)
-    | Pow (base, Atom (Const _)) as t when not_a_const base -> t :: acc
+    | Pow (base, Const _) as t when not_a_const base -> t :: acc
     | _ -> acc
   in
   fun ph ->
     let f acc = function
-      | Ast.Eia eia -> Ast.Eia.fold2 (fun acc _ -> acc) on_term acc eia
+      | Ast.Eia eia -> Ast.Eia.fold2 on_term (fun acc _ -> acc) acc eia
       | _ -> acc
     in
     match Ast.fold f [] ph with
@@ -90,9 +96,11 @@ type relop =
 
 module type SYM0 = sig
   type term
+  type str
   type ph
 
-  include FT_SIG.s_term with type term := term
+  include FT_SIG.z_term with type term := term
+  include FT_SIG.str_term with type term := term and type str := str
   include FT_SIG.s_ph with type ph := ph and type term := term
 
   val sofi : term -> term
@@ -111,7 +119,7 @@ module type SYM0 = sig
 
   (* All formulas  *)
   val pow2var : string -> term
-  val exists : string list -> ph -> ph
+  val exists : Ast.any_atom list -> ph -> ph
 end
 
 module type SYM = sig
@@ -129,7 +137,7 @@ module type SYM_SUGAR = sig
 end
 
 module type SYM_SUGAR_AST =
-  SYM_SUGAR with type ph = Ast.t and type repr = Ast.t and type term = Ast.Eia.term
+  SYM_SUGAR with type ph = Ast.t and type repr = Ast.t and type term = Z.t Ast.Eia.term
 
 let distribute xs =
   let open Ast in
@@ -152,8 +160,9 @@ let compare_ast l r =
 ;;
 
 module Id_symantics :
-  SYM with type ph = Ast.t and type repr = Ast.t and type term = Ast.Eia.term = struct
-  type term = Ast.Eia.term
+  SYM with type ph = Ast.t and type repr = Ast.t and type term = Z.t Ast.Eia.term = struct
+  type term = Z.t Ast.Eia.term
+  type str = string Ast.Eia.term
 
   let pp_str = Ast.Str.pp_term
 
@@ -177,13 +186,17 @@ module Id_symantics :
       assert false
   ;; *)
 
-  let str_equal s1 s2 = Ast.eia (Ast.Eia.eq s1 s2)
-  let str_var s = Ast.Eia.Atom (Ast.Var s)
-  let in_re l regex = Ast.Str (Ast.Str.InRe (l, regex))
-  let str_len s = Ast.Eia.Len s
-  let str_len2 s1 = Ast.Eia.len2 (Ast.var s1)
-  let iofs x = Ast.Eia.Iofs x
-  let sofi x = Ast.Eia.Sofi x
+  include struct
+    open Ast.Eia
+
+    let str_equal s1 s2 = Ast.eia (Ast.Eia.eq s1 s2 Ast.S)
+    let str_var s = Atom (Ast.Var (s, S))
+    let in_re l regex = Ast.Str (Ast.Str.InRe (l, regex))
+    let str_len s = Ast.Eia.Len s
+    let str_len2 s1 = Ast.Eia.len2 (Ast.Eia.Atom (Ast.Var (s1, S)))
+    let iofs x = Ast.Eia.Iofs x
+    let sofi x = Ast.Eia.Sofi x
+  end
 
   (* let str_from_eia s = Ast.Str.FromEia (Ast.var s) *)
   let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
@@ -192,7 +205,7 @@ module Id_symantics :
 
   (* let str_from_eia_const c = Ast.Eia.Atom (Str_const (Z.to_string c))
   let str_concat s1 s2 = Ast.Eia.concat s1 s2 *)
-  let str_from_eia_const c = Ast.Eia.sofi (Atom (Const c))
+  let str_from_eia_const c = Ast.Eia.sofi (Const c)
   let str_concat s1 s2 = Ast.Eia.concat s1 s2
   let len = Ast.Eia.len
   let mod_ = Ast.Eia.mod_
@@ -205,11 +218,11 @@ module Id_symantics :
 
   include Ast
 
-  let str_const s : term = Ast.Eia.Atom (Str_const s)
-  let constz s = Ast.Eia.Atom (Ast.Const s)
+  let str_const s : str = Ast.Eia.Str_const s
+  let constz s = Ast.Eia.Const s
   let const s : term = constz (Z.of_int s)
-  let var s = Ast.Eia.Atom (Ast.Var s)
-  let exists var ph = Ast.Exists (List.map Ast.var var, ph)
+  let var s = Ast.Eia.Atom (Ast.Var (s, I))
+  let exists atoms ph = Ast.exists atoms ph
   let eq l r = Ast.Eia (Ast.Eia.eq l r)
   let leq l r = Ast.Eia (Ast.Eia.leq l r)
   let lt l r = Ast.Eia (Ast.Eia.lt l r)
