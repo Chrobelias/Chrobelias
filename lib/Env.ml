@@ -9,20 +9,22 @@ module SM = struct
 end
 
 type t =
-  { env : Ast.Eia.term SM.t
-  ; cstrts : Ast.Eia.term list SM.t
+  { env : Z.t Ast.Eia.term SM.t
+  ; str_env : string Ast.Eia.term SM.t
+  ; cstrts : string Ast.Eia.term list SM.t
   }
 
 let pp ?(title = "") : Format.formatter -> t -> unit =
   let open Format in
-  let pp_kv ppf key data =
+  let pp_kv ppf key (type a) (data : a Ast.Eia.term) =
     fprintf ppf "@[%s -> @[%a@];@]@ " key Ast.pp_term_smtlib2 data
   in
-  fun ppf { env = s; cstrts } ->
+  fun ppf e ->
     if title = ""
     then (
       fprintf ppf "@[<hov> ";
-      SM.iteri s ~f:(fun ~key ~data -> pp_kv ppf key data);
+      SM.iteri e.env ~f:(fun ~key ~data -> pp_kv ppf key data);
+      SM.iteri e.str_env ~f:(fun ~key ~data -> pp_kv ppf key data);
       SM.iteri cstrts ~f:(fun ~key ~data -> List.iter (pp_kv ppf key) data);
       fprintf ppf "@]")
     else (

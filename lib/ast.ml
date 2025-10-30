@@ -375,15 +375,18 @@ let pp_smtlib2 =
 
 let pp_term_smtlib2 =
   let open Format in
-  let rec pp_eia ppf = function
-    | Eia.(Const c) when Z.lt c Z.zero -> fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
-    | Atom a -> fprintf ppf "%a" pp_atom a
-    | Add xs -> fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
-    | Mul [ Const c; (Atom (Var _) as v) ] when Z.(equal c minus_one) ->
-      fprintf ppf "@[(- %a)@]" pp_eia v
-    | Mul xs -> fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
-    | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
-    | x -> Eia.pp_term ppf x
+  let rec pp_eia : 'a. _ -> 'a Eia.term -> unit =
+    fun ppf (type a) : (a Eia.term -> unit) -> function
+      | Eia.(Const c) when Z.lt c Z.zero -> fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
+      | Atom a -> fprintf ppf "%a" pp_atom a
+      | Add xs ->
+        fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+      | Mul [ Const c; (Atom (Var _) as v) ] when Z.(equal c minus_one) ->
+        fprintf ppf "@[(- %a)@]" pp_eia v
+      | Mul xs ->
+        fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+      | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
+      | x -> Eia.pp_term ppf x
   in
   pp_eia
 ;;
