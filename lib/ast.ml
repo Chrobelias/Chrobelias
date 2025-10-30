@@ -51,6 +51,19 @@ module Eia = struct
     | Substr : string term * Z.t term * Z.t term -> string term
   [@@deriving variants]
 
+  let typeof : 'a. 'a term -> 'a kind =
+    fun (type ty) (e : ty term) : ty kind ->
+    match e with
+    | Atom (Var (_, ty)) -> ty
+    | Add _ -> I
+    | Const _ -> I
+    | Len _ -> I
+    | Len2 _ -> I
+    | Str_const _ -> S
+    | Sofi _ -> S
+    | _ -> failwith "tbd"
+  ;;
+
   let match_typ fs fz (type a) : a term -> _ = function
     | Const z -> fz (Const z)
     | Str_const z -> fs (Str_const z)
