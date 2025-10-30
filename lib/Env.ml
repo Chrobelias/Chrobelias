@@ -9,9 +9,11 @@ module SM = struct
 end
 
 type t =
-  { env : Z.t Ast.Eia.term SM.t
+  { env : Z.t Ast.Eia.term SM.t (** Integer equalities *)
   ; str_env : string Ast.Eia.term SM.t
-  ; cstrts : string Ast.Eia.term list SM.t
+    (* TODO(Kakadu): Maybe we don't need two environments... *)
+    (** string equalities *)
+  ; cstrts : string Ast.Eia.term list SM.t (* string constraints multimap *)
   }
 
 let pp ?(title = "") : Format.formatter -> t -> unit =
@@ -25,26 +27,34 @@ let pp ?(title = "") : Format.formatter -> t -> unit =
       fprintf ppf "@[<hov> ";
       SM.iteri e.env ~f:(fun ~key ~data -> pp_kv ppf key data);
       SM.iteri e.str_env ~f:(fun ~key ~data -> pp_kv ppf key data);
-      SM.iteri cstrts ~f:(fun ~key ~data -> List.iter (pp_kv ppf key) data);
+      SM.iteri e.cstrts ~f:(fun ~key ~data -> List.iter (pp_kv ppf key) data);
       fprintf ppf "@]")
     else (
       fprintf ppf "@[<v 6>@[%s@]@," title;
-      SM.iteri s ~f:(fun ~key ~data -> pp_kv ppf key data);
-      SM.iteri cstrts ~f:(fun ~key ~data -> List.iter (pp_kv ppf key) data);
+      SM.iteri e.env ~f:(fun ~key ~data -> pp_kv ppf key data);
+      SM.iteri e.str_env ~f:(fun ~key ~data -> pp_kv ppf key data);
+      SM.iteri e.cstrts ~f:(fun ~key ~data -> List.iter (pp_kv ppf key) data);
       fprintf ppf "@]")
 [@@ocaml.warning "-32"]
 ;;
 
 let walk : t -> _ =
   fun e ->
-  let f = function
-    | Ast.Eia.Atom (Ast.Var s) as orig ->
+  let fz = function
+    | Ast.Eia.Atom (Ast.Var (s, I)) as orig ->
       (match SM.find_exn e.env s with
        | exception Not_found -> orig
        | t -> t)
     | t -> t
   in
-  Ast.map_term f
+  let fs = function
+    | Ast.Eia.Atom (Ast.Var (s, S)) as orig ->
+      (match SM.find_exn e.str_env s with
+       | exception Not_found -> orig
+       | t -> t)
+    | t -> t
+  in
+  Ast.Eia.map_term fz fs
 ;;
 
 (* let is_absent_key k map = not (SM.mem map k) *)
@@ -52,30 +62,36 @@ let walk : t -> _ =
 exception Occurs
 
 let occurs_var_exn =
-  let rec helper env v term =
-    let _ : Ast.Eia.term = term in
-    Ast.fold_term
-      (fun () ->
-         let open Ast in
-         function
-         | Eia.Atom (Var v2) when String.equal v v2 -> raise Occurs
-         | Eia.Atom (Var v2) ->
-           (* TODO: take into account string constriants too *)
-             (match SM.find env v2 with
-              | None -> ()
-              | Some t -> helper env v t)
-         | Atom (Const _) | Atom (Str_const _) -> ()
-         | Eia.Add xs | Eia.Mul xs -> List.iter (helper env v) xs
-         | Eia.Pow (l, r) ->
-           helper env v l;
-           helper env v r
-         | Eia.Sofi x | Iofs x | Len x -> helper env v x
-         | Len2 (Var v2) -> if String.equal v v2 then raise Occurs
-         | x -> Format.kasprintf failwith "not implemented: %a" Ast.pp_term_smtlib2 x)
-      ()
-      term
+  let rec helper : 'a. t -> string -> 'a Ast.Eia.term -> unit =
+    fun (type a) env v (term : a Ast.Eia.term) ->
+    let _ : _ Ast.Eia.term = term in
+    let rec fz () =
+      let open Ast in
+      function
+      | Eia.Atom (Var (v2, I)) when String.equal v v2 -> raise Occurs
+      | Eia.Atom (Var (v2, I)) ->
+        (* TODO: take into account string constriants too *)
+          (match SM.find env.env v2 with
+           | None -> ()
+           | Some t -> helper env v t)
+      | Const _ -> ()
+      | Eia.Add xs | Eia.Mul xs -> List.iter (helper env v) xs
+      | Eia.Pow (l, r) ->
+        helper env v l;
+        helper env v r
+      | Iofs x | Len x -> fs () x
+      | Len2 (Atom (Ast.Var (v2, S))) -> if String.equal v v2 then raise Occurs
+      | x -> Format.kasprintf failwith "not implemented: %a" Ast.pp_term_smtlib2 x
+    and fs () =
+      let open Ast in
+      function
+      | Ast.Eia.Str_const _ -> ()
+      | Eia.Sofi x -> helper env v x
+      | x -> Format.kasprintf failwith "not implemented: %a" Ast.pp_term_smtlib2 x
+    in
+    Ast.Eia.fold_term fz fs () term
   in
-  fun env v t -> helper env.env v t
+  helper
 ;;
 
 let occurs_var env v term =
@@ -99,22 +115,25 @@ let extend_cstrt_exn env ~key data =
 
 let extend_exn : t -> _ -> _ -> t =
   fun e key data ->
-  if SM.mem e.env key
-  then (
-    Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 (SM.find_exn e.env key);
-    Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
-    failwith (Format.sprintf "key %s aready exists." key));
-  let data = walk e data in
-  if occurs_var e key data
-  then raise Occurs
-  else (
-    match data with
-    | Ast.Eia.Iofs _ | Len _ | Len2 _ | Sofi _ ->
-      { e with cstrts = add_cstrt e.cstrts ~key data }
-    | _ -> { e with env = SM.add_exn e.env ~key ~data })
+  match key with
+  | Ast.Var (key, I) ->
+    if SM.mem e.env key
+    then (
+      Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 (SM.find_exn e.env key);
+      Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
+      failwith (Format.sprintf "key %s aready exists." key));
+    let data = walk e data in
+    if occurs_var e key data
+    then raise Occurs
+    else (
+      match data with
+      | Ast.Eia.Iofs _ | Len _ | Len2 _ | Sofi _ ->
+        { e with cstrts = add_cstrt e.cstrts ~key data }
+      | _ -> { e with env = SM.add_exn e.env ~key ~data })
+  | Ast.Var (v, S) -> failwith "tbd"
 ;;
 
-let empty : t = { env = SM.empty; cstrts = SM.empty }
+let empty : t = { env = SM.empty; str_env = SM.empty; cstrts = SM.empty }
 
 (* let is_empty { env } = SM.is_empty env *)
 let length { env; _ } = SM.cardinal env [@@warning "-32"]

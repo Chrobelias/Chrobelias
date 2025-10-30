@@ -488,11 +488,12 @@ let rec equal ast ast' =
   | Str str, Str str' -> Str.equal str str'
   | _ -> false
 ;;
+
 (*
    let fold_term feia acc = function
   | eia -> Eia.fold_term feia acc eia
-;;
+;;*)
 
-let map_term feia = function
-  | eia -> Eia.map_term feia eia
+(* let map_term fz fs = function
+  | eia -> Eia.map_term fz fs eia
 ;; *)
