@@ -29,8 +29,22 @@ let pp_any_atom ppf = function
   | Any_atom a -> Format.fprintf ppf "%a" pp_atom a
 ;;
 
-(* | Const n -> Format.fprintf ppf "%a" Z.pp_print n
-  | Str_const s -> Format.fprintf ppf "\"%s\"" s *)
+module Eq = struct
+  type (_, _) t = Eq : ('a, 'a) t
+
+  let refl : ('a, 'a) t = Eq
+
+  let sym (type a b) : (a, b) t -> (b, a) t =
+    fun p ->
+    match p with
+    | Eq -> Eq
+  ;;
+
+  let cast (type a b) (proof : (a, b) t) (x : a) : b =
+    match proof with
+    | Eq -> x
+  ;;
+end
 
 module Eia = struct
   (** Exponential integer arithmetic, i.e. LIA with exponents.*)
@@ -56,10 +70,59 @@ module Eia = struct
     | Substr : string term * Z.t term * Z.t term -> string term
   [@@deriving variants]
 
+  let proof_for_eq (type a b) : (a, b) Eq.t -> (a term, b term) Eq.t =
+    fun proof ->
+    match proof with
+    | Eq -> Eq
+  ;;
+
+  let cast_to_zterm =
+    fun (type ty) (e : ty term) : (ty, Z.t) Eq.t option ->
+    match e with
+    | Atom (Var (_, I)) -> Some Eq.Eq
+    | Add _ -> Some Eq.Eq
+    | Const _ -> Some Eq.Eq
+    | Len _ -> Some Eq.Eq
+    | Len2 _ -> Some Eq.Eq
+    | _ -> failwith "tbd"
+  ;;
+
+  let cast_to_sterm =
+    fun (type ty) (e : ty term) : (ty, string) Eq.t option ->
+    match e with
+    | Atom (Var (_, S)) -> Some Eq.Eq
+    | Str_const _ -> Some Eq.Eq
+    | Sofi _ -> Some Eq.Eq
+  [@@ocaml.warnerror "-8"]
+  ;;
+
+  let disambiguate =
+    fun (type ty) (e : ty term) fs fz ->
+    match e with
+    | Atom (Var (n, S)) as v -> fs v
+    | Str_const _ as v -> fs v
+    | Sofi _ as v -> fs v
+    | Concat _ as v -> fs v
+    | At _ as v -> fs v
+    | Substr _ as v -> fs v
+    | Atom (Var (n, I)) as v -> fz v
+    | Const _ as v -> fz v
+    | Iofs _ as v -> fz v
+    | Len _ as v -> fz v
+    | Len2 _ as v -> fz v
+    | Add _ as v -> fz v
+    | Mul _ as v -> fz v
+    | Mod _ as v -> fz v
+    | Pow _ as v -> fz v
+    | Bwand _ as v -> fz v
+    | Bwor _ as v -> fz v
+    | Bwxor _ as v -> fz v
+  ;;
+
   let typeof : 'a. 'a term -> 'a kind =
     fun (type ty) (e : ty term) : ty kind ->
     match e with
-    | Atom (Var (_, ty)) -> ty
+    | Atom (Var (_, I)) -> I
     | Add _ -> I
     | Const _ -> I
     | Len _ -> I
