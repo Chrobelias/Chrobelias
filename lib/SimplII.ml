@@ -936,29 +936,28 @@ struct
   include FT_SIG.Sugar (Who_in_exponents_)
 end
 
+module ZTM = Map.Make (struct
+    type t = Z.t Ast.Eia.term
+
+    let compare = Stdlib.compare
+  end)
+
 let propagate_exponents ast =
   let open Ast in
-  let module TM =
-    Map.Make (struct
-      type t = Z.t Ast.Eia.term
-
-      let compare = Stdlib.compare
-    end)
-  in
-  let rec collect : TM.key TM.t -> Ast.t -> _ =
+  let rec collect : ZTM.key ZTM.t -> Ast.t -> _ =
     fun acc -> function
       | Ast.Eia (Eia.Leq _) | Eia (Eia.Eq (Eia.Pow _, Eia.Pow _, I)) -> acc
       | Eia (Eia.Eq ((Eia.Pow _ as l), r, I)) -> collect acc (Eia (Eia.Eq (r, l, I)))
-      | Eia (Eia.Eq (l, (Eia.Pow _ as r), I)) -> TM.add r l acc
+      | Eia (Eia.Eq (l, (Eia.Pow _ as r), I)) -> ZTM.add r l acc
       | _ -> acc
   in
-  let info : TM.key TM.t =
+  let info : ZTM.key ZTM.t =
     match ast with
-    | Ast.Land xs -> List.fold_left collect TM.empty xs
-    | _ -> collect TM.empty ast
+    | Ast.Land xs -> List.fold_left collect ZTM.empty xs
+    | _ -> collect ZTM.empty ast
   in
   let check key ~rhs =
-    match TM.find key info with
+    match ZTM.find key info with
     | exception Not_found -> key
     | t when Eia.eq_term rhs t -> key
     | t ->
@@ -1023,19 +1022,19 @@ let flatten { Info.all; _ } =
     if Base.Set.Poly.mem all ans then gensym () else ans
   in
   let extra_ph = ref [] in
-  let mapping = ref Term_map.empty in
+  let mapping = ref ZTM.empty in
   let extend v other =
-    extra_ph := Id_symantics.eq (Id_symantics.var v) other :: !extra_ph;
-    mapping := Term_map.add (`Eia other) v !mapping
+    extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph;
+    mapping := ZTM.add other v !mapping
   in
   let module M_ = struct
     include Id_symantics
 
     let pow base e =
       match e with
-      | Ast.Eia.Atom (Ast.Var _) | Ast.Eia.Atom (Ast.Const _) -> Id_symantics.pow base e
+      | Ast.Eia.Atom (Ast.Var _) | Ast.Eia.(Const _) -> Id_symantics.pow base e
       | _ ->
-        (match Term_map.find (`Eia e) !mapping with
+        (match ZTM.find e !mapping with
          | exception Not_found ->
            let newv = gensym () in
            extend newv e;
@@ -1099,20 +1098,13 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
 ;;
 
 (* TODO: run this inside eq_propagation *)
-let trivial_simplify : 'a. 'a Ast.Eia.term -> 'a Ast.Eia.term =
-  fun (type a) (term : 'a Ast.Eia.term) ->
-  let (module S) = make_main_symantics Env.empty in
-  let rec loop (ast : a Ast.Eia.term) =
-    let rez : _ = fst (apply_term_symantics (module S)) ast in
-    if rez = ast then ast else loop rez
-  in
-  loop term
-;;
+let trivial_simplify eta = subst_term Env.empty eta
 
 let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let extend_exn env v rhs = Env.extend_exn env v (trivial_simplify rhs) in
+  let extend_str_exn env v rhs = Env.extend_string_exn env v (trivial_simplify rhs) in
   let fold_and_filter f acc xs =
     let acc = ref acc in
     let xs =
@@ -1127,18 +1119,17 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
     in
     !acc, xs
   in
-  let single info env c1 v1 c2 v2 rhs =
-    let c1 = Z.to_int c1 in
-    let c2 = Z.to_int c2 in
+  let single =
+    fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
     let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
     try
-      match c1, is_bad v1, c2, is_bad v2 with
-      | 1, false, _, _ when Env.is_absent_key v1 env && Env.is_absent_key v2 env ->
-        (* Format.printf "%s %d v1=%s, v2=%s\n%!" __FILE__ __LINE__ v1 v2; *)
-        extend_exn env v1 S.(add [ mul [ const (-1); const c2; var v2 ]; rhs ])
-      | _, _, 1, false when Env.is_absent_key v2 env && Env.is_absent_key v2 env ->
-        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
-        extend_exn env v2 S.(add [ mul [ const (-1); const c1; var v1 ]; rhs ])
+      match is_bad vn1, is_bad vn2 with
+      | false, _
+        when Env.is_absent_key vn1 env && Env.is_absent_key vn2 env && Z.(equal c1 one) ->
+        extend_exn env v1 S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ])
+      | _, false
+        when Env.is_absent_key vn2 env && Env.is_absent_key vn2 env && Z.(equal c2 one) ->
+        extend_exn env v2 S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ])
       | _ -> env
       (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
       (* Note: presence of key means we already simplified this variable in another equality *)
@@ -1148,22 +1139,22 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
   let helper info env ast =
     match ast with
     (* **************************** String stuff *********************************** *)
-    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Str_const str as rhs), _))
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Str_const str as rhs), S))
       when Env.is_absent_key vn env ->
       (* (= v 'str') *)
       Some (extend_exn env v rhs)
-    | Eia (Eia.Eq ((Str_const str as rhs), Atom (Var (vn, _) as v), _))
+    | Eia (Eia.Eq ((Str_const str as rhs), Atom (Var (vn, S) as v), S))
       when Env.is_absent_key vn env ->
       (* (= 'str' v) *)
       Some (extend_exn env v rhs)
-    | Eia (Eia.Eq (Atom (Var (v, _)), (Eia.Sofi (Atom (Var _)) as rhs), _))
-      when Env.is_absent_key v env -> Some (extend_exn env v rhs)
-    | Eia (Eia.Eq (Atom (Var (v, _)), (Eia.Iofs (Atom (Var _)) as rhs), _))
-      when Env.is_absent_key v env -> Some (extend_exn env v rhs)
-    | Eia (Eia.Eq (Atom (Var (v, _)), (Eia.Len (Atom (Var _)) as rhs), _))
-      when Env.is_absent_key v env -> Some (extend_exn env v rhs)
-    | Eia (Eia.Eq (Atom (Var (v, _)), (Eia.Len2 (Atom (Var _)) as rhs), _))
-      when Env.is_absent_key v env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Sofi (Atom (Var _)) as rhs), _))
+      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Iofs (Atom (Var _)) as rhs), _))
+      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len (Atom (Var _)) as rhs), _))
+      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len2 (Atom (Var _)) as rhs), _))
+      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
     (* **************************** integer stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var (vn1, _) as v1), (Atom (Var (v2, _)) as rhs), _)) ->
       if not (Env.is_absent_key vn1 env)
@@ -1204,30 +1195,35 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
           if Z.(equal c minus_one) then v2 else Eia.Mul [ Const Z.(-c); v2 ]
         in
         Some (extend_exn env v1 new_rhs))
-    | Eia (Eia.Eq (Add [ Atom (Var (v1, _)); Atom (Var (v2, _)) ], rhs, I)) when v1 <> v2
-      ->
+    | Eia (Eia.Eq (Add [ Atom (Var (_, _) as v1); Atom (Var (_, _) as v2) ], rhs, I))
+      when v1 <> v2 ->
       (* (= (+ v1 v2) rhs) *)
       Some (single info env Z.one v1 Z.one v2 rhs)
     | Eia
-        (Eia.Eq (Add [ Atom (Var (v1, _)); Mul [ Const c2; Atom (Var (v2, _)) ] ], rhs, I))
-      when v1 <> v2 ->
+        (Eia.Eq
+           ( Add [ Atom (Var (vn1, _) as v1); Mul [ Const c2; Atom (Var (vn2, _) as v2) ] ]
+           , rhs
+           , I ))
+      when vn1 <> vn2 ->
       (* (= (+ v1 ( * c v2)) rhs) *)
       Some (single info env Z.one v1 c2 v2 rhs)
     | Eia
         (Eia.Eq
-           (Add [ Mul [ Const c1; Atom (Var (vn1, _)) ]; Atom (Var (vn2, _)) ], rhs, I))
+           ( Add [ Mul [ Const c1; Atom (Var (vn1, _) as v1) ]; Atom (Var (vn2, _) as v2) ]
+           , rhs
+           , I ))
       when vn1 <> vn2 ->
       (* (= (+ ( * c v1) v2) rhs) *)
-      Some (single info env c1 vn1 Z.one vn2 rhs)
+      Some (single info env c1 v1 Z.one v2 rhs)
     | Eia
         (Eia.Eq
            ( Add
-               [ Mul [ Const c1; Atom (Var (v1, _)) ]
-               ; Mul [ Const c2; Atom (Var (v2, _)) ]
+               [ Mul [ Const c1; Atom (Var (vn1, _) as v1) ]
+               ; Mul [ Const c2; Atom (Var (vn2, _) as v2) ]
                ]
            , rhs
            , I ))
-      when v1 <> v2 -> Some (single info env c1 v1 c2 v2 rhs)
+      when vn1 <> vn2 -> Some (single info env c1 v1 c2 v2 rhs)
     | Eia (Eia.Eq (Add sums, Const rhs, I)) when Z.(zero = rhs) ->
       (* (= (+ ...) 0) *)
       let not_touched_by_env env term =
@@ -1236,13 +1232,13 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
             | Eia.Atom (Var (v, _)) when not (Env.is_absent_key v env) -> raise Exit
             | _ -> env
           in
-          let _ : Env.t = Eia.fold_term f env term in
+          let _ : Env.t = Eia.fold_term f (fun acc _ -> acc) env term in
           true
         with
         | Exit -> false
       in
-      let maybe_extend env v data ~fk =
-        if not (Env.occurs_var env v data) then extend_exn env v data else fk ()
+      let maybe_extend env vn v data ~fk =
+        if not (Env.occurs_var env vn data) then extend_exn env v data else fk ()
       in
       let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
       let rec loop acc = function
@@ -1253,14 +1249,14 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
           if not (Env.occurs_var env vn data)
           then extend_exn env v data
           else loop (Eia.Atom v :: acc) xs
-        | (Mul [ Const c; Eia.Atom (Var (vn, _)) ] as leftmost) :: xs
+        | (Mul [ Const c; Eia.Atom (Var (vn, _) as v) ] as leftmost) :: xs
           when Env.is_absent_key vn env
                && (not (is_bad vn))
                && Z.(equal (of_int (-1)) c)
                && not_touched_by_env env (Eia.Add acc)
                && not_touched_by_env env (Eia.Add xs) ->
           let data = S.(mul [ add (acc @ xs) ]) in
-          maybe_extend env vn data ~fk:(fun () -> loop (leftmost :: acc) xs)
+          maybe_extend env vn v data ~fk:(fun () -> loop (leftmost :: acc) xs)
         | h :: tl -> loop (h :: acc) tl
         | [] -> raise Exit
       in
@@ -1290,6 +1286,7 @@ let%expect_test _ =
     let env2, _ = eq_propagation info Env.empty ph in
     Format.printf "@[%a@]\n%!" (Env.pp ~title:"") env2
   in
+  let const n = TS.constz (Z.of_int n) in
   test TS.(add [ mul [ const 1; var "x" ]; mul [ const 2; var "y" ] ] = var "z");
   [%expect "x -> (+ z (* (- 2) y));"];
   test TS.(add [ var "x"; mul [ const 2; var "y" ] ] = mul [ var "z"; var "z" ]);
@@ -1325,10 +1322,10 @@ let lower_mod ast =
     let mod_ t z =
       let r = var (gensym ~prefix:"r" ()) in
       let q = var (gensym ~prefix:"q" ()) in
-      let zz = Ast.Eia.atom (Ast.Const z) in
-      extend (leq (const 0) r);
+      let zz = Ast.Eia.(Const z) in
+      extend (leq (constz Z.zero) r);
       extend (lt r zz);
-      extend (eq t (add [ mul [ zz; q ]; r ]));
+      extend (eqz t (add [ mul [ zz; q ]; r ]));
       r
     ;;
   end
@@ -1341,22 +1338,36 @@ let lower_mod ast =
 
 let lower_strlen ast =
   let env = ref Env.empty in
-  let names : (Ast.Eia.term, string) Base.Map.Poly.t ref = ref Base.Map.Poly.empty in
+  let names : (string Ast.Eia.term, string) Base.Map.Poly.t ref =
+    ref Base.Map.Poly.empty
+  in
   let forgotten = ref Env.empty in
   let module Collector = struct
     open Ast.Eia
     include Id_symantics
 
-    let eq l r =
+    let eqz l r =
       let () =
         match l, r with
-        | Atom (Var (v, _)), (Iofs l as rhs)
-        | (Iofs l as rhs), Atom (Var (v, _))
-        | Atom (Var (v, _)), (Sofi l as rhs)
-        | (Sofi l as rhs), Atom (Var (v, _))
-        | Atom (Var (v, _)), (Len l as rhs)
-        | (Len l as rhs), Atom (Var (v, _)) ->
-          if Env.is_absent_key v !env
+        | Atom (Var (vn, I) as v), (Iofs l as rhs)
+        | (Iofs l as rhs), Atom (Var (vn, I) as v)
+        | Atom (Var (vn, _) as v), (Len l as rhs)
+        | (Len l as rhs), Atom (Var (vn, _) as v) ->
+          if Env.is_absent_key vn !env
+          then env := Env.extend_exn !env v rhs
+          else forgotten := Env.extend_exn !forgotten v rhs;
+          names := Base.Map.Poly.set !names ~key:rhs ~data:v
+        | _ -> ()
+      in
+      eq l r I
+    ;;
+
+    let eq_str (l : string Ast.Eia.term) r =
+      let () =
+        match l, r with
+        | Atom (Var (vn, S) as v), (Sofi l as rhs)
+        | (Sofi l as rhs), Atom (Var (vn, S) as v) ->
+          if Env.is_absent_key vn !env
           then env := Env.extend_exn !env v rhs
           else forgotten := Env.extend_exn !forgotten v rhs;
           names := Base.Map.Poly.set !names ~key:rhs ~data:v
@@ -1372,7 +1383,7 @@ let lower_strlen ast =
 
     let str_len = function
       | Atom (Var (v, _)) ->
-        let lv = Ast.Eia.Atom (Var (v, _)) in
+        let lv = Ast.Eia.Atom (Var (v, S)) in
         (match Base.Map.Poly.find !names (Len lv) with
          | None ->
            let newvar = Ir.internal_name () in
@@ -1386,7 +1397,7 @@ let lower_strlen ast =
 
     let sofi = function
       | Atom (Var (v, _)) ->
-        let lv = Ast.Eia.Atom (Var (v, _)) in
+        let lv = Ast.Eia.Atom (Var (v, I)) in
         (match Base.Map.Poly.find !names (Sofi lv) with
          | None ->
            let newvar = Ir.internal_name () in
