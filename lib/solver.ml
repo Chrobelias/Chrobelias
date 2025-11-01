@@ -131,7 +131,7 @@ let collect_alpha (ir : Ir.t) =
   return (if Set.is_empty alpha then Set.of_array alphabet else alpha)
 ;;
 
-let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
+(*let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
   | Ir.Var s -> Ast.Eia.atom (Ast.var s)
   | Ir.Pow2 s ->
     Ast.Eia.pow (Ast.Eia.atom (Ast.const (Config.base ()))) (Ast.Eia.atom (Ast.var s))
@@ -195,7 +195,7 @@ let rec ir_to_ast : Ir.t -> Ast.t = function
          (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
   | Exists ([], lhs) -> ir_to_ast lhs
   | Exists (atoms, lhs) -> Ast.exists (List.map ir_atom_to_atom atoms) (ir_to_ast lhs)
-;;
+;;*)
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -1053,12 +1053,12 @@ struct
           | [] -> failwith ""
           | comps -> Ir.land_ comps
         in
-        let* () =
+        (*let* () =
           match Overapprox.check (ir_to_ast (Ir.land_ [ ir; order_ir ])) with
           | `Unknown ast -> Some ()
           | `Unsat -> None
           | _ -> Some ()
-        in
+        in*)
         let order_nfa, order_vars = eval order_ir in
         Debug.dump_nfa ~msg:"Nfa order1: %s" Nfa.format_nfa order_nfa;
         order_vars
@@ -1557,7 +1557,7 @@ let check_sat ir
   match Config.config.logic with
   | `Eia -> on_no_strings ir
   | `Str -> begin
-    match ir |> ir_to_ast |> SimplII.run_basic_simplify with
+    (*match ir |> ir_to_ast |> SimplII.run_basic_simplify with
     | `Unknown (ast, env) ->
       let ast = SimplII.shrink_variables ast in
       (* Format.printf "Ast = @[%a@]\n%!" Ast.pp_smtlib2 ast; *)
@@ -1567,48 +1567,48 @@ let check_sat ir
         | Error s ->
           Format.eprintf "Can't convert AST to IR: %s\n%!" s;
           exit 1
-      in
-      let res = LsbStr.check_sat ir in
-      (match res with
-       | `Sat model ->
-         `Sat
-           (fun tys ->
-             let* model = model () in
-             let main_model =
-               Map.mapi
-                 ~f:(fun ~key:k ~data:v ->
-                   let ty = Map.find tys k |> Option.value ~default:`Int in
-                   match ty with
-                   | `Int -> begin
-                     try
-                       let s =
-                         List.rev v
-                         |> List.to_seq
-                         |> Seq.map (fun c -> if Nfa.Str.is_end_char c then '0' else c)
-                         |> String.of_seq
-                       in
-                       if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
-                     with
-                     | Invalid_argument _ ->
-                       `Str
-                         (v
-                          |> List.rev
-                          |> List.to_seq
-                          |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                          |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                          |> String.of_seq)
-                   end
-                   | `Str ->
-                     `Str
-                       (v
-                        |> List.rev
-                        |> List.to_seq
-                        |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                        |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                        |> String.of_seq))
-                 model
-             in
-             let env_model =
+      in*)
+    let res = LsbStr.check_sat ir in
+    match res with
+    | `Sat model ->
+      `Sat
+        (fun tys ->
+          let* model = model () in
+          let main_model =
+            Map.mapi
+              ~f:(fun ~key:k ~data:v ->
+                let ty = Map.find tys k |> Option.value ~default:`Int in
+                match ty with
+                | `Int -> begin
+                  try
+                    let s =
+                      List.rev v
+                      |> List.to_seq
+                      |> Seq.map (fun c -> if Nfa.Str.is_end_char c then '0' else c)
+                      |> String.of_seq
+                    in
+                    if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
+                  with
+                  | Invalid_argument _ ->
+                    `Str
+                      (v
+                       |> List.rev
+                       |> List.to_seq
+                       |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                       |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+                       |> String.of_seq)
+                end
+                | `Str ->
+                  `Str
+                    (v
+                     |> List.rev
+                     |> List.to_seq
+                     |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+                     |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+                     |> String.of_seq))
+              model
+          in
+          (*let env_model =
                Env.filter_mapi
                  ~f:(fun ~key ~data ->
                    let ( let* ) = Option.bind in
@@ -1619,8 +1619,8 @@ let check_sat ir
                      | Ast.Eia.Add ls ->
                        let* ls = Base.Option.all (List.map aux ls) in
                        Option.some (List.fold_left Z.( + ) Z.zero ls)
-                     | Ast.Eia.Atom (Ast.Const v) -> Option.some v
-                     | Ast.Eia.Atom (Ast.Var v) -> begin
+                     | Ast.Eia.Const (v) -> Option.some v
+                     | Ast.Eia.Atom (Ast.Var (v, _)) -> begin
                        match Map.find main_model (Ir.var v) with
                        | Some (`Int v) -> Option.some v
                        | Some (`Str _) | None -> None
@@ -1650,10 +1650,11 @@ let check_sat ir
                  env
                |> Map.map_keys_exn ~f:(fun v -> Ir.var v)
              in
-             Map.merge_disjoint_exn main_model env_model |> filter_internal |> return)
-       | `Unsat -> `Unsat
-       | `Unknown -> `Unknown ir)
-    | `Sat (_, env) -> `Sat (fun _ -> Result.Ok Map.empty)
+             Map.merge_disjoint_exn main_model env_model |> filter_internal |> return*)
+          return (main_model |> filter_internal))
     | `Unsat -> `Unsat
+    | `Unknown -> `Unknown ir
+    (*| `Sat (_, env) -> `Sat (fun _ -> Result.Ok Map.empty)
+    | `Unsat -> `Unsat*)
   end
 ;;

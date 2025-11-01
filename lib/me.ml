@@ -509,7 +509,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
         | [] -> ir :: sup |> Ir.land_ |> return
         | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
       end *)
-    | Eq (((Const _ | Atom (Var (_, I))) as lhs), rhs, I) ->
+    | Eq (lhs, rhs, I) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in
       let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in

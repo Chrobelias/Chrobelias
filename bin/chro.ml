@@ -110,11 +110,11 @@ let check_sat ?(verbose = false) ast : rez =
       <+> (fun ast e ->
       match Lib.SimplII.has_unsupported_nonlinearity ast with
       | Result.Ok () -> unknown ast e
-      | Error terms ->
+      | Error _terms ->
         (* TODO(Kakadu): Print leftover AST too *)
         Format.printf "@[<v 2>";
         Format.printf "@[Non linear arithmetic between@]@,";
-        List.iteri (fun i -> Format.printf "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
+        (*List.iteri (fun i (Lib.Ast.TT (_, term)) -> Format.printf "@[%d) %a@]@," i Lib.Ast.Eia.pp_term term) terms;*)
         Format.printf "@]@,";
         let () = report_result2 (`Unknown "non-linear") in
         exit 0)
@@ -214,19 +214,19 @@ let join_int_model prefix m =
   let prefix =
     let shrink_ir_model =
       Base.Map.Poly.map_keys_exn m ~f:(function
-        | Ir.Var s -> Ast.Var s
+        | Ir.Var s -> Ast.Any_atom (Ast.var s Ast.I)
         | Ir.Pow2 _ -> assert false)
     in
     Env.enrich prefix shrink_ir_model
   in
   (* log "prefix.length = %d" (Env.length prefix); *)
   let rec seek key =
-    match Env.lookup_exn key prefix with
+    match Env.lookup_int_exn key prefix with
     | eia -> begin
       match SimplII.subst_term prefix eia with
-      | Ast.Eia.Atom (Ast.Const c) -> Option.some (`Int c)
-      | Atom (Str_const s) -> Option.some (`Str s)
-      | Atom (Ast.Var v) -> seek v
+      | Ast.Eia.Const c -> Option.some (`Int c)
+      | Ast.Eia.Str_const s -> Option.some (`Str s)
+      | Ast.Eia.Atom (Var (v, _)) -> seek v
       | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
     end
     (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
@@ -234,18 +234,20 @@ let join_int_model prefix m =
     | exception Base.Not_found_s _ when Solver.is_internal key -> None
     | exception Base.Not_found_s _ -> None
   in
-  Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
+  failwith "tbd join_int_model"
+;;
+
+(*Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek key with
-    | Some value -> Map.set acc ~key:(Var key) ~data:value
+    | Some value -> Map.set acc ~key:(Ast.var key I) ~data:value
     | None ->
       Format.eprintf "; Can't join models. Something may be missing\n%!";
-      acc
-    (*failwith
+      acc*)
+(*failwith
         (Format.asprintf
            "not implemented in %s. What to do with key '%s'?"
            __FUNCTION__
-           key)*))
-;;
+           key)*)
 
 type state =
   { asserts : Lib.Ast.t list
@@ -360,7 +362,7 @@ let () =
                    match key, data with
                    | Lib.Ir.Var v, `Str ->
                      Lib.Ast.(
-                       eia (Eia.leq (Len (Atom (Var v))) (Atom (Const (Z.of_int 100000)))))
+                       eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int 100000))))
                      :: acc
                    | _ -> acc)
                  |> Lib.Ast.land_

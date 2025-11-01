@@ -70,6 +70,40 @@ module Eia = struct
     | Substr : string term * Z.t term * Z.t term -> string term
   [@@deriving variants]
 
+  let rec pp_term : 'a. Format.formatter -> 'a term -> unit =
+    fun (type a) ppf : (a term -> unit) -> function
+    | Const c when Z.lt c Z.zero -> Format.fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
+    | Const c -> Z.pp_print ppf c
+    | Str_const s -> Format.fprintf ppf "\"%s\"" s
+    | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
+    | Len s -> Format.fprintf ppf "(str.len %a)" pp_term s
+    | Iofs s -> Format.fprintf ppf "(str.to.int %a)" pp_term s
+    | Sofi eia -> Format.fprintf ppf "(str.from_int %a)" pp_term eia
+    | Add xs ->
+      Format.fprintf
+        ppf
+        "@[(+ %a)@]"
+        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
+        xs
+    | Mul xs ->
+      Format.fprintf
+        ppf
+        "@[(* %a)@]"
+        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
+        xs
+    | Bwor (a, b) -> Format.fprintf ppf "(%a | %a)" pp_term a pp_term b
+    | Bwxor (a, b) -> Format.fprintf ppf "(%a ^ %a)" pp_term a pp_term b
+    | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
+    | Pow (a, b) -> Format.fprintf ppf "(exp %a %a)" pp_term a pp_term b
+    | Len2 a -> Format.fprintf ppf "@[(chrob.len %a)@]" pp_term a
+    | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
+    (* Strings  *)
+    | Concat (s1, s2) -> Format.fprintf ppf "@[(str.++ %a %a)@]" pp_term s1 pp_term s2
+    | Substr (term', a, b) ->
+      Format.fprintf ppf "(str.substr %a %a %a)" pp_term term' pp_term a pp_term b
+    | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_term a
+  ;;
+
   let proof_for_eq (type a b) : (a, b) Eq.t -> (a term, b term) Eq.t =
     fun proof ->
     match proof with
@@ -93,6 +127,8 @@ module Eia = struct
     | Atom (Var (_, S)) -> Some Eq.Eq
     | Str_const _ -> Some Eq.Eq
     | Sofi _ -> Some Eq.Eq
+    | non_str_term ->
+      failwith (Format.asprintf "unable to convert to string %a" pp_term non_str_term)
   [@@ocaml.warnerror "-8"]
   ;;
 
@@ -127,15 +163,28 @@ module Eia = struct
     | Const _ -> I
     | Len _ -> I
     | Len2 _ -> I
+    | Mul _ -> I
+    | Mod _ -> I
+    | Bwand _ -> I
+    | Bwor _ -> I
+    | Bwxor _ -> I
+    | Pow _ -> I
+    | Iofs _ -> I
     | Str_const _ -> S
     | Sofi _ -> S
-    | _ -> failwith "tbd"
+    | Atom (Var (_, S)) -> S
+    | Concat _ -> S
+    | At _ -> S
+    | Substr _ -> S
   ;;
 
   let match_typ fs fz (type a) : a term -> _ = function
-    | Const z -> fz (Const z)
-    | Str_const z -> fs (Str_const z)
-    | _ -> failwith "Gosha, implement me"
+    | ( Const _ | Len _
+      | Atom (Var (_, I))
+      | Add _ | Mul _ | Mod _ | Bwand _ | Bwor _ | Bwxor _ | Pow _ | Iofs _ | Len2 _ ) as
+      ast -> fz ast
+    | (Str_const _ | Atom (Var (_, S)) | Sofi _ | Concat _ | At _ | Substr _) as ast ->
+      fs ast
   ;;
 
   let is_constant_term =
@@ -256,57 +305,16 @@ module Eia = struct
     | At (term', tidx) -> fold_term fz fs (fold_term fz fs acc term') tidx
   ;;
 
-  let rec pp_term : 'a. Format.formatter -> 'a term -> unit =
-    fun (type a) ppf : (a term -> unit) -> function
-    | Const c when Z.lt c Z.zero -> Format.fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
-    | Const c -> Z.pp_print ppf c
-    | Str_const s -> Format.fprintf ppf "\"%s\"" s
-    | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
-    | Len s -> Format.fprintf ppf "(str.len %a)" pp_term s
-    | Iofs s -> Format.fprintf ppf "(str.to.int %a)" pp_term s
-    | Sofi eia -> Format.fprintf ppf "(str.from_int %a)" pp_term eia
-    | Add xs ->
-      Format.fprintf
-        ppf
-        "@[(+ %a)@]"
-        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
-        xs
-    | Mul xs ->
-      Format.fprintf
-        ppf
-        "@[(* %a)@]"
-        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
-        xs
-    | Bwor (a, b) -> Format.fprintf ppf "(%a | %a)" pp_term a pp_term b
-    | Bwxor (a, b) -> Format.fprintf ppf "(%a ^ %a)" pp_term a pp_term b
-    | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
-    | Pow (a, b) -> Format.fprintf ppf "(exp %a %a)" pp_term a pp_term b
-    | Len2 a -> Format.fprintf ppf "@[(chrob.len %a)@]" pp_term a
-    | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
-    (* Strings  *)
-    | Concat (s1, s2) -> Format.fprintf ppf "@[(str.++ %a %a)@]" pp_term s1 pp_term s2
-    | Substr (term', a, b) ->
-      Format.fprintf ppf "(str.substr %a %a %a)" pp_term term' pp_term a pp_term b
-    | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_term a
-  ;;
-
-  let compare_term (type a) : a term -> a term -> int =
-    fun l r ->
-    match l, r with
-    | _ -> failwith "tbd"
-  ;;
+  let compare_term (type a) : a term -> a term -> int = fun l r -> Stdlib.compare l r
+  (*match l, r with
+    | _ -> failwith "tbd"*)
 
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
     | Leq : Z.t term * Z.t term -> t
   [@@deriving variants]
 
-  let compare l r =
-    match l, r with
-    | Eq (_, _, I), Eq (_, _, S) -> -1
-    | _ -> failwith "tbd"
-  ;;
-
+  let compare l r = Stdlib.compare l r
   let geq a b = leq b a
   let lt a b = leq (add [ a; const Z.one ]) b
   let gt a b = lt b a

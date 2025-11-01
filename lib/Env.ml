@@ -8,6 +8,8 @@ module SM = struct
   let add_exn m ~key ~data = add key data m
 end
 
+let failf fmt = Format.kasprintf failwith fmt
+
 type kv = KV : 'a Ast.atom * 'a Ast.Eia.term -> kv
 
 type t =
@@ -214,23 +216,31 @@ let to_eqs : t -> Ast.t list =
   |> SM.fold (fun key data acc -> mk_eq S key data :: acc) str_env
 ;;
 
-let enrich m other = failwith "This is merging of two models. Gosha, implement plz"
-(* let _ : t = m in
-  let _ : (Ast.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t = other in
+let enrich m other =
+  let _ : t = m in
+  let _ : (Ast.any_atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t = other in
   let new_env =
     Base.Map.fold other ~init:m.env ~f:(fun ~key ~data acc ->
       match key, data with
-      | Ast.Var s, `Int z -> SM.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Const z))
-      | Ast.Var s, `Str z -> SM.add_exn acc ~key:s ~data:(Ast.Eia.Atom (Str_const z))
-      | key, `Int z ->
-        Format.eprintf "@[%a ~~> %a@]\n" Ast.pp_atom key Z.pp_print z;
-        failwith "Enriching model is not fully implemented"
-      | key, `Str z ->
-        Format.eprintf "@[%a ~~> %S@]\n" Ast.pp_atom key z;
-        failwith "Enriching model is not fully implemented"
-      (* | _ -> failwith "Enriching model is not fully implemented" *))
+      | Any_atom (Ast.Var (s, I)), `Int z -> SM.add_exn acc ~key:s ~data:(Const z)
+      | _, `Str z -> acc
+      | Any_atom (Ast.Var (s, S)), `Int z ->
+        failf
+          "tried to enrich with a model having string %s an integer value %a"
+          s
+          Z.pp_print
+          z)
   in
-  { env = new_env; cstrts = m.cstrts } *)
+  let new_str_env =
+    Base.Map.fold other ~init:m.str_env ~f:(fun ~key ~data acc ->
+      match key, data with
+      | Any_atom (Ast.Var (s, S)), `Str z -> SM.add_exn acc ~key:s ~data:(Str_const z)
+      | _, `Int z -> acc
+      | Any_atom (Ast.Var (s, I)), `Str z ->
+        failf "tried to enrich with a model having integer %s a string value %s" s z)
+  in
+  { env = new_env; cstrts = m.cstrts; str_env = new_str_env }
+;;
 
 let lookup_int name { env; _ } = SM.find_opt name env
 let lookup_int_exn name { env; _ } = SM.find_exn env name
