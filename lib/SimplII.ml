@@ -297,16 +297,14 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Eia e -> helper_eia e
     | Pred s -> assert false
     | Exists (vs, ph) ->
-      failwith "tbd"
-      (* let vs =
+      (*let vs =
         List.filter_map
           (function
             (* These repeats very often  *)
-            | Ast.Var s -> Some s
-            | Str_const _ | Const _ -> None)
+            | Ast.Any_atom (Var (_, _)) as s -> Some s)
           vs
-      in
-      S.exists vs (helper ph) *)
+      in*)
+      S.exists vs (helper ph)
     | Str (Ast.Str.PrefixOf (term, term')) ->
       S.str_prefixof (helperS term) (helperS term')
     | Str (Ast.Str.Contains (term, term')) ->
@@ -526,8 +524,7 @@ let make_main_symantics env =
     ;;
 
     (** Formulas *)
-    let exists var ph = failwith "tbd"
-    (* Ast.Exists (List.map Ast.var var, ph) *)
+    let exists var ph = Ast.exists var ph
 
     let true_ = Ast.true_
     let false_ = Ast.false_
@@ -1429,7 +1426,14 @@ let rewrite_len ast =
       let u = Ir.internal_name () in
       let v = Ir.internal_name () in
       env := Env.extend_int_exn !env u (Ast.Eia.len2 str);
-      (*Ast.Eia.eq (str_len2 str) (add [pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var v I)); Ast.Eia.const (Z.minus_one)])*)
+      env
+      := Env.extend_int_exn
+           !env
+           u
+           (add
+              [ pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var v I))
+              ; Ast.Eia.const Z.minus_one
+              ]);
       Ast.Eia.atom (Ast.var v I)
     ;;
   end

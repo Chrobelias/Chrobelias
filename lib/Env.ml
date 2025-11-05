@@ -8,7 +8,7 @@ module SM = struct
   let add_exn m ~key ~data = add key data m
 end
 
-let failf fmt = Format.kasprintf failwith fmt
+let _failf fmt = Format.kasprintf failwith fmt
 
 type kv = KV : 'a Ast.atom * 'a Ast.Eia.term -> kv
 
@@ -94,13 +94,29 @@ let occurs_var_exn =
         helper env v r
       | Iofs x | Len x -> fs () x
       | Len2 (Atom (Ast.Var (v2, S))) -> if String.equal v v2 then raise Occurs
-      | x -> Format.kasprintf failwith "not implemented: %a" Ast.pp_term_smtlib2 x
+      | x ->
+        Format.kasprintf
+          failwith
+          "not implemented in occurs_var: %a"
+          Ast.pp_term_smtlib2
+          x
     and fs () =
       let open Ast in
       function
+      | Eia.Atom (Var (v2, S)) when String.equal v v2 -> raise Occurs
+      | Eia.Atom (Var (v2, S)) ->
+        (* TODO: take into account string constriants too *)
+          (match SM.find env.env v2 with
+           | None -> ()
+           | Some t -> helper env v t)
       | Ast.Eia.Str_const _ -> ()
       | Eia.Sofi x -> helper env v x
-      | x -> Format.kasprintf failwith "not implemented: %a" Ast.pp_term_smtlib2 x
+      | x ->
+        Format.kasprintf
+          failwith
+          "not implemented in occurs_var: %a"
+          Ast.pp_term_smtlib2
+          x
     in
     Ast.Eia.fold_term fz fs () term
   in
@@ -172,7 +188,11 @@ let length { env; _ } = SM.cardinal env [@@warning "-32"]
 let lookup k { env; _ } = SM.find env k
 let lookup_exn k { env; _ } = SM.find_exn env k
 let is_absent_key k e = (not (SM.mem e.env k)) && not (SM.mem e.str_env k)
-let fold { env; _ } ~init ~f = SM.fold (fun key data acc -> f ~key ~data acc) env init
+
+let fold { env; str_env; _ } ~init ~f =
+  let init = SM.fold (fun key data acc -> f ~key ~data:(Ast.TT (I, data)) acc) env init in
+  SM.fold (fun key data acc -> f ~key ~data:(Ast.TT (S, data)) acc) str_env init
+;;
 
 let filter_mapi ~f { env; _ } : (string, _) Base.Map.Poly.t =
   SM.fold
@@ -222,22 +242,24 @@ let enrich m other =
   let new_env =
     Base.Map.fold other ~init:m.env ~f:(fun ~key ~data acc ->
       match key, data with
-      | Any_atom (Ast.Var (s, I)), `Int z -> SM.add_exn acc ~key:s ~data:(Const z)
+      | Any_atom (Ast.Var (s, I)), `Int z | Any_atom (Ast.Var (s, S)), `Int z ->
+        SM.add_exn acc ~key:s ~data:(Const z)
       | _, `Str z -> acc
-      | Any_atom (Ast.Var (s, S)), `Int z ->
+      (*| Any_atom (Ast.Var (s, S)), `Int z ->
         failf
           "tried to enrich with a model having string %s an integer value %a"
           s
           Z.pp_print
-          z)
+          z*))
   in
   let new_str_env =
     Base.Map.fold other ~init:m.str_env ~f:(fun ~key ~data acc ->
       match key, data with
-      | Any_atom (Ast.Var (s, S)), `Str z -> SM.add_exn acc ~key:s ~data:(Str_const z)
+      | Any_atom (Ast.Var (s, S)), `Str z | Any_atom (Ast.Var (s, I)), `Str z ->
+        SM.add_exn acc ~key:s ~data:(Str_const z)
       | _, `Int z -> acc
-      | Any_atom (Ast.Var (s, I)), `Str z ->
-        failf "tried to enrich with a model having integer %s a string value %s" s z)
+      (*| Any_atom (Ast.Var (s, I)), `Str z ->
+        failf "tried to enrich with a model having integer %s a string value %s" s z*))
   in
   { env = new_env; cstrts = m.cstrts; str_env = new_str_env }
 ;;

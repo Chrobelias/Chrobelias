@@ -110,25 +110,41 @@ module Eia = struct
     | Eq -> Eq
   ;;
 
+  let typeof : 'a. 'a term -> 'a kind =
+    fun (type ty) (e : ty term) : ty kind ->
+    match e with
+    | Atom (Var (_, I)) -> I
+    | Add _ -> I
+    | Const _ -> I
+    | Len _ -> I
+    | Len2 _ -> I
+    | Mul _ -> I
+    | Mod _ -> I
+    | Bwand _ -> I
+    | Bwor _ -> I
+    | Bwxor _ -> I
+    | Pow _ -> I
+    | Iofs _ -> I
+    | Str_const _ -> S
+    | Sofi _ -> S
+    | Atom (Var (_, S)) -> S
+    | Concat _ -> S
+    | At _ -> S
+    | Substr _ -> S
+  ;;
+
   let cast_to_zterm =
     fun (type ty) (e : ty term) : (ty, Z.t) Eq.t option ->
-    match e with
-    | Atom (Var (_, I)) -> Some Eq.Eq
-    | Add _ -> Some Eq.Eq
-    | Const _ -> Some Eq.Eq
-    | Len _ -> Some Eq.Eq
-    | Len2 _ -> Some Eq.Eq
-    | _ -> failwith "tbd"
+    match typeof e with
+    | I -> Some Eq.Eq
+    | S -> None
   ;;
 
   let cast_to_sterm =
     fun (type ty) (e : ty term) : (ty, string) Eq.t option ->
-    match e with
-    | Atom (Var (_, S)) -> Some Eq.Eq
-    | Str_const _ -> Some Eq.Eq
-    | Sofi _ -> Some Eq.Eq
-    | non_str_term ->
-      failwith (Format.asprintf "unable to convert to string %a" pp_term non_str_term)
+    match typeof e with
+    | S -> Some Eq.Eq
+    | I -> None
   [@@ocaml.warnerror "-8"]
   ;;
 
@@ -153,29 +169,6 @@ module Eia = struct
     | Bwand _ as v -> fz v
     | Bwor _ as v -> fz v
     | Bwxor _ as v -> fz v
-  ;;
-
-  let typeof : 'a. 'a term -> 'a kind =
-    fun (type ty) (e : ty term) : ty kind ->
-    match e with
-    | Atom (Var (_, I)) -> I
-    | Add _ -> I
-    | Const _ -> I
-    | Len _ -> I
-    | Len2 _ -> I
-    | Mul _ -> I
-    | Mod _ -> I
-    | Bwand _ -> I
-    | Bwor _ -> I
-    | Bwxor _ -> I
-    | Pow _ -> I
-    | Iofs _ -> I
-    | Str_const _ -> S
-    | Sofi _ -> S
-    | Atom (Var (_, S)) -> S
-    | Concat _ -> S
-    | At _ -> S
-    | Substr _ -> S
   ;;
 
   let match_typ fs fz (type a) : a term -> _ = function

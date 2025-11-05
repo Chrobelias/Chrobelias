@@ -6,8 +6,7 @@ val empty : t
 
 (* val is_empty : t -> bool *)
 val merge : t -> t -> t
-
-(* val fold : t -> init:'a -> f:(key:string -> data:Ast.Eia.term -> 'a -> 'a) -> 'a *)
+val fold : t -> init:'a -> f:(key:string -> data:Ast.typed_term -> 'a -> 'a) -> 'a
 val length : t -> int
 val lookup_int : string -> t -> Z.t Ast.Eia.term option
 val lookup_int_exn : string -> t -> Z.t Ast.Eia.term

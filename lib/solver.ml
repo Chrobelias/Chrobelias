@@ -34,6 +34,11 @@ let as_var = function
   | Ir.Var var -> Ir.var var
 ;;
 
+let get_exp = function
+  | Ir.Pow2 var -> Ir.var var
+  | Ir.Var _ -> failwith "Expected exponent, found var"
+;;
+
 let collect_vars ir =
   Ir.fold
     (fun acc -> function
@@ -67,6 +72,31 @@ let collect_atoms ir =
   Ir.fold
     (fun acc -> function
        (*| Ir.Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
+       | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | Ir.SReg (atom, _) -> Set.add acc atom
+       | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Ir.Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function
+              | Ir.Var _ as ir -> [ ir ]
+              | Ir.Pow2 _ as ir -> [ ir ])
+            |> Set.of_list)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
+let collect_free_atoms ir =
+  Ir.fold
+    (fun acc -> function
+       | Ir.Exists (atoms, _) -> Set.diff acc (Set.of_list atoms)
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.SReg (atom, _) -> Set.add acc atom
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
@@ -538,80 +568,13 @@ struct
   let eval ir =
     let alpha = collect_alpha ir |> Option.map Set.to_list in
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
+    let vars = collect_vars ir in
     let ir = trivial ir in
     let ir = if Config.config.simpl_mono then Ir.simpl_monotonicty ir else ir in
     let ir = if Config.config.simpl_alpha then Simpl_alpha.simplify ir else ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
     if Config.config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
     if Config.config.stop_after = `Simpl then exit 0;
-    let vars = collect_vars ir in
-    let _apply_post_strings atoms =
-      fun nfa ->
-      let slens =
-        Ir.fold
-          (fun acc -> function
-             | SLen (atom, atom') -> (atom, atom') :: acc
-             | _ -> acc)
-          []
-          ir
-      in
-      let stois =
-        Ir.fold
-          (fun acc -> function
-             | Stoi (atom, atom') -> (atom, atom') :: acc
-             | _ -> acc)
-          []
-          ir
-      in
-      let seqs =
-        Ir.fold
-          (fun acc -> function
-             | SEq (atom, atom') -> (atom, atom') :: acc
-             | _ -> acc)
-          []
-          ir
-      in
-      let nfa =
-        List.fold_left
-          (fun nfa (atom, atom') ->
-             if List.mem atom atoms
-             then
-               NfaCollection.strlen_post
-                 nfa
-                 ~src:(Map.find_exn vars atom')
-                 ~dest:(Map.find_exn vars atom)
-             else nfa)
-          nfa
-          slens
-      in
-      let nfa =
-        List.fold_left
-          (fun nfa (atom, atom') ->
-             if List.mem atom atoms
-             then
-               NfaCollection.stoi_post
-                 nfa
-                 ~src:(Map.find_exn vars atom')
-                 ~dest:(Map.find_exn vars atom)
-             else nfa)
-          nfa
-          stois
-      in
-      let nfa =
-        List.fold_left
-          (fun nfa (atom, atom') ->
-             if List.mem atom atoms
-             then
-               NfaCollection.seq_post
-                 nfa
-                 ~src:(Map.find_exn vars atom')
-                 ~dest:(Map.find_exn vars atom)
-             else nfa)
-          nfa
-          seqs
-      in
-      nfa
-    in
     let rec eval ir =
       if Config.config.dump_ir
       then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
@@ -758,11 +721,6 @@ struct
   let pow2z n =
     List.init (Z.to_int n) (Fun.const (NfaCollection.base |> Z.of_int))
     |> List.fold_left Z.( * ) Z.one
-  ;;
-
-  let get_exp = function
-    | Ir.Pow2 var -> Ir.var var
-    | Ir.Var _ -> failwith "Expected exponent, found var"
   ;;
 
   let to_exp = function
@@ -1139,7 +1097,7 @@ struct
     let nfa =
       Set.fold
         ~f:(fun acc k ->
-          if is_exp k && not (Set.mem atoms k)
+          if is_exp k && not (Set.mem atoms (get_exp k))
           then Nfa.project [ Map.find_exn vars k ] acc
           else acc)
         ~init:nfa
@@ -1257,7 +1215,7 @@ struct
 
   let get_model_normal ir () =
     let nfa, vars = ir |> eval in
-    let free_vars = ir |> collect_free |> Set.to_list in
+    let free_vars = ir |> collect_free_atoms |> Set.to_list in
     let model, _ =
       Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) |> Option.get
     in
@@ -1542,12 +1500,26 @@ let check_sat ir
               |> Map.mapi ~f:(fun ~key:k ~data:v ->
                 match Map.find tys k with
                 | None | Some `Int ->
-                  `Int
-                    (if Config.config.mode = `Lsb
-                     then z_of_list_lsb v
-                     else z_of_list_msb v)
+                  let v =
+                    if Config.config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v
+                  in
+                  let v =
+                    match k with
+                    | Ir.Var _ -> v
+                    | Pow2 _ ->
+                      let logBase =
+                        match Config.config.mode with
+                        | `Lsb -> Lsb.logBaseZ
+                        | `Msb -> Msb.logBaseZ
+                      in
+                      logBase v |> Z.of_int
+                  in
+                  `Int v
                 | Some `Str ->
                   failwith "it is something strange: there is string variable in EIA")
+              |> Map.map_keys_exn ~f:(function
+                | Ir.Pow2 k as atom -> get_exp atom
+                | atom -> atom)
               |> filter_internal)
          in
          `Sat f)

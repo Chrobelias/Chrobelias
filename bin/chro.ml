@@ -221,8 +221,8 @@ let join_int_model prefix m =
   in
   (* log "prefix.length = %d" (Env.length prefix); *)
   let rec seek key =
-    match Env.lookup_int_exn key prefix with
-    | eia -> begin
+    match Env.lookup_int key prefix with
+    | Some eia -> begin
       match SimplII.subst_term prefix eia with
       | Ast.Eia.Const c -> Option.some (`Int c)
       | Ast.Eia.Str_const s -> Option.some (`Str s)
@@ -231,23 +231,27 @@ let join_int_model prefix m =
     end
     (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
     (* | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term) *)
-    | exception Base.Not_found_s _ when Solver.is_internal key -> None
-    | exception Base.Not_found_s _ -> None
+    | None -> begin
+      match Env.lookup_string key prefix with
+      | Some str -> begin
+        match SimplII.subst_term prefix str with
+        | Ast.Eia.Const c -> Option.some (`Int c)
+        | Ast.Eia.Str_const s -> Option.some (`Str s)
+        | Ast.Eia.Atom (Var (v, _)) -> seek v
+        | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
+      end
+      | None when Solver.is_internal key -> None
+      | None -> None
+    end
   in
-  failwith "tbd join_int_model"
-;;
-
-(*Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
+  Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek key with
-    | Some value -> Map.set acc ~key:(Ast.var key I) ~data:value
+    | Some value -> Map.set acc ~key:(Ir.var key) ~data:value
     | None ->
-      Format.eprintf "; Can't join models. Something may be missing\n%!";
-      acc*)
-(*failwith
-        (Format.asprintf
-           "not implemented in %s. What to do with key '%s'?"
-           __FUNCTION__
-           key)*)
+      if Solver.is_internal key |> not
+      then Format.eprintf "; Can't join models. Something may be missing\n%!";
+      acc)
+;;
 
 type state =
   { asserts : Lib.Ast.t list
