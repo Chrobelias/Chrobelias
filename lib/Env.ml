@@ -184,7 +184,7 @@ let empty : t = { env = SM.empty; str_env = SM.empty; cstrts = [] }
 [@@@ocaml.warnerror "-32"]
 
 (* let is_empty { env } = SM.is_empty env *)
-let length { env; _ } = SM.cardinal env [@@warning "-32"]
+let length { env; str_env; _ } = SM.cardinal env + SM.cardinal str_env [@@warning "-32"]
 let lookup k { env; _ } = SM.find env k
 let lookup_exn k { env; _ } = SM.find_exn env k
 let is_absent_key k e = (not (SM.mem e.env k)) && not (SM.mem e.str_env k)

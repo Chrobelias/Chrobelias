@@ -191,7 +191,6 @@ module Id_symantics :
   include struct
     open Ast.Eia
 
-    let str_equal s1 s2 = Ast.eia (eq s1 s2 Ast.S)
     let in_re l regex = Ast.Str (Ast.Str.InRe (l, regex))
     let str_len s = len s
     let str_len2 s1 = len2 s1
@@ -357,19 +356,25 @@ let make_main_symantics env =
         c
     ;;
 
+    let str_var s : str =
+      match Env.lookup_string s env with
+      | Some c -> c
+      | None -> Eia.Atom (Ast.Var (s, S))
+    ;;
+
     (* let str_from_eia s =
       match Env.lookup s env with
       | Some (Ast.Eia.Atom (Ast.Const c)) -> Ast.Str.fromeia (Ast.const c)
       | _ -> Ast.Eia.fromeia (Ast.var s)
     ;; *)
 
-    let str_equal l r = assert false
-    (* if Eia.eq_term l r
+    (*let str_equal l r =
+    if Eia.eq_term l r
       then true_
       else (
-        match l, r with
-        | Eia.Sofi (Var v1 as l), Str.FromEia (Var v2 as r) ->
-          Str (Str.Eq (Str.Atom l, Str.Atom r))
+        (*match l, r with
+        (*| Eia.Sofi (Var v1 as l), Str.FromEia (Var v2 as r) ->
+          Str (Str.Eq (Str.Atom l, Str.Atom r))*)
         | Str.FromEia (Const v1), Str.Const r | Str.Const r, Str.FromEia (Const v1) ->
           let l = Z.to_string v1 in
           if
@@ -380,7 +385,7 @@ let make_main_symantics env =
                  (String.sub r (String.length l) (String.length r - String.length l))
           then Ast.true_
           else Ast.false_
-        | _ -> Id_symantics.str_equal l r) *)
+        | _ -> *)Id_symantics.str_eq l r)*)
 
     let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
     let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
@@ -609,7 +614,7 @@ let make_main_symantics env =
         match l, r with
         | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
           Eia (Eia.Eq (l, r, I))
-        | _ -> Eia (Eia.Eq (l, r, S))
+        | _ -> Id_symantics.eq_str l r
     ;;
 
     let eq x y =
@@ -1252,7 +1257,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
       in
       (try Some (loop [] sums) with
        | Exit -> None)
-    | _ ->
+    | eq ->
       (* log "OTHERWISE  ast part = @[%a@]" Ast.pp_smtlib2 ast; *)
       None
   in
