@@ -15,7 +15,13 @@
   Expecting 1 choices ...
   
   Can't decide in lib/Underapprox.ml
-  Non linear arithmetic between
-    0) (exp x 2)
   
-  unknown (non-linear)
+  Non linear arithmetic between
+  
+  0) (exp x 2)
+  
+  
+  
+  Into Z3 goes: (bool.eq (int.pow x 2) 32)
+  
+  unsat (non-linear)

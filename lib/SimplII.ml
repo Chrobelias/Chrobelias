@@ -268,6 +268,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Config.base () ->
       S.pow2var x
+    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.minus_one ->
+      failwith "TBD"
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
@@ -1423,6 +1425,22 @@ let try_under2_heuristics env ast =
        let (module Symantics) = make_main_symantics e in
        apply_symantics (module Symantics) (Symantics.land_ (ast :: phs)))
     envs
+;;
+
+let check_nia ast =
+  let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
+  log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
+  let solver =
+    Smtml.Z3_mappings.Solver.make
+      ~logic:Smtml.Logic.QF_NIA
+      ()
+      ~params:Smtml.Params.(default () $ (Timeout, 20000))
+  in
+  Smtml.Z3_mappings.Solver.reset solver;
+  match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
+  | `Sat -> `Sat
+  | `Unsat -> `Unsat
+  | `Unknown -> `Unknown
 ;;
 
 let simpl bound ast =
