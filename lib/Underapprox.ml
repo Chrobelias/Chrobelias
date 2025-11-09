@@ -124,7 +124,7 @@ let make_collector () =
 exception Bitwise_op
 exception String_op
 
-let apply_symnatics (type a) (module S : SYM with type repr = a) =
+let apply_symantics (type a) (module S : SYM with type repr = a) =
   let rec helper = function
     | Ast.Land xs -> S.land_ (List.map helper xs)
     | Lor xs -> S.lor_ (List.map helper xs)
@@ -173,7 +173,7 @@ let omit_z3_model =
 let check bound ast =
   try
     let vars = ref (Base.Set.empty (module Base.String)) in
-    let interestring_vars = apply_symnatics (make_collector ()) ast in
+    let interestring_vars = apply_symantics (make_collector ()) ast in
     (* TODO(Kakadu): collecting of interesting variables could be buggy. For example, what if
       (exists (x) (...) (exists (x) (= (exp 2 x) 128)))
     ??
@@ -200,7 +200,7 @@ let check bound ast =
            let ((module S : SYM with type repr = Smtml.Expr.t) as sym) =
              make_sym env (fun s -> vars := Base.Set.add !vars s) bound
            in
-           let ph = apply_symnatics sym ast in
+           let ph = apply_symantics sym ast in
            let module Z3 = Smtml.Z3_mappings.Solver in
            (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
            let solver = Z3.make ~params:Smtml.Params.(default () $ (Timeout, 20000)) () in
