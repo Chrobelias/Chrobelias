@@ -101,6 +101,9 @@ let check_sat ?(verbose = false) ast : rez =
       then unknown ast e
       else lift ast (Lib.SimplII.run_basic_simplify ast))
       <+> (fun ast e ->
+      let ast = Lib.SimplII.rewrite_len ast in
+      unknown ast e)
+      <+> (fun ast e ->
       if Lib.Config.config.under_approx >= 0
       then (
         match Lib.Underapprox.check Lib.Config.config.under_approx ast with
