@@ -102,6 +102,7 @@ module type SYM0 = sig
   val str_concat : str -> str -> str
   val str_equal : str -> str -> ph
   val pow2var : string -> term
+  val pow_minus_one : string -> term
   val exists : string list -> ph -> ph
   val str_len2 : string -> term
   val stoi2 : string -> term
@@ -217,6 +218,7 @@ module Id_symantics :
   let lt l r = Ast.Eia (Ast.Eia.lt l r)
   let prj = Fun.id
   let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
+  let pow_minus_one s = pow (const (-1)) (var s)
   let str_at s a = Ast.Str.at s (Ast.Var a)
   let str_substr s a b = Ast.Str.substr s (Ast.Var a) (Ast.Var b)
 end
@@ -269,7 +271,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Config.base () ->
       S.pow2var x
     | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Z.minus_one ->
-      failwith "TBD"
+      S.pow_minus_one x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
@@ -888,6 +890,11 @@ module Who_in_exponents_ = struct
     Info.make ~all ~exp:all ~str:[]
   ;;
 
+  let pow_minus_one v =
+    let all = [ v ] in
+    Info.make ~all ~exp:all ~str:[]
+  ;;
+
   let pow base e = { e with all = S.union base.all e.all }
   let prj = Fun.id
 end
@@ -1028,6 +1035,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let str_contains _ = failwith "not implemented"
     let str_suffixof _ = failwith "not implemented"
     let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)
+    let pow_minus_one s = pow (const (-1)) (var s)
 
     let exists vars x =
       let vars = List.filter (fun s -> Stdlib.not (Base.Map.Poly.mem env s)) vars in
@@ -1428,6 +1436,15 @@ let try_under2_heuristics env ast =
 ;;
 
 let check_nia ast =
+  let module M = struct
+    include Id_symantics
+
+    let pow_minus_one s = add [ const 1; mul [ const (-2); mod_ (var s) (Z.of_int 2) ] ]
+  end
+  in
+  let ast = apply_symantics_unsugared (module M) ast in
+  let ast = lower_mod ast in
+  log "ast=@[%a@]" Ast.pp_smtlib2 ast;
   let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
   log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
   let solver =
