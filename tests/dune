@@ -13,6 +13,7 @@
   ./examples/QF_EIA/basic-exp-unsat.smt2
   ./examples/QF_EIA/basic-exp-sat.smt2
   ./examples/fcp_7_11_with_exps.smt2
+  ./examples/size02.koat_121.smt2
   ./examples/double_exp.smt2
   ./examples/hash_3_6.smt2
   ./examples/hash_130_137.smt2))
