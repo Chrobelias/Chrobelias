@@ -125,12 +125,15 @@ let check_sat ?(verbose = false) ast : rez =
         log "@[Non linear arithmetic between@]@,";
         List.iteri (fun i -> log "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
         log "@]@,";
-        (match Lib.SimplII.check_nia ast with
-         | `Sat -> sat "non-linear" ast e (fun _ -> Result.Ok Map.empty)
-         | `Unsat -> Unsat "non-linear"
-         | `Unknown ->
-           report_result2 (`Unknown "non-linear");
-           exit 0))
+        if Lib.Config.config.logic = `Eia
+        then (
+          match Lib.SimplII.check_nia ast with
+          | `Sat -> sat "non-linear" ast e (fun _ -> Result.Ok Map.empty)
+          | `Unsat -> Unsat "non-linear"
+          | `Unknown ->
+            report_result2 (`Unknown "non-linear");
+            exit 0)
+        else unknown ast e)
       <+> (fun ast e ->
       if Lib.Config.is_under2_enabled ()
       then (
