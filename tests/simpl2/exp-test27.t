@@ -1,7 +1,7 @@
   $ export CHRO_TRACE_OPT=1
 $ export CHRO_DEBUG=1
 
-  $ Chro -dpresimpl -stop-after simpl ../examples/exp-test27.smt2 -huge 100
+  $ Chro -huge 100 --dpresimpl --stop-after simpl ../examples/exp-test27.smt2
   (and
     (= %0 (str.len x))
     (= r1 (* 811 q4))

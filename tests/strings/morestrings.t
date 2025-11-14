@@ -5,7 +5,7 @@
   > (check-sat)
   > EOF
 
-  $ CHRO_DEBUG=1 Chro -dpresimpl ./1.smt2
+  $ CHRO_DEBUG=1 Chro --dpresimpl ./1.smt2
   iter(1)= (and
              (= x 12345)
              (= 5 (+ 0 5)))
@@ -22,6 +22,6 @@
   > (check-sat)
   > EOF
 
-  $ OCAMLRUNPARAM='b=0' Chro -dpresimpl ./2.smt2
+  $ OCAMLRUNPARAM='b=0' Chro --dpresimpl ./2.smt2
   (= x (str.to.int "123451234123412341234123"))
   sat (nfa)

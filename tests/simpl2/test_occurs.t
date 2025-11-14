@@ -1,4 +1,4 @@
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test3rec.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl test3rec.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (+ y x) 13)
              (= (+ x y) 13))
@@ -7,7 +7,7 @@
   iter(3)= True
   sat (presimpl)
 
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (+ z x) 10000)
              (= (+ y z) 100)
@@ -38,7 +38,7 @@
   > (assert (= (+ y y) (- 9899)) )
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -bound 1 -pre-simpl   -stop-after pre-simpl xxx.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --stop-after pre-simpl xxx.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (+ y y) (* (- 1) 9899)))
   iter(2)= (= (+ y y) (- 9899))
@@ -60,7 +60,7 @@
   > ))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -bound 1 -pre-simpl   -stop-after pre-simpl 4.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --stop-after pre-simpl 4.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
                (= (+ (+ it19 it23) (* (* (- 1) 1) i4)) (* (- 1) 1))
@@ -92,7 +92,7 @@
   > 
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -bound 1 -pre-simpl   -stop-after pre-simpl 5.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --stop-after pre-simpl 5.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (+ (+ it19 (* it200 (* (- 1) 1))) z) 0)
              (= (+ (* it199 (* (- 1) 1)) it233) 0)

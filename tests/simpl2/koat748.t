@@ -1,7 +1,7 @@
   $ cp ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_748.smt2 input.smt2
 
   $ export CHRO_DEBUG=1 CHRO_OMIT_Z3_MODEL=1
-  $ Chro -dsimpl -pre-simpl -stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --dsimpl --pre-simpl --stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
                (<= (+ 0 0) (+ (+ (+ 0 it1141)
@@ -562,7 +562,7 @@
 
 
   $ unset CHRO_DEBUG
-  $ OCAMLRUNPARAM='b=0' Chro -no-pre-simpl input.smt2
+  $ OCAMLRUNPARAM='b=0' Chro --no-pre-simpl input.smt2
   sat (under I)
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
   sat (under I)

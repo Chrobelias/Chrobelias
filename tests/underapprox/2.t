@@ -8,7 +8,7 @@
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=1
-  $ timeout 2 Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl testU.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -no-over -bound 3 --dsimpl --stop-after simpl testU.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (exp 2 y) x)
              (exists (x) (<= (exp 2 x) x)))

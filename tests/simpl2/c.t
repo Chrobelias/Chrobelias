@@ -7,7 +7,7 @@
   > (assert (= (* (- 2) z) 0) )
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound 0 --pre-simpl --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (* (* (- 1) 2) z) 0)
              (= (+ it2 (* (* (- 1) 1) i2)) 2))

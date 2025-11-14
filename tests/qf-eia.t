@@ -18,7 +18,7 @@ Basic QF_EIA tests
 
 Basic QF_EIA tests using only NFAs
 
-  $ Chro -bound -1 -no-over-approx ./qf-eia.smt2
+  $ Chro -bound -1 -no-over ./qf-eia.smt2
   sat (nfa)
   unsat (nfa)
   unsat (nfa)
@@ -36,7 +36,7 @@ Basic QF_EIA tests using only NFAs
 
 Same basic QF_EIA tests using only NFAs but in the LSB mode
 
-  $ Chro -lsb -bound -1 -no-over-approx ./qf-eia.smt2
+  $ Chro -lsb -bound -1 -no-over ./qf-eia.smt2
   sat (nfa)
   unsat (nfa)
   unsat (nfa)
@@ -64,7 +64,7 @@ Test Ex x > 2**x
 
 Test Frobenius coin problem with exponential restrictions
 
-  $ timeout 2 Chro -bound 0 -no-over-approx ./examples/fcp_7_11_with_exps.smt2
+  $ timeout 2 Chro -bound 0 -no-over ./examples/fcp_7_11_with_exps.smt2
   sat (nfa)
 
 Test Double exponent theorem
