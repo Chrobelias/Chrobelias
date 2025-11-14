@@ -1,5 +1,5 @@
 $ cat input1.smt2
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl input1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl input1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
                (<= (+ (+ 0 0) 1) (+ (+ (+ (+ (exp it377 3)
@@ -338,10 +338,10 @@ $ cat input1.smt2
   sat (under I)
 
 $ /usr/bin/time -f "TIME: %U"
-  $ timeout 5 Chro -pre-simpl input1.smt2 | echo "timeout"
+  $ timeout 5 Chro --pre-simpl input1.smt2 | echo "timeout"
   timeout
 
 $ /usr/bin/time -f "TIME: %U"
-  $ Chro -no-pre-simpl input1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --no-pre-simpl input1.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
 

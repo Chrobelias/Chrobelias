@@ -8,4 +8,3 @@
 (assert (= (str.len x) (+ 1 (str.to.int y))))
  
 (check-sat)
-(get-model)

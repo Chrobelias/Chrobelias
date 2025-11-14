@@ -1,5 +1,5 @@
 $ cat input4.smt2
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl input4.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl input4.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
                (= (+ (+ it376 (* (* (- 1) 3) i7)) (* 2 (exp i6 3))) 0)
@@ -141,7 +141,7 @@ $ cat input4.smt2
   env = {| i3->2 i6->0 i7->14 it140->2 |}
   sat (under I)
 
-  $ timeout 5 Chro -pre-simpl input4.smt2 || echo "timeout"
+  $ timeout 5 Chro --pre-simpl input4.smt2 || echo "timeout"
   sat (under I)
 
   $ export CHRO_DEBUG=1

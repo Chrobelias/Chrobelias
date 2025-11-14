@@ -4,7 +4,7 @@
   > (assert (= (mod (str.to.int x) 11111) 42))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dsimpl -stop-after pre-simpl 0.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound 0 --pre-simpl --dsimpl --stop-after pre-simpl 0.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
                (= r1 42))
@@ -33,7 +33,7 @@
   > (check-sat)
   > EOF
 $ cat 1.smt2
-  $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -pre-simpl -dpresimpl -stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound 0 --pre-simpl --dpresimpl --stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
                (= r3 0))

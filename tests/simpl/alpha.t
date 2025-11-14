@@ -25,7 +25,7 @@ $ export OCAMLRUNPARAM='b=0'
 $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
-  $ timeout 2 Chro -dsimpl -stop-after simpl testA.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro --dsimpl --stop-after simpl testA.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (-1)
           (and
             (exists (it160)

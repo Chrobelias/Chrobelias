@@ -1,5 +1,5 @@
 
-  $ Chro -dpresimpl ../examples/strings10001.smt2 -flat 0 -amin 0 -amax 13
+  $ Chro -flat 0 -amin 0 -amax 13 --dpresimpl ../examples/strings10001.smt2
   (and
     (= eeb2 (str.len x))
     (= eeb2 (+ 1 (str.to.int y)))

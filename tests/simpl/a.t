@@ -8,7 +8,7 @@
   > (assert (> (+ (* x 5) (* (pow2 y) 8) (* z 7) ) 13))
   > (check-sat)
   > EOF
-  $ timeout 2 Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -no-over -bound 0 --dsimpl --stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
 We can't do anything below, because y exists in two polarities
   $ cat > testS2.smt2 <<-EOF
@@ -21,7 +21,7 @@ We can't do anything below, because y exists in two polarities
   > (assert (> (+ x (* 3 y)) 23))
   > (check-sat)
   > EOF
-  $ timeout 2 Chro -bound 0 -dsimpl -stop-after simpl testS2.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -bound 0 --dsimpl --stop-after simpl testS2.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
 
 Habermehl demo
@@ -35,7 +35,7 @@ Habermehl demo
   > (assert (<= (+ x (- 0 (* 3 y)) z ) 0))
   > (check-sat)
   > EOF
-  $ Chro -bound 0 -dsimpl -stop-after simpl Habermehl.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 --dsimpl --stop-after simpl Habermehl.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (y)
           (and
             (exists (x)

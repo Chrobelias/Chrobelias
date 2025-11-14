@@ -6,7 +6,7 @@
   > (assert (<= (+ (* 5 x1) x2) (* 6 x2) ))
   > (check-sat)
   > EOF
-  $ Chro -pre-simpl -dsimpl -stop-after pre-simpl TODO1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --pre-simpl --dsimpl --stop-after pre-simpl TODO1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (+ (* 5 x1) x2) (* 6 x2)))
   iter(2)= (<= (+ x2 (* 5 x1)) (* 6 x2))
@@ -25,7 +25,7 @@ Should be (<= x 2)
   > (assert (<= (* 5 x1) 13))
   > (check-sat)
   > EOF
-  $ Chro -pre-simpl -dsimpl -stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --pre-simpl --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (* 5 x1) 13))
   iter(2)= (<= x1 2)
@@ -43,7 +43,7 @@ Should be (<= x 2)
   > (assert (= (+ 2 6) 8))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (+ 2 6) 8))
   iter(2)= True
@@ -56,7 +56,7 @@ Should be (<= x 2)
   > (assert (<= (+ x1 (* (- 1) x1)) 8))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (+ x1 (* (* (- 1) 1) x1)) 8))
   iter(2)= True
@@ -70,7 +70,7 @@ Fold exps
   > (assert (<= (* (exp 2 (+ (- 1) it134)) (exp 2 (+ 1 it135) )) 2))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 (+ 1 it135))) 2))
   iter(2)= (<= (exp 2 (+ (+ (- 1) it134) (+ 1 it135))) 2)
@@ -88,7 +88,7 @@ Fold exps
   > (assert (<= (* (+ x1 x2) (exp 2 x3)) 2))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl i4.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl i4.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (* (+ x1 x2) (exp 2 x3)) 2))
   iter(2)= (<= (+ (* x1 (exp 2 x3)) (* x2 (exp 2 x3))) 2)
@@ -107,7 +107,7 @@ Fold exps
   > (assert (<= (* (exp 2 (+ (- 1) it134)) (exp 2 it134)) 2))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 it134)) 2))
   iter(2)= (<= (exp 2 (+ (+ (- 1) it134) it134)) 2)
@@ -130,7 +130,7 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   >             (- 2)) )
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl it646.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl it646.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (+ (+ it646 (* (* (- 1) 2) it646)) (* (* (- 1) 1) it646))
              (* (- 1) 2)))
@@ -155,7 +155,7 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > )))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= 0 (* (+ (* (- 1) 2) (* 3 i3)) (exp 2 it134))))
   iter(2)= (= (+ (* (- 1) (* 3 i3) (exp 2 it134)) (* 2 (exp 2 it134))) 0)
@@ -176,7 +176,7 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > ))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
                (= (+ (+ it376 (* (* (- 1) 3) it361)) (* 2 (exp it362 3))) 0)

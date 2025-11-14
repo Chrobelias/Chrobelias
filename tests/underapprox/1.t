@@ -8,7 +8,7 @@
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=1
-  $ timeout 2 Chro -no-over-approx -bound 3 -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -no-over -bound 3 --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (exp 2 y) x)
              (<= (exp 2 x) x))
@@ -31,7 +31,7 @@
 
 
 
-  $ Chro -no-pre-simpl -no-over-approx -bound 3 -dsimpl -stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over -bound 3 --dsimpl --no-pre-simpl --stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
   Interesting: x1 x2
   
   Expecting 9 choices ...
@@ -41,7 +41,7 @@
   sat (under I)
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
-  $ Chro -no-over-approx -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
 
 $ cat > test.smt2 <<-EOF
