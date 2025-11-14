@@ -8,7 +8,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (assert (= 113 (* (+ (exp 2 u) (exp 2 v) a) (exp 2 z)) ))
   > (check-sat)
   > EOF
-  $ OCAMLRUNPARAM='b=0' Chro -no-over-approx -bound 6 -lsb 0.smt2
+  $ OCAMLRUNPARAM='b=0' Chro -no-over -bound 6 -lsb 0.smt2
   unknown (nfa; unimplemented (= (+ (* (- 1) a (exp 2 z)) (* (- 1) (exp 2 (+ u z)))
                    (* (- 1) (exp 2 (+ v z)))) (- 113)))
 
@@ -21,7 +21,7 @@ $ export OCAMLRUNPARAM='b=0'
   > EOF
 
 $ export CHRO_DEBUG=1
-  $ timeout 2 Chro -no-over-approx -bound -1 -dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #-stop-after simpl
+  $ timeout 2 Chro -no-over -bound -1 --dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #--stop-after simpl
   (assert (exists (u1)
           (and
             (= (+ eee2 (* (- 1) u1) (* (- 1) y) )  0)
@@ -45,8 +45,8 @@ $ export CHRO_DEBUG=1
   > (get-model)
   > EOF
 
-  $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 2.smt2'
-  $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 -stop-after presimpl
+  $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 2.smt2'
+  $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 --stop-after presimpl
   iter(1)= (and
              (= (* x (exp 2 z)) 3076))
   iter(2)= (= (* x (exp 2 z)) 3076)
@@ -93,7 +93,7 @@ which is needed to be fixed first
   > (check-sat)
   > (get-model)
   > EOF
-  $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 3.smt2'
+  $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 3.smt2'
   $ timeout 2 $RUN -amin 1 -amax 1 -lsb 3.smt2 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
           (and
             (exists (u1)
@@ -118,8 +118,8 @@ which is needed to be fixed first
   > (check-sat)
   > (get-model)
   > EOF
-  $ export RUN='Chro -no-over-approx -bound -1 -dsimpl -lsb 4.smt2'
-  $ CHRO_DEBUG=1 $RUN -flat 2 -stop-after presimpl
+  $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 4.smt2'
+  $ CHRO_DEBUG=1 $RUN -flat 2 --stop-after presimpl
   iter(1)= (and
              (= (* x (exp 2 z)) 8096))
   iter(2)= (= (* x (exp 2 z)) 8096)

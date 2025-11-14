@@ -1,4 +1,4 @@
-  $ Chro -pre-simpl -dsimpl simple-nfa.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --pre-simpl --dsimpl simple-nfa.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   (assert (exists (a)
           (and

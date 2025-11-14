@@ -1,6 +1,6 @@
 
 $ Chro -dsimpl -stop-after simpl NIA2334test1.smt2 | sed 's/[[:space:]]*$//'
-  $ Chro -over-approx -dsimpl -stop-after simpl NIA2334test1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --dsimpl --stop-after simpl NIA2334test1.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (x5)
           (and
             (exists (x4)

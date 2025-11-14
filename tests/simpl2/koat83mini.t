@@ -1,7 +1,7 @@
 TODO(Kakadu)
 This test doesn't simplify (not True)
   $ export CHRO_DEBUG=1
-  $ Chro -pre-simpl -dsimpl koat83mini.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --pre-simpl --dsimpl koat83mini.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
                (= 1 0)

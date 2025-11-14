@@ -1,5 +1,5 @@
   $ export CHRO_DEBUG=1
-  $ Chro -dsimpl -bound 1 -pre-simpl -stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 1 --dsimpl --pre-simpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= (+ (* it14 (* (- 1) 1)) it160) 0)
              (= (+ (+ (+ (* (+ 0 it11) (exp 2 (+ it147 (* (- 1) 1)))

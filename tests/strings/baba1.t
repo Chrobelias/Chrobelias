@@ -1,6 +1,6 @@
 
 $ cat baba1.smt2
-  $ Chro -dpresimpl ./baba1.smt2
+  $ Chro --dpresimpl ./baba1.smt2
   (and
     (= %0 (str.len a))
     (= %0 (str.len b))

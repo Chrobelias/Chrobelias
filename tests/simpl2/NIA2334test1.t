@@ -1,7 +1,7 @@
 
   $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
-  $ Chro -bound 1 -pre-simpl -dsimpl -stop-after pre-simpl ../overapprox/NIA2334test1.smt2
+  $ Chro -bound 1 --pre-simpl --dsimpl --stop-after pre-simpl ../overapprox/NIA2334test1.smt2
   iter(1)= (and
              (<= (+ (+ (+ (+ (+ 0 (* (* (- 1) 59357) x1))
                           (* (* (- 1) 1494) x2))
