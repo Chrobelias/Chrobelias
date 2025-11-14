@@ -1139,7 +1139,7 @@ struct
     let nfa =
       Set.fold
         ~f:(fun acc k ->
-          if is_exp k && not (Set.mem atoms k)
+          if is_exp k && not (Set.mem atoms (get_exp k))
           then Nfa.project [ Map.find_exn vars k ] acc
           else acc)
         ~init:nfa
