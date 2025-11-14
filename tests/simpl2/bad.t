@@ -7,7 +7,7 @@ $ export CHRO_DEBUG=1
   > (assert (<= (* x1 x2) 52))
   > (check-sat)
   > EOF
-  $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 --pre-simpl --dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
 
 
@@ -19,12 +19,12 @@ $ export OCAMLRUNPARAM='b=0'
   > (assert (<= (exp x1 2) 124))
   > (check-sat)
   > EOF
-  $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 --pre-simpl --dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
 
 
 
-  $ Chro -pre-simpl -dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --pre-simpl --dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2 | sed 's/[[:space:]]*$//'
   unsat (presimpl)
 
   $ cat > TODO1.smt2 <<-EOF
@@ -37,7 +37,7 @@ $ export OCAMLRUNPARAM='b=0'
   > ))
   > (check-sat)
   > EOF
-  $ Chro -bound 0 -pre-simpl -dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 --pre-simpl --dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
   unsat (presimpl)
 
 
@@ -53,7 +53,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
 $ export CHRO_DEBUG=1
-  $ Chro -bound 2 -pre-simpl -dsimpl UnderDoesntHelp1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 2 --pre-simpl --dsimpl UnderDoesntHelp1.smt2 | sed 's/[[:space:]]*$//'
   unknown (nfa; not implemented: Lib__Me.Symantics.mul. l = Symbol (y,_), r = Symbol (z,_))
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
@@ -66,7 +66,7 @@ The single exponent is not bad
   > ))
   > (check-sat)
   > EOF
-  $ Chro -bound 2 -pre-simpl -dsimpl TODO3.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 2 --pre-simpl --dsimpl TODO3.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
 
 

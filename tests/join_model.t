@@ -6,7 +6,7 @@
   > (check-sat)
   > (get-model)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound 0 --dsimpl --stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= 100 z)
              (= (+ (+ 2 y) (* (* (- 1) 3) x)) 0)
@@ -43,6 +43,6 @@ TODO: fix this later
   > (check-sat)
   > (get-model)
   > EOF
-  $ Chro -no-over-approx -bound 0 -dsimpl -stop-after simpl 2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over -bound 0 --dsimpl --stop-after simpl 2.smt2 | sed 's/[[:space:]]*$//'
   sat (presimpl)
   ()

@@ -1,5 +1,5 @@
 
-  $ CHRO_DEBUG=1 Chro -no-over-approx -bound -1 -dpresimpl -stop-after presimpl issue117.smt2  | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound -1 --dpresimpl --stop-after presimpl issue117.smt2  | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= 100 (+ (+ (+ (+ x y) z) u) v))
              (= (exp 2 (+ x (* (- 1) 5))) v)
@@ -41,6 +41,6 @@
   (and
     (= (exp 2 x) (* 32 v))
     (<= (+ (* (- 53) v) (* (- 1) x)) (- 100)))
-  $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
 

@@ -5,9 +5,9 @@
   > (assert (>= x (exp 2 1000)))
   > (check-sat)
   > EOF
-  $ Chro -no-over-approx -bound 0 -pre-simpl -dsimpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over -bound 0 --pre-simpl --dsimpl testS1.smt2 | sed 's/[[:space:]]*$//'
   sat (under I)
-  $ Chro -no-over-approx -bound -1 -pre-simpl -dsimpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over -bound -1 --pre-simpl --dsimpl testS1.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists () (and
                        )
   )

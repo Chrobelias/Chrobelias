@@ -1,7 +1,7 @@
 $ cat  sum3exp.smt2
   $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
-  $ Chro -dsimpl -pre-simpl -stop-after pre-simpl -bound 3 ../underapprox/sum3exp.smt2
+  $ Chro --dsimpl --pre-simpl --stop-after pre-simpl -bound 3 ../underapprox/sum3exp.smt2
   iter(1)= (and
              (<= (+ (+ (exp 2 x1) (exp 2 x2)) (exp 2 x3)) (+ (+ (+ x1 x2) x3)
                                                           10))

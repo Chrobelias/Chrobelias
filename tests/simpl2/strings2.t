@@ -8,7 +8,7 @@ $ export CHRO_DEBUG=1
   > (check-sat)
   > EOF
 
-  $ CHRO_DEBUG=1 Chro -pre-simpl -dpresimpl -dsimpl -stop-after simpl 1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --pre-simpl --dpresimpl --dsimpl --stop-after simpl 1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (= eeb6 (str.len x))
              (= eeb2 (str.len x))

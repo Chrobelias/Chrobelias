@@ -1,6 +1,6 @@
 
 $ cat baba3.smt2
-  $ Chro -dsimpl ./baba3.smt2 -stop-after simpl
+  $ Chro --dsimpl --stop-after simpl ./baba3.smt2
   (assert (exists (b)
           (and
             (exists (a)
