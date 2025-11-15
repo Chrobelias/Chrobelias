@@ -349,7 +349,7 @@ let make_main_symantics env =
       | Some (Eia.Len2 _)
       | None -> Eia.Atom (Ast.Var (s, I))
       | Some c ->
-        (* log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c; *)
+        log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c;
         c
     ;;
 
@@ -1074,7 +1074,11 @@ let trivial_simplify eta = subst_term Env.empty eta
 let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-  let extend_exn env v rhs = Env.extend_exn env v (trivial_simplify rhs) in
+  let extend_exn env v rhs =
+    let rhs = trivial_simplify rhs in
+    (* log "extend %a --> %a" Ast.pp_atom v Ast.pp_term_smtlib2 rhs; *)
+    Env.extend_exn env v rhs
+  in
   (*let extend_str_exn env v rhs = Env.extend_string_exn env v (trivial_simplify rhs) in*)
   let fold_and_filter f acc xs =
     let acc = ref acc in
@@ -1097,15 +1101,23 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
       match is_bad vn1, is_bad vn2 with
       | false, _
         when Env.is_absent_key vn1 env && Env.is_absent_key vn2 env && Z.(equal c1 one) ->
-        extend_exn env v1 S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ])
+        Option.some
+          (extend_exn
+             env
+             v1
+             S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ]))
       | _, false
         when Env.is_absent_key vn2 env && Env.is_absent_key vn2 env && Z.(equal c2 one) ->
-        extend_exn env v2 S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ])
-      | _ -> env
+        Option.some
+          (extend_exn
+             env
+             v2
+             S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ]))
+      | _ -> None
       (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
       (* Note: presence of key means we already simplified this variable in another equality *)
     with
-    | Env.Occurs -> env
+    | Env.Occurs -> None
   in
   let helper info env ast =
     match ast with
@@ -1130,7 +1142,9 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
         when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
       | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len2 (Atom (Var _)) as rhs), _))
         when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
-      *)
+    *)
+    (* Kakadu: it is not lost, it is saved in the environment.
+      We need to decide how to handle it properly  *)
     (* **************************** integer stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var (vn1, _) as v1), (Atom (Var (v2, _)) as rhs), _)) ->
       if not (Env.is_absent_key vn1 env)
@@ -1174,7 +1188,8 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
     | Eia (Eia.Eq (Add [ Atom (Var (_, _) as v1); Atom (Var (_, _) as v2) ], rhs, I))
       when v1 <> v2 ->
       (* (= (+ v1 v2) rhs) *)
-      Some (single info env Z.one v1 Z.one v2 rhs)
+      (* log "%s %d. ast = %a" __FILE__ __LINE__ Ast.pp_smtlib2 ast; *)
+      single info env Z.one v1 Z.one v2 rhs
     | Eia
         (Eia.Eq
            ( Add [ Atom (Var (vn1, _) as v1); Mul [ Const c2; Atom (Var (vn2, _) as v2) ] ]
@@ -1182,7 +1197,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
            , I ))
       when vn1 <> vn2 ->
       (* (= (+ v1 ( * c v2)) rhs) *)
-      Some (single info env Z.one v1 c2 v2 rhs)
+      single info env Z.one v1 c2 v2 rhs
     | Eia
         (Eia.Eq
            ( Add [ Mul [ Const c1; Atom (Var (vn1, _) as v1) ]; Atom (Var (vn2, _) as v2) ]
@@ -1190,7 +1205,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
            , I ))
       when vn1 <> vn2 ->
       (* (= (+ ( * c v1) v2) rhs) *)
-      Some (single info env c1 v1 Z.one v2 rhs)
+      single info env c1 v1 Z.one v2 rhs
     | Eia
         (Eia.Eq
            ( Add
@@ -1199,7 +1214,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
                ]
            , rhs
            , I ))
-      when vn1 <> vn2 -> Some (single info env c1 v1 c2 v2 rhs)
+      when vn1 <> vn2 -> single info env c1 v1 c2 v2 rhs
     | Eia (Eia.Eq (Add sums, Const rhs, I)) when Z.(zero = rhs) ->
       (* (= (+ ...) 0) *)
       let not_touched_by_env env term =
@@ -1241,6 +1256,7 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
     | eq ->
       (* log "OTHERWISE  ast part = @[%a@]" Ast.pp_smtlib2 ast; *)
       None
+    (* None means left as it is *)
   in
   fun info env ast ->
     match ast with
@@ -1440,9 +1456,11 @@ let basic_simplify step (env : Env.t) ast =
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
     let env2, ast2 = eq_propagation var_info env ast2 in
     let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
+    let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
-      let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
+      let __ () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
+      let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
       loop (next_step step) (Env.merge env2 env) ast2
     | false, false -> loop (next_step step) env ast2
     | false, true ->
@@ -1460,7 +1478,7 @@ let run_basic_simplify ast =
   let ast = lower_strlen ast in
   let ast = lower_mod ast in
   (* let ast = SimplI.run_simplify ast in *)
-  let _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
+  let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat ("presimpl", env)
   | `Unsat -> `Unsat
