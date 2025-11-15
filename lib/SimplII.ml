@@ -1,4 +1,4 @@
-[@@@warning "-unused-value-declaration"]
+[@@@warning "+unused-value-declaration"]
 [@@@warnerror "-unused-open"]
 [@@@warnerror "-unused-var"]
 
@@ -87,8 +87,6 @@ let has_unsupported_nonlinearity =
     | [] -> Result.Ok ()
     | xs -> Result.Error (Base.List.dedup_and_sort ~compare:Ast.Eia.compare_term xs)
 ;;
-
-let is_pure_lia ph = [] = check_errors ph
 
 type relop =
   | Leq
@@ -207,7 +205,6 @@ module Id_symantics :
   let str_concat s1 s2 = Ast.Eia.concat s1 s2 *)
   let str_from_eia_const c = Ast.Eia.sofi (Const c)
   let str_concat s1 s2 = Ast.Eia.concat s1 s2
-  let len = Ast.Eia.len
   let mod_ = Ast.Eia.mod_
   let pow = Ast.Eia.pow
   let mul = Ast.Eia.mul
@@ -390,21 +387,6 @@ let make_main_symantics env =
     let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
     let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
     let str_suffixof s1 s2 = Ast.str (Ast.Str.suffixof s1 s2)
-
-    let fold_and_sort init op xs =
-      let c, xs =
-        List.fold_left
-          (fun (cacc, phacc) -> function
-             | Eia.Const c -> op c cacc, phacc
-             | Eia.Pow ((Const base as b), Eia.Add (Const minus1 :: sums))
-               when Z.(cacc mod base = Z.zero) && -1 = Z.to_int minus1 ->
-               Z.(cacc / base), Eia.Pow (b, Eia.Add sums) :: phacc
-             | ph -> cacc, ph :: phacc)
-          (init, [])
-          xs
-      in
-      c, List.sort compare_term xs
-    ;;
 
     let collect_inside_mul xs =
       List.fold_right
@@ -610,17 +592,17 @@ let make_main_symantics env =
     let leq = relop Leq
 
     let eq_str l r =
-      (* TODO: simplifiy args before  *)
-        match l, r with
-        | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
-          Eia (Eia.Eq (l, r, I))
-        | _ -> Id_symantics.eq_str l r
+      match l, r with
+      | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
+        Eia (Eia.Eq (l, r, I))
+      | _ -> Id_symantics.eq_str l r
     ;;
 
-    let eq x y =
+    let eqz x y =
       (* TODO(Kakadu): rewrite to match twice for readability *)
       let ans = relop Eq x y in
       match ans with
+      | Eia (Eia.Eq (Add xs, Add ys, _)) -> assert false
       | Eia (Eia.Eq (Mul (Const l :: ltl), Mul (Const r :: rtl), I)) ->
         let gcd1 = Z.gcd l r in
         if Z.(equal gcd1 one)
@@ -806,6 +788,7 @@ module Info = struct
       Format.(
         pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ "))
       (Base.Set.Poly.to_list exp)
+  [@@ocaml.warning "-unused-value-declaration"]
   ;;
 
   let pp_hum ppf { exp; all; str } =
@@ -866,11 +849,6 @@ module Who_in_exponents_ = struct
   let str_var v =
     (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
     { empty with str = S.singleton v }
-  ;;
-
-  let str_from_eia s =
-    (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
-    empty
   ;;
 
   let str_from_eia_const s = empty
@@ -1064,10 +1042,8 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
       | Some c -> constz c
     ;;
 
-    let str_from_eia _ = failwith "not implemented"
     let str_from_eia_const _ = failwith "not implemented"
     let str_concat _ = failwith "not implemented"
-    let str_equal _ = failwith "not implemented"
     let str_at _ = failwith "not implemented"
     let str_substr _ = failwith "not implemented"
     let str_prefixof _ = failwith "not implemented"
@@ -1429,7 +1405,6 @@ let lower_strlen ast =
 let rewrite_len ast =
   let env = ref Env.empty in
   let module Collector = struct
-    open Ast.Eia
     include Id_symantics
 
     let str_len str =
