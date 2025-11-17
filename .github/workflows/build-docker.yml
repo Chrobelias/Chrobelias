@@ -50,6 +50,9 @@ jobs:
       - name: Install dependencies
         run: opam install . --yes --deps-only --with-test --with-doc
 
+      - name: Pin Smtml
+        run: opam pin add smtml ./vendor/smtml --yes
+
       - name: List installed packages
         run: opam list
 
