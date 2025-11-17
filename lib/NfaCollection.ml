@@ -472,7 +472,7 @@ module MsbNat = struct
       Debug.dump_nfa ~msg:"Nfa: %s" NfaMsbNat.format_nfa nfa;
       nfa)
     else (
-      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x, [ o ], x + 1) in
+      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
       NfaMsbNat.create_nfa
         ~transitions:
           ([ a, [ o ], a + c - 1; a + c, [ i ], a; a + c, [ o ], a + c ] @ trans1)
