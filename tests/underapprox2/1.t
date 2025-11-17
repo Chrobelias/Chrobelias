@@ -20,9 +20,4 @@
   (assert (<= (+ eee2 (* (- 1) pow2(u1)) )  0) )
   (assert (<= (+ (* (- 1) eee2) u1 )  0) )
   
-  (assert (= (* (- 1) z)  -10) )
-  (assert (= (* (- 1) y)  -1048576) )
-  (assert (<= y  1050000) )
-  (assert (<= (* (- 1) z)  -10) )
-  
   sat (under II)

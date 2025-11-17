@@ -1533,24 +1533,22 @@ let check_sat ir
     in
     match checker ir with
     | `Sat model ->
-      (match model () with
-       | Result.Error _ -> assert false
-       | Result.Ok model ->
-         let f tys =
-           Result.Ok
-             (model
-              |> Map.mapi ~f:(fun ~key:k ~data:v ->
-                match Map.find tys k with
-                | None | Some `Int ->
-                  `Int
-                    (if Config.config.mode = `Lsb
-                     then z_of_list_lsb v
-                     else z_of_list_msb v)
-                | Some `Str ->
-                  failwith "it is something strange: there is string variable in EIA")
-              |> filter_internal)
-         in
-         `Sat f)
+      let f tys =
+        match model () with
+        | Result.Error _ -> assert false
+        | Result.Ok model ->
+          Result.Ok
+            (model
+             |> Map.mapi ~f:(fun ~key:k ~data:v ->
+               match Map.find tys k with
+               | None | Some `Int ->
+                 `Int
+                   (if Config.config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v)
+               | Some `Str ->
+                 failwith "it is something strange: there is string variable in EIA")
+             |> filter_internal)
+      in
+      `Sat f
     | `Unsat -> `Unsat
     | `Unknown -> `Unknown ir
   in

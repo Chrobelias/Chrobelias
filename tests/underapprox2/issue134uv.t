@@ -32,8 +32,6 @@ $ export CHRO_DEBUG=1
   (assert (<= (+ (* (- 1) eee2) pow2(y) )  0) )
   (assert (<= (+ y (* (- 1) pow2(y)) )  -1) )
   
-  (assert (= (* (- 1) u1)  -3)
-  )
   sat (under II)
 
   $ echo '(2^10-2^8+1)* 2^2' | bc
