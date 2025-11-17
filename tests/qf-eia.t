@@ -62,6 +62,16 @@ Test Ex x > 2**x
   $ Chro ./examples/QF_EIA/basic-exp-unsat.smt2
   unsat (over)
 
+Test ExEyEz y = 2**x & z = 2**y & z mod 10 = 6
+
+  $ Chro ./examples/QF_EIA/double_exp-10-sat.smt2
+  sat (nfa)
+
+Test ExEyEz y = 2**x & z = 2**y & z mod 100 = 36
+
+  $ Chro ./examples/QF_EIA/double_exp-100-sat.smt2
+  sat (nfa)
+
 Test Frobenius coin problem with exponential restrictions
 
   $ timeout 2 Chro -bound 0 -no-over-approx ./examples/fcp_7_11_with_exps.smt2
