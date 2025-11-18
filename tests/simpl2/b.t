@@ -14,10 +14,9 @@
              (= (+ z x) 32)
              (= (+ z y) 52))
   Something ready to substitute
-        z -> (+ 32 (- x))
+        z -> (+ 32 (- x));
   
   iter(2)= (and
-             (= (+ x z) 32)
              (= (+ y z) 52)
              (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
   iter(3)= (and

@@ -2,6 +2,9 @@
   iter(1)= (and
              (= (+ y x) 13)
              (= (+ x y) 13))
+  Something ready to substitute
+        x -> (+ 13 (- y));
+  
   iter(2)= True
   sat (presimpl)
 
@@ -11,6 +14,10 @@ TODO: The test below could be simplified further
              (= (+ z x) 10000)
              (= (+ y z) 100)
              (= (+ x y) 1))
+  Something ready to substitute
+        x -> (+ 1 (- y));
+        z -> (+ 10000 (- x));
+  
   iter(2)= (and
              (= (+ y z) 100))
   iter(3)= (= (+ y (* (- 1) x)) (- 9900))
@@ -86,5 +93,10 @@ TODO: The test below could be simplified further
              (= (+ (+ it19 (* it200 (* (- 1) 1))) z) 0)
              (= (+ (* it199 (* (- 1) 1)) it233) 0)
              (= (+ (+ (* it198 (* (- 1) 1)) it232) (* it19 (* (- 1) 3))) 0))
+  Something ready to substitute
+        it19 -> (+ it200 (- z));
+        it232 -> (+ it198 (* 3 it19));
+        it233 -> it199;
+  
   iter(2)= True
   sat (presimpl)
