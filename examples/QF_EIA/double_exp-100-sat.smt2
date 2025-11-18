@@ -13,3 +13,4 @@ https://en.wikipedia.org/wiki/Power_of_two#Last_digits_for_powers_of_two_whose_e
 (assert (exists ((k Int)) (= (+ 36 (* 100 k)) z)))
 
 (check-sat)
+(get-model)

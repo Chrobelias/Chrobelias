@@ -3,8 +3,6 @@
 
 module Map = Base.Map.Poly
 
-val max_longest_path : int
-
 val check_sat
   :  Ir.t
   -> [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long ]) Result.t
