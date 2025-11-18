@@ -11,3 +11,6 @@
 	url = https://github.com/EcstasyH/EXP-solver.git
 	shallow = true 
 
+[submodule "benchmarks/chrobelias"]
+	path = benchmarks/chrobelias
+	url = https://github.com/Chrobelias/benchmarks.git
