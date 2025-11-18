@@ -38,7 +38,7 @@ The executable binary is available in the `_build` dir.
 
 Supports `.smt2` files with 
 - `QF_LIA`  extended with the binary `exp` function exponentiation. Use `(set-logic ALL)` for files with exponentiation.
-- `QF_SLIA` subclass corresponding to the logic $T_{\mathit{REln}}$ from [Semënov Arithmetic, Affine VASS, and String Constraints](https://arxiv.org/abs/2306.14593). Use `(set-logic QF_S)` for such files. 
+- `QF_SLIA` subclass corresponding to the logic $T_{\mathit{REln}}$ from [Semënov Arithmetic, Affine VASS, and String Constraints](https://arxiv.org/abs/2306.14593).  
 
 ```bash
 ./_build/default/bin/chro.exe <path-to-smt2-file>
@@ -73,7 +73,8 @@ We use custom SMT-lib v2.6 `exp` syntax and examples from [SwInE](https://github
 To clone benchmarks: `git submodule update --init`
 
 The root `Makefile` contains commands to generate various dune files with benchmarks.
-For example, `make genTPDB_ITS_Complexity` will generate many benchmarks in `tests/QF_LIA/LoAT/TPDP_ITS_Complexity`. Use `make -C  benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity` to *autopromote* them.
+For example, `make genTPDB_ITS_Complexity` will generate benchmarks in `tests/QF_LIA/LoAT/TPDP_ITS_Complexity`. 
 
-To run a single benchmark: `dune b @benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0 --profile=benchmark`.
-The expected output is located in `benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0.t`, and running a benchmark will report if output differs.
+To *autopromote* benchmarks: `make -C  benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity`
+
+To run a single benchmark: `dune b @benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0 --profile=benchmark`. The expected output is located in `benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0.t`, and running a benchmark will report if the output differs.
