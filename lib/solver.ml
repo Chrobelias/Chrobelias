@@ -4,15 +4,6 @@
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 
-let max_longest_path =
-  match Sys.getenv_opt "CHRO_LONGEST_PATH" with
-  | None -> 10000000
-  | Some s ->
-    (match int_of_string_opt s with
-     | Some n -> n
-     | None -> exit 1)
-;;
-
 type t =
   { vars : (Ir.atom, int) Map.t
   ; internal_counter : int
@@ -1237,7 +1228,7 @@ struct
              Ir.pp_atom
              prev_var;
            let path_len = len_of_var exp - len_of_var prev_var in
-           if path_len > max_longest_path
+           if path_len > Config.max_longest_path
            then
              (* let () = Format.eprintf "Calculated path_len = %d\n%!" path_len in *)
              Result.Error `Too_long

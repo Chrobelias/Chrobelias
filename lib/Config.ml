@@ -56,6 +56,15 @@ let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
 
+let max_longest_path =
+  match Sys.getenv_opt "CHRO_LONGEST_PATH" with
+  | None -> 10000
+  | Some s ->
+    (match int_of_string_opt s with
+     | Some n -> n
+     | None -> exit 1)
+;;
+
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   Arg.parse
