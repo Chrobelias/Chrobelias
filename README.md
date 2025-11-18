@@ -70,11 +70,17 @@ We use custom SMT-lib v2.6 `exp` syntax and examples from [SwInE](https://github
 
 ## Benchmarks
 
-To clone benchmarks: `git submodule update --init`
+```bash
+# Clone benchmarks
+git submodule update --init
 
-The root `Makefile` contains commands to generate various dune files with benchmarks.
-For example, `make genTPDB_ITS_Complexity` will generate benchmarks in `tests/QF_LIA/LoAT/TPDP_ITS_Complexity`. 
+# Generate dune files with benchmarks (example: will generate benchmarks in `benchmarks/tests/QF_LIA/LoAT/TPDP_ITS_Complexity`
+# See the root `Makefile` with other commands)
+make genTPDB_ITS_Complexity
 
-To *autopromote* benchmarks: `make -C  benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity`
+# Autopromote benchmarks (example)
+make -C  benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity
 
-To run a single benchmark: `dune b @benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0 --profile=benchmark`. The expected output is located in `benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0.t`, and running a benchmark will report if the output differs.
+# Run a single benchmark. The output is located in `benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0.t`
+dune b @benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0 --profile=benchmark` 
+```
