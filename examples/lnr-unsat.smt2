@@ -1,4 +1,4 @@
-(set-logic QF_S)
+(set-logic QF_SLIA)
 (declare-const x String)
 (declare-const y String)
 (declare-const z Int)
