@@ -349,7 +349,7 @@ let make_main_symantics env =
       | Some (Eia.Len2 _)
       | None -> Eia.Atom (Ast.Var (s, I))
       | Some c ->
-        log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c;
+        (* log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c; *)
         c
     ;;
 
@@ -903,7 +903,7 @@ module Who_in_exponents_ = struct
     Info.make ~all ~exp:all ~str:[]
   ;;
 
-  let pow base e = { e with all = S.union base.all e.all }
+  let pow base e = { e with all = S.union base.all e.all; exp = S.union e.all base.exp }
   let prj = Fun.id
 end
 
@@ -915,6 +915,59 @@ struct
   include Who_in_exponents_
   include FT_SIG.Sugar (Who_in_exponents_)
 end
+
+let%test_module _ =
+  (module struct
+    let wrap f =
+      let ast = Ast.land_ (f (make_main_symantics Env.empty)) in
+      Format.printf "%a\n%!" Ast.pp_smtlib2 ast;
+      let info = apply_symantics (module Who_in_exponents) ast in
+      Format.printf "           @ @[%a@]%!" Info.pp_hum info
+    ;;
+
+    let%expect_test _ =
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ add [ pow2var "x"; pow2var "y" ] <= const 52
+        ; add [ var "x"; mul [ const (-3); var "y" ] ] <= const 0
+        ]);
+      [%expect
+        {|
+        (and
+          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ x (* (- 3) y)) 0))
+
+        Exp: x y
+        Str:
+        ALL: x y
+        |}]
+    ;;
+
+    let%expect_test _ =
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ mul [ var "x"; const 5 ] <= const 13
+        ; add [ var "z"; var "x" ] <= const 52
+        ; const 13
+          <= add
+               [ mul [ const 5; var "x" ]
+               ; mul [ const 8; pow (const 2) (var "y") ]
+               ; mul [ var "z"; const 7 ]
+               ]
+        ]);
+      [%expect {|
+        (and
+          (<= x 2)
+          (<= (+ x z) 52)
+          (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 13)))
+
+        Exp: y
+        Str:
+        ALL: x y z
+        |}]
+    ;;
+  end)
+;;
 
 module ZTM = Map.Make (struct
     type t = Z.t Ast.Eia.term
@@ -1281,9 +1334,9 @@ let%expect_test _ =
   test TS.(add [ mul [ const 1; var "x" ]; mul [ const 2; var "y" ] ] = var "z");
   [%expect "x -> (+ z (* (- 2) y));"];
   test TS.(add [ var "x"; mul [ const 2; var "y" ] ] = mul [ var "z"; var "z" ]);
-  [%expect "x -> (+ (* z z) (* (- 2) y));"];
+  [%expect "x -> (+ (* (- 2) y) (* z z));"];
   test ~exp:[ "x" ] TS.(add [ var "x"; var "y" ] = mul [ var "z"; var "z" ]);
-  [%expect "y -> (+ (* z z) (- x));"];
+  [%expect "y -> (+ (- x) (* z z));"];
   ()
 ;;
 
@@ -1455,8 +1508,8 @@ let basic_simplify step (env : Env.t) ast =
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
     let env2, ast2 = eq_propagation var_info env ast2 in
-    let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
-    let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
+    let _ = log "env2 = %a" (Env.pp ~title:"") env2 in
+    let () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
       let __ () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
@@ -1983,7 +2036,7 @@ let%test_module "about shrinking" =
         (and
           (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
           (<= (exp 10 x) (exp 10 y))
-          (<= (+ v (* (- 1) u)) 0))
+          (<= (exp 10 v) (exp 10 u)))
         |}]
     ;;
 
