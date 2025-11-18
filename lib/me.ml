@@ -533,7 +533,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let ans = Ir.land_ (build poly c :: sups) in
       (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
-    | _ -> failwith "Gosha, implement me "
+    | rez -> failwith (Format.asprintf "Gosha, implement me: %a " Ast.Eia.pp rez)
 ;;
 
 let ir_of_ast ir =

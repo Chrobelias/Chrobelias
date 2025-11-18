@@ -955,7 +955,8 @@ let%test_module _ =
                ; mul [ var "z"; const 7 ]
                ]
         ]);
-      [%expect {|
+      [%expect
+        {|
         (and
           (<= x 2)
           (<= (+ x z) 52)
@@ -1508,11 +1509,11 @@ let basic_simplify step (env : Env.t) ast =
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
     let env2, ast2 = eq_propagation var_info env ast2 in
-    let _ = log "env2 = %a" (Env.pp ~title:"") env2 in
-    let () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
+    let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
+    let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
     | true, other ->
-      let __ () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
+      let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
       loop (next_step step) (Env.merge env2 env) ast2
     | false, false -> loop (next_step step) env ast2
