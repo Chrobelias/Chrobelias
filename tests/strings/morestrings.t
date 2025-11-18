@@ -9,12 +9,7 @@
   iter(1)= (and
              (= x 12345)
              (= 5 (+ 0 5)))
-  Something ready to substitute
-        x -> 12345
-        
-  iter(2)= (and
-             (= x 12345))
-  iter(3)= True
+  iter(2)= True
   sat (presimpl)
 
   $ cat > 2.smt2 <<-EOF
@@ -25,7 +20,8 @@
   > EOF
 
   $ OCAMLRUNPARAM='b=0' Chro -dpresimpl ./2.smt2
-  (= x (str.to.int "123451234123412341234123"))
+  (and
+    (= x (str.to.int "123451234123412341234123")))
   sat (nfa)
 
   $ cat > 3.smt2 <<-EOF

@@ -13,9 +13,7 @@ TODO: The test below could be simplified further
              (= (+ x y) 1))
   iter(2)= (and
              (= (+ y z) 100))
-  Substuting z ~~> (+ 10000 (- x))
   iter(3)= (= (+ y (* (- 1) x)) (- 9900))
-  Substuting x ~~> (+ 1 (- y))
   iter(4)= (= (+ y (* 1 (- 1)) (* (* (- 1) y) (- 1))) (- 9900))
   iter(5)= (= (+ y y) (- 9899))
   Interesting:

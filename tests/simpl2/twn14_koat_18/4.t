@@ -27,9 +27,6 @@ $ cat input4.smt2
                    (exp i6 5)) (* (- 1) 1))
                (<= (* (* (- 1) 1) i6) 5)
                (<= (* (* (- 1) 1) it140) (* (- 1) 1))))
-  Something ready to substitute
-        it376 -> (+ (* (- 2) (exp i6 3)) (* 3 i7));
-  
   iter(2)= (and
              (<= 1 i3)
              (<= 1 (* 2 i3))
