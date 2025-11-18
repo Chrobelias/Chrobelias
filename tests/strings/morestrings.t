@@ -27,3 +27,15 @@
   $ OCAMLRUNPARAM='b=0' Chro -dpresimpl ./2.smt2
   (= x (str.to.int "123451234123412341234123"))
   sat (nfa)
+
+  $ cat > 3.smt2 <<-EOF
+  > (set-logic QF_S)
+  > (declare-fun var_3 () String)
+  > (declare-fun var_4 () String)
+  > (assert (= (str.len (str.++ var_3 var_4 )) 3))
+  > (check-sat)
+  > EOF
+
+  $ OCAMLRUNPARAM='b=0' Chro ./3.smt2
+  sat (nfa)
+

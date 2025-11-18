@@ -1742,6 +1742,16 @@ let rewrite_concats { Info.all; _ } =
   let extend_leq v other =
     extra_ph := Id_symantics.leq (Id_symantics.var v) other :: !extra_ph
   in
+  let module Pre = struct
+    include Id_symantics
+
+    let rec str_len str =
+      match str with
+      | Ast.Eia.Concat (lhs, rhs) -> Id_symantics.add [ str_len lhs; str_len rhs ]
+      | str -> Id_symantics.str_len str
+    ;;
+  end
+  in
   let module M_ = struct
     include Id_symantics
 
@@ -1801,7 +1811,8 @@ let rewrite_concats { Info.all; _ } =
     include FT_SIG.Sugar (M_)
   end
   in
-  fun ph -> Sym.prj (apply_symantics (module Sym) ph)
+  fun ph ->
+    Sym.prj (apply_symantics_unsugared (module Pre) ph |> apply_symantics (module Sym))
 ;;
 
 let arithmetize ast =
