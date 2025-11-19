@@ -40,10 +40,10 @@ let pp ?(title = "") : Format.formatter -> t -> unit =
       fprintf ppf "@[<v 6>@[%s@]@," title;
       SM.iteri e.env ~f:(fun ~key ~data -> pp_kv ppf key data);
       SM.iteri e.str_env ~f:(fun ~key ~data -> pp_kv ppf key data);
-      (* SM.iteri e.cstrts ~f:(fun ~key ~data -> List.iter (pp_kv ppf key) data); *)
       List.iter
         (function
-          | KV (Var (key, _), data) -> pp_kv ppf key data)
+          | KV (Var (key, _), data) ->
+            fprintf ppf "- %a" (fun ppf data -> pp_kv ppf key data) data)
         e.cstrts;
       fprintf ppf "@]")
 [@@ocaml.warning "-32"]
@@ -184,7 +184,11 @@ let empty : t = { env = SM.empty; str_env = SM.empty; cstrts = [] }
 [@@@ocaml.warnerror "-32"]
 
 (* let is_empty { env } = SM.is_empty env *)
-let length { env; str_env; _ } = SM.cardinal env + SM.cardinal str_env [@@warning "-32"]
+let length { env; str_env; cstrts } =
+  SM.cardinal env + SM.cardinal str_env + List.length cstrts
+[@@warning "-32"]
+;;
+
 let lookup k { env; _ } = SM.find env k
 let lookup_exn k { env; _ } = SM.find_exn env k
 let is_absent_key k e = (not (SM.mem e.env k)) && not (SM.mem e.str_env k)
