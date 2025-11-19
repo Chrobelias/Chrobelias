@@ -217,7 +217,7 @@ module Id_symantics :
   let constz s = Ast.Eia.Const s
   let const s : term = constz (Z.of_int s)
   let str_at s a = Ast.Eia.at s (Ast.Eia.Atom (Ast.Var (a, I)))
-  let str_substr s a b = failwith "tbd"
+  let str_substr s a b = Ast.Eia.substr s a b
 
   (* Ast.Eia.substr s a b *)
   (* include Ast *)
