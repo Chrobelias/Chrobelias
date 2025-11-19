@@ -1211,16 +1211,15 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
     (* GB: These substitutions are too aggressive: it is possible to remember
            that <var 1> = str.len <var 2> but do not substitue RHS instead of
            <var 1>. Then the answer would be different since the connection
-           between <var 1> and <var 2> is lost.
-      | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Sofi (Atom (Var _)) as rhs), _))
-        when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
-      | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Iofs (Atom (Var _)) as rhs), _))
-        when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
-      | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len (Atom (Var _)) as rhs), _))
-        when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
-      | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len2 (Atom (Var _)) as rhs), _))
-        when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
-    *)
+           between <var 1> and <var 2> is lost. *)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Sofi (Atom (Var _)) as rhs), _))
+      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Iofs (Atom (Var _)) as rhs), _))
+      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len (Atom (Var _)) as rhs), _))
+      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len2 (Atom (Var _)) as rhs), _))
+      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
     (* Kakadu: it is not lost, it is saved in the environment.
       We need to decide how to handle it properly  *)
     (* **************************** integer stuff *********************************** *)

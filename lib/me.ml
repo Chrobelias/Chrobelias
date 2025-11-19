@@ -534,7 +534,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       end
 ;;
 
-let ir_of_ast ir =
+let ir_of_ast env ast =
   let rec ir_of_ast (ast : Ast.t) =
     match ast with
     | True -> return Ir.true_
@@ -563,7 +563,21 @@ let ir_of_ast ir =
         eia
     | Pred s -> failf "Unexpected %s" s
   in
-  ir |> ir_of_ast
+  let* ir = ast |> ir_of_ast in
+  let* extra_ir =
+    Env.fold
+      ~init:[]
+      ~f:(fun ~key ~data acc ->
+        match data with
+        | Ast.TT (S, (Ast.Eia.Sofi _ as data)) ->
+          ir_of_ast (Ast.eia (Ast.Eia.eq (Ast.Eia.atom (Ast.var key S)) data S)) :: acc
+        | Ast.TT (I, ((Ast.Eia.Iofs _ | Ast.Eia.Len _ | Ast.Eia.Len2 _) as data)) ->
+          ir_of_ast (Ast.eia (Ast.Eia.eq (Ast.Eia.atom (Ast.var key I)) data I)) :: acc
+        | _ -> acc)
+      env
+    |> Base.Result.all
+  in
+  Ir.land_ (ir :: extra_ir) |> return
 ;;
 
 let%expect_test _ =

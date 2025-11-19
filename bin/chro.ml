@@ -134,7 +134,7 @@ let check_sat ?(verbose = false) ast : rez =
           let exception Sat_found in
           (try
              let f ast =
-               let ir = Lib.Me.ir_of_ast ast in
+               let ir = Lib.Me.ir_of_ast e ast in
                match ir with
                | Ok ir -> begin
                  match Lib.Solver.check_sat ir with
@@ -180,7 +180,7 @@ let check_sat ?(verbose = false) ast : rez =
         report_result2 `Unsat;
         rez
       | Unknown (ast, e) -> begin
-        match Lib.Me.ir_of_ast ast with
+        match Lib.Me.ir_of_ast e ast with
         | Ok ir ->
           (match Lib.Solver.check_sat ir with
            | `Sat get_model ->
