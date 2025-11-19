@@ -132,7 +132,7 @@ let find_files path =
 
 let get_extra_flags =
   let data = [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -flat 0 -amin 1 -amax 1" ] in
-  let conflicts_simpl_alpah =
+  let conflicts_simpl_alpha =
     [ "Norn/HammingDistance/norn-benchmark-5"
     ; "Norn/ab/norn-benchmark-69"
     ; "Norn/ChunkSplit/norn-benchmark-7"
@@ -154,7 +154,7 @@ let get_extra_flags =
         if
           list_contains
             (fun substring -> Base.String.is_substring ~substring s)
-            conflicts_simpl_alpah
+            conflicts_simpl_alpha
         then " --no-simpl-alpha "
         else ""
 ;;
@@ -291,7 +291,7 @@ let prepare_script ?(opp = Swine) ~script () =
         ]
     in
     printfn "#";
-    printfn "sed 's/QF_SLIA/QF_S/g' -i %s" smt2file;
+    (* printfn "sed 's/QF_SLIA/QF_S/g' -i %s" smt2file; *)
     printfn "export TIMEOUT=%d" config.timeout;
     (* printfn "SECONDS=0"; *)
     printfn "printf '\n%s (%d/%d)...\n'" smt2file curi total;
