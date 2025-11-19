@@ -286,16 +286,19 @@ module Eia = struct
     | (Str_const _ | Atom (Var (_, S))) as term -> fs acc term
     | (Iofs ts | Len ts | Len2 ts) as term -> fz (fold_term fz fs acc ts) term
     | Sofi t as term -> fs (fold_term fz fs acc t) term
-    | Add terms | Mul terms -> List.fold_left (fold_term fz fs) acc terms
-    | Bwand (term', term'')
-    | Bwor (term', term'')
-    | Bwxor (term', term'')
-    | Pow (term', term'') -> fold_term fz fs (fold_term fz fs acc term') term''
-    | Mod (t, _) -> fold_term fz fs acc t
     | Concat (lhs, rhs) -> fold_term fz fs (fold_term fz fs acc lhs) rhs
-    | Substr (term', tz1, tz2) ->
-      fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2
-    | At (term', tidx) -> fold_term fz fs (fold_term fz fs acc term') tidx
+    | Substr (term', tz1, tz2) as term ->
+      fs (fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2) term
+    | At (term', tidx) as term ->
+      fs (fold_term fz fs (fold_term fz fs acc term') tidx) term
+    | (Add terms | Mul terms) as term ->
+      fz (List.fold_left (fold_term fz fs) acc terms) term
+    | ( Bwand (term', term'')
+      | Bwor (term', term'')
+      | Bwxor (term', term'')
+      | Pow (term', term'') ) as term ->
+      fz (fold_term fz fs (fold_term fz fs acc term') term'') term
+    | Mod (t, _) as term -> fz (fold_term fz fs acc t) term
   ;;
 
   let compare_term (type a) : a term -> a term -> int = fun l r -> Stdlib.compare l r

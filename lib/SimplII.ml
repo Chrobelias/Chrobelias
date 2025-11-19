@@ -1010,28 +1010,55 @@ let propagate_exponents ast =
 
 let find_vars_for_under2 ast =
   let module S = Base.Set.Poly in
-  let f : string S.t -> Z.t Ast.Eia.term -> _ =
+  let fz : string S.t -> Z.t Ast.Eia.term -> _ =
     fun acc -> function
       | Ast.Eia.Mul [ Atom (Var (v, _)); Pow (Const base, Atom (Var _)) ]
-        when Z.(equal (Config.base ()) base) -> S.add acc v
+        when Z.(equal (Config.base ()) base) ->
+        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+        S.add acc v
       | Mul [ Const _; Atom (Var (v, I)); Pow (Const base, Atom (Var (_, I))) ]
-        when Z.(equal (Config.base ()) base) -> S.add acc v
+        when Z.(equal (Config.base ()) base) ->
+        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+        S.add acc v
       | Mul [ Atom (Var (v, _)); Pow (Const base, Atom (Var _)) ]
-        when Z.(equal (Config.base ()) base) -> S.add acc v
+        when Z.(equal (Config.base ()) base) ->
+        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
+        S.add acc v
       | Mul [ Atom (Var (v1, _)); Atom (Var (v2, _)) ] -> S.add (S.add acc v1) v2
-      | _ -> acc
+      | t ->
+        (* Format.printf "skipping: @[%a@]\n%!" Ast.Eia.pp_term t; *)
+        acc
   in
+  let fs = fun acc _ -> acc in
   Ast.fold
     (fun acc ->
        let open Ast.Eia in
        function
-       | Eia (Eq (l, r, I)) ->
-         fold_term f (fun acc _ -> acc) (fold_term f (fun acc _ -> acc) acc r) l
-       | Eia (Leq (l, r)) ->
-         fold_term f (fun acc _ -> acc) (fold_term f (fun acc _ -> acc) acc r) l
+       | Eia (Eq (l, r, I)) -> fold_term fz fs (fold_term fz fs acc r) l
+       | Eia (Leq (l, r)) -> fold_term fz fs (fold_term fz fs acc r) l
        | _ -> acc)
     S.empty
     ast
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph =
+    let set = find_vars_for_under2 ph in
+    Format.printf
+      "@[%a@]\n%!"
+      Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
+      (Base.Set.to_list set)
+  in
+  test
+    TS.(
+      add [ pow (constz (Config.base ())) (var "x"); mul [ const 2; var "y" ] ] = var "z");
+  [%expect ""];
+  test TS.(mul [ pow (constz (Config.base ())) (var "x"); var "y" ] = var "z");
+  [%expect "y"];
+  test TS.(mul [ var "y"; pow (constz (Config.base ())) (var "x") ] = var "z");
+  [%expect "y"];
+  ()
 ;;
 
 let gensym =
