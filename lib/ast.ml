@@ -308,6 +308,10 @@ module Eia = struct
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
     | Leq : Z.t term * Z.t term -> t
+    | InRe of string term * char list Regex.t
+    | PrefixOf of string term * string term
+    | Contains of string term * string term
+    | SuffixOf of string term * string term
   [@@deriving variants]
 
   let compare l r = Stdlib.compare l r
@@ -318,6 +322,10 @@ module Eia = struct
   let map f = function
     | Eq _ as eia -> f eia
     | Leq _ as eia -> f eia
+    | InRe _ as eia -> f eia
+    | PrefixOf _ as eia -> f eia
+    | SuffixOf _ as eia -> f eia
+    | Contains _ as eia -> f eia
   ;;
 
   let map2 f fint fstring = function
@@ -326,6 +334,13 @@ module Eia = struct
     | Eq (l, r, S) -> f (Eq (map_term fint fstring l, map_term fint fstring r, S))
     | Leq (term, term') ->
       f (leq (map_term fint fstring term) (map_term fint fstring term'))
+    | InRe (term, re) -> f (inre (map_term fint fstring term) re)
+    | PrefixOf (term, term') ->
+      f (prefixof (map_term fint fstring term) (map_term fint fstring term'))
+    | SuffixOf (term, term') ->
+      f (suffixof (map_term fint fstring term) (map_term fint fstring term'))
+    | Contains (term, term') ->
+      f (contains (map_term fint fstring term) (map_term fint fstring term'))
   ;;
 
   let fold2 fz fs acc : t -> _ =
@@ -335,39 +350,19 @@ module Eia = struct
     | Eq (l, r, I) -> fz (fz acc l) r
     | Eq (l, r, S) -> fs (fs acc l) r
     | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
+    | InRe (term, re) -> fold_term fz fs acc term
+    | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
+      fold_term fz fs (fold_term fz fs acc term) term'
   ;;
 
   let pp fmt = function
     | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
     | Leq (term, term') -> Format.fprintf fmt "@[(<= %a %a)@]" pp_term term pp_term term'
-  ;;
-
-  let equal = Stdlib.( = )
-  let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
-end
-
-type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
-
-(** String theory. *)
-module Str = struct
-  type term = string Eia.term
-
-  let compare_term = Eia.compare_term
-  let pp_term = Eia.pp_term
-
-  type t =
-    | InRe of term * char list Regex.t
-    | PrefixOf of term * term
-    | Contains of term * term
-    | SuffixOf of term * term
-  [@@deriving variants, compare]
-
-  let pp fmt = function
     | InRe (str, re) ->
       Format.fprintf
         fmt
         "(str.in_re %a %a)"
-        Eia.pp_term
+        pp_term
         str
         (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
         re
@@ -380,26 +375,15 @@ module Str = struct
       Format.fprintf fmt "(str.suffixof %a %a)" pp_term term pp_term term'
   ;;
 
-  let equal str str' =
-    match str, str' with
-    | InRe (str, re), InRe (str', re') -> str = str' && re = re'
-    | PrefixOf (re, re'), PrefixOf (re'', re''')
-    | SuffixOf (re, re'), SuffixOf (re'', re''')
-    | Contains (re, re'), Contains (re'', re''') -> re = re'' && re' = re'''
-    | _, _ -> false
-  ;;
-
-  let fold2 fz fs acc = function
-    | InRe (term, re) -> Eia.fold_term fz fs acc term
-    | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
-      Eia.fold_term fz fs (Eia.fold_term fz fs acc term) term'
-  ;;
+  let equal = Stdlib.( = )
+  let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
 end
+
+type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
 
 type t =
   | True
   | Eia of Eia.t
-  | Str of Str.t
   | Lnot of t
   | Land of t list
   | Lor of t list
@@ -436,7 +420,6 @@ let rec pp ppf = function
       pp
       b
   | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
-  | Str str -> Format.fprintf ppf "%a" Str.pp str
 ;;
 
 let pp_smtlib2 =
@@ -468,7 +451,6 @@ let pp_smtlib2 =
         pp
         b
     | Eia eia -> fprintf ppf "%a" Eia.pp eia
-    | Str s -> fprintf ppf "%a" Str.pp s
   in
   pp
 ;;
@@ -554,7 +536,6 @@ let rec fold f acc ast =
   match ast with
   | True -> f acc ast
   | Eia _ -> f acc ast
-  | Str _ -> f acc ast
   | Lnot ast' -> f (fold f acc ast') ast
   | Land asts -> f (List.fold_left (fold f) acc asts) ast
   | Lor asts -> f (List.fold_left (fold f) acc asts) ast
@@ -568,7 +549,6 @@ let forsome f = fold (fun acc ast -> acc || f ast) false
 let rec map f = function
   | True as ast -> f ast
   | Eia _ as ast -> f ast
-  | Str _ as ast -> f ast
   | Lnot ast -> f (lnot (map f ast))
   | Land asts -> f (land_ (List.map (map f) asts))
   | Lor asts -> f (lor_ (List.map (map f) asts))
@@ -585,7 +565,6 @@ let rec equal ast ast' =
   | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
   | Pred name, Pred name' -> name = name'
   | Eia eia, Eia eia' -> Eia.equal eia eia'
-  | Str str, Str str' -> Str.equal str str'
   | _ -> false
 ;;
 

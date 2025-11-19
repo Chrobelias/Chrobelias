@@ -173,7 +173,7 @@ module Id_symantics :
   type term = Z.t Ast.Eia.term
   type str = string Ast.Eia.term
 
-  let pp_str = Ast.Str.pp_term
+  let pp_str = Ast.Eia.pp_term
 
   type ph = Ast.t
   type repr = Ast.t
@@ -189,7 +189,7 @@ module Id_symantics :
   include struct
     open Ast.Eia
 
-    let in_re l regex = Ast.Str (Ast.Str.InRe (l, regex))
+    let in_re l regex = Ast.Eia (Ast.Eia.InRe (l, regex))
     let str_len s = len s
     let str_len2 s1 = len2 s1
     let iofs x = Ast.Eia.Iofs x
@@ -197,9 +197,9 @@ module Id_symantics :
   end
 
   (* let str_from_eia s = Ast.Str.FromEia (Ast.var s) *)
-  let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
-  let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
-  let str_suffixof s1 s2 = Ast.str (Ast.Str.suffixof s1 s2)
+  let str_prefixof s1 s2 = Ast.eia (Ast.Eia.prefixof s1 s2)
+  let str_contains s1 s2 = Ast.eia (Ast.Eia.contains s1 s2)
+  let str_suffixof s1 s2 = Ast.eia (Ast.Eia.suffixof s1 s2)
 
   (* let str_from_eia_const c = Ast.Eia.Atom (Str_const (Z.to_string c))
   let str_concat s1 s2 = Ast.Eia.concat s1 s2 *)
@@ -301,13 +301,6 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
           vs
       in*)
       S.exists vs (helper ph)
-    | Str (Ast.Str.PrefixOf (term, term')) ->
-      S.str_prefixof (helperS term) (helperS term')
-    | Str (Ast.Str.Contains (term, term')) ->
-      S.str_contains (helperS term) (helperS term')
-    | Str (Ast.Str.SuffixOf (term, term')) ->
-      S.str_suffixof (helperS term) (helperS term')
-    | Str (Ast.Str.InRe (term, regex)) -> S.in_re (helperS term) regex
   (* | Str (Ast.Str.Eq (term, term')) ->
       let l = helperT term in
       let r = helperT term' in
@@ -318,6 +311,10 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
     | Eq (l, r, S) -> S.eq_str (helperS l) (helperS r)
     | Leq (l, r) -> S.(helperT l <= helperT r)
+    | PrefixOf (term, term') -> S.str_prefixof (helperS term) (helperS term')
+    | Contains (term, term') -> S.str_contains (helperS term) (helperS term')
+    | SuffixOf (term, term') -> S.str_suffixof (helperS term) (helperS term')
+    | InRe (term, regex) -> S.in_re (helperS term) regex
   in
   helper
 ;;
@@ -384,9 +381,9 @@ let make_main_symantics env =
           else Ast.false_
         | _ -> *)Id_symantics.str_eq l r)*)
 
-    let str_prefixof s1 s2 = Ast.str (Ast.Str.prefixof s1 s2)
-    let str_contains s1 s2 = Ast.str (Ast.Str.contains s1 s2)
-    let str_suffixof s1 s2 = Ast.str (Ast.Str.suffixof s1 s2)
+    let str_prefixof s1 s2 = Ast.eia (Ast.Eia.prefixof s1 s2)
+    let str_contains s1 s2 = Ast.eia (Ast.Eia.contains s1 s2)
+    let str_suffixof s1 s2 = Ast.eia (Ast.Eia.suffixof s1 s2)
 
     let collect_inside_mul xs =
       List.fold_right
@@ -647,7 +644,7 @@ let make_main_symantics env =
       match s with
       | Ast.Eia.Atom (Ast.Var (s, S)) -> begin
         match Env.lookup_string s env with
-        | Some (Ast.Eia.Str_const _ as c) -> Ast.str (Str.inre c re)
+        | Some (Ast.Eia.Str_const _ as c) -> Ast.eia (Eia.inre c re)
         | Some (Ast.Eia.Const c) -> begin
           match
             NfaStr.of_regex re
@@ -658,7 +655,7 @@ let make_main_symantics env =
           | false -> Ast.false_
         end
         (* | Some (Ast.Eia.Atom c) -> Ast.str (Str.inre (Eia.Sofi (Atom c)) re) *)
-        | None | _ -> Ast.str (Str.inre (Eia.Atom (Ast.Var (s, S))) re)
+        | None | _ -> Ast.eia (Eia.inre (Eia.Atom (Ast.Var (s, S))) re)
       end
       | Ast.Eia.(Const c) | Ast.Eia.Sofi (Const c) ->
         (* v = sofi 4 <=> v="4" | v="04" | v="004" | ... *)
@@ -679,7 +676,7 @@ let make_main_symantics env =
         | true -> Ast.true_
         | false -> Ast.false_
       end
-      | _ -> Ast.str (Str.inre s re)
+      | _ -> Ast.eia (Eia.inre s re)
     ;;
 
     let prj : ph -> repr = Fun.id

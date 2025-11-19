@@ -34,14 +34,6 @@ let collect_free =
            (fun acc _ -> acc (* TODO(Kakadu) *))
            acc
            eia
-       | Ast.Str str ->
-         Ast.Str.fold2
-           (fun acc _ -> acc)
-           (fun acc -> function
-              | Ast.Eia.Atom (Ast.Var _ as v) -> add acc v
-              | _ -> acc)
-           acc
-           str
        | Ast.Exists (xs, _) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
     Set.empty

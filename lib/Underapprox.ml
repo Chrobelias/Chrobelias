@@ -148,7 +148,6 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
           vs
       in
       S.exists vs (helper ph)
-    | Str _ -> raise String_op
   and helperT = function
     | Ast.Eia.Const n -> S.constz n
     | Atom (Ast.Var (s, _)) -> S.var s
@@ -165,6 +164,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
     | Eq (_, _, S) -> raise String_op
     | Leq (l, r) -> S.(helperT l <= helperT r)
+    | InRe _ | SuffixOf _ | PrefixOf _ | Contains _ -> raise String_op
   in
   fun x -> S.prj (helper x)
 ;;

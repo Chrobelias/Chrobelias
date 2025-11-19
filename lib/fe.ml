@@ -254,20 +254,20 @@ and _to_ir tys orig_expr =
     let str = to_string str in
     let re = to_regex re in
     let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
-    Ast.Str (Ast.Str.inre str re)
+    Ast.Eia (Ast.Eia.inre str re)
   | Expr.App ({ name = Symbol.Simple "str.prefixof"; _ }, [ str; str' ])
   | Expr.Binop (_, Ty.Binop.String_prefix, str, str') ->
     let str = to_string str in
     let str' = to_string str' in
-    Ast.str (Ast.Str.prefixof str str')
+    Ast.eia (Ast.Eia.prefixof str str')
   | Expr.Binop (_, Ty.Binop.String_suffix, str, str') ->
     let str = to_string str in
     let str' = to_string str' in
-    Ast.str (Ast.Str.suffixof str str')
+    Ast.eia (Ast.Eia.suffixof str str')
   | Expr.Binop (_, Ty.Binop.String_contains, str, str') ->
     let str = to_string str in
     let str' = to_string str' in
-    Ast.str (Ast.Str.contains str str')
+    Ast.eia (Ast.Eia.contains str str')
   (* Quantifiers and binders. *)
   | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
     let c = _to_ir tys c in
