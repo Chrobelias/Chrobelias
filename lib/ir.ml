@@ -21,10 +21,9 @@ let internal_name () =
 let internal () = var (internal_name ())
 
 let internal_pow () =
-  let name = String.concat "" [ "%"; !internalc |> Int.to_string ] in
+  let name = internal_name () in
   let r = pow2 name in
   let log_r = var name in
-  internalc := !internalc + 1;
   r, log_r
 ;;
 

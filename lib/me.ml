@@ -59,11 +59,11 @@ module type S = sig
   val pow : base:t -> t -> t
   val prj : t -> repr
   val prjs : t -> Ir.atom * Ir.t list
-  val len : string Ast.Eia.term -> t
 
   (* Alias for [iofs] *)
   val stoi : string Ast.Eia.term -> t
   val iofs : string Ast.Eia.term -> t
+  val len2 : string Ast.Eia.term -> t
 end
 
 [@@@warnerror "-32-37-39"]
@@ -303,20 +303,13 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
            base_c)
   ;;
 
-  let len (v : string Ast.Eia.term) =
+  let len2 (v : string Ast.Eia.term) =
     match v with
     | Ast.Eia.Atom (Var (v, _)) ->
-      let pow_r, r = Ir.internal_pow () in
       let u = Ir.internal () in
-      (* u ~ v && u = 2**r - 1 *)
-      Symbol
-        ( r
-        , [ Ir.slen u (Ir.var v)
-          ; Ir.eq
-              (Map.singleton pow_r Z.one |> Map.add_exn ~key:u ~data:Z.minus_one)
-              Z.one
-          ] )
-    | Ast.Eia.Str_const s -> Poly (Map.empty, Z.of_string s, [])
+      Symbol (u, [ Ir.slen u (Ir.var v) ])
+    | Ast.Eia.Str_const s ->
+      Poly (Map.empty, Z.(pow (Config.base ()) (String.length s) - one), [])
     | _ -> failwith "unreachable"
   ;;
 
@@ -428,7 +421,8 @@ and helper : 'a. 'a Ast.Eia.term -> _ =
     in
     return (regex lhs rhs)
   | Iofs v -> return (Symantics.stoi v)
-  | Len v -> return (Symantics.len v)
+  | Len v -> failwith "Lengths should have been rewritten into chrob.len"
+  | Len2 v -> return (Symantics.len2 v)
   | other ->
     (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
     failf "unimplemented %a" Ast.Eia.pp_term other
@@ -563,21 +557,21 @@ let ir_of_ast env ast =
         eia
     | Pred s -> failf "Unexpected %s" s
   in
-  let* ir = ast |> ir_of_ast in
-  let* extra_ir =
+  let ast =
     Env.fold
-      ~init:[]
+      ~init:[ ast ]
       ~f:(fun ~key ~data acc ->
         match data with
         | Ast.TT (S, (Ast.Eia.Sofi _ as data)) ->
-          ir_of_ast (Ast.eia (Ast.Eia.eq (Ast.Eia.atom (Ast.var key S)) data S)) :: acc
+          Ast.eia (Ast.Eia.eq (Ast.Eia.atom (Ast.var key S)) data S) :: acc
         | Ast.TT (I, ((Ast.Eia.Iofs _ | Ast.Eia.Len _ | Ast.Eia.Len2 _) as data)) ->
-          ir_of_ast (Ast.eia (Ast.Eia.eq (Ast.Eia.atom (Ast.var key I)) data I)) :: acc
+          Ast.eia (Ast.Eia.eq (Ast.Eia.atom (Ast.var key I)) data I) :: acc
         | _ -> acc)
       env
-    |> Base.Result.all
   in
-  Ir.land_ (ir :: extra_ir) |> return
+  let ast = Ast.land_ ast in
+  let* ir = ast |> ir_of_ast in
+  ir |> return
 ;;
 
 let%expect_test _ =

@@ -97,17 +97,22 @@ let check_sat ?(verbose = false) ast : rez =
         unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
+      let ast = Lib.SimplII.rewrite_len ast in
+      unknown ast e)
+      <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
       then unknown ast e
       else lift ast (Lib.SimplII.run_basic_simplify ast))
       <+> (fun ast e ->
-      let ast = Lib.SimplII.rewrite_len ast in
-      unknown ast e)
-      <+> (fun ast e ->
       if Lib.Config.config.under_approx >= 0
       then (
+        let merge =
+          Lib.Env.merge
+            ~sf:(fun ~key:_ ~data1 ~data2:_ -> data1)
+            ~zf:(fun ~key:_ ~data1 ~data2:_ -> data1)
+        in
         match Lib.Underapprox.check Lib.Config.config.under_approx ast with
-        | `Sat (s, e0) -> Sat (s, ast, Lib.Env.merge e0 e, fun _ -> Result.Ok Map.empty)
+        | `Sat (s, e0) -> Sat (s, ast, merge e0 e, fun _ -> Result.Ok Map.empty)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->

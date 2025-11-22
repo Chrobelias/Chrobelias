@@ -5,7 +5,23 @@ exception Occurs
 val empty : t
 
 (* val is_empty : t -> bool *)
-val merge : t -> t -> t
+val merge_exn : t -> t -> t
+
+val merge
+  :  sf:
+       (key:string
+        -> data1:string Ast.Eia.term
+        -> data2:string Ast.Eia.term
+        -> string Ast.Eia.term)
+  -> zf:
+       (key:string
+        -> data1:Z.t Ast.Eia.term
+        -> data2:Z.t Ast.Eia.term
+        -> Z.t Ast.Eia.term)
+  -> t
+  -> t
+  -> t
+
 val fold : t -> init:'a -> f:(key:string -> data:Ast.typed_term -> 'a -> 'a) -> 'a
 val length : t -> int
 val lookup_int : string -> t -> Z.t Ast.Eia.term option

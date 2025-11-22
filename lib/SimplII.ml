@@ -356,6 +356,27 @@ let make_main_symantics env =
       | None -> Eia.Atom (Ast.Var (s, S))
     ;;
 
+    let str_len = function
+      | Ast.Eia.Str_const s -> Id_symantics.const (String.length s)
+      | s -> Id_symantics.str_len s
+    ;;
+
+    let str_len2 = function
+      | Ast.Eia.Str_const s ->
+        Id_symantics.constz Z.(pow (Config.base ()) (String.length s) - one)
+      | s -> Id_symantics.str_len2 s
+    ;;
+
+    let iofs = function
+      | Ast.Eia.Str_const s -> Id_symantics.constz (Z.of_string s)
+      | s -> Id_symantics.iofs s
+    ;;
+
+    let sofi = function
+      | Ast.Eia.Const s -> Id_symantics.str_const (Z.to_string s)
+      | s -> Id_symantics.sofi s
+    ;;
+
     (* let str_from_eia s =
       match Env.lookup s env with
       | Some (Ast.Eia.Atom (Ast.Const c)) -> Ast.Str.fromeia (Ast.const c)
@@ -1496,28 +1517,28 @@ let lower_strlen ast =
 ;;
 
 let rewrite_len ast =
-  let env = ref Env.empty in
+  let acc = ref [] in
   let module Collector = struct
     include Id_symantics
 
     let str_len str =
-      let u = Ir.internal_name () in
       let v = Ir.internal_name () in
-      env := Env.extend_int_exn !env u (Ast.Eia.len2 str);
-      env
-      := Env.extend_int_exn
-           !env
-           u
-           (add
-              [ pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var v I))
-              ; Ast.Eia.const Z.minus_one
-              ]);
+      let lhs = Ast.Eia.len2 str in
+      let rhs =
+        add
+          [ pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var v I))
+          ; Ast.Eia.const Z.minus_one
+          ]
+      in
+      acc := Ast.eia (Ast.Eia.eq lhs rhs Ast.I) :: !acc;
       Ast.Eia.atom (Ast.var v I)
     ;;
   end
   in
   let ast : Ast.t = apply_symantics_unsugared (module Collector) ast in
-  Ast.land_ (ast :: Env.to_eqs !env)
+  let ast = Ast.land_ (ast :: !acc) in
+  log "rewritten lengths= @[%a@]" Ast.pp_smtlib2 ast;
+  ast
 ;;
 
 let basic_simplify step (env : Env.t) ast =
@@ -1538,7 +1559,7 @@ let basic_simplify step (env : Env.t) ast =
     | true, other ->
       let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
-      loop (next_step step) (Env.merge env2 env) ast2
+      loop (next_step step) (Env.merge_exn env2 env) ast2
     | false, false -> loop (next_step step) env ast2
     | false, true ->
       (match ast2 with
@@ -1733,7 +1754,7 @@ let simpl bound ast =
   let ast, env = loop Env.empty ast in
   (* Underapprox I *)
     match if bound >= 0 then Underapprox.check bound ast else `Unknown ast with
-    | `Sat (reason, e) -> `Sat (reason, Env.merge e env)
+    | `Sat (reason, e) -> `Sat (reason, Env.merge_exn e env)
     | `Unknown _ ->
       (try
          match check_errors ast with

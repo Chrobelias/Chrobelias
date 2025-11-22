@@ -143,16 +143,18 @@ let extend_cstrt_exn env ~key data =
 ;;
 
 let extend_int_exn e vname data =
-  if SM.mem e.env vname
-  then (
-    Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 (SM.find_exn e.env vname);
+  match SM.find e.env vname with
+  | Some old_data ->
+    Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 old_data;
     Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
-    failwith (Format.sprintf "key %s aready exists." vname));
-  let data = walk e data in
-  if occurs_var e vname data then raise Occurs;
-  match data with
-  | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
-  | _ -> { e with env = SM.add_exn e.env ~key:vname ~data }
+    failwith (Format.sprintf "key %s aready exists." vname)
+  | None ->
+    let data = walk e data in
+    if occurs_var e vname data then raise Occurs;
+    (*match data with
+    | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
+    | _ -> *)
+    { e with env = SM.add_exn e.env ~key:vname ~data }
 ;;
 
 let extend_string_exn e vname data =
@@ -163,9 +165,10 @@ let extend_string_exn e vname data =
     failwith (Format.sprintf "key %s aready exists." vname));
   let data = walk e data in
   if occurs_var e vname data then raise Occurs;
-  match data with
+  (*match data with
   | Ast.Eia.Sofi _ -> add_cstrt e (Ast.Var (vname, S)) data
-  | _ -> { e with str_env = SM.add_exn e.str_env ~key:vname ~data }
+  | _ -> *)
+  { e with str_env = SM.add_exn e.str_env ~key:vname ~data }
 ;;
 
 let extend_exn : 'a. t -> 'a Ast.atom -> 'a term -> t =
@@ -208,22 +211,55 @@ let filter_mapi ~f { env; _ } : (string, _) Base.Map.Poly.t =
     Base.Map.Poly.empty
 ;;
 
-let merge : t -> t -> t =
-  fun e1 e2 ->
-  let merge2 =
-    fun key v1 v2 ->
+let merge
+  :  sf:
+       (key:string
+        -> data1:string Ast.Eia.term
+        -> data2:string Ast.Eia.term
+        -> string Ast.Eia.term)
+  -> zf:
+       (key:string
+        -> data1:Z.t Ast.Eia.term
+        -> data2:Z.t Ast.Eia.term
+        -> Z.t Ast.Eia.term)
+  -> t
+  -> t
+  -> t
+  =
+  fun ~sf ~zf e1 e2 ->
+  let merge2 f key v1 v2 =
     match v1, v2 with
     | None, None -> None
     | Some v1, Some v2 ->
-      if Stdlib.(v1 = v2)
-      then Some v1
-      else failwith "We tried to subtitute a varible by two different terms"
+      if Stdlib.(v1 = v2) then Some v1 else Some (f ~key ~data1:v1 ~data2:v2)
     | Some v, _ | _, Some v -> Some v
   in
-  let env = SM.merge merge2 e1.env e2.env in
-  let str_env = SM.merge merge2 e1.str_env e2.str_env in
+  let env = SM.merge (merge2 zf) e1.env e2.env in
+  let str_env = SM.merge (merge2 sf) e1.str_env e2.str_env in
   let cstrts = e1.cstrts @ e2.cstrts in
   { env; str_env; cstrts }
+;;
+
+let merge_exn =
+  merge
+    ~sf:(fun ~key ~data1:v1 ~data2:v2 ->
+      failwith
+        (Format.asprintf
+           "We tried to subtitute a %s varible by two different terms: %a %a"
+           key
+           Ast.Eia.pp_term
+           v1
+           Ast.Eia.pp_term
+           v2))
+    ~zf:(fun ~key ~data1:v1 ~data2:v2 ->
+      failwith
+        (Format.asprintf
+           "We tried to subtitute a %s varible by two different terms: %a %a"
+           key
+           Ast.Eia.pp_term
+           v1
+           Ast.Eia.pp_term
+           v2))
 ;;
 
 let to_eqs : t -> Ast.t list =
