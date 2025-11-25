@@ -340,10 +340,10 @@ let make_main_symantics env =
 
     let var s : term =
       match Env.lookup_int s env with
-      | Some (Eia.Iofs _)
+      (*| Some (Eia.Iofs _)
       | Some (Eia.Sofi _)
       | Some (Eia.Len _)
-      | Some (Eia.Len2 _)
+      | Some (Eia.Len2 _)*)
       | None -> Eia.Atom (Ast.Var (s, I))
       | Some c ->
         (* log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c; *)
@@ -1029,23 +1029,21 @@ let propagate_exponents ast =
 let find_vars_for_under2 ast =
   let module S = Base.Set.Poly in
   let fz : string S.t -> Z.t Ast.Eia.term -> _ =
-    fun acc -> function
-      | Ast.Eia.Mul [ Atom (Var (v, _)); Pow (Const base, Atom (Var _)) ]
-        when Z.(equal (Config.base ()) base) ->
-        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
-        S.add acc v
-      | Mul [ Const _; Atom (Var (v, I)); Pow (Const base, Atom (Var (_, I))) ]
-        when Z.(equal (Config.base ()) base) ->
-        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
-        S.add acc v
-      | Mul [ Atom (Var (v, _)); Pow (Const base, Atom (Var _)) ]
-        when Z.(equal (Config.base ()) base) ->
-        (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
-        S.add acc v
-      | Mul [ Atom (Var (v1, _)); Atom (Var (v2, _)) ] -> S.add (S.add acc v1) v2
-      | t ->
-        (* Format.printf "skipping: @[%a@]\n%!" Ast.Eia.pp_term t; *)
-        acc
+    fun acc ->
+    fun c ->
+    match c with
+    (*function*)
+    | Ast.Eia.Mul [ Atom (Var (v, _)); Pow (Const base, _) ]
+    | Ast.Eia.Mul [ Pow (Const base, _); Atom (Var (v, _)) ]
+      when Z.(equal (Config.base ()) base) -> S.add acc v
+    | Mul [ Const _; Atom (Var (v, I)); Pow (Const base, _) ]
+      when Z.(equal (Config.base ()) base) -> S.add acc v
+    | Mul [ Atom (Var (v, _)); Pow (Const base, _) ] when Z.(equal (Config.base ()) base)
+      -> S.add acc v
+    | Mul [ Atom (Var (v1, _)); Atom (Var (v2, _)) ] -> S.add (S.add acc v1) v2
+    | t ->
+      (* Format.printf "skipping: @[%a@]\n%!" Ast.Eia.pp_term t; *)
+      acc
   in
   let fs = fun acc _ -> acc in
   Ast.fold
@@ -1181,14 +1179,19 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
   (*let extend_str_exn env v rhs = Env.extend_string_exn env v (trivial_simplify rhs) in*)
   let fold_and_filter f acc xs =
     let acc = ref acc in
+    let changed = ref false in
     let xs =
       List.filter_map
         (fun h ->
-           match f !acc h with
-           | Some acc2 ->
-             acc := acc2;
-             None
-           | None -> Some h)
+           if !changed |> not
+           then (
+             match f !acc h with
+             | Some acc2 ->
+               if acc2 <> !acc then changed := true;
+               acc := acc2;
+               None
+             | None -> Some h)
+           else Some h)
         xs
     in
     !acc, xs
@@ -1241,6 +1244,8 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
       when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len2 (Atom (Var _)) as rhs), _))
       when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Eia.Sofi (Atom (Var (vn, _))), Eia.Sofi (Atom (Var _) as rhs), _))
+      when Env.is_absent_key vn env -> Some (Env.extend_int_exn env vn rhs)
     (* Kakadu: it is not lost, it is saved in the environment.
       We need to decide how to handle it properly  *)
     (* **************************** integer stuff *********************************** *)
@@ -1517,21 +1522,28 @@ let lower_strlen ast =
 ;;
 
 let rewrite_len ast =
+  let module Map = Base.Map.Poly in
   let acc = ref [] in
+  let lens = ref Map.empty in
   let module Collector = struct
     include Id_symantics
 
     let str_len str =
-      let v = Ir.internal_name () in
-      let lhs = Ast.Eia.len2 str in
-      let rhs =
-        add
-          [ pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var v I))
-          ; Ast.Eia.const Z.minus_one
-          ]
-      in
-      acc := Ast.eia (Ast.Eia.eq lhs rhs Ast.I) :: !acc;
-      Ast.Eia.atom (Ast.var v I)
+      match Map.find !lens str with
+      | None ->
+        let v = Ir.internal_name () in
+        let lhs = Ast.Eia.len2 str in
+        let rhs =
+          add
+            [ pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var v I))
+            ; Ast.Eia.const Z.minus_one
+            ]
+        in
+        acc := Ast.eia (Ast.Eia.eq lhs rhs Ast.I) :: !acc;
+        let v = Ast.Eia.atom (Ast.var v I) in
+        lens := Map.add_exn ~key:str ~data:v !lens;
+        v
+      | Some x -> x
     ;;
   end
   in
@@ -1602,6 +1614,25 @@ let subst env ast =
 ;;
 
 let try_under2_heuristics env ast =
+  let temp_env = ref env in
+  let module Rewrite = struct
+    include Id_symantics
+
+    let mul terms =
+      let aux = function
+        | (Ast.Eia.Atom (Var _) | Pow (Const _, _) | Ast.Eia.Const _) as term -> term
+        | term ->
+          let x = gensym ~prefix:"a" () in
+          temp_env := Env.extend_int_exn !temp_env x term;
+          Ast.Eia.atom (Ast.var x Ast.I)
+      in
+      let terms = List.map aux terms in
+      Id_symantics.mul (List.map aux terms)
+    ;;
+  end
+  in
+  let env = !temp_env in
+  let ast : Ast.t = apply_symantics_unsugared (module Rewrite) ast in
   let under2vars = find_vars_for_under2 ast in
   log
     "vars_for_under2: %a\n%!"
@@ -1625,7 +1656,10 @@ let try_under2_heuristics env ast =
           let* a = all_as in
           let* acc, phs = acc in
           let u = gensym ~prefix:"u" () in
-          [ Env.extend_int_exn acc name Id_symantics.(add [ pow2var u; const a ]), phs ])
+          (*if Env.is_absent_key name env then*)
+          [ Env.extend_int_exn acc name Id_symantics.(add [ pow2var u; const a ]), phs ]
+          (*else
+            [ Env.set_int_exn acc name Id_symantics.(add [ pow2var u; const a ]), (Ast.eia (Ast.Eia.eq (Env.lookup_int_exn name env) (Ast.Eia.atom (Ast.var name Ast.I)) Ast.I )) :: phs ]*))
         ~init:[ env, [] ]
         under2vars
     | 1 ->

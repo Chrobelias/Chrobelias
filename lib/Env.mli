@@ -32,6 +32,7 @@ val lookup_string_exn : string -> t -> string Ast.Eia.term
 (* TODO: remove this  *)
 val is_absent_key : string -> t -> bool
 val extend_exn : t -> 'a Ast.atom -> 'a Ast.Eia.term -> t
+val set_int_exn : t -> string -> Z.t Ast.Eia.term -> t
 val extend_int_exn : t -> string -> Z.t Ast.Eia.term -> t
 val extend_string_exn : t -> string -> string Ast.Eia.term -> t
 val extend_cstrt_exn : t -> key:'a Ast.atom -> 'a Ast.Eia.term -> t

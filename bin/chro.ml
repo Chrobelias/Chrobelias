@@ -46,6 +46,7 @@ let lift ast = function
 ;;
 
 let check_sat ?(verbose = false) ast : rez =
+  let used_under2 = ref false in
   let __ () =
     if Lib.Config.config.stop_after = `Pre_simplify
     then (
@@ -97,9 +98,6 @@ let check_sat ?(verbose = false) ast : rez =
         unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
-      let ast = Lib.SimplII.rewrite_len ast in
-      unknown ast e)
-      <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
       then unknown ast e
       else lift ast (Lib.SimplII.run_basic_simplify ast))
@@ -129,6 +127,7 @@ let check_sat ?(verbose = false) ast : rez =
       <+> (fun ast e ->
       if Lib.Config.is_under2_enabled ()
       then (
+        used_under2 := true;
         match Lib.SimplII.run_under2 e ast with
         | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty)
         | `Underapprox asts ->
@@ -144,12 +143,20 @@ let check_sat ?(verbose = false) ast : rez =
                | Ok ir -> begin
                  match Lib.Solver.check_sat ir with
                  | `Sat _ -> raise Sat_found
-                 | _ -> ()
+                 | _ -> Result.ok ()
                end
-               | Error _ -> ()
+               | Error s -> Result.error s
              in
-             List.iter f asts;
-             report_result2 (`Unknown "under II");
+             let results = List.map f asts in
+             let extra =
+               List.map
+                 (function
+                   | Ok _ -> "unsat;"
+                   | Error s -> s)
+                 results
+               |> String.concat " "
+             in
+             report_result2 (`Unknown (Format.sprintf "under II %s" extra));
              (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
              unknown ast e
            with
@@ -198,7 +205,8 @@ let check_sat ?(verbose = false) ast : rez =
              report_result2 (`Unknown "nfa");
              rez)
         | Error s ->
-          report_result2 (`Unknown (Format.sprintf "nfa; %s" s));
+          if !used_under2 |> not
+          then report_result2 (`Unknown (Format.sprintf "nfa; %s" s));
           rez
       end
     in

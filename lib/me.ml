@@ -421,7 +421,12 @@ and helper : 'a. 'a Ast.Eia.term -> _ =
     in
     return (regex lhs rhs)
   | Iofs v -> return (Symantics.stoi v)
-  | Len v -> failwith "Lengths should have been rewritten into chrob.len"
+  | Len v as el ->
+    failwith
+      (Format.asprintf
+         "Lengths should have been rewritten into chrob.len, found %a"
+         Ast.Eia.pp_term
+         el)
   | Len2 v -> return (Symantics.len2 v)
   | other ->
     (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
@@ -557,7 +562,7 @@ let ir_of_ast env ast =
         eia
     | Pred s -> failf "Unexpected %s" s
   in
-  let ast =
+  (*let ast =
     Env.fold
       ~init:[ ast ]
       ~f:(fun ~key ~data acc ->
@@ -569,7 +574,8 @@ let ir_of_ast env ast =
         | _ -> acc)
       env
   in
-  let ast = Ast.land_ ast in
+  let ast = Ast.land_ ast in*)
+  let ast = SimplII.rewrite_len ast in
   let* ir = ast |> ir_of_ast in
   ir |> return
 ;;

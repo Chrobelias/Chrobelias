@@ -157,6 +157,21 @@ let extend_int_exn e vname data =
     { e with env = SM.add_exn e.env ~key:vname ~data }
 ;;
 
+let set_int_exn e vname data =
+  match SM.find e.env vname with
+  | Some old_data ->
+    Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 old_data;
+    Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
+    { e with env = SM.add_exn (SM.remove vname e.env) ~key:vname ~data }
+  | None ->
+    let data = walk e data in
+    if occurs_var e vname data then raise Occurs;
+    (*match data with
+    | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
+    | _ -> *)
+    { e with env = SM.add_exn e.env ~key:vname ~data }
+;;
+
 let extend_string_exn e vname data =
   if SM.mem e.env vname
   then (
