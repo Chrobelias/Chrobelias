@@ -9,6 +9,7 @@ type opponent =
 type config =
   { mutable outdir : string
   ; mutable path : string
+  ; mutable stdin : bool
   ; mutable timeout : int
   ; mutable dot_dot_count : int
     (** This is needed to insert right number of ../ to access benchmarks.
@@ -21,6 +22,7 @@ type config =
 let config =
   { outdir = "."
   ; path = "."
+  ; stdin = false
   ; timeout = 2
   ; dot_dot_count = 5
   ; suffix = ".smt2"
@@ -47,6 +49,7 @@ let () =
             | "no" -> config.opponent <- Without
             | _ -> failwith "bad argument")
       , " " )
+    ; "-", Arg.Unit (fun () -> config.stdin <- true), " "
     ]
     (fun s -> config.path <- s)
     "help"
@@ -131,33 +134,45 @@ let find_files path =
     files *)
 
 let get_extra_flags =
-  let data = [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -flat 0 -amin 1 -amax 1" ] in
-  let conflicts_simpl_alpah =
+  let data =
+    [ "java_Duplicate.c.t2.smt2_32.smt2", "-bound 0 -flat 0 -amin 1 -amax 1"
+    ; "EXP-solver/Benchmark/HashFunction/", "-huge 100"
+    ]
+  in
+  let _conflicts_simpl_alpah =
     [ "Norn/HammingDistance/norn-benchmark-5"
     ; "Norn/ab/norn-benchmark-69"
     ; "Norn/ChunkSplit/norn-benchmark-7"
     ; "stringfuzz" (* ; "EXP-solver/Benchmark/HashFunction/all" *)
     ]
   in
-  let list_contains (cond : _ -> bool) xs =
+  (* let list_contains (cond : _ -> bool) xs =
     try
       let _ = List.find cond xs in
       true
     with
     | Not_found -> false
-  in
+  in *)
   fun s ->
-    let file = Filename.basename s in
     (* Printf.printf "file = %s\n%!" file; *)
-      try List.assoc file data with
+    let _file = Filename.basename s in
+    try
+      let _, opts =
+        List.find (fun (substring, _) -> Base.String.is_substring ~substring s) data
+      in
+      opts
+    with
+    | Not_found -> ""
+;;
+
+(* try List.assoc file data with
       | Not_found ->
         if
           list_contains
             (fun substring -> Base.String.is_substring ~substring s)
             conflicts_simpl_alpah
         then " --no-simpl-alpha "
-        else ""
-;;
+        else "" *)
 
 let dune_str = "dune build --no-print-directory --profile=benchmark"
 
@@ -195,8 +210,6 @@ let t_file ~file smt2_file =
        Format.pp_print_flush tfmt ())
 ;;
 
-let files = find_files config.path
-
 let make_smt2_file file =
   Printf.sprintf
     "%s/%s/%s%s"
@@ -204,6 +217,18 @@ let make_smt2_file file =
     config.path
     file
     config.suffix
+;;
+
+let files =
+  if config.stdin
+  then
+    List.filter_map
+      (function
+        | "" -> None
+        | s -> Some (Base.String.chop_suffix_if_exists s ~suffix:".smt2"))
+      (In_channel.input_lines stdin)
+    |> List.sort String.compare
+  else find_files config.path
 ;;
 
 let prepare_default () =

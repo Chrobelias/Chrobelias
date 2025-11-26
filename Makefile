@@ -118,18 +118,18 @@ gen-full_str_int: genleetcode_int-addStrings genleetcode_int-add_binary
 
 gen-EXP:
 	mkdir -p benchmarks/tests/EXP-solver/hash-all/head
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/head
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 5 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/head
 	mkdir -p benchmarks/tests/EXP-solver/hash-all/head-tail
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/head-tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 5 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/head-tail
 	mkdir -p benchmarks/tests/EXP-solver/hash-all/tail
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 5 benchmarks/EXP-solver/Benchmark/HashFunction/all/head -o benchmarks/tests/EXP-solver/hash-all/tail
 	#
 	mkdir -p benchmarks/tests/EXP-solver/flatten/head
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -o benchmarks/tests/EXP-solver/flatten/head
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 5 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -o benchmarks/tests/EXP-solver/flatten/head
 	mkdir -p benchmarks/tests/EXP-solver/flatten/head-tail
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -o benchmarks/tests/EXP-solver/flatten/head-tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 5 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head-tail -o benchmarks/tests/EXP-solver/flatten/head-tail
 	mkdir -p benchmarks/tests/EXP-solver/flatten/tail
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -o benchmarks/tests/EXP-solver/flatten/tail
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 5 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/tail -o benchmarks/tests/EXP-solver/flatten/tail
 	dune b @benchmarks/tests/EXP-solver/fmt --au 2> /dev/null || exit 0
 
 promote_benchmarks: promote_benchmarks_string
@@ -163,6 +163,7 @@ make_bench_scripts:
 	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head -b bench_EXP-flatten-head.sh
 	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/tail -b bench_EXP-flatten-tail.sh
 	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head-tail -b bench_EXP-flatten-headtail.sh
+	find ./benchmarks/QF_SLIA/2019-full_str_int/ -iname '*.smt2' | dune exec benchmarks/gen.exe -- -b bench-full_str_int.sh -t 10 -
 
 
 
