@@ -481,7 +481,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let ans = Ir.land_ (Ir.leq poly c :: sups) in
       (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
-    | InRe (str, re) ->
+    | InRe (str, Ast.S, re) ->
       let* str, sup = of_str_atom str in
       let atoms =
         List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
@@ -491,6 +491,18 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
         match atoms with
         | [] -> ir :: sup |> Ir.land_ |> return
         | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+      end
+    | InRe (eia, Ast.I, re) ->
+      let* lhs = helper eia in
+      let lhs, sups = Symantics.prjs lhs in
+      let atoms =
+        List.map collect_free_ir sups |> List.fold_left Set.union Set.empty |> Set.to_list
+      in
+      let ir = Ir.sreg lhs re in
+      begin
+        match atoms with
+        | [] -> ir :: sups |> Ir.land_ |> return
+        | atoms -> Ir.exists atoms (ir :: sups |> Ir.land_) |> return
       end
     | PrefixOf (a, b) ->
       let* a, sup_a = of_str_atom a in

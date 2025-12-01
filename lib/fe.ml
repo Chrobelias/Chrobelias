@@ -254,7 +254,7 @@ and _to_ir tys orig_expr =
     let str = to_string str in
     let re = to_regex re in
     let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
-    Ast.Eia (Ast.Eia.inre str re)
+    Ast.Eia (Ast.Eia.inre str Ast.S re)
   | Expr.App ({ name = Symbol.Simple "str.prefixof"; _ }, [ str; str' ])
   | Expr.Binop (_, Ty.Binop.String_prefix, str, str') ->
     let str = to_string str in
