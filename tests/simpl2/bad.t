@@ -54,7 +54,7 @@ $ export OCAMLRUNPARAM='b=0'
   > EOF
 $ export CHRO_DEBUG=1
   $ Chro -bound 2 --pre-simpl --dsimpl UnderDoesntHelp1.smt2 | sed 's/[[:space:]]*$//'
-  unknown (nfa; not implemented: Lib__Me.Symantics.mul. l = Symbol (y,_), r = Symbol (z,_))
+  unsat (non-linear)
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
   > (set-logic ALL)
