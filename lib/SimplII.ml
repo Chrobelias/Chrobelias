@@ -66,7 +66,8 @@ let has_unsupported_nonlinearity =
        | xs ->
          let rec loop acc = function
            | [ _ ] | [] -> acc
-           | Atom (Var _) :: Atom (Var _) :: _ -> (*Ast.Eia.mul [ l; r ] ::*) acc
+           | Atom (Var x) :: r -> Atom (Var x) :: acc
+           (* | Atom (Var _) :: Atom (Var _) :: _ -> (*Ast.Eia.mul [ l; r ] ::*) acc *)
            | h :: tl -> loop acc tl
          in
          loop acc xs)
@@ -272,6 +273,10 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       S.pow2var x
     | Pow (Atom (Ast.Const base), p) when base = Z.minus_one ->
       S.pow_minus_one (helperT p)
+    | Pow (base, Atom (Ast.Const p)) when p = Z.zero -> S.const 1
+    | Pow (base, Atom (Ast.Const p)) when p = Z.one -> helperT base
+    | Pow (base, Atom (Ast.Const p)) when p < Z.of_int 10 ->
+      S.mul [ helperT base; helperT (Pow (base, Atom (Ast.Const Z.(p - Z.one)))) ]
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
@@ -1449,7 +1454,7 @@ let check_nia ast =
     Smtml.Z3_mappings.Solver.make
       ~logic:Smtml.Logic.QF_NIA
       ()
-      ~params:Smtml.Params.(default () $ (Timeout, 20000))
+      ~params:Smtml.Params.(default () $ (Timeout, 200000))
   in
   Smtml.Z3_mappings.Solver.reset solver;
   match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
