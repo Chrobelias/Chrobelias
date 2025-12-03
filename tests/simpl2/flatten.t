@@ -8,8 +8,8 @@
   > EOF
   $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
-             (= (exp x 2) 32))
-  iter(2)= (= (exp x 2) 32)
+             (= (* x x) 32))
+  iter(2)= (= (* x x) 32)
   Interesting:
   
   Expecting 1 choices ...
@@ -18,10 +18,10 @@
   
   Non linear arithmetic between
   
-  0) (exp x 2)
+  0) x
   
   
   
-  Into Z3 goes: (bool.eq (int.pow x 2) 32)
+  Into Z3 goes: (bool.eq (int.mul x x) 32)
   
   unsat (non-linear)
