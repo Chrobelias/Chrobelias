@@ -48,5 +48,12 @@
              (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb2))))
              (= eeb7 (str.to.int y))
              (= eeb8 (str.to.int x)))
+  
+  Non linear arithmetic between
+  
+  0) eeb7
+  
+  
+  
   unknown (nfa; unable to multiply var by var: (pow2(eeb2) )  with (eeb7 )
   )

@@ -165,6 +165,18 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   Expecting 2 choices ...
   
   Can't decide in lib/Underapprox.ml
+  
+  Non linear arithmetic between
+  
+  0) i3
+  
+  
+  
+  Into Z3 goes: (bool.eq
+                 (int.add (int.mul (int.mul -3 i3) (int.pow 2 it134))
+                  (int.mul 2 (int.pow 2 it134))) 0)
+  
+  unsat (non-linear)
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun i3 () Int)
@@ -179,13 +191,14 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (and
-               (= (+ (+ it376 (* (* (- 1) 3) it361)) (* 2 (exp it362 3))) 0)
+               (= (+ (+ it376 (* (* (- 1) 3) it361))
+                  (* 2 (* it362 (* it362 it362)))) 0)
                (= (* 0 it360) 0)))
-  iter(2)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
+  iter(2)= (= (+ it376 (* (- 3) it361) (* 2 it362 it362 it362)) 0)
   Something ready to substitute:  it376 -> (+ (* (* (- 3) it361) (- 1))
-                                           (* (* 2 (exp it362 3)) (- 1)));
-  iter(3)= (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
-  iter(4)= (= (+ (* (- 3) it361) (* 2 (exp it362 3)) (* (* (- 3) it361) (- 1))
-              (* (* 2 (exp it362 3)) (- 1))) 0)
+                                           (* (* 2 it362 it362 it362) (- 1)));
+  iter(3)= (= (+ it376 (* (- 3) it361) (* 2 it362 it362 it362)) 0)
+  iter(4)= (= (+ (* (- 3) it361) (* 2 it362 it362 it362)
+              (* (* (- 3) it361) (- 1)) (* (* 2 it362 it362 it362) (- 1))) 0)
   iter(5)= True
   sat (presimpl)
