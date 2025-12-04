@@ -297,8 +297,8 @@ let prepare_script ?(opp = Swine) ~script () =
     printfn "APPROX='-bound 10 -over-early'";
     printfn "FLAT='-flat 0 -amin 0 -amax 100000'";
     printfn
-      "if timeout $TIMEOUT /usr/bin/time -f 'THETIME %%U' dune exec Chro \
-       --profile=release -- $APPROX $FLAT %s --q %s > .log 2> .errlog"
+      "if timeout $TIMEOUT time -f 'THETIME %%U' dune exec Chro --profile=release -- \
+       $APPROX $FLAT %s --q %s > .log 2> .errlog"
       smt2file
       extra_flags;
     printfn "then";
@@ -307,12 +307,10 @@ let prepare_script ?(opp = Swine) ~script () =
     printfn "  if grep -q '^unsat' .log; then";
     printfn "    echo \" \\%sUNSAT{$TIME}{%s}\"" "CHRO" pretty_file;
     printfn "    grep '^unsat' -A 1 .log || true";
-    printfn "  fi";
-    printfn "  if grep -q '^sat' .log; then";
+    printfn "  elif grep -q '^sat' .log; then";
     printfn "    echo \"\\%sSAT{$TIME}{%s}\"" "CHRO" pretty_file;
     printfn "    grep '^sat' -A 1 .log || true";
-    printfn "  fi";
-    printfn "  if grep -q '^unknown' .log; then";
+    printfn "  elif grep -q '^unknown' .log; then";
     printfn "    echo \"\\%sUNK{$TIME}{%s}\"" "CHRO" pretty_file;
     printfn "  fi";
     printfn "else";
@@ -324,8 +322,8 @@ let prepare_script ?(opp = Swine) ~script () =
       printfn "echo '\nExecuting Swine on %s'" smt2file;
       printfn "echo '' > .log";
       printfn
-        "if timeout $TIMEOUT /usr/bin/time -f 'THETIME %%U' dune exec bin/swine \
-         --profile=release -- %s > .log 2> .errlog"
+        "if timeout $TIMEOUT time -f 'THETIME %%U' dune exec bin/swine --profile=release \
+         -- %s > .log 2> .errlog"
         smt2file;
       printfn "then";
       printfn "  #pr -T -o 11 .log";
