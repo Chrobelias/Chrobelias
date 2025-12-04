@@ -139,10 +139,10 @@ promote_benchmarks: promote_benchmarks_string
 	$(MAKE) fast -C benchmarks/tests/QF_LIA/PURRS
 
 gen-chrobelias:
-	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln/ -b bench-chrobelias-str-ln.sh
-	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/ -b bench-chrobelias-str-reln.sh
-	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-huge/ -b bench-chrobelias-str-reln-huge.sh
-	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-very-huge/ -b bench-chrobelias-str-reln-very-huge.sh
+	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln/ -b bench-chrobelias-str-ln.sh
+	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/ -b bench-chrobelias-str-reln.sh
+	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-huge/ -b bench-chrobelias-str-reln-huge.sh
+	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-very-huge/ -b bench-chrobelias-str-reln-very-huge.sh
 
 make_bench_scripts:
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin -b bench_LIA_Lin.sh
