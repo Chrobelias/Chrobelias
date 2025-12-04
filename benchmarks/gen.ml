@@ -5,6 +5,7 @@ type mode =
 type opponent =
   | Without [@ocaml.warnerror "-37"]
   | Swine
+  | Z3
 
 type config =
   { mutable outdir : string
@@ -44,6 +45,7 @@ let () =
       , Arg.String
           (function
             | "swine" -> config.opponent <- Swine
+            | "z3" -> config.opponent <- Z3
             | "no" -> config.opponent <- Without
             | _ -> failwith "bad argument")
       , " " )
@@ -340,6 +342,26 @@ let prepare_script ?(opp = Swine) ~script () =
       printfn "  fi";
       printfn "else";
       printfn "    echo \"\\%sTIMEOUT{$TIMEOUT}{%s}\"" "SWINE" pretty_file;
+      printfn "fi"
+    | Z3 ->
+      printfn "echo '\nExecuting Z3 on %s'" smt2file;
+      printfn "echo '' > .log";
+      printfn "if timeout $TIMEOUT time -f 'THETIME %%U' z3 %s > .log 2> .errlog" smt2file;
+      printfn "then";
+      printfn "  #pr -T -o 11 .log";
+      printfn "  TIME=$(grep THETIME .errlog | awk '{print $2}')";
+      printfn "  echo time is \"$TIME\"";
+      printfn "  if grep -q '^unsat' .log; then";
+      printfn "    echo \"\\%sUNSAT{$TIME}{%s}\"" "Z3" pretty_file;
+      printfn "  elif grep -q '^sat' .log; then";
+      printfn "    echo \"\\%sSAT{$TIME}{%s}\"" "Z3" pretty_file;
+      printfn "  elif grep -q '^unknown' .log; then";
+      printfn "    echo \"\\%sUNK{$TIME}{%s}\"" "Z3" pretty_file;
+      printfn "  else";
+      printfn "    echo 'BAD'";
+      printfn "  fi";
+      printfn "else";
+      printfn "    echo \"\\%sTIMEOUT{$TIMEOUT}{%s}\"" "Z3" pretty_file;
       printfn "fi"
   in
   Out_channel.with_open_text script (fun ch ->
