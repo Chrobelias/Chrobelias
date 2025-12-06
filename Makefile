@@ -141,14 +141,14 @@ promote_benchmarks: promote_benchmarks_string
 gen-chrobelias:
 	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln/ -b bench-chrobelias-str-ln.sh
 	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/ -b bench-chrobelias-str-reln.sh
-	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-huge/ -b bench-chrobelias-str-reln-huge.sh
-	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-very-huge/ -b bench-chrobelias-str-reln-very-huge.sh
+	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp cvc5 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-huge/ -b bench-chrobelias-str-reln-huge.sh
+	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp cvc5 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-very-huge/ -b bench-chrobelias-str-reln-very-huge.sh
 
 make_bench_scripts:
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin -b bench_LIA_Lin.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_LIA/LoAT/TPDB_ITS_Termination -b bench_Termination.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity -b bench_Complexity.sh
-	dune exec benchmarks/gen.exe -- -ddc 4 -t 60 benchmarks/QF_LIA/PURRS -b bench_PURRS.sh
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin -b bench_LIA_Lin.sh
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/QF_LIA/LoAT/TPDB_ITS_Termination -b bench_Termination.sh
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity -b bench_Complexity.sh
+	dune exec benchmarks/gen.exe -- -ddc 4 -t 60 -opp swine benchmarks/QF_LIA/PURRS -b bench_PURRS.sh
 	# string
 	# dune exec benchmarks/gen.exe -- -ddc 4 -t 60 benchmarks/QF_SLIA/20230329-denghang -b bench_s_denghang.sh
 	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/20230329-woorpje-lu/track05 -b bench_s_woorpje-05.sh
