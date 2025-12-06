@@ -365,9 +365,9 @@ let rec of_str_atom = function
     let re = str_to_re s in
     let u = Ir.internal () in
     (u, [ Ir.sreg u re ]) |> return
-  | Concat _ -> failf "concatenation makes the formula undecideable"
-  | At _ -> failf "indexation likely makes the formula undecideable"
-  | Substr _ -> failf "substrings makes the formula undecideable"
+  | Concat _ -> failf "unsupported concatenation"
+  | At _ -> failf "unsupported indexation"
+  | Substr _ -> failf "unsupported substrings"
   | Sofi v ->
     let v, sup = helper v |> Result.get_ok |> Symantics.prjs in
     let u = Ir.internal () in
