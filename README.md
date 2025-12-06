@@ -82,5 +82,5 @@ make genTPDB_ITS_Complexity
 make -C  benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity
 
 # Run a single benchmark. The output is located in `benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0.t`
-dune b @benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0 --profile=benchmark` 
+dune b @benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_0 --profile=benchmark 
 ```

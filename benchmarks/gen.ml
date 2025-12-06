@@ -6,6 +6,7 @@ type opponent =
   | Without [@ocaml.warnerror "-37"]
   | Swine
   | Z3
+  | Cvc5
 
 type config =
   { mutable outdir : string
@@ -26,7 +27,7 @@ let config =
   ; dot_dot_count = 5
   ; suffix = ".smt2"
   ; mode = Default
-  ; opponent = Swine
+  ; opponent = Without
   }
 ;;
 
@@ -46,6 +47,7 @@ let () =
           (function
             | "swine" -> config.opponent <- Swine
             | "z3" -> config.opponent <- Z3
+            | "cvc5" -> config.opponent <- Cvc5
             | "no" -> config.opponent <- Without
             | _ -> failwith "bad argument")
       , " " )
@@ -279,7 +281,40 @@ let prepare_script ?(opp = Swine) ~script () =
       smt2file
       |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/QF_LIA/LoAT/"
       |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/QF_LIA/"
-      |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/QF_LIA/LoAT/"
+      |> Base.String.chop_prefix_if_exists
+           ~prefix:"benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln//"
+      |> Base.String.chop_prefix_if_exists
+           ~prefix:"benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln//"
+      |> Base.String.chop_prefix_if_exists
+           ~prefix:"benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-huge//"
+      |> Base.String.chop_prefix_if_exists
+           ~prefix:
+             "benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-very-huge//"
+    in
+    let print_opp path_opp name_opp =
+      let name_opp_upper = String.uppercase_ascii name_opp in
+      printfn "echo '\nExecuting %s on %s'" name_opp smt2file;
+      printfn "echo '' > .log";
+      printfn
+        "if timeout $TIMEOUT time -f 'THETIME %%U' %s %s > .log 2> .errlog"
+        path_opp
+        smt2file;
+      printfn "then";
+      printfn "  #pr -T -o 11 .log";
+      printfn "  TIME=$(grep THETIME .errlog | awk '{print $2}')";
+      printfn "  echo time is \"$TIME\"";
+      printfn "  if grep -q '^unsat' .log; then";
+      printfn "    echo \"\\%sUNSAT{$TIME}{%s}\"" name_opp_upper pretty_file;
+      printfn "  elif grep -q '^sat' .log; then";
+      printfn "    echo \"\\%sSAT{$TIME}{%s}\"" name_opp_upper pretty_file;
+      printfn "  elif grep -q '^unknown' .log; then";
+      printfn "    echo \"\\%sUNK{$TIME}{%s}\"" name_opp_upper pretty_file;
+      printfn "  else";
+      printfn "    echo 'BAD'";
+      printfn "  fi";
+      printfn "else";
+      printfn "    echo \"\\%sTIMEOUT{$TIMEOUT}{%s}\"" name_opp_upper pretty_file;
+      printfn "fi"
     in
     let extra_flags =
       String.concat
@@ -320,49 +355,9 @@ let prepare_script ?(opp = Swine) ~script () =
     printfn "fi";
     match opp with
     | Without -> ()
-    | Swine ->
-      printfn "echo '\nExecuting Swine on %s'" smt2file;
-      printfn "echo '' > .log";
-      printfn
-        "if timeout $TIMEOUT time -f 'THETIME %%U' dune exec bin/swine --profile=release \
-         -- %s > .log 2> .errlog"
-        smt2file;
-      printfn "then";
-      printfn "  #pr -T -o 11 .log";
-      printfn "  TIME=$(grep THETIME .errlog | awk '{print $2}')";
-      printfn "  echo time is \"$TIME\"";
-      printfn "  if grep -q '^unsat' .log; then";
-      printfn "    echo \"\\%sUNSAT{$TIME}{%s}\"" "SWINE" pretty_file;
-      printfn "  elif grep -q '^sat' .log; then";
-      printfn "    echo \"\\%sSAT{$TIME}{%s}\"" "SWINE" pretty_file;
-      printfn "  elif grep -q '^unknown' .log; then";
-      printfn "    echo \"\\%sUNK{$TIME}{%s}\"" "SWINE" pretty_file;
-      printfn "  else";
-      printfn "    echo 'BAD'";
-      printfn "  fi";
-      printfn "else";
-      printfn "    echo \"\\%sTIMEOUT{$TIMEOUT}{%s}\"" "SWINE" pretty_file;
-      printfn "fi"
-    | Z3 ->
-      printfn "echo '\nExecuting Z3 on %s'" smt2file;
-      printfn "echo '' > .log";
-      printfn "if timeout $TIMEOUT time -f 'THETIME %%U' z3 %s > .log 2> .errlog" smt2file;
-      printfn "then";
-      printfn "  #pr -T -o 11 .log";
-      printfn "  TIME=$(grep THETIME .errlog | awk '{print $2}')";
-      printfn "  echo time is \"$TIME\"";
-      printfn "  if grep -q '^unsat' .log; then";
-      printfn "    echo \"\\%sUNSAT{$TIME}{%s}\"" "Z3" pretty_file;
-      printfn "  elif grep -q '^sat' .log; then";
-      printfn "    echo \"\\%sSAT{$TIME}{%s}\"" "Z3" pretty_file;
-      printfn "  elif grep -q '^unknown' .log; then";
-      printfn "    echo \"\\%sUNK{$TIME}{%s}\"" "Z3" pretty_file;
-      printfn "  else";
-      printfn "    echo 'BAD'";
-      printfn "  fi";
-      printfn "else";
-      printfn "    echo \"\\%sTIMEOUT{$TIMEOUT}{%s}\"" "Z3" pretty_file;
-      printfn "fi"
+    | Swine -> print_opp "dune exec bin/swine --profile=release  --" "Swine"
+    | Z3 -> print_opp "z3" "Z3"
+    | Cvc5 -> print_opp "cvc5" "cvc5"
   in
   Out_channel.with_open_text script (fun ch ->
     let ppf = Format.formatter_of_out_channel ch in
