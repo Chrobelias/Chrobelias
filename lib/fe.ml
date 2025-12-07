@@ -350,5 +350,5 @@ and _to_ir tys orig_expr =
     end
     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
   with
-  | UnsupportedException m -> Ast.true_
+  | UnsupportedException m -> Ast.Unsupp m
 ;;

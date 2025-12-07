@@ -91,6 +91,11 @@ let check_sat ?(verbose = false) ast : rez =
   begin
     let rez =
       unknown ast Lib.Env.empty
+      (* must be string basic simplify *)
+      <+> (fun ast e ->
+      if not Lib.Config.config.pre_simpl
+      then unknown ast e
+      else lift ast (Lib.SimplII.run_basic_simplify ast))
       <+> (fun ast e ->
       if Lib.Config.config.logic = `Str
       then (
