@@ -303,11 +303,12 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
           vs
       in*)
       S.exists vs (helper ph)
-  (* | Str (Ast.Str.Eq (term, term')) ->
+    (* | Str (Ast.Str.Eq (term, term')) ->
       let l = helperT term in
       let r = helperT term' in
       (* Format.printf "Apply Str.Eq: l = %a, r = %a\n%!" S.pp_str l S.pp_str r; *)
       S.str_equal l r *)
+    | Unsupp _ -> S.true_
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
@@ -2024,14 +2025,14 @@ let arithmetize ast =
   rewrite_concats var_info ast
   |> Ast.map arithmetize
   |> fun ast ->
-  Format.printf "Arithmetized %a\n" Ast.pp ast;
+  Debug.printf "Arithmetized %a\n" Ast.pp ast;
   ast
 ;;
 
 let test_distr xs =
   let (module Main_symantics) = make_main_symantics Env.empty in
   let ans = distribute xs |> List.map Main_symantics.mul |> Main_symantics.add in
-  Format.printf "@[%a@]\n%!" Ast.pp_term_smtlib2 ans
+  Debug.printf "@[%a@]\n%!" Ast.pp_term_smtlib2 ans
 ;;
 
 let%expect_test _ =

@@ -74,6 +74,7 @@ let apply_symnatics (module S : Smtml_symantics) =
           vs
       in
       S.exists vs (helper ph)
+    | Unsupp _ -> S.true_
   and helperT = function
     | Ast.Eia.Const n -> S.constz n
     | Atom (Ast.Var (s, _)) -> S.var s

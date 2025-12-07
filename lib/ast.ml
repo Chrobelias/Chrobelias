@@ -389,6 +389,7 @@ type t =
   | Lor of t list
   | Exists of any_atom list * t
   | Pred of string
+  | Unsupp of string
 [@@deriving variants, compare]
 
 let limpl a b = lor_ [ lnot a; b ]
@@ -420,6 +421,7 @@ let rec pp ppf = function
       pp
       b
   | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
+  | Unsupp s -> Format.fprintf ppf "%s" s
 ;;
 
 let pp_smtlib2 =
@@ -451,6 +453,7 @@ let pp_smtlib2 =
         pp
         b
     | Eia eia -> fprintf ppf "%a" Eia.pp eia
+    | Unsupp s -> fprintf ppf "%s" s
   in
   pp
 ;;
@@ -541,6 +544,7 @@ let rec fold f acc ast =
   | Lor asts -> f (List.fold_left (fold f) acc asts) ast
   | Exists (_, ast') -> f (fold f acc ast') ast
   | Pred _ -> f acc ast
+  | Unsupp _ -> failwith "unable to fold; unsupported constraint"
 ;;
 
 let forall f = fold (fun acc ast -> acc && f ast) true
@@ -554,6 +558,7 @@ let rec map f = function
   | Lor asts -> f (lor_ (List.map (map f) asts))
   | Exists (atoms, ast) -> f (exists atoms (map f ast))
   | Pred _ as ast -> f ast
+  | Unsupp _ -> failwith "unable to map; unsupported constraint"
 ;;
 
 let rec equal ast ast' =

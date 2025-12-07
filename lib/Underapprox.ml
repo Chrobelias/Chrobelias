@@ -148,6 +148,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
           vs
       in
       S.exists vs (helper ph)
+    | Unsupp _ -> S.true_
   and helperT = function
     | Ast.Eia.Const n -> S.constz n
     | Atom (Ast.Var (s, _)) -> S.var s
