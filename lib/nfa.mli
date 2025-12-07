@@ -86,6 +86,7 @@ module type Type = sig
   val to_nat : t -> u
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
+  val find_c_d' : t -> (int * int) Seq.t
 end
 
 module type NatType = sig

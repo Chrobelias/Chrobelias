@@ -390,7 +390,58 @@ type t =
   | Exists of any_atom list * t
   | Pred of string
   | Unsupp of string
-[@@deriving variants, compare]
+[@@deriving compare]
+
+let true_ = True
+
+let land_ = function
+  | [] -> true_
+  | [ ast ] -> ast
+  | asts ->
+    let asts =
+      List.map
+        (function
+          | Land asts' -> asts'
+          | ast -> [ ast ])
+        asts
+      |> List.concat
+    in
+    Land asts
+;;
+
+let lor_ = function
+  | [] -> true_
+  | [ ast ] -> ast
+  | asts ->
+    let asts =
+      List.map
+        (function
+          | Lor asts' -> asts'
+          | ast -> [ ast ])
+        asts
+      |> List.concat
+    in
+    Lor asts
+;;
+
+let eia eia = Eia eia
+let pred s = Pred s
+
+let rec lnot = function
+  | Lnot ast -> ast
+  | Land asts -> lor_ (List.map lnot asts)
+  | Lor asts -> land_ (List.map lnot asts)
+  | ast -> Lnot ast
+;;
+
+let rec exists = function
+  | [] -> Fun.id
+  | atoms -> begin
+    function
+    | Exists (atoms', ast) -> exists (atoms @ atoms') ast
+    | ast -> Exists (atoms, ast)
+  end
+;;
 
 let limpl a b = lor_ [ lnot a; b ]
 let any atoms ast = lnot (exists atoms (lnot ast))

@@ -120,6 +120,7 @@ module type SYM0 = sig
   (* All formulas  *)
   val pow2var : string -> term
   val exists : Ast.any_atom list -> ph -> ph
+  val unsupp : string -> ph
 end
 
 module type SYM = sig
@@ -239,6 +240,8 @@ module Id_symantics :
   let pow2var c =
     Ast.Eia.pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var c I))
   ;;
+
+  let unsupp s = Ast.Unsupp s
 end
 
 let apply_term_symantics
@@ -279,7 +282,7 @@ let apply_term_symantics
     | Concat (s1, s2) -> S.str_concat (helperS s1) (helperS s2)
     | Substr (s1, (Atom (Var (a, I)) as l), (Atom (Var (b, I)) as r)) ->
       S.str_substr (helperS s1) (helperT l) (helperT r)
-    | Substr (s1, _, _) -> failwith "unimplemented"
+    | Substr (s1, a, b) -> S.str_substr (helperS s1) (helperT a) (helperT b)
     | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
   in
   (fun x -> helperT x), fun y -> helperS y
@@ -308,7 +311,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       let r = helperT term' in
       (* Format.printf "Apply Str.Eq: l = %a, r = %a\n%!" S.pp_str l S.pp_str r; *)
       S.str_equal l r *)
-    | Unsupp _ -> S.true_
+    | Unsupp s -> S.unsupp s
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
@@ -928,6 +931,7 @@ module Who_in_exponents_ = struct
 
   let pow base e = { e with all = S.union base.all e.all; exp = S.union e.all base.exp }
   let prj = Fun.id
+  let unsupp _ = empty
 end
 
 module _ : SYM = Who_in_exponents_
@@ -1162,6 +1166,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let pp_str = Smtml.Expr.pp
     let const c = constz (Z.of_int c)
     let in_rei _ = failwith "not implemented"
+    let unsupp _ = failwith "not implemented"
   end
   in
   (module struct
@@ -1436,7 +1441,7 @@ let lower_mod ast =
   | acc -> Ast.land_ (ph :: acc)
 ;;
 
-let lower_strlen ast =
+let _lower_strlen ast =
   let env = ref Env.empty in
   let names : (string Ast.Eia.term, string) Base.Map.Poly.t ref =
     ref Base.Map.Poly.empty
@@ -1592,7 +1597,7 @@ let basic_simplify step (env : Env.t) ast =
 
 let run_basic_simplify ast =
   log "Before symantics: %a\n%!" Ast.pp ast;
-  let ast = lower_strlen ast in
+  (*let ast = lower_strlen ast in*)
   log "After symantics: %a\n%!" Ast.pp ast;
   let ast = lower_mod ast in
   (* let ast = SimplI.run_simplify ast in *)
@@ -1930,6 +1935,9 @@ let rewrite_concats { Info.all; _ } =
       extend len' (Ast.Eia.len (svar y'));
       extend len' len;
       extend u (Ast.Eia.add [ offset; len ]);
+      extend_leq y (Ast.Eia.Const Z.zero);
+      extend_leq z1 (Ast.Eia.Const Z.zero);
+      extend_leq z2 (Ast.Eia.Const Z.zero);
       extend
         term'
         (Ast.Eia.add

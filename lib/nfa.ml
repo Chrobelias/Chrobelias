@@ -676,6 +676,7 @@ module type Type = sig
   val to_nat : t -> u
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
+  val find_c_d' : t -> (int * int) Seq.t
 end
 
 module type NatType = sig
@@ -1185,6 +1186,10 @@ struct
       |> List.map (fun c -> c, 0)
     in
     r2 @ r1 |> Set.of_list |> Set.to_sequence |> Sequence.to_seq
+  ;;
+
+  let find_c_d' nfa =
+    find_c_d nfa (Set.to_list nfa.start |> List.map (fun a -> a, 0) |> Map.of_alist_exn)
   ;;
 
   let of_regex (r : Label.u list Regex.t) =

@@ -10,3 +10,4 @@
 
 (set-info :status unsat)
 (check-sat)
+(get-model)
