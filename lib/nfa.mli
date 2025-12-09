@@ -92,6 +92,8 @@ end
 module type NatType = sig
   include Type
 
+  val chrobak : t -> (int * int) Seq.t
+
   val get_chrobaks_sub_nfas
     :  t
     -> res:deg

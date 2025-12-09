@@ -657,7 +657,14 @@ struct
                |> NfaO.Lsb.minimize
            |> NfaO.msb_of_lsb
          *)
-       | Ir.SReg (atom, reg) -> Extra.eval_sreg vars atom reg |> fun nfa -> nfa
+       | Ir.SReg (atom, reg) ->
+         Extra.eval_sreg vars atom reg
+         |> fun nfa ->
+         Format.printf "(c, d)\n%!";
+         Seq.iter
+           (fun (c, d) -> Format.printf "(%d, %d)\n%!" c d)
+           (NfaNat.chrobak (nfa |> Nfa.to_nat));
+         nfa
        | Ir.Itos (atom, atom') ->
          NfaCollection.itos ~src:(Map.find_exn vars atom') ~dest:(Map.find_exn vars atom)
        | Ir.SLen (atom, atom') ->

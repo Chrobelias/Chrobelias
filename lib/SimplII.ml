@@ -1963,6 +1963,92 @@ let rewrite_concats { Info.all; _ } =
     Sym.prj (apply_symantics_unsugared (module Pre) ph |> apply_symantics (module Sym))
 ;;
 
+(*module Collect_alpha_ = struct
+  module S = Base.Set.Poly
+
+  type term = char S.t
+
+  let ( ++ ) = S.union
+  let empty = S.empty
+
+  type ph = term
+  type str = term
+  type repr = ph
+
+  let in_re _ re = Regex.symbols re |> List.map (fun a -> List.nth a 0) |> S.of_list
+  let in_rei _ re = empty
+  let str_len s = s
+  let sofi s = s
+  let iofs s = s
+  let str_const _ = empty
+
+  let str_var v =
+    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
+    empty
+  ;;
+
+  let str_from_eia_const s = empty
+  let str_concat = ( ++ )
+  let const _ = empty
+  let constz _ = empty
+  let var s = empty
+
+  let str_len2 v =
+    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
+    v
+  ;;
+  let pp_str = failwith "tbd"
+
+  let str_at _ _ = empty
+  let str_substr _ _ _ = empty
+  let str_prefixof = ( ++ )
+  let str_contains = ( ++ )
+  let str_suffixof = ( ++ )
+
+  let mul xs =
+    let aaa = List.fold_left ( ++ ) empty xs in
+    (* let u2 =
+      match xs with
+      | [ Eia.Atom (Var (v,_)); Eia.Pow (Eia.  (Const 2), Eia.Atom (Var _)) ] ->
+        S.singleton v
+      | _ -> S.empty
+    in
+    { aaa with under2 = S.union aaa.under2 u2 } *)
+    aaa
+  ;;
+
+  let add = List.fold_left ( ++ ) empty
+  let mod_ x _ = x
+  let bw _ = ( ++ )
+  let true_ = empty
+  let false_ = empty
+  let land_ = List.fold_left ( ++ ) empty
+  let lor_ = List.fold_left ( ++ ) empty
+  let not = Fun.id
+  let eqz = ( ++ )
+  let eq_str = ( ++ )
+  let leq = ( ++ )
+  let lt = ( ++ )
+
+  let exists _ info =
+    (* This place could be buggy when name clashes  *)
+    info
+  ;;
+
+  let pow2var v = v;;
+
+  let pow = ( ++ )
+  let prj = Fun.id
+  let unsupp _ = empty
+end*)
+
+(*module Collect_alpha :
+  SYM_SUGAR with type repr = Collect_alpha_.repr and type ph = Collect_alpha_.repr =
+struct
+  include Collect_alpha_
+  include FT_SIG.Sugar (Collect_alpha_)
+end*)
+
 let arithmetize ast =
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
@@ -2007,27 +2093,49 @@ let arithmetize ast =
         build lhs rhs, lhs_phs @ rhs_phs
       | Len2 _ -> failwith "unexpected len2"
   in
-  let land_ = function
-    | [] -> Ast.true_
-    | [ a ] -> a
-    | ls -> Ast.land_ ls
-  in
   let arithmetize = function
     | Ast.Eia (Leq (lhs, rhs)) ->
       let lhs', lhs_phs = arithmetize_term lhs in
       let rhs', rhs_phs = arithmetize_term rhs in
-      land_ (Ast.Eia.leq lhs' rhs' :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+      Ast.land_ (Ast.Eia.leq lhs' rhs' :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
     | Ast.Eia (Eq (lhs, rhs, I)) ->
       let lhs', lhs_phs = arithmetize_term lhs in
       let rhs', rhs_phs = arithmetize_term rhs in
-      land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+      Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
     | Ast.Eia (Eq (lhs, rhs, S)) ->
       let lhs', lhs_phs = arithmetize_term lhs in
       let rhs', rhs_phs = arithmetize_term rhs in
-      land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+      Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
     | Ast.Eia (InRe (s, Ast.S, re)) ->
       let s, phs = arithmetize_term s in
-      land_ (Ast.Eia (Ast.Eia.inre s Ast.I re) :: (phs |> List.map Ast.eia))
+      let s, phs =
+        match s with
+        | Ast.Eia.Atom (Var (s, I)) -> s, phs
+        | non_var ->
+          let v = gensym () in
+          v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
+      in
+      let strlens = String.concat "" [ "strlen"; s ] in
+      let module Nfa = Nfa.Lsb (Nfa.Str) in
+      let csds = re |> Nfa.of_regex |> Nfa.to_nat |> Nfa.chrobak in
+      let const = Ast.Eia.const in
+      let csds =
+        csds
+        |> Seq.map (fun (c, d) ->
+          let c, d = Z.of_int c, Z.of_int d in
+          let n = gensym () in
+          Ast.exists
+            [ Ast.Any_atom (Ast.var n Ast.I) ]
+            (Ast.eia
+               (Ast.Eia.eq
+                  (atomi strlens)
+                  (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
+                  Ast.I)))
+        |> List.of_seq
+      in
+      Ast.land_
+        ((*Ast.Eia (Ast.Eia.inre s Ast.I re) :: *) Ast.lor_ csds
+         :: (phs |> List.map Ast.eia))
     | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
     | Ast.Unsupp _ -> Ast.True
     | _ as non_eia -> non_eia
