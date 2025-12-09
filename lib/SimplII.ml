@@ -2107,6 +2107,7 @@ let arithmetize ast =
       let rhs', rhs_phs = arithmetize_term rhs in
       Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
     | Ast.Eia (InRe (s, Ast.S, re)) ->
+      let digits = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9' ] in
       let s, phs = arithmetize_term s in
       let s, phs =
         match s with
@@ -2116,8 +2117,13 @@ let arithmetize ast =
           v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
       in
       let strlens = String.concat "" [ "strlen"; s ] in
-      let module Nfa = Nfa.Lsb (Nfa.Str) in
-      let csds = re |> Nfa.of_regex |> Nfa.to_nat |> Nfa.chrobak in
+      let module NfaL = Nfa.Lsb (Nfa.Str) in
+      let csds =
+        NfaL.filter_map (re |> NfaL.of_regex) (fun (label, q') ->
+          if Nfa.Str.is_zero label then Option.none else Option.some (label, q'))
+        |> NfaL.to_nat
+        |> NfaL.chrobak
+      in
       let const = Ast.Eia.const in
       let csds =
         csds
@@ -2133,9 +2139,19 @@ let arithmetize ast =
                   Ast.I)))
         |> List.of_seq
       in
-      Ast.land_
-        ((*Ast.Eia (Ast.Eia.inre s Ast.I re) :: *) Ast.lor_ csds
-         :: (phs |> List.map Ast.eia))
+      if Regex.symbols re |> List.exists (fun c -> List.mem (List.nth c 0) digits |> not)
+      then
+        Ast.land_
+          (Ast.lor_ csds
+           :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens)))
+           :: (phs |> List.map Ast.eia))
+      else
+        Ast.land_
+          (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
+           :: Ast.lor_ csds
+           :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens)))
+           :: (phs |> List.map Ast.eia))
+      (*else failwith "tbd"*)
     | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
     | Ast.Unsupp _ -> Ast.True
     | _ as non_eia -> non_eia
@@ -2144,7 +2160,7 @@ let arithmetize ast =
   rewrite_concats var_info ast
   |> Ast.map arithmetize
   |> fun ast ->
-  Debug.printf "Arithmetized %a\n" Ast.pp ast;
+  Debug.printf "Arithmetized %a\n" Ast.pp_smtlib2 ast;
   ast
 ;;
 
