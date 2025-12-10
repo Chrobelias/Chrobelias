@@ -238,7 +238,7 @@ let ( -- ) i j =
   | EqVar of Ir.atom * Ir.atom
 *)
 
-let trivial ir =
+let antiprenex ir =
   (*let rec infer_bounds : Ir.t -> _ = function
                 | Ir.Land irs ->
                                 let bounds = List.map infer_bounds irs in
@@ -566,12 +566,12 @@ struct
   ;;
 
   let eval ir =
+    let ir = if Config.config.simpl_mono then Ir.simpl_monotonicty ir else ir in
+    let ir = if Config.config.simpl_alpha then Simpl_alpha.simplify ir else ir in
+    let ir = antiprenex ir in
     let alpha = collect_alpha ir |> Option.map Set.to_list in
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let vars = collect_vars ir in
-    let ir = trivial ir in
-    let ir = if Config.config.simpl_mono then Ir.simpl_monotonicty ir else ir in
-    let ir = if Config.config.simpl_alpha then Simpl_alpha.simplify ir else ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
     if Config.config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
     if Config.config.stop_after = `Simpl then exit 0;

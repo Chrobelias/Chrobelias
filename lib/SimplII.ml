@@ -1596,9 +1596,7 @@ let basic_simplify step (env : Env.t) ast =
 ;;
 
 let run_basic_simplify ast =
-  log "Before symantics: %a\n%!" Ast.pp ast;
   (*let ast = lower_strlen ast in*)
-  log "After symantics: %a\n%!" Ast.pp ast;
   let ast = lower_mod ast in
   (* let ast = SimplI.run_simplify ast in *)
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in

@@ -307,7 +307,7 @@ let () =
       Lib.Config.config.under_approx <- 0;
       Lib.Config.config.over_approx <- false;
       Lib.Config.config.simpl_alpha <- false;
-      Lib.Config.config.simpl_mono <- false;
+      Lib.Config.config.simpl_mono <- true;
       (* Lib.Config.config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
