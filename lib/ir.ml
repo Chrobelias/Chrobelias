@@ -408,6 +408,250 @@ let log ppf =
   | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
 ;;
 
+let as_var = function
+  | Pow2 v -> var v
+  | Var v -> var v
+;;
+
+let get_exp = function
+  | Pow2 v -> var v
+  | Var _ -> failwith "Expected exponent, found var"
+;;
+
+let is_exp = function
+  | Pow2 _ -> true
+  | Var _ -> false
+;;
+
+let collect_vars ir =
+  fold
+    (fun acc -> function
+       (*| Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
+       | Reg (_, atoms) -> Set.union acc (atoms |> List.map as_var |> Set.of_list)
+       | SReg (atom, _) -> Set.add acc atom
+       | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function
+              | Var _ as ir -> [ ir ]
+              | Pow2 a as ir -> [ ir; var a ])
+            |> Set.of_list)
+       | _ -> acc)
+    Set.empty
+    ir
+  |> Set.to_list
+  |> List.mapi (fun i var -> var, i)
+  |> Map.of_alist_exn
+;;
+
+let collect_atoms ir =
+  fold
+    (fun acc -> function
+       (*| Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
+       | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | SReg (atom, _) -> Set.add acc atom
+       | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function
+              | Var _ as ir -> [ ir ]
+              | Pow2 _ as ir -> [ ir ])
+            |> Set.of_list)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
+let collect_free_atoms ir =
+  fold
+    (fun acc -> function
+       | Exists (atoms, _) -> Set.diff acc (Set.of_list atoms)
+       | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | SReg (atom, _) -> Set.add acc atom
+       | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function
+              | Var _ as ir -> [ ir ]
+              | Pow2 _ as ir -> [ ir ])
+            |> Set.of_list)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
+let collect_free (ir : t) =
+  fold
+    (fun acc -> function
+       | Rel (_, term, _) ->
+         term |> Map.keys |> List.map as_var |> Set.of_list |> Set.union acc
+       | SReg (atom, _) -> Set.add acc atom
+       | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | Exists (xs, ir) -> Set.diff acc (Set.of_list xs)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
+let antiprenex =
+  fun ir ->
+  map
+    (function
+      | Exists ([], ir) -> ir
+      | Exists (atoms, Exists (atoms', ir)) ->
+        exists (Base.List.dedup_and_sort ~compare (atoms @ atoms')) ir
+      | Exists ((a :: b :: tl as atoms), Land irs) as orig_ir ->
+        let atoms =
+          (*List.filter
+              (fun atom ->
+                 not
+                   (for_some
+                      (function
+                        | SReg (atom', _)
+                        | SLen (atom', _)
+                        | Stoi (atom', _)
+                        | SEq (atom', _)
+                          when atom = atom' -> true
+                        | _ -> false)
+                      ir))*)
+          atoms
+        in
+        let atoms_set = Set.of_list atoms in
+        if atoms_set |> Set.is_empty
+        then orig_ir
+        else (
+          let irs_using_var =
+            List.mapi
+              begin
+                fun i ir ->
+                  let free_vars = collect_free ir in
+                  let used_vars = Set.inter atoms_set free_vars in
+                  i, used_vars
+              end
+              irs
+          in
+          let var_is_used_in =
+            List.map
+              begin
+                fun atom ->
+                  ( atom
+                  , List.filter_map
+                      (fun (i, s) -> if Set.mem s atom then Some i else None)
+                      irs_using_var )
+              end
+              atoms
+            |> Map.of_alist_exn
+          in
+          let atom_to_move, used_in =
+            var_is_used_in
+            |> Map.to_alist
+            |> List.sort (fun (_, used_in) (_, used_in') ->
+              List.length used_in - List.length used_in')
+            |> List.hd
+          in
+          if List.length irs = List.length used_in
+          then orig_ir
+          else (
+            let atoms = List.filter (fun atom -> atom <> atom_to_move) atoms in
+            let irs_used, irs_free =
+              irs
+              |> List.mapi (fun i ir -> i, ir)
+              |> List.partition (fun (i, ir) -> List.mem i used_in)
+            in
+            let irs_used = List.map snd irs_used in
+            let irs_free = List.map snd irs_free in
+            let ir = land_ (exists [ atom_to_move ] (land_ irs_used) :: irs_free) in
+            if atoms <> [] then exists atoms ir else ir))
+      | Exists (atoms, Lor irs) -> lor_ (List.map (exists atoms) irs)
+      | ir -> ir)
+    ir
+;;
+
+let simpl ir =
+  ir
+  |> map (function
+    | Rel (Eq, term, c) when Map.for_all ~f:(fun v -> Z.(equal v zero)) term && c = Z.zero
+      -> true_
+    | Rel (Leq, term, c) when Map.length term = 0 && Z.(c >= zero) -> true_
+    | Rel (Leq, term, c) when Map.length term = 0 && Z.(c < zero) -> false_
+    | ir -> ir)
+  |> map (function
+    | Lor [] -> false_
+    | Land [] -> true_
+    | Land [ ir ] -> ir
+    | Lor [ ir ] -> ir
+    | Land irs
+      when List.exists
+             (function
+               | Lnot True -> true
+               | _ -> false)
+             irs -> Lnot True
+    | Land irs ->
+      land_
+        (List.filter_map
+           (function
+             | True -> None
+             | ir' -> Some ir')
+           irs)
+    | Lor irs
+      when List.exists
+             (function
+               | True -> true
+               | _ -> false)
+             irs -> True
+    | Lor irs ->
+      lor_
+        (List.filter_map
+           (function
+             | Lnot True -> None
+             | ir' -> Some ir')
+           irs)
+    | ir -> ir)
+  |> map (function
+    | Land lst ->
+      Land
+        (lst
+         |> List.concat_map (function
+           | Land lst -> lst
+           | ir -> [ ir ]))
+    | Lor lst ->
+      Lor
+        (lst
+         |> List.concat_map (function
+           | Lor lst -> lst
+           | ir -> [ ir ]))
+    | ir -> ir)
+;;
+
 (** Habermehl's 2024 monotonicity simplification  *)
 let simpl_monotonicty ir =
   let is_bounded qvar ir =
