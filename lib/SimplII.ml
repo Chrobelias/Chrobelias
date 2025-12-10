@@ -2128,13 +2128,11 @@ let arithmetize ast =
         |> Seq.map (fun (c, d) ->
           let c, d = Z.of_int c, Z.of_int d in
           let n = gensym () in
-          Ast.exists
-            [ Ast.Any_atom (Ast.var n Ast.I) ]
-            (Ast.eia
-               (Ast.Eia.eq
-                  (atomi strlens)
-                  (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
-                  Ast.I)))
+          Ast.eia
+            (Ast.Eia.eq
+               (atomi strlens)
+               (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
+               Ast.I))
         |> List.of_seq
       in
       if Regex.symbols re |> List.exists (fun c -> List.mem (List.nth c 0) digits |> not)
