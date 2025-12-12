@@ -4,6 +4,8 @@
 
 let log = Utils.log
 
+module NfaS = Nfa.Lsb (Nfa.Str)
+
 (* module Term_map = Map.Make (struct
     type t =
       [ `Eia of Ast.Eia.term
@@ -132,6 +134,7 @@ module type SYM = sig
   val pp_str : Format.formatter -> term -> unit
   val const : int -> term
   val in_rei : term -> char list Regex.t -> ph
+  val in_re_raw : str -> NfaS.t -> ph
 end
 
 module type SYM_SUGAR = sig
@@ -193,6 +196,7 @@ module Id_symantics :
 
     let in_re l regex = Ast.Eia (Ast.Eia.InRe (l, Ast.S, regex))
     let in_rei l regex = Ast.Eia (Ast.Eia.InRe (l, Ast.I, regex))
+    let in_re_raw l regex = Ast.Eia (Ast.Eia.InReRaw (l, regex))
     let str_len s = len s
     let str_len2 s1 = len2 s1
     let iofs x = Ast.Eia.Iofs x
@@ -322,6 +326,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | SuffixOf (term, term') -> S.str_suffixof (helperS term) (helperS term')
     | InRe (term, Ast.S, regex) -> S.in_re (helperS term) regex
     | InRe (term, Ast.I, regex) -> S.in_rei (helperT term) regex
+    | InReRaw (term, regex) -> S.in_re_raw (helperS term) regex
   in
   helper
 ;;
@@ -867,6 +872,7 @@ module Who_in_exponents_ = struct
 
   let in_re _ _ = empty
   let in_rei _ _ = empty
+  let in_re_raw _ _ = empty
   let str_len s = s
   let sofi s = s
   let iofs s = s
@@ -918,11 +924,7 @@ module Who_in_exponents_ = struct
   let eq_str = ( ++ )
   let leq = ( ++ )
   let lt = ( ++ )
-
-  let exists _ info =
-    (* This place could be buggy when name clashes  *)
-    info
-  ;;
+  let exists _ info = (* This place could be buggy when name clashes  *) info
 
   let pow2var v =
     let all = [ v ] in
@@ -1166,6 +1168,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let pp_str = Smtml.Expr.pp
     let const c = constz (Z.of_int c)
     let in_rei _ = failwith "not implemented"
+    let in_re_raw _ = failwith "not implemented"
     let unsupp _ = failwith "not implemented"
   end
   in
@@ -1578,7 +1581,16 @@ let basic_simplify step (env : Env.t) ast =
     let env2, ast2 = eq_propagation var_info env ast2 in
     let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
     let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
-    match Env.length env2 > Env.length env, Stdlib.(ast2 = ast) with
+    let safe_eq ast ast2 =
+      match ast, ast2 with
+      | Ast.Eia (Ast.Eia.InReRaw (atom, lhs)), Ast.Eia (Ast.Eia.InReRaw (atom', rhs)) ->
+        NfaS.equal_start_and_final lhs rhs && atom = atom'
+      | smth ->
+        (match Stdlib.(ast = ast2) with
+         | exception _ -> true
+         | smth -> smth)
+    in
+    match Env.length env2 > Env.length env, safe_eq ast ast2 with
     | true, other ->
       let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
@@ -1887,6 +1899,22 @@ let rewrite_concats { Info.all; _ } =
   in
   let module Pre = struct
     include Id_symantics
+
+    let in_re l regex =
+      match l with
+      | Ast.Eia.Concat (lhs, rhs) ->
+        let nfa = NfaS.of_regex regex in
+        let nfas : (NfaS.t * NfaS.t) list = NfaS.split nfa in
+        let nfas =
+          List.map
+            (fun (nfa, nfa') ->
+               Ast.land_
+                 [ Id_symantics.in_re_raw lhs nfa; Id_symantics.in_re_raw rhs nfa' ])
+            nfas
+        in
+        Ast.lor_ nfas
+      | str -> Id_symantics.in_re l regex
+    ;;
 
     let rec str_len str =
       match str with

@@ -305,10 +305,13 @@ module Eia = struct
   (*match l, r with
     | _ -> failwith "tbd"*)
 
+  module NfaS = Nfa.Lsb (Nfa.Str)
+
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
     | Leq : Z.t term * Z.t term -> t
     | InRe : 'a term * 'a kind * char list Regex.t -> t
+    | InReRaw : string term * NfaS.t -> t
     | PrefixOf of string term * string term
     | Contains of string term * string term
     | SuffixOf of string term * string term
@@ -323,6 +326,7 @@ module Eia = struct
     | Eq _ as eia -> f eia
     | Leq _ as eia -> f eia
     | InRe _ as eia -> f eia
+    | InReRaw _ as eia -> f eia
     | PrefixOf _ as eia -> f eia
     | SuffixOf _ as eia -> f eia
     | Contains _ as eia -> f eia
@@ -335,6 +339,7 @@ module Eia = struct
     | Leq (term, term') ->
       f (leq (map_term fint fstring term) (map_term fint fstring term'))
     | InRe (term, kind, re) -> f (inre (map_term fint fstring term) kind re)
+    | InReRaw (term, re) -> f (inreraw (map_term fint fstring term) re)
     | PrefixOf (term, term') ->
       f (prefixof (map_term fint fstring term) (map_term fint fstring term'))
     | SuffixOf (term, term') ->
@@ -351,6 +356,7 @@ module Eia = struct
     | Eq (l, r, S) -> fs (fs acc l) r
     | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
     | InRe (term, _, re) -> fold_term fz fs acc term
+    | InReRaw (term, re) -> fold_term fz fs acc term
     | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
       fold_term fz fs (fold_term fz fs acc term) term'
   ;;
@@ -366,6 +372,7 @@ module Eia = struct
         str
         (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
         re
+    | InReRaw (str, _) -> Format.fprintf fmt "(str.in_re.raw %a)" pp_term str
     (* | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re' *)
     | PrefixOf (term, term') ->
       Format.fprintf fmt "(str.prefixof %a %a)" pp_term term pp_term term'
@@ -622,7 +629,7 @@ let rec equal ast ast' =
   | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
   | Pred name, Pred name' -> name = name'
   | Eia eia, Eia eia' -> Eia.equal eia eia'
-  | _ -> false
+  | _, _ -> false
 ;;
 
 (*

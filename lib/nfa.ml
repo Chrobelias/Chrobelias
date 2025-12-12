@@ -677,6 +677,8 @@ module type Type = sig
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
   val find_c_d' : t -> (int * int) Seq.t
+  val split : t -> (t * t) list
+  val equal_start_and_final : t -> t -> bool
 end
 
 module type NatType = sig
@@ -1193,6 +1195,37 @@ struct
   let find_c_d' nfa =
     find_c_d nfa (Set.to_list nfa.start |> List.map (fun a -> a, 0) |> Map.of_alist_exn)
   ;;
+
+  let split (nfa : t) =
+    let length = length nfa in
+    Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
+    |> List.mapi (fun i reachable ->
+      let transitions = nfa.transitions in
+      reachable
+      |> Set.iter ~f:(fun final ->
+        transitions.(final) <- (Label.zero nfa.deg, final) :: transitions.(final));
+      let nfa' =
+        { is_dfa = false
+        ; deg = nfa.deg
+        ; transitions = nfa.transitions
+        ; start = nfa.start
+        ; final = reachable
+        }
+      in
+      let nfa'' =
+        { is_dfa = false
+        ; deg = nfa.deg
+        ; transitions = nfa.transitions
+        ; start = reachable
+        ; final = nfa.final
+        }
+      in
+      Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
+      Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa'';
+      nfa', nfa'')
+  ;;
+
+  let equal_start_and_final nfa nfa' = nfa.start = nfa'.start && nfa.final = nfa'.final
 
   let of_regex (r : Label.u list Regex.t) =
     let rec traverse visited = function

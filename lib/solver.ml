@@ -310,6 +310,8 @@ open Config
 
 let level = ref 0
 
+module NfaS = Nfa.Lsb (Nfa.Str)
+
 module Make
     (NfaNat : Nfa.NatType)
     (NfaCollectionNat : NfaCollection.NatType with type t = NfaNat.t)
@@ -317,6 +319,7 @@ module Make
     (NfaCollection : NfaCollection.Type with type t = Nfa.t)
     (Extra : sig
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
+       val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
        val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
        val model_to_int : Nfa.v list -> Z.t
        val nat_model_to_int : NfaNat.v list -> Z.t
@@ -425,6 +428,7 @@ struct
            (fun (c, d) -> Format.printf "(%d, %d)\n%!" c d)
            (NfaNat.chrobak (nfa |> Nfa.to_nat));
          nfa
+       | Ir.SRegRaw (atom, reg) -> Extra.eval_sregraw vars atom reg
        | Ir.Itos (atom, atom') ->
          NfaCollection.itos ~src:(Map.find_exn vars atom') ~dest:(Map.find_exn vars atom)
        | Ir.SLen (atom, atom') ->
@@ -1132,6 +1136,16 @@ module LsbStr =
             , q' ))
       ;;
 
+      let eval_sregraw vars atom reg =
+        let nfa = reg in
+        let j = Map.find_exn vars atom in
+        Nfa.filter_map nfa (fun (label, q') ->
+          Some
+            ( Array.init (Map.length vars) (fun i ->
+                if i = j then label.(0) else Char.chr 0)
+            , q' ))
+      ;;
+
       let model_to_int c =
         c
         |> List.to_seq
@@ -1174,6 +1188,10 @@ module Lsb =
       ;;
 
       let eval_sreg _vars _atom _regex =
+        failwith "string constraints are not supported in EIA mode"
+      ;;
+
+      let eval_sregraw _vars _atom _regex =
         failwith "string constraints are not supported in EIA mode"
       ;;
 
@@ -1226,6 +1244,10 @@ module Msb =
       ;;
 
       let eval_sreg _vars _atom _regex =
+        failwith "string constraints are not supported in EIA mode"
+      ;;
+
+      let eval_sregraw _vars _atom _regex =
         failwith "string constraints are not supported in EIA mode"
       ;;
 

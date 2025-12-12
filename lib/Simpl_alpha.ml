@@ -171,6 +171,7 @@ let rec simplify : Ir.t -> Ir.t = function
   | Rel _ as x -> x
   | Lor _ as x -> x
   | SReg _ as x -> x
+  | SRegRaw _ as x -> x
   | SLen _ as x -> x
   | Stoi _ as x -> x
   | Itos _ as x -> x

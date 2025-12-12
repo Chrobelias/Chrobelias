@@ -492,6 +492,17 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
         | [] -> ir :: sup |> Ir.land_ |> return
         | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
       end
+    | InReRaw (str, re) ->
+      let* str, sup = of_str_atom str in
+      let atoms =
+        List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
+      in
+      let ir = Ir.sregraw str re in
+      begin
+        match atoms with
+        | [] -> ir :: sup |> Ir.land_ |> return
+        | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+      end
     | InRe (eia, Ast.I, re) ->
       let* lhs = helper eia in
       let lhs, sups = Symantics.prjs lhs in

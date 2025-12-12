@@ -165,7 +165,7 @@ let apply_symnatics (type a) (module S : SYM with type repr = a) =
     | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
     | Eq (_, _, S) -> raise String_op
     | Leq (l, r) -> S.(helperT l <= helperT r)
-    | InRe _ | SuffixOf _ | PrefixOf _ | Contains _ -> raise String_op
+    | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ -> raise String_op
   in
   fun x -> S.prj (helper x)
 ;;

@@ -87,6 +87,8 @@ module type Type = sig
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
   val find_c_d' : t -> (int * int) Seq.t
+  val split : t -> (t * t) list
+  val equal_start_and_final : t -> t -> bool
 end
 
 module type NatType = sig

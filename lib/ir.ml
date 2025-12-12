@@ -66,10 +66,13 @@ let pp_polynom ppf poly =
   fprintf ppf "@[(%a)@]@ " pp_map poly
 ;;
 
+module NfaS = Nfa.Lsb (Nfa.Str)
+
 type t =
   | True
   | Reg of bool list Regex.t * atom list
   | SReg of atom * char list Regex.t
+  | SRegRaw of atom * NfaS.t
   | SPrefixOf of atom * atom
   | SSuffixOf of atom * atom
   | SContains of atom * atom
@@ -87,6 +90,7 @@ type t =
 let true_ = True
 let reg a b = Reg (a, b)
 let sreg a b = SReg (a, b)
+let sregraw a b = SRegRaw (a, b)
 let sprefixof a b = SPrefixOf (a, b)
 let ssuffixof a b = SSuffixOf (a, b)
 let scontains a b = SContains (a, b)
@@ -152,6 +156,7 @@ let rec pp fmt = function
       (Regex.pp (fun ppf bv ->
          Format.fprintf ppf "%a" (Format.pp_print_list Format.pp_print_char) bv))
       re (* TODO: print regex *)
+  | SRegRaw (atom, re) -> Format.fprintf fmt "(str.in.re %a)" pp_atom atom
   | SLen (atom, atom') ->
     Format.fprintf fmt "@[(= %a (chrob.len %a))@]" pp_atom atom pp_atom atom'
   | Stoi (atom, atom') ->
@@ -246,7 +251,7 @@ let pp_smtlib2 ppf ir =
         rhs;
       (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
       fprintf ppf ")@]" *)
-    | ( SLen _ | Stoi _ | SReg _
+    | ( SLen _ | Stoi _ | SReg _ | SRegRaw _
       | SEq (_, _)
       | SPrefixOf (_, _)
       | SContains (_, _)
@@ -366,6 +371,7 @@ let rec equal ir ir' =
   | Exists (atoms, ir), Exists (atoms', ir') ->
     List.equal ( = ) atoms atoms' && equal ir ir'
   | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
+  | SRegRaw (atom, regex), SRegRaw (atom', regex') -> atom = atom' && regex = regex'
   | SEq (atom, atom'), SEq (atom'', atom''')
   | SPrefixOf (atom, atom'), SPrefixOf (atom'', atom''')
   | SContains (atom, atom'), SContains (atom'', atom''')
@@ -382,6 +388,7 @@ let rec map2 f fleaf ir =
   | Rel (_, _, _) -> fleaf ir
   | Reg (_, _) -> fleaf ir
   | SReg (_, _) -> fleaf ir
+  | SRegRaw (_, _) -> fleaf ir
   | SLen (_, _) -> fleaf ir
   | Stoi (_, _) -> fleaf ir
   | Itos (_, _) -> fleaf ir
@@ -401,6 +408,7 @@ let rec fold f acc ir =
   | Rel _ -> f acc ir
   | Reg (_, _) -> f acc ir
   | SReg (_, _) -> f acc ir
+  | SRegRaw (_, _) -> f acc ir
   | SLen (_, _) -> f acc ir
   | Stoi (_, _) -> f acc ir
   | Itos (_, _) -> f acc ir
@@ -478,6 +486,7 @@ let collect_vars ir =
        (*| Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
        | Reg (_, atoms) -> Set.union acc (atoms |> List.map as_var |> Set.of_list)
        | SReg (atom, _) -> Set.add acc atom
+       | SRegRaw (atom, _) -> Set.add acc atom
        | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
@@ -507,6 +516,7 @@ let collect_atoms ir =
        (*| Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | SReg (atom, _) -> Set.add acc atom
+       | SRegRaw (atom, _) -> Set.add acc atom
        | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
@@ -532,6 +542,7 @@ let collect_free_atoms ir =
        | Exists (atoms, _) -> Set.diff acc (Set.of_list atoms)
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | SReg (atom, _) -> Set.add acc atom
+       | SRegRaw (atom, _) -> Set.add acc atom
        | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
@@ -557,6 +568,7 @@ let collect_free (ir : t) =
        | Rel (_, term, _) ->
          term |> Map.keys |> List.map as_var |> Set.of_list |> Set.union acc
        | SReg (atom, _) -> Set.add acc atom
+       | SRegRaw (atom, _) -> Set.add acc atom
        | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
