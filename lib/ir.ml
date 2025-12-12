@@ -83,7 +83,56 @@ type t =
   | Land of t list
   | Lor of t list
   | Exists of atom list * t (*| Pred of string * 'atom Eia.t list*)
-[@@deriving variants]
+
+let true_ = True
+let reg a b = Reg (a, b)
+let sreg a b = SReg (a, b)
+let sprefixof a b = SPrefixOf (a, b)
+let ssuffixof a b = SSuffixOf (a, b)
+let scontains a b = SContains (a, b)
+let slen a b = SLen (a, b)
+let seq a b = SEq (a, b)
+let stoi a b = Stoi (a, b)
+let itos a b = Itos (a, b)
+let rel a b c = Rel (a, b, c)
+
+let land_ = function
+  | [] -> true_
+  | [ ast ] -> ast
+  | asts when List.exists (( = ) (Lnot True)) asts -> Lnot True
+  | asts ->
+    let asts =
+      List.concat_map
+        (function
+          | Land asts' -> asts'
+          | ast -> [ ast ])
+        asts
+    in
+    Land asts
+;;
+
+let lor_ = function
+  | [] -> true_
+  | [ ast ] -> ast
+  | asts when List.exists (( = ) True) asts -> True
+  | asts ->
+    let asts =
+      List.map
+        (function
+          | Lor asts' -> asts'
+          | ast -> [ ast ])
+        asts
+      |> List.concat
+    in
+    Lor asts
+;;
+
+let rec lnot = function
+  | Lnot ast -> ast
+  | Land asts -> lor_ (List.map lnot asts)
+  | Lor asts -> land_ (List.map lnot asts)
+  | ast -> Lnot ast
+;;
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
@@ -299,7 +348,7 @@ let is_zero_lhs (map : (atom, Z.t) Map.t) =
 ;;
 
 let eq = rel eq
-let leq m rhs = if is_zero_lhs m then of_bool Z.(zero <= rhs) else rel Leq m rhs
+let leq m rhs = if is_zero_lhs m then of_bool Z.(zero <= rhs) else rel leq m rhs
 let lt t c = leq t Z.(pred c)
 let geq t c = leq (neg t) Z.(-c)
 let gt t c = leq (neg t) Z.(pred ~-c)

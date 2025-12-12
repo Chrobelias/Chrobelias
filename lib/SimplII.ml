@@ -2105,7 +2105,7 @@ let arithmetize ast =
       let rhs', rhs_phs = arithmetize_term rhs in
       Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
     | Ast.Eia (InRe (s, Ast.S, re)) ->
-      let digits = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9' ] in
+      let digits = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; Nfa.Str.u_eos ] in
       let s, phs = arithmetize_term s in
       let s, phs =
         match s with
@@ -2153,8 +2153,8 @@ let arithmetize ast =
     | _ as non_eia -> non_eia
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
-  rewrite_concats var_info ast
-  |> Ast.map arithmetize
+  let arithmetized_ast = rewrite_concats var_info ast |> Ast.map arithmetize in
+  arithmetized_ast
   |> fun ast ->
   Debug.printf "Arithmetized %a\n" Ast.pp_smtlib2 ast;
   ast

@@ -397,14 +397,14 @@ let true_ = True
 let land_ = function
   | [] -> true_
   | [ ast ] -> ast
+  | asts when List.exists (( = ) (Lnot True)) asts -> Lnot True
   | asts ->
     let asts =
-      List.map
+      List.concat_map
         (function
           | Land asts' -> asts'
           | ast -> [ ast ])
         asts
-      |> List.concat
     in
     Land asts
 ;;
@@ -412,6 +412,7 @@ let land_ = function
 let lor_ = function
   | [] -> true_
   | [ ast ] -> ast
+  | asts when List.exists (( = ) True) asts -> True
   | asts ->
     let asts =
       List.map
