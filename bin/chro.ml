@@ -106,6 +106,7 @@ let rec check_sat ?(verbose = false) ast : rez =
             log "Arithmetization gives %d asts..." (List.length asts);
             let can_be_unk = ref false in
             let f ast =
+              log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
               match check_sat ast with
               | Sat (s, ast, env, get_model) -> Some (s, ast, env, get_model)
               | Unknown _ ->
@@ -116,7 +117,10 @@ let rec check_sat ?(verbose = false) ast : rez =
             match List.find_map f asts with
             | Some (s, ast, env, get_model) -> Sat (s, ast, env, get_model)
             | None -> if !can_be_unk then unknown ast e else Unsat "arith")
-          else unknown (List.hd asts) e)
+          else (
+            let ast = List.hd asts in
+            log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+            unknown ast e))
       else unknown ast e)
       <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl

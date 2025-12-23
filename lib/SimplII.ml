@@ -2238,21 +2238,30 @@ let arithmetize ast =
         build lhs rhs, lhs_phs @ rhs_phs
       | Len2 _ -> failwith "unexpected len2"
   in
-  let arithmetize = function
+  let cartesian l1 l2 =
+    List.concat (List.map (fun e1 -> List.map (fun e2 -> Ast.land_ [ e1; e2 ]) l2) l1)
+  in
+  let rec arithmetize = function
+    | Ast.Land [ x ] -> arithmetize x
+    | Ast.Land (x :: xs) ->
+      List.fold_left cartesian (arithmetize x) (List.map arithmetize xs)
     | Ast.Eia (Leq (lhs, rhs)) ->
       let lhs', lhs_phs = arithmetize_term lhs in
       let rhs', rhs_phs = arithmetize_term rhs in
-      Ast.land_ (Ast.Eia.leq lhs' rhs' :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+      [ Ast.land_ (Ast.Eia.leq lhs' rhs' :: (lhs_phs @ rhs_phs) |> List.map Ast.eia) ]
     | Ast.Eia (Eq (lhs, rhs, I)) ->
       let lhs', lhs_phs = arithmetize_term lhs in
       let rhs', rhs_phs = arithmetize_term rhs in
-      Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+      [ Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+      ]
     | Ast.Eia (Eq (lhs, rhs, S)) ->
       let lhs', lhs_phs = arithmetize_term lhs in
       let rhs', rhs_phs = arithmetize_term rhs in
-      Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+      [ Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+      ]
     | Ast.Eia (InRe (s, Ast.S, re)) ->
-      let digits = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; Nfa.Str.u_eos ] in
+      (* Solve later: if var and has non-digits -> -1 or intersect with NFA for digits*)
+      (* let digits = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; Nfa.Str.u_eos ] in *)
       let s, phs = arithmetize_term s in
       let s, phs =
         match s with
@@ -2261,52 +2270,53 @@ let arithmetize ast =
           let v = gensym () in
           v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
       in
-      let strlens = String.concat "" [ "strlen"; s ] in
-      let module NfaL = Nfa.Lsb (Nfa.Str) in
-      let csds =
-        NfaL.filter_map (re |> NfaL.of_regex) (fun (label, q') ->
-          if Nfa.Str.is_zero label then Option.none else Option.some (label, q'))
-        |> NfaL.to_nat
-        |> NfaL.chrobak
-      in
-      let const = Ast.Eia.const in
-      let csds =
-        csds
-        |> Seq.map (fun (c, d) ->
-          let c, d = Z.of_int c, Z.of_int d in
-          let n = gensym () in
-          Ast.eia
-            (Ast.Eia.eq
-               (atomi strlens)
-               (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
-               Ast.I))
-        |> List.of_seq
-      in
-      if Regex.symbols re |> List.exists (fun c -> List.mem (List.nth c 0) digits |> not)
+      if Ast.in_stoi s ast
       then
-        Ast.land_
-          (Ast.lor_ csds
-           :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens)))
-           :: (phs |> List.map Ast.eia))
-      else
-        Ast.land_
-          (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
-           :: Ast.lor_ csds
-           :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens)))
-           :: (phs |> List.map Ast.eia))
+        [ Ast.land_
+            (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re) :: (phs |> List.map Ast.eia))
+        ]
+      else (
+        let strlens = String.concat "" [ "strlen"; s ] in
+        let module NfaL = Nfa.Lsb (Nfa.Str) in
+        let csds =
+          NfaL.filter_map (re |> NfaL.of_regex) (fun (label, q') ->
+            if Nfa.Str.is_zero label then Option.none else Option.some (label, q'))
+          |> NfaL.to_nat
+          |> NfaL.chrobak
+        in
+        let const = Ast.Eia.const in
+        let csds =
+          csds
+          |> Seq.map (fun (c, d) ->
+            let c, d = Z.of_int c, Z.of_int d in
+            let n = gensym () in
+            Ast.eia
+              (Ast.Eia.eq
+                 (atomi strlens)
+                 (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
+                 Ast.I))
+          |> List.of_seq
+        in
+        (* if Regex.symbols re |> List.exists (fun c -> List.mem (List.nth c 0) digits |> not) *)
+        List.map
+          (fun x ->
+             Ast.land_
+               (x
+                :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens)))
+                :: (phs |> List.map Ast.eia)))
+          csds)
       (*else failwith "tbd"*)
     | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
-    | Ast.Unsupp _ -> Ast.True
-    | _ as non_eia -> non_eia
+    | Ast.Unsupp _ -> [ Ast.True ]
+    | _ as non_eia -> [ non_eia ]
   in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat ("presimpl", env)
   | `Unsat -> `Unsat
   | `Unknown (ast, e, _, _) ->
     let var_info = apply_symantics (module Who_in_exponents) ast in
-    let arithmetized_ast = rewrite_concats var_info ast |> Ast.map arithmetize in
-    log "Arithmetized: %a\n" Ast.pp_smtlib2 arithmetized_ast;
-    `Unknown [ arithmetized_ast ]
+    let arithmetized_ast_list = rewrite_concats var_info ast |> arithmetize in
+    `Unknown arithmetized_ast_list
 ;;
 
 let test_distr xs =
