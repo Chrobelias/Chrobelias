@@ -1927,6 +1927,7 @@ let simpl bound ast =
   (* Underapprox I *)
     match if bound >= 0 then Underapprox.check bound ast else `Unknown ast with
     | `Sat (reason, e) -> `Sat (reason, Env.merge_exn e env)
+    | `Unsat _ -> `Unsat
     | `Unknown _ ->
       (try
          match check_errors ast with
@@ -1967,14 +1968,15 @@ let simpl bound ast =
        | Error (ast, errs) -> `Error (ast, errs))
 ;;
 
-let run_under1 bound ast : [> `Sat of string * Env.t | `Unknown ] =
+(* let run_under1 bound ast : [> `Sat of string * Env.t | `Unknown ] =
   if bound >= 0
   then (
     match Underapprox.check bound ast with
     | `Sat s -> `Sat s
+    | `Unsat s -> `Unsat s
     | `Unknown _ -> `Unknown)
   else `Unknown
-;;
+;; *)
 
 let run_under2 env ast =
   let asts = try_under2_heuristics env ast in
@@ -2206,6 +2208,7 @@ let arithmetize ast =
         in
         let v = atomi lenvar in
         let s, phs = arithmetize_term s in
+        let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
         let phs = if Ast.in_stoi var ast then Ast.Eia.lt s (pow_base v) :: phs else phs in
         v, phs
       | Str_const s -> Ast.Eia.const (Z.of_string s), []
@@ -2303,7 +2306,7 @@ let arithmetize ast =
     let var_info = apply_symantics (module Who_in_exponents) ast in
     let arithmetized_ast = rewrite_concats var_info ast |> Ast.map arithmetize in
     log "Arithmetized: %a\n" Ast.pp_smtlib2 arithmetized_ast;
-    `Unknown (arithmetized_ast, e)
+    `Unknown [ arithmetized_ast ]
 ;;
 
 let test_distr xs =

@@ -203,6 +203,7 @@ let check bound ast =
         interestring_vars
     in
     let exception Early of env in
+    let exception Early_Unsat in
     try
       List.iteri
         (fun i env ->
@@ -235,6 +236,7 @@ let check bound ast =
                     env
                 in
                 raise (Early env))
+           | `Unsat when List.length all_choices == 1 -> raise Early_Unsat
            | _ -> ())
         all_choices;
       (* TODO: if all Unsat, add a constraints (x>bound), becuase we have already checked values in [0.. bound] *)
@@ -251,6 +253,7 @@ let check bound ast =
       log "%s gives early Sat." __FILE__;
       log "env = %a" pp_env env;
       `Sat ("under I", to_normal_env env)
+    | Early_Unsat -> `Unsat "lia"
   with
   | String_op | Bitwise_op -> `Unknown ast
 ;;

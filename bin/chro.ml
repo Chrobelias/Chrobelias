@@ -45,7 +45,9 @@ let lift ?(unsat_info = "") ast = function
   | `Sat (s, e) -> Sat (s, ast, e, fun _ -> Result.Ok Map.empty)
 ;;
 
-let check_sat ?(verbose = false) ast : rez =
+let arithmetized = ref false
+
+let rec check_sat ?(verbose = false) ast : rez =
   let used_under2 = ref false in
   let __ () =
     if Lib.Config.config.stop_after = `Pre_simplify
@@ -92,8 +94,29 @@ let check_sat ?(verbose = false) ast : rez =
     let rez =
       unknown ast Lib.Env.empty
       <+> (fun ast e ->
-      if Lib.Config.config.logic = `Str
-      then lift ast (Lib.SimplII.arithmetize ast)
+      if Lib.Config.config.logic = `Str && not !arithmetized
+      then (
+        arithmetized := true;
+        match Lib.SimplII.arithmetize ast with
+        | `Sat (s, e) -> Sat (s, ast, e, fun _ -> Result.Ok Map.empty)
+        | `Unsat -> Unsat "presimpl"
+        | `Unknown asts ->
+          if List.length asts > 1
+          then (
+            log "Arithmetization gives %d asts..." (List.length asts);
+            let can_be_unk = ref false in
+            let f ast =
+              match check_sat ast with
+              | Sat (s, ast, env, get_model) -> Some (s, ast, env, get_model)
+              | Unknown _ ->
+                can_be_unk := true;
+                None
+              | Unsat _ -> None
+            in
+            match List.find_map f asts with
+            | Some (s, ast, env, get_model) -> Sat (s, ast, env, get_model)
+            | None -> if !can_be_unk then unknown ast e else Unsat "arith")
+          else unknown (List.hd asts) e)
       else unknown ast e)
       <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
@@ -109,6 +132,7 @@ let check_sat ?(verbose = false) ast : rez =
         in
         match Lib.Underapprox.check Lib.Config.config.under_approx ast with
         | `Sat (s, e0) -> Sat (s, ast, merge e0 e, fun _ -> Result.Ok Map.empty)
+        | `Unsat s -> Unsat s
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
