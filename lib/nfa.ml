@@ -1515,14 +1515,18 @@ module Lsb (Label : L) = struct
     result
   ;;
 
-  let path_of_len2 (nfa : t) ~var ~len : v list list option =
-    (*let start =
+  let path_of_len2 (nfa : t) ~var ~len : v list option =
+    let start =
       nfa.start |> Set.to_list |> List.map (fun x -> x, []) |> Map.of_alist_exn
     in
     let paths = Graph.all_paths_of_len nfa.transitions start len in
-    let paths = Map.filter_map paths ~f:(fun v -> Some v) in
-    paths*)
-    failwith "tbd"
+    let paths = Map.filteri paths ~f:(fun ~key ~data:_ -> Set.mem nfa.final key) in
+    if Map.is_empty paths
+    then Option.none
+    else (
+      let path = Map.nth_exn paths 0 |> snd in
+      let path = path |> List.map (fun l -> Label.get l var) in
+      Option.some path)
   ;;
 
   let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =

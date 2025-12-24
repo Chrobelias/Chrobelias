@@ -114,7 +114,7 @@ module Lsb (Label : L) : sig
   include NatType with type v = Label.u and type u = t and type t := t
 
   val filter_map : t -> (Label.t * int -> (Label.t * int) option) -> t
-  val path_of_len2 : t -> var:int -> len:int -> v list list option
+  val path_of_len2 : t -> var:int -> len:int -> v list option
 end
 
 module MsbNat (Label : L) : sig

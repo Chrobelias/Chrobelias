@@ -453,13 +453,16 @@ let () =
                          if Map.mem regexes real_var
                          then (
                            let regexes = Map.find_exn regexes real_var in
-                           let _nfa =
+                           let nfa =
                              List.fold_left
                                (fun acc re -> NfaS.intersect (NfaS.of_regex re) acc)
                                (NfaC.Str.n ())
                                regexes
                            in
-                           Some (var real_var, `Str (String.init data (fun _ -> '0'))))
+                           let path =
+                             NfaS.path_of_len2 ~var:0 ~len:data nfa |> Option.get
+                           in
+                           Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
                          else Some (var real_var, `Str (String.init data (fun _ -> '0')))
                        else None
                      end
