@@ -2238,6 +2238,30 @@ let arithmetize ast =
         build lhs rhs, lhs_phs @ rhs_phs
       | Len2 _ -> failwith "unexpected len2"
   in
+  let arithmetize_in_re s nfa =
+    let strlens = String.concat "" [ "strlen"; s ] in
+    let module NfaL = Nfa.Lsb (Nfa.Str) in
+    let csds =
+      NfaL.filter_map nfa (fun (label, q') ->
+        if Nfa.Str.is_zero label then Option.none else Option.some (label, q'))
+      |> NfaL.to_nat
+      |> NfaL.chrobak
+    in
+    let const = Ast.Eia.const in
+    csds
+    |> Seq.map (fun (c, d) ->
+      let c, d = Z.of_int c, Z.of_int d in
+      let n = gensym () in
+      Ast.land_
+        [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
+        ; Ast.eia
+            (Ast.Eia.eq
+               (atomi strlens)
+               (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
+               Ast.I)
+        ])
+    |> List.of_seq
+  in
   let cartesian l1 l2 =
     List.concat (List.map (fun e1 -> List.map (fun e2 -> Ast.land_ [ e1; e2 ]) l2) l1)
   in
@@ -2245,6 +2269,7 @@ let arithmetize ast =
     | Ast.Land [ x ] -> arithmetize x
     | Ast.Land (x :: xs) ->
       List.fold_left cartesian (arithmetize x) (List.map arithmetize xs)
+    | Ast.Lor xs -> List.concat (List.map arithmetize xs)
     | Ast.Eia (Leq (lhs, rhs)) ->
       let lhs', lhs_phs = arithmetize_term lhs in
       let rhs', rhs_phs = arithmetize_term rhs in
@@ -2276,38 +2301,33 @@ let arithmetize ast =
         [ Ast.land_
             (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re) :: (phs |> List.map Ast.eia))
         ]
-      else (
-        let strlens = String.concat "" [ "strlen"; s ] in
+      else
         let module NfaL = Nfa.Lsb (Nfa.Str) in
-        let csds =
-          NfaL.filter_map (re |> NfaL.of_regex) (fun (label, q') ->
-            if Nfa.Str.is_zero label then Option.none else Option.some (label, q'))
-          |> NfaL.to_nat
-          |> NfaL.chrobak
-        in
-        let const = Ast.Eia.const in
-        let csds =
-          csds
-          |> Seq.map (fun (c, d) ->
-            let c, d = Z.of_int c, Z.of_int d in
-            let n = gensym () in
-            Ast.land_
-              [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
-              ; Ast.eia
-                  (Ast.Eia.eq
-                     (atomi strlens)
-                     (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
-                     Ast.I)
-              ])
-          |> List.of_seq
-        in
+        let csds = arithmetize_in_re s (re |> NfaL.of_regex) in
         List.map
           (fun x ->
              Ast.land_
                (x (* :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens))) *)
                 :: (phs |> List.map Ast.eia)))
-          csds)
-      (*else failwith "tbd"*)
+          csds
+    | Ast.Eia (InReRaw (s, nfa)) ->
+      let s, phs = arithmetize_term s in
+      let s, phs =
+        match s with
+        | Ast.Eia.Atom (Var (s, I)) -> s, phs
+        | non_var ->
+          let v = gensym () in
+          v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
+      in
+      (* TODO: Add regular constraints with automata*)
+      (* if Ast.in_stoi s ast
+      then
+        [ Ast.land_
+            (Ast.Eia (Ast.Eia.inreraw atoms s nfa) :: (phs |> List.map Ast.eia))
+        ]
+      else *)
+      let csds = arithmetize_in_re s nfa in
+      List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds
     | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
     | Ast.Unsupp _ -> [ Ast.True ]
     | _ as non_eia -> [ non_eia ]
