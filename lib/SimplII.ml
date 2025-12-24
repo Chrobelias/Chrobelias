@@ -2262,6 +2262,7 @@ let arithmetize ast =
     | Ast.Eia (InRe (s, Ast.S, re)) ->
       (* Solve later: if var and has non-digits -> -1 or intersect with NFA for digits*)
       (* let digits = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; Nfa.Str.u_eos ] in *)
+      (* if Regex.symbols re |> List.exists (fun c -> List.mem (List.nth c 0) digits |> not) *)
       let s, phs = arithmetize_term s in
       let s, phs =
         match s with
@@ -2290,19 +2291,20 @@ let arithmetize ast =
           |> Seq.map (fun (c, d) ->
             let c, d = Z.of_int c, Z.of_int d in
             let n = gensym () in
-            Ast.eia
-              (Ast.Eia.eq
-                 (atomi strlens)
-                 (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
-                 Ast.I))
+            Ast.land_
+              [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
+              ; Ast.eia
+                  (Ast.Eia.eq
+                     (atomi strlens)
+                     (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
+                     Ast.I)
+              ])
           |> List.of_seq
         in
-        (* if Regex.symbols re |> List.exists (fun c -> List.mem (List.nth c 0) digits |> not) *)
         List.map
           (fun x ->
              Ast.land_
-               (x
-                :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens)))
+               (x (* :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens))) *)
                 :: (phs |> List.map Ast.eia)))
           csds)
       (*else failwith "tbd"*)
