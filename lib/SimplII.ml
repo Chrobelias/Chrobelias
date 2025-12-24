@@ -2332,13 +2332,40 @@ let arithmetize ast =
     | Ast.Unsupp _ -> [ Ast.True ]
     | _ as non_eia -> [ non_eia ]
   in
-  match basic_simplify [ 1 ] Env.empty ast with
-  | `Sat env -> `Sat ("presimpl", env)
-  | `Unsat -> `Unsat
-  | `Unknown (ast, e, _, _) ->
-    let var_info = apply_symantics (module Who_in_exponents) ast in
-    let arithmetized_ast_list = rewrite_concats var_info ast |> arithmetize in
-    `Unknown arithmetized_ast_list
+  let module Map = Base.Map.Poly in
+  let collect_regexes ast =
+    Ast.fold
+      (fun acc -> function
+         (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
+         | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) -> (s, re) :: acc
+         | _ -> acc)
+      []
+      ast
+    |> Map.of_alist_multi
+  in
+  let regexes = collect_regexes ast in
+  let is_unsat =
+    Map.existsi
+      ~f:(fun ~key ~data ->
+        let nfa =
+          List.fold_left
+            (fun acc re -> NfaS.intersect (NfaS.of_regex re) acc)
+            (NfaCollection.Str.n ())
+            data
+        in
+        NfaS.run nfa |> not)
+      regexes
+  in
+  if is_unsat
+  then `Unsat
+  else (
+    match basic_simplify [ 1 ] Env.empty ast with
+    | `Sat env -> `Sat ("presimpl", env)
+    | `Unsat -> `Unsat
+    | `Unknown (ast, e, _, _) ->
+      let var_info = apply_symantics (module Who_in_exponents) ast in
+      let arithmetized_ast_list = rewrite_concats var_info ast |> arithmetize in
+      `Unknown arithmetized_ast_list)
 ;;
 
 let test_distr xs =
