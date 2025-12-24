@@ -2021,7 +2021,7 @@ let rewrite_concats { Info.all; _ } =
       match l with
       | Ast.Eia.Concat (lhs, rhs) ->
         let nfa = NfaS.of_regex regex in
-        let nfas : (NfaS.t * NfaS.t) list = NfaS.split nfa in
+        let nfas : (NfaS.t * NfaS.t) list = NfaS.my_split nfa in
         let nfas =
           List.map
             (fun (nfa, nfa') ->

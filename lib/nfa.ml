@@ -678,6 +678,7 @@ module type Type = sig
   val remove_unreachable_from_final : t -> t
   val find_c_d' : t -> (int * int) Seq.t
   val split : t -> (t * t) list
+  val my_split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
 end
 
@@ -1222,6 +1223,38 @@ struct
       in
       (* Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
       Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa''; *)
+      nfa', nfa'')
+  ;;
+
+  let my_split (nfa : t) =
+    let length = length nfa in
+    let states =
+      Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
+      |> List.fold_left (fun acc x -> Set.union acc x) Set.empty
+    in
+    states
+    |> Set.to_list
+    |> List.map (fun state ->
+      let nfa' =
+        { is_dfa = false
+        ; deg = nfa.deg
+        ; transitions = nfa.transitions
+        ; start = nfa.start
+        ; final = Set.singleton state
+        }
+        |> remove_unreachable_from_final
+      in
+      let nfa'' =
+        { is_dfa = false
+        ; deg = nfa.deg
+        ; transitions = nfa.transitions
+        ; start = Set.singleton state
+        ; final = nfa.final
+        }
+        |> remove_unreachable_from_start
+      in
+      Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
+      Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa'';
       nfa', nfa'')
   ;;
 
