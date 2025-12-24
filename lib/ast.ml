@@ -10,6 +10,7 @@ type 'a kind =
   | S : string kind
 
 type 'a atom = Var : string * 'a kind -> 'a atom [@@deriving variants]
+let failf fmt = Format.kasprintf failwith fmt
 
 let str_var name = Var (name, S)
 let int_var name = Var (name, I)
@@ -603,7 +604,7 @@ let rec fold f acc ast =
   | Lor asts -> f (List.fold_left (fold f) acc asts) ast
   | Exists (_, ast') -> f (fold f acc ast') ast
   | Pred _ -> f acc ast
-  | Unsupp _ -> failwith "unable to fold; unsupported constraint"
+  | Unsupp s -> failf "unable to fold; unsupported constraint %s" s
 ;;
 
 let forall f = fold (fun acc ast -> acc && f ast) true
