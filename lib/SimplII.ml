@@ -2195,6 +2195,7 @@ end*)
 let arithmetize ast =
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
+  let atoms v = Ast.Eia.Atom (Ast.Var (v, Ast.S)) in
   let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
     fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function
       | Ast.Eia.Sofi s -> s, []
@@ -2320,14 +2321,13 @@ let arithmetize ast =
           v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
       in
       (* TODO: Add regular constraints with automata*)
-      (* if Ast.in_stoi s ast
+      if Ast.in_stoi s ast
       then
-        [ Ast.land_
-            (Ast.Eia (Ast.Eia.inreraw atoms s nfa) :: (phs |> List.map Ast.eia))
+        [ Ast.land_ (Ast.Eia (Ast.Eia.inreraw (atoms s) nfa) :: (phs |> List.map Ast.eia))
         ]
-      else *)
-      let csds = arithmetize_in_re s nfa in
-      List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds
+      else (
+        let csds = arithmetize_in_re s nfa in
+        List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds)
     | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
     | Ast.Unsupp _ -> [ Ast.True ]
     | _ as non_eia -> [ non_eia ]
@@ -2365,7 +2365,7 @@ let arithmetize ast =
     | `Unknown (ast, e, _, _) ->
       let var_info = apply_symantics (module Who_in_exponents) ast in
       let arithmetized_ast_list = rewrite_concats var_info ast |> arithmetize in
-      `Unknown arithmetized_ast_list)
+      `Unknown (arithmetized_ast_list, regexes))
 ;;
 
 let test_distr xs =

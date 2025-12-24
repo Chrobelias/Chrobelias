@@ -19,7 +19,12 @@ val simpl
      | `Underapprox of Ast.t list
      ]
 
-val arithmetize : Ast.t -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t list ]
+val arithmetize
+  :  Ast.t
+  -> [ `Sat of string * Env.t
+     | `Unsat
+     | `Unknown of Ast.t list * (string, char list Regex.t list) Base.Map.Poly.t
+     ]
 
 val run_basic_simplify
   :  Ast.t
