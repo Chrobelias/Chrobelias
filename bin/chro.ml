@@ -90,8 +90,8 @@ let rec check_sat ?(verbose = false) ast : rez =
         Format.printf "unknown (%s)\n%!" s (*(if s <> "" then "\n " ^ s else ""))*))
     else ()
   in
+  let regexes = ref Map.empty in
   begin
-    let regexes = ref Map.empty in
     let rez =
       unknown ast Lib.Env.empty
       <+> (fun ast e ->
@@ -110,7 +110,10 @@ let rec check_sat ?(verbose = false) ast : rez =
             let f ast =
               log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
               match check_sat ast with
-              | Sat (s, ast, env, get_model, regexes) ->
+              | Sat (s, ast, env, get_model, regexes'') ->
+                let regexes =
+                  Map.merge_skewed ~combine:(fun ~key:_ -> ( @ )) regexes'' regexes'
+                in
                 Some (s, ast, env, get_model, regexes)
               | Unknown _ ->
                 can_be_unk := true;
