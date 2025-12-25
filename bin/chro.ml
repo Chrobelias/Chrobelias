@@ -198,31 +198,21 @@ let check_sat ?(verbose = false) ast : rez =
         else unknown ast e
     in
     match apporx_rez with
-    | Sat (s, _, _, _, _) ->
-      report_result2 (`Sat s);
-      apporx_rez
-    | Unsat s ->
-      report_result2 (`Unsat s);
-      apporx_rez
     | Unknown (ast, e) ->
       (match Lib.Me.ir_of_ast e ast with
        | Ok ir ->
          (match Lib.Solver.check_sat ir with
-          | `Sat get_model ->
-            report_result2 (`Sat "nfa");
-            sat "nfa" ast e get_model Map.empty
-          | `Unsat ->
-            report_result2 (`Unsat "nfa");
-            Unsat "nfa"
-          | `Unknown _ir ->
-            report_result2 (`Unknown "nfa");
-            Unknown (ast, e))
+          | `Sat get_model -> sat "nfa" ast e get_model Map.empty
+          | `Unsat -> Unsat "nfa"
+          | `Unknown _ir -> Unknown (ast, e))
        | Error s ->
          if !used_under2 |> not
          then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
          Unknown (ast, e))
+    | _ -> apporx_rez
   in
   let can_be_unk = ref false in
+  let unsat_last_reason = ref "" in
   if Lib.Config.config.logic = `Str
   then (
     match Lib.SimplII.arithmetize ast with
@@ -238,11 +228,22 @@ let check_sat ?(verbose = false) ast : rez =
         | Unknown _ ->
           can_be_unk := true;
           None
-        | Unsat _ -> None
+        | Unsat s ->
+          unsat_last_reason := s;
+          None
       in
       (match List.find_map f asts_n_regexes with
-       | Some (s, ast, env, get_model, regexes) -> Sat (s, ast, env, get_model, regexes)
-       | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat "arith"))
+       | Some (s, ast, env, get_model, regexes) ->
+         report_result2 (`Sat s);
+         Sat (s, ast, env, get_model, regexes)
+       | None ->
+         if !can_be_unk
+         then (
+           report_result2 (`Unknown "arith");
+           unknown ast Lib.Env.empty)
+         else (
+           report_result2 (`Unsat !unsat_last_reason);
+           Unsat !unsat_last_reason)))
   else check_eia_sat ast
 ;;
 
