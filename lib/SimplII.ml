@@ -2233,26 +2233,24 @@ let arithmetize ast =
             data)
         regexes
     in
-    let ast =
+    let ast_without_regex =
       Ast.map
         (function
           | ast when is_regex ast -> Ast.true_
           | ast -> ast)
         ast
     in
-    (*if
-      Map.existsi
-        ~f:(fun ~key ~data ->
-          let nfa =
-            List.fold_left
-              (fun acc nfa -> NfaS.intersect nfa acc)
-              (NfaCollection.Str.n ())
-              data
-          in
-          NfaS.run nfa |> not)
-        regexes
-    then ast, regexes
-    else*)
+    let phs =
+      if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) regexes
+      then [ Ast.false_ ]
+      else
+        Map.fold
+          ~init:[]
+          ~f:(fun ~key:s ~data:nfa ph ->
+            Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), nfa)) :: ph)
+          regexes
+    in
+    let ast = Ast.land_ (ast_without_regex :: phs) in
     ast, regexes
   in
   let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
