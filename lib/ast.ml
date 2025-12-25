@@ -10,8 +10,8 @@ type 'a kind =
   | S : string kind
 
 type 'a atom = Var : string * 'a kind -> 'a atom [@@deriving variants]
-let failf fmt = Format.kasprintf failwith fmt
 
+let failf fmt = Format.kasprintf failwith fmt
 let str_var name = Var (name, S)
 let int_var name = Var (name, I)
 
@@ -609,6 +609,34 @@ let rec fold f acc ast =
 
 let forall f = fold (fun acc ast -> acc && f ast) true
 let forsome f = fold (fun acc ast -> acc || f ast) false
+
+let is_conjunct ast =
+  let rec helper acc ast =
+    match ast with
+    | True | Eia _ | Pred _ | Unsupp _
+    | Lnot True
+    | Lnot (Eia _)
+    | Lnot (Pred _)
+    | Lnot (Unsupp _) -> true
+    | Land asts -> List.fold_left helper true asts
+    | _ -> false
+  in
+  helper true ast
+;;
+
+let rec to_dnf ast =
+  let cartesian l1 l2 =
+    List.concat (List.map (fun e1 -> List.map (fun e2 -> land_ [ e1; e2 ]) l2) l1)
+  in
+  if is_conjunct ast
+  then [ ast ]
+  else (
+    match ast with
+    | Land [ x ] -> [ x ]
+    | Land (x :: xs) -> List.fold_left cartesian (to_dnf x) (List.map to_dnf xs)
+    | Lor xs -> List.concat (List.map to_dnf xs)
+    | other -> [ other ])
+;;
 
 let in_stoi_eia v eia =
   Eia.fold2

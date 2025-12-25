@@ -1656,6 +1656,7 @@ let rewrite_len ast =
 ;;
 
 let basic_simplify step (env : Env.t) ast =
+  assert (Ast.is_conjunct ast);
   let rec loop step (env : Env.t) ast =
     log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
@@ -2196,6 +2197,42 @@ let arithmetize ast =
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
   let atoms v = Ast.Eia.Atom (Ast.Var (v, Ast.S)) in
+  let module NfaL = Nfa.Lsb (Nfa.Str) in
+  let module Map = Base.Map.Poly in
+  let collect_regexes ast =
+    Ast.fold
+      (fun acc -> function
+         (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
+         | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) ->
+           (s, re |> NfaL.of_regex) :: acc
+         | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), nfa)) -> (s, nfa) :: acc
+         | _ -> acc)
+      []
+      ast
+    |> Map.of_alist_multi
+  in
+  let fold_regexes ast =
+    let regexes = collect_regexes ast in
+    (*TODO: To implement!!! 
+    ast on input is a conjunction; We need to 
+    1) collect all regexes and nfas; 
+    2) intersect all over the same variable and remove all other regular constraints on this variable; 
+    3) return the map with regexes (which will be used in the model generation process, but can be removed during arithmetization)
+    *)
+    if
+      Map.existsi
+        ~f:(fun ~key ~data ->
+          let nfa =
+            List.fold_left
+              (fun acc nfa -> NfaS.intersect nfa acc)
+              (NfaCollection.Str.n ())
+              data
+          in
+          NfaS.run nfa |> not)
+        regexes
+    then ast, regexes
+    else ast, regexes
+  in
   let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
     fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function
       | Ast.Eia.Sofi s -> s, []
@@ -2241,7 +2278,6 @@ let arithmetize ast =
   in
   let arithmetize_in_re s nfa =
     let strlens = String.concat "" [ "strlen"; s ] in
-    let module NfaL = Nfa.Lsb (Nfa.Str) in
     let csds =
       NfaL.filter_map nfa (fun (label, q') ->
         if Nfa.Str.is_zero label then Option.none else Option.some (label, q'))
@@ -2270,7 +2306,6 @@ let arithmetize ast =
     | Ast.Land [ x ] -> arithmetize x
     | Ast.Land (x :: xs) ->
       List.fold_left cartesian (arithmetize x) (List.map arithmetize xs)
-    | Ast.Lor xs -> List.concat (List.map arithmetize xs)
     | Ast.Eia (Leq (lhs, rhs)) ->
       let lhs', lhs_phs = arithmetize_term lhs in
       let rhs', rhs_phs = arithmetize_term rhs in
@@ -2302,15 +2337,14 @@ let arithmetize ast =
         [ Ast.land_
             (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re) :: (phs |> List.map Ast.eia))
         ]
-      else
-        let module NfaL = Nfa.Lsb (Nfa.Str) in
+      else (
         let csds = arithmetize_in_re s (re |> NfaL.of_regex) in
         List.map
           (fun x ->
              Ast.land_
                (x (* :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens))) *)
                 :: (phs |> List.map Ast.eia)))
-          csds
+          csds)
     | Ast.Eia (InReRaw (s, nfa)) ->
       let s, phs = arithmetize_term s in
       let s, phs =
@@ -2329,43 +2363,21 @@ let arithmetize ast =
         let csds = arithmetize_in_re s nfa in
         List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds)
     | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
-    | Ast.Unsupp _ -> [ Ast.True ]
+    | Ast.Unsupp s -> [ Ast.Unsupp s ]
     | _ as non_eia -> [ non_eia ]
   in
-  let module Map = Base.Map.Poly in
-  let collect_regexes ast =
-    Ast.fold
-      (fun acc -> function
-         (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
-         | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) -> (s, re) :: acc
-         | _ -> acc)
-      []
-      ast
-    |> Map.of_alist_multi
-  in
-  let regexes = collect_regexes ast in
-  let is_unsat =
-    Map.existsi
-      ~f:(fun ~key ~data ->
-        let nfa =
-          List.fold_left
-            (fun acc re -> NfaS.intersect (NfaS.of_regex re) acc)
-            (NfaCollection.Str.n ())
-            data
-        in
-        NfaS.run nfa |> not)
-      regexes
-  in
-  if is_unsat
-  then `Unsat
-  else (
-    match basic_simplify [ 1 ] Env.empty ast with
-    | `Sat env -> `Sat ("presimpl", env)
-    | `Unsat -> `Unsat
-    | `Unknown (ast, e, _, _) ->
-      let var_info = apply_symantics (module Who_in_exponents) ast in
-      let arithmetized_ast_list = rewrite_concats var_info ast |> arithmetize in
-      `Unknown (arithmetized_ast_list, regexes))
+  match basic_simplify [ 1 ] Env.empty ast with
+  | `Sat env -> `Sat ("presimpl", env)
+  | `Unsat -> `Unsat
+  | `Unknown (ast, e, _, _) ->
+    let var_info = apply_symantics (module Who_in_exponents) ast in
+    let asts_n_regexes =
+      ast |> rewrite_concats var_info |> Ast.to_dnf |> List.map fold_regexes
+    in
+    `Unknown
+      (List.concat_map
+         (fun (ast, regexes) -> List.map (fun ast -> ast, regexes) (arithmetize ast))
+         asts_n_regexes)
 ;;
 
 let test_distr xs =

@@ -25,7 +25,7 @@ type rez =
       * Lib.Ast.t
       * Lib.Env.t
       * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> (Lib.Ir.model, [ `Too_long ]) Result.t)
-      * (string, char list Lib.Regex.t list) Base.Map.Poly.t
+      * (string, Lib.Nfa.Lsb(Lib.Nfa.Str).u list) Base.Map.Poly.t
   | Unknown of Lib.Ast.t * Lib.Env.t
   | Unsat of string
 
@@ -45,10 +45,7 @@ let lift ?(unsat_info = "") ast = function
   | `Sat (s, e) -> Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
 ;;
 
-let arithmetized = ref false
-
-let rec check_sat ?(verbose = false) ast : rez =
-  let used_under2 = ref false in
+let check_sat ?(verbose = false) ast : rez =
   let __ () =
     if Lib.Config.config.stop_after = `Pre_simplify
     then (
@@ -90,45 +87,10 @@ let rec check_sat ?(verbose = false) ast : rez =
         Format.printf "unknown (%s)\n%!" s (*(if s <> "" then "\n " ^ s else ""))*))
     else ()
   in
-  let regexes = ref Map.empty in
-  begin
-    let rez =
+  let used_under2 = ref false in
+  let check_eia_sat ast =
+    let apporx_rez =
       unknown ast Lib.Env.empty
-      <+> (fun ast e ->
-      if Lib.Config.config.logic = `Str && not !arithmetized
-      then (
-        arithmetized := true;
-        match Lib.SimplII.arithmetize ast with
-        | `Sat (s, e) -> Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
-        | `Unsat -> Unsat "presimpl"
-        | `Unknown (asts, regexes') ->
-          regexes := regexes';
-          if List.length asts > 1
-          then (
-            log "Arithmetization gives %d asts..." (List.length asts);
-            let can_be_unk = ref false in
-            let f ast =
-              log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-              match check_sat ast with
-              | Sat (s, ast, env, get_model, regexes'') ->
-                let regexes =
-                  Map.merge_skewed ~combine:(fun ~key:_ -> ( @ )) regexes'' regexes'
-                in
-                Some (s, ast, env, get_model, regexes)
-              | Unknown _ ->
-                can_be_unk := true;
-                None
-              | Unsat _ -> None
-            in
-            match List.find_map f asts with
-            | Some (s, ast, env, get_model, regexes) ->
-              Sat (s, ast, env, get_model, regexes)
-            | None -> if !can_be_unk then unknown ast e else Unsat "arith")
-          else (
-            let ast = List.hd asts in
-            log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-            unknown ast e))
-      else unknown ast e)
       <+> (fun ast e ->
       if not Lib.Config.config.pre_simpl
       then unknown ast e
@@ -143,7 +105,7 @@ let rec check_sat ?(verbose = false) ast : rez =
         in
         match Lib.Underapprox.check Lib.Config.config.under_approx ast with
         | `Sat (s, e0) ->
-          Sat (s, ast, merge e0 e, (fun _ -> Result.Ok Map.empty), !regexes)
+          Sat (s, ast, merge e0 e, (fun _ -> Result.Ok Map.empty), Map.empty)
         | `Unsat s -> Unsat s
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
@@ -168,7 +130,7 @@ let rec check_sat ?(verbose = false) ast : rez =
         if Lib.Config.config.logic = `Eia
         then (
           match Lib.SimplII.check_nia ast with
-          | `Sat -> sat "non-linear" ast e (fun _ -> Result.Ok Map.empty) !regexes
+          | `Sat -> sat "non-linear" ast e (fun _ -> Result.Ok Map.empty) Map.empty
           | `Unsat -> Unsat "non-linear"
           | `Unknown ->
             report_result2 (`Unknown "non-linear");
@@ -179,7 +141,7 @@ let rec check_sat ?(verbose = false) ast : rez =
       then (
         used_under2 := true;
         match Lib.SimplII.run_under2 e ast with
-        | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty) !regexes
+        | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty) Map.empty
         | `Underapprox asts ->
           if Lib.Config.config.dump_pre_simpl
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
@@ -235,35 +197,53 @@ let rec check_sat ?(verbose = false) ast : rez =
             Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
         else unknown ast e
     in
-    let rez =
-      match rez with
-      | Sat (s, _, _, _, _) ->
-        report_result2 (`Sat s);
-        rez
-      | Unsat s ->
-        report_result2 (`Unsat s);
-        rez
-      | Unknown (ast, e) -> begin
-        match Lib.Me.ir_of_ast e ast with
-        | Ok ir ->
-          (match Lib.Solver.check_sat ir with
-           | `Sat get_model ->
-             report_result2 (`Sat "nfa");
-             sat "nfa" ast e get_model !regexes
-           | `Unsat ->
-             report_result2 (`Unsat "nfa");
-             rez
-           | `Unknown _ir ->
-             report_result2 (`Unknown "nfa");
-             rez)
-        | Error s ->
-          if !used_under2 |> not
-          then report_result2 (`Unknown (Format.sprintf "nfa; %s" s));
-          rez
-      end
-    in
-    rez
-  end
+    match apporx_rez with
+    | Sat (s, _, _, _, _) ->
+      report_result2 (`Sat s);
+      apporx_rez
+    | Unsat s ->
+      report_result2 (`Unsat s);
+      apporx_rez
+    | Unknown (ast, e) ->
+      (match Lib.Me.ir_of_ast e ast with
+       | Ok ir ->
+         (match Lib.Solver.check_sat ir with
+          | `Sat get_model ->
+            report_result2 (`Sat "nfa");
+            sat "nfa" ast e get_model Map.empty
+          | `Unsat ->
+            report_result2 (`Unsat "nfa");
+            Unsat "nfa"
+          | `Unknown _ir ->
+            report_result2 (`Unknown "nfa");
+            Unknown (ast, e))
+       | Error s ->
+         if !used_under2 |> not
+         then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
+         Unknown (ast, e))
+  in
+  let can_be_unk = ref false in
+  if Lib.Config.config.logic = `Str
+  then (
+    match Lib.SimplII.arithmetize ast with
+    | `Sat (s, e) -> Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
+    | `Unsat -> Unsat "presimpl"
+    | `Unknown asts_n_regexes ->
+      log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
+      let f ast_n_regex =
+        let ast, regex = ast_n_regex in
+        log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+        match check_eia_sat ast with
+        | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, regex)
+        | Unknown _ ->
+          can_be_unk := true;
+          None
+        | Unsat _ -> None
+      in
+      (match List.find_map f asts_n_regexes with
+       | Some (s, ast, env, get_model, regexes) -> Sat (s, ast, env, get_model, regexes)
+       | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat "arith"))
+  else check_eia_sat ast
 ;;
 
 let logBaseZ n =
@@ -458,7 +438,7 @@ let () =
                            let regexes = Map.find_exn regexes real_var in
                            let nfa =
                              List.fold_left
-                               (fun acc re -> NfaS.intersect (NfaS.of_regex re) acc)
+                               (fun acc nfa -> NfaS.intersect nfa acc)
                                (NfaC.Str.n ())
                                regexes
                            in
