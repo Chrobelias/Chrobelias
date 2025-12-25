@@ -25,7 +25,7 @@ type rez =
       * Lib.Ast.t
       * Lib.Env.t
       * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> (Lib.Ir.model, [ `Too_long ]) Result.t)
-      * (string, Lib.Nfa.Lsb(Lib.Nfa.Str).u list) Base.Map.Poly.t
+      * (string, Lib.Nfa.Lsb(Lib.Nfa.Str).u) Base.Map.Poly.t
   | Unknown of Lib.Ast.t * Lib.Env.t
   | Unsat of string
 
@@ -436,12 +436,7 @@ let () =
                          if Map.mem regexes real_var
                          then (
                            let regexes = Map.find_exn regexes real_var in
-                           let nfa =
-                             List.fold_left
-                               (fun acc nfa -> NfaS.intersect nfa acc)
-                               (NfaC.Str.n ())
-                               regexes
-                           in
+                           let nfa = regexes in
                            let path =
                              NfaS.path_of_len2 ~var:0 ~len:data nfa |> Option.get
                            in

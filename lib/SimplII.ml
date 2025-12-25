@@ -2199,6 +2199,11 @@ let arithmetize ast =
   let atoms v = Ast.Eia.Atom (Ast.Var (v, Ast.S)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module Map = Base.Map.Poly in
+  let is_regex = function
+    | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _))
+    | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), _)) -> true
+    | _ -> false
+  in
   let collect_regexes ast =
     Ast.fold
       (fun acc -> function
@@ -2219,7 +2224,23 @@ let arithmetize ast =
     2) intersect all over the same variable and remove all other regular constraints on this variable; 
     3) return the map with regexes (which will be used in the model generation process, but can be removed during arithmetization)
     *)
-    if
+    let regexes =
+      Map.map
+        ~f:(fun data ->
+          List.fold_left
+            (fun acc nfa -> NfaS.intersect nfa acc)
+            (NfaCollection.Str.n ())
+            data)
+        regexes
+    in
+    let ast =
+      Ast.map
+        (function
+          | ast when is_regex ast -> Ast.true_
+          | ast -> ast)
+        ast
+    in
+    (*if
       Map.existsi
         ~f:(fun ~key ~data ->
           let nfa =
@@ -2231,7 +2252,8 @@ let arithmetize ast =
           NfaS.run nfa |> not)
         regexes
     then ast, regexes
-    else ast, regexes
+    else*)
+    ast, regexes
   in
   let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
     fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function

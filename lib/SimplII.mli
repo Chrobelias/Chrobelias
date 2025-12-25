@@ -23,7 +23,7 @@ val arithmetize
   :  Ast.t
   -> [ `Sat of string * Env.t
      | `Unsat
-     | `Unknown of (Ast.t * (string, Nfa.Lsb(Nfa.Str).u list) Base.Map.Poly.t) list
+     | `Unknown of (Ast.t * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t) list
      ]
 
 val run_basic_simplify
