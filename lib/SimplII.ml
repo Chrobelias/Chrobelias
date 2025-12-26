@@ -461,6 +461,13 @@ let make_main_symantics env =
       | s -> Id_symantics.str_len s
     ;;
 
+    let str_concat lhs rhs =
+      match lhs, rhs with
+      | Ast.Eia.Str_const lhs, Ast.Eia.Str_const rhs ->
+        Id_symantics.str_const (String.concat "" [ lhs; rhs ])
+      | lhs, rhs -> Id_symantics.str_concat lhs rhs
+    ;;
+
     let str_len2 = function
       | Ast.Eia.Str_const s ->
         Id_symantics.constz Z.(pow (Config.base ()) (String.length s) - one)
