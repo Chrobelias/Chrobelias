@@ -2048,53 +2048,31 @@ let rewrite_concats { Info.all; _ } =
   let module M_ = struct
     include Id_symantics
 
-    let str_concat (lhs : str) (rhs : str) =
-      let u = gensym () in
-      let v = gensym () in
-      let lhs' = gensym () in
-      let rhs' = gensym () in
-      extend lhs' (Ast.Eia.Iofs lhs);
-      extend rhs' (Ast.Eia.Iofs rhs);
-      extend
-        u
-        (Ast.Eia.add
-           [ Ast.Eia.mul [ Ast.Eia.Atom (Ast.var lhs' I); pow2var v ]
-           ; Ast.Eia.atom (Ast.var rhs' I)
-           ]);
-      extend v (Ast.Eia.len rhs);
-      Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
+    let rec str_concat (lhs : str) (rhs : str) =
+      let handle_concat (lhs : str) (rhs : str) =
+        let u = gensym () in
+        let v = gensym () in
+        let lhs' = gensym () in
+        let rhs' = gensym () in
+        extend lhs' (Ast.Eia.Iofs lhs);
+        extend rhs' (Ast.Eia.Iofs rhs);
+        extend
+          u
+          (Ast.Eia.add
+             [ Ast.Eia.mul [ Ast.Eia.Atom (Ast.var lhs' I); pow2var v ]
+             ; Ast.Eia.atom (Ast.var rhs' I)
+             ]);
+        extend v (Ast.Eia.len rhs);
+        Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
+      in
+      let do_concat lhs rhs = str_concat lhs rhs in
+      match lhs, rhs with
+      | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
+        do_concat (do_concat lhs1 rhs1) (do_concat lhs1 rhs1)
+      | Ast.Eia.Concat (lhs1, rhs1), rhs2 -> handle_concat (do_concat lhs1 rhs1) rhs2
+      | lhs1, Ast.Eia.Concat (lhs2, rhs2) -> handle_concat lhs1 (do_concat lhs2 rhs2)
+      | lhs1, rhs1 -> handle_concat lhs1 rhs1
     ;;
-
-    (* let str_substr (term : str) (offset : term) (len : term) =
-      let evar v = Ast.Eia.atom (Ast.var v I) in
-      let svar v = Ast.Eia.atom (Ast.var v S) in
-      let econst v = Ast.Eia.const v in
-      let z1 = gensym () in
-      let z2 = gensym () in
-      let u = gensym () in
-      let y = gensym () in
-      let y' = gensym () in
-      let len' = gensym () in
-      let base = econst (Config.base ()) in
-      let term' = gensym () in
-      extend term' (Ast.Eia.Iofs term);
-      extend_geq z1 (Ast.Eia.add [ Ast.Eia.pow base offset; Ast.Eia.const Z.minus_one ]);
-      extend y (Ast.Eia.Iofs (svar y'));
-      extend len' (Ast.Eia.len (svar y'));
-      extend len' len;
-      extend u (Ast.Eia.add [ offset; len ]);
-      extend_geq y (Ast.Eia.Const Z.zero);
-      extend_geq z1 (Ast.Eia.Const Z.zero);
-      extend_geq z2 (Ast.Eia.Const Z.zero);
-      extend
-        term'
-        (Ast.Eia.add
-           [ evar z1
-           ; Ast.Eia.mul [ evar y; Ast.Eia.pow base offset ]
-           ; Ast.Eia.mul [ evar z2; Ast.Eia.pow base (evar u) ]
-           ]);
-      svar y'
-    ;; *)
 
     let prj = function
       | Ast.Land xs -> land_ (!extra_ph @ xs)
@@ -2270,12 +2248,6 @@ let arithmetize ast =
   in
   let fold_regexes ast =
     let regexes = collect_regexes ast in
-    (*TODO: To implement!!! 
-    ast on input is a conjunction; We need to 
-    1) collect all regexes and nfas; 
-    2) intersect all over the same variable and remove all other regular constraints on this variable; 
-    3) return the map with regexes (which will be used in the model generation process, but can be removed during arithmetization)
-    *)
     let regexes =
       Map.map
         ~f:(fun data ->
