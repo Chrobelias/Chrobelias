@@ -353,8 +353,8 @@ module Eia = struct
     let _ : 'acc -> Z.t term -> 'acc = fz in
     let _ : 'acc -> string term -> 'acc = fs in
     function
-    | Eq (l, r, I) -> fz (fz acc l) r
-    | Eq (l, r, S) -> fs (fs acc l) r
+    | Eq (l, r, I) -> fz (fz (fold_term fz fs (fold_term fz fs acc l) r) l) r
+    | Eq (l, r, S) -> fs (fs (fold_term fz fs (fold_term fz fs acc l) r) l) r
     | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
     | InRe (term, _, re) -> fold_term fz fs acc term
     | InReRaw (term, re) -> fold_term fz fs acc term
