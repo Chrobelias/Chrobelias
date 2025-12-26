@@ -1623,7 +1623,7 @@ let _lower_strlen ast =
   | ph -> Ast.Land ((ph :: Env.to_eqs !env) @ Env.to_eqs !forgotten)
 ;;
 
-let rewrite_len ast =
+(* let rewrite_len ast =
   let module Map = Base.Map.Poly in
   let acc = ref [] in
   let lens = ref Map.empty in
@@ -1653,7 +1653,7 @@ let rewrite_len ast =
   let ast = Ast.land_ (ast :: !acc) in
   log "rewritten lengths= @[%a@]" Ast.pp_smtlib2 ast;
   ast
-;;
+;; *)
 
 let basic_simplify step (env : Env.t) ast =
   assert (Ast.is_conjunct ast);

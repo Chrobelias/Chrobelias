@@ -583,7 +583,7 @@ let ir_of_ast env ast =
        (*| Some "old" -> of_eia*)
        | _ -> of_eia2)
         eia
-    | Pred s -> failf "Unexpected %s" s
+    | Pred s | Unsupp s -> failf "Unexpected %s" s
   in
   (*let ast =
     Env.fold
@@ -598,7 +598,7 @@ let ir_of_ast env ast =
       env
   in
   let ast = Ast.land_ ast in*)
-  let ast = SimplII.rewrite_len ast in
+  (* let ast = SimplII.rewrite_len ast in *)
   let* ir = ast |> ir_of_ast in
   ir |> return
 ;;

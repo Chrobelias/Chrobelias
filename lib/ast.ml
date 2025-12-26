@@ -618,6 +618,7 @@ let is_conjunct ast =
     | Lnot (Eia _)
     | Lnot (Pred _)
     | Lnot (Unsupp _) -> true
+    | Exists (_, ast') -> helper acc ast'
     | Land asts -> List.fold_left helper true asts
     | _ -> false
   in
