@@ -1277,7 +1277,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
 (* TODO: run this inside eq_propagation *)
 let trivial_simplify eta = subst_term Env.empty eta
 
-let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
+let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let extend_exn env v rhs =
@@ -1286,13 +1286,13 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
     Env.extend_exn env v rhs
   in
   (*let extend_str_exn env v rhs = Env.extend_string_exn env v (trivial_simplify rhs) in*)
-  let fold_and_filter f acc xs =
+  let fold_and_filter multiple f acc xs =
     let acc = ref acc in
     let changed = ref false in
     let xs =
       List.filter_map
         (fun h ->
-           if !changed |> not
+           if multiple || !changed |> not
            then (
              match f !acc h with
              | Some acc2 ->
@@ -1470,10 +1470,11 @@ let eq_propagation : Info.t -> Env.t -> Ast.t -> Env.t * Ast.t =
       None
     (* None means left as it is *)
   in
-  fun info env ast ->
+  fun info ?multiple env ast ->
+    let multiple = Option.value ~default:false multiple in
     match ast with
     | Land xs ->
-      let env, ys = fold_and_filter (helper info) env xs in
+      let env, ys = fold_and_filter multiple (helper info) env xs in
       let ans_ph = if ys = [] && xs <> [] then True else Land ys in
       env, ans_ph
     | Eia _ ->
@@ -1662,7 +1663,7 @@ let _lower_strlen ast =
   ast
 ;; *)
 
-let basic_simplify step (env : Env.t) ast =
+let basic_simplify step ?multiple (env : Env.t) ast =
   assert (Ast.is_conjunct ast);
   let rec loop step (env : Env.t) ast =
     log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
@@ -1674,7 +1675,7 @@ let basic_simplify step (env : Env.t) ast =
     let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
-    let env2, ast2 = eq_propagation var_info env ast2 in
+    let env2, ast2 = eq_propagation var_info ?multiple env ast2 in
     let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
     let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     let safe_eq ast ast2 =
@@ -2284,9 +2285,13 @@ let arithmetize ast =
       | Len s ->
         let var, lenvar, phs =
           match s with
-          | Ast.Eia.Atom (Ast.Var (var, Ast.S)) ->
-            var, String.concat "" [ "strlen"; var ], []
-          | non_var -> failwith ""
+          | Ast.Eia.Atom (Ast.Var (var, _)) -> var, String.concat "" [ "strlen"; var ], []
+          | non_var ->
+            let var = gensym ~prefix:"eec" () in
+            let non_var, phs = arithmetize_term non_var in
+            ( var
+            , String.concat "" [ "strlen"; var ]
+            , Ast.Eia.eq (atomi var) non_var Ast.I :: phs )
         in
         let v = atomi lenvar in
         let s, phs = arithmetize_term s in
@@ -2411,7 +2416,7 @@ let arithmetize ast =
     | _ as non_eia -> [ non_eia ]
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
-  match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
+  match basic_simplify [ 1 ] ~multiple:true Env.empty (ast |> rewrite_via_concat var_info) with
   | `Sat env -> `Sat ("presimpl", env)
   | `Unsat -> `Unsat
   | `Unknown (ast, e, _, _) ->
