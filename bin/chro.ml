@@ -69,22 +69,27 @@ let check_sat ?(verbose = false) ast : rez =
       match rez, !answer_guess with
       | _, None | _, Some `Unknown | `Unsat _, Some `Unsat | `Sat _, Some `Sat -> ()
       | `Unknown _, Some `Sat ->
-        Printf.eprintf "; Need to improve --- sat is expected\n%!"
+        Printf.eprintf "(warning: check annotation that says 'sat')\n%!"
       | `Unknown _, Some `Unsat ->
-        Printf.eprintf "; Need to improve --- unsat is expected\n%!"
+        Printf.eprintf "(warning:  check annotation that says 'unsat')\n%!"
       | `Unsat _, Some `Sat ->
-        Printf.eprintf "; Une mauvaise réponse est possible ('sat' est attendu)!\n%!"
+        Printf.eprintf "(error: check annotation that says 'sat')\n%!"
       | `Sat _, Some `Unsat ->
-        Printf.eprintf "; Une mauvaise réponse est possible ('unsat' est attendu)!\n%!"
+        Printf.eprintf "(error: check annotation that says 'unsat')\n%!"
     in
     let () = if Lib.Debug.flag () then () else check_answer () in
     if verbose
     then (
       match rez with
-      | `Sat s -> Format.printf "sat (%s)\n%!" s
-      | `Unsat s -> Format.printf "unsat (%s)\n%!" s
-      | `Unknown s ->
-        Format.printf "unknown (%s)\n%!" s (*(if s <> "" then "\n " ^ s else ""))*))
+      | `Sat s ->
+        if Lib.Config.config.with_info
+        then Format.printf "sat (%s)\n%!" s
+        else Format.printf "sat\n%!"
+      | `Unsat s ->
+        if Lib.Config.config.with_info
+        then Format.printf "unsat (%s)\n%!" s
+        else Format.printf "unsat\n%!"
+      | `Unknown _ -> Format.printf "unknown\n%!" (*(if s <> "" then "\n " ^ s else ""))*))
     else ()
   in
   let used_under2 = ref false in

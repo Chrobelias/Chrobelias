@@ -15,6 +15,7 @@ type config =
   ; mutable no_model : bool
   ; mutable logic : [ `Eia | `Str ]
   ; mutable with_check_sat : bool
+  ; mutable with_info : bool
   ; mutable quiet : bool
   }
 
@@ -35,6 +36,7 @@ let config =
   ; no_model = false
   ; logic = `Eia
   ; with_check_sat = false
+  ; with_info = true
   ; quiet = false
   }
 ;;
@@ -122,7 +124,8 @@ Basic options:
     ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t"
     ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
     ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t"
-    ; "--q", Arg.Unit (fun () -> config.quiet <- true), "\t"
+    ; "--info", Arg.Unit (fun () -> config.with_info <- true), "\t"
+      (* ; "--q", Arg.Unit (fun () -> config.quiet <- true), "\t" *)
     ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , "\tDon't try simplifications based on alpha-equivalence" )
