@@ -216,8 +216,12 @@ let check_sat ?(verbose = false) ast : rez =
   if Lib.Config.config.logic = `Str
   then (
     match Lib.SimplII.arithmetize ast with
-    | `Sat (s, e) -> Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
-    | `Unsat -> Unsat "presimpl"
+    | `Sat (s, e) ->
+      report_result2 (`Sat s);
+      Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
+    | `Unsat ->
+      report_result2 (`Unsat "presimpl");
+      Unsat "presimpl"
     | `Unknown asts_n_regexes ->
       log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
       let f ast_n_regex =
