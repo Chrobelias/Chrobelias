@@ -3,6 +3,8 @@ $ cat  sum3exp.smt2
 $ export CHRO_TRACE_OPT=1
  -under2 -amin 0 -amax 11
   $ Chro -no-over -bound 3 --dsimpl sum3exp.smt2
+  Basic simplifications:
+  
   iter(1)= (and
              (<= (+ (+ (exp 2 x1) (exp 2 x2)) (exp 2 x3)) (+ (+ (+ x1 x2) x3)
                                                           10))
