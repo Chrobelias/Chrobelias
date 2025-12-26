@@ -455,6 +455,24 @@ let () =
                          else Some (var real_var, `Str (String.init data (fun _ -> '0')))
                        else None
                      end
+                   | Lib.Ir.Var key ->
+                     let len_var = String.concat "" [ prefix; key ] in
+                     let str =
+                       match data with
+                       | `Str c -> c
+                       | `Int d -> Z.to_string d
+                     in
+                     let len =
+                       match Map.find raw_model (var len_var) with
+                       | Some (`Int len) -> Z.to_int len
+                       | _ -> String.length str
+                     in
+                     let str =
+                       String.concat
+                         ""
+                         [ String.init (len - String.length str) (fun _ -> '0'); str ]
+                     in
+                     Some (var key, `Str str)
                    | _ -> Some (key, data))
                  |> Map.of_alist_exn
                in
