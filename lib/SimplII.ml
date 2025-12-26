@@ -2019,9 +2019,6 @@ let rewrite_concats { Info.all; _ } =
   let extend v other =
     extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
   in
-  let extend_leq v other =
-    extra_ph := Id_symantics.leq (Id_symantics.var v) other :: !extra_ph
-  in
   let module Pre = struct
     include Id_symantics
 
@@ -2068,7 +2065,7 @@ let rewrite_concats { Info.all; _ } =
       Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
     ;;
 
-    let str_substr (term : str) (offset : term) (len : term) =
+    (* let str_substr (term : str) (offset : term) (len : term) =
       let evar v = Ast.Eia.atom (Ast.var v I) in
       let svar v = Ast.Eia.atom (Ast.var v S) in
       let econst v = Ast.Eia.const v in
@@ -2081,14 +2078,14 @@ let rewrite_concats { Info.all; _ } =
       let base = econst (Config.base ()) in
       let term' = gensym () in
       extend term' (Ast.Eia.Iofs term);
-      extend_leq z1 (Ast.Eia.add [ Ast.Eia.pow base offset; Ast.Eia.const Z.minus_one ]);
+      extend_geq z1 (Ast.Eia.add [ Ast.Eia.pow base offset; Ast.Eia.const Z.minus_one ]);
       extend y (Ast.Eia.Iofs (svar y'));
       extend len' (Ast.Eia.len (svar y'));
       extend len' len;
       extend u (Ast.Eia.add [ offset; len ]);
-      extend_leq y (Ast.Eia.Const Z.zero);
-      extend_leq z1 (Ast.Eia.Const Z.zero);
-      extend_leq z2 (Ast.Eia.Const Z.zero);
+      extend_geq y (Ast.Eia.Const Z.zero);
+      extend_geq z1 (Ast.Eia.Const Z.zero);
+      extend_geq z2 (Ast.Eia.Const Z.zero);
       extend
         term'
         (Ast.Eia.add
@@ -2097,7 +2094,7 @@ let rewrite_concats { Info.all; _ } =
            ; Ast.Eia.mul [ evar z2; Ast.Eia.pow base (evar u) ]
            ]);
       svar y'
-    ;;
+    ;; *)
 
     let prj = function
       | Ast.Land xs -> land_ (!extra_ph @ xs)
@@ -2112,6 +2109,54 @@ let rewrite_concats { Info.all; _ } =
   in
   fun ph ->
     Sym.prj (apply_symantics_unsugared (module Pre) ph |> apply_symantics (module Sym))
+;;
+
+let rewrite_via_concat { Info.all; _ } =
+  let module Map = Base.Map.Poly in
+  let gensym1 = gensym in
+  let rec gensym () =
+    let ans = gensym1 ~prefix:"eeb" () in
+    if Base.Set.Poly.mem all ans then gensym () else ans
+  in
+  let extra_ph = ref [] in
+  let extend v other =
+    extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
+  in
+  let extend_eq v other =
+    extra_ph := Id_symantics.eq_str (Id_symantics.str_var v) other :: !extra_ph
+  in
+  let module M_ = struct
+    include Id_symantics
+
+    let str_substr (term : str) (offset : term) (len : term) =
+      let svar v = Ast.Eia.atom (Ast.var v S) in
+      let z1 = gensym () in
+      let z2 = gensym () in
+      let len_z1 = gensym () in
+      let u = gensym () in
+      let y = gensym () in
+      let len_y = gensym () in
+      extend len_y (Ast.Eia.len (svar y));
+      extend len_y len;
+      extend len_z1 (Ast.Eia.len (svar z1));
+      extend len_z1 offset;
+      extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
+      extend_eq u term;
+      svar y
+    ;;
+
+    let prj = function
+      | Ast.Land xs -> land_ (!extra_ph @ xs)
+      | ph -> land_ (!extra_ph @ [ ph ])
+    ;;
+  end
+  in
+  let module Sym = struct
+    include M_
+    include FT_SIG.Sugar (M_)
+  end
+  in
+  fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
 ;;
 
 (*module Collect_alpha_ = struct
@@ -2393,7 +2438,8 @@ let arithmetize ast =
     | Ast.Unsupp s -> [ Ast.Unsupp s ]
     | _ as non_eia -> [ non_eia ]
   in
-  match basic_simplify [ 1 ] Env.empty ast with
+  let var_info = apply_symantics (module Who_in_exponents) ast in
+  match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
   | `Sat env -> `Sat ("presimpl", env)
   | `Unsat -> `Unsat
   | `Unknown (ast, e, _, _) ->
