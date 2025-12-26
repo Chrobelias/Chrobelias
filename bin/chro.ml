@@ -244,7 +244,17 @@ let check_sat ?(verbose = false) ast : rez =
          else (
            report_result2 (`Unsat !unsat_last_reason);
            Unsat !unsat_last_reason)))
-  else check_eia_sat ast
+  else (
+    match check_eia_sat ast with
+    | Sat (s, ast, env, get_model, _) ->
+      report_result2 (`Sat s);
+      Sat (s, ast, env, get_model, Map.empty)
+    | Unknown _ ->
+      report_result2 (`Unknown "nfa");
+      unknown ast Lib.Env.empty
+    | Unsat s ->
+      report_result2 (`Unsat s);
+      Unsat s)
 ;;
 
 let logBaseZ n =
