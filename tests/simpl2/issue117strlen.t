@@ -12,20 +12,43 @@ $ ls
 $ cat len1.smt2
   $ CHRO_DEBUG=1 Chro -no-over -bound -1 --pre-simpl --dpresimpl --stop-after presimpl len1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
-             (= %1 (str.len y))
-             (= %0 (str.len x))
-             (<= (+ 1 1) %0)
-             (<= (+ %0 1) %1)
-             (<= (+ 1000 1) %1))
+             (<= (+ 1 1) (str.len x))
+             (<= (+ (str.len x) 1) (str.len y))
+             (<= (+ 1000 1) (str.len y)))
   iter(2)= (and
-             (= %0 (str.len x))
-             (= %1 (str.len y))
-             (<= 2 %0)
-             (<= 1001 %1)
-             (<= (+ 1 %0) %1))
-  (and
-    (= %0 (str.len x))
-    (= %1 (str.len y))
-    (<= 2 %0)
-    (<= 1001 %1)
-    (<= (+ 1 %0) %1))
+             (<= 2 (str.len x))
+             (<= 1001 (str.len y))
+             (<= (+ 1 (str.len x)) (str.len y)))
+  Arithmetization gives 1 asts...
+  Arithmetized: (and
+                  (<= 2 strlenx)
+                  (<= 0 strlenx)
+                  (<= 1001 strleny)
+                  (<= 0 strleny)
+                  (<= (+ 1 strlenx) strleny)
+                  (<= 0 strlenx)
+                  (<= 0 strleny))
+  
+  Basic simplifications:
+  
+  iter(1)= (and
+             (<= 2 strlenx)
+             (<= 0 strlenx)
+             (<= 1001 strleny)
+             (<= 0 strleny)
+             (<= (+ 1 strlenx) strleny)
+             (<= 0 strlenx)
+             (<= 0 strleny))
+  iter(2)= (and
+             (<= 0 strlenx)
+             (<= 0 strleny)
+             (<= 2 strlenx)
+             (<= 1001 strleny)
+             (<= (+ 1 strlenx) strleny))
+  Interesting:
+  
+  Expecting 1 choices ...
+  
+  lib/Underapprox.ml gives early Sat.
+  env = {| strlenx->2 strleny->1001 |}
+  sat (under I)
