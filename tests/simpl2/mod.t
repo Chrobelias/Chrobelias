@@ -5,26 +5,21 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over -bound 0 --pre-simpl --dsimpl --stop-after pre-simpl 0.smt2 | sed 's/[[:space:]]*$//'
+  Basic simplifications:
+  
   iter(1)= (and
-             (and
-               (= r1 42))
+             (= r1 42)
              (= (str.to.int x) (+ (* 11111 q2) r1))
              (<= (+ r1 1) 11111)
              (<= 0 r1))
+  Something ready to substitute
+        r1 -> 42;
+  
   iter(2)= (and
-             (= r1 42)
              (= (str.to.int x) (+ r1 (* 11111 q2)))
-             (<= r1 11110)
-             (<= 0 r1))
-  Something ready to substitute:  r1 -> 42;
-  iter(3)= (and
-             (= r1 42)
-             (= (str.to.int x) (+ r1 (* 11111 q2)))
-             (<= r1 11110)
-             (<= 0 r1))
-  iter(4)= (and
-             (= (str.to.int x) (+ 42 (* 11111 q2))))
-  iter(5)= (= (str.to.int x) (+ 42 (* 11111 q2)))
+             (<= 0 r1)
+             (<= r1 11110))
+  iter(3)= (= (str.to.int x) (+ 42 (* 11111 q2)))
 
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)
@@ -34,39 +29,33 @@
   > EOF
 $ cat 1.smt2
   $ CHRO_DEBUG=1 Chro -no-over -bound 0 --pre-simpl --dpresimpl --stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
+  Basic simplifications:
+  
   iter(1)= (and
-             (and
-               (= r3 0))
+             (= r3 0)
              (= r1 (+ (* 417677 q4) r3))
              (<= (+ r3 1) 417677)
              (<= 0 r3)
              (= (str.to.int x) (+ (* 442271 q2) r1))
              (<= (+ r1 1) 442271)
              (<= 0 r1))
+  Something ready to substitute
+        r3 -> 0;
+  
   iter(2)= (and
              (= r1 (+ r3 (* 417677 q4)))
-             (= r3 0)
              (= (str.to.int x) (+ r1 (* 442271 q2)))
-             (<= r1 442270)
-             (<= r3 417676)
              (<= 0 r1)
-             (<= 0 r3))
-  Something ready to substitute:  r3 -> 0;
+             (<= 0 r3)
+             (<= r1 442270)
+             (<= r3 417676))
   iter(3)= (and
-             (= r1 (+ r3 (* 417677 q4)))
-             (= r3 0)
-             (= (str.to.int x) (+ r1 (* 442271 q2)))
-             (<= r1 442270)
-             (<= r3 417676)
-             (<= 0 r1)
-             (<= 0 r3))
-  iter(4)= (and
              (= r1 (* 417677 q4))
              (= (str.to.int x) (+ r1 (* 442271 q2)))
-             (<= r1 442270)
-             (<= 0 r1))
+             (<= 0 r1)
+             (<= r1 442270))
   (and
     (= r1 (* 417677 q4))
     (= (str.to.int x) (+ r1 (* 442271 q2)))
-    (<= r1 442270)
-    (<= 0 r1))
+    (<= 0 r1)
+    (<= r1 442270))

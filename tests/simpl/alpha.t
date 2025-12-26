@@ -26,23 +26,22 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro --dsimpl --stop-after simpl testA.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (-1)
+  (assert (exists (-1 -2 -3 i2 it152 it154 it155 it157 it158 it159 it160 it2
+          it4 it6)
           (and
-            (exists (it160)
-            (and
-              (exists (-3) (<= (+ (* (- 1) -3) (* (- 1) it160) )  0) )
-              (<= (+ (* (- 1) it160) (* 2 pow2(it147)) )  1)
-              (<= (+ (* (- 1) it160) pow2(it147) )  1)
-              )
-            (exists (-2 it154)
-            (= (+ (* (- 1) -2) it154 (* (- 2) pow2(it147)) )  0) )
             (exists (it6)
             (and
               (exists (i2) (= (+ (* (- 1) i2) it6 )  12) )
               (exists (it152) (= (+ (* (- 14) it147) it152 (* (- 1) it6) )  0)
               )
               )
+  
+            (<= (+ (* (- 1) it160) (* 2 pow2(it147)) )  1)
+            (<= (+ (* (- 1) it160) pow2(it147) )  1)
             (<= (+ (* (- 1) -1) (* (- 1) it147) )  0)
+            (<= (+ (* (- 1) -3) (* (- 1) it160) )  0)
+            (exists (it154)
+            (= (+ (* (- 1) -2) it154 (* (- 2) pow2(it147)) )  0) )
             (exists (it155)
             (= (+ (* (- 1) -1) it155 (* (- 2) pow2(it147)) )  0) )
             (exists (it157)

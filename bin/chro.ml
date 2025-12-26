@@ -130,10 +130,10 @@ let check_sat ?(verbose = false) ast : rez =
         if Lib.Config.config.logic = `Eia
         then (
           match Lib.SimplII.check_nia ast with
-          | `Sat -> sat "non-linear" ast e (fun _ -> Result.Ok Map.empty) Map.empty
-          | `Unsat -> Unsat "non-linear"
+          | `Sat -> sat "nia" ast e (fun _ -> Result.Ok Map.empty) Map.empty
+          | `Unsat -> Unsat "nia"
           | `Unknown ->
-            report_result2 (`Unknown "non-linear");
+            report_result2 (`Unknown "nia");
             exit 0)
         else unknown ast e)
       <+> (fun ast e ->

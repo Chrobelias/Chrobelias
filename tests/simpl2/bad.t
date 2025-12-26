@@ -54,7 +54,7 @@ $ export OCAMLRUNPARAM='b=0'
   > EOF
 $ export CHRO_DEBUG=1
   $ Chro -bound 2 --pre-simpl --dsimpl UnderDoesntHelp1.smt2 | sed 's/[[:space:]]*$//'
-  unsat (non-linear)
+  unsat (nia)
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
   > (set-logic ALL)

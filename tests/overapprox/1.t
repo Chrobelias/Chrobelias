@@ -8,7 +8,7 @@
   > EOF
 $ export CHRO_DEBUG=1
   $ Chro -bound 0 --dsimpl --stop-after simpl testO1.smt2 | sed 's/[[:space:]]*$//'
-  unsat (lia)
+  unsat (over)
 
 
   $ cat > testO2.smt2 <<-EOF

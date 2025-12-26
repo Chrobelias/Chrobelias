@@ -11,10 +11,11 @@
   > (check-sat)
   > EOF
   $ Chro -bound -1 --pre-simpl --dpresimpl --stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
-  iter(1)= (and
-             (= (+ (exp 2 n) (exp 2 n)) (* 2
-                                        (+ (exp 2 (+ n (* (- 1) 1)))
-                                        (exp 2 (+ n (* (- 1) 1)))))))
+  Basic simplifications:
+  
+  iter(1)= (= (+ (exp 2 n) (exp 2 n)) (* 2
+                                      (+ (exp 2 (+ n (* (- 1) 1)))
+                                      (exp 2 (+ n (* (- 1) 1))))))
   iter(2)= (= (+ (* (- 2) (exp 2 (+ n))) (exp 2 n) (exp 2 n)) 0)
   iter(3)= (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)
   iter(4)= True
@@ -31,8 +32,9 @@
   > (check-sat)
   > EOF
   $ Chro -bound -1 --pre-simpl --dpresimpl --stop-after pre-simpl 2.smt2 | sed 's/[[:space:]]*$//'
-  iter(1)= (and
-             (= (* 2 (+ (exp 2 (+ n (* (- 1) 1))) (exp 2 (+ n (* (- 1) 1))))) 333))
+  Basic simplifications:
+  
+  iter(1)= (= (* 2 (+ (exp 2 (+ n (* (- 1) 1))) (exp 2 (+ n (* (- 1) 1))))) 333)
   iter(2)= (= (+ (* (exp 2 (+ (- 1) n)) 2) (* (exp 2 (+ (- 1) n)) 2)) 333)
   iter(3)= (= (+ (exp 2 n) (exp 2 n)) 333)
   (= (+ (exp 2 n) (exp 2 n)) 333)
