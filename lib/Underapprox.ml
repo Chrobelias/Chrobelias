@@ -236,7 +236,7 @@ let check bound ast =
                     env
                 in
                 raise (Early env))
-           | `Unsat when List.length all_choices == 1 -> raise Early_Unsat
+           | `Unsat when List.length interestring_vars == 0 -> raise Early_Unsat
            | _ -> ())
         all_choices;
       (* TODO: if all Unsat, add a constraints (x>bound), becuase we have already checked values in [0.. bound] *)
