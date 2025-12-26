@@ -1664,7 +1664,6 @@ let _lower_strlen ast =
 ;; *)
 
 let basic_simplify step ?multiple (env : Env.t) ast =
-  assert (Ast.is_conjunct ast);
   let rec loop step (env : Env.t) ast =
     log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
@@ -1710,10 +1709,13 @@ let run_basic_simplify ast =
   let ast = lower_mod ast in
   (* let ast = SimplI.run_simplify ast in *)
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
-  match basic_simplify [ 1 ] Env.empty ast with
-  | `Sat env -> `Sat ("presimpl", env)
-  | `Unsat -> `Unsat
-  | `Unknown (ast, e, _, _) -> `Unknown (ast, e)
+  if Ast.is_conjunct ast
+  then (
+    match basic_simplify [ 1 ] Env.empty ast with
+    | `Sat env -> `Sat ("presimpl", env)
+    | `Unsat -> `Unsat
+    | `Unknown (ast, e, _, _) -> `Unknown (ast, e))
+  else `Unknown (ast, Env.empty)
 ;;
 
 let get_range () =
