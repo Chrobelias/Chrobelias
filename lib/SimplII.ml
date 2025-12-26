@@ -2416,7 +2416,7 @@ let arithmetize ast =
     | _ as non_eia -> [ non_eia ]
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
-  match basic_simplify [ 1 ] ~multiple:true Env.empty (ast |> rewrite_via_concat var_info) with
+  match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
   | `Sat env -> `Sat ("presimpl", env)
   | `Unsat -> `Unsat
   | `Unknown (ast, e, _, _) ->
