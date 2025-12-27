@@ -1330,7 +1330,18 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     with
     | Env.Occurs -> None
   in
-  let helper info env ast =
+  let helper info orig_ast env ast =
+    let module Set = Base.Set.Poly in
+    let get_atoms =
+      Ast.Eia.fold2
+        (fun acc -> function
+           | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
+           | _ -> acc)
+        (fun acc -> function
+           | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
+           | _ -> acc)
+        Set.empty
+    in
     match ast with
     (* **************************** String stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Str_const str as rhs), S))
@@ -1486,6 +1497,19 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       in
       (try Some (loop [] sums) with
        | Exit -> None)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, _) as eia')
+      when Env.is_absent_key vn env
+           && Ast.forsome
+                (function
+                  | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
+                  | _ -> false)
+                orig_ast -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (rhs, Atom (Var (vn, _) as v), _) as eia')
+      when Env.is_absent_key vn env
+           && (function
+                | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
+                | _ -> false)
+                orig_ast -> Some (extend_exn env v rhs)
     | eq ->
       (* log "OTHERWISE  ast part = @[%a@]" Ast.pp_smtlib2 ast; *)
       None
@@ -1495,11 +1519,11 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     let multiple = Option.value ~default:false multiple in
     match ast with
     | Land xs ->
-      let env, ys = fold_and_filter multiple (helper info) env xs in
+      let env, ys = fold_and_filter multiple (helper info ast) env xs in
       let ans_ph = if ys = [] && xs <> [] then True else Land ys in
       env, ans_ph
     | Eia _ ->
-      (match helper info env ast with
+      (match helper info ast env ast with
        | Some e -> e, Ast.True
        | None -> env, ast)
     | ph -> env, ph
