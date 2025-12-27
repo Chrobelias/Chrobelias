@@ -1,5 +1,0 @@
-str-term-small-rw_335
-  $ export OCAMLRUNPARAM='b=0'
-  $ timeout 2 Chro ../../../../../benchmarks/QF_SLIA/20190311-str-small-rw-Noetzli/str-term-small-rw/str-term-small-rw_335.smt2  || echo TIMEOUT
-  Fatal error: exception Failure("unable to handle (str.substr \"\" (str.to_int x) z) as string")
-  TIMEOUT
