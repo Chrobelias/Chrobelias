@@ -1364,21 +1364,36 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       else if Env.occurs_var env vn1 rhs
       then None
       else Some (extend_exn env v1 rhs)
-    | Eia (Eia.Eq (Atom (Var (vn, _) as v1), (Const c as rhs), _))
+    | Eia (Eia.Eq (Atom (Var (vn, I) as v1), (Const c as rhs), I))
+    | Eia (Eia.Eq ((Const c as rhs), Atom (Var (vn, I) as v1), I))
       when Env.is_absent_key vn env ->
       (* (= v c) *)
       Some (extend_exn env v1 rhs)
     | Eia (Eia.Eq (Mul [ Const _; Atom (Var (vn, _) as v) ], (Const z as rhs), _))
+    | Eia (Eia.Eq ((Const z as rhs), Mul [ Const _; Atom (Var (vn, _) as v) ], _))
       when Z.(equal z zero) && Env.is_absent_key vn env ->
       (* (= ( * c v) 0) *)
       Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Mul [ Const cl; Atom (Var (vn, _) as v) ], Const cr, _))
+    | Eia (Eia.Eq (Const cr, Mul [ Const cl; Atom (Var (vn, _) as v) ], _))
       when Z.(cr mod cl = zero) && Env.is_absent_key vn env ->
       let rhs = Eia.(Const Z.(cr / cl)) in
       Some (extend_exn env v rhs)
     | Eia
         (Eia.Eq
-           ((Mul [ Const cl; Atom (Var (_, _)) ] as lhs), Atom (Var (vn2, _) as vr), _))
+           ((Mul [ Const cl; Atom (Var (_, I)) ] as lhs), Atom (Var (vn2, I) as vr), I))
+    | Eia
+        (Eia.Eq
+           (Atom (Var (vn2, I) as vr), (Mul [ Const cl; Atom (Var (_, I)) ] as lhs), I))
+      when Env.is_absent_key vn2 env ->
+      (* (= ( * c v) vr) *)
+      Some (extend_exn env vr lhs)
+    | Eia
+        (Eia.Eq
+           (Atom (Var (vn2, I) as vr), (Mul [ Const cl; Atom (Var (_, I)) ] as lhs), I))
+    | Eia
+        (Eia.Eq
+           ((Mul [ Const cl; Atom (Var (_, I)) ] as lhs), Atom (Var (vn2, I) as vr), I))
       when Env.is_absent_key vn2 env ->
       (* (= ( * c v) vr) *)
       Some (extend_exn env vr lhs)
@@ -1387,6 +1402,12 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            ( Add
                [ Atom (Var (v1n, _) as v1); Mul [ Const c; (Atom (Var (v2n, _)) as v2) ] ]
            , Const z0
+           , I ))
+    | Eia
+        (Eia.Eq
+           ( Const z0
+           , Add
+               [ Atom (Var (v1n, _) as v1); Mul [ Const c; (Atom (Var (v2n, _)) as v2) ] ]
            , I ))
       when Z.(equal z0 zero) && Env.is_absent_key v1n env ->
       (* (= (+ v1 c*v2)) 0) *)
@@ -1397,7 +1418,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
           if Z.(equal c minus_one) then v2 else Eia.Mul [ Const Z.(-c); v2 ]
         in
         Some (extend_exn env v1 new_rhs))
-    | Eia (Eia.Eq (Add [ Atom (Var (_, _) as v1); Atom (Var (_, _) as v2) ], rhs, I))
+    | Eia (Eia.Eq (Add [ Atom (Var (_, I) as v1); Atom (Var (_, I) as v2) ], rhs, I))
       when v1 <> v2 ->
       (* (= (+ v1 v2) rhs) *)
       (* log "%s %d. ast = %a" __FILE__ __LINE__ Ast.pp_smtlib2 ast; *)
