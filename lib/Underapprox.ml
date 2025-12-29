@@ -50,7 +50,7 @@ let make_sym (env : env) onvar bound =
       | Some c -> constz (Z.of_int c)
     ;;
 
-    let pow2var s = pow (constz (Z.of_int 2)) (var s)
+    let pow2var s = pow (constz (Config.base ())) (var s)
     let prj = Fun.id
 
     let exists vars x =
@@ -155,7 +155,7 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Mod (l, r) -> S.mod_ (helperT l) r
-    | Pow (Const base, Atom (Var (x, _))) when base = Z.of_int 2 -> S.pow2var x
+    | Pow (Const base, Atom (Var (x, _))) when base = Config.base () -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
     | Len _ | Iofs _ | Sofi _ | Concat _ | At _ | Substr _ | Str_const _ | Len2 _ ->
