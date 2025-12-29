@@ -1398,7 +1398,7 @@ let check_sat ir
                |> Map.map_keys_exn ~f:(fun v -> Ir.var v)
              in
              Map.merge_disjoint_exn main_model env_model |> filter_internal |> return*)
-          return (main_model |> filter_internal))
+          return main_model (*|> filter_internal*))
     | `Unsat -> `Unsat
     | `Unknown -> `Unknown ir
     (*| `Sat (_, env) -> `Sat (fun _ -> Result.Ok Map.empty)

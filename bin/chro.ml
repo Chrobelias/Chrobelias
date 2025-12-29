@@ -152,34 +152,38 @@ let check_sat ?(verbose = false) ast : rez =
           then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
           if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
           log "Looking for SAT in %d asts..." (List.length asts);
-          let exception Sat_found in
+          let exception
+            Sat_found of
+              ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
+               -> (Lib.Ir.model, [ `Too_long ]) Result.t)
+          in
           (try
              let f ast =
                let ir = Lib.Me.ir_of_ast e ast in
                match ir with
                | Ok ir -> begin
                  match Lib.Solver.check_sat ir with
-                 | `Sat _ -> raise Sat_found
+                 | `Sat e -> raise (Sat_found e)
                  | _ -> Result.ok ()
                end
                | Error s -> Result.error s
              in
-             let results = List.map f asts in
-             let extra =
+             let _results = List.map f asts in
+             (*let extra =
                List.map
                  (function
                    | Ok _ -> "unsat;"
                    | Error s -> s)
                  results
                |> String.concat " "
-             in
-             report_result2 (`Unknown (Format.sprintf "under II %s" extra));
+             in*)
+             (*report_result2 (`Unknown (Format.sprintf "under II %s" extra));*)
              (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
              unknown ast e
            with
-           | Sat_found ->
-             report_result2 (`Sat "under II");
-             exit 0))
+           | Sat_found model ->
+             (*report_result2 (`Sat "under II");*)
+             sat "under II" ast e model Map.empty))
       else unknown ast e)
       <+> (fun ast e ->
       if Lib.Config.config.dump_pre_simpl
@@ -274,7 +278,6 @@ let logBaseZ n =
 
 let join_int_model prefix m =
   let open Lib in
-  let _ : Ir.model = m in
   (* Format.printf
     "prefix.length = %d, n.length = %d\n%!"
     (Env.length prefix)
@@ -288,13 +291,13 @@ let join_int_model prefix m =
     Env.enrich prefix shrink_ir_model
   in
   (* log "prefix.length = %d" (Env.length prefix); *)
-  let rec seek key =
+  let rec seek prefix key =
     match Env.lookup_int key prefix with
     | Some eia -> begin
       match SimplII.subst_term prefix eia with
       | Ast.Eia.Const c -> Option.some (`Int c)
       | Ast.Eia.Str_const s -> Option.some (`Str s)
-      | Ast.Eia.Atom (Var (v, _)) -> seek v
+      | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
       | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
     end
     (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
@@ -305,15 +308,32 @@ let join_int_model prefix m =
         match SimplII.subst_term prefix str with
         | Ast.Eia.Const c -> Option.some (`Int c)
         | Ast.Eia.Str_const s -> Option.some (`Str s)
-        | Ast.Eia.Atom (Var (v, _)) -> seek v
+        | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
         | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
       end
       | None when Solver.is_internal key -> None
       | None -> None
     end
   in
+  let rec saturate env =
+    let env' : Env.t =
+      Env.fold
+        env
+        ~f:(fun ~key ~data acc ->
+          begin
+            match data with
+            | Ast.TT (Ast.I, term) ->
+              Env.extend_int_exn acc key (SimplII.subst_term env term)
+            | Ast.TT (Ast.S, term) ->
+              Env.extend_string_exn acc key (SimplII.subst_term env term)
+          end)
+        ~init:Env.empty
+    in
+    if Env.equal env' env then env' else saturate env'
+  in
+  let prefix = saturate prefix in
   Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
-    match seek key with
+    match seek prefix key with
     | Some value -> Map.set acc ~key:(Ir.var key) ~data:value
     | None ->
       if Solver.is_internal key |> not
@@ -458,7 +478,8 @@ let () =
                            let regexes = Map.find_exn regexes real_var in
                            let nfa = regexes in
                            let path =
-                             NfaS.path_of_len2 ~var:0 ~len:data nfa |> Option.get
+                             NfaS.path_of_len2 ~var:0 ~len:data nfa
+                             |> Option.value ~default:(List.init data (fun _ -> '0'))
                            in
                            Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
                          else Some (var real_var, `Str (String.init data (fun _ -> '0')))

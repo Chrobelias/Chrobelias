@@ -15,7 +15,9 @@ module NfaS = Nfa.Lsb (Nfa.Str)
     let compare = Stdlib.compare
   end) *)
 
-type error = Non_linear_arith : Z.t Ast.Eia.term list -> error
+type error =
+  | Non_linear_arith : Z.t Ast.Eia.term list -> error
+  | Non_linear_string : string Ast.Eia.term list -> error
 
 let compare_error : error -> _ = Stdlib.compare
 
@@ -23,6 +25,13 @@ let pp_error ppf = function
   | Non_linear_arith ts ->
     Format.fprintf ppf "@[<v 2>";
     Format.fprintf ppf "@[Non linear arithmetic between@]@,";
+    List.iteri
+      (fun i term -> Format.fprintf ppf "@[%d) %a@]@," i Ast.pp_term_smtlib2 term)
+      ts;
+    Format.fprintf ppf "@]"
+  | Non_linear_string ts ->
+    Format.fprintf ppf "@[<v 2>";
+    Format.fprintf ppf "@[Non linear string logic between@]@,";
     List.iteri
       (fun i term -> Format.fprintf ppf "@[%d) %a@]@," i Ast.pp_term_smtlib2 term)
       ts;
@@ -45,9 +54,10 @@ let check_errors ph =
     | Pow (base, Const _) as ans when not_a_const base -> Non_linear_arith [ ans ] :: acc
     | _ -> acc
   in
-  let on_str_term acc _ =
-    Printf.eprintf "Implement me! %s %d\n" __FILE__ __LINE__;
-    acc
+  let on_str_term acc = function
+    | Concat (Str_const lhs, rhs) | Concat (rhs, Str_const lhs) -> acc
+    | Concat (lhs, rhs) as ans -> Non_linear_string [ ans ] :: acc
+    | _ -> acc
   in
   Ast.fold
     (fun errs -> function
@@ -807,6 +817,28 @@ let make_main_symantics env =
       | _ -> Ast.eia (Eia.inre s Ast.S re)
     ;;
 
+    let in_re_raw s re =
+      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      match s with
+      (*| Ast.Eia.(Const c) | Ast.Eia.Sofi (Const c) ->
+        (* v = sofi 4 <=> v="4" | v="04" | v="004" | ... *)
+        begin
+          match
+            re
+            |> NfaStr.intersect (from_eia_nfa c)
+            |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
+          with
+          | true -> Ast.true_
+          | false -> Ast.false_
+        end*)
+      | Ast.Eia.(Str_const str) -> begin
+        match re |> NfaStr.re_accepts (String.to_seq str |> List.of_seq |> List.rev) with
+        | true -> Ast.true_
+        | false -> Ast.false_
+      end
+      | _ -> Id_symantics.in_re_raw s re
+    ;;
+
     let prj : ph -> repr = Fun.id
   end
   in
@@ -1195,7 +1227,7 @@ let gensym =
 let flatten { Info.all; _ } =
   let gensym1 = gensym in
   let rec gensym () =
-    let ans = gensym1 ~prefix:"eee" () in
+    let ans = gensym1 ~prefix:"%flat_pow" () in
     if Base.Set.Poly.mem all ans then gensym () else ans
   in
   let extra_ph = ref [] in
@@ -1710,10 +1742,10 @@ let _lower_strlen ast =
 
 let basic_simplify step ?multiple (env : Env.t) ast =
   let rec loop step (env : Env.t) ast =
-    log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
     let (module Symantics) = make_main_symantics env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
+    log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast2;
     (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
     let ast2 = propagate_exponents ast2 in
     let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
@@ -1790,7 +1822,7 @@ let try_under2_heuristics env ast =
       let aux = function
         | (Ast.Eia.Atom (Var _) | Pow (Const _, _) | Ast.Eia.Const _) as term -> term
         | term ->
-          let x = gensym ~prefix:"a" () in
+          let x = gensym ~prefix:"%under2" () in
           temp_env := Env.extend_int_exn !temp_env x term;
           Ast.Eia.atom (Ast.var x Ast.I)
       in
@@ -1823,7 +1855,7 @@ let try_under2_heuristics env ast =
         ~f:(fun acc name ->
           let* a = all_as in
           let* acc, phs = acc in
-          let u = gensym ~prefix:"u" () in
+          let u = gensym ~prefix:"%under2" () in
           (*if Env.is_absent_key name env then*)
           [ Env.extend_int_exn acc name Id_symantics.(add [ pow2var u; const a ]), phs ]
           (*else
@@ -1840,8 +1872,8 @@ let try_under2_heuristics env ast =
         ~f:(fun acc name ->
           let* a = all_as in
           let* acc, phs = acc in
-          let u = gensym ~prefix:"u" () in
-          let v = gensym ~prefix:"v" () in
+          let u = gensym ~prefix:"%under2" () in
+          let v = gensym ~prefix:"%under2" () in
           [ ( Env.extend_int_exn
                 acc
                 name
@@ -1856,7 +1888,7 @@ let try_under2_heuristics env ast =
       Base.Set.Poly.fold
         ~f:(fun acc name ->
           let* acc, phs = acc in
-          let vars = List.init (1 + n) (fun _ -> gensym ~prefix:"u" ()) in
+          let vars = List.init (1 + n) (fun _ -> gensym ~prefix:"%under2" ()) in
           let sum =
             List.mapi
               (fun i u ->
@@ -2060,7 +2092,7 @@ let rewrite_concats { Info.all; _ } =
   let module Map = Base.Map.Poly in
   let gensym1 = gensym in
   let rec gensym () =
-    let ans = gensym1 ~prefix:"eeb" () in
+    let ans = gensym1 ~prefix:"%concat" () in
     if Base.Set.Poly.mem all ans then gensym () else ans
   in
   let extra_ph = ref [] in
@@ -2141,7 +2173,7 @@ let rewrite_via_concat { Info.all; _ } =
   let module Map = Base.Map.Poly in
   let gensym1 = gensym in
   let rec gensym () =
-    let ans = gensym1 ~prefix:"eeb" () in
+    let ans = gensym1 ~prefix:"%substr" () in
     if Base.Set.Poly.mem all ans then gensym () else ans
   in
   let extra_ph = ref [] in
@@ -2334,7 +2366,7 @@ let arithmetize ast =
           match s with
           | Ast.Eia.Atom (Ast.Var (var, _)) -> var, String.concat "" [ "strlen"; var ], []
           | non_var ->
-            let var = gensym ~prefix:"eec" () in
+            let var = gensym ~prefix:"%arith_len" () in
             let non_var, phs = arithmetize_term non_var in
             ( var
             , String.concat "" [ "strlen"; var ]
@@ -2384,7 +2416,7 @@ let arithmetize ast =
     csds
     |> Seq.map (fun (c, d) ->
       let c, d = Z.of_int c, Z.of_int d in
-      let n = gensym () in
+      let n = gensym ~prefix:"%re_len" () in
       Ast.land_
         [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
         ; Ast.eia
@@ -2425,7 +2457,7 @@ let arithmetize ast =
         match s with
         | Ast.Eia.Atom (Var (s, I)) -> s, phs
         | non_var ->
-          let v = gensym () in
+          let v = gensym ~prefix:"%arith_re" () in
           v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
       in
       if Ast.in_stoi s ast
@@ -2447,7 +2479,7 @@ let arithmetize ast =
         match s with
         | Ast.Eia.Atom (Var (s, I)) -> s, phs
         | non_var ->
-          let v = gensym () in
+          let v = gensym ~prefix:"%arith_re_raw" () in
           v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
       in
       (* TODO: Add regular constraints with automata*)

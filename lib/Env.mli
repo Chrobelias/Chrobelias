@@ -6,6 +6,7 @@ val empty : t
 
 (* val is_empty : t -> bool *)
 val merge_exn : t -> t -> t
+val equal : t -> t -> bool
 
 val merge
   :  sf:

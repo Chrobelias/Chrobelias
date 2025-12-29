@@ -70,6 +70,12 @@ let walk : 'a. t -> 'a term -> 'a term =
   Ast.Eia.map_term fz fs
 ;;
 
+let equal (env : t) (env' : t) =
+  SM.equal Ast.Eia.equal env.env env'.env
+  && SM.equal Ast.Eia.equal env.str_env env'.str_env
+  && env.cstrts = env'.cstrts
+;;
+
 (* let is_absent_key k map = not (SM.mem map k) *)
 
 exception Occurs
@@ -173,7 +179,7 @@ let set_int_exn e vname data =
 ;;
 
 let extend_string_exn e vname data =
-  if SM.mem e.env vname
+  if SM.mem e.str_env vname
   then (
     Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 (SM.find_exn e.str_env vname);
     Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;

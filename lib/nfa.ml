@@ -1258,7 +1258,9 @@ struct
       nfa', nfa'')
   ;;
 
-  let equal_start_and_final nfa nfa' = nfa.start = nfa'.start && nfa.final = nfa'.final
+  let equal_start_and_final nfa nfa' =
+    Set.equal nfa.start nfa'.start && Set.equal nfa.final nfa'.final
+  ;;
 
   let of_regex (r : Label.u list Regex.t) =
     let rec traverse visited = function
