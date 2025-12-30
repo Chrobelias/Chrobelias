@@ -463,7 +463,11 @@ let make_main_symantics env =
     let str_var s : str =
       match Env.lookup_string s env with
       | Some c -> c
-      | None -> Eia.Atom (Ast.Var (s, S))
+      | None -> begin
+        match Env.lookup_int s env with
+        | Some c -> Ast.Eia.sofi c
+        | None -> Eia.Atom (Ast.Var (s, S))
+      end
     ;;
 
     let str_len = function

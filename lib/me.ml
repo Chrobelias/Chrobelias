@@ -490,7 +490,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       begin
         match atoms with
         | [] -> ir :: sup |> Ir.land_ |> return
-        | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+        | atoms -> (*Ir.exists atoms *) ir :: sup |> Ir.land_ |> return
       end
     | InReRaw (str, re) ->
       let* str, sup = of_str_atom str in
@@ -501,7 +501,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       begin
         match atoms with
         | [] -> ir :: sup |> Ir.land_ |> return
-        | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+        | atoms -> (*Ir.exists atoms *) ir :: sup |> Ir.land_ |> return
       end
     | InRe (eia, Ast.I, re) ->
       let* lhs = helper eia in
@@ -513,7 +513,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       begin
         match atoms with
         | [] -> ir :: sups |> Ir.land_ |> return
-        | atoms -> Ir.exists atoms (ir :: sups |> Ir.land_) |> return
+        | atoms -> (*Ir.exists atoms *) ir :: sups |> Ir.land_ |> return
       end
     | PrefixOf (a, b) ->
       let* a, sup_a = of_str_atom a in

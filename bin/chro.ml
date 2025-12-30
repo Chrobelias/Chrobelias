@@ -507,6 +507,14 @@ let () =
                  |> Map.of_alist_exn
                in
                (* New code ends here *)
+               let real_model =
+                 Map.filteri
+                   ~f:(fun ~key ~data:_ ->
+                     match key with
+                     | Var v when String.starts_with ~prefix:"%" v -> false
+                     | _ -> true)
+                   real_model
+               in
                Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
              | Result.Error `Too_long ->
                log "; model is TOO big on 1st attempt\n%!";
