@@ -19,6 +19,8 @@ $ cat len1.smt2
              (<= 2 (str.len x))
              (<= 1001 (str.len y))
              (<= (+ 1 (str.len x)) (str.len y)))
+  fixed-point
+  
   Arithmetization gives 1 asts...
   Arithmetized: (and
                   (<= 2 strlenx)
@@ -45,6 +47,8 @@ $ cat len1.smt2
              (<= 2 strlenx)
              (<= 1001 strleny)
              (<= (+ 1 strlenx) strleny))
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...

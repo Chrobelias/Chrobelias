@@ -657,6 +657,8 @@
               (<= (* (- 1) i10) (- 2))
               (<= (* (- 1) i10) (- 1))
               (<= (* (- 1) it147) (- 1)))
+  fixed-point
+  
   Interesting: it147
   
   Expecting 1 choices ...

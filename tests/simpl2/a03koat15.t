@@ -1612,4 +1612,6 @@ $ cat input.smt2
               (<= (* (- 1) it92) (- 1))
               (<= (* 1 i3) 0))
   iter(27)= (not True)
+  fixed-point
+  
   unsat (presimpl)

@@ -18,6 +18,8 @@
   iter(4)= (and
              (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
              (<= (* (- 5) x) 13))
+  fixed-point
+  
   Interesting: y
   
   Expecting 2 choices ...
@@ -56,6 +58,8 @@
   iter(4)= (and
              (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
              (<= (* (- 5) x) 13))
+  fixed-point
+  
   Interesting: y
   
   Expecting 0 choices ...
@@ -77,6 +81,8 @@
   
   iter(1)= (= (+ (* n (exp 2 n)) (* (* (- 1) 1) n (exp 2 n))) 0)
   iter(2)= True
+  fixed-point
+  
   sat (presimpl)
   $ cat > sum_join2.smt2 <<-EOF
   > (set-logic ALL)
@@ -89,4 +95,6 @@
   
   iter(1)= (not (= (+ (* (* (- 1) 1) (exp 2 n)) (exp 2 n)) 0))
   iter(2)= (not True)
+  fixed-point
+  
   unsat (presimpl)

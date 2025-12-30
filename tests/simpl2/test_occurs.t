@@ -8,6 +8,8 @@
         x -> (+ 13 (- y));
   
   iter(2)= True
+  fixed-point
+  
   sat (presimpl)
 
   $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
@@ -31,6 +33,8 @@
              (= (+ z (* (- 1) y)) 9999))
   iter(4)= (= (+ z (* 100 (- 1)) (* (* (- 1) z) (- 1))) 9999)
   iter(5)= (= (+ z z) 10099)
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -47,6 +51,8 @@
   
   iter(1)= (= (+ y y) (* (- 1) 9899))
   iter(2)= (= (+ y y) (- 9899))
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -74,6 +80,8 @@
   iter(2)= (and
              (= (+ it19 it23 (* (- 1) i4)) (- 1))
              (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0))
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -122,4 +130,6 @@
         it233 -> it199;
   
   iter(4)= True
+  fixed-point
+  
   sat (presimpl)

@@ -2787,6 +2787,8 @@
               (<= (* (- 1) it87) (- 1))
               (<= (* (- 1) (exp 2 it87)) (- 2))
               (<= (exp 2 it87) 2))
+  fixed-point
+  
   Interesting: it273 it87
   
   Expecting 4 choices ...

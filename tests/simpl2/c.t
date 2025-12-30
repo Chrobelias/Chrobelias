@@ -23,4 +23,6 @@
         z -> 0;
   
   iter(3)= True
+  fixed-point
+  
   sat (presimpl)

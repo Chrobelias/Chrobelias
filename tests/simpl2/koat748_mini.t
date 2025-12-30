@@ -7,7 +7,7 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_DEBUG
   $ OCAMLRUNPARAM='b=0' Chro --no-pre-simpl input.smt2
-  unknown (nia)
+  unknown
 
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
   sat (under I)

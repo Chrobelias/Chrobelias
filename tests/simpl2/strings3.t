@@ -10,144 +10,148 @@
   iter(1)= (and
              (= (str.++ "999" x) (str.++ y x)))
   iter(2)= (= (str.++ "999" x) (str.++ y x))
+  fixed-point
+  
   Arithmetization gives 1 asts...
   Arithmetized: (and
-                  (= eeb6 strlenx)
+                  (= %concat6 strlenx)
                   (<= 0 strlenx)
-                  (= eeb5 (+ (* eeb7 (exp 10 eeb6)) eeb8))
-                  (= eeb8 x)
-                  (= eeb7 999)
-                  (= eeb2 strlenx)
+                  (= %concat5 (+ (* %concat7 (exp 10 %concat6)) %concat8))
+                  (= %concat8 x)
+                  (= %concat7 999)
+                  (= %concat2 strlenx)
                   (<= 0 strlenx)
-                  (= eeb1 (+ (* eeb3 (exp 10 eeb2)) eeb4))
-                  (= eeb4 x)
-                  (= eeb3 y)
-                  (= eeb5 eeb1))
+                  (= %concat1 (+ (* %concat3 (exp 10 %concat2)) %concat4))
+                  (= %concat4 x)
+                  (= %concat3 y)
+                  (= %concat5 %concat1))
   
   Basic simplifications:
   
   iter(1)= (and
-             (= eeb6 strlenx)
+             (= %concat6 strlenx)
              (<= 0 strlenx)
-             (= eeb5 (+ (* eeb7 (exp 10 eeb6)) eeb8))
-             (= eeb8 x)
-             (= eeb7 999)
-             (= eeb2 strlenx)
+             (= %concat5 (+ (* %concat7 (exp 10 %concat6)) %concat8))
+             (= %concat8 x)
+             (= %concat7 999)
+             (= %concat2 strlenx)
              (<= 0 strlenx)
-             (= eeb1 (+ (* eeb3 (exp 10 eeb2)) eeb4))
-             (= eeb4 x)
-             (= eeb3 y)
-             (= eeb5 eeb1))
+             (= %concat1 (+ (* %concat3 (exp 10 %concat2)) %concat4))
+             (= %concat4 x)
+             (= %concat3 y)
+             (= %concat5 %concat1))
   Something ready to substitute
-        eeb1 -> (+ eeb4 (* eeb3 (exp 10 eeb2)));
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
   
   iter(2)= (and
-             (= eeb2 strlenx)
-             (= eeb3 y)
-             (= eeb4 x)
-             (= eeb5 eeb1)
-             (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6))))
-             (= eeb6 strlenx)
-             (= eeb7 999)
-             (= eeb8 x)
+             (= %concat2 strlenx)
+             (= %concat3 y)
+             (= %concat4 x)
+             (= %concat5 %concat1)
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (= %concat7 999)
+             (= %concat8 x)
              (<= 0 strlenx))
   Something ready to substitute
-        eeb1 -> (+ eeb4 (* eeb3 (exp 10 eeb2)));
-        eeb2 -> strlenx;
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
   
   iter(3)= (and
-             (= eeb3 y)
-             (= eeb4 x)
-             (= eeb5 (+ eeb4 (* eeb3 (exp 10 eeb2))))
-             (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6))))
-             (= eeb6 strlenx)
-             (= eeb7 999)
-             (= eeb8 x)
+             (= %concat3 y)
+             (= %concat4 x)
+             (= %concat5 (+ %concat4 (* %concat3 (exp 10 %concat2))))
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (= %concat7 999)
+             (= %concat8 x)
              (<= 0 strlenx))
   Something ready to substitute
-        eeb1 -> (+ eeb4 (* eeb3 (exp 10 eeb2)));
-        eeb2 -> strlenx;
-        eeb3 -> y;
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
   
   iter(4)= (and
-             (= eeb4 x)
-             (= eeb5 (+ eeb4 (* eeb3 (exp 10 strlenx))))
-             (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6))))
-             (= eeb6 strlenx)
-             (= eeb7 999)
-             (= eeb8 x)
+             (= %concat4 x)
+             (= %concat5 (+ %concat4 (* %concat3 (exp 10 strlenx))))
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (= %concat7 999)
+             (= %concat8 x)
              (<= 0 strlenx))
   Something ready to substitute
-        eeb1 -> (+ eeb4 (* eeb3 (exp 10 eeb2)));
-        eeb2 -> strlenx;
-        eeb3 -> y;
-        eeb4 -> x;
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
   
   iter(5)= (and
-             (= eeb5 (+ eeb4 (* y (exp 10 strlenx))))
-             (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6))))
-             (= eeb6 strlenx)
-             (= eeb7 999)
-             (= eeb8 x)
+             (= %concat5 (+ %concat4 (* y (exp 10 strlenx))))
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (= %concat7 999)
+             (= %concat8 x)
              (<= 0 strlenx))
   Something ready to substitute
-        eeb1 -> (+ eeb4 (* eeb3 (exp 10 eeb2)));
-        eeb2 -> strlenx;
-        eeb3 -> y;
-        eeb4 -> x;
-        eeb5 -> (+ eeb8 (* eeb7 (exp 10 eeb6)));
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
   
   iter(6)= (and
-             (= eeb5 (+ x (* y (exp 10 strlenx))))
-             (= eeb6 strlenx)
-             (= eeb7 999)
-             (= eeb8 x)
+             (= %concat5 (+ x (* y (exp 10 strlenx))))
+             (= %concat6 strlenx)
+             (= %concat7 999)
+             (= %concat8 x)
              (<= 0 strlenx))
   Something ready to substitute
-        eeb1 -> (+ eeb4 (* eeb3 (exp 10 eeb2)));
-        eeb2 -> strlenx;
-        eeb3 -> y;
-        eeb4 -> x;
-        eeb5 -> (+ eeb8 (* eeb7 (exp 10 eeb6)));
-        eeb6 -> strlenx;
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
   
   iter(7)= (and
-             (= eeb7 999)
-             (= eeb8 x)
-             (= (+ eeb8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
-                (* eeb7 (exp 10 eeb6))) 0)
+             (= %concat7 999)
+             (= %concat8 x)
+             (= (+ %concat8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
+                (* %concat7 (exp 10 %concat6))) 0)
              (<= 0 strlenx))
   Something ready to substitute
-        eeb1 -> (+ eeb4 (* eeb3 (exp 10 eeb2)));
-        eeb2 -> strlenx;
-        eeb3 -> y;
-        eeb4 -> x;
-        eeb5 -> (+ eeb8 (* eeb7 (exp 10 eeb6)));
-        eeb6 -> strlenx;
-        eeb7 -> 999;
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
+        %concat7 -> 999;
   
   iter(8)= (and
-             (= eeb8 x)
-             (= (+ eeb8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
-                (* eeb7 (exp 10 strlenx))) 0)
+             (= %concat8 x)
+             (= (+ %concat8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
+                (* %concat7 (exp 10 strlenx))) 0)
              (<= 0 strlenx))
   Something ready to substitute
-        eeb1 -> (+ eeb4 (* eeb3 (exp 10 eeb2)));
-        eeb2 -> strlenx;
-        eeb3 -> y;
-        eeb4 -> x;
-        eeb5 -> (+ eeb8 (* eeb7 (exp 10 eeb6)));
-        eeb6 -> strlenx;
-        eeb7 -> 999;
-        eeb8 -> x;
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
+        %concat7 -> 999;
+        %concat8 -> x;
   
   iter(9)= (and
-             (= (+ eeb8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
+             (= (+ %concat8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
                 (* 999 (exp 10 strlenx))) 0)
              (<= 0 strlenx))
   iter(10)= (and
               (= (+ (* (- 1) y (exp 10 strlenx)) (* 999 (exp 10 strlenx))) 0)
               (<= 0 strlenx))
+  fixed-point
+  
   Interesting: strlenx
   
   Expecting 0 choices ...

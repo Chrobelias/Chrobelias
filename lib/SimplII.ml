@@ -1599,7 +1599,7 @@ exception Underapprox_fired of Env.t
 exception Error of Ast.t * error list [@@ocaml.warnerror "-38"]
 
 (* type step = int list *)
-let next_step = function
+let next = function
   | [] -> failwith "Bad argument: next_step"
   | h :: tl -> (1 + h) :: tl
 ;;
@@ -1759,11 +1759,11 @@ let _lower_strlen ast =
 ;; *)
 
 let basic_simplify step ?multiple (env : Env.t) ast =
+  log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
   let rec loop step (env : Env.t) ast =
     let (module Symantics) = make_main_symantics env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
-    log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast2;
     (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
     let ast2 = propagate_exponents ast2 in
     let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
@@ -1785,13 +1785,18 @@ let basic_simplify step ?multiple (env : Env.t) ast =
          | exception _ -> true
          | smth -> smth)
     in
+    let next_step = next step in
     match Env.length env2 > Env.length env, safe_eq ast ast2 with
-    | true, other ->
+    | true, equal ->
       let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
-      loop (next_step step) (Env.merge_exn env2 env) ast2
-    | false, false -> loop (next_step step) env ast2
+      if not equal then log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
+      loop next_step (Env.merge_exn env2 env) ast2
+    | false, false ->
+      log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
+      loop next_step env ast2
     | false, true ->
+      log "fixed-point\n";
       (match ast2 with
        | Ast.True -> raise (Sat ("presimpl", env))
        | Ast.Lnot Ast.True -> raise Unsat

@@ -11,6 +11,8 @@
   
   iter(1)= (<= (+ (* 5 x1) x2) (* 6 x2))
   iter(2)= (<= (+ x2 (* 5 x1)) (* 6 x2))
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -31,6 +33,8 @@ Should be (<= x 2)
   
   iter(1)= (<= (* 5 x1) 13)
   iter(2)= (<= x1 2)
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -50,6 +54,8 @@ Should be (<= x 2)
   
   iter(1)= (= (+ 2 6) 8)
   iter(2)= True
+  fixed-point
+  
   sat (presimpl)
 
 
@@ -64,6 +70,8 @@ Should be (<= x 2)
   
   iter(1)= (<= (+ x1 (* (* (- 1) 1) x1)) 8)
   iter(2)= True
+  fixed-point
+  
   sat (presimpl)
 
 Fold exps
@@ -80,6 +88,8 @@ Fold exps
   iter(1)= (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 (+ 1 it135))) 2)
   iter(2)= (<= (exp 2 (+ (+ (- 1) it134) (+ 1 it135))) 2)
   iter(3)= (<= (exp 2 (+ it134 it135)) 2)
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -98,6 +108,8 @@ Fold exps
   
   iter(1)= (<= (* (+ x1 x2) (exp 2 x3)) 2)
   iter(2)= (<= (+ (* x1 (exp 2 x3)) (* x2 (exp 2 x3))) 2)
+  fixed-point
+  
   Interesting: x3
   
   Expecting 2 choices ...
@@ -119,6 +131,8 @@ Fold exps
   iter(1)= (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 it134)) 2)
   iter(2)= (<= (exp 2 (+ (+ (- 1) it134) it134)) 2)
   iter(3)= (<= (exp 2 (+ it134 it134)) 4)
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -144,6 +158,8 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
            (* (- 1) 2))
   iter(2)= (<= (+ it646 (* (- 2) it646) (* (- 1) it646)) (- 2))
   iter(3)= (<= (+ it646 (* (- 3) it646)) (- 2))
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -169,6 +185,8 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   iter(1)= (= 0 (* (+ (* (- 1) 2) (* 3 i3)) (exp 2 it134)))
   iter(2)= (= (+ (* (- 1) (* 3 i3) (exp 2 it134)) (* 2 (exp 2 it134))) 0)
   iter(3)= (= (+ (* (- 3) i3 (exp 2 it134)) (* 2 (exp 2 it134))) 0)
+  fixed-point
+  
   Interesting: it134
   
   Expecting 2 choices ...
@@ -207,4 +225,6 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
         it376 -> (+ (* (- 2) (exp it362 3)) (* 3 it361));
   
   iter(2)= True
+  fixed-point
+  
   sat (presimpl)

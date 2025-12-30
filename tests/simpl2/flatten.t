@@ -10,6 +10,8 @@
   Basic simplifications:
   
   iter(1)= (= (exp x 2) 32)
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...

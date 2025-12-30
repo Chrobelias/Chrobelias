@@ -3,6 +3,8 @@
   
   iter(1)= (<= (exp 2 (+ x y)) (exp 2 z))
   iter(2)= (<= (+ x y) z)
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...

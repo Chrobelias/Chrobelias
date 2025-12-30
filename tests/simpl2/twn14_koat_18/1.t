@@ -1040,6 +1040,8 @@ $ cat input1.smt2
                   (* (exp 9 it140) (exp i6 3)) (exp i6 5)) (- 1))
               (<= (* (- 1) i6) 5)
               (<= (* (- 1) it140) (- 1)))
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...

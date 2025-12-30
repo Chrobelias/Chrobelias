@@ -24,6 +24,8 @@
   iter(3)= (and
              (= (+ y (* (- 1) x)) 20)
              (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
+  fixed-point
+  
   Interesting: x y
   
   Expecting 0 choices ...

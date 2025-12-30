@@ -2120,6 +2120,8 @@
               (<= (* (- 1) it19) (- 1))
               (<= (* (- 1) it57) (- 1))
               (<= (* (- 1) it88) (- 1)))
+  fixed-point
+  
   Interesting: it134 it57
   
   Expecting 4 choices ...
