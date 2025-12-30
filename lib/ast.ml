@@ -313,6 +313,7 @@ module Eia = struct
     | Leq : Z.t term * Z.t term -> t
     | InRe : 'a term * 'a kind * char list Regex.t -> t
     | InReRaw : 'a term * 'a kind * NfaS.t -> t
+    | RLen : Z.t term * Z.t term -> t
     | PrefixOf of string term * string term
     | Contains of string term * string term
     | SuffixOf of string term * string term
@@ -328,6 +329,7 @@ module Eia = struct
     | Leq _ as eia -> f eia
     | InRe _ as eia -> f eia
     | InReRaw _ as eia -> f eia
+    | RLen _ as eia -> f eia
     | PrefixOf _ as eia -> f eia
     | SuffixOf _ as eia -> f eia
     | Contains _ as eia -> f eia
@@ -339,6 +341,7 @@ module Eia = struct
     | Eq (l, r, S) -> f (Eq (map_term fint fstring l, map_term fint fstring r, S))
     | Leq (term, term') ->
       f (leq (map_term fint fstring term) (map_term fint fstring term'))
+    | RLen (v, pow) -> f (rlen (map_term fint fstring v) (map_term fint fstring pow))
     | InRe (term, kind, re) -> f (inre (map_term fint fstring term) kind re)
     | InReRaw (term, kind, re) -> f (inreraw (map_term fint fstring term) kind re)
     | PrefixOf (term, term') ->
@@ -353,9 +356,10 @@ module Eia = struct
     let _ : 'acc -> Z.t term -> 'acc = fz in
     let _ : 'acc -> string term -> 'acc = fs in
     function
-    | Eq (l, r, I) -> fz (fz (fold_term fz fs (fold_term fz fs acc l) r) l) r
-    | Eq (l, r, S) -> fs (fs (fold_term fz fs (fold_term fz fs acc l) r) l) r
+    | Eq (l, r, I) -> fold_term fz fs (fold_term fz fs acc l) r
+    | Eq (l, r, S) -> fold_term fz fs (fold_term fz fs acc l) r
     | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
+    | RLen (v, pow) -> fold_term fz fs (fold_term fz fs acc v) pow
     | InRe (term, _, re) -> fold_term fz fs acc term
     | InReRaw (term, _, re) -> fold_term fz fs acc term
     | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
@@ -374,6 +378,7 @@ module Eia = struct
         (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
         re
     | InReRaw (str, _, _) -> Format.fprintf fmt "(str.in_re.raw %a)" pp_term str
+    | RLen (v, pow) -> Format.fprintf fmt "(chrob.len %a %a)" pp_term v pp_term pow
     (* | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re' *)
     | PrefixOf (term, term') ->
       Format.fprintf fmt "(str.prefixof %a %a)" pp_term term pp_term term'

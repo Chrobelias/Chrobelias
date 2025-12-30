@@ -499,6 +499,13 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let lhs, sups = Symantics.prjs lhs in
       let ir = Ir.sreg lhs re in
       ir :: sups |> Ir.land_ |> return
+    | RLen (v, pow) ->
+      let* lhs = helper v in
+      let* rhs = helper pow in
+      let lhs, sups = Symantics.prjs lhs in
+      let rhs, sups' = Symantics.prjs rhs in
+      let ir = Ir.slen lhs rhs in
+      (ir :: sups) @ sups' |> Ir.land_ |> return
     | PrefixOf (a, b) ->
       let* a, sup_a = of_str_atom a in
       let* b, sup_b = of_str_atom b in

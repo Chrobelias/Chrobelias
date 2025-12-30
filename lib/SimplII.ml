@@ -151,6 +151,7 @@ module type SYM = sig
   val in_rei : term -> char list Regex.t -> ph
   val in_re_raw : str -> NfaS.t -> ph
   val in_re_rawi : term -> NfaS.t -> ph
+  val rlen : term -> term -> ph
 end
 
 module type SYM_SUGAR = sig
@@ -214,6 +215,7 @@ module Id_symantics :
     let in_rei l regex = Ast.Eia (Ast.Eia.InRe (l, Ast.I, regex))
     let in_re_raw l regex = Ast.Eia (Ast.Eia.InReRaw (l, Ast.S, regex))
     let in_re_rawi l regex = Ast.Eia (Ast.Eia.InReRaw (l, Ast.I, regex))
+    let rlen term term' = Ast.Eia (Ast.Eia.RLen (term, term'))
     let str_len s = len s
     let str_len2 s1 = len2 s1
     let iofs x = Ast.Eia.Iofs x
@@ -426,6 +428,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | InRe (term, Ast.I, regex) -> S.in_rei (helperT term) regex
     | InReRaw (term, Ast.S, regex) -> S.in_re_raw (helperS term) regex
     | InReRaw (term, Ast.I, regex) -> S.in_re_rawi (helperT term) regex
+    | RLen (term, term') -> S.rlen (helperT term) (helperT term')
   in
   helper
 ;;
@@ -1017,6 +1020,7 @@ module Who_in_exponents_ = struct
   let in_rei _ _ = empty
   let in_re_raw _ _ = empty
   let in_re_rawi _ _ = empty
+  let rlen = ( ++ )
   let str_len s = s
   let sofi s = s
   let iofs s = s
@@ -1314,6 +1318,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let in_rei _ = failwith "not implemented"
     let in_re_raw _ = failwith "not implemented"
     let in_re_rawi _ = failwith "not implemented"
+    let rlen _ = failwith "not implemented"
     let unsupp _ = failwith "not implemented"
   end
   in
@@ -2402,7 +2407,11 @@ let arithmetize ast =
         let v = atomi lenvar in
         let s, phs = arithmetize_term s in
         let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
-        let phs = if Ast.in_stoi var ast then Ast.Eia.lt s (pow_base v) :: phs else phs in
+        let phs =
+          if Ast.in_stoi var ast
+          then Ast.Eia.lt s (pow_base v) :: Ast.Eia.rlen s (pow_base v) :: phs
+          else phs
+        in
         v, phs
       | Str_const s -> Ast.Eia.const (Z.of_string s), []
       | Atom (Var (v, S)) -> atomi v, []
