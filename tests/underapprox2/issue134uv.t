@@ -39,6 +39,8 @@ $ export CHRO_DEBUG=1
   Basic simplifications:
   
   iter(1)= (= (* x (exp 2 z)) 3076)
+  fixed-point
+  
   
   Non linear arithmetic between
   
@@ -88,6 +90,8 @@ which is needed to be fixed first
   Basic simplifications:
   
   iter(1)= (= (* x (exp 2 z)) 8096)
+  fixed-point
+  
   
   Non linear arithmetic between
   

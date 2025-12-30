@@ -26,6 +26,8 @@ $ export CHRO_TRACE_OPT=1
              (<= (+ (* (- 1) x1) (* (- 1) x2) (* (- 1) x3) (exp 2 x1)
                  (exp 2 x2) (exp 2 x3)) 10)
              (<= (exp 2 x1) x2))
+  fixed-point
+  
   Interesting: x1 x2 x3
   
   Expecting 27 choices ...

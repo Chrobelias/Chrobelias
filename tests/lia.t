@@ -15,7 +15,7 @@ Basic LIA tests
   unsat (nia)
   sat (under I)
   unsat (presimpl)
-  unsat (nia)
+  unsat (presimpl)
   sat (under I)
   unsat (nia)
   sat (under I)

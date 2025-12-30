@@ -17,6 +17,8 @@
   iter(2)= (and
              (<= (exp 2 x) x)
              (<= (exp 2 y) x))
+  fixed-point
+  
   Interesting: x y
   
   Expecting 9 choices ...

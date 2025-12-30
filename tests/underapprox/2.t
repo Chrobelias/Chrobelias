@@ -14,6 +14,8 @@
   iter(1)= (and
              (<= (exp 2 y) x)
              (exists (x) (<= (exp 2 x) x)))
+  fixed-point
+  
   Interesting: x y
   
   Expecting 9 choices ...

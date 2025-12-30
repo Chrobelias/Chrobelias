@@ -20,6 +20,8 @@
                      (exp 2 (+ n))) 0))
              (<= 1 n))
   iter(4)= (not True)
+  fixed-point
+  
   unsat (presimpl)
 
 
