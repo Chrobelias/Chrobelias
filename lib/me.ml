@@ -483,38 +483,22 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       return ans
     | InRe (str, Ast.S, re) ->
       let* str, sup = of_str_atom str in
-      let atoms =
-        List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
-      in
       let ir = Ir.sreg str re in
-      begin
-        match atoms with
-        | [] -> ir :: sup |> Ir.land_ |> return
-        | atoms -> (*Ir.exists atoms *) ir :: sup |> Ir.land_ |> return
-      end
-    | InReRaw (str, re) ->
+      ir :: sup |> Ir.land_ |> return
+    | InReRaw (str, Ast.S, re) ->
       let* str, sup = of_str_atom str in
-      let atoms =
-        List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
-      in
       let ir = Ir.sregraw str re in
-      begin
-        match atoms with
-        | [] -> ir :: sup |> Ir.land_ |> return
-        | atoms -> (*Ir.exists atoms *) ir :: sup |> Ir.land_ |> return
-      end
+      ir :: sup |> Ir.land_ |> return
+    | InReRaw (eia, Ast.I, re) ->
+      let* str = helper eia in
+      let str, sups = Symantics.prjs str in
+      let ir = Ir.sregraw str re in
+      ir :: sups |> Ir.land_ |> return
     | InRe (eia, Ast.I, re) ->
       let* lhs = helper eia in
       let lhs, sups = Symantics.prjs lhs in
-      let atoms =
-        List.map collect_free_ir sups |> List.fold_left Set.union Set.empty |> Set.to_list
-      in
       let ir = Ir.sreg lhs re in
-      begin
-        match atoms with
-        | [] -> ir :: sups |> Ir.land_ |> return
-        | atoms -> (*Ir.exists atoms *) ir :: sups |> Ir.land_ |> return
-      end
+      ir :: sups |> Ir.land_ |> return
     | PrefixOf (a, b) ->
       let* a, sup_a = of_str_atom a in
       let* b, sup_b = of_str_atom b in

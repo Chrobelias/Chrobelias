@@ -1,6 +1,4 @@
 [@@@warning "+unused-value-declaration"]
-[@@@warnerror "-unused-open"]
-[@@@warnerror "-unused-var"]
 
 let log = Utils.log
 
@@ -152,6 +150,7 @@ module type SYM = sig
   val const : int -> term
   val in_rei : term -> char list Regex.t -> ph
   val in_re_raw : str -> NfaS.t -> ph
+  val in_re_rawi : term -> NfaS.t -> ph
 end
 
 module type SYM_SUGAR = sig
@@ -213,7 +212,8 @@ module Id_symantics :
 
     let in_re l regex = Ast.Eia (Ast.Eia.InRe (l, Ast.S, regex))
     let in_rei l regex = Ast.Eia (Ast.Eia.InRe (l, Ast.I, regex))
-    let in_re_raw l regex = Ast.Eia (Ast.Eia.InReRaw (l, regex))
+    let in_re_raw l regex = Ast.Eia (Ast.Eia.InReRaw (l, Ast.S, regex))
+    let in_re_rawi l regex = Ast.Eia (Ast.Eia.InReRaw (l, Ast.I, regex))
     let str_len s = len s
     let str_len2 s1 = len2 s1
     let iofs x = Ast.Eia.Iofs x
@@ -299,7 +299,7 @@ let apply_term_symantics
     | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
   and helperS : string Ast.Eia.term -> S.str = function
     | Str_const s -> S.str_const s
-    | Atom (Ast.Var (s, S)) -> S.str_var s
+    | Atom (Ast.Var (s, _)) -> S.str_var s
     | Sofi eia -> S.sofi (helperT eia)
     | At (s1, Atom (Var (a, I))) -> S.str_at (helperS s1) a
     | Concat (s1, s2) -> S.str_concat (helperS s1) (helperS s2)
@@ -424,7 +424,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     | SuffixOf (term, term') -> S.str_suffixof (helperS term) (helperS term')
     | InRe (term, Ast.S, regex) -> S.in_re (helperS term) regex
     | InRe (term, Ast.I, regex) -> S.in_rei (helperT term) regex
-    | InReRaw (term, regex) -> S.in_re_raw (helperS term) regex
+    | InReRaw (term, Ast.S, regex) -> S.in_re_raw (helperS term) regex
+    | InReRaw (term, Ast.I, regex) -> S.in_re_rawi (helperT term) regex
   in
   helper
 ;;
@@ -799,7 +800,7 @@ let make_main_symantics env =
         (* | Some (Ast.Eia.Atom c) -> Ast.str (Str.inre (Eia.Sofi (Atom c)) re) *)
         | None | _ -> Ast.eia (Eia.inre (Eia.Atom (Ast.Var (s, S))) Ast.S re)
       end
-      | Ast.Eia.(Const c) | Ast.Eia.Sofi (Const c) ->
+      | Ast.Eia.Sofi (Const c) ->
         (* v = sofi 4 <=> v="4" | v="04" | v="004" | ... *)
         begin
           match
@@ -818,29 +819,40 @@ let make_main_symantics env =
         | true -> Ast.true_
         | false -> Ast.false_
       end
-      | _ -> Ast.eia (Eia.inre s Ast.S re)
+      | _ -> Id_symantics.in_re s re
+    ;;
+
+    let in_rei s re =
+      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      match s with
+      | Ast.Eia.(Const c) -> begin
+        match NfaStr.of_regex re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run with
+        | true -> Ast.true_
+        | false -> Ast.false_
+      end
+      | _ -> Id_symantics.in_rei s re
     ;;
 
     let in_re_raw s re =
       let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
-      (*| Ast.Eia.(Const c) | Ast.Eia.Sofi (Const c) ->
-        (* v = sofi 4 <=> v="4" | v="04" | v="004" | ... *)
-        begin
-          match
-            re
-            |> NfaStr.intersect (from_eia_nfa c)
-            |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
-          with
-          | true -> Ast.true_
-          | false -> Ast.false_
-        end*)
       | Ast.Eia.(Str_const str) -> begin
         match re |> NfaStr.re_accepts (String.to_seq str |> List.of_seq |> List.rev) with
         | true -> Ast.true_
         | false -> Ast.false_
       end
       | _ -> Id_symantics.in_re_raw s re
+    ;;
+
+    let in_re_rawi s re =
+      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      match s with
+      | Ast.Eia.(Const c) -> begin
+        match re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run with
+        | true -> Ast.true_
+        | false -> Ast.false_
+      end
+      | _ -> Id_symantics.in_re_rawi s re
     ;;
 
     let prj : ph -> repr = Fun.id
@@ -1004,6 +1016,7 @@ module Who_in_exponents_ = struct
   let in_re _ _ = empty
   let in_rei _ _ = empty
   let in_re_raw _ _ = empty
+  let in_re_rawi _ _ = empty
   let str_len s = s
   let sofi s = s
   let iofs s = s
@@ -1300,6 +1313,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let const c = constz (Z.of_int c)
     let in_rei _ = failwith "not implemented"
     let in_re_raw _ = failwith "not implemented"
+    let in_re_rawi _ = failwith "not implemented"
     let unsupp _ = failwith "not implemented"
   end
   in
@@ -1760,7 +1774,11 @@ let basic_simplify step ?multiple (env : Env.t) ast =
     let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     let safe_eq ast ast2 =
       match ast, ast2 with
-      | Ast.Eia (Ast.Eia.InReRaw (atom, lhs)), Ast.Eia (Ast.Eia.InReRaw (atom', rhs)) ->
+      | ( Ast.Eia (Ast.Eia.InReRaw (atom, S, lhs))
+        , Ast.Eia (Ast.Eia.InReRaw (atom', S, rhs)) ) ->
+        NfaS.equal_start_and_final lhs rhs && atom = atom'
+      | ( Ast.Eia (Ast.Eia.InReRaw (atom, I, lhs))
+        , Ast.Eia (Ast.Eia.InReRaw (atom', I, rhs)) ) ->
         NfaS.equal_start_and_final lhs rhs && atom = atom'
       | smth ->
         (match Stdlib.(ast = ast2) with
@@ -2310,12 +2328,11 @@ end*)
 let arithmetize ast =
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
-  let atoms v = Ast.Eia.Atom (Ast.Var (v, Ast.S)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module Map = Base.Map.Poly in
   let is_regex = function
     | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _))
-    | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), _)) -> true
+    | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _)) -> true
     | _ -> false
   in
   let collect_regexes ast =
@@ -2324,7 +2341,8 @@ let arithmetize ast =
          (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
          | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) ->
            (s, re |> NfaL.of_regex) :: acc
-         | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), nfa)) -> (s, nfa) :: acc
+         | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa)) ->
+           (s, nfa) :: acc
          | _ -> acc)
       []
       ast
@@ -2355,7 +2373,7 @@ let arithmetize ast =
         Map.fold
           ~init:[]
           ~f:(fun ~key:s ~data:nfa ph ->
-            Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), nfa)) :: ph)
+            Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa)) :: ph)
           regexes
     in
     let ast = Ast.land_ (ast_without_regex :: phs) in
@@ -2477,7 +2495,7 @@ let arithmetize ast =
                (x (* :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens))) *)
                 :: (phs |> List.map Ast.eia)))
           csds)
-    | Ast.Eia (InReRaw (s, nfa)) ->
+    | Ast.Eia (InReRaw (s, S, nfa)) ->
       let s, phs = arithmetize_term s in
       let s, phs =
         match s with
@@ -2489,7 +2507,8 @@ let arithmetize ast =
       (* TODO: Add regular constraints with automata*)
       if Ast.in_stoi s ast
       then
-        [ Ast.land_ (Ast.Eia (Ast.Eia.inreraw (atoms s) nfa) :: (phs |> List.map Ast.eia))
+        [ Ast.land_
+            (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia))
         ]
       else (
         let csds = arithmetize_in_re s nfa in

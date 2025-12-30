@@ -312,7 +312,7 @@ module Eia = struct
     | Eq : 'a term * 'a term * 'a kind -> t
     | Leq : Z.t term * Z.t term -> t
     | InRe : 'a term * 'a kind * char list Regex.t -> t
-    | InReRaw : string term * NfaS.t -> t
+    | InReRaw : 'a term * 'a kind * NfaS.t -> t
     | PrefixOf of string term * string term
     | Contains of string term * string term
     | SuffixOf of string term * string term
@@ -340,7 +340,7 @@ module Eia = struct
     | Leq (term, term') ->
       f (leq (map_term fint fstring term) (map_term fint fstring term'))
     | InRe (term, kind, re) -> f (inre (map_term fint fstring term) kind re)
-    | InReRaw (term, re) -> f (inreraw (map_term fint fstring term) re)
+    | InReRaw (term, kind, re) -> f (inreraw (map_term fint fstring term) kind re)
     | PrefixOf (term, term') ->
       f (prefixof (map_term fint fstring term) (map_term fint fstring term'))
     | SuffixOf (term, term') ->
@@ -357,7 +357,7 @@ module Eia = struct
     | Eq (l, r, S) -> fs (fs (fold_term fz fs (fold_term fz fs acc l) r) l) r
     | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
     | InRe (term, _, re) -> fold_term fz fs acc term
-    | InReRaw (term, re) -> fold_term fz fs acc term
+    | InReRaw (term, _, re) -> fold_term fz fs acc term
     | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
       fold_term fz fs (fold_term fz fs acc term) term'
   ;;
@@ -373,7 +373,7 @@ module Eia = struct
         str
         (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
         re
-    | InReRaw (str, _) -> Format.fprintf fmt "(str.in_re.raw %a)" pp_term str
+    | InReRaw (str, _, _) -> Format.fprintf fmt "(str.in_re.raw %a)" pp_term str
     (* | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re' *)
     | PrefixOf (term, term') ->
       Format.fprintf fmt "(str.prefixof %a %a)" pp_term term pp_term term'
@@ -641,7 +641,8 @@ let rec to_dnf ast =
 
 let in_stoi_eia v eia =
   Eia.fold2
-    (fun acc -> function
+    (fun acc el ->
+       match el with
        | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
        | _ -> acc)
     (fun acc _ -> acc)
