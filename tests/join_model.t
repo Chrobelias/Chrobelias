@@ -7,22 +7,23 @@
   > (get-model)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over -bound 0 --dsimpl --stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  Basic simplifications:
+  
   iter(1)= (and
              (<= 100 z)
              (= (+ (+ 2 y) (* (* (- 1) 3) x)) 0)
              (= (+ (+ 5 y) (* (* (- 1) 7) u)) 0))
+  Something ready to substitute
+        y -> (+ (- 5) (* 7 u));
+  
   iter(2)= (and
-             (= (+ y (* (- 7) u)) (- 5))
              (= (+ y (* (- 3) x)) (- 2))
              (<= 100 z))
-  Something ready to substitute:  y -> (+ (- 5) (* 7 u));
   iter(3)= (and
-             (= (+ y (* (- 7) u)) (- 5))
-             (= (+ y (* (- 3) x)) (- 2))
-             (<= 100 z))
-  iter(4)= (and
              (= (+ (* (- 3) x) (* 7 u)) 3)
              (<= 100 z))
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...

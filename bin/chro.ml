@@ -486,23 +486,32 @@ let () =
                        else None
                      end
                    | Lib.Ir.Var key ->
-                     let len_var = String.concat "" [ prefix; key ] in
-                     let str =
+                     let data' =
                        match data with
-                       | `Str c -> c
-                       | `Int d -> Z.to_string d
+                       | `Str c -> `Str c
+                       | `Int d ->
+                         (match Map.find tys (Lib.Ir.Var key) with
+                          | Some `Str -> `Str (Z.to_string d)
+                          | Some `Int | None -> `Int d)
                      in
-                     let len =
-                       match Map.find raw_model (var len_var) with
-                       | Some (`Int len) -> Z.to_int len
-                       | _ -> String.length str
+                     let result =
+                       match data' with
+                       | `Str str ->
+                         let len_var = String.concat "" [ prefix; key ] in
+                         let len =
+                           match Map.find raw_model (var len_var) with
+                           | Some (`Int len) -> Z.to_int len
+                           | _ -> String.length str
+                         in
+                         let str =
+                           String.concat
+                             ""
+                             [ String.init (len - String.length str) (fun _ -> '0'); str ]
+                         in
+                         `Str str
+                       | `Int d -> `Int d
                      in
-                     let str =
-                       String.concat
-                         ""
-                         [ String.init (len - String.length str) (fun _ -> '0'); str ]
-                     in
-                     Some (var key, `Str str)
+                     Some (var key, result)
                    | _ -> Some (key, data))
                  |> Map.of_alist_exn
                in
