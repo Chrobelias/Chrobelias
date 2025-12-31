@@ -1552,6 +1552,10 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       in
       (try Some (loop [] sums) with
        | Exit -> None)
+    | Eia (Eia.Eq (Atom (Var (vn, _)), rhs, _))
+      when match rhs with
+           | Bwand _ | Bwor _ | Bwxor _ -> true
+           | _ -> false -> None
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, _) as eia')
       when Env.is_absent_key vn env
            && Ast.forsome
@@ -1559,12 +1563,16 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
                   | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
                   | _ -> false)
                 orig_ast -> Some (extend_exn env v rhs)
-    | Eia (Eia.Eq (rhs, Atom (Var (vn, _) as v), _) as eia')
+    | Eia (Eia.Eq (lhs, Atom (Var (vn, _)), _))
+      when match lhs with
+           | Bwand _ | Bwor _ | Bwxor _ -> true
+           | _ -> false -> None
+    | Eia (Eia.Eq (lhs, Atom (Var (vn, _) as v), _) as eia')
       when Env.is_absent_key vn env
            && (function
                 | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
                 | _ -> false)
-                orig_ast -> Some (extend_exn env v rhs)
+                orig_ast -> Some (extend_exn env v lhs)
     | eq ->
       (* log "OTHERWISE  ast part = @[%a@]" Ast.pp_smtlib2 ast; *)
       None

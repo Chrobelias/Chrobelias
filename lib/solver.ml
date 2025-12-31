@@ -1095,7 +1095,7 @@ struct
     else (
       let free_vars = Ir.collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
-      Debug.printf "Trying to use PrA deciding procedure over  %a\n" Ir.pp ir;
+      Debug.printf "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
       if ir' |> eval |> fst |> Nfa.run
       then `Sat (fun () -> Result.Ok (get_model_normal ir ()))
       else `Unsat)

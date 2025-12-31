@@ -213,8 +213,8 @@ let length { env; str_env; cstrts } =
 [@@warning "-32"]
 ;;
 
-let lookup k { env; _ } = SM.find env k
-let lookup_exn k { env; _ } = SM.find_exn env k
+(* let lookup k { env; _ } = SM.find env k *)
+(* let lookup_exn k { env; _ } = SM.find_exn env k *)
 let is_absent_key k e = (not (SM.mem e.env k)) && not (SM.mem e.str_env k)
 
 let fold { env; str_env; _ } ~init ~f =
@@ -222,7 +222,7 @@ let fold { env; str_env; _ } ~init ~f =
   SM.fold (fun key data acc -> f ~key ~data:(Ast.TT (S, data)) acc) str_env init
 ;;
 
-let filter_mapi ~f { env; _ } : (string, _) Base.Map.Poly.t =
+(* let filter_mapi ~f { env; _ } : (string, _) Base.Map.Poly.t =
   SM.fold
     (fun key data acc ->
        match f ~key ~data with
@@ -230,7 +230,7 @@ let filter_mapi ~f { env; _ } : (string, _) Base.Map.Poly.t =
        | Some x -> Base.Map.Poly.add_exn acc ~key ~data:x)
     env
     Base.Map.Poly.empty
-;;
+;; *)
 
 let merge
   :  sf:
