@@ -2,9 +2,15 @@
 $ cat baba1.smt2
   $ Chro --dpresimpl ./baba1.smt2
   (and
-    (= %0 (str.len a))
-    (= %0 (str.len b))
-    (= %0 (+ 1 (str.to.int b)))
-    (str.in_re a (re.++ (re.++ (re.union (re.++ (str.to.re "a") (str.to.re "B")) (re.++ (str.to.re "u") (re.++ (str.to.re "y") (str.to.re "L")))) (re.* (re.union (re.++ (str.to.re "a") (str.to.re "B")) (re.++ (str.to.re "u") (re.++ (str.to.re "y") (str.to.re "L")))))) (re.* (str.to.re ""))))
-    (str.in_re b (re.++ (re.++ (re.union (re.++ (str.to.re "0") (str.to.re "2")) (re.++ (str.to.re "5") (str.to.re "2"))) (re.* (re.union (re.++ (str.to.re "0") (str.to.re "2")) (re.++ (str.to.re "5") (str.to.re "2"))))) (re.* (str.to.re "")))))
+    (<= 0 %re_len1)
+    (<= (+ 2 (* 2 %re_len1)) (exp 10 (+ 2 (* 2 %re_len1))))
+    (<= (* (- 2) %re_len1) 2)
+    (str.in_re.raw (+ 1 (* 2 %re_len1)))
+    (chrob.len (+ 1 (* 2 %re_len1)) (exp 10 (+ 2 (* 2 %re_len1)))))
+  (and
+    (<= 0 %re_len2)
+    (<= (+ 3 (* 2 %re_len2)) (exp 10 (+ 3 (* 2 %re_len2))))
+    (<= (* (- 2) %re_len2) 3)
+    (str.in_re.raw (+ 2 (* 2 %re_len2)))
+    (chrob.len (+ 2 (* 2 %re_len2)) (exp 10 (+ 3 (* 2 %re_len2)))))
   unsat (nfa)

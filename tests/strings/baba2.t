@@ -2,12 +2,17 @@
 $ cat baba2.smt2
   $ Chro  --dpresimpl ./baba2.smt2
   (and
-    (= q (str.len a))
-    (= q (str.len b))
-    (= q (+ 1 (str.to.int b)))
-    (str.in_re a (re.++ (re.++ (re.union (re.++ (str.to.re "a") (str.to.re "B")) (re.++ (str.to.re "u") (re.++ (str.to.re "y") (str.to.re "L")))) (re.* (re.union (re.++ (str.to.re "a") (str.to.re "B")) (re.++ (str.to.re "u") (re.++ (str.to.re "y") (str.to.re "L")))))) (re.* (str.to.re ""))))
-    (str.in_re b (re.++ (re.++ (re.union (str.to.re "1") (str.to.re "0")) (re.* (re.union (str.to.re "1") (str.to.re "0")))) (re.* (str.to.re "")))))
-  sat (nfa)
-  Warning: some of the eia model pieces are likely to be missed: q = %0
-  ((define-fun a () (_ String) "Ba") (define-fun b () (_ String) "01"))
+    (<= 0 %re_len1)
+    (<= (+ 2 (* 2 %re_len1)) (exp 10 (+ 2 (* 2 %re_len1))))
+    (<= (* (- 2) %re_len1) 2)
+    (str.in_re.raw (+ 1 (* 2 %re_len1)))
+    (chrob.len (+ 1 (* 2 %re_len1)) (exp 10 (+ 2 (* 2 %re_len1)))))
+  (and
+    (<= 0 %re_len2)
+    (<= (+ 3 (* 2 %re_len2)) (exp 10 (+ 3 (* 2 %re_len2))))
+    (<= (* (- 2) %re_len2) 3)
+    (str.in_re.raw (+ 2 (* 2 %re_len2)))
+    (chrob.len (+ 2 (* 2 %re_len2)) (exp 10 (+ 3 (* 2 %re_len2)))))
+  unsat (nfa)
+  no model
 
