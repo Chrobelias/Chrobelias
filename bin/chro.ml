@@ -341,6 +341,97 @@ let join_int_model prefix m =
       acc)
 ;;
 
+let print_model tys model regexes env =
+  let model =
+    model
+    |> Map.mapi ~f:(fun ~key ~data ->
+      match data with
+      | `Str str -> `Str str
+      | `Int eia -> begin
+        match key with
+        | Lib.Ir.Var _ -> data
+        | Pow2 _ -> `Int (logBaseZ eia)
+      end)
+    |> Map.map_keys_exn ~f:(function
+      | Lib.Ir.Var _ as v -> v
+      | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
+  in
+  let model = join_int_model env model in
+  (*New code goes here *)
+  let var = Lib.Ir.var in
+  let raw_model = model in
+  let prefix = "strlen" in
+  let prefix_len = String.length prefix in
+  let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
+  let module NfaC = Lib.NfaCollection in
+  let real_model =
+    Map.to_alist raw_model
+    |> List.filter_map (fun (key, data) ->
+      match key with
+      | Lib.Ir.Var key when String.starts_with ~prefix key ->
+        let real_var = String.sub key prefix_len (String.length key - prefix_len) in
+        let data =
+          match data with
+          | `Int c -> Z.to_int c
+          | _ -> assert false
+        in
+        begin
+          if not (Map.mem raw_model (var real_var))
+          then
+            if Map.mem regexes real_var
+            then (
+              let regexes = Map.find_exn regexes real_var in
+              let nfa = regexes in
+              let path =
+                NfaS.path_of_len2 ~var:0 ~len:data nfa
+                |> Option.value ~default:(List.init data (fun _ -> '0'))
+              in
+              Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
+            else Some (var real_var, `Str (String.init data (fun _ -> '0')))
+          else None
+        end
+      | Lib.Ir.Var key ->
+        let data' =
+          match data with
+          | `Str c -> `Str c
+          | `Int d ->
+            (match Map.find tys (Lib.Ir.Var key) with
+             | Some `Str -> `Str (Z.to_string d)
+             | Some `Int | None -> `Int d)
+        in
+        let result =
+          match data' with
+          | `Str str ->
+            let len_var = String.concat "" [ prefix; key ] in
+            let len =
+              match Map.find raw_model (var len_var) with
+              | Some (`Int len) -> Z.to_int len
+              | _ -> String.length str
+            in
+            let str =
+              String.concat
+                ""
+                [ String.init (len - String.length str) (fun _ -> '0'); str ]
+            in
+            `Str str
+          | `Int d -> `Int d
+        in
+        Some (var key, result)
+      | _ -> Some (key, data))
+    |> Map.of_alist_exn
+  in
+  (* New code ends here *)
+  let real_model =
+    Map.filteri
+      ~f:(fun ~key ~data:_ ->
+        match key with
+        | Var v when String.starts_with ~prefix:"%" v -> false
+        | _ -> true)
+      real_model
+  in
+  Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
+;;
+
 type state =
   { asserts : Lib.Ast.t list
   ; prev : state option (* TODO: where is the stack? *)
@@ -434,99 +525,9 @@ let () =
           | Sat (_, _, env, get_model, regexes) ->
             let tys = merge_tys state in
             (match get_model tys with
-             | Result.Ok model ->
-               let model =
-                 model
-                 |> Map.mapi ~f:(fun ~key ~data ->
-                   match data with
-                   | `Str str -> `Str str
-                   | `Int eia -> begin
-                     match key with
-                     | Lib.Ir.Var _ -> data
-                     | Pow2 _ -> `Int (logBaseZ eia)
-                   end)
-                 |> Map.map_keys_exn ~f:(function
-                   | Lib.Ir.Var _ as v -> v
-                   | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
-               in
-               let model = join_int_model env model in
-               (*New code goes here *)
-               let var = Lib.Ir.var in
-               let raw_model = model in
-               let prefix = "strlen" in
-               let prefix_len = String.length prefix in
-               let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
-               let module NfaC = Lib.NfaCollection in
-               let real_model =
-                 Map.to_alist raw_model
-                 |> List.filter_map (fun (key, data) ->
-                   match key with
-                   | Lib.Ir.Var key when String.starts_with ~prefix key ->
-                     let real_var =
-                       String.sub key prefix_len (String.length key - prefix_len)
-                     in
-                     let data =
-                       match data with
-                       | `Int c -> Z.to_int c
-                       | _ -> assert false
-                     in
-                     begin
-                       if not (Map.mem raw_model (var real_var))
-                       then
-                         if Map.mem regexes real_var
-                         then (
-                           let regexes = Map.find_exn regexes real_var in
-                           let nfa = regexes in
-                           let path =
-                             NfaS.path_of_len2 ~var:0 ~len:data nfa
-                             |> Option.value ~default:(List.init data (fun _ -> '0'))
-                           in
-                           Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
-                         else Some (var real_var, `Str (String.init data (fun _ -> '0')))
-                       else None
-                     end
-                   | Lib.Ir.Var key ->
-                     let data' =
-                       match data with
-                       | `Str c -> `Str c
-                       | `Int d ->
-                         (match Map.find tys (Lib.Ir.Var key) with
-                          | Some `Str -> `Str (Z.to_string d)
-                          | Some `Int | None -> `Int d)
-                     in
-                     let result =
-                       match data' with
-                       | `Str str ->
-                         let len_var = String.concat "" [ prefix; key ] in
-                         let len =
-                           match Map.find raw_model (var len_var) with
-                           | Some (`Int len) -> Z.to_int len
-                           | _ -> String.length str
-                         in
-                         let str =
-                           String.concat
-                             ""
-                             [ String.init (len - String.length str) (fun _ -> '0'); str ]
-                         in
-                         `Str str
-                       | `Int d -> `Int d
-                     in
-                     Some (var key, result)
-                   | _ -> Some (key, data))
-                 |> Map.of_alist_exn
-               in
-               (* New code ends here *)
-               let real_model =
-                 Map.filteri
-                   ~f:(fun ~key ~data:_ ->
-                     match key with
-                     | Var v when String.starts_with ~prefix:"%" v -> false
-                     | _ -> true)
-                   real_model
-               in
-               Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
+             | Result.Ok model -> print_model tys model regexes env
              | Result.Error `Too_long ->
-               log "; model is TOO big on 1st attempt\n%!";
+               log "model is TOO big on 1st attempt\n%!";
                let shrinked_ast =
                  Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
                    match key, data with
