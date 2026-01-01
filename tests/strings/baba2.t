@@ -7,12 +7,6 @@ $ cat baba2.smt2
     (<= (* (- 2) %re_len1) 2)
     (str.in_re.raw (+ 1 (* 2 %re_len1)))
     (chrob.len (+ 1 (* 2 %re_len1)) (exp 10 (+ 2 (* 2 %re_len1)))))
-  (and
-    (<= 0 %re_len2)
-    (<= (+ 3 (* 2 %re_len2)) (exp 10 (+ 3 (* 2 %re_len2))))
-    (<= (* (- 2) %re_len2) 3)
-    (str.in_re.raw (+ 2 (* 2 %re_len2)))
-    (chrob.len (+ 2 (* 2 %re_len2)) (exp 10 (+ 3 (* 2 %re_len2)))))
-  unsat (nfa)
-  no model
+  sat (nfa)
+  ((define-fun a () (_ String) "Ba") (define-fun b () (_ String) "01"))
 
