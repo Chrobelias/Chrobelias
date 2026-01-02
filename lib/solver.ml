@@ -319,9 +319,6 @@ struct
   let is_exp = Ir.is_exp
 
   let eval ir =
-    let ir = Ir.simpl ir in
-    let ir = if Config.config.simpl_mono then Ir.simpl_monotonicty ir else ir in
-    let ir = if Config.config.simpl_alpha then Simpl_alpha.simplify ir else ir in
     let ir = Ir.antiprenex ir in
     let alpha = collect_alpha ir |> Option.map Set.to_list in
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
@@ -1267,7 +1264,7 @@ let check_sat ir
     match checker ir with
     | `Sat model ->
       (match model () with
-       | Result.Error _ -> assert false
+       | Result.Error `Too_long -> assert false
        | Result.Ok model ->
          let f tys =
            Result.Ok

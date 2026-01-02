@@ -9,6 +9,7 @@ let () = Lib.Config.parse_args ()
 let log = Lib.Debug.printfln
 let answer_guess = ref None
 let set_guess v = answer_guess := Some v
+let config = Lib.Config.config
 
 let () =
   Sys.set_signal
@@ -47,7 +48,7 @@ let lift ?(unsat_info = "") ast = function
 
 let check_sat ?(verbose = false) ast : rez =
   let __ () =
-    if Lib.Config.config.stop_after = `Pre_simplify
+    if config.stop_after = `Pre_simplify
     then (
       match Lib.SimplII.simpl 0 ast with
       | `Error _ -> failwith "not implemented"
@@ -82,11 +83,11 @@ let check_sat ?(verbose = false) ast : rez =
     then (
       match rez with
       | `Sat s ->
-        if Lib.Config.config.with_info
+        if config.with_info
         then Format.printf "sat (%s)\n%!" s
         else Format.printf "sat\n%!"
       | `Unsat s ->
-        if Lib.Config.config.with_info
+        if config.with_info
         then Format.printf "unsat (%s)\n%!" s
         else Format.printf "unsat\n%!"
       | `Unknown _ -> Format.printf "unknown\n%!" (*(if s <> "" then "\n " ^ s else ""))*))
@@ -97,25 +98,25 @@ let check_sat ?(verbose = false) ast : rez =
     let apporx_rez =
       unknown ast Lib.Env.empty
       <+> (fun ast e ->
-      if not Lib.Config.config.pre_simpl
+      if not config.pre_simpl
       then unknown ast e
       else lift ~unsat_info:"presimpl" ast (Lib.SimplII.run_basic_simplify ast))
       <+> (fun ast e ->
-      if Lib.Config.config.under_approx >= 0
+      if config.under_approx >= 0
       then (
         let merge =
           Lib.Env.merge
             ~sf:(fun ~key:_ ~data1 ~data2:_ -> data1)
             ~zf:(fun ~key:_ ~data1 ~data2:_ -> data1)
         in
-        match Lib.Underapprox.check Lib.Config.config.under_approx ast with
+        match Lib.Underapprox.check config.under_approx ast with
         | `Sat (s, e0) ->
           Sat (s, ast, merge e0 e, (fun _ -> Result.Ok Map.empty), Map.empty)
         | `Unsat s -> Unsat s
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
-      if Lib.Config.config.over_approx_early
+      if config.over_approx_early
       then (
         match Lib.Overapprox.check ast with
         | `Unknown ast -> unknown ast e
@@ -132,7 +133,7 @@ let check_sat ?(verbose = false) ast : rez =
         log "@[Non linear arithmetic between@]@,";
         List.iteri (fun i -> log "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
         log "@]@,";
-        if Lib.Config.config.logic = `Eia
+        if config.logic = `Eia
         then (
           match Lib.SimplII.check_nia ast with
           | `Sat -> sat "nia" ast e (fun _ -> Result.Ok Map.empty) Map.empty
@@ -148,9 +149,8 @@ let check_sat ?(verbose = false) ast : rez =
         match Lib.SimplII.run_under2 e ast with
         | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty) Map.empty
         | `Underapprox asts ->
-          if Lib.Config.config.dump_pre_simpl
-          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-          if Lib.Config.config.stop_after = `Pre_simplify then exit 0;
+          if config.dump_pre_simpl then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+          if config.stop_after = `Pre_simplify then exit 0;
           log "Looking for SAT in %d asts..." (List.length asts);
           let exception
             Sat_found of
@@ -186,18 +186,17 @@ let check_sat ?(verbose = false) ast : rez =
              sat "under II" ast e model Map.empty))
       else unknown ast e)
       <+> (fun ast e ->
-      if Lib.Config.config.dump_pre_simpl
-      then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+      if config.dump_pre_simpl then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
       unknown ast e)
       <+> (fun ast e ->
-      if Lib.Config.config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
+      if config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
       <+> fun ast e ->
-      if Lib.Config.config.stop_after = `Pre_simplify
+      if config.stop_after = `Pre_simplify
       then exit 0
       else
         unknown ast e
         <+> fun ast e ->
-        if Lib.Config.config.over_approx
+        if config.over_approx
         then (
           match Lib.Overapprox.check ast with
           | `Unknown ast -> unknown ast e
@@ -209,11 +208,20 @@ let check_sat ?(verbose = false) ast : rez =
     match apporx_rez with
     | Unknown (ast, e) ->
       (match Lib.Me.ir_of_ast e ast with
+       (* | Ok True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
+       | Ok (Lnot True) -> Unsat "simpl" *)
        | Ok ir ->
-         (match Lib.Solver.check_sat ir with
-          | `Sat get_model -> sat "nfa" ast e get_model Map.empty
-          | `Unsat -> Unsat "nfa"
-          | `Unknown _ir -> Unknown (ast, e))
+         let ir = Lib.Ir.simpl ir in
+         let ir = if config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in
+         let ir = if config.simpl_alpha then Lib.Simpl_alpha.simplify ir else ir in
+         (match ir with
+          | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
+          | Lnot True -> Unsat "simpl"
+          | _ ->
+            (match Lib.Solver.check_sat ir with
+             | `Sat get_model -> sat "nfa" ast e get_model Map.empty
+             | `Unsat -> Unsat "nfa"
+             | `Unknown _ir -> Unknown (ast, e)))
        | Error s ->
          if !used_under2 |> not
          then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
@@ -222,7 +230,7 @@ let check_sat ?(verbose = false) ast : rez =
   in
   let can_be_unk = ref false in
   let unsat_last_reason = ref "" in
-  if Lib.Config.config.logic = `Str
+  if config.logic = `Str
   then (
     match Lib.SimplII.arithmetize ast with
     | `Sat (s, e) ->
@@ -441,7 +449,7 @@ type state =
 
 let () =
   let f =
-    match Fpath.of_string Lib.Config.config.input_file with
+    match Fpath.of_string config.input_file with
     | Result.Error (`Msg msg) ->
       Format.eprintf "%s\n%!" msg;
       exit 1
@@ -460,13 +468,13 @@ let () =
       in
       { state with tys }
     | Smtml.Ast.Set_logic (Smtml.Logic.QF_S | Smtml.Logic.QF_SLIA) ->
-      Lib.Config.config.logic <- `Str;
-      Lib.Config.config.mode <- `Lsb;
-      Lib.Config.config.under_approx <- 0;
-      Lib.Config.config.over_approx <- false;
-      Lib.Config.config.simpl_alpha <- false;
-      Lib.Config.config.simpl_mono <- true;
-      (* Lib.Config.config.pre_simpl <- false; *)
+      config.logic <- `Str;
+      config.mode <- `Lsb;
+      config.under_approx <- 0;
+      config.over_approx <- false;
+      config.simpl_alpha <- false;
+      config.simpl_mono <- true;
+      (* config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
       { asserts = []; prev = Some state; last_result = None; tys = Map.empty }
@@ -476,7 +484,7 @@ let () =
       | None -> failwith "Nothing to pop"
     end
     | Smtml.Ast.Check_sat exprs ->
-      Lib.Config.config.with_check_sat <- true;
+      config.with_check_sat <- true;
       let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs in
       let rec get_ast { asserts; prev; _ } =
         match prev with
@@ -491,7 +499,7 @@ let () =
       let rez = check_sat ~verbose:true ast in
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
-      if Lib.Config.config.no_model = true
+      if config.no_model = true
       then (
         Format.printf "no-model mode\n%!";
         state)
