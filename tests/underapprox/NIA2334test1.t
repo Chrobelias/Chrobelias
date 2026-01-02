@@ -77,10 +77,6 @@
   Expecting 9 choices ...
   
   Can't decide in lib/Underapprox.ml
-  Vars: ["x5"; "x4"; "x3"]
-  Can't simplify x5: bad polarity
-  Can't simplify x4: bad polarity
-  Can't simplify x3: bad polarity
   (assert (exists (x4 x5)
           (and
             (exists (x3)

@@ -167,8 +167,6 @@ $ export CHRO_DEBUG=1
   (and
     (= (+ x (* (- 198) (exp 10 strlenx)) (* (- 1) x)) 0)
     (<= 0 strlenx))
-  Vars: ["x"]
-  Var x can't be interesting: used somewhere
   (assert (exists (x)
           (and
             (= (+ (* (- 0) x) (* (- 198) pow2(strlenx)) )  0)
