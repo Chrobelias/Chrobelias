@@ -420,8 +420,8 @@ struct
        | Ir.SLen (atom, atom') ->
          NfaCollection.strlen
            ~alpha
-           ~dest:(Map.find_exn vars atom)
-           ~src:(Map.find_exn vars atom')
+           ~dest:(Map.find_exn vars atom')
+           ~src:(Map.find_exn vars atom)
            ()
        | Ir.Stoi (atom, atom') ->
          NfaCollection.n ()
