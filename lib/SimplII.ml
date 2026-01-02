@@ -166,16 +166,6 @@ module type SYM_SUGAR_AST =
    and type str = string Ast.Eia.term
    and type term = Z.t Ast.Eia.term
 
-let distribute xs =
-  let open Ast in
-  List.fold_left
-    (fun acc -> function
-       | Eia.Add ys -> List.concat_map (fun zs -> List.map (fun h -> h :: zs) ys) acc
-       | other -> List.map (fun x -> other :: x) acc)
-    ([ [] ] : _ list list)
-    xs
-;;
-
 let compare_ast l r =
   match l, r with
   | Ast.True, Ast.True -> 0
@@ -2554,13 +2544,24 @@ let arithmetize ast =
          asts_n_regexes)
 ;;
 
-let test_distr xs =
+(* let distribute xs =
+  let open Ast in
+  List.fold_left
+    (fun acc -> function
+       | Eia.Add ys -> List.concat_map (fun zs -> List.map (fun h -> h :: zs) ys) acc
+       | other -> List.map (fun x -> other :: x) acc)
+    ([ [] ] : _ list list)
+    xs
+;; *)
+
+(* let test_distr xs =
   let (module Main_symantics) = make_main_symantics Env.empty in
   let ans = distribute xs |> List.map Main_symantics.mul |> Main_symantics.add in
   Debug.printf "@[%a@]\n%!" Ast.pp_term_smtlib2 ans
-;;
+;; *)
 
-let%expect_test _ =
+(* Outdated tests*)
+(* let%expect_test _ =
   let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ] ];
   [%expect "(+ (* 5 x) (* 5 y))"]
@@ -2576,7 +2577,7 @@ let%expect_test _ =
   let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; const 2 ] ];
   [%expect "(+ (* 5 x z) (* 5 y z) (* 10 x) (* 10 y))"]
-;;
+;; *)
 
 let leq_simpl l r =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in

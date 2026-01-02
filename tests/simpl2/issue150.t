@@ -68,11 +68,6 @@
     (<= (+ 1 x) (exp 10 strlenx))
     (str.in_re.raw x)
     (chrob.len x (exp 10 strlenx)))
-  Vars: ["x"; "w"; "u"; "%0"]
-  Var x can't be interesting: used somewhere
-  Var w can't be interesting: used somewhere
-  Var u can't be interesting: used somewhere
-  Var %0 can't be interesting: used somewhere
 $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
 
 
