@@ -448,7 +448,15 @@ let make_main_symantics env =
       | Some (Eia.Sofi _)
       | Some (Eia.Len _)
       | Some (Eia.Len2 _)*)
-      | None -> Eia.Atom (Ast.Var (s, I))
+      | None -> begin
+        match Env.lookup_string s env with
+        | Some (Str_const c) -> begin
+          match Id_symantics.constz (Z.of_string c) with
+          | exception _ -> Id_symantics.constz Z.minus_one
+          | v -> v
+        end
+        | _ -> Eia.Atom (Ast.Var (s, I))
+      end
       | Some c ->
         (* log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c; *)
         c
@@ -1350,31 +1358,6 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     in
     !acc, xs
   in
-  let single =
-    fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
-    let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
-    try
-      match is_bad vn1, is_bad vn2 with
-      | false, _
-        when Env.is_absent_key vn1 env && Env.is_absent_key vn2 env && Z.(equal c1 one) ->
-        Option.some
-          (extend_exn
-             env
-             v1
-             S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ]))
-      | _, false
-        when Env.is_absent_key vn2 env && Env.is_absent_key vn2 env && Z.(equal c2 one) ->
-        Option.some
-          (extend_exn
-             env
-             v2
-             S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ]))
-      | _ -> None
-      (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
-      (* Note: presence of key means we already simplified this variable in another equality *)
-    with
-    | Env.Occurs -> None
-  in
   let helper info orig_ast env ast =
     let module Set = Base.Set.Poly in
     let get_atoms =
@@ -1387,14 +1370,79 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            | _ -> acc)
         Set.empty
     in
+    (*let is_simple_eia eia =
+      let on_int_term acc = function
+        | Ast.Eia.Atom (Ast.Var (s, I)) -> Set.add acc s
+        | _ -> acc
+      in
+      let on_str_term acc = function
+        | Ast.Eia.Atom (Ast.Var (s, S)) -> Set.add acc s
+        | _ -> acc
+      in
+      Ast.Eia.fold_term on_int_term on_str_term Set.empty eia |> Set.length <= 1
+    in*)
+    let in_strlen_eia v eia =
+      Eia.fold2
+        (fun acc el ->
+           match el with
+           | Eia.Len (Eia.Atom (Var (s, S))) when s = v -> true
+           | Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true
+           | _ -> acc)
+        (fun acc _ -> acc)
+        false
+        eia
+    in
+    let rec in_strlen v ast =
+      match ast with
+      | True | Pred _ -> false
+      | Eia eia -> begin
+        match eia with
+        | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
+        | _ -> in_strlen_eia v eia
+      end
+      | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
+      | Land asts | Lor asts ->
+        List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
+      | Unsupp _ -> failwith "unable to fold; unsupported constraint"
+    in
+    let var_can_subst v = Env.is_absent_key v env && not (in_strlen v orig_ast) in
+    let single =
+      fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
+      let is_bad v =
+        (not (var_can_subst v)) || Info.is_in_expo v info || Info.is_in_string v info
+      in
+      try
+        match is_bad vn1, is_bad vn2 with
+        | false, _
+          when Env.is_absent_key vn1 env && Env.is_absent_key vn2 env && Z.(equal c1 one)
+          ->
+          Option.some
+            (extend_exn
+               env
+               v1
+               S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ]))
+        | _, false
+          when Env.is_absent_key vn2 env && Env.is_absent_key vn2 env && Z.(equal c2 one)
+          ->
+          Option.some
+            (extend_exn
+               env
+               v2
+               S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ]))
+        | _ -> None
+        (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
+        (* Note: presence of key means we already simplified this variable in another equality *)
+      with
+      | Env.Occurs -> None
+    in
     match ast with
     (* **************************** String stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Str_const str as rhs), S))
-      when Env.is_absent_key vn env ->
+      when var_can_subst vn ->
       (* (= v 'str') *)
       Some (extend_exn env v rhs)
     | Eia (Eia.Eq ((Str_const str as rhs), Atom (Var (vn, S) as v), S))
-      when Env.is_absent_key vn env ->
+      when var_can_subst vn ->
       (* (= 'str' v) *)
       Some (extend_exn env v rhs)
     (* GB: These substitutions are too aggressive: it is possible to remember
@@ -1402,37 +1450,37 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            <var 1>. Then the answer would be different since the connection
            between <var 1> and <var 2> is lost. *)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Sofi (Atom (Var _)) as rhs), _))
-      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+      when var_can_subst vn -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Iofs (Atom (Var _)) as rhs), _))
-      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+      when var_can_subst vn -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len (Atom (Var _)) as rhs), _))
-      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+      when var_can_subst vn -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len2 (Atom (Var _)) as rhs), _))
-      when Env.is_absent_key vn env -> Some (extend_exn env v rhs)
+      when var_can_subst vn -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Eia.Sofi (Atom (Var (vn, _))), Eia.Sofi (Atom (Var _) as rhs), _))
-      when Env.is_absent_key vn env -> Some (Env.extend_int_exn env vn rhs)
+      when var_can_subst vn -> Some (Env.extend_int_exn env vn rhs)
     (* Kakadu: it is not lost, it is saved in the environment.
       We need to decide how to handle it properly  *)
     (* **************************** integer stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var (vn1, _) as v1), (Atom (Var (v2, _)) as rhs), _)) ->
-      if not (Env.is_absent_key vn1 env)
+      if var_can_subst vn1
       then None
       else if Env.occurs_var env vn1 rhs
       then None
       else Some (extend_exn env v1 rhs)
     | Eia (Eia.Eq (Atom (Var (vn, I) as v1), (Const c as rhs), I))
     | Eia (Eia.Eq ((Const c as rhs), Atom (Var (vn, I) as v1), I))
-      when Env.is_absent_key vn env ->
+      when var_can_subst vn ->
       (* (= v c) *)
       Some (extend_exn env v1 rhs)
     | Eia (Eia.Eq (Mul [ Const _; Atom (Var (vn, _) as v) ], (Const z as rhs), _))
     | Eia (Eia.Eq ((Const z as rhs), Mul [ Const _; Atom (Var (vn, _) as v) ], _))
-      when Z.(equal z zero) && Env.is_absent_key vn env ->
+      when Z.(equal z zero) && var_can_subst vn ->
       (* (= ( * c v) 0) *)
       Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Mul [ Const cl; Atom (Var (vn, _) as v) ], Const cr, _))
     | Eia (Eia.Eq (Const cr, Mul [ Const cl; Atom (Var (vn, _) as v) ], _))
-      when Z.(cr mod cl = zero) && Env.is_absent_key vn env ->
+      when Z.(cr mod cl = zero) && var_can_subst vn ->
       let rhs = Eia.(Const Z.(cr / cl)) in
       Some (extend_exn env v rhs)
     | Eia
@@ -1441,7 +1489,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     | Eia
         (Eia.Eq
            (Atom (Var (vn2, I) as vr), (Mul [ Const cl; Atom (Var (_, I)) ] as lhs), I))
-      when Env.is_absent_key vn2 env ->
+      when var_can_subst vn2 ->
       (* (= ( * c v) vr) *)
       Some (extend_exn env vr lhs)
     | Eia
@@ -1450,7 +1498,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     | Eia
         (Eia.Eq
            ((Mul [ Const cl; Atom (Var (_, I)) ] as lhs), Atom (Var (vn2, I) as vr), I))
-      when Env.is_absent_key vn2 env ->
+      when var_can_subst vn2 ->
       (* (= ( * c v) vr) *)
       Some (extend_exn env vr lhs)
     | Eia
@@ -1465,7 +1513,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            , Add
                [ Atom (Var (v1n, _) as v1); Mul [ Const c; (Atom (Var (v2n, _)) as v2) ] ]
            , I ))
-      when Z.(equal z0 zero) && Env.is_absent_key v1n env ->
+      when Z.(equal z0 zero) && var_can_subst v1n ->
       (* (= (+ v1 c*v2)) 0) *)
       if Env.occurs_var env v1n v2
       then None
@@ -1523,14 +1571,13 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
       let rec loop acc = function
         | Eia.Atom (Var (v, _)) :: _ when not (Env.is_absent_key v env) -> raise Exit
-        | Eia.Atom (Var (vn, _) as v) :: xs
-          when Env.is_absent_key vn env && not (is_bad vn) ->
+        | Eia.Atom (Var (vn, _) as v) :: xs when var_can_subst vn && not (is_bad vn) ->
           let data = S.(mul [ constz Z.minus_one; add (acc @ xs) ]) in
           if not (Env.occurs_var env vn data)
           then extend_exn env v data
           else loop (Eia.Atom v :: acc) xs
         | (Mul [ Const c; Eia.Atom (Var (vn, _) as v) ] as leftmost) :: xs
-          when Env.is_absent_key vn env
+          when var_can_subst vn
                && (not (is_bad vn))
                && Z.(equal (of_int (-1)) c)
                && not_touched_by_env env (Eia.Add acc)
@@ -1547,7 +1594,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            | Bwand _ | Bwor _ | Bwxor _ -> true
            | _ -> false -> None
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, _) as eia')
-      when Env.is_absent_key vn env
+      when var_can_subst vn
            && Ast.forsome
                 (function
                   | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
@@ -1558,7 +1605,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            | Bwand _ | Bwor _ | Bwxor _ -> true
            | _ -> false -> None
     | Eia (Eia.Eq (lhs, Atom (Var (vn, _) as v), _) as eia')
-      when Env.is_absent_key vn env
+      when var_can_subst vn
            && (function
                 | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
                 | _ -> false)

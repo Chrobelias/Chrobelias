@@ -146,7 +146,8 @@ let rec pp fmt = function
     Format.fprintf fmt "(str.suffixof %a %a)" pp_atom atom pp_atom atom'
   | SContains (atom, atom') ->
     Format.fprintf fmt "(str.contains %a %a)" pp_atom atom pp_atom atom'
-  | SEq (atom, atom') -> Format.fprintf fmt "(= %a %a)" pp_atom atom pp_atom atom'
+  | SEq (atom, atom') ->
+    Format.fprintf fmt "(chrob.str.= %a %a)" pp_atom atom pp_atom atom'
   | SReg (atom, re) ->
     Format.fprintf
       fmt
@@ -158,7 +159,7 @@ let rec pp fmt = function
       re (* TODO: print regex *)
   | SRegRaw (atom, re) -> Format.fprintf fmt "(str.in.re.raw %a)" pp_atom atom
   | SLen (atom, atom') ->
-    Format.fprintf fmt "@[(= %a (chrob.len %a))@]" pp_atom atom pp_atom atom'
+    Format.fprintf fmt "@[(chrob.len %a %a)@]" pp_atom atom pp_atom atom'
   | Stoi (atom, atom') ->
     Format.fprintf fmt "@[(= %a (chrob.to.int %a))@]" pp_atom atom pp_atom atom'
   | Itos (atom, atom') ->
