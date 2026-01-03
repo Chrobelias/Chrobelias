@@ -47,6 +47,8 @@ module Eq = struct
   ;;
 end
 
+module NfaS = Nfa.Lsb (Nfa.Str)
+
 module Eia = struct
   (** Exponential integer arithmetic, i.e. LIA with exponents.*)
 
@@ -305,8 +307,6 @@ module Eia = struct
   let compare_term (type a) : a term -> a term -> int = fun l r -> Stdlib.compare l r
   (*match l, r with
     | _ -> failwith "tbd"*)
-
-  module NfaS = Nfa.Lsb (Nfa.Str)
 
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
@@ -688,6 +688,17 @@ let rec equal ast ast' =
   | _, _ -> false
 ;;
 
+let safe_eq ast ast' =
+  match ast, ast' with
+  | Eia (Eia.InReRaw (atom, S, lhs)), Eia (Eia.InReRaw (atom', S, rhs)) ->
+    NfaS.equal_start_and_final lhs rhs && atom = atom'
+  | Eia (Eia.InReRaw (atom, I, lhs)), Eia (Eia.InReRaw (atom', I, rhs)) ->
+    NfaS.equal_start_and_final lhs rhs && atom = atom'
+  | smth ->
+    (match Stdlib.(ast = ast') with
+     | exception _ -> true
+     | smth -> smth)
+;;
 (* let map_term fz fs = function
   | eia -> Eia.map_term fz fs eia
 ;; *)

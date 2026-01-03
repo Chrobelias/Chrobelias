@@ -1236,6 +1236,138 @@ let%expect_test _ =
   ()
 ;;
 
+let shrink_variables ast =
+  let _ : Ast.t = ast in
+  (* log "old ast: @[%a@]\n" Ast.pp_smtlib2 ast; *)
+  let info = apply_symantics (module Who_in_exponents) ast in
+  (* log "@[<v 2>@[Old info:@]@ @[%a@]@]\n" Info.pp_hum info; *)
+  let is_in_expo v = Info.is_in_expo v info in
+  let same_base l r = is_in_expo l && is_in_expo r in
+  (* Now let's make exponential variables more exponential *)
+  let module Sy = struct
+    open Ast
+    include Id_symantics
+    include FT_SIG.Sugar (Id_symantics)
+
+    (* TODO(Kakadu): maybe a syntax extension for better matching? *)
+    (* TODO: detect base from variable usage  *)
+    let good_enough_constant rhs = Z.lt rhs (Z.of_int (Config.huge_const ()))
+
+    let leq l r =
+      let base = constz (Config.base ()) in
+      let open Eia in
+      (* Format.printf "TRACE: @[%a@]\n%!" Ast.pp_smtlib2 (Id_symantics.leq l r); *)
+        match l, r with
+        | Atom (Var (v, _)), Const rhs when is_in_expo v && good_enough_constant rhs ->
+          (* v<=c ~~> 10^v <= 10^c *)
+          Id_symantics.(leq (base ** l) (base ** r))
+        | Const lhs, Atom (Var (v, _)) when is_in_expo v && good_enough_constant lhs ->
+          (* c<=v ~~> 10^c <= 10^v *)
+          Id_symantics.(leq (base ** l) (base ** r))
+        | Add [ Atom (Var (v, _)); Mul [ Const m1; Atom (Var (v2, _)) ] ], Eia.(Const z)
+          when same_base v v2
+               && Z.(equal z zero)
+               && Z.(equal m1 minus_one)
+               && good_enough_constant z
+               (* v - v2 <=0 ~~>  10^v <= 10^v2  *) ->
+          Id_symantics.(leq (base ** var v) (base ** var v2))
+        | Add [ Atom (Var (v, _)); Mul [ Const c; Atom (Var (v2, _)) ] ], Eia.(Const z)
+          when same_base v v2
+               && Z.(equal z zero)
+               && Z.(lt c zero)
+               && good_enough_constant z
+               (* v - c*v2 <= 0 ~~>  10^v2 <= (10^c)^v) *) ->
+          Id_symantics.(leq (base ** var v2) (pow (base ** constz (Z.abs c)) (var v)))
+        | _ -> Id_symantics.leq l r
+    ;;
+  end
+  in
+  let ast2 = apply_symantics_unsugared (module Sy) ast in
+  if Ast.safe_eq ast ast2
+  then ast2
+  else (
+    log "Post-simplification: @[%a@]\n" Ast.pp_smtlib2 ast2;
+    let info2 = apply_symantics (module Who_in_exponents) ast in
+    log "@[<v 2>@[New info:@]@ @[%a@]@]\n" Info.pp_hum info2;
+    ast2)
+;;
+
+let%test_module "about shrinking" =
+  (module struct
+    let wrap f =
+      let ast = Ast.land_ (f (make_main_symantics Env.empty)) in
+      (* let ast =
+        match simpl 0 ast with
+        | `Unknown ast -> ast
+        | `Sat _ -> failwith (Printf.sprintf "Too simple test %d" __LINE__)
+        | `Error _ -> failwith (Printf.sprintf "Too simple test %d" __LINE__)
+        | `Underapprox _ -> failwith (Printf.sprintf "Too simple test %d" __LINE__)
+        | `Unsat -> failwith (Printf.sprintf "Too simple test %d" __LINE__)
+      in *)
+      Format.printf "%a\n%!" Ast.pp_smtlib2 ast;
+      let ast = shrink_variables ast in
+      Format.printf "           @ @[%a@]%!" Ast.pp_smtlib2 ast
+    ;;
+
+    let%expect_test "The simplest thing" =
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ add [ pow2var "x"; pow2var "y" ] <= const 52; var "x" <= const 3 ]);
+      [%expect
+        {|
+        (and
+          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= x 3))
+
+        (and
+          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (exp 10 x) (exp 10 3)))
+        |}]
+    ;;
+
+    let%expect_test "Without interesting coefs" =
+      (* TODO: different bases are not yet supported *)
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ add [ pow2var "x"; pow2var "y"; const 10 ** var "u"; const 10 ** var "v" ]
+          <= const 5000
+        ; add [ var "x"; mul [ const (-1); var "y" ] ] <= const 0
+        ; add [ mul [ const (-1); var "u" ]; var "v" ] <= const 0
+        ]);
+      [%expect
+        {|
+        (and
+          (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
+          (<= (+ x (* (- 1) y)) 0)
+          (<= (+ v (* (- 1) u)) 0))
+
+        (and
+          (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
+          (<= (exp 10 x) (exp 10 y))
+          (<= (exp 10 v) (exp 10 u)))
+        |}]
+    ;;
+
+    let%expect_test "With coeffs" =
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ add [ pow2var "x"; pow2var "y" ] <= const 52
+        ; add [ var "x"; mul [ const (-3); var "y" ] ] <= const 0
+        ]);
+      [%expect
+        {|
+        (and
+          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ x (* (- 3) y)) 0))
+
+        (and
+          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (exp 10 y) (exp (exp 10 3) x)))
+        |}]
+    ;;
+  end)
+;;
+
 let gensym =
   let n = ref 0 in
   fun ?(prefix = "eee") () ->
@@ -1815,6 +1947,7 @@ let basic_simplify step ?multiple (env : Env.t) ast =
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
     (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
+    (* let ast2 = ast2 |> propagate_exponents |> shrink_variables in *)
     let ast2 = propagate_exponents ast2 in
     let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
@@ -1822,21 +1955,8 @@ let basic_simplify step ?multiple (env : Env.t) ast =
     let env2, ast2 = eq_propagation var_info ?multiple env ast2 in
     let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
     let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
-    let safe_eq ast ast2 =
-      match ast, ast2 with
-      | ( Ast.Eia (Ast.Eia.InReRaw (atom, S, lhs))
-        , Ast.Eia (Ast.Eia.InReRaw (atom', S, rhs)) ) ->
-        NfaS.equal_start_and_final lhs rhs && atom = atom'
-      | ( Ast.Eia (Ast.Eia.InReRaw (atom, I, lhs))
-        , Ast.Eia (Ast.Eia.InReRaw (atom', I, rhs)) ) ->
-        NfaS.equal_start_and_final lhs rhs && atom = atom'
-      | smth ->
-        (match Stdlib.(ast = ast2) with
-         | exception _ -> true
-         | smth -> smth)
-    in
     let next_step = next step in
-    match Env.length env2 > Env.length env, safe_eq ast ast2 with
+    match Env.length env2 > Env.length env, Ast.safe_eq ast ast2 with
     | true, equal ->
       let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
@@ -1868,7 +1988,7 @@ let run_basic_simplify ast =
     match basic_simplify [ 1 ] Env.empty ast with
     | `Sat env -> `Sat ("presimpl", env)
     | `Unsat -> `Unsat
-    | `Unknown (ast, e, _, _) -> `Unknown (ast, e))
+    | `Unknown (ast, e, _, _) -> `Unknown (ast |> shrink_variables, e))
   else `Unknown (ast, Env.empty)
 ;;
 
@@ -2650,141 +2770,15 @@ let%expect_test " -2x <= -1" =
   [%expect "(<= (* (- 1) x) (- 1))"]
 ;;
 
-let tracing_on =
+(* let tracing_on =
   match Sys.getenv "CHRO_TRACE_OPT" with
   | exception Not_found -> false
   | "1" -> true
   | _ -> false
-;;
+;; *)
 
-let log ppf =
+(* let log ppf =
   if tracing_on
   then Format.kasprintf (Format.printf "%s%!") ppf
   else Format.ifprintf Format.std_formatter ppf
-;;
-
-let shrink_variables ast =
-  let _ : Ast.t = ast in
-  log "old ast: @[%a@]\n" Ast.pp_smtlib2 ast;
-  let info = apply_symantics (module Who_in_exponents) ast in
-  log "@[<v 2>@[Old info:@]@ @[%a@]@]\n" Info.pp_hum info;
-  let is_in_expo v = Info.is_in_expo v info in
-  let same_base l r = is_in_expo l && is_in_expo r in
-  (* Now let's make exponential variables more exponential *)
-  let module Sy = struct
-    open Ast
-    include Id_symantics
-    include FT_SIG.Sugar (Id_symantics)
-
-    (* TODO(Kakadu): maybe a syntax extension for better matching? *)
-    (* TODO: detect base from variable usage  *)
-    let good_enough_constant rhs = Z.lt rhs (Z.of_int (Config.huge_const ()))
-
-    let leq l r =
-      let open Eia in
-      (* Format.printf "TRACE: @[%a@]\n%!" Ast.pp_smtlib2 (Id_symantics.leq l r); *)
-        match l, r with
-        | Atom (Var (v, _)), Const rhs when is_in_expo v && good_enough_constant rhs ->
-          (* v<=c ~~> 10^v <= 10^c *)
-          Id_symantics.(leq (const 10 ** l) (const 10 ** r))
-        | Add [ Atom (Var (v, _)); Mul [ Const m1; Atom (Var (v2, _)) ] ], Eia.(Const z)
-          when same_base v v2
-               && Z.(equal z zero)
-               && Z.(equal m1 minus_one)
-               && good_enough_constant z
-               (* v - v2 <=0 ~~>  10^v <= 10^v2  *) ->
-          Id_symantics.(leq (const 10 ** var v) (const 10 ** var v2))
-        | Add [ Atom (Var (v, _)); Mul [ Const c; Atom (Var (v2, _)) ] ], Eia.(Const z)
-          when same_base v v2
-               && Z.(equal z zero)
-               && Z.(lt c zero)
-               && good_enough_constant z
-               (* v - c*v2 <= 0 ~~>  10^v2 <= (10^c)^v) *) ->
-          Id_symantics.(
-            leq (const 10 ** var v2) (pow (const 10 ** constz (Z.abs c)) (var v)))
-        | _ -> Id_symantics.leq l r
-    ;;
-  end
-  in
-  let ast2 = apply_symantics_unsugared (module Sy) ast in
-  let info2 = apply_symantics (module Who_in_exponents) ast in
-  log "new ast: @[%a@]\n" Ast.pp_smtlib2 ast2;
-  log "@[<v 2>@[New info:@]@ @[%a@]@]\n" Info.pp_hum info2;
-  ast2
-;;
-
-let%test_module "about shrinking" =
-  (module struct
-    let wrap f =
-      let ast = Ast.land_ (f (make_main_symantics Env.empty)) in
-      (* let ast =
-        match simpl 0 ast with
-        | `Unknown ast -> ast
-        | `Sat _ -> failwith (Printf.sprintf "Too simple test %d" __LINE__)
-        | `Error _ -> failwith (Printf.sprintf "Too simple test %d" __LINE__)
-        | `Underapprox _ -> failwith (Printf.sprintf "Too simple test %d" __LINE__)
-        | `Unsat -> failwith (Printf.sprintf "Too simple test %d" __LINE__)
-      in *)
-      Format.printf "%a\n%!" Ast.pp_smtlib2 ast;
-      let ast = shrink_variables ast in
-      Format.printf "           @ @[%a@]%!" Ast.pp_smtlib2 ast
-    ;;
-
-    let%expect_test "The simplest thing" =
-      wrap (fun (module TS : SYM_SUGAR_AST) ->
-        let open TS in
-        [ add [ pow2var "x"; pow2var "y" ] <= const 52; var "x" <= const 3 ]);
-      [%expect
-        {|
-        (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= x 3))
-
-        (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= (exp 10 x) (exp 10 3)))
-        |}]
-    ;;
-
-    let%expect_test "Without interesting coefs" =
-      (* TODO: different bases are not yet supported *)
-      wrap (fun (module TS : SYM_SUGAR_AST) ->
-        let open TS in
-        [ add [ pow2var "x"; pow2var "y"; const 10 ** var "u"; const 10 ** var "v" ]
-          <= const 5000
-        ; add [ var "x"; mul [ const (-1); var "y" ] ] <= const 0
-        ; add [ mul [ const (-1); var "u" ]; var "v" ] <= const 0
-        ]);
-      [%expect
-        {|
-        (and
-          (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
-          (<= (+ x (* (- 1) y)) 0)
-          (<= (+ v (* (- 1) u)) 0))
-
-        (and
-          (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
-          (<= (exp 10 x) (exp 10 y))
-          (<= (exp 10 v) (exp 10 u)))
-        |}]
-    ;;
-
-    let%expect_test "With coeffs" =
-      wrap (fun (module TS : SYM_SUGAR_AST) ->
-        let open TS in
-        [ add [ pow2var "x"; pow2var "y" ] <= const 52
-        ; add [ var "x"; mul [ const (-3); var "y" ] ] <= const 0
-        ]);
-      [%expect
-        {|
-        (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= (+ x (* (- 3) y)) 0))
-
-        (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= (exp 10 y) (exp (exp 10 3) x)))
-        |}]
-    ;;
-  end)
-;;
+;; *)
