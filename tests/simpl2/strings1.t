@@ -56,12 +56,12 @@
              (<= 0 strlenx))
   Something ready to substitute
         %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
-        %concat5 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
   
   iter(3)= (and
-             (= %concat2 strlenx)
              (= %concat3 y)
              (= %concat4 x)
+             (= %concat5 (+ %concat4 (* %concat3 (exp 10 %concat2))))
              (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
              (= %concat6 strlenx)
              (= %concat7 999)
@@ -69,47 +69,104 @@
              (<= 0 strlenx))
   Something ready to substitute
         %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
-        %concat5 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
-        %concat7 -> 999;
+        %concat2 -> strlenx;
+        %concat3 -> y;
   
   iter(4)= (and
-             (= %concat2 strlenx)
-             (= %concat3 y)
              (= %concat4 x)
+             (= %concat5 (+ %concat4 (* %concat3 (exp 10 strlenx))))
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
              (= %concat6 strlenx)
+             (= %concat7 999)
              (= %concat8 x)
-             (= (+ %concat4 (* (- 1) %concat7 (exp 10 %concat6))
-                (* (- 1) %concat8) (* %concat3 (exp 10 %concat2))) 0)
              (<= 0 strlenx))
   Something ready to substitute
         %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
-        %concat4 -> (+ %concat8 (* (- 1) %concat3 (exp 10 %concat2))
-                    (* 999 (exp 10 %concat6)));
-        %concat5 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
-        %concat7 -> 999;
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
   
   iter(5)= (and
-             (= %concat2 strlenx)
-             (= %concat3 y)
-             (= %concat4 x)
+             (= %concat5 (+ %concat4 (* y (exp 10 strlenx))))
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
              (= %concat6 strlenx)
+             (= %concat7 999)
              (= %concat8 x)
              (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+  
   iter(6)= (and
-             (= %concat2 strlenx)
-             (= %concat3 y)
+             (= %concat5 (+ x (* y (exp 10 strlenx))))
              (= %concat6 strlenx)
+             (= %concat7 999)
              (= %concat8 x)
-             (= (+ %concat8 (* (- 1) %concat3 (exp 10 %concat2))
-                (* 999 (exp 10 %concat6))) x)
              (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
+  
+  iter(7)= (and
+             (= %concat7 999)
+             (= %concat8 x)
+             (= (+ %concat8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
+                (* %concat7 (exp 10 %concat6))) 0)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
+        %concat7 -> 999;
+  
+  iter(8)= (and
+             (= %concat8 x)
+             (= (+ %concat8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
+                (* %concat7 (exp 10 strlenx))) 0)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> y;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
+        %concat7 -> 999;
+        %concat8 -> x;
+  
+  iter(9)= (and
+             (= (+ %concat8 (* (- 1) x) (* (- 1) y (exp 10 strlenx))
+                (* 999 (exp 10 strlenx))) 0)
+             (<= 0 strlenx))
+  iter(10)= (and
+              (= (+ (* (- 1) y (exp 10 strlenx)) (* 999 (exp 10 strlenx))) 0)
+              (<= 0 strlenx))
   fixed-point
   
-  Interesting: %concat2 %concat6
+  Post-simplification: (and
+                         (= (+ (* (- 1) y (exp 10 strlenx))
+                            (* 999 (exp 10 strlenx))) 0)
+                         (<= (exp 10 0) (exp 10 strlenx)))
+  
+  New info:
+    Exp: strlenx
+    Str:
+    ALL: strlenx y
+  
+  Interesting: strlenx
   
   Expecting 0 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| %concat2->0 %concat3->999 %concat6->0 %concat8->0 strlenx->0
-        x->0 y->999 |}
+  env = {| strlenx->0 y->999 |}
   sat (under I)
