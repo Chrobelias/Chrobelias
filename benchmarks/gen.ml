@@ -335,7 +335,7 @@ let prepare_script ?(opp = Swine) ~script () =
     printfn "FLAT='-flat 0 -amin 0 -amax 100000'";
     printfn
       "if timeout $TIMEOUT time -f 'THETIME %%U' dune exec Chro --profile=release -- \
-       $APPROX $FLAT %s --q %s > .log 2> .errlog"
+       $APPROX $FLAT %s -q %s > .log 2> .errlog"
       smt2file
       extra_flags;
     printfn "then";

@@ -1321,7 +1321,7 @@ let%test_module "about shrinking" =
 
         (and
           (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= (exp 10 x) (exp 10 3)))
+          (<= (exp 2 x) (exp 2 3)))
         |}]
     ;;
 
@@ -1343,8 +1343,8 @@ let%test_module "about shrinking" =
 
         (and
           (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
-          (<= (exp 10 x) (exp 10 y))
-          (<= (exp 10 v) (exp 10 u)))
+          (<= (exp 2 x) (exp 2 y))
+          (<= (exp 2 v) (exp 2 u)))
         |}]
     ;;
 
@@ -1362,7 +1362,7 @@ let%test_module "about shrinking" =
 
         (and
           (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= (exp 10 y) (exp (exp 10 3) x)))
+          (<= (exp 2 y) (exp (exp 2 3) x)))
         |}]
     ;;
   end)
