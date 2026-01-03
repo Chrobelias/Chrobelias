@@ -1537,11 +1537,17 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
         List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
       | Unsupp _ -> failwith "unable to fold; unsupported constraint"
     in
-    let var_can_subst v = Env.is_absent_key v env && not (in_strlen v orig_ast) in
+    let var_can_subst v = Env.is_absent_key v env in
+    let var_can_subst_complex v =
+      var_can_subst v
+      && not (in_strlen v orig_ast)
+    in
     let single =
       fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
       let is_bad v =
-        (not (var_can_subst v)) || Info.is_in_expo v info || Info.is_in_string v info
+        (not (var_can_subst_complex v))
+        || Info.is_in_expo v info
+        || Info.is_in_string v info
       in
       try
         match is_bad vn1, is_bad vn2 with
@@ -1595,7 +1601,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       We need to decide how to handle it properly  *)
     (* **************************** integer stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var (vn1, _) as v1), (Atom (Var (v2, _)) as rhs), _)) ->
-      if var_can_subst vn1
+      if not (var_can_subst vn1)
       then None
       else if Env.occurs_var env vn1 rhs
       then None
@@ -1726,7 +1732,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            | Bwand _ | Bwor _ | Bwxor _ -> true
            | _ -> false -> None
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, _) as eia')
-      when var_can_subst vn
+      when var_can_subst_complex vn
            && Ast.forsome
                 (function
                   | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
@@ -1737,7 +1743,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            | Bwand _ | Bwor _ | Bwxor _ -> true
            | _ -> false -> None
     | Eia (Eia.Eq (lhs, Atom (Var (vn, _) as v), _) as eia')
-      when var_can_subst vn
+      when var_can_subst_complex vn
            && (function
                 | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
                 | _ -> false)
