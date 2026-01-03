@@ -4,13 +4,13 @@ Basic QF_EIA tests
   sat (nfa)
   unsat (nfa)
   unsat (nfa)
-  sat (presimpl)
+  sat (under I)
   unsat (nfa)
   sat (under I)
   unsat (nfa)
-  unsat (presimpl)
-  unsat (presimpl)
-  sat (presimpl)
+  unsat (nia)
+  unsat (nia)
+  sat (under I)
   unsat (nfa)
   sat (under I)
   unsat (simpl)
@@ -22,13 +22,13 @@ Basic QF_EIA tests using only NFAs
   sat (nfa)
   unsat (nfa)
   unsat (nfa)
-  sat (presimpl)
+  sat (nfa)
   unsat (nfa)
   sat (nfa)
   unsat (nfa)
-  unsat (presimpl)
-  unsat (presimpl)
-  sat (presimpl)
+  unsat (nfa)
+  unsat (nfa)
+  sat (nfa)
   unsat (nfa)
   sat (nfa)
   unsat (simpl)
@@ -40,13 +40,13 @@ Same basic QF_EIA tests using only NFAs but in the LSB mode
   sat (nfa)
   unsat (nfa)
   unsat (nfa)
-  sat (presimpl)
+  sat (nfa)
   unsat (nfa)
   sat (nfa)
   unsat (nfa)
-  unsat (presimpl)
-  unsat (presimpl)
-  sat (presimpl)
+  unsat (nfa)
+  unsat (nfa)
+  sat (nfa)
   unsat (nfa)
   sat (nfa)
   unsat (simpl)
@@ -79,12 +79,7 @@ Test ExEyEz y = 2**x & z = 2**y & z mod 100 = 36 with -lsb
 
   $ Chro ./examples/QF_EIA/double_exp-100-sat.smt2 -lsb
   sat (nfa)
-  Fatal error: exception File "lib/solver.ml", line 1529, characters 28-34: Assertion failed
-  Raised at Lib__Solver.check_sat.on_no_strings.f in file "lib/solver.ml", line 1529, characters 28-40
-  Called from Dune__exe__Chro.exec in file "bin/chro.ml", line 354, characters 19-32
-  Called from Stdlib__List.fold_left in file "list.ml", line 123, characters 24-34
-  Called from Dune__exe__Chro in file "bin/chro.ml", lines 418-421, characters 6-9
-  [2]
+  no short model
 
 Test Frobenius coin problem with exponential restrictions
 
@@ -100,14 +95,12 @@ Test EXP-solver simplified problems
 
   $ Chro ./examples/hash_3_6.smt2
   sat (nfa)
-  ((define-fun u () (_ Int) 0)
-   (define-fun v () (_ Int) 0)
-   (define-fun w () (_ Int) 20575685)
-   (define-fun x () (_ String) "123454110"))
+  ((define-fun u () (_ Int) 1)
+   (define-fun w () (_ Int) 20576667)
+   (define-fun x () (_ String) "123459999"))
 
   $ Chro ./examples/hash_130_137.smt2
   sat (nfa)
   ((define-fun u () (_ Int) 0)
-   (define-fun v () (_ Int) 0)
-   (define-fun w () (_ Int) 8847600088476000884760008847600088476000884760008965597)
-   (define-fun x () (_ String) "1212121212121212121212121212121212121212121212121228286789"))
+   (define-fun w () (_ Int) 8965568089655680896556808965568089655680896556808965597)
+   (define-fun x () (_ String) "1228282828282828282828282828282828282828282828282828286789"))

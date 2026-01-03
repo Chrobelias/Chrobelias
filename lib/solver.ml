@@ -1264,7 +1264,9 @@ let check_sat ir
     match checker ir with
     | `Sat model ->
       (match model () with
-       | Result.Error `Too_long -> assert false
+       | Result.Error `Too_long ->
+         let f tys = Result.Error `Too_long in
+         `Sat f
        | Result.Ok model ->
          let f tys =
            Result.Ok
