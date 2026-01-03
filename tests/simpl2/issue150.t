@@ -59,9 +59,24 @@
              (chrob.len x (exp 10 strlenx)))
   fixed-point
   
+  Post-simplification: (and
+                         (= (* 1171 w) (+ x (* 444 u)))
+                         (<= (exp 10 0) (exp 10 strlenx))
+                         (<= 0 (* 444 u))
+                         (<= strlenx 99)
+                         (<= u 2)
+                         (<= (+ 1 x) (exp 10 strlenx))
+                         (str.in_re.raw x)
+                         (chrob.len x (exp 10 strlenx)))
+  
+  New info:
+    Exp: strlenx
+    Str:
+    ALL: strlenx u w x
+  
   (and
     (= (* 1171 w) (+ x (* 444 u)))
-    (<= 0 strlenx)
+    (<= (exp 10 0) (exp 10 strlenx))
     (<= 0 (* 444 u))
     (<= strlenx 99)
     (<= u 2)
