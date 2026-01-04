@@ -7,7 +7,6 @@ $ export CHRO_DEBUG=1
     (<= (exp 10 0) (exp 10 strlenx))
     (<= q4 26)
     (<= (exp 10 strlenx) (exp 10 99))
-    (<= (+ 1 x) (exp 10 strlenx))
     (<= (* (- 1) q4) 0)
     (str.in_re.raw x)
     (chrob.len x (exp 10 strlenx)))

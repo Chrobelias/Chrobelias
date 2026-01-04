@@ -554,7 +554,7 @@ let () =
                     (match get_model tys with
                      | Result.Ok model ->
                        let model = join_int_model env model in
-                       Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+                       print_model tys model regexes env
                      | Result.Error `Too_long -> Format.printf "no short model\n%!")))
         in
         state)
