@@ -1538,10 +1538,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       | Unsupp _ -> failwith "unable to fold; unsupported constraint"
     in
     let var_can_subst v = Env.is_absent_key v env in
-    let var_can_subst_complex v =
-      var_can_subst v
-      && not (in_strlen v orig_ast)
-    in
+    let var_can_subst_complex v = var_can_subst v && not (in_strlen v orig_ast) in
     let single =
       fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
       let is_bad v =
@@ -2579,9 +2576,10 @@ let arithmetize ast =
         let s, phs = arithmetize_term s in
         let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
         let phs =
-          if Ast.in_stoi var ast
-          then Ast.Eia.lt s (pow_base v) :: Ast.Eia.rlen s (pow_base v) :: phs
-          else phs
+          match Ast.in_stoi var ast, Map.mem (collect_regexes ast) var with
+          | true, true -> Ast.Eia.rlen s (pow_base v) :: phs
+          | true, false -> Ast.Eia.lt s (pow_base v) :: phs
+          | false, other -> phs
         in
         v, phs
       | Str_const s -> Ast.Eia.const (Z.of_string s), []

@@ -30,7 +30,6 @@
                   (<= 0 (* 444 u))
                   (<= u 2)
                   (<= strlenx 99)
-                  (<= (+ x 1) (exp 10 strlenx))
                   (chrob.len x (exp 10 strlenx))
                   (<= 0 strlenx)
                   True
@@ -43,7 +42,6 @@
              (<= 0 (* 444 u))
              (<= u 2)
              (<= strlenx 99)
-             (<= (+ x 1) (exp 10 strlenx))
              (chrob.len x (exp 10 strlenx))
              (<= 0 strlenx)
              True
@@ -54,7 +52,6 @@
              (<= 0 (* 444 u))
              (<= strlenx 99)
              (<= u 2)
-             (<= (+ 1 x) (exp 10 strlenx))
              (str.in_re.raw x)
              (chrob.len x (exp 10 strlenx)))
   fixed-point
@@ -65,7 +62,6 @@
                          (<= 0 (* 444 u))
                          (<= strlenx 99)
                          (<= u 2)
-                         (<= (+ 1 x) (exp 10 strlenx))
                          (str.in_re.raw x)
                          (chrob.len x (exp 10 strlenx)))
   
@@ -80,7 +76,6 @@
     (<= 0 (* 444 u))
     (<= strlenx 99)
     (<= u 2)
-    (<= (+ 1 x) (exp 10 strlenx))
     (str.in_re.raw x)
     (chrob.len x (exp 10 strlenx)))
 $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
