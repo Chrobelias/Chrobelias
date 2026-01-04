@@ -1490,8 +1490,86 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     in
     !acc, xs
   in
-  let helper2 orig_ast env ast =
+  let helper info orig_ast env ast =
+    let module Set = Base.Set.Poly in
+    let get_atoms =
+      Ast.Eia.fold2
+        (fun acc -> function
+           | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
+           | _ -> acc)
+        (fun acc -> function
+           | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
+           | _ -> acc)
+        Set.empty
+    in
+    (*let is_simple_eia eia =
+      let on_int_term acc = function
+        | Ast.Eia.Atom (Ast.Var (s, I)) -> Set.add acc s
+        | _ -> acc
+      in
+      let on_str_term acc = function
+        | Ast.Eia.Atom (Ast.Var (s, S)) -> Set.add acc s
+        | _ -> acc
+      in
+      Ast.Eia.fold_term on_int_term on_str_term Set.empty eia |> Set.length <= 1
+    in*)
+    let in_strlen_eia v eia =
+      Eia.fold2
+        (fun acc el ->
+           match el with
+           | Eia.Len (Eia.Atom (Var (s, S))) when s = v -> true
+           | Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true
+           | _ -> acc)
+        (fun acc _ -> acc)
+        false
+        eia
+    in
+    let rec in_strlen v ast =
+      match ast with
+      | True | Pred _ -> false
+      | Eia eia -> begin
+        match eia with
+        | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
+        | _ -> in_strlen_eia v eia
+      end
+      | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
+      | Land asts | Lor asts ->
+        List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
+      | Unsupp _ -> failwith "unable to fold; unsupported constraint"
+    in
     let var_can_subst v = Env.is_absent_key v env in
+    let var_can_subst_complex v = var_can_subst v && not (in_strlen v orig_ast) in
+    let single =
+      fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
+      let is_bad v =
+        (not (var_can_subst_complex v))
+        || Info.is_in_expo v info
+        || Info.is_in_string v info
+      in
+      try
+        match is_bad vn1, is_bad vn2 with
+        | false, _
+          when Env.is_absent_key vn1 env && Env.is_absent_key vn2 env && Z.(equal c1 one)
+          ->
+          Option.some
+            (extend_exn
+               env
+               v1
+               S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ]))
+        | _, false
+          when Env.is_absent_key vn2 env && Env.is_absent_key vn2 env && Z.(equal c2 one)
+          ->
+          Option.some
+            (extend_exn
+               env
+               v2
+               S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ]))
+        | _ -> None
+        (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
+        (* Note: presence of key means we already simplified this variable in another equality *)
+      with
+      | Env.Occurs -> None
+    in
     match ast with
     (* **************************** String stuff *********************************** *)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Str_const str as rhs), S))
@@ -1579,89 +1657,6 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
           if Z.(equal c minus_one) then v2 else Eia.Mul [ Const Z.(-c); v2 ]
         in
         Some (extend_exn env v1 new_rhs))
-    | _ -> None
-  in
-  let helper info orig_ast env ast =
-    let module Set = Base.Set.Poly in
-    let get_atoms =
-      Ast.Eia.fold2
-        (fun acc -> function
-           | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
-           | _ -> acc)
-        (fun acc -> function
-           | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
-           | _ -> acc)
-        Set.empty
-    in
-    (*let is_simple_eia eia =
-      let on_int_term acc = function
-        | Ast.Eia.Atom (Ast.Var (s, I)) -> Set.add acc s
-        | _ -> acc
-      in
-      let on_str_term acc = function
-        | Ast.Eia.Atom (Ast.Var (s, S)) -> Set.add acc s
-        | _ -> acc
-      in
-      Ast.Eia.fold_term on_int_term on_str_term Set.empty eia |> Set.length <= 1
-    in*)
-    let in_strlen_eia v eia =
-      Eia.fold2
-        (fun acc el ->
-           match el with
-           | Eia.Len (Eia.Atom (Var (s, S))) when s = v -> true
-           | Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true
-           | _ -> acc)
-        (fun acc _ -> acc)
-        false
-        eia
-    in
-    let rec in_strlen v ast =
-      match ast with
-      | True | Pred _ -> false
-      | Eia eia -> begin
-        match eia with
-        | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
-        | _ -> in_strlen_eia v eia
-      end
-      | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
-      | Land asts | Lor asts ->
-        List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
-      | Unsupp _ -> failwith "unable to fold; unsupported constraint"
-    in
-    let var_can_subst v = Env.is_absent_key v env in
-    let var_can_subst_complex v = var_can_subst v && not (in_strlen v orig_ast) in
-    let single =
-      fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
-      let is_bad v =
-        (not (var_can_subst_complex v))
-        || Info.is_in_expo v info
-        || Info.is_in_string v info
-      in
-      try
-        match is_bad vn1, is_bad vn2 with
-        | false, _
-          when Env.is_absent_key vn1 env && Env.is_absent_key vn2 env && Z.(equal c1 one)
-          ->
-          Option.some
-            (extend_exn
-               env
-               v1
-               S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ]))
-        | _, false
-          when Env.is_absent_key vn2 env && Env.is_absent_key vn2 env && Z.(equal c2 one)
-          ->
-          Option.some
-            (extend_exn
-               env
-               v2
-               S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ]))
-        | _ -> None
-        (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
-        (* Note: presence of key means we already simplified this variable in another equality *)
-      with
-      | Env.Occurs -> None
-    in
-    match ast with
     | Eia (Eia.Eq (Add [ Atom (Var (_, I) as v1); Atom (Var (_, I) as v2) ], rhs, I))
       when v1 <> v2 ->
       (* (= (+ v1 v2) rhs) *)
@@ -1759,12 +1754,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     let multiple = Option.value ~default:false multiple in
     match ast with
     | Land xs ->
-      let env', ys = fold_and_filter multiple (helper2 ast) env xs in
-      let env', ys = if Env.length env <> Env.length env' then
-        env', ys
-      else
-        fold_and_filter multiple (helper info ast) env xs
-      in
+      let env', ys = fold_and_filter multiple (helper info ast) env xs in
       let ans_ph = if ys = [] && xs <> [] then True else Land ys in
       env', ans_ph
     | Eia _ ->
@@ -2594,15 +2584,16 @@ let arithmetize ast =
         let var, lenvar, phs =
           match s with
           | Ast.Eia.Atom (Ast.Var (var, _)) -> var, String.concat "" [ "strlen"; var ], []
-          | non_var ->
-            let var = gensym ~prefix:"%arith_len" () in
+          | non_var -> failwith "unreachable"
+          (*let var = gensym ~prefix:"%arith_len" () in
             let non_var, phs = arithmetize_term non_var in
             ( var
             , String.concat "" [ "strlen"; var ]
-            , Ast.Eia.eq (atomi var) non_var Ast.I :: phs )
+            , Ast.Eia.eq (atomi var) non_var Ast.I :: phs )*)
         in
         let v = atomi lenvar in
-        let s, phs = arithmetize_term s in
+        let s, phs' = arithmetize_term s in
+        let phs = phs @ phs' in
         let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
         let phs =
           match Ast.in_stoi var ast, Map.mem (collect_regexes ast) var with
@@ -2729,6 +2720,30 @@ let arithmetize ast =
     | Ast.Unsupp s -> [ Ast.Unsupp s ]
     | _ as non_eia -> [ non_eia ]
   in
+  let flatten ast =
+    let extra_ph = ref [] in
+    let extends v other =
+      extra_ph := Id_symantics.eq_str (Id_symantics.str_var v) other :: !extra_ph
+    in
+    let module M_ = struct
+      include Id_symantics
+
+      let str_len = function
+        | Ast.Eia.Atom _ as v -> Id_symantics.str_len v
+        | non_var ->
+          let v = gensym ~prefix:"%arith_flat" () in
+          extends v non_var;
+          Id_symantics.str_len (Ast.Eia.atom (Ast.var v Ast.S))
+      ;;
+
+      let prj = function
+        | Ast.Land xs -> land_ (!extra_ph @ xs)
+        | ph -> land_ (!extra_ph @ [ ph ])
+      ;;
+    end
+    in
+    apply_symantics_unsugared (module M_) ast
+  in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
   | `Sat env -> `Sat ("presimpl", env)
@@ -2740,7 +2755,8 @@ let arithmetize ast =
     in
     `Unknown
       (List.concat_map
-         (fun (ast, regexes) -> List.map (fun ast -> ast, regexes) (arithmetize ast))
+         (fun (ast, regexes) ->
+            List.map (fun ast -> ast, regexes) (arithmetize (flatten ast)))
          asts_n_regexes)
 ;;
 
