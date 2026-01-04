@@ -29,7 +29,7 @@ let config =
   ; error_check = true
   ; simpl_alpha = false
   ; simpl_mono = true
-  ; over_approx = false
+  ; over_approx = true
   ; over_approx_early = false
   ; under_approx = 2
   ; input_file = ""
@@ -53,7 +53,7 @@ type huge_const_config = { mutable const : int }
 
 let huge_const_config = { const = 10 }
 let huge_const () = huge_const_config.const
-let under2_config = { amin = -1; amax = -1; flat = -1 }
+let under2_config = { amin = 5; amax = 11; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
