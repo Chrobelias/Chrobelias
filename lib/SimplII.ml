@@ -2130,7 +2130,7 @@ let check_nia ast =
   (* log "ast2=@[%a@]" Ast.pp_smtlib2 ast; *)
   let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
   log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
-  let solver =
+  (*let solver =
     Smtml.Z3_mappings.Solver.make
       ~logic:Smtml.Logic.QF_NIA
       ()
@@ -2140,7 +2140,8 @@ let check_nia ast =
   match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
   | `Sat -> `Sat
   | `Unsat -> `Unsat
-  | `Unknown -> `Unknown
+  | `Unknown -> *)
+  `Unknown
 ;;
 
 let simpl bound ast =
@@ -2171,17 +2172,18 @@ let simpl bound ast =
       in
       (match check_errors ast_spec with
        | [] ->
-         let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast_spec in
+         (*let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast_spec in
          let solver = Smtml.Z3_mappings.Solver.make ~logic:Smtml.Logic.LIA () in
-         Smtml.Z3_mappings.Solver.reset solver;
-         (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
+         Smtml.Z3_mappings.Solver.reset solver;*)
+         (*match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
           | `Sat ->
             Printf.eprintf
               "The model could be not fully populated. %s %d\n%!"
               __FILE__
               __LINE__;
             raise (Underapprox_fired env)
-          | `Unsat | `Unknown -> `Unknown)
+          | `Unsat | `Unknown -> *)
+         `Unknown
        | errors ->
          log "%d errors found" (List.length errors);
          Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
