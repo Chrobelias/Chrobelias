@@ -2403,6 +2403,23 @@ let rewrite_via_concat { Info.all; _ } =
       svar y
     ;;
 
+    let str_prefixof (s1 : str) (s2 : str) =
+      let z1 = gensym () in
+      Id_symantics.eq_str (Ast.Eia.Concat (s1, Ast.Eia.atom (Ast.var z1 S))) s2
+    ;;
+
+    let str_contains (s1 : str) (s2 : str) =
+      let svar v = Ast.Eia.atom (Ast.var v S) in
+      let z1 = gensym () in
+      let z2 = gensym () in
+      Id_symantics.eq_str (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (s2, svar z2))) s1
+    ;;
+
+    let str_suffixof (s1 : str) (s2 : str) =
+      let z1 = gensym () in
+      Id_symantics.eq_str (Ast.Eia.Concat (Ast.Eia.atom (Ast.var z1 S), s1)) s2
+    ;;
+
     let prj = function
       | Ast.Land xs -> land_ (!extra_ph @ xs)
       | ph -> land_ (!extra_ph @ [ ph ])
