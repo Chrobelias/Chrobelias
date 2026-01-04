@@ -349,6 +349,8 @@ let join_int_model prefix m =
       acc)
 ;;
 
+exception Too_long_model
+
 let print_model tys model regexes env =
   let model =
     model
@@ -390,6 +392,7 @@ let print_model tys model regexes env =
             then (
               let regexes = Map.find_exn regexes real_var in
               let nfa = regexes in
+              if data > Lib.Config.max_longest_path then raise Too_long_model;
               let path =
                 NfaS.path_of_len2 ~var:0 ~len:data nfa
                 |> Option.value ~default:(List.init data (fun _ -> '0'))
@@ -532,30 +535,35 @@ let () =
           | Unknown _ | Unsat _ -> print_endline "no model"
           | Sat (_, _, env, get_model, regexes) ->
             let tys = merge_tys state in
+            let shrink_model () =
+              log "model is TOO big on 1st attempt\n%!";
+              let shrinked_ast =
+                Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
+                  match key, data with
+                  | Lib.Ir.Var v, `Str ->
+                    Lib.Ast.(
+                      eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int 100000))))
+                    :: acc
+                  | _ -> acc)
+                |> Lib.Ast.land_
+              in
+              log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
+              match check_sat shrinked_ast with
+              | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
+              | Sat (_, _, env, get_model, _regexes) ->
+                (* let tys = merge_tys state in *)
+                  (match get_model tys with
+                   | Result.Ok model ->
+                     let model = join_int_model env model in
+                     print_model tys model regexes env
+                   | Result.Error `Too_long -> Format.printf "no short model\n%!")
+            in
             (match get_model tys with
-             | Result.Ok model -> print_model tys model regexes env
-             | Result.Error `Too_long ->
-               log "model is TOO big on 1st attempt\n%!";
-               let shrinked_ast =
-                 Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
-                   match key, data with
-                   | Lib.Ir.Var v, `Str ->
-                     Lib.Ast.(
-                       eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int 100000))))
-                     :: acc
-                   | _ -> acc)
-                 |> Lib.Ast.land_
-               in
-               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
-               (match check_sat shrinked_ast with
-                | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
-                | Sat (_, _, env, get_model, _regexes) ->
-                  (* let tys = merge_tys state in *)
-                    (match get_model tys with
-                     | Result.Ok model ->
-                       let model = join_int_model env model in
-                       print_model tys model regexes env
-                     | Result.Error `Too_long -> Format.printf "no short model\n%!")))
+             | Result.Ok model -> begin
+               try print_model tys model regexes env with
+               | Too_long_model -> shrink_model ()
+             end
+             | Result.Error `Too_long -> shrink_model ())
         in
         state)
     | Smtml.Ast.Assert expr -> begin
