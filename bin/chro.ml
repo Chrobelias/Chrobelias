@@ -536,13 +536,16 @@ let () =
           | Sat (_, _, env, get_model, regexes) ->
             let tys = merge_tys state in
             let shrink_model () =
-              log "model is TOO big on 1st attempt\n%!";
+              log "model is TOO big after 1st attempt\n%!";
               let shrinked_ast =
                 Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
                   match key, data with
                   | Lib.Ir.Var v, `Str ->
                     Lib.Ast.(
-                      eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int 100000))))
+                      eia
+                        (Eia.leq
+                           (Len (Atom (Var (v, S))))
+                           (Const (Z.of_int Lib.Config.max_longest_path))))
                     :: acc
                   | _ -> acc)
                 |> Lib.Ast.land_
