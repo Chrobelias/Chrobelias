@@ -249,14 +249,25 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
              Q.(one / of_bigint c))
          in
          let merged_sups, var =
-           match fst (Map.min_elt_exn exp_map) with
-           | Var s -> merged_sups, Ir.pow2 s
-           | Pow2 s when exp_c = Z.zero ->
+           match Map.min_elt_exn exp_map with
+           | Var s, coeff when Q.(coeff = one) -> merged_sups, Ir.pow2 s
+           | Var s, coeff ->
              let newv : string = Ir.internal_name () in
-             ( Ir.eq (Map.of_alist_exn [ Ir.Var newv, Z.minus_one; Pow2 s, Z.one ]) Z.zero
+             ( Ir.eq
+                 (Map.of_alist_exn
+                    [ Ir.Var newv, Z.minus_one; Ir.var s, Q.to_bigint coeff ])
+                 Z.zero
                :: merged_sups
              , Ir.pow2 newv )
-           | x -> failf "not implemented: %a\n%!" Ir.pp_atom x
+           | Pow2 s, coeff when exp_c = Z.zero ->
+             let newv : string = Ir.internal_name () in
+             ( Ir.eq
+                 (Map.of_alist_exn
+                    [ Ir.Var newv, Z.minus_one; Pow2 s, Q.to_bigint coeff ])
+                 Z.zero
+               :: merged_sups
+             , Ir.pow2 newv )
+           | x -> failf "not implemented: %a\n%!" Ir.pp_atom (x |> fst)
          in
          Poly (Map.singleton var coeff, Z.zero, merged_sups)
        | _ ->
