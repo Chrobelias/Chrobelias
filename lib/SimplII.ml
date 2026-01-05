@@ -1829,8 +1829,8 @@ let lower_mod ast =
     include Id_symantics
 
     let mod_ t z =
-      let r = var (gensym ~prefix:"r" ()) in
-      let q = var (gensym ~prefix:"q" ()) in
+      let r = var (gensym ~prefix:"%r" ()) in
+      let q = var (gensym ~prefix:"%q" ()) in
       let zz = Ast.Eia.(Const z) in
       extend (leq (constz Z.zero) r);
       extend (lt r zz);
