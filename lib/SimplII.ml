@@ -1618,24 +1618,27 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       when Z.(cr mod cl = zero) && var_can_subst vn ->
       let rhs = Eia.(Const Z.(cr / cl)) in
       Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, I) as vr), Mul [ Const cl; Atom (Var (vn2, I)) ], I))
+    | Eia (Eia.Eq (Mul [ Const cl; Atom (Var (vn, I)) ], Atom (Var (vn2, I) as vr), I))
+      when vn == vn2 && var_can_subst vn ->
+      (* (= ( * c v) vr) *)
+      Some (extend_exn env vr (Const Z.zero))
+    | Eia
+        (Eia.Eq
+           ( Mul [ Const cl; Atom (Var (vn, I) as vr) ]
+           , Mul [ Const cl2; Atom (Var (vn2, I)) ]
+           , I ))
+      when vn == vn2 && cl <> cl2 && var_can_subst vn ->
+      Some (extend_exn env vr (Const Z.zero))
+    (* | Eia
+        (Eia.Eq
+           (Atom (Var (vn2, I) as vr), (Mul [ Const cl; Atom (Var (_, I)) ] as lhs), I))
     | Eia
         (Eia.Eq
            ((Mul [ Const cl; Atom (Var (_, I)) ] as lhs), Atom (Var (vn2, I) as vr), I))
-    | Eia
-        (Eia.Eq
-           (Atom (Var (vn2, I) as vr), (Mul [ Const cl; Atom (Var (_, I)) ] as lhs), I))
       when var_can_subst vn2 ->
       (* (= ( * c v) vr) *)
-      Some (extend_exn env vr lhs)
-    | Eia
-        (Eia.Eq
-           (Atom (Var (vn2, I) as vr), (Mul [ Const cl; Atom (Var (_, I)) ] as lhs), I))
-    | Eia
-        (Eia.Eq
-           ((Mul [ Const cl; Atom (Var (_, I)) ] as lhs), Atom (Var (vn2, I) as vr), I))
-      when var_can_subst vn2 ->
-      (* (= ( * c v) vr) *)
-      Some (extend_exn env vr lhs)
+      Some (extend_exn env vr lhs) *)
     | Eia
         (Eia.Eq
            ( Add
