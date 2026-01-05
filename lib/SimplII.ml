@@ -1615,7 +1615,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Mul [ Const cl; Atom (Var (vn, _) as v) ], Const cr, _))
     | Eia (Eia.Eq (Const cr, Mul [ Const cl; Atom (Var (vn, _) as v) ], _))
-      when Z.(cr mod cl = zero) && var_can_subst vn ->
+      when Z.(cr mod cl = zero) && var_can_subst_complex vn ->
       let rhs = Eia.(Const Z.(cr / cl)) in
       Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, I) as vr), Mul [ Const cl; Atom (Var (vn2, I)) ], I))
@@ -1651,7 +1651,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            , Add
                [ Atom (Var (v1n, _) as v1); Mul [ Const c; (Atom (Var (v2n, _)) as v2) ] ]
            , I ))
-      when Z.(equal z0 zero) && var_can_subst v1n ->
+      when Z.(equal z0 zero) && var_can_subst_complex v1n ->
       (* (= (+ v1 c*v2)) 0) *)
       if Env.occurs_var env v1n v2
       then None
@@ -1709,13 +1709,14 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
       let rec loop acc = function
         | Eia.Atom (Var (v, _)) :: _ when not (Env.is_absent_key v env) -> raise Exit
-        | Eia.Atom (Var (vn, _) as v) :: xs when var_can_subst vn && not (is_bad vn) ->
+        | Eia.Atom (Var (vn, _) as v) :: xs
+          when var_can_subst_complex vn && not (is_bad vn) ->
           let data = S.(mul [ constz Z.minus_one; add (acc @ xs) ]) in
           if not (Env.occurs_var env vn data)
           then extend_exn env v data
           else loop (Eia.Atom v :: acc) xs
         | (Mul [ Const c; Eia.Atom (Var (vn, _) as v) ] as leftmost) :: xs
-          when var_can_subst vn
+          when var_can_subst_complex vn
                && (not (is_bad vn))
                && Z.(equal (of_int (-1)) c)
                && not_touched_by_env env (Eia.Add acc)
@@ -1738,6 +1739,27 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
                   | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
                   | _ -> false)
                 orig_ast -> Some (extend_exn env v rhs)
+    (*| Eia (Eia.Eq (Add terms, rhs, I) as eia')
+      when
+        List.exists (function
+        | Ast.Eia.Mul ([Ast.Eia.Const c; Atom (Var (vn, _))])
+        | Ast.Eia.Mul ([Atom (Var (vn, _)); Ast.Eia.Const c])
+        when c = Z.minus_one -> Ast.forsome
+              (function
+                | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
+                | _ -> false) orig_ast
+        | _ -> false) terms ->
+        let aux = function
+        | Ast.Eia.Mul ([Ast.Eia.Const c; Atom (Var (vn, _) as v)])
+        | Ast.Eia.Mul ([Atom (Var (vn, _) as v); Ast.Eia.Const c])
+        when c = Z.minus_one -> if Ast.forsome
+              (function
+                | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
+                | _ -> false) orig_ast then Option.some v else None
+        | _ -> None in
+        let v = List.find_map aux terms |> Option.get in
+        let rhs = Ast.Eia.add (Ast.Eia.Mul [Id_symantics.constz Z.minus_one; rhs] :: (List.filter (fun term -> aux term |> Option.is_none) terms)) in
+        Some (extend_exn env v rhs)*)
     | Eia (Eia.Eq (lhs, Atom (Var (vn, _)), _))
       when match lhs with
            | Bwand _ | Bwor _ | Bwxor _ -> true
@@ -2546,6 +2568,7 @@ let arithmetize ast =
            (s, re |> NfaL.of_regex) :: acc
          | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa)) ->
            (s, nfa) :: acc
+         | ast when is_regex ast -> failwith "unexpected"
          | _ -> acc)
       []
       ast
