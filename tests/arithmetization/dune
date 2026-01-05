@@ -2,7 +2,7 @@
  (applies_to only-len)
  (deps only-len.smt2))
 
- (cram
+(cram
  (applies_to chrobak)
  (deps chrobak.smt2))
 

@@ -279,8 +279,11 @@ let check_sat ?(verbose = false) ast : rez =
         Unsat s)
   with
   | s ->
-    report_result2 (`Unknown s);
-    unknown ast Lib.Env.empty
+    if config.quiet == true
+    then (
+      report_result2 (`Unknown s);
+      unknown ast Lib.Env.empty)
+    else raise s
 ;;
 
 let logBaseZ n =
