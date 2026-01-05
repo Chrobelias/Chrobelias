@@ -22,7 +22,7 @@ let rec pp pp_sym ppf = function
   | Mor (r1, r2) -> Format.fprintf ppf "(re.union %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
   | Concat (r1, r2) -> Format.fprintf ppf "(re.++ %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
   | Kleene r -> Format.fprintf ppf "(re.* %a)" (pp pp_sym) r
-  | Mnot r -> Format.fprintf ppf "(re.* %a)" (pp pp_sym) r
+  | Mnot r -> Format.fprintf ppf "(re.~ %a)" (pp pp_sym) r
   | Symbol r -> Format.fprintf ppf "(str.to.re \"%a\")" pp_sym r
 ;;
 

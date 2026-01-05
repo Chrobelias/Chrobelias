@@ -30,7 +30,7 @@ let collect_free_ir (ir : Ir.t) =
     ir
 ;;
 
-let str_to_re s =
+let int_to_re s =
   Regex.concat
     (Regex.concat
        (s
@@ -42,6 +42,19 @@ let str_to_re s =
                 Regex.concat a acc)
              Regex.epsilon)
        (Regex.kleene (Regex.symbol [ Nfa.Str.u_zero ])))
+    (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
+;;
+
+let str_to_re s =
+  Regex.concat
+    (s
+     |> String.to_seq
+     |> Seq.map (fun c -> Regex.symbol [ c ])
+     |> Seq.fold_left
+          (fun acc a ->
+             (* String constraints use LSB representation, we intentionally reverse the concat. *)
+             Regex.concat a acc)
+          Regex.epsilon)
     (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ]))
 ;;
 
@@ -329,7 +342,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
     | Ast.Eia.Atom (Var (v, _)) -> Symbol (Ir.var v, [])
     | Ast.Eia.(Str_const s) ->
       let u = Ir.internal () in
-      let re = str_to_re s in
+      let re = int_to_re s in
       Symbol (u, [ Ir.sreg u re ])
     | _ -> failwith (Format.asprintf "TBD: %a %s %d" Ast.Eia.pp_term v __FILE__ __LINE__)
   ;;
@@ -373,7 +386,7 @@ let cast_to_int (type a) : a Ast.Eia.term -> Z.t Ast.Eia.term option = function
 let rec of_str_atom = function
   | Ast.Eia.Atom (Var (atom, _)) -> return (Ir.var atom, [])
   | Str_const s ->
-    let re = str_to_re s in
+    let re = int_to_re s in
     let u = Ir.internal () in
     (u, [ Ir.sreg u re ]) |> return
   | Concat _ -> failf "unsupported concatenation"
@@ -456,7 +469,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       -> return (Ir.land_ [ Ir.stoi (Ir.var v) (Ir.var u) ])
     | Eq (Atom (Var (v, _)), Str_const str, S) ->
       let l = Ir.var v in
-      return (Ir.sreg l (str_to_re str))
+      return (Ir.sreg l (int_to_re str))
     (*
        | Ast.Eia.Eq (a, b) ->
       let* a, sup_a = of_str a in

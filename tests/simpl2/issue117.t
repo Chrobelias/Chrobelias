@@ -18,39 +18,21 @@
              (<= (+ (* (- 1) u) (* (- 1) v) (* (- 1) x) (* (- 1) y)
                  (* (- 1) z)) (- 100)))
   Lib__SimplII.propagate_exponents.check: (exp 2 x) -> (* 32 v)
-  Something ready to substitute
-        u -> (* 4 v);
-  
   iter(3)= (and
+             (= (* 4 v) u)
              (= (* 16 v) z)
              (= (* 32 v) y)
              (= (exp 2 x) (* 32 v))
              (<= (+ (* (- 1) u) (* (- 1) v) (* (- 1) x) (* (- 1) y)
                  (* (- 1) z)) (- 100)))
-  Something ready to substitute
-        u -> (* 4 v);
-        z -> (* 16 v);
-  
-  iter(4)= (and
-             (= (* 32 v) y)
-             (= (exp 2 x) (* 32 v))
-             (<= (+ (* (- 5) v) (* (- 1) x) (* (- 1) y) (* (- 1) z)) (- 100)))
-  Something ready to substitute
-        u -> (* 4 v);
-        y -> (* 32 v);
-        z -> (* 16 v);
-  
-  iter(5)= (and
-             (= (exp 2 x) (* 32 v))
-             (<= (+ (* (- 21) v) (* (- 1) x) (* (- 1) y)) (- 100)))
-  iter(6)= (and
-             (= (exp 2 x) (* 32 v))
-             (<= (+ (* (- 53) v) (* (- 1) x)) (- 100)))
   fixed-point
   
   (and
+    (= (* 4 v) u)
+    (= (* 16 v) z)
+    (= (* 32 v) y)
     (= (exp 2 x) (* 32 v))
-    (<= (+ (* (- 53) v) (* (- 1) x)) (- 100)))
+    (<= (+ (* (- 1) u) (* (- 1) v) (* (- 1) x) (* (- 1) y) (* (- 1) z)) (- 100)))
   $ Chro -no-over -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
 

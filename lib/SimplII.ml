@@ -2557,9 +2557,14 @@ let arithmetize ast =
           | Lnot (Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const str, S)))
             ->
             Ast.Eia
-              (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, Me.str_to_re str |> Regex.mnot))
+              (InReRaw
+                 ( Ast.Eia.Atom (Ast.Var (s, S))
+                 , Ast.S
+                 , Me.str_to_re str |> NfaL.of_regex |> NfaL.invert ))
           | Lnot (Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re))) ->
-            Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re |> Regex.mnot))
+            Ast.Eia
+              (InReRaw
+                 (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re |> NfaL.of_regex |> NfaL.invert))
           | Lnot (Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa))) ->
             Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa |> NfaL.invert))
           | ast -> ast)
