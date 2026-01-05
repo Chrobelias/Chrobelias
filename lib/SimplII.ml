@@ -2528,7 +2528,8 @@ let arithmetize ast =
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module Map = Base.Map.Poly in
-  let is_regex = function
+  let is_regex : Ast.t -> bool = function
+    | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const _, S))
     | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _))
     | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _)) -> true
     | _ -> false
@@ -2537,6 +2538,8 @@ let arithmetize ast =
     Ast.fold
       (fun acc -> function
          (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
+         | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const str, S)) ->
+           (s, Me.str_to_re str |> NfaL.of_regex) :: acc
          | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) ->
            (s, re |> NfaL.of_regex) :: acc
          | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa)) ->
@@ -2547,7 +2550,21 @@ let arithmetize ast =
     |> Map.of_alist_multi
   in
   let fold_regexes ast =
-    let regexes = collect_regexes ast in
+    let ast_with_positive_regex =
+      Ast.map
+        (function
+          | Lnot (Lnot ast) -> ast
+          | Lnot (Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const str, S)))
+            ->
+            Ast.Eia
+              (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, Me.str_to_re str |> Regex.mnot))
+          | Lnot (Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re))) ->
+            Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re |> Regex.mnot))
+          | Lnot (Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa))) ->
+            Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa |> NfaL.invert))
+          | ast -> ast)
+        ast
+    in
     let regexes =
       Map.map
         ~f:(fun data ->
@@ -2555,14 +2572,14 @@ let arithmetize ast =
             (fun acc nfa -> NfaS.intersect nfa acc)
             (NfaCollection.Str.n ())
             data)
-        regexes
+        (collect_regexes ast_with_positive_regex)
     in
     let ast_without_regex =
       Ast.map
         (function
           | ast when is_regex ast -> Ast.true_
           | ast -> ast)
-        ast
+        ast_with_positive_regex
     in
     let phs =
       if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) regexes
