@@ -678,7 +678,6 @@ module type Type = sig
   val remove_unreachable_from_final : t -> t
   val find_c_d' : t -> (int * int) Seq.t
   val split : t -> (t * t) list
-  val my_split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
 end
 
@@ -1198,35 +1197,6 @@ struct
   ;;
 
   let split (nfa : t) =
-    let length = length nfa in
-    Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
-    |> List.mapi (fun i reachable ->
-      let transitions = nfa.transitions in
-      reachable
-      |> Set.iter ~f:(fun final ->
-        transitions.(final) <- (Label.zero nfa.deg, final) :: transitions.(final));
-      let nfa' =
-        { is_dfa = false
-        ; deg = nfa.deg
-        ; transitions = nfa.transitions
-        ; start = nfa.start
-        ; final = reachable
-        }
-      in
-      let nfa'' =
-        { is_dfa = false
-        ; deg = nfa.deg
-        ; transitions = nfa.transitions
-        ; start = reachable
-        ; final = nfa.final
-        }
-      in
-      (* Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
-      Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa''; *)
-      nfa', nfa'')
-  ;;
-
-  let my_split (nfa : t) =
     let length = length nfa in
     let states =
       Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
