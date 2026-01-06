@@ -251,10 +251,8 @@ module Str = struct
   type t = char array
   type u = char
 
-  let u_zero = '0'
-  let u_one = '1'
-  let u_null = Char.chr 0
-  let u_eos = Char.chr 3
+  let config = Config.string_config
+  let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let is_end_char c = c = u_eos || c = u_null
 
   let pp ppf (vec : t) =

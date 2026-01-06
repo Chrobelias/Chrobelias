@@ -51,12 +51,20 @@ type under2_config =
 
 type huge_const_config = { mutable const : int }
 
+type string_config =
+  { zero : char
+  ; one : char
+  ; null : char
+  ; eos : char
+  }
+
 let huge_const_config = { const = 10 }
 let huge_const () = huge_const_config.const
 let under2_config = { amin = 5; amax = 11; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
+let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
 
 let max_longest_path =
   match Sys.getenv_opt "CHRO_LONGEST_PATH" with
