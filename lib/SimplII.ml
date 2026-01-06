@@ -2557,6 +2557,7 @@ let arithmetize ast =
     | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const _, S))
     | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _))
     | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _)) -> true
+    | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, _)) -> true
     | _ -> false
   in
   let collect_regexes ast =
@@ -2568,6 +2569,8 @@ let arithmetize ast =
          | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) ->
            (s, re |> NfaL.of_regex) :: acc
          | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa)) ->
+           (s, nfa) :: acc
+         | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, nfa)) ->
            (s, nfa) :: acc
          | ast when is_regex ast -> failwith "unexpected"
          | _ -> acc)
@@ -2828,7 +2831,20 @@ let arithmetize ast =
     `Unknown
       (List.concat_map
          (fun (ast, regexes) ->
-            List.map (fun ast' -> ast', regexes) (ast |> flatten |> arithmetize))
+            List.map
+              (fun ast' ->
+                 let ast', regexes' = fold_regexes ast' in
+                 let regexes =
+                   Map.merge
+                     ~f:(fun ~key -> function
+                        | `Left v -> Some v
+                        | `Right v -> Some v
+                        | `Both (v, v') -> Some (NfaS.intersect v v'))
+                     regexes
+                     regexes'
+                 in
+                 ast', regexes)
+              (ast |> flatten |> arithmetize))
          asts_n_regexes)
 ;;
 
