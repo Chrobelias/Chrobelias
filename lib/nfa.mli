@@ -89,6 +89,7 @@ module type Type = sig
   val find_c_d' : t -> (int * int) Seq.t
   val split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
+  val alpha : t -> v Set.t
 end
 
 module type NatType = sig

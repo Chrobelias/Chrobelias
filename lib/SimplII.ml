@@ -2835,11 +2835,12 @@ let arithmetize ast =
           ; Ast.land_
               (Ast.Eia
                  (Ast.Eia.inreraw
-                    (atomi s)
+                    (atomi (String.concat "" [ "string"; s ]))
                     Ast.I
                     (Regex.digit |> NfaS.of_regex |> NfaS.invert))
                :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
-               :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
+               :: Ast.Eia
+                    (Ast.Eia.inreraw (atomi (String.concat "" [ "string"; s ])) Ast.I nfa)
                :: (phs |> List.map Ast.eia))
           ]
         else (
@@ -2849,7 +2850,44 @@ let arithmetize ast =
       | Ast.Unsupp s -> [ Ast.Unsupp s ]
       | _ as non_eia -> [ non_eia ]
     in
+    let var_appears_as_string_eia v eia =
+      Ast.Eia.fold2
+        (fun acc el ->
+           match el with
+           | Ast.Eia.Atom (Var (s, _)) when s = String.concat "" [ "string"; v ] -> true
+           | _ -> acc)
+        (fun acc el ->
+           match el with
+           | Ast.Eia.Atom (Var (s, _)) when s = String.concat "" [ "string"; v ] -> true
+           | _ -> acc)
+        false
+        eia
+      |> fun res ->
+      res
+    in
+    let rec var_appears_as_string v ast =
+      (match ast with
+       | Ast.True | Pred _ -> false
+       | Eia eia -> var_appears_as_string_eia v eia
+       | Lnot ast' | Exists (_, ast') -> var_appears_as_string v ast'
+       | Land asts | Lor asts ->
+         List.fold_left (fun acc ast -> acc || var_appears_as_string v ast) false asts
+       | Unsupp _ -> failwith "unable to fold; unsupported constraint")
+      |> fun res ->
+      res
+    in
     arithmetize_conj ast
+    |> List.map (fun ast ->
+      Ast.map
+        (function
+          | Ast.Eia (Ast.Eia.RLen (Ast.Eia.Atom (Ast.Var (s, _)), rhs))
+            when var_appears_as_string s ast ->
+            Ast.eia
+              (Ast.Eia.rlen
+                 (Ast.Eia.atom (Ast.Var (String.concat "" [ "string"; s ], Ast.I)))
+                 rhs)
+          | ast -> ast)
+        ast)
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with

@@ -33,6 +33,9 @@ let collect_alpha (ir : Ir.t) =
          | Ir.SReg (_, re) ->
            let* acc = acc in
            Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
+         | Ir.SRegRaw (_, nfa) ->
+           let* acc = acc in
+           Ir.NfaS.alpha nfa |> Set.union acc |> return
          | Ir.Lnot _ -> Option.none
          | _ ->
            let* acc = acc in

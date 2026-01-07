@@ -677,6 +677,7 @@ module type Type = sig
   val find_c_d' : t -> (int * int) Seq.t
   val split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
+  val alpha : t -> v Set.t
 end
 
 module type NatType = sig
@@ -1347,6 +1348,19 @@ struct
       |> intersect nfa
     in
     any_path dfa [] |> Option.is_some
+  ;;
+
+  let alpha (nfa : t) =
+    nfa.transitions
+    |> Array.to_seq
+    |> Sequence.of_seq
+    |> Sequence.map ~f:(fun l ->
+      l
+      |> Sequence.of_list
+      |> Sequence.map ~f:(fun (label, _) -> Label.alpha label |> Set.to_sequence)
+      |> Sequence.concat)
+    |> Sequence.concat
+    |> Set.of_sequence
   ;;
 end
 
