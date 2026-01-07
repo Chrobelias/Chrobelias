@@ -329,3 +329,25 @@ let lookup_int name { env; _ } = SM.find_opt name env
 let lookup_int_exn name { env; _ } = SM.find_exn env name
 let lookup_string name { str_env = e; _ } = SM.find_opt name e
 let lookup_string_exn name { str_env = e; _ } = SM.find_exn e name
+
+let filter_mapi
+      ~(fstr : string -> string Ast.Eia.term -> string Ast.Eia.term option)
+      ~(fint : string -> Z.t Ast.Eia.term -> Z.t Ast.Eia.term option)
+      env
+  =
+  fold
+    ~f:(fun ~key ~data acc ->
+      match data with
+      | Ast.TT (Ast.S, str) -> begin
+        match fstr key str with
+        | Some v -> extend_string_exn acc key str
+        | None -> acc
+      end
+      | Ast.TT (Ast.I, int) -> begin
+        match fint key int with
+        | Some v -> extend_int_exn acc key int
+        | None -> acc
+      end)
+    ~init:empty
+    env
+;;

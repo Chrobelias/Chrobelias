@@ -382,6 +382,163 @@ let apply_term_symantics
   helper
 ;;*)
 
+module Info = struct
+  type names = string Base.Set.Poly.t
+
+  type t =
+    { exp : names
+    ; all : names
+    ; str : names
+    }
+
+  let is_in_expo name { exp; _ } = Base.Set.Poly.mem exp name
+  let is_in_string name { str; _ } = Base.Set.Poly.mem str name
+
+  let make ~exp ~all ~str =
+    (* TODO: check subsumtion *)
+    let of_list = Base.Set.Poly.of_list in
+    { exp = of_list exp; all = of_list all; str = of_list str }
+  ;;
+
+  let empty = make ~exp:[] ~all:[] ~str:[]
+
+  let pp_exp ppf { exp; _ } =
+    Format.fprintf
+      ppf
+      "exp: @[%a@]"
+      Format.(
+        pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ "))
+      (Base.Set.Poly.to_list exp)
+  [@@ocaml.warning "-unused-value-declaration"]
+  ;;
+
+  let pp_hum ppf { exp; all; str } =
+    let open Format in
+    let pp_list =
+      pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ ")
+    in
+    fprintf ppf "@[<v>";
+    fprintf ppf "@[Exp: @[%a@]@]@," pp_list (Base.Set.Poly.to_list exp);
+    fprintf ppf "@[Str: @[%a@]@]@," pp_list (Base.Set.Poly.to_list str);
+    fprintf ppf "@[ALL: @[%a@]@]" pp_list (Base.Set.Poly.to_list all);
+    fprintf ppf "@]"
+  ;;
+
+  let union e1 e2 =
+    let ( ++ ) = Base.Set.Poly.union in
+    { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all; str = e1.str ++ e2.str }
+  ;;
+end
+
+module Who_in_exponents_ = struct
+  module S = Base.Set.Poly
+
+  type term = Info.t
+
+  let pp_str = Info.pp_hum
+
+  open Info
+
+  let pp_set ppf xs =
+    Format.(fprintf ppf "@[%a@]" (pp_print_list pp_print_string ~pp_sep:pp_print_space))
+      xs
+  ;;
+
+  let pp_info ppf { Info.exp; all; _ } =
+    Format.printf
+      "@[{ all = @[%a@];@ exp  = @[%a@] }@]"
+      pp_set
+      (Base.Set.Poly.to_list all)
+      pp_set
+      (Base.Set.Poly.to_list exp)
+  [@@warning "-32"]
+  ;;
+
+  let ( ++ ) = Info.union
+  let empty = Info.empty
+
+  type ph = term
+  type str = term
+  type repr = ph
+
+  let in_re _ _ = empty
+  let in_rei _ _ = empty
+  let in_re_raw _ _ = empty
+  let in_re_rawi _ _ = empty
+  let rlen = ( ++ )
+  let str_len s = s
+  let sofi s = s
+  let iofs s = s
+  let str_const _ = empty
+
+  let str_var v =
+    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
+    { empty with str = S.singleton v }
+  ;;
+
+  let str_from_eia_const s = empty
+  let str_concat = ( ++ )
+  let const _ = empty
+  let constz _ = empty
+  let var s = { empty with all = S.singleton s }
+
+  let str_len2 v =
+    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
+    v
+  ;;
+
+  let str_at _ _ = empty
+  let str_substr _ _ _ = empty
+  let str_prefixof = ( ++ )
+  let str_contains = ( ++ )
+  let str_suffixof = ( ++ )
+
+  let mul xs =
+    let aaa = List.fold_left ( ++ ) empty xs in
+    (* let u2 =
+      match xs with
+      | [ Eia.Atom (Var (v,_)); Eia.Pow (Eia.  (Const 2), Eia.Atom (Var _)) ] ->
+        S.singleton v
+      | _ -> S.empty
+    in
+    { aaa with under2 = S.union aaa.under2 u2 } *)
+    aaa
+  ;;
+
+  let add = List.fold_left ( ++ ) empty
+  let mod_ x _ = x
+  let bw _ = ( ++ )
+  let true_ = empty
+  let false_ = empty
+  let land_ = List.fold_left ( ++ ) empty
+  let lor_ = List.fold_left ( ++ ) empty
+  let not = Fun.id
+  let eqz = ( ++ )
+  let eq_str = ( ++ )
+  let leq = ( ++ )
+  let lt = ( ++ )
+  let exists _ info = (* This place could be buggy when name clashes  *) info
+
+  let pow2var v =
+    let all = [ v ] in
+    Info.make ~all ~exp:all ~str:[]
+  ;;
+
+  let pow_minus_one e = { e with all = S.union S.empty e.all }
+  let pow base e = { e with all = S.union base.all e.all; exp = S.union e.all base.exp }
+  let prj = Fun.id
+  let unsupp _ = empty
+end
+
+module _ : SYM = Who_in_exponents_
+
+module Who_in_exponents :
+  SYM_SUGAR with type repr = Who_in_exponents_.repr and type ph = Who_in_exponents_.repr =
+struct
+  include Who_in_exponents_
+  include FT_SIG.Sugar (Who_in_exponents_)
+end
+
 let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
   let helperT, helperS = apply_term_symantics (module S) in
   let rec helper = function
@@ -932,167 +1089,6 @@ let subst_term (type a) env (term : a Ast.Eia.term) =
      | None -> assert false)
 ;;
 
-exception Unsat
-exception Sat of string * Env.t
-
-module Info = struct
-  type names = string Base.Set.Poly.t
-
-  type t =
-    { exp : names
-    ; all : names
-    ; str : names
-    }
-
-  let is_in_expo name { exp; _ } = Base.Set.Poly.mem exp name
-  let is_in_string name { str; _ } = Base.Set.Poly.mem str name
-
-  let make ~exp ~all ~str =
-    (* TODO: check subsumtion *)
-    let of_list = Base.Set.Poly.of_list in
-    { exp = of_list exp; all = of_list all; str = of_list str }
-  ;;
-
-  let empty = make ~exp:[] ~all:[] ~str:[]
-
-  let pp_exp ppf { exp; _ } =
-    Format.fprintf
-      ppf
-      "exp: @[%a@]"
-      Format.(
-        pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ "))
-      (Base.Set.Poly.to_list exp)
-  [@@ocaml.warning "-unused-value-declaration"]
-  ;;
-
-  let pp_hum ppf { exp; all; str } =
-    let open Format in
-    let pp_list =
-      pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ ")
-    in
-    fprintf ppf "@[<v>";
-    fprintf ppf "@[Exp: @[%a@]@]@," pp_list (Base.Set.Poly.to_list exp);
-    fprintf ppf "@[Str: @[%a@]@]@," pp_list (Base.Set.Poly.to_list str);
-    fprintf ppf "@[ALL: @[%a@]@]" pp_list (Base.Set.Poly.to_list all);
-    fprintf ppf "@]"
-  ;;
-
-  let union e1 e2 =
-    let ( ++ ) = Base.Set.Poly.union in
-    { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all; str = e1.str ++ e2.str }
-  ;;
-end
-
-module Who_in_exponents_ = struct
-  module S = Base.Set.Poly
-
-  type term = Info.t
-
-  let pp_str = Info.pp_hum
-
-  open Info
-
-  let pp_set ppf xs =
-    Format.(fprintf ppf "@[%a@]" (pp_print_list pp_print_string ~pp_sep:pp_print_space))
-      xs
-  ;;
-
-  let pp_info ppf { Info.exp; all; _ } =
-    Format.printf
-      "@[{ all = @[%a@];@ exp  = @[%a@] }@]"
-      pp_set
-      (Base.Set.Poly.to_list all)
-      pp_set
-      (Base.Set.Poly.to_list exp)
-  [@@warning "-32"]
-  ;;
-
-  let ( ++ ) = Info.union
-  let empty = Info.empty
-
-  type ph = term
-  type str = term
-  type repr = ph
-
-  let in_re _ _ = empty
-  let in_rei _ _ = empty
-  let in_re_raw _ _ = empty
-  let in_re_rawi _ _ = empty
-  let rlen = ( ++ )
-  let str_len s = s
-  let sofi s = s
-  let iofs s = s
-  let str_const _ = empty
-
-  let str_var v =
-    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
-    { empty with str = S.singleton v }
-  ;;
-
-  let str_from_eia_const s = empty
-  let str_concat = ( ++ )
-  let const _ = empty
-  let constz _ = empty
-  let var s = { empty with all = S.singleton s }
-
-  let str_len2 v =
-    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
-    v
-  ;;
-
-  let str_at _ _ = empty
-  let str_substr _ _ _ = empty
-  let str_prefixof = ( ++ )
-  let str_contains = ( ++ )
-  let str_suffixof = ( ++ )
-
-  let mul xs =
-    let aaa = List.fold_left ( ++ ) empty xs in
-    (* let u2 =
-      match xs with
-      | [ Eia.Atom (Var (v,_)); Eia.Pow (Eia.  (Const 2), Eia.Atom (Var _)) ] ->
-        S.singleton v
-      | _ -> S.empty
-    in
-    { aaa with under2 = S.union aaa.under2 u2 } *)
-    aaa
-  ;;
-
-  let add = List.fold_left ( ++ ) empty
-  let mod_ x _ = x
-  let bw _ = ( ++ )
-  let true_ = empty
-  let false_ = empty
-  let land_ = List.fold_left ( ++ ) empty
-  let lor_ = List.fold_left ( ++ ) empty
-  let not = Fun.id
-  let eqz = ( ++ )
-  let eq_str = ( ++ )
-  let leq = ( ++ )
-  let lt = ( ++ )
-  let exists _ info = (* This place could be buggy when name clashes  *) info
-
-  let pow2var v =
-    let all = [ v ] in
-    Info.make ~all ~exp:all ~str:[]
-  ;;
-
-  (* No idea how the module Who_in_exponents_ is used and how to define pow_minus_one *)
-  let pow_minus_one e = { e with all = S.union S.empty e.all }
-  let pow base e = { e with all = S.union base.all e.all; exp = S.union e.all base.exp }
-  let prj = Fun.id
-  let unsupp _ = empty
-end
-
-module _ : SYM = Who_in_exponents_
-
-module Who_in_exponents :
-  SYM_SUGAR with type repr = Who_in_exponents_.repr and type ph = Who_in_exponents_.repr =
-struct
-  include Who_in_exponents_
-  include FT_SIG.Sugar (Who_in_exponents_)
-end
-
 let%test_module _ =
   (module struct
     let wrap f =
@@ -1146,6 +1142,9 @@ let%test_module _ =
     ;;
   end)
 ;;
+
+exception Unsat
+exception Sat of string * Env.t
 
 module ZTM = Map.Make (struct
     type t = Z.t Ast.Eia.term
@@ -1459,12 +1458,10 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     with type ph = Smtml.Expr.t)
 ;;
 
-(* TODO: run this inside eq_propagation *)
-let trivial_simplify eta = subst_term Env.empty eta
-
 let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  let trivial_simplify eta = subst_term Env.empty eta in
   let extend_exn env v rhs =
     let rhs = trivial_simplify rhs in
     (* log "extend %a --> %a" Ast.pp_atom v Ast.pp_term_smtlib2 rhs; *)
@@ -1845,7 +1842,28 @@ let lower_mod ast =
   | acc -> Ast.land_ (ph :: acc)
 ;;
 
-let _lower_strlen ast =
+(* let lower_exp ast =
+  let acc = ref [] in
+  let extend ph = acc := ph :: !acc in
+  let module M = struct
+    include Id_symantics
+
+    let pow t e =
+      let exp = var (gensym ~prefix:"%exp" ()) in
+      extend (eqz exp e);
+      pow t exp
+    ;;
+  end
+  in
+  let ph = apply_symantics_unsugared (module M) ast in
+  match !acc with
+  | [] -> ph
+  | acc -> Ast.land_ (ph :: acc)
+;; *)
+
+let lower_concats ast = ast
+
+(* let _lower_strlen ast =
   let env = ref Env.empty in
   let names : (string Ast.Eia.term, string) Base.Map.Poly.t ref =
     ref Base.Map.Poly.empty
@@ -1934,7 +1952,7 @@ let _lower_strlen ast =
     in
     if new_phs = [] && xs <> [] then Ast.True else Ast.Land new_phs
   | ph -> Ast.Land ((ph :: Env.to_eqs !env) @ Env.to_eqs !forgotten)
-;;
+;; *)
 
 (* let rewrite_len ast =
   let module Map = Base.Map.Poly in
@@ -2010,6 +2028,7 @@ let run_basic_simplify ast =
   (*let ast = lower_strlen ast in*)
   let ast = lower_mod ast in
   (* let ast = SimplI.run_simplify ast in *)
+  (* let ast = lower_exp ast in *)
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
   then (
@@ -2327,10 +2346,11 @@ let rewrite_concats { Info.all; _ } =
   let module Pre = struct
     include Id_symantics
 
-    let in_re l regex =
-      match l with
-      | Ast.Eia.Concat (lhs, rhs) ->
-        let nfa = NfaS.of_regex regex in
+    let split lhs rhs nfa =
+      match lhs, rhs with
+      | Ast.Eia.Str_const _, Ast.Eia.Atom (Ast.Var (_, Ast.S))
+      | Ast.Eia.Atom (Ast.Var (_, Ast.S)), Ast.Eia.Str_const _
+      | Ast.Eia.Atom (Ast.Var (_, Ast.S)), Ast.Eia.Atom (Ast.Var (_, Ast.S)) ->
         let nfas : (NfaS.t * NfaS.t) list = NfaS.split nfa in
         let nfas =
           List.map
@@ -2340,6 +2360,20 @@ let rewrite_concats { Info.all; _ } =
             nfas
         in
         Ast.lor_ nfas
+      | _ -> raise Exit
+    ;;
+
+    let eq_str l r =
+      match l, r with
+      | Ast.Eia.Str_const s, Ast.Eia.Concat (lhs, rhs)
+      | Ast.Eia.Concat (lhs, rhs), Ast.Eia.Str_const s ->
+        split lhs rhs (NfaS.of_regex (Regex.str_to_re s))
+      | lhs, rhs -> Id_symantics.eq_str lhs rhs
+    ;;
+
+    let in_re l regex =
+      match l with
+      | Ast.Eia.Concat (lhs, rhs) -> split lhs rhs (NfaS.of_regex regex)
       | str -> Id_symantics.in_re l regex
     ;;
 
@@ -2824,7 +2858,11 @@ let arithmetize ast =
   | `Unknown (ast', e, _, _) ->
     let var_info = apply_symantics (module Who_in_exponents) ast' in
     let asts_n_regexes =
-      ast' |> rewrite_concats var_info |> Ast.to_dnf |> List.map fold_regexes
+      ast'
+      |> lower_concats
+      |> rewrite_concats var_info
+      |> Ast.to_dnf
+      |> List.map fold_regexes
     in
     `Unknown
       (List.concat_map

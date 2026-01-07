@@ -24,6 +24,13 @@ val merge
   -> t
 
 val fold : t -> init:'a -> f:(key:string -> data:Ast.typed_term -> 'a -> 'a) -> 'a
+
+val filter_mapi
+  :  fstr:(string -> string Ast.Eia.term -> string Ast.Eia.term option)
+  -> fint:(string -> Z.t Ast.Eia.term -> Z.t Ast.Eia.term option)
+  -> t
+  -> t
+
 val length : t -> int
 val lookup_int : string -> t -> Z.t Ast.Eia.term option
 val lookup_int_exn : string -> t -> Z.t Ast.Eia.term
