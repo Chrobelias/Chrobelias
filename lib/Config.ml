@@ -133,7 +133,7 @@ Basic options:
     ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
     ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t"
     ; "--info", Arg.Unit (fun () -> config.with_info <- true), "\t"
-      (* ; "-q", Arg.Unit (fun () -> config.quiet <- true), "\t" *)
+    ; "-q", Arg.Unit (fun () -> config.quiet <- true), "\t"
     ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , "\tDon't try simplifications based on alpha-equivalence" )
