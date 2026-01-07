@@ -624,7 +624,7 @@ let is_conjunct ast =
     | Lnot (Pred _)
     | Lnot (Unsupp _) -> true
     | Exists (_, ast') -> helper acc ast'
-    | Land asts -> List.fold_left helper true asts
+    | Land asts -> List.fold_left (fun acc ast -> acc && helper acc ast) acc asts
     | _ -> false
   in
   helper true ast

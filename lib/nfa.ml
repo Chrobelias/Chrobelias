@@ -1221,8 +1221,8 @@ struct
         }
         |> remove_unreachable_from_start
       in
-      Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
-      Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa'';
+      (* Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
+      Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa''; *)
       nfa', nfa'')
   ;;
 
