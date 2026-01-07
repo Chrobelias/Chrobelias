@@ -2360,26 +2360,46 @@ let rewrite_concats { Info.all; _ } =
   let extend v other =
     extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
   in
+  let var_or_const x =
+    match x with
+    | Ast.Eia.Str_const _ | Ast.Eia.Atom (Ast.Var (_, Ast.S)) -> true
+    | _ -> false
+  in
   let module Pre = struct
     include Id_symantics
 
     let split lhs rhs nfa =
-      match lhs, rhs with
-      | Ast.Eia.Str_const _, Ast.Eia.Atom (Ast.Var (_, Ast.S))
-      | Ast.Eia.Atom (Ast.Var (_, Ast.S)), Ast.Eia.Str_const _
-      | Ast.Eia.Atom (Ast.Var (_, Ast.S)), Ast.Eia.Atom (Ast.Var (_, Ast.S)) ->
+      let rec helper lhs rhs nfa =
         let nfas : (NfaS.t * NfaS.t) list = NfaS.split nfa in
-        let nfas =
+        match lhs, rhs with
+        | x, y when var_or_const x && var_or_const y ->
           List.map
             (fun (nfa, nfa') ->
-               Ast.land_
-                 [ Id_symantics.in_re_raw lhs nfa; Id_symantics.in_re_raw rhs nfa' ])
+               [ Id_symantics.in_re_raw x nfa; Id_symantics.in_re_raw y nfa' ])
             nfas
-        in
-        Ast.lor_ nfas
-      | _ -> raise Exit
+        | x, Ast.Eia.Concat (lhs1, rhs1) ->
+          List.concat
+            (List.map
+               (fun (nfa, nfa') ->
+                  let nfas' = helper lhs1 rhs1 nfa' in
+                  List.map (fun conj -> Id_symantics.in_re_raw x nfa :: conj) nfas')
+               nfas)
+        | Ast.Eia.Concat (lhs1, rhs1), y ->
+          List.concat
+            (List.map
+               (fun (nfa, nfa') ->
+                  let nfas' = helper lhs1 rhs1 nfa in
+                  List.map (fun conj -> Id_symantics.in_re_raw y nfa' :: conj) nfas')
+               nfas)
+        | _ -> raise Exit
+      in
+      let nfas = List.map (fun conj -> Ast.land_ conj) (helper lhs rhs nfa) in
+      Ast.lor_ nfas
     ;;
 
+    (* (List.map
+                 (fun nfas -> [Id_symantics.in_re_raw x nfa'] @ nfas)
+                 (helper lhs1 rhs1 nfa')) *)
     let eq_str l r =
       match l, r with
       | Ast.Eia.Str_const s, Ast.Eia.Concat (lhs, rhs)
