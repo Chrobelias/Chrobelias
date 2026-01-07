@@ -1861,16 +1861,16 @@ let lower_mod ast =
   | acc -> Ast.land_ (ph :: acc)
 ;; *)
 
-let lower_concats ast =
+(* let lower_concats ast =
   let acc = ref [] in
   let extend ph = acc := ph :: !acc in
   let module M = struct
     include Id_symantics
 
-    let str_concat t e =
-      let exp = str_var (gensym ~prefix:"%conc" ()) in
-      extend (Id_symantics.eq_str exp (Id_symantics.str_concat t e));
-      exp
+    let str_concat lhs rhs =
+      let c = str_var (gensym ~prefix:"%conc" ()) in
+      extend (Id_symantics.eq_str c (Id_symantics.str_concat lhs rhs));
+      c
     ;;
   end
   in
@@ -1878,7 +1878,7 @@ let lower_concats ast =
   match !acc with
   | [] -> ph
   | acc -> Ast.land_ (ph :: acc)
-;;
+;; *)
 
 (* let _lower_strlen ast =
   let env = ref Env.empty in
@@ -2879,8 +2879,7 @@ let arithmetize ast =
            | _ -> acc)
         false
         eia
-      |> fun res ->
-      res
+      |> fun res -> res
     in
     let rec var_appears_as_string v ast =
       (match ast with
@@ -2890,8 +2889,7 @@ let arithmetize ast =
        | Land asts | Lor asts ->
          List.fold_left (fun acc ast -> acc || var_appears_as_string v ast) false asts
        | Unsupp _ -> failwith "unable to fold; unsupported constraint")
-      |> fun res ->
-      res
+      |> fun res -> res
     in
     arithmetize_conj ast
     |> List.map (fun ast ->
@@ -2913,11 +2911,7 @@ let arithmetize ast =
   | `Unknown (ast', e, _, _) ->
     let var_info = apply_symantics (module Who_in_exponents) ast' in
     let asts_n_regexes =
-      ast'
-      |> lower_concats
-      |> rewrite_concats var_info
-      |> Ast.to_dnf
-      |> List.map fold_regexes
+      ast' |> rewrite_concats var_info |> Ast.to_dnf |> List.map fold_regexes
     in
     `Unknown
       (List.concat_map
