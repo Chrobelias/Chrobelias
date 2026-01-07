@@ -1861,7 +1861,24 @@ let lower_mod ast =
   | acc -> Ast.land_ (ph :: acc)
 ;; *)
 
-let lower_concats ast = ast
+let lower_concats ast =
+  let acc = ref [] in
+  let extend ph = acc := ph :: !acc in
+  let module M = struct
+    include Id_symantics
+
+    let str_concat t e =
+      let exp = str_var (gensym ~prefix:"%conc" ()) in
+      extend (Id_symantics.eq_str exp (Id_symantics.str_concat t e));
+      exp
+    ;;
+  end
+  in
+  let ph = apply_symantics_unsugared (module M) ast in
+  match !acc with
+  | [] -> ph
+  | acc -> Ast.land_ (ph :: acc)
+;;
 
 (* let _lower_strlen ast =
   let env = ref Env.empty in
