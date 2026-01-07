@@ -609,7 +609,7 @@ let rec fold f acc ast =
   | Lor asts -> f (List.fold_left (fold f) acc asts) ast
   | Exists (_, ast') -> f (fold f acc ast') ast
   | Pred _ -> f acc ast
-  | Unsupp s -> failf "unable to fold; unsupported constraint %s" s
+  | Unsupp s -> acc
 ;;
 
 let forall f = fold (fun acc ast -> acc && f ast) true
@@ -662,8 +662,10 @@ let rec in_stoi v ast =
   | Lnot ast' | Exists (_, ast') -> in_stoi v ast'
   | Land asts | Lor asts ->
     List.fold_left (fun acc ast -> acc || in_stoi v ast) false asts
-  | Unsupp _ -> failwith "unable to fold; unsupported constraint"
+  | Unsupp _ -> false
 ;;
+
+(* failwith "unable to fold; unsupported constraint" *)
 
 let rec map f = function
   | True as ast -> f ast
@@ -673,8 +675,10 @@ let rec map f = function
   | Lor asts -> f (lor_ (List.map (map f) asts))
   | Exists (atoms, ast) -> f (exists atoms (map f ast))
   | Pred _ as ast -> f ast
-  | Unsupp _ -> failwith "unable to map; unsupported constraint"
+  | Unsupp x -> Unsupp x
 ;;
+
+(* failwith "unable to map; unsupported constraint" *)
 
 let rec equal ast ast' =
   match ast, ast' with
