@@ -1403,7 +1403,7 @@ module Lsb (Label : L) = struct
   type u = t
 
   let zero_any_path = any_path ~nozero:false
-  let any_path = any_path ~nozero:true
+  let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
 
   let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
