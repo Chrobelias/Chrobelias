@@ -91,7 +91,7 @@ let check_sat ?(verbose = false) ast : rez =
         then Format.printf "unsat (%s)\n%!" s
         else Format.printf "unsat\n%!"
       | `Unknown s ->
-        Format.printf "unknown (%s)\n%!" s (*(if s <> "" then "\n " ^ s else ""))*))
+        Format.printf "unknown %s\n%!" (if s <> "" then "(" ^ s ^ ")" else ""))
     else ()
   in
   let used_under2 = ref false in

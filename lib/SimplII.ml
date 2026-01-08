@@ -2703,6 +2703,42 @@ let arithmetize ast =
     let ast = Ast.land_ (ast_without_regex :: phs) in
     ast, regexes
   in
+  let fold_regexes_i ast =
+    let regexes =
+      Map.map
+        ~f:(fun data ->
+          List.fold_left
+            (fun acc nfa -> NfaS.intersect nfa acc)
+            (NfaCollection.Str.n ())
+            data)
+        (Ast.fold
+           (fun acc -> function
+              | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, nfa)) ->
+                (s, nfa) :: acc
+              | _ -> acc)
+           []
+           ast
+         |> Map.of_alist_multi)
+    in
+    let ast_without_regex =
+      Ast.map
+        (function
+          | ast when is_regex ast -> Ast.true_
+          | ast -> ast)
+        ast
+    in
+    let phs =
+      if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) regexes
+      then [ Ast.false_ ]
+      else
+        Map.fold
+          ~init:[]
+          ~f:(fun ~key:s ~data:nfa ph ->
+            Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, nfa)) :: ph)
+          regexes
+    in
+    Ast.land_ (ast_without_regex :: phs), regexes
+  in
   let flatten ast =
     let extra_ph = ref [] in
     let extends v other =
@@ -2944,7 +2980,7 @@ let arithmetize ast =
          (fun (ast, regexes) ->
             List.map
               (fun ast' ->
-                 let ast', regexes' = fold_regexes ast' in
+                 let ast', regexes' = fold_regexes_i ast' in
                  let regexes =
                    Map.merge
                      ~f:(fun ~key -> function
