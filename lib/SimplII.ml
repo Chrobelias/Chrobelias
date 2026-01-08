@@ -1518,7 +1518,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
         (fun acc el ->
            match el with
            | Eia.Len (Eia.Atom (Var (s, S))) when s = v -> true
-           | Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true
+           (*| Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true*)
            | _ -> acc)
         (fun acc _ -> acc)
         false
@@ -1597,12 +1597,15 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     (* Kakadu: it is not lost, it is saved in the environment.
       We need to decide how to handle it properly  *)
     (* **************************** integer stuff *********************************** *)
-    | Eia (Eia.Eq (Atom (Var (vn1, _) as v1), (Atom (Var (v2, _)) as rhs), _)) ->
-      if not (var_can_subst vn1)
-      then None
-      else if Env.occurs_var env vn1 rhs
-      then None
-      else Some (extend_exn env v1 rhs)
+    | Eia
+        (Eia.Eq ((Atom (Var (vn1, _) as v1) as lhs), (Atom (Var (vn2, _) as v2) as rhs), _))
+      ->
+      (match var_can_subst_complex vn1, var_can_subst_complex vn2 with
+       | true, other ->
+         if Env.occurs_var env vn1 rhs then None else Some (extend_exn env v1 rhs)
+       | false, true ->
+         if Env.occurs_var env vn2 lhs then None else Some (extend_exn env v2 lhs)
+       | false, false -> None)
     | Eia (Eia.Eq (Atom (Var (vn, I) as v1), (Const c as rhs), I))
     | Eia (Eia.Eq ((Const c as rhs), Atom (Var (vn, I) as v1), I))
       when var_can_subst vn ->
