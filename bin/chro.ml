@@ -90,7 +90,8 @@ let check_sat ?(verbose = false) ast : rez =
         if config.with_info
         then Format.printf "unsat (%s)\n%!" s
         else Format.printf "unsat\n%!"
-      | `Unknown _ -> Format.printf "unknown\n%!" (*(if s <> "" then "\n " ^ s else ""))*))
+      | `Unknown s ->
+        Format.printf "unknown (%s)\n%!" s (*(if s <> "" then "\n " ^ s else ""))*))
     else ()
   in
   let used_under2 = ref false in
@@ -225,7 +226,7 @@ let check_sat ?(verbose = false) ast : rez =
        | Error s ->
          if !used_under2 |> not
          then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
-         Unknown (ast, e))
+         (* Unknown (ast, e) *) exit 0)
     | _ -> apporx_rez
   in
   let can_be_unk = ref false in
@@ -281,7 +282,7 @@ let check_sat ?(verbose = false) ast : rez =
   | s ->
     if config.quiet == true
     then (
-      report_result2 (`Unknown s);
+      report_result2 (`Unknown "");
       unknown ast Lib.Env.empty)
     else raise s
 ;;
