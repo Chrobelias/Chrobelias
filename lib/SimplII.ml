@@ -2631,7 +2631,7 @@ let arithmetize ast =
   let is_regex : Ast.t -> bool = function
     | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const _, S))
     | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _))
-    | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _)) -> true
+    | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _))
     | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, _)) -> true
     | _ -> false
   in
@@ -2972,8 +2972,13 @@ let arithmetize ast =
   | `Unsat -> `Unsat
   | `Unknown (ast', e, _, _) ->
     let var_info = apply_symantics (module Who_in_exponents) ast' in
+    let (module Symantics) = make_main_symantics e in
     let asts_n_regexes =
-      ast' |> rewrite_concats var_info |> Ast.to_dnf |> List.map fold_regexes
+      ast'
+      |> rewrite_concats var_info
+      |> Ast.to_dnf
+      |> List.map (apply_symantics (module Symantics))
+      |> List.map fold_regexes
     in
     `Unknown
       (List.concat_map

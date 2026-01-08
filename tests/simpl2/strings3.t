@@ -14,32 +14,32 @@
   
   Arithmetization gives 1 asts...
   Arithmetized: (and
-                  (= %concat6 strlenx)
-                  (<= 0 strlenx)
-                  (= %concat5 (+ (* %concat7 (exp 10 %concat6)) %concat8))
-                  (= %concat8 x)
-                  (= %concat7 999)
+                  (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))
                   (= %concat2 strlenx)
                   (<= 0 strlenx)
-                  (= %concat1 (+ (* %concat3 (exp 10 %concat2)) %concat4))
-                  (= %concat4 x)
                   (= %concat3 y)
-                  (= %concat5 %concat1))
+                  (= %concat4 x)
+                  (= %concat5 %concat1)
+                  (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+                  (= %concat6 strlenx)
+                  (<= 0 strlenx)
+                  (= %concat7 999)
+                  (= %concat8 x))
   
   Basic simplifications:
   
   iter(1)= (and
-             (= %concat6 strlenx)
-             (<= 0 strlenx)
-             (= %concat5 (+ (* %concat7 (exp 10 %concat6)) %concat8))
-             (= %concat8 x)
-             (= %concat7 999)
+             (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))
              (= %concat2 strlenx)
              (<= 0 strlenx)
-             (= %concat1 (+ (* %concat3 (exp 10 %concat2)) %concat4))
-             (= %concat4 x)
              (= %concat3 y)
-             (= %concat5 %concat1))
+             (= %concat4 x)
+             (= %concat5 %concat1)
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (<= 0 strlenx)
+             (= %concat7 999)
+             (= %concat8 x))
   Something ready to substitute
         %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
   

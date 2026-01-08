@@ -1,8 +1,11 @@
   $ Chro ./subst.smt2 
-  unsat (presimpl)
+  sat (under I)
 
   $ Chro ./subst-2.smt2 
   unsat (presimpl)
 
   $ Chro ./subst-3.smt2 
+  sat (under I)
+
+  $ Chro ./subst-4.smt2 
   sat (under I)
