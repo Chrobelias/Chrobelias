@@ -1220,11 +1220,11 @@ struct
         ; start = Set.singleton state
         ; final = nfa.final
         }
-        |> remove_unreachable_from_start
+        (*|> remove_unreachable_from_start*)
       in
       (* Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
       Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa''; *)
-      nfa', nfa'')
+      nfa'', nfa')
   ;;
 
   let equal_start_and_final nfa nfa' =
