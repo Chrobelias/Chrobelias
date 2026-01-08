@@ -644,18 +644,17 @@ let rec to_dnf ast =
     | other -> [ other ])
 ;;
 
-let in_stoi_eia v eia =
-  Eia.fold2
-    (fun acc el ->
-       match el with
-       | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
-       | _ -> acc)
-    (fun acc _ -> acc)
-    false
-    eia
-;;
-
 let rec in_stoi v ast =
+  let in_stoi_eia v eia =
+    Eia.fold2
+      (fun acc el ->
+         match el with
+         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      eia
+  in
   match ast with
   | True | Pred _ -> false
   | Eia eia -> in_stoi_eia v eia
@@ -663,6 +662,35 @@ let rec in_stoi v ast =
   | Land asts | Lor asts ->
     List.fold_left (fun acc ast -> acc || in_stoi v ast) false asts
   | Unsupp _ -> false
+;;
+
+let collect_lin_exp ast =
+  let module Set = Base.Set.Poly in
+  fold
+    (fun (lin, exp) ast ->
+       let open Eia in
+       match ast with
+       | Eia eia ->
+         (match eia with
+          | Eq (Atom (Var (x, I)), Const _, I) -> Set.add lin x, exp
+          | Eq (Const _, Atom (Var (x, I)), I) -> Set.add lin x, exp
+          | Eq (Add [ Const _; Atom (Var (x, I)) ], Atom (Var (_, I)), I) ->
+            Set.add lin x, exp
+          | Eq (Pow (_, Atom (Var (x, I))), Const _, I) -> lin, Set.add exp x
+          | Eq (Mul [ Const _; Pow (_, Atom (Var (x, I))) ], Const _, I) ->
+            lin, Set.add exp x
+          | Leq (Atom (Var (x, I)), Const _) -> Set.add lin x, exp
+          | Leq (Const _, Atom (Var (x, I))) -> Set.add lin x, exp
+          | Leq (Add [ Const _; Atom (Var (x, I)) ], Atom (Var (_, I))) ->
+            Set.add lin x, exp
+          | Leq (Pow (_, Atom (Var (x, I))), Const _) -> lin, Set.add exp x
+          | Leq (Const _, Pow (_, Atom (Var (x, I)))) -> lin, Set.add exp x
+          | Leq (Mul [ Const _; Pow (_, Atom (Var (x, I))) ], Const _) ->
+            lin, Set.add exp x
+          | _ -> lin, exp)
+       | _ -> lin, exp)
+    (Set.empty, Set.empty)
+    ast
 ;;
 
 (* failwith "unable to fold; unsupported constraint" *)
@@ -703,6 +731,3 @@ let safe_eq ast ast' =
      | exception _ -> true
      | smth -> smth)
 ;;
-(* let map_term fz fs = function
-  | eia -> Eia.map_term fz fs eia
-;; *)

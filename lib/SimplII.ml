@@ -1236,11 +1236,14 @@ let%expect_test _ =
 ;;
 
 let shrink_variables ast =
+  let module Set = Base.Set.Poly in
   let _ : Ast.t = ast in
   (* log "old ast: @[%a@]\n" Ast.pp_smtlib2 ast; *)
   let info = apply_symantics (module Who_in_exponents) ast in
   (* log "@[<v 2>@[Old info:@]@ @[%a@]@]\n" Info.pp_hum info; *)
-  let is_in_expo v = Info.is_in_expo v info in
+  (* let is_in_expo v = Info.is_in_expo v info in *)
+  let lin, exp = Ast.collect_lin_exp ast in
+  let is_in_expo v = Info.is_in_expo v info && Set.mem lin v in
   let same_base l r = is_in_expo l && is_in_expo r in
   (* Now let's make exponential variables more exponential *)
   let module Sy = struct
@@ -1282,13 +1285,13 @@ let shrink_variables ast =
   end
   in
   let ast2 = apply_symantics_unsugared (module Sy) ast in
-  if Ast.safe_eq ast ast2
-  then ast2
-  else (
+  if Set.length (ast2 |> Ast.collect_lin_exp |> fst) < Set.length lin
+  then (
     log "Post-simplification: @[%a@]\n" Ast.pp_smtlib2 ast2;
     let info2 = apply_symantics (module Who_in_exponents) ast in
     log "@[<v 2>@[New info:@]@ @[%a@]@]\n" Info.pp_hum info2;
     ast2)
+  else ast
 ;;
 
 let%test_module "about shrinking" =
@@ -1342,8 +1345,8 @@ let%test_module "about shrinking" =
 
         (and
           (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
-          (<= (exp 2 x) (exp 2 y))
-          (<= (exp 2 v) (exp 2 u)))
+          (<= (+ x (* (- 1) y)) 0)
+          (<= (+ v (* (- 1) u)) 0))
         |}]
     ;;
 
@@ -1361,7 +1364,7 @@ let%test_module "about shrinking" =
 
         (and
           (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= (exp 2 y) (exp (exp 2 3) x)))
+          (<= (+ x (* (- 3) y)) 0))
         |}]
     ;;
   end)
