@@ -638,7 +638,7 @@ let rec to_dnf ast =
   then [ ast ]
   else (
     match ast with
-    | Land [ x ] -> [ x ]
+    | Land [ x ] -> to_dnf x
     | Land (x :: xs) -> List.fold_left cartesian (to_dnf x) (List.map to_dnf xs)
     | Lor xs -> List.concat (List.map to_dnf xs)
     | other -> [ other ])
