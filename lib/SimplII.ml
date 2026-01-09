@@ -2624,7 +2624,7 @@ end*)
 
 let arithmetize ast =
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
-  let in_stoi v = Ast.in_stoi v ast in
+  let in_stoi' v = Ast.in_stoi v ast in
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module Map = Base.Map.Poly in
@@ -2764,6 +2764,7 @@ let arithmetize ast =
     apply_symantics_unsugared (module M_) ast
   in
   let arithmetize ast =
+    let in_stoi v = Ast.in_stoi v ast in
     let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
       fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function
         | Ast.Eia.Sofi s -> s, []
@@ -2785,7 +2786,7 @@ let arithmetize ast =
           let phs = phs @ phs' in
           let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
           let phs =
-            match in_stoi var, Map.mem (collect_regexes ast) var with
+            match in_stoi' var, Map.mem (collect_regexes ast) var with
             | true, true -> Ast.Eia.rlen s (pow_base v) :: phs
             | true, false -> Ast.Eia.lt s (pow_base v) :: phs
             | false, other -> phs
