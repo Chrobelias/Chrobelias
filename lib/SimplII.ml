@@ -2771,6 +2771,9 @@ let arithmetize ast =
     let in_stoi v = Ast.in_stoi v ast in
     (*let in_concat v = Ast.in_concat v ast in*)
     let ast = arithmetize_concats var_info ast in
+    (* We only want to substitute consts. *)
+    let (module M) = make_main_symantics Env.empty in
+    let ast = apply_symantics_unsugared (module M) ast in
     let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
       fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function
         | Ast.Eia.Sofi s -> s, []
@@ -2780,7 +2783,11 @@ let arithmetize ast =
             match s with
             | Ast.Eia.Atom (Ast.Var (var, _)) ->
               var, String.concat "" [ "strlen"; var ], []
-            | non_var -> failwith "unreachable"
+            | non_var -> assert false
+            (*let v = gensym ~prefix:"%arith_len" () in
+              let sv = String.concat "" [ "strlen"; v ] in
+              let non_var, phs = arithmetize_term non_var in
+              v, sv, Ast.Eia.eq (atomi v) non_var Ast.I :: phs*)
             (*let var = gensym ~prefix:"%arith_len" () in
             let non_var, phs = arithmetize_term non_var in
             ( var
