@@ -644,7 +644,17 @@ let rec to_dnf ast =
     | other -> [ other ])
 ;;
 
-let rec in_stoi v ast =
+let rec in_eia_term f v ast =
+  match ast with
+  | True | Pred _ -> false
+  | Eia eia -> f v eia
+  | Lnot ast' | Exists (_, ast') -> in_eia_term f v ast'
+  | Land asts | Lor asts ->
+    List.fold_left (fun acc ast -> acc || in_eia_term f v ast) false asts
+  | Unsupp _ -> false
+;;
+
+let in_stoi v ast =
   let in_stoi_eia v eia =
     Eia.fold2
       (fun acc el ->
@@ -655,13 +665,23 @@ let rec in_stoi v ast =
       false
       eia
   in
-  match ast with
-  | True | Pred _ -> false
-  | Eia eia -> in_stoi_eia v eia
-  | Lnot ast' | Exists (_, ast') -> in_stoi v ast'
-  | Land asts | Lor asts ->
-    List.fold_left (fun acc ast -> acc || in_stoi v ast) false asts
-  | Unsupp _ -> false
+  in_eia_term in_stoi_eia v ast
+;;
+
+let _in_concat v ast =
+  in_eia_term
+    (fun v eia ->
+       Eia.fold2
+         (fun acc el ->
+            match el with
+            | Eia.Concat (_, Eia.Atom (Var (s, S))) when s = v -> true
+            | Eia.Concat (Eia.Atom (Var (s, S)), _) when s = v -> true
+            | _ -> acc)
+         (fun acc _ -> acc)
+         false
+         eia)
+    v
+    ast
 ;;
 
 let collect_lin_exp ast =
