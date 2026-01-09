@@ -2355,17 +2355,8 @@ let run_under2 env ast =
   `Underapprox asts
 ;;
 
-let rewrite_concats { Info.all; _ } =
+let split_concats { Info.all; _ } =
   let module Map = Base.Map.Poly in
-  let gensym1 = gensym in
-  let rec gensym () =
-    let ans = gensym1 ~prefix:"%concat" () in
-    if Base.Set.Poly.mem all ans then gensym () else ans
-  in
-  let extra_ph = ref [] in
-  let extend v other =
-    extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
-  in
   let var_or_const x =
     match x with
     | Ast.Eia.Str_const _ | Ast.Eia.Atom (Ast.Var (_, Ast.S)) -> true
@@ -2427,6 +2418,20 @@ let rewrite_concats { Info.all; _ } =
     ;;
   end
   in
+  apply_symantics_unsugared (module Pre)
+;;
+
+let arithmetize_concats { Info.all; _ } =
+  let module Map = Base.Map.Poly in
+  let gensym1 = gensym in
+  let rec gensym () =
+    let ans = gensym1 ~prefix:"%concat" () in
+    if Base.Set.Poly.mem all ans then gensym () else ans
+  in
+  let extra_ph = ref [] in
+  let extend v other =
+    extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
+  in
   let module M_ = struct
     include Id_symantics
 
@@ -2467,8 +2472,7 @@ let rewrite_concats { Info.all; _ } =
     include FT_SIG.Sugar (M_)
   end
   in
-  fun ph ->
-    Sym.prj (apply_symantics_unsugared (module Pre) ph |> apply_symantics (module Sym))
+  fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
 ;;
 
 let rewrite_via_concat { Info.all; _ } =
@@ -2763,8 +2767,10 @@ let arithmetize ast =
     in
     apply_symantics_unsugared (module M_) ast
   in
-  let arithmetize ast =
+  let arithmetize var_info ast =
     let in_stoi v = Ast.in_stoi v ast in
+    (*let in_concat v = Ast.in_concat v ast in*)
+    let ast = arithmetize_concats var_info ast in
     let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
       fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function
         | Ast.Eia.Sofi s -> s, []
@@ -2976,7 +2982,7 @@ let arithmetize ast =
     let (module Symantics) = make_main_symantics e in
     let asts_n_regexes =
       ast'
-      |> rewrite_concats var_info
+      |> split_concats var_info
       |> Ast.to_dnf
       |> List.map (apply_symantics (module Symantics))
       |> List.map fold_regexes
@@ -2997,7 +3003,7 @@ let arithmetize ast =
                      regexes'
                  in
                  ast', regexes)
-              (ast |> flatten |> arithmetize))
+              (ast |> flatten |> arithmetize var_info))
          asts_n_regexes)
 ;;
 
