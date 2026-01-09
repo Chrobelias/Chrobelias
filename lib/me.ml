@@ -85,6 +85,9 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let as_symbol = function
+    | Poly (poly, c, sups)
+      when c = Z.zero && Map.length poly = 1 && Map.nth_exn poly 0 |> snd = Q.one ->
+      Symbol (Map.nth_exn poly 0 |> fst, sups)
     | Poly (poly, c, sups) ->
       let var = Ir.internal () in
       let poly, c = from_rat poly c in
