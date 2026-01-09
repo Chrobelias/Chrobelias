@@ -91,14 +91,14 @@ and to_regex orig_expr =
     in
     let lhs =
       match to_string lhs with
-      | Ast.Eia.(Str_const s) -> s
+      | Ast.Eia.(Str_const s) -> Scanf.unescaped s
       | _ ->
         failf
           (Format.asprintf "unable to create regex dynamically in %a" Expr.pp orig_expr)
     in
     let rhs =
       match to_string rhs with
-      | Ast.Eia.(Str_const s) -> s
+      | Ast.Eia.(Str_const s) -> Scanf.unescaped s
       | _ ->
         failf
           (Format.asprintf "unable to create regex dynamically in %a" Expr.pp orig_expr)
