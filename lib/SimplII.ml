@@ -2769,7 +2769,7 @@ let arithmetize ast =
   in
   let arithmetize var_info ast =
     let in_stoi v = Ast.in_stoi v ast in
-    (*let in_concat v = Ast.in_concat v ast in*)
+    let in_concat v = Ast.in_concat v ast in
     let ast = arithmetize_concats var_info ast in
     (* We only want to substitute consts. *)
     let (module M) = make_main_symantics Env.empty in
@@ -2889,26 +2889,28 @@ let arithmetize ast =
             let v = gensym ~prefix:"%arith_re" () in
             v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
         in
-        if in_stoi s
-        then
-          [ Ast.land_
-              (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I Regex.digit)
-               :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
-               :: (phs |> List.map Ast.eia))
-          ; Ast.land_
-              (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I (Regex.digit |> Regex.mnot))
-               :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
-               :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
-               :: (phs |> List.map Ast.eia))
-          ]
-        else (
-          let csds = arithmetize_in_re s (re |> NfaL.of_regex) in
-          List.map
-            (fun x ->
-               Ast.land_
-                 (x (* :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens))) *)
-                  :: (phs |> List.map Ast.eia)))
-            csds)
+        (* raise Exit if in_concat and intersection with Regex.digit is empty*)
+          (match in_stoi s, in_concat s with
+           | true, false ->
+             [ Ast.land_
+                 (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I Regex.digit)
+                  :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
+                  :: (phs |> List.map Ast.eia))
+             ; Ast.land_
+                 (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I (Regex.digit |> Regex.mnot))
+                  :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
+                  :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
+                  :: (phs |> List.map Ast.eia))
+             ]
+           | false, false ->
+             let csds = arithmetize_in_re s (re |> NfaL.of_regex) in
+             List.map
+               (fun x ->
+                  Ast.land_
+                    (x (* :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens))) *)
+                     :: (phs |> List.map Ast.eia)))
+               csds
+           | other, true -> raise Exit)
       | Ast.Eia (InReRaw (s, S, nfa)) ->
         let s, phs = arithmetize_term s in
         let s, phs =
@@ -2919,26 +2921,30 @@ let arithmetize ast =
             v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
         in
         (* TODO: Add regular constraints with automata*)
-        if in_stoi s
-        then
-          [ Ast.land_
-              (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I (Regex.digit |> NfaS.of_regex))
-               :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
-               :: (phs |> List.map Ast.eia))
-          ; Ast.land_
-              (Ast.Eia
-                 (Ast.Eia.inreraw
-                    (atomi (String.concat "" [ "string"; s ]))
-                    Ast.I
-                    (Regex.digit |> NfaS.of_regex |> NfaS.invert))
-               :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
-               :: Ast.Eia
-                    (Ast.Eia.inreraw (atomi (String.concat "" [ "string"; s ])) Ast.I nfa)
-               :: (phs |> List.map Ast.eia))
-          ]
-        else (
-          let csds = arithmetize_in_re s nfa in
-          List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds)
+          (match in_stoi s, in_concat s with
+           | true, false ->
+             [ Ast.land_
+                 (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I (Regex.digit |> NfaS.of_regex))
+                  :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
+                  :: (phs |> List.map Ast.eia))
+             ; Ast.land_
+                 (Ast.Eia
+                    (Ast.Eia.inreraw
+                       (atomi (String.concat "" [ "string"; s ]))
+                       Ast.I
+                       (Regex.digit |> NfaS.of_regex |> NfaS.invert))
+                  :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
+                  :: Ast.Eia
+                       (Ast.Eia.inreraw
+                          (atomi (String.concat "" [ "string"; s ]))
+                          Ast.I
+                          nfa)
+                  :: (phs |> List.map Ast.eia))
+             ]
+           | false, false ->
+             let csds = arithmetize_in_re s nfa in
+             List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds
+           | other, true -> raise Exit)
       | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
       | Ast.Unsupp s -> [ Ast.Unsupp s ]
       | _ as non_eia -> [ non_eia ]

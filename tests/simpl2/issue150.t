@@ -34,7 +34,6 @@
                   (<= 0 strlenx)
                   True
                   True
-                  True
                   (str.in_re.raw x))
   
   Basic simplifications:
@@ -46,7 +45,6 @@
              (<= strlenx 99)
              (chrob.len x (exp 10 strlenx))
              (<= 0 strlenx)
-             True
              True
              True
              (str.in_re.raw x))

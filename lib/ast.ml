@@ -668,7 +668,7 @@ let in_stoi v ast =
   in_eia_term in_stoi_eia v ast
 ;;
 
-let _in_concat v ast =
+let in_concat v ast =
   in_eia_term
     (fun v eia ->
        Eia.fold2
