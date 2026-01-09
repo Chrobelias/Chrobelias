@@ -91,30 +91,27 @@ and to_regex orig_expr =
     in
     let lhs =
       match to_string lhs with
-      | Ast.Eia.(Str_const s) -> Scanf.unescaped s
+      | Ast.Eia.(Str_const s) -> s
       | _ ->
         failf
           (Format.asprintf "unable to create regex dynamically in %a" Expr.pp orig_expr)
     in
     let rhs =
       match to_string rhs with
-      | Ast.Eia.(Str_const s) -> Scanf.unescaped s
+      | Ast.Eia.(Str_const s) -> s
       | _ ->
         failf
           (Format.asprintf "unable to create regex dynamically in %a" Expr.pp orig_expr)
     in
-    let () =
-      if String.length lhs <> 1 || String.length rhs <> 1
-      then
-        failf (Format.asprintf "expected range strings %s %s to be of length 1" lhs rhs)
-      else ()
-    in
-    let lhs = String.get lhs 0 in
-    let rhs = String.get rhs 0 in
-    Char.code lhs -- Char.code rhs
-    |> List.fold_left
-         (fun acc c -> Regex.mor acc (Regex.symbol [ Char.chr c ]))
-         Regex.empty
+    if String.length lhs <> 1 || String.length rhs <> 1
+    then Regex.empty
+    else (
+      let lhs = String.get lhs 0 in
+      let rhs = String.get rhs 0 in
+      Char.code lhs -- Char.code rhs
+      |> List.fold_left
+           (fun acc c -> Regex.mor acc (Regex.symbol [ Char.chr c ]))
+           Regex.empty)
   | Expr.Naryop (_ty, Ty.Naryop.Concat, exprs) ->
     (* String constraints use LSB representation, we intentionally reverse the concat. *)
     List.map to_regex exprs |> List.rev |> List.fold_left Regex.concat Regex.epsilon

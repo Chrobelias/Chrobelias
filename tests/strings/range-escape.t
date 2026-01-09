@@ -1,6 +1,6 @@
   $ cat > test.smt2 <<-EOF
   > (set-logic QF_S)
-  > (set-info :status sat)
+  > (set-info :status unsat)
   > 
   > (declare-const x String)
   > (declare-const y String)
@@ -11,3 +11,4 @@
   > (check-sat)
   > EOF
   $ Chro test.smt2
+  unsat (presimpl)
