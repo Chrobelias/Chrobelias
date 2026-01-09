@@ -4,4 +4,6 @@
 (assert (= (str.++ "10001" x) (str.++ y x)))
 ; (assert (= y "10001"))
 (assert (= (str.len x) (+ 1 (str.to.int y))))
+(set-info :status sat)
 (check-sat)
+; (get-model)

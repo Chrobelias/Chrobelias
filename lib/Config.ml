@@ -15,6 +15,7 @@ type config =
   ; mutable no_model : bool
   ; mutable logic : [ `Eia | `Str ]
   ; mutable with_check_sat : bool
+  ; mutable with_info : bool
   ; mutable quiet : bool
   }
 
@@ -35,6 +36,7 @@ let config =
   ; no_model = false
   ; logic = `Eia
   ; with_check_sat = false
+  ; with_info = true
   ; quiet = false
   }
 ;;
@@ -49,12 +51,20 @@ type under2_config =
 
 type huge_const_config = { mutable const : int }
 
+type string_config =
+  { zero : char
+  ; one : char
+  ; null : char
+  ; eos : char
+  }
+
 let huge_const_config = { const = 10 }
 let huge_const () = huge_const_config.const
 let under2_config = { amin = 5; amax = 11; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
+let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
 
 let max_longest_path =
   match Sys.getenv_opt "CHRO_LONGEST_PATH" with
@@ -122,7 +132,8 @@ Basic options:
     ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t"
     ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
     ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t"
-    ; "--q", Arg.Unit (fun () -> config.quiet <- true), "\t"
+    ; "--info", Arg.Unit (fun () -> config.with_info <- true), "\t"
+    ; "-q", Arg.Unit (fun () -> config.quiet <- true), "\t"
     ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , "\tDon't try simplifications based on alpha-equivalence" )

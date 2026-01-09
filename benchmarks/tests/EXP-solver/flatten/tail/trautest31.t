@@ -1,8 +1,0 @@
-trautest31
-  $ export OCAMLRUNPARAM='b=0'
-  $ printf '(set-logic QF_S)\n' > trautest31.smt2
-  $ grep -v set-logic ../../../../../benchmarks/EXP-solver/Benchmark/HashFunction/flatten/head/trautest31 >> trautest31.smt2
-$ cat trautest31.smt2
-  $ timeout 2 Chro trautest31.smt2  || echo TIMEOUT
-  timeout
-  TIMEOUT

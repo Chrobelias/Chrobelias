@@ -251,10 +251,9 @@ module Str = struct
   type t = char array
   type u = char
 
-  let u_zero = '0'
-  let u_one = '1'
-  let u_null = Char.chr 0
-  let u_eos = Char.chr 3
+  let config = Config.string_config
+  let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
+  let is_end_char c = c = u_eos || c = u_null
 
   let pp ppf (vec : t) =
     Array.to_seq vec
@@ -675,10 +674,16 @@ module type Type = sig
   val to_nat : t -> u
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
+  val find_c_d' : t -> (int * int) Seq.t
+  val split : t -> (t * t) list
+  val equal_start_and_final : t -> t -> bool
+  val alpha : t -> v Set.t
 end
 
 module type NatType = sig
   include Type
+
+  val chrobak : t -> (int * int) Seq.t
 
   val get_chrobaks_sub_nfas
     :  t
@@ -1186,6 +1191,46 @@ struct
     r2 @ r1 |> Set.of_list |> Set.to_sequence |> Sequence.to_seq
   ;;
 
+  let find_c_d' nfa =
+    find_c_d nfa (Set.to_list nfa.start |> List.map (fun a -> a, 0) |> Map.of_alist_exn)
+  ;;
+
+  let split (nfa : t) =
+    let length = length nfa in
+    let states =
+      Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
+      |> List.fold_left (fun acc x -> Set.union acc x) Set.empty
+    in
+    states
+    |> Set.to_list
+    |> List.map (fun state ->
+      let nfa' =
+        { is_dfa = false
+        ; deg = nfa.deg
+        ; transitions = nfa.transitions
+        ; start = nfa.start
+        ; final = Set.singleton state
+        }
+        |> remove_unreachable_from_final
+      in
+      let nfa'' =
+        { is_dfa = false
+        ; deg = nfa.deg
+        ; transitions = nfa.transitions
+        ; start = Set.singleton state
+        ; final = nfa.final
+        }
+        (*|> remove_unreachable_from_start*)
+      in
+      (* Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
+      Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa''; *)
+      nfa'', nfa')
+  ;;
+
+  let equal_start_and_final nfa nfa' =
+    Set.equal nfa.start nfa'.start && Set.equal nfa.final nfa'.final
+  ;;
+
   let of_regex (r : Label.u list Regex.t) =
     let rec traverse visited = function
       | [] -> []
@@ -1304,6 +1349,19 @@ struct
     in
     any_path dfa [] |> Option.is_some
   ;;
+
+  let alpha (nfa : t) =
+    nfa.transitions
+    |> Array.to_seq
+    |> Sequence.of_seq
+    |> Sequence.map ~f:(fun l ->
+      l
+      |> Sequence.of_list
+      |> Sequence.map ~f:(fun (label, _) -> Label.alpha label |> Set.to_sequence)
+      |> Sequence.concat)
+    |> Sequence.concat
+    |> Set.of_sequence
+  ;;
 end
 
 module Lsb (Label : L) = struct
@@ -1345,7 +1403,7 @@ module Lsb (Label : L) = struct
   type u = t
 
   let zero_any_path = any_path ~nozero:false
-  let any_path = any_path ~nozero:true
+  let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
 
   let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
@@ -1439,6 +1497,20 @@ module Lsb (Label : L) = struct
     (*      (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b)) *)
     (*   result; *)
     result
+  ;;
+
+  let path_of_len2 (nfa : t) ~var ~len : v list option =
+    let start =
+      nfa.start |> Set.to_list |> List.map (fun x -> x, []) |> Map.of_alist_exn
+    in
+    let paths = Graph.all_paths_of_len nfa.transitions start len in
+    let paths = Map.filteri paths ~f:(fun ~key ~data:_ -> Set.mem nfa.final key) in
+    if Map.is_empty paths
+    then Option.none
+    else (
+      let path = Map.nth_exn paths 0 |> snd in
+      let path = path |> List.map (fun l -> Label.get l var) in
+      Option.some path)
   ;;
 
   let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =

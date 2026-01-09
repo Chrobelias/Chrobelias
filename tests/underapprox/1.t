@@ -9,12 +9,16 @@
   > EOF
   $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over -bound 3 --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  Basic simplifications:
+  
   iter(1)= (and
              (<= (exp 2 y) x)
              (<= (exp 2 x) x))
   iter(2)= (and
              (<= (exp 2 x) x)
              (<= (exp 2 y) x))
+  fixed-point
+  
   Interesting: x y
   
   Expecting 9 choices ...

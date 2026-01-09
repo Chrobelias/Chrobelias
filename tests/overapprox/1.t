@@ -27,7 +27,8 @@ $ export CHRO_DEBUG=1
   (assert (exists (%0 x1)
           (and
             (= (+ (* (- 1) %0) x1 )  0)
-            ((re.* (re.union (re.union (re.union (str.to.re "1") (str.to.re "2")) (str.to.re "0")) (str.to.re "7")))))
+            ((re.* (re.union (re.union (re.union (str.to.re "1") (str.to.re "2")) (str.to.re "0")) (str.to.re "7"))))
+            )
   )
 
 $ cat > test.smt2 <<-EOF

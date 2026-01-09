@@ -8,5 +8,6 @@
   (assert (str.in.re a (str.to.re "Ba")))
   (assert (str.in.re b (str.to.re "20")))
   (assert (= (str.len a) (str.len b)))
+  (check-sat)
   (get-model)
 (pop 1)

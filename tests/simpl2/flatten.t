@@ -7,21 +7,13 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  iter(1)= (and
-             (= (* x x) 32))
-  iter(2)= (= (* x x) 32)
+  Basic simplifications:
+  
+  iter(1)= (= (exp x 2) 32)
+  fixed-point
+  
   Interesting:
   
   Expecting 1 choices ...
   
-  Can't decide in lib/Underapprox.ml
-  
-  Non linear arithmetic between
-  
-  0) x
-  
-  
-  
-  Into Z3 goes: (bool.eq (int.mul x x) 32)
-  
-  unsat (non-linear)
+  unsat (nia)

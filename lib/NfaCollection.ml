@@ -581,9 +581,11 @@ module Str = struct
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:full_alphabet alpha in
-    let alpha_transitions = List.map (fun c -> 0, [ c; itoc (base - 1) ], 0) alpha in
-    let transitions = [ 0, [ Str.u_eos; Str.u_zero ], 0 ] @ alpha_transitions in
-    Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
+    let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
+    let transitions =
+      alpha_transitions @ [ 0, [ Str.u_eos; i ], 1 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
+    in
+    Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 1 ] ~vars:[ src; dest ] ~deg:2
   ;;
 
   let stoi_post (nfa : t) ~(dest : int) ~(src : int) =

@@ -9,7 +9,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ OCAMLRUNPARAM='b=0' Chro -no-over -bound 6 -lsb 0.smt2
-  sat (non-linear)
+  sat (nia)
 
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)
@@ -21,7 +21,7 @@ $ export OCAMLRUNPARAM='b=0'
 
 $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over -bound -1 --dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #--stop-after simpl
-  sat (non-linear)
+  sat (nia)
 
   $ echo '(2^10-2^8+1)* 2^2' | bc
   3076
@@ -36,9 +36,11 @@ $ export CHRO_DEBUG=1
 
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 2.smt2'
   $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 --stop-after presimpl
-  iter(1)= (and
-             (= (* x (exp 2 z)) 3076))
-  iter(2)= (= (* x (exp 2 z)) 3076)
+  Basic simplifications:
+  
+  iter(1)= (= (* x (exp 2 z)) 3076)
+  fixed-point
+  
   
   Non linear arithmetic between
   
@@ -48,12 +50,12 @@ $ export CHRO_DEBUG=1
   
   Into Z3 goes: (bool.eq (int.mul x (int.pow 2 z)) 3076)
   
-  sat (non-linear)
+  sat (nia)
   ()
 The test below should be SAT but there is an issue #143
 which is needed to be fixed first
   $ timeout 2 $RUN -amin 1 -amax 1 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
-  sat (non-linear)
+  sat (nia)
   ()
 
   $ echo '(2^12-2^10+1)* 2^0' | bc
@@ -69,7 +71,7 @@ which is needed to be fixed first
   > EOF
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 3.smt2'
   $ timeout 2 $RUN -amin 1 -amax 1 -lsb 3.smt2 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
-  sat (non-linear)
+  sat (nia)
   ()
 
   $ echo '(2^13-2^7+2^5)*2^0' | bc
@@ -85,9 +87,11 @@ which is needed to be fixed first
   > EOF
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 4.smt2'
   $ CHRO_DEBUG=1 $RUN -flat 2 --stop-after presimpl
-  iter(1)= (and
-             (= (* x (exp 2 z)) 8096))
-  iter(2)= (= (* x (exp 2 z)) 8096)
+  Basic simplifications:
+  
+  iter(1)= (= (* x (exp 2 z)) 8096)
+  fixed-point
+  
   
   Non linear arithmetic between
   
@@ -97,8 +101,8 @@ which is needed to be fixed first
   
   Into Z3 goes: (bool.eq (int.mul x (int.pow 2 z)) 8096)
   
-  sat (non-linear)
+  sat (nia)
   ()
   $ timeout 2 $RUN -flat 2 | grep -v assert | sed -r '/^\s*$/d'
-  sat (non-linear)
+  sat (nia)
   ()

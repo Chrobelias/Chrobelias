@@ -10,122 +10,176 @@ $ export CHRO_DEBUG=1
 
   $ CHRO_DEBUG=1 Chro --pre-simpl --dpresimpl --dsimpl --stop-after simpl 1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
-             (= eeb6 (str.len x))
-             (= eeb2 (str.len x))
-             (= eeb6 eeb2)
-             (= eeb5 (+ (* eeb7 (exp 10 eeb6)) eeb8))
-             (= eeb8 (str.to.int x))
-             (= eeb7 (str.to.int y))
-             (= eeb2 eeb2)
-             (= eeb1 (+ (* eeb3 (exp 10 eeb2)) eeb4))
-             (= eeb4 (str.to.int x))
-             (= eeb3 123)
              (= y "321")
-             (= (str.from_int eeb1) (str.from_int eeb5)))
-  Something ready to substitute:  eeb3 -> 123; eeb6 -> eeb2; y ->s "321";
+             (= (str.++ "123" x) (str.++ y x)))
+  Something ready to substitute
+        y -> "321";
+  
   iter(2)= (and
-             (= eeb1 (+ eeb4 (* eeb3 (exp 10 eeb2))))
-             (= eeb2 (str.len x))
-             (= eeb3 123)
-             (= eeb4 (str.to.int x))
-             (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb6))))
-             (= eeb6 eeb2)
-             (= eeb6 (str.len x))
-             (= eeb7 (str.to.int y))
-             (= eeb8 (str.to.int x))
-             (= eeb1 eeb5)
-             (= y "321"))
-  Something ready to substitute:  eeb1 ->s eeb5; eeb3 -> 123; eeb6 -> eeb2; y ->s
-                                 "321";
-  iter(3)= (and
-             (= eeb1 (+ eeb4 (* 123 (exp 10 eeb2))))
-             (= eeb2 (str.len x))
-             (= eeb4 (str.to.int x))
-             (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb2))))
-             (= eeb7 (str.to.int "321"))
-             (= eeb8 (str.to.int x))
-             (= eeb1 eeb5))
-  iter(4)= (and
-             (= eeb2 (str.len x))
-             (= eeb4 (str.to.int x))
-             (= eeb5 (+ eeb4 (* 123 (exp 10 eeb2))))
-             (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb2))))
-             (= eeb7 321)
-             (= eeb8 (str.to.int x)))
-  Something ready to substitute:  eeb1 ->s eeb5; eeb3 -> 123; eeb6 -> eeb2; eeb7 ->
-                                 321; y ->s "321";
-  iter(5)= (and
-             (= eeb2 (str.len x))
-             (= eeb4 (str.to.int x))
-             (= eeb5 (+ eeb4 (* 123 (exp 10 eeb2))))
-             (= eeb5 (+ eeb8 (* eeb7 (exp 10 eeb2))))
-             (= eeb7 321)
-             (= eeb8 (str.to.int x)))
-  iter(6)= (and
-             (= eeb2 (str.len x))
-             (= eeb4 (str.to.int x))
-             (= eeb5 (+ eeb4 (* 123 (exp 10 eeb2))))
-             (= eeb5 (+ eeb8 (* 321 (exp 10 eeb2))))
-             (= eeb8 (str.to.int x)))
-  (and
-    (= eeb2 (str.len x))
-    (= eeb4 (str.to.int x))
-    (= eeb5 (+ eeb4 (* 123 (exp 10 eeb2))))
-    (= eeb5 (+ eeb8 (* 321 (exp 10 eeb2))))
-    (= eeb8 (str.to.int x)))
+             (= (str.++ "123" x) (str.++ y x)))
+  iter(3)= (= (str.++ "123" x) (str.++ "321" x))
+  fixed-point
+  
+  Arithmetization gives 1 asts...
+  Arithmetized: (and
+                  (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))
+                  (= %concat2 strlenx)
+                  (<= 0 strlenx)
+                  (= %concat3 321)
+                  (= %concat4 x)
+                  (= %concat5 %concat1)
+                  (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+                  (= %concat6 strlenx)
+                  (<= 0 strlenx)
+                  (= %concat7 123)
+                  (= %concat8 x))
+  
+  Basic simplifications:
+  
   iter(1)= (and
-             (and
-               (= (+ (* 1 eeb2) (* (- 1) %0)) 0)
-               (= %1 (chrob.len x))
-               (= (+ (* 1 (exp 10 %0)) (* (- 1) %1)) 1))
-             (and
-               (= (+ (* (- 1) x) (* 1 eeb4)) 0))
-             (and
-               (= (+ (* (- 123) (exp 10 eeb2)) (* 1 eeb5) (* (- 1) eeb4)) 0))
-             (and
-               (= (+ (* (- 321) (exp 10 eeb2)) (* (- 1) eeb8) (* 1 eeb5)) 0))
-             (and
-               (= (+ (* (- 1) x) (* 1 eeb8)) 0)))
+             (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))
+             (= %concat2 strlenx)
+             (<= 0 strlenx)
+             (= %concat3 321)
+             (= %concat4 x)
+             (= %concat5 %concat1)
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (<= 0 strlenx)
+             (= %concat7 123)
+             (= %concat8 x))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+  
   iter(2)= (and
-             (= %1 (chrob.len x))
-             (= (+ eeb2 (* (- 1) %0)) 0)
-             (= (+ eeb4 (* (- 1) x)) 0)
-             (= (+ eeb5 (* (- 321) (exp 10 eeb2)) (* (- 1) eeb8)) 0)
-             (= (+ eeb5 (* (- 123) (exp 10 eeb2)) (* (- 1) eeb4)) 0)
-             (= (+ eeb8 (* (- 1) x)) 0)
-             (= (+ (* (- 1) %1) (exp 10 %0)) 1))
-  Something ready to substitute:  eeb2 -> %0; eeb4 -> x; eeb5 -> (+ (*
-                                                                    (* (- 321)
-                                                                    (exp 10 %0))
-                                                                    (- 1))
-                                                                 (* (* (- 1)
-                                                                    eeb8)
-                                                                 (- 1))); eeb8 ->
-                                 x;
+             (= %concat2 strlenx)
+             (= %concat3 321)
+             (= %concat4 x)
+             (= %concat5 %concat1)
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (= %concat7 123)
+             (= %concat8 x)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+  
   iter(3)= (and
-             (= %1 (chrob.len x))
-             (= (+ eeb2 (* (- 1) %0)) 0)
-             (= (+ eeb4 (* (- 1) x)) 0)
-             (= (+ eeb5 (* (- 321) (exp 10 eeb2)) (* (- 1) eeb8)) 0)
-             (= (+ eeb5 (* (- 123) (exp 10 eeb2)) (* (- 1) eeb4)) 0)
-             (= (+ eeb8 (* (- 1) x)) 0)
-             (= (+ (* (- 1) %1) (exp 10 %0)) 1))
+             (= %concat3 321)
+             (= %concat4 x)
+             (= %concat5 (+ %concat4 (* %concat3 (exp 10 %concat2))))
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (= %concat7 123)
+             (= %concat8 x)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> 321;
+  
   iter(4)= (and
-             (= %1 (chrob.len x))
-             (= (+ (* (- 321) (exp 10 %0)) (* (- 1) x)
-                (* (* (- 321) (exp 10 %0)) (- 1)) (* (* (- 1) eeb8) (- 1))) 0)
-             (= (+ (* (- 123) (exp 10 %0)) (* (- 1) x)
-                (* (* (- 321) (exp 10 %0)) (- 1)) (* (* (- 1) eeb8) (- 1))) 0)
-             (= (+ (* (- 1) %1) (exp 10 %0)) 1))
+             (= %concat4 x)
+             (= %concat5 (+ %concat4 (* %concat3 (exp 10 strlenx))))
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (= %concat7 123)
+             (= %concat8 x)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> 321;
+        %concat4 -> x;
+  
   iter(5)= (and
-             (= %1 (chrob.len x))
-             (= (+ (* (- 1) %1) (exp 10 %0)) 1)
-             (= (* 198 (exp 10 %0)) 0))
-  (assert (exists (%1)
+             (= %concat5 (+ %concat4 (* 321 (exp 10 strlenx))))
+             (= %concat5 (+ %concat8 (* %concat7 (exp 10 %concat6))))
+             (= %concat6 strlenx)
+             (= %concat7 123)
+             (= %concat8 x)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> 321;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+  
+  iter(6)= (and
+             (= %concat5 (+ x (* 321 (exp 10 strlenx))))
+             (= %concat6 strlenx)
+             (= %concat7 123)
+             (= %concat8 x)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> 321;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
+  
+  iter(7)= (and
+             (= %concat7 123)
+             (= %concat8 x)
+             (= (+ %concat8 (* (- 321) (exp 10 strlenx)) (* (- 1) x)
+                (* %concat7 (exp 10 %concat6))) 0)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> 321;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
+        %concat7 -> 123;
+  
+  iter(8)= (and
+             (= %concat8 x)
+             (= (+ %concat8 (* (- 321) (exp 10 strlenx)) (* (- 1) x)
+                (* %concat7 (exp 10 strlenx))) 0)
+             (<= 0 strlenx))
+  Something ready to substitute
+        %concat1 -> (+ %concat4 (* %concat3 (exp 10 %concat2)));
+        %concat2 -> strlenx;
+        %concat3 -> 321;
+        %concat4 -> x;
+        %concat5 -> (+ %concat8 (* %concat7 (exp 10 %concat6)));
+        %concat6 -> strlenx;
+        %concat7 -> 123;
+        %concat8 -> x;
+  
+  iter(9)= (and
+             (= (+ %concat8 (* (- 198) (exp 10 strlenx)) (* (- 1) x)) 0)
+             (<= 0 strlenx))
+  iter(10)= (and
+              (= (+ x (* (- 198) (exp 10 strlenx)) (* (- 1) x)) 0)
+              (<= 0 strlenx))
+  fixed-point
+  
+  Post-simplification: (and
+                         (= (+ x (* (- 198) (exp 10 strlenx)) (* (- 1) x)) 0)
+                         (<= (exp 10 0) (exp 10 strlenx)))
+  
+  New info:
+    Exp: strlenx
+    Str:
+    ALL: strlenx x
+  
+  Interesting: strlenx
+  
+  Expecting 0 choices ...
+  
+  Can't decide in lib/Underapprox.ml
+  (and
+    (= (+ x (* (- 198) (exp 10 strlenx)) (* (- 1) x)) 0)
+    (<= (exp 10 0) (exp 10 strlenx)))
+  (assert (exists (x)
           (and
-            (exists (x) (= %1 (chrob.len x)))
-            (= (+ (* (- 1) %1) pow2(%0) )  1)
-            (= (* 198 pow2(%0))  0)
+            (= (+ (* (- 0) x) (* (- 198) pow2(strlenx)) )  0)
+            (<= (* (- 1) pow2(strlenx))  -1)
             )
   )
 

@@ -9,4 +9,5 @@
   (assert (= (str.len b) (str.len a)))
   (assert (= (str.len a) (+ 1 (str.to.int b))))
   (check-sat)
+  (get-model)
 (pop 1)

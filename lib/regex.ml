@@ -22,7 +22,7 @@ let rec pp pp_sym ppf = function
   | Mor (r1, r2) -> Format.fprintf ppf "(re.union %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
   | Concat (r1, r2) -> Format.fprintf ppf "(re.++ %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
   | Kleene r -> Format.fprintf ppf "(re.* %a)" (pp pp_sym) r
-  | Mnot r -> Format.fprintf ppf "(re.* %a)" (pp pp_sym) r
+  | Mnot r -> Format.fprintf ppf "(re.~ %a)" (pp pp_sym) r
   | Symbol r -> Format.fprintf ppf "(str.to.re \"%a\")" pp_sym r
 ;;
 
@@ -302,4 +302,44 @@ let bwxor =
     (mor
        (mor (mor (symbol (s 0b000)) (symbol (s 0b011))) (symbol (s 0b101)))
        (symbol (s 0b110)))
+;;
+
+let dec = "0123456789"
+
+let digit =
+  concat
+    (plus
+       (dec
+        |> String.to_seq
+        |> Seq.map (fun c -> symbol [ c ])
+        |> Seq.fold_left (fun acc a -> mor a acc) epsilon))
+    (kleene (symbol [ Config.string_config.eos ]))
+;;
+
+let int_to_re s =
+  concat
+    (concat
+       (s
+        |> String.to_seq
+        |> Seq.map (fun c -> symbol [ c ])
+        |> Seq.fold_left
+             (fun acc a ->
+                (* String constraints use LSB representation, we intentionally reverse the concat. *)
+                concat a acc)
+             epsilon)
+       (kleene (symbol [ Config.string_config.zero ])))
+    (kleene (symbol [ Config.string_config.eos ]))
+;;
+
+let str_to_re s =
+  concat
+    (s
+     |> String.to_seq
+     |> Seq.map (fun c -> symbol [ c ])
+     |> Seq.fold_left
+          (fun acc a ->
+             (* String constraints use LSB representation, we intentionally reverse the concat. *)
+             concat a acc)
+          epsilon)
+    (kleene (symbol [ Config.string_config.eos ]))
 ;;

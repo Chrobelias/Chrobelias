@@ -50,6 +50,11 @@
 (pop 1)
 
 (push 1)
+  (assert (= "1" (str.++ a b)))
+  (check-sat)
+(pop 1)
+
+(push 1)
   (assert (str.in.re a (str.to.re "00001")))
   (assert (= (str.len a) 5))
   (check-sat) ; sat
