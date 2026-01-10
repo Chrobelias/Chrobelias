@@ -2052,4 +2052,19 @@ module Msb (Label : L) = struct
     Debug.dump_nfa ~msg:"after to_nat nfa %s" MsbNat.format_nfa nfa;
     nfa
   ;;
+
+  let filter_map (nfa : t) (f : Label.t * int -> (Label.t * int) option) =
+    { nfa with
+      transitions = nfa.transitions |> Array.map (fun delta -> List.filter_map f delta)
+    }
+  ;;
+
+  let of_lsb (nfa : Lsb(Label).t) : t =
+    { start = nfa.final
+    ; is_dfa = false
+    ; final = nfa.start
+    ; transitions = Graph.reverse nfa.transitions
+    ; deg = nfa.deg
+    }
+  ;;
 end

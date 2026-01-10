@@ -2683,7 +2683,7 @@ let arithmetize ast =
         ~f:(fun data ->
           List.fold_left
             (fun acc nfa -> NfaS.intersect nfa acc)
-            (NfaCollection.Str.n ())
+            (NfaCollection.LsbStr.n ())
             data)
         (collect_regexes ast_with_positive_regex)
     in
@@ -2713,7 +2713,7 @@ let arithmetize ast =
         ~f:(fun data ->
           List.fold_left
             (fun acc nfa -> NfaS.intersect nfa acc)
-            (NfaCollection.Str.n ())
+            (NfaCollection.LsbStr.n ())
             data)
         (Ast.fold
            (fun acc -> function
