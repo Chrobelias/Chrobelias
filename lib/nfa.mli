@@ -123,4 +123,7 @@ end
 
 module Msb (Label : L) : sig
   include Type with type u = MsbNat(Label).t and type v = Label.u
+
+  val filter_map : t -> (Label.t * int -> (Label.t * int) option) -> t
+  val of_lsb : Lsb(Label).t -> t
 end

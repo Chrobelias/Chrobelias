@@ -14,16 +14,8 @@ module type Type = sig
   val power_of_two : int -> t
   val eq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
-  val strlen_post : t -> dest:int -> src:int -> t
-  val stoi_post : t -> dest:int -> src:int -> t
-  val seq_post : t -> dest:int -> src:int -> t
   val strlen : alpha:char list option -> dest:int -> src:int -> unit -> t
-  val stoi : dest:int -> src:int -> t
-  val itos : dest:int -> src:int -> t
   val seq : alpha:char list option -> dest:int -> src:int -> unit -> t
-  val sprefixof : alpha:char list option -> dest:int -> src:int -> unit -> t
-  val scontains : alpha:char list option -> dest:int -> src:int -> unit -> t
-  val ssuffixof : alpha:char list option -> dest:int -> src:int -> unit -> t
   val base : int
 end
 
@@ -215,38 +207,13 @@ module Lsb = struct
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
-  let strlen_post (_nfa : t) ~(dest : int) ~(src : int) =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
-  ;;
-
-  let stoi_post = strlen_post
-  let seq_post = strlen_post
-
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let stoi ~(dest : int) ~(src : int) =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
-  ;;
-
   let seq = strlen
-  let sprefixof = strlen
-  let scontains = strlen
-  let ssuffixof = strlen
-
-  let itos ~(dest : int) ~(src : int) =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
-  ;;
-
   let base = 2
 end
 
@@ -404,38 +371,13 @@ module Msb = struct
   in particular if automata need to be minimised in order to obtain canonical set
   representations.*)
 
-  let strlen_post (_nfa : t) ~(dest : int) ~(src : int) =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
-  ;;
-
-  let stoi_post = strlen_post
-  let seq_post = strlen_post
-
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let stoi ~(dest : int) ~(src : int) =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
-  ;;
-
   let seq = strlen
-  let sprefixof = strlen
-  let scontains = strlen
-  let ssuffixof = strlen
-
-  let itos ~(dest : int) ~(src : int) =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
-  ;;
-
   let base = 2
 end
 
@@ -500,36 +442,16 @@ module MsbNat = struct
       ~deg:(exp + 1)
   ;;
 
-  let eq vars term c = Msb.eq vars term c |> NfaMsb.to_nat
-  let leq vars term c = Msb.leq vars term c |> NfaMsb.to_nat
-
-  let strlen_post (_nfa : t) ~(dest : int) ~(src : int) =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
-  ;;
-
-  let stoi_post = strlen_post
-  let seq_post = strlen_post
-
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let stoi ~(dest : int) ~(src : int) =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
-  ;;
+  let eq vars term c = Msb.eq vars term c |> NfaMsb.to_nat
+  let leq vars term c = Msb.leq vars term c |> NfaMsb.to_nat
 
-  let seq = strlen
-  let sprefixof = strlen
-  let scontains = strlen
-  let ssuffixof = strlen
-
-  let itos ~(dest : int) ~(src : int) =
+  let seq ~alpha ~(dest : int) ~(src : int) () =
     let _src = src in
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
@@ -538,7 +460,7 @@ module MsbNat = struct
   let base = 2
 end
 
-module Str = struct
+module LsbStr = struct
   module Str = Nfa.Str
   module Nfa = Nfa.Lsb (Nfa.Str)
 
@@ -561,23 +483,6 @@ module Str = struct
   ;;
 
   let full_alphabet = 32 -- 126 |> List.map Char.chr
-  let ( let* ) = Option.bind
-
-  let strlen_post (nfa : t) ~(dest : int) ~(src : int) =
-    Nfa.filter_map nfa (fun (label, q') ->
-      let latest_digit = itoc (base - 1) in
-      if
-        (not (Str.is_eos_at src label))
-        && (Str.nth dest label = latest_digit || Str.is_any_at dest label)
-      then Some (Array.mapi (fun i c -> if i = dest then latest_digit else c) label, q')
-      else if Str.is_any_at src label
-      then Some (label, q')
-      else if
-        Str.is_eos_at src label && (Str.is_zero_at dest label || Str.is_any_at dest label)
-      then Some (Array.mapi (fun i c -> if i = dest then Str.u_zero else c) label, q')
-      else None)
-    |> Nfa.minimize
-  ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:full_alphabet alpha in
@@ -586,66 +491,6 @@ module Str = struct
       alpha_transitions @ [ 0, [ Str.u_eos; i ], 1 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
     in
     Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 1 ] ~vars:[ src; dest ] ~deg:2
-  ;;
-
-  let stoi_post (nfa : t) ~(dest : int) ~(src : int) =
-    let digits = 0 -- (base - 1) |> List.map itoc in
-    Nfa.filter_map nfa (fun (label, q') ->
-      let* label =
-        if
-          Str.is_eos_at src label
-          && (Str.is_zero_at dest label || Str.is_any_at dest label)
-        then Some (Array.mapi (fun i c -> if i = dest then Str.u_zero else c) label)
-        else if Str.is_any_at src label
-        then Some label
-        else if
-          (not (Str.is_eos_at src label))
-          && (Str.nth src label = Str.nth dest label || Str.is_any_at dest label)
-          && List.mem label.(src) digits
-        then Some (Array.mapi (fun i c -> if i = dest then label.(dest) else c) label)
-        else None
-      in
-      Some (label, q'))
-    |> Nfa.minimize
-  ;;
-
-  let itos ~(dest : int) ~(src : int) =
-    Nfa.create_nfa
-      ~transitions:
-        ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; itoc c ], 0))
-         @ [ 0, [ o; Str.u_eos ], 0 ])
-      ~start:[ 0 ]
-      ~final:[ 0 ]
-      ~vars:[ src; dest ]
-      ~deg:(max dest src + 1)
-  ;;
-
-  let stoi ~(dest : int) ~(src : int) =
-    let alpha_transitions = List.map (fun c -> 0, [ c; c ], 0) (Array.to_list alphabet) in
-    let transitions = [ 0, [ Str.u_eos; Str.u_zero ], 0 ] @ alpha_transitions in
-    Nfa.create_nfa
-      ~transitions
-      ~start:[ 0 ]
-      ~final:[ 0 ]
-      ~vars:[ src; dest ]
-      ~deg:(max dest src + 1)
-  ;;
-
-  let seq_post (nfa : t) ~(dest : int) ~(src : int) =
-    Nfa.filter_map nfa (fun (label, q') ->
-      let* label =
-        if Str.is_any_at src label
-        then
-          Some (Array.mapi (fun i c -> if i = src then Str.nth dest label else c) label)
-        else if Str.is_any_at dest label
-        then
-          Some (Array.mapi (fun i c -> if i = dest then Str.nth src label else c) label)
-        else if Str.nth src label = Str.nth dest label
-        then Some label
-        else None
-      in
-      Some (label, q'))
-    |> Nfa.minimize
   ;;
 
   let seq ~alpha ~(dest : int) ~(src : int) () =
@@ -657,50 +502,6 @@ module Str = struct
       ~transitions
       ~start:[ 0 ]
       ~final:[ 0 ]
-      ~vars:[ src; dest ]
-      ~deg:(max dest src + 1)
-  ;;
-
-  let sprefixof ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:full_alphabet alpha in
-    let transitions =
-      (1, [ Str.u_eos; Str.u_eos ], 1)
-      :: (0, [ Str.u_eos; Str.u_eos ], 1)
-      :: (0, [ Str.u_eos; Str.u_null ], 0)
-      :: List.map (fun c -> 0, [ c; c ], 0) alpha
-    in
-    Nfa.create_nfa
-      ~transitions
-      ~start:[ 0 ]
-      ~final:[ 1 ]
-      ~vars:[ src; dest ]
-      ~deg:(max dest src + 1)
-  ;;
-
-  let scontains ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:full_alphabet alpha in
-    let transitions =
-      (0, [ Str.u_eos; Str.u_null ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
-    in
-    Nfa.create_nfa
-      ~transitions
-      ~start:[ 0 ]
-      ~final:[ 0 ]
-      ~vars:[ src; dest ]
-      ~deg:(max dest src + 1)
-  ;;
-
-  let ssuffixof ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:full_alphabet alpha in
-    let transitions =
-      (1, [ Str.u_eos; Str.u_null ], 1)
-      :: (0, [ Str.u_eos; Str.u_null ], 1)
-      :: List.map (fun c -> 0, [ c; c ], 0) alpha
-    in
-    Nfa.create_nfa
-      ~transitions
-      ~start:[ 0 ]
-      ~final:[ 1 ]
       ~vars:[ src; dest ]
       ~deg:(max dest src + 1)
   ;;
@@ -883,4 +684,325 @@ module Str = struct
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
+end
+
+module MsbStr = struct
+  module Str = Nfa.Str
+  module Nfa = Nfa.Msb (Nfa.Str)
+
+  type t = Nfa.t
+
+  let o = Str.u_zero
+  let i = '1'
+  let base = 10
+  let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
+  let itoc i = alphabet.(i)
+
+  let ( -- ) i j =
+    let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+    aux j []
+  ;;
+
+  let full_alphabet = 32 -- 126 |> List.map Char.chr
+
+  let strlen ~alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:full_alphabet alpha in
+    let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
+    let transitions =
+      alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
+    in
+    Nfa.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
+  ;;
+
+  let seq ~alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:full_alphabet alpha in
+    let transitions =
+      (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
+    in
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
+  ;;
+
+  let n () =
+    Nfa.create_nfa ~transitions:[ 0, [], 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
+  ;;
+
+  let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
+
+  let div_in_pow var a c =
+    if c = 0
+    then (
+      let trans1 = List.init a Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
+      Nfa.create_nfa
+        ~transitions:
+          ([ a + 1, [ i ], a; a + 1, [ o ], a + 1; a + 1, [ Str.u_eos ], a + 1 ] @ trans1)
+        ~start:[ a + 1 ]
+        ~final:[ 0 ]
+        ~vars:[ var ]
+        ~deg:(var + 1))
+    else (
+      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
+      Nfa.create_nfa
+        ~transitions:
+          ([ a, [ o ], a + c - 1
+           ; a + c, [ i ], a
+           ; a + c, [ o ], a + c
+           ; a + c, [ Str.u_eos ], a + c
+           ]
+           @ trans1)
+        ~start:[ a + c ]
+        ~final:[ 0 ]
+        ~vars:[ var ]
+        ~deg:(var + 1))
+  ;;
+
+  let pow_of_log_var var exp =
+    Nfa.create_nfa
+      ~transitions:
+        ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
+         @ (1 -- (base - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
+         @ [ 1, [ o; o ], 1; 1, [ Str.u_eos; Str.u_eos ], 1 ])
+      ~start:[ 1 ]
+      ~final:[ 0 ]
+      ~vars:[ var; exp ]
+      ~deg:(max var exp + 1)
+  ;;
+
+  (* FIXME: it is actually power_of_base *)
+  let power_of_two exp =
+    Nfa.create_nfa
+      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1 ]
+      ~start:[ 0 ]
+      ~final:[ 1 ]
+      ~vars:[ exp ]
+      ~deg:(exp + 1)
+  ;;
+
+  let powerset term =
+    let rec helper = function
+      | [] -> []
+      | [ x ] ->
+        ([ Str.u_eos ], [ Z.zero ])
+        :: (0 -- (base - 1) |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
+      | hd :: tl ->
+        let open Base.List.Let_syntax in
+        let ( let* ) = ( >>= ) in
+        let* n, thing = helper tl in
+        (Str.u_eos :: n, Z.zero :: thing)
+        :: (0 -- (base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
+    in
+    term
+    |> List.map snd
+    |> helper
+    |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
+  ;;
+
+  let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
+
+  let eq vars term c =
+    let base = Z.of_int 10 in
+    let term =
+      Map.map_keys_exn ~f:(Map.find_exn vars) term
+      |> Map.to_alist
+      |> List.filter (fun (_, v) -> Z.(v <> zero))
+    in
+    let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if gcd_ = Z.zero
+    then if Z.(zero = c) then n () else z ()
+    else (
+      let thing = powerset term in
+      let states = ref Set.empty in
+      let transitions = ref [] in
+      let rec lp front =
+        match front with
+        | [] -> ()
+        | hd :: tl ->
+          if Set.mem !states hd
+          then lp tl
+          else begin
+            let t =
+              thing
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
+              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
+            in
+            states := Set.add !states hd;
+            transitions := t @ !transitions;
+            lp (List.map (fun (x, _, _) -> x) t @ tl)
+          end
+      in
+      lp [ c ];
+      let states = Set.to_list !states in
+      let start = List.length states in
+      let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+      let idx c = Map.find states c |> Option.get in
+      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+      let transitions =
+        (thing
+         |> List.filter_map (fun (d, sum) ->
+           match Map.find states Z.(-sum) with
+           | None -> None
+           | Some v -> Some (start, d, v)))
+        @ transitions
+      in
+      Nfa.create_nfa
+        ~transitions
+        ~start:[ start ]
+        ~final:[ idx c ]
+        ~vars:(List.map fst term)
+        ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+      |> fun x -> x)
+  ;;
+
+  let leq vars term c =
+    let base = Z.of_int 10 in
+    let term =
+      Map.map_keys_exn ~f:(Map.find_exn vars) term
+      |> Map.to_alist
+      |> List.filter (fun (_, v) -> Z.(v <> zero))
+    in
+    let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if Z.(gcd_ = zero)
+    then if Z.(zero <= c) then n () else z ()
+    else
+      (let thing = powerset term in
+       let states = ref Set.empty in
+       let transitions = ref [] in
+       let rec lp front =
+         match front with
+         | [] -> ()
+         | hd :: tl ->
+           if Set.mem !states hd
+           then lp tl
+           else begin
+             let t =
+               thing
+               |> List.map (fun (bits, sum) ->
+                 Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
+             in
+             states := Set.add !states hd;
+             transitions := t @ !transitions;
+             lp (List.map (fun (x, _, _) -> x) t @ tl)
+           end
+       in
+       lp [ c ];
+       let states = Set.to_list !states in
+       let start = List.length states in
+       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+       let idx c = Map.find states c |> Option.get in
+       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+       let transitions =
+         (thing
+          |> List.concat_map (fun (d, sum) ->
+            Map.to_alist states
+            |> List.filter_map (fun (v, idv) ->
+              if Z.(-sum <= v) then Some (start, d, idv) else None)))
+         @ transitions
+       in
+       Nfa.create_nfa
+         ~transitions
+         ~start:[ start ]
+         ~final:(states |> Map.filter_keys ~f:(fun x -> x <= c) |> Map.data)
+         ~vars:(List.map fst term)
+         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+       |> fun x -> x)
+      |> Nfa.minimize_strong
+  ;;
+end
+
+module MsbNatStr = struct
+  module NfaMsb = Nfa.Msb (Nfa.Str)
+  module NfaMsbNat = Nfa.MsbNat (Nfa.Str)
+
+  type t = NfaMsbNat.t
+
+  module Str = Nfa.Str
+
+  let o = Str.u_zero
+  let i = '1'
+
+  let ( -- ) i j =
+    let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+    aux j []
+  ;;
+
+  let full_alphabet = 32 -- 126 |> List.map Char.chr
+
+  let n () =
+    NfaMsbNat.create_nfa
+      ~transitions:[ 0, [], 0 ]
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[]
+      ~deg:1
+  ;;
+
+  let strlen ~alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:full_alphabet alpha in
+    let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
+    let transitions =
+      alpha_transitions @ [ 0, [ Str.u_eos; i ], 1 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
+    in
+    NfaMsbNat.create_nfa ~transitions ~start:[ 0 ] ~final:[ 1 ] ~vars:[ src; dest ] ~deg:2
+  ;;
+
+  let z () = NfaMsbNat.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
+
+  let div_in_pow var a c =
+    if c = 0
+    then (
+      let trans1 = List.init a Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
+      let nfa =
+        NfaMsbNat.create_nfa
+          ~transitions:([ a + 1, [ i ], a; a + 1, [ o ], a + 1 ] @ trans1)
+          ~start:[ a + 1 ]
+          ~final:[ 0 ]
+          ~vars:[ var ]
+          ~deg:(var + 1)
+      in
+      Debug.printfln "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
+      Debug.dump_nfa ~msg:"Nfa: %s" NfaMsbNat.format_nfa nfa;
+      nfa)
+    else (
+      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
+      NfaMsbNat.create_nfa
+        ~transitions:
+          ([ a, [ o ], a + c - 1; a + c, [ i ], a; a + c, [ o ], a + c ] @ trans1)
+        ~start:[ a + c ]
+        ~final:[ 0 ]
+        ~vars:[ var ]
+        ~deg:(var + 1))
+  ;;
+
+  let pow_of_log_var var exp =
+    NfaMsbNat.create_nfa
+      ~transitions:[ 0, [ i; o ], 0; 0, [ o; o ], 0; 1, [ i; i ], 0; 1, [ o; o ], 1 ]
+      ~start:[ 1 ]
+      ~final:[ 0 ]
+      ~vars:[ var; exp ]
+      ~deg:(max var exp + 1)
+  ;;
+
+  let power_of_two exp =
+    NfaMsbNat.create_nfa
+      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 2, [ o ], 0 ]
+      ~start:[ 2 ]
+      ~final:[ 1 ]
+      ~vars:[ exp ]
+      ~deg:(exp + 1)
+  ;;
+
+  let eq vars term c = MsbStr.eq vars term c |> NfaMsb.to_nat
+  let leq vars term c = MsbStr.leq vars term c |> NfaMsb.to_nat
+
+  let seq ~alpha ~(dest : int) ~(src : int) () =
+    let _src = src in
+    let _dest = dest in
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let base = 10
 end

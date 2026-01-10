@@ -13,16 +13,8 @@ module type Type = sig
   val power_of_two : int -> t
   val eq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
-  val strlen_post : t -> dest:int -> src:int -> t
-  val stoi_post : t -> dest:int -> src:int -> t
-  val seq_post : t -> dest:int -> src:int -> t
   val strlen : alpha:char list option -> dest:int -> src:int -> unit -> t
-  val stoi : dest:int -> src:int -> t
-  val itos : dest:int -> src:int -> t
   val seq : alpha:char list option -> dest:int -> src:int -> unit -> t
-  val sprefixof : alpha:char list option -> dest:int -> src:int -> unit -> t
-  val scontains : alpha:char list option -> dest:int -> src:int -> unit -> t
-  val ssuffixof : alpha:char list option -> dest:int -> src:int -> unit -> t
   val base : int
 end
 
@@ -45,6 +37,14 @@ module MsbNat : sig
   include NatType with type t = Nfa.MsbNat(Nfa.Bv).t
 end
 
-module Str : sig
+module LsbStr : sig
   include NatType with type t = Nfa.Lsb(Nfa.Str).t
+end
+
+module MsbStr : sig
+  include NatType with type t = Nfa.Msb(Nfa.Str).t
+end
+
+module MsbNatStr : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.Str).t
 end
