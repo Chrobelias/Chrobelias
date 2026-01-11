@@ -918,7 +918,9 @@ module MsbNatStr = struct
       let trans1 = List.init a Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
       let nfa =
         NfaMsbNat.create_nfa
-          ~transitions:([ a + 1, [ i ], a; a + 1, [ o ], a + 1 ] @ trans1)
+          ~transitions:
+            ([ a + 1, [ i ], a; a + 1, [ o ], a + 1; a + 1, [ Str.u_eos ], a + 1 ]
+             @ trans1)
           ~start:[ a + 1 ]
           ~final:[ 0 ]
           ~vars:[ var ]
@@ -931,7 +933,12 @@ module MsbNatStr = struct
       let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
       NfaMsbNat.create_nfa
         ~transitions:
-          ([ a, [ o ], a + c - 1; a + c, [ i ], a; a + c, [ o ], a + c ] @ trans1)
+          ([ a, [ o ], a + c - 1
+           ; a + c, [ i ], a
+           ; a + c, [ o ], a + c
+           ; a + c, [ Str.u_eos ], a + c
+           ]
+           @ trans1)
         ~start:[ a + c ]
         ~final:[ 0 ]
         ~vars:[ var ]
@@ -940,7 +947,14 @@ module MsbNatStr = struct
 
   let pow_of_log_var var exp =
     NfaMsbNat.create_nfa
-      ~transitions:[ 0, [ i; o ], 0; 0, [ o; o ], 0; 1, [ i; i ], 0; 1, [ o; o ], 1 ]
+      ~transitions:
+        [ 0, [ i; o ], 0
+        ; 0, [ i; Str.u_eos ], 0
+        ; 0, [ o; o ], 0
+        ; 0, [ Str.u_eos; Str.u_eos ], 0
+        ; 1, [ i; i ], 0
+        ; 1, [ o; o ], 1
+        ]
       ~start:[ 1 ]
       ~final:[ 0 ]
       ~vars:[ var; exp ]
@@ -949,7 +963,8 @@ module MsbNatStr = struct
 
   let power_of_two exp =
     NfaMsbNat.create_nfa
-      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 2, [ o ], 0 ]
+      ~transitions:
+        [ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1; 2, [ o ], 0 ]
       ~start:[ 2 ]
       ~final:[ 1 ]
       ~vars:[ exp ]

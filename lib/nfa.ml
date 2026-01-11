@@ -83,6 +83,7 @@ module type L = sig
   val project : int list -> t -> t
   val truncate : int -> t -> t
   val is_zero : t -> bool
+  val is_zero_soft : t -> bool
   val variations : u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
@@ -173,6 +174,7 @@ module Bv = struct
   ;;
 
   let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
+  let is_zero_soft = is_zero
 
   let variations _alpha (_, mask) =
     let mask_list = mask |> bv_to_list in
@@ -333,6 +335,13 @@ module Str = struct
   ;;
 
   let is_zero vec = Array.for_all (fun v -> Char.equal v u_eos || Char.equal v u_null) vec
+
+  let is_zero_soft vec =
+    Array.for_all
+      (fun v -> Char.equal v u_eos || Char.equal v u_null || Char.equal v '0')
+      vec
+  ;;
+
   let zero deg = Array.init deg (fun _i -> u_null)
 
   let zero_with_mask mask =
@@ -2038,7 +2047,7 @@ module Msb (Label : L) = struct
       |> Sequence.concat_map ~f:(fun state ->
         nfa.transitions.(state)
         |> Sequence.of_list
-        |> Sequence.filter ~f:(fun (lbl, _) -> lbl |> Label.is_zero)
+        |> Sequence.filter ~f:(fun (lbl, _) -> lbl |> Label.is_zero_soft)
         |> Sequence.map ~f:snd)
       |> Set.of_sequence
     in
