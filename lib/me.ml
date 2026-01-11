@@ -397,12 +397,11 @@ and helper : 'a. 'a Ast.Eia.term -> _ =
   | Mul [ lhs; rhs ] ->
     let* lhs = helper lhs in
     let* rhs = helper rhs in
-    begin
-      try
-        let res = Symantics.mul lhs rhs in
-        return res
-      with
-      | Failure s -> failf "%s" s
+    begin try
+      let res = Symantics.mul lhs rhs in
+      return res
+    with
+    | Failure s -> failf "%s" s
     end
   | Pow (base, exp) ->
     let* base = helper base in
@@ -513,10 +512,9 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let atoms =
         List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
       in
-      begin
-        match atoms with
-        | [] -> ir :: sup |> Ir.land_ |> return
-        | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+      begin match atoms with
+      | [] -> ir :: sup |> Ir.land_ |> return
+      | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
       end
     | Contains (a, b) ->
       let* a, sup_a = of_str_atom a in
@@ -526,10 +524,9 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let atoms =
         List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
       in
-      begin
-        match atoms with
-        | [] -> ir :: sup |> Ir.land_ |> return
-        | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+      begin match atoms with
+      | [] -> ir :: sup |> Ir.land_ |> return
+      | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
       end
     | SuffixOf (a, b) ->
       let* a, sup_a = of_str_atom a in
@@ -539,10 +536,9 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let atoms =
         List.map collect_free_ir sup |> List.fold_left Set.union Set.empty |> Set.to_list
       in
-      begin
-        match atoms with
-        | [] -> ir :: sup |> Ir.land_ |> return
-        | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
+      begin match atoms with
+      | [] -> ir :: sup |> Ir.land_ |> return
+      | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
       end
 ;;
 

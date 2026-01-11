@@ -1318,12 +1318,11 @@ struct
                 (fun path' -> Set.mem nfa.final (List.hd path' |> snd))
                 new_paths
             in
-            begin
-              match path' with
-              | Some path' -> Some path'
-              | None ->
-                List.iter (fun path' -> Queue.add path' frontier) new_paths;
-                bfs ()
+            begin match path' with
+            | Some path' -> Some path'
+            | None ->
+              List.iter (fun path' -> Queue.add path' frontier) new_paths;
+              bfs ()
             end
           end
         | Some [] -> failwith ""

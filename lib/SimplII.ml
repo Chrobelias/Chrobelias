@@ -960,14 +960,13 @@ let make_main_symantics env =
       end
       | Ast.Eia.Sofi (Const c) ->
         (* v = sofi 4 <=> v="4" | v="04" | v="004" | ... *)
-        begin
-          match
-            NfaStr.of_regex re
-            |> NfaStr.intersect (from_eia_nfa c)
-            |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
-          with
-          | true -> Ast.true_
-          | false -> Ast.false_
+        begin match
+          NfaStr.of_regex re
+          |> NfaStr.intersect (from_eia_nfa c)
+          |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
+        with
+        | true -> Ast.true_
+        | false -> Ast.false_
         end
       | Ast.Eia.(Str_const str) -> begin
         match

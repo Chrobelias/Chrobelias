@@ -613,22 +613,20 @@ let antiprenex =
         else (
           let irs_using_var =
             List.mapi
-              begin
-                fun i ir ->
-                  let free_vars = collect_free ir in
-                  let used_vars = Set.inter atoms_set free_vars in
-                  i, used_vars
+              begin fun i ir ->
+                let free_vars = collect_free ir in
+                let used_vars = Set.inter atoms_set free_vars in
+                i, used_vars
               end
               irs
           in
           let var_is_used_in =
             List.map
-              begin
-                fun atom ->
-                  ( atom
-                  , List.filter_map
-                      (fun (i, s) -> if Set.mem s atom then Some i else None)
-                      irs_using_var )
+              begin fun atom ->
+                ( atom
+                , List.filter_map
+                    (fun (i, s) -> if Set.mem s atom then Some i else None)
+                    irs_using_var )
               end
               atoms
             |> Map.of_alist_exn

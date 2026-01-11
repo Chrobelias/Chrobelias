@@ -27,19 +27,17 @@ let rec to_string orig_expr =
   end
   | Expr.Naryop (_, Ty.Naryop.Concat, ls) ->
     let ls = List.map to_string ls in
-    begin
-      match ls with
-      | hd :: tl -> List.fold_left Ast.Eia.concat hd tl
-      | _ -> failf "unable to concat 0 strings"
+    begin match ls with
+    | hd :: tl -> List.fold_left Ast.Eia.concat hd tl
+    | _ -> failf "unable to concat 0 strings"
     end
   | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ expr ])
   | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.ToString, expr) ->
     let str : Z.t Ast.Eia.term = to_eia_term expr in
-    begin
-      match str with
-      | Ast.Eia.Atom atom -> Ast.Eia.Sofi (Atom atom)
-      | _ -> failwith "TBD: from.int now only expects vars inside"
+    begin match str with
+    | Ast.Eia.Atom atom -> Ast.Eia.Sofi (Atom atom)
+    | _ -> failwith "TBD: from.int now only expects vars inside"
     end
   | Expr.Triop (_, Ty.Triop.String_extract, str, from, to') ->
     let str = to_string str in
@@ -295,16 +293,15 @@ and _to_ir tys orig_expr =
       in
       let atoms =
         List.map
-          begin
-            fun expr ->
-              match Expr.view expr with
-              | Expr.App (symbol, [ expr ])
-                when match Expr.view expr with
-                     | Symbol { name = Symbol.Simple "Int"; _ } -> true
-                     | _ -> false ->
-                let var = Symbol.to_string symbol in
-                Ast.Any_atom (Ast.int_var var)
-              | _ -> failwith "Unexpected value in quantifier"
+          begin fun expr ->
+            match Expr.view expr with
+            | Expr.App (symbol, [ expr ])
+              when match Expr.view expr with
+                   | Symbol { name = Symbol.Simple "Int"; _ } -> true
+                   | _ -> false ->
+              let var = Symbol.to_string symbol in
+              Ast.Any_atom (Ast.int_var var)
+            | _ -> failwith "Unexpected value in quantifier"
           end
           atoms
       in
