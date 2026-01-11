@@ -230,7 +230,16 @@ let check_sat ?(verbose = false) ast : rez =
     | _ -> apporx_rez
   in
   let can_be_unk = ref false in
-  let unsat_last_reason = ref "" in
+  let unsat_reason = ref "" in
+  let set_reason s =
+    match s, !unsat_reason with
+    | "nfa", _ -> "nfa"
+    | "nia", "over" -> "nia"
+    | "nia", "presimpl" -> "nia"
+    | "over", "presimpl" -> "over"
+    | "presimpl", x -> x
+    | x, _ -> x
+  in
   try
     if config.logic = `Str
     then (
@@ -252,7 +261,7 @@ let check_sat ?(verbose = false) ast : rez =
             can_be_unk := true;
             None
           | Unsat s ->
-            unsat_last_reason := s;
+            unsat_reason := set_reason s;
             None
         in
         (match List.find_map f asts_n_regexes with
@@ -262,11 +271,11 @@ let check_sat ?(verbose = false) ast : rez =
          | None ->
            if !can_be_unk
            then (
-             report_result2 (`Unknown "arith");
+             report_result2 (`Unknown "");
              unknown ast Lib.Env.empty)
            else (
-             report_result2 (`Unsat !unsat_last_reason);
-             Unsat !unsat_last_reason)))
+             report_result2 (`Unsat !unsat_reason);
+             Unsat !unsat_reason)))
     else (
       match check_eia_sat ast with
       | Sat (s, ast, env, get_model, _) ->
@@ -337,12 +346,11 @@ let join_int_model prefix m =
       Env.fold
         env
         ~f:(fun ~key ~data acc ->
-          begin
-            match data with
-            | Ast.TT (Ast.I, term) ->
-              Env.extend_int_exn acc key (SimplII.subst_term env term)
-            | Ast.TT (Ast.S, term) ->
-              Env.extend_string_exn acc key (SimplII.subst_term env term)
+          begin match data with
+          | Ast.TT (Ast.I, term) ->
+            Env.extend_int_exn acc key (SimplII.subst_term env term)
+          | Ast.TT (Ast.S, term) ->
+            Env.extend_string_exn acc key (SimplII.subst_term env term)
           end)
         ~init:Env.empty
     in
@@ -394,21 +402,20 @@ let print_model tys model regexes env =
           | `Int c -> Z.to_int c
           | _ -> assert false
         in
-        begin
-          if not (Map.mem raw_model (var real_var))
-          then
-            if Map.mem regexes real_var
-            then (
-              let regexes = Map.find_exn regexes real_var in
-              let nfa = regexes in
-              if data > Lib.Config.max_longest_path then raise Too_long_model;
-              let path =
-                NfaS.path_of_len2 ~var:0 ~len:data nfa
-                |> Option.value ~default:(List.init data (fun _ -> '0'))
-              in
-              Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
-            else Some (var real_var, `Str (String.init data (fun _ -> '0')))
-          else None
+        begin if not (Map.mem raw_model (var real_var))
+        then
+          if Map.mem regexes real_var
+          then (
+            let regexes = Map.find_exn regexes real_var in
+            let nfa = regexes in
+            if data > Lib.Config.max_longest_path then raise Too_long_model;
+            let path =
+              NfaS.path_of_len2 ~var:0 ~len:data nfa
+              |> Option.value ~default:(List.init data (fun _ -> '0'))
+            in
+            Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
+          else Some (var real_var, `Str (String.init data (fun _ -> '0')))
+        else None
         end
       | Lib.Ir.Var key ->
         let data' =
