@@ -17,6 +17,7 @@ module type L = sig
   val project : int list -> t -> t
   val truncate : int -> t -> t
   val is_zero : t -> bool
+  val is_zero_soft : t -> bool
   val variations : u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t

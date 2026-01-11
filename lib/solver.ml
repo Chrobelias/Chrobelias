@@ -1149,6 +1149,32 @@ module LsbStr =
       let nat_model_to_int = model_to_int
     end)
 
+let z_of_list_msb_nat_str p =
+  let p = List.rev p in
+  p
+  |> List.to_seq
+  |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+  |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+  |> String.of_seq
+  |> Z.of_string
+;;
+
+let z_of_list_msb_str p =
+  let sign, p =
+    match p with
+    | hd :: tl -> (if hd = '0' || hd = Nfa.Str.u_eos then Z.one else Z.minus_one), tl
+    | _ -> failwith "unreachable"
+  in
+  let p = List.rev p in
+  p
+  |> List.to_seq
+  |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+  |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+  |> String.of_seq
+  |> Z.of_string
+  |> Z.mul sign
+;;
+
 module MsbStr =
   Make (Nfa.MsbNat (Nfa.Str)) (NfaCollection.MsbNatStr) (Nfa.Msb (Nfa.Str))
     (NfaCollection.MsbStr)
@@ -1180,19 +1206,8 @@ module MsbStr =
             , q' ))
       ;;
 
-      let model_to_int c =
-        c
-        |> List.to_seq
-        |> Seq.filter (( <> ) Str.u_eos)
-        |> Seq.filter (( <> ) Str.u_null)
-        |> List.of_seq
-        |> List.rev
-        |> Base.List.drop_while ~f:(( = ) '0')
-        |> Base.String.of_list
-        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
-      ;;
-
-      let nat_model_to_int = model_to_int
+      let model_to_int = z_of_list_msb_str
+      let nat_model_to_int = z_of_list_msb_nat_str
     end)
 
 let z_of_list_lsb p =
@@ -1300,6 +1315,27 @@ let filter_internal =
 let ( let* ) = Result.bind
 let return = Result.ok
 
+let z_of_list_str p =
+  let sign, p =
+    if Config.config.mode = `Lsb
+    then Z.one, p
+    else (
+      let sign, p =
+        match p with
+        | hd :: tl -> (if hd = '0' || hd == Nfa.Str.u_eos then Z.one else Z.minus_one), tl
+        | _ -> failwith "unreachable"
+      in
+      let p = List.rev p in
+      sign, p)
+  in
+  p
+  |> List.to_seq
+  |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
+  |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+  |> (fun s -> if sign = Z.one then s else Seq.append (List.to_seq [ '-' ]) s)
+  |> String.of_seq
+;;
+
 let check_sat ir
   : [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long ]) Result.t
     | `Unsat
@@ -1357,50 +1393,42 @@ let check_sat ir
       | `Lsb -> LsbStr.check_sat
       | `Msb -> MsbStr.check_sat
     in
-    let rev_if_lsb v = if Config.config.mode = `Lsb then List.rev v else v in
-    match checker ir with
-    | `Sat model ->
-      `Sat
-        (fun tys ->
-          let* model = model () in
-          let main_model =
-            Map.mapi
-              ~f:(fun ~key:k ~data:v ->
-                let ty = Map.find tys k |> Option.value ~default:`Int in
-                match ty with
-                | `Int -> begin
-                  try
-                    let s =
-                      v
-                      |> rev_if_lsb
-                      |> List.to_seq
-                      |> Seq.map (fun c -> if Nfa.Str.is_end_char c then '0' else c)
-                      |> String.of_seq
-                    in
-                    if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
-                  with
-                  | Invalid_argument _ ->
+    (*let rev_if_lsb v = if Config.config.mode = `Lsb then List.rev v else v in*)
+      match checker ir with
+      | `Sat model ->
+        `Sat
+          (fun tys ->
+            let* model = model () in
+            let main_model =
+              Map.mapi
+                ~f:(fun ~key:k ~data:v ->
+                  let ty = Map.find tys k |> Option.value ~default:`Int in
+                  match ty with
+                  | `Int -> begin
+                    try
+                      let s =
+                        v
+                        (*|> rev_if_lsb*)
+                        |> z_of_list_str
+                      in
+                      if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
+                    with
+                    | Invalid_argument _ ->
+                      `Str
+                        (v
+                         (*|> rev_if_lsb*)
+                         |> z_of_list_str)
+                  end
+                  | `Str ->
                     `Str
                       (v
-                       |> rev_if_lsb
-                       |> List.to_seq
-                       |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                       |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                       |> String.of_seq)
-                end
-                | `Str ->
-                  `Str
-                    (v
-                     |> rev_if_lsb
-                     |> List.to_seq
-                     |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-                     |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-                     |> String.of_seq))
-              model
-          in
-          return main_model)
-    | `Unsat -> `Unsat
-    | `Unknown -> `Unknown ir
+                       (*|> rev_if_lsb*)
+                       |> z_of_list_str))
+                model
+            in
+            return main_model)
+      | `Unsat -> `Unsat
+      | `Unknown -> `Unknown ir
   in
   match Config.config.logic with
   | `Eia -> on_no_strings ir
