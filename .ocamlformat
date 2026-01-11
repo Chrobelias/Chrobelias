@@ -1,5 +1,5 @@
 profile = janestreet
-version = 0.27.0
+version = 0.28.1
 match-indent = 2
 match-indent-nested = always
 exp-grouping = preserve

@@ -1084,12 +1084,11 @@ struct
                   | None -> None)
                (fun _ nfa -> nfa)
         in
-        begin
-          match res with
-          | None -> `Unsat
-          | Some (s, order, (model, len), models) ->
-            `Sat (get_model_semenov ir s order (model, len) models)
-          (* (match get_model_semenov ir s order (model, len) models with
+        begin match res with
+        | None -> `Unsat
+        | Some (s, order, (model, len), models) ->
+          `Sat (get_model_semenov ir s order (model, len) models)
+        (* (match get_model_semenov ir s order (model, len) models with
              | `Cant_get_model -> `Sat (Result.Error `Too_long)
              | `Ok x -> `Sat (Result.Ok x)) *)
         end)
