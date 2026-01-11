@@ -1000,11 +1000,19 @@ struct
             Ir.rel rel term c
           | SReg (atom, re) when Map.mem map atom -> Ir.true_
           | SRegRaw (atom, re) when Map.mem map atom -> Ir.true_
-          | SLen (atom, atom') when Map.mem map (get_exp atom') ->
+          | SLen (atom, atom') when is_exp atom' && Map.mem map (get_exp atom') ->
             let new_atom = Ir.internal () in
             let v = Extra.model_to_int (Map.find_exn map (get_exp atom')) in
             Ir.land_
               [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) (pow2z v) ]
+          | SLen (atom, atom') when (not (is_exp atom)) && Map.mem map atom ->
+            let new_atom = Ir.internal () in
+            let v = Extra.model_to_int (Map.find_exn map atom) in
+            Ir.land_ [ Ir.slen new_atom atom'; Ir.eq (Map.singleton new_atom Z.one) v ]
+          | SLen (atom, atom') when (not (is_exp atom')) && Map.mem map atom' ->
+            let new_atom = Ir.internal () in
+            let v = Extra.model_to_int (Map.find_exn map atom') in
+            Ir.land_ [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) v ]
           (*| SLen (atom, atom') when mem_var_or_pow atom ->
           | SLen (atom, atom') when mem_var_or_pow atom' ->
             let new_atom' = Ir.internal () in
