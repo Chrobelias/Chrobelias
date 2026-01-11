@@ -733,45 +733,6 @@ module MsbStr = struct
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  let div_in_pow var a c =
-    if c = 0
-    then (
-      let trans1 = List.init a Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
-      Nfa.create_nfa
-        ~transitions:
-          ([ a + 1, [ i ], a; a + 1, [ o ], a + 1; a + 1, [ Str.u_eos ], a + 1 ] @ trans1)
-        ~start:[ a + 1 ]
-        ~final:[ 0 ]
-        ~vars:[ var ]
-        ~deg:(var + 1))
-    else (
-      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
-      Nfa.create_nfa
-        ~transitions:
-          ([ a, [ o ], a + c - 1
-           ; a + c, [ i ], a
-           ; a + c, [ o ], a + c
-           ; a + c, [ Str.u_eos ], a + c
-           ]
-           @ trans1)
-        ~start:[ a + c ]
-        ~final:[ 0 ]
-        ~vars:[ var ]
-        ~deg:(var + 1))
-  ;;
-
-  let pow_of_log_var var exp =
-    Nfa.create_nfa
-      ~transitions:
-        ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
-         @ (1 -- (base - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
-         @ [ 1, [ o; o ], 1; 1, [ Str.u_eos; Str.u_eos ], 1 ])
-      ~start:[ 1 ]
-      ~final:[ 0 ]
-      ~vars:[ var; exp ]
-      ~deg:(max var exp + 1)
-  ;;
-
   (* FIXME: it is actually power_of_base *)
   let power_of_two exp =
     Nfa.create_nfa
@@ -944,9 +905,9 @@ module MsbNatStr = struct
     let alpha = Option.value ~default:full_alphabet alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
     let transitions =
-      alpha_transitions @ [ 0, [ Str.u_eos; i ], 1 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
+      alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
     in
-    NfaMsbNat.create_nfa ~transitions ~start:[ 0 ] ~final:[ 1 ] ~vars:[ src; dest ] ~deg:2
+    NfaMsbNat.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
   ;;
 
   let z () = NfaMsbNat.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1

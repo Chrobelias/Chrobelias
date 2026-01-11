@@ -42,7 +42,7 @@ module LsbStr : sig
 end
 
 module MsbStr : sig
-  include NatType with type t = Nfa.Msb(Nfa.Str).t
+  include Type with type t = Nfa.Msb(Nfa.Str).t
 end
 
 module MsbNatStr : sig
