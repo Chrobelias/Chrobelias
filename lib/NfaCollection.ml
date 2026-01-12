@@ -822,6 +822,9 @@ module MsbStr = struct
 
   let leq vars term c =
     let base = Z.of_int base in
+    let minimize_not_very_strong nfa =
+      if Nfa.length nfa > 10 then Nfa.minimize nfa else Nfa.minimize_strong nfa
+    in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -872,7 +875,7 @@ module MsbStr = struct
          ~vars:(List.map fst term)
          ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
        |> fun x -> x)
-      |> Nfa.minimize_strong
+      |> minimize_not_very_strong
   ;;
 end
 
@@ -886,7 +889,6 @@ module MsbNatStr = struct
 
   let o = Str.u_zero
   let i = '1'
-
   let base = Z.to_int (Config.base ())
 
   let ( -- ) i j =
