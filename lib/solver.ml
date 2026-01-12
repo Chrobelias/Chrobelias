@@ -1149,7 +1149,6 @@ module LsbStr =
     end)
 
 let z_of_list_msb_nat_str p =
-  let p = List.rev p in
   p
   |> List.to_seq
   |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
@@ -1164,7 +1163,6 @@ let z_of_list_msb_str p =
     | hd :: tl -> (if hd = '0' || hd = Nfa.Str.u_eos then Z.one else Z.minus_one), tl
     | _ -> failwith "unreachable"
   in
-  let p = List.rev p in
   p
   |> List.to_seq
   |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
@@ -1317,14 +1315,13 @@ let return = Result.ok
 let z_of_list_str p =
   let sign, p =
     if Config.config.mode = `Lsb
-    then Z.one, p
+    then Z.one, List.rev p
     else (
       let sign, p =
         match p with
         | hd :: tl -> (if hd = '0' || hd == Nfa.Str.u_eos then Z.one else Z.minus_one), tl
         | _ -> failwith "unreachable"
       in
-      let p = List.rev p in
       sign, p)
   in
   p
@@ -1392,42 +1389,29 @@ let check_sat ir
       | `Lsb -> LsbStr.check_sat
       | `Msb -> MsbStr.check_sat
     in
-    (*let rev_if_lsb v = if Config.config.mode = `Lsb then List.rev v else v in*)
-      match checker ir with
-      | `Sat model ->
-        `Sat
-          (fun tys ->
-            let* model = model () in
-            let main_model =
-              Map.mapi
-                ~f:(fun ~key:k ~data:v ->
-                  let ty = Map.find tys k |> Option.value ~default:`Int in
-                  match ty with
-                  | `Int -> begin
-                    try
-                      let s =
-                        v
-                        (*|> rev_if_lsb*)
-                        |> z_of_list_str
-                      in
-                      if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
-                    with
-                    | Invalid_argument _ ->
-                      `Str
-                        (v
-                         (*|> rev_if_lsb*)
-                         |> z_of_list_str)
-                  end
-                  | `Str ->
-                    `Str
-                      (v
-                       (*|> rev_if_lsb*)
-                       |> z_of_list_str))
-                model
-            in
-            return main_model)
-      | `Unsat -> `Unsat
-      | `Unknown -> `Unknown ir
+    match checker ir with
+    | `Sat model ->
+      `Sat
+        (fun tys ->
+          let* model = model () in
+          let main_model =
+            Map.mapi
+              ~f:(fun ~key:k ~data:v ->
+                let ty = Map.find tys k |> Option.value ~default:`Int in
+                match ty with
+                | `Int -> begin
+                  try
+                    let s = v |> z_of_list_str in
+                    if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
+                  with
+                  | Invalid_argument _ -> `Str (v |> z_of_list_str)
+                end
+                | `Str -> `Str (v |> z_of_list_str))
+              model
+          in
+          return main_model)
+    | `Unsat -> `Unsat
+    | `Unknown -> `Unknown ir
   in
   match Config.config.logic with
   | `Eia -> on_no_strings ir
