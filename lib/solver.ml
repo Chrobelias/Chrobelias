@@ -345,7 +345,7 @@ struct
            List.map
              (fun ir ->
                 let nfa = eval ir in
-                (* Format.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);*)
+                Format.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
                 nfa)
              irs
            |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
@@ -353,6 +353,8 @@ struct
          let rec eval_and = function
            | hd :: [] -> hd
            | hd :: hd' :: tl ->
+               Format.printf "Intersecting %d %d\n%!" (Nfa.length hd) (Nfa.length hd');
+
              let nfa = Nfa.intersect hd hd' in
              let nfas =
                nfa :: tl |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
@@ -361,6 +363,7 @@ struct
            | [] -> NfaCollection.n ()
          in
          eval_and nfas
+          |> (fun nfa -> Format.printf "Intersect result %d \n%!" (Nfa.length nfa); nfa)
        | Ir.Lor (hd :: tl) ->
          List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
        | Ir.Lor [] -> NfaCollection.z ()
