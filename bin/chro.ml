@@ -231,14 +231,15 @@ let check_sat ?(verbose = false) ast : rez =
   in
   let can_be_unk = ref false in
   let unsat_reason = ref "" in
-  let set_reason s =
-    match s, !unsat_reason with
-    | "nfa", _ -> "nfa"
-    | "nia", "over" -> "nia"
-    | "nia", "presimpl" -> "nia"
-    | "over", "presimpl" -> "over"
-    | "presimpl", x -> x
-    | x, _ -> x
+  let reason lhs rhs =
+    let ord = [ "nfa"; "nia"; "over"; "simpl"; "presimpl"; "?" ] in
+    let lhs' =
+      List.find_index (( = ) lhs) ord |> Option.value ~default:(List.length ord)
+    in
+    let rhs' =
+      List.find_index (( = ) rhs) ord |> Option.value ~default:(List.length ord)
+    in
+    if lhs' <= rhs' then lhs else rhs
   in
   try
     if config.logic = `Str
@@ -261,7 +262,7 @@ let check_sat ?(verbose = false) ast : rez =
             can_be_unk := true;
             None
           | Unsat s ->
-            unsat_reason := set_reason s;
+            unsat_reason := reason s !unsat_reason;
             None
         in
         (match List.find_map f asts_n_regexes with

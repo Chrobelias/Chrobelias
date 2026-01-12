@@ -12,7 +12,7 @@ Basic QF_S tests
   sat (under I)
   sat (under I)
   sat (nfa)
-  unsat (presimpl)
+  unsat (simpl)
   sat (nfa)
   unsat (nia)
   sat (presimpl)
