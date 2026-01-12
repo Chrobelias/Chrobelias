@@ -682,6 +682,7 @@ module type Type = sig
   val minimize : t -> t
   val minimize_strong : t -> t
   val invert : t -> t
+  val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
   val of_regex : v list Regex.t -> t
