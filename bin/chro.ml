@@ -488,7 +488,6 @@ let () =
       { state with tys }
     | Smtml.Ast.Set_logic (Smtml.Logic.QF_S | Smtml.Logic.QF_SLIA) ->
       config.logic <- `Str;
-      config.mode <- `Lsb;
       config.under_approx <- 0;
       config.over_approx <- false;
       config.simpl_alpha <- false;
