@@ -35,6 +35,8 @@ let i = true
 module Lsb = struct
   module Nfa = Nfa.Lsb (Nfa.Bv)
 
+  let base = Z.to_int (Config.base ())
+
   type t = Nfa.t
   (*
      :'<,'>s/0b0/[o; 1b/g | '<,'>s/0b1/[i; 1b/g | '<,'>s/1b0/o; 2b/g |'<,'>s/1b1/i; 2b/g | '<,'>s/2b0/o]/g | '<,'>s/2b1/i]/g
@@ -104,7 +106,7 @@ module Lsb = struct
   ;;
 
   let eq vars term c =
-    let base = Z.of_int 2 in
+    let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -157,7 +159,7 @@ module Lsb = struct
   ;;
 
   let leq vars term c =
-    let base = Z.of_int 2 in
+    let base = Z.of_int base in
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
     let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
     if Z.(gcd_ = zero)
@@ -214,11 +216,12 @@ module Lsb = struct
   ;;
 
   let seq = strlen
-  let base = 2
 end
 
 module Msb = struct
   module Nfa = Nfa.Msb (Nfa.Bv)
+
+  let base = Z.to_int (Config.base ())
 
   type t = Nfa.t
 
@@ -256,7 +259,7 @@ module Msb = struct
   ;;
 
   let eq vars term c =
-    let base = Z.of_int 2 in
+    let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -310,7 +313,7 @@ module Msb = struct
   ;;
 
   let leq vars term c =
-    let base = Z.of_int 2 in
+    let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -378,7 +381,6 @@ module Msb = struct
   ;;
 
   let seq = strlen
-  let base = 2
 end
 
 module MsbNat = struct
@@ -386,6 +388,8 @@ module MsbNat = struct
   module NfaMsbNat = Nfa.MsbNat (Nfa.Bv)
 
   type t = NfaMsbNat.t
+
+  let base = Z.to_int (Config.base ())
 
   let n () =
     NfaMsbNat.create_nfa
@@ -456,8 +460,6 @@ module MsbNat = struct
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
   ;;
-
-  let base = 2
 end
 
 module LsbStr = struct
@@ -473,7 +475,7 @@ module LsbStr = struct
 
   let o = Str.u_zero
   let i = '1'
-  let base = 10
+  let base = Z.to_int (Config.base ())
   let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
   let itoc i = alphabet.(i)
 
@@ -694,7 +696,7 @@ module MsbStr = struct
 
   let o = Str.u_zero
   let i = '1'
-  let base = 10
+  let base = Z.to_int (Config.base ())
   let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
   let itoc i = alphabet.(i)
 
@@ -765,7 +767,7 @@ module MsbStr = struct
   let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
 
   let eq vars term c =
-    let base = Z.of_int 10 in
+    let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -819,7 +821,7 @@ module MsbStr = struct
   ;;
 
   let leq vars term c =
-    let base = Z.of_int 10 in
+    let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -884,6 +886,8 @@ module MsbNatStr = struct
 
   let o = Str.u_zero
   let i = '1'
+
+  let base = Z.to_int (Config.base ())
 
   let ( -- ) i j =
     let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -979,6 +983,4 @@ module MsbNatStr = struct
     let _dest = dest in
     failwith "Unimplemented for string bitvectors"
   ;;
-
-  let base = 10
 end
