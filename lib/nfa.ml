@@ -361,7 +361,7 @@ module Str = struct
   ;;
 
   let pp_u = Format.pp_print_char
-  let full_alpha = 32 -- 126 |> List.map Char.chr
+  let full_alpha = (Char.code '0' -- (Char.code '0' + (Z.to_int (Config.base ())) - 1)) |> List.map Char.chr
 
   (* FIXME: this should support different bases and symbols. *)
   let variations _alpha vec =

@@ -872,6 +872,7 @@ module MsbStr = struct
          ~vars:(List.map fst term)
          ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
        |> fun x -> x)
+      |> Nfa.minimize_strong
   ;;
 end
 
