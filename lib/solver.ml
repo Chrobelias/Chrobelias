@@ -21,7 +21,7 @@ let internal s =
 ;;
 
 let get_exp = Ir.get_exp
-let base = 10
+let base = Z.to_int (Config.base ())
 let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
 
 let collect_alpha (ir : Ir.t) =
