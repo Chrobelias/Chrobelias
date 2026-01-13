@@ -397,21 +397,18 @@ module StrBv = struct
   (* Just a copy*)
   let pp ppf (vec, mask) =
     let mask_len = bv_len mask in
-    let vec =
-      Bitv.of_list_with_length (bv_to_list vec |> List.filter (( > ) mask_len)) mask_len
-      |> Bitv.L.to_string
-      |> String.to_seq
+    let rec get_list s = function
+      | _ when s = 0 -> []
+      | x -> Z.(x mod base) :: get_list (s - 1) (Z.shift_right_trunc x basei)
     in
-    let mask =
-      Bitv.of_list_with_length (bv_to_list mask |> List.filter (( > ) mask_len)) mask_len
-      |> Bitv.L.to_string
-      |> String.to_seq
-    in
-    Seq.zip vec mask
-    |> Seq.map (function
-      | _, '0' -> '_'
-      | x, _ -> x)
-    |> String.of_seq
+    let vec = get_list mask_len vec in
+    let mask = get_list mask_len mask in
+    List.combine vec mask
+    |> List.map (function
+      | _, y when y = u_null -> "_"
+      | x, _ when x = u_null -> "_"
+      | x, _ -> Int.to_string (Z.log2 x))
+    |> List.fold_left (fun acc x -> acc ^ x) ""
     |> Format.fprintf ppf "(%s)"
   ;;
 
@@ -1139,7 +1136,10 @@ struct
     in
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
-    { final; start; transitions; deg; is_dfa } |> remove_unreachable_from_final
+    let result =
+      { final; start; transitions; deg; is_dfa } |> remove_unreachable_from_start
+    in
+    result
   ;;
 
   let unite nfa1 nfa2 =
