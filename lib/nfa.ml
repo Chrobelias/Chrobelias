@@ -77,6 +77,7 @@ module type L = sig
   type t
   type u
 
+  val alphabet : u List.t
   val u_zero : u
   val equal : t -> t -> bool
   val combine : t -> t -> t
@@ -247,6 +248,7 @@ module Bv = struct
 
   let get (vec, _mask) = bv_get vec
   let alpha _ = [ true; false ] |> Set.of_list
+  let alphabet = [ true; false ]
 end
 
 module StrBv = struct
@@ -449,8 +451,11 @@ module StrBv = struct
   ;;
 
   let alpha _ =
-    u_null :: u_eos :: (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) |> Set.of_list
+    (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
+    |> Set.of_list
   ;;
+
+  let alphabet = (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
 end
 
 module Str = struct
@@ -559,6 +564,11 @@ module Str = struct
 
   let full_alpha =
     Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1) |> List.map Char.chr
+  ;;
+
+  let alphabet =
+    (Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1) |> List.map Char.chr)
+    @ [ u_eos; u_null ]
   ;;
 
   (* FIXME: this should support different bases and symbols. *)
@@ -2275,3 +2285,37 @@ module Msb (Label : L) = struct
     }
   ;;
 end
+
+let strbv_of_str (str : Str.t) =
+  ( StrBv.bv_init2 (Array.length str) (fun i ->
+      match Str.nth i str with
+      | c when c = Str.u_eos -> StrBv.u_eos
+      | c when c = Str.u_null -> StrBv.u_null
+      | c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0'))
+  , StrBv.bv_init2 (Array.length str) (fun i ->
+      match Str.nth i str with
+      | c when c = Str.u_null -> StrBv.u_eos
+      | c -> StrBv.u_one) )
+;;
+
+let convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t =
+  fun nfa ->
+  { start = nfa.start
+  ; is_dfa = nfa.is_dfa
+  ; deg = nfa.deg
+  ; final = nfa.final
+  ; transitions =
+      Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
+  }
+;;
+
+let convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t =
+  fun nfa ->
+  { start = nfa.start
+  ; is_dfa = nfa.is_dfa
+  ; deg = nfa.deg
+  ; final = nfa.final
+  ; transitions =
+      Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
+  }
+;;

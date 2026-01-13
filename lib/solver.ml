@@ -21,32 +21,6 @@ let internal s =
 ;;
 
 let get_exp = Ir.get_exp
-let base = Z.to_int (Config.base ())
-let alphabet = "0123456789ABCDEF" |> String.to_seq |> Seq.take base |> Array.of_seq
-
-let collect_alpha (ir : Ir.t) =
-  let ( let* ) = Option.bind in
-  let return = Option.some in
-  let* alpha =
-    Ir.fold
-      (fun acc -> function
-         | Ir.SReg (_, re) ->
-           let* acc = acc in
-           Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
-         | Ir.SRegRaw (_, nfa) ->
-           let* acc = acc in
-           Ir.NfaS.alpha nfa |> Set.union acc |> return
-         | Ir.Lnot _ -> Option.none
-         | _ ->
-           let* acc = acc in
-           return acc)
-      (Some Set.empty)
-      ir
-  in
-  let alpha = Set.diff alpha (Set.of_list [ Nfa.Str.u_eos; Nfa.Str.u_null ]) in
-  return (if Set.is_empty alpha then Set.of_array alphabet else alpha)
-;;
-
 (*let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
   | Ir.Var s -> Ast.Eia.atom (Ast.var s)
   | Ir.Pow2 s ->
@@ -321,9 +295,32 @@ module Make
 struct
   let is_exp = Ir.is_exp
 
+  (*let collect_alpha (ir : Ir.t) =
+    let ( let* ) = Option.bind in
+    let return = Option.some in
+    let* alpha =
+      Ir.fold
+        (fun acc -> function
+           | Ir.SReg (_, re) ->
+             let* acc = acc in
+             Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
+           | Ir.SRegRaw (_, nfa) ->
+             let* acc = acc in
+             Ir.NfaS.alpha nfa |> Set.union acc |> return
+           | Ir.Lnot _ -> Option.none
+           | _ ->
+             let* acc = acc in
+             return acc)
+        (Some Set.empty)
+        ir
+    in
+    let alpha = Set.diff alpha (Set.of_list [ Nfa.Str.u_eos; Nfa.Str.u_null ]) in
+    return (if Set.is_empty alpha then Set.of_array alphabet else alpha)
+  ;;*)
+
   let eval ir =
     let ir = Ir.antiprenex ir in
-    let alpha = collect_alpha ir |> Option.map Set.to_list in
+    (*let alpha = collect_alpha ir |> Option.map Set.to_list in*)
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -421,7 +418,7 @@ struct
        | Ir.SRegRaw (atom, reg) -> Extra.eval_sregraw vars atom reg
        | Ir.SLen (atom, atom') ->
          NfaCollection.strlen
-           ~alpha
+           ~alpha:Option.none
            ~dest:(Map.find_exn vars atom')
            ~src:(Map.find_exn vars atom)
            ()
@@ -430,7 +427,7 @@ struct
          (*NfaCollection.stoi ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')*)
        | Ir.SEq (atom, atom') ->
          NfaCollection.seq
-           ~alpha
+           ~alpha:Option.none
            ~dest:(Map.find_exn vars atom)
            ~src:(Map.find_exn vars atom')
            ()
@@ -1107,38 +1104,32 @@ struct
 end
 
 module LsbStr =
-  Make (Nfa.Lsb (Nfa.Str)) (NfaCollection.LsbStr) (Nfa.Lsb (Nfa.Str))
-    (NfaCollection.LsbStr)
+  Make (Nfa.Lsb (Nfa.StrBv)) (NfaCollection.LsbStrBv) (Nfa.Lsb (Nfa.StrBv))
+    (NfaCollection.LsbStrBv)
     (struct
-      module Str = Nfa.Str
-      module Nfa = Nfa.Lsb (Nfa.Str)
+      module NfaO = Nfa
+      module Str = Nfa.StrBv
+      module Nfa = Nfa.Lsb (Nfa.StrBv)
 
       let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
 
       let eval_sreg vars atom reg =
-        let nfa = reg |> Nfa.of_regex in
+        let nfa = reg |> NfaS.of_regex in
+        let nfa = nfa |> NfaO.convert_nfa_lsb in
         Debug.dump_nfa ~msg:"SREG %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
         (*let reenum = Map.singleton (Map.find_exn vars atom) 0 in*)
-        let j = Map.find_exn vars atom in
-        Nfa.filter_map nfa (fun (label, q') ->
-          Some
-            ( Array.init (Map.length vars) (fun i ->
-                if i = j then label.(0) else Char.chr 0)
-            , q' ))
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa
       ;;
 
       let eval_sregraw vars atom reg =
-        let nfa = reg in
-        let j = Map.find_exn vars atom in
-        Nfa.filter_map nfa (fun (label, q') ->
-          Some
-            ( Array.init (Map.length vars) (fun i ->
-                if i = j then label.(0) else Char.chr 0)
-            , q' ))
+        let nfa = reg |> NfaO.convert_nfa_lsb in
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa
       ;;
 
-      let model_to_int c =
-        c
+      let model_to_int _c = failwith "todo"
+      (*c
         |> List.to_seq
         |> Seq.filter (( <> ) Str.u_eos)
         |> Seq.filter (( <> ) Str.u_null)
@@ -1146,23 +1137,21 @@ module LsbStr =
         |> List.rev
         |> Base.List.drop_while ~f:(( = ) '0')
         |> Base.String.of_list
-        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
-      ;;
+        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s*)
 
       let nat_model_to_int = model_to_int
     end)
 
-let z_of_list_msb_nat_str p =
-  p
+let z_of_list_msb_nat_str p = failwith "todo"
+(*p
   |> List.to_seq
   |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
   |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
   |> String.of_seq
-  |> Z.of_string
-;;
+  |> Z.of_string*)
 
-let z_of_list_msb_str p =
-  let sign, p =
+let z_of_list_msb_str p = failwith "todo"
+(*let sign, p =
     match p with
     | hd :: tl -> (if hd = '0' || hd = Nfa.Str.u_eos then Z.one else Z.minus_one), tl
     | _ -> failwith "unreachable"
@@ -1173,39 +1162,42 @@ let z_of_list_msb_str p =
   |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
   |> String.of_seq
   |> Z.of_string
-  |> Z.mul sign
-;;
+  |> Z.mul sign*)
 
 module MsbStr =
-  Make (Nfa.MsbNat (Nfa.Str)) (NfaCollection.MsbNatStr) (Nfa.Msb (Nfa.Str))
-    (NfaCollection.MsbStr)
+  Make (Nfa.MsbNat (Nfa.StrBv)) (NfaCollection.MsbNatStrBv) (Nfa.Msb (Nfa.StrBv))
+    (NfaCollection.MsbStrBv)
     (struct
-      module Str = Nfa.Str
-      module Nfa = Nfa.Msb (Nfa.Str)
+      module NfaO = Nfa
+      module NfaO2 = Nfa.Msb (Nfa.Str)
+      module Str = Nfa.StrBv
+      module Nfa = Nfa.Msb (Nfa.StrBv)
 
       let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
 
       let eval_sreg vars atom reg =
-        let nfa = reg |> Nfa.of_regex in
+        let nfa = reg |> NfaO2.of_regex in
+        let nfa = nfa |> NfaO.convert_nfa_msb in
         Debug.dump_nfa ~msg:"SREG %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
         (*let reenum = Map.singleton (Map.find_exn vars atom) 0 in*)
-        let j = Map.find_exn vars atom in
-        Nfa.filter_map nfa (fun (label, q') ->
-          Some
-            ( Array.init (Map.length vars) (fun i ->
-                if i = j then label.(0) else Char.chr 0)
-            , q' ))
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa
       ;;
 
-      let eval_sregraw vars atom reg =
-        let nfa = reg in
-        let j = Map.find_exn vars atom in
+      let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> Nfa.t =
+        fun vars atom reg ->
+        let nfa = reg |> NfaO2.of_lsb in
+        let nfa = nfa |> NfaO.convert_nfa_msb in
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa
+      ;;
+
+      (*let j = Map.find_exn vars atom in
         Nfa.filter_map (Nfa.of_lsb nfa) (fun (label, q') ->
           Some
             ( Array.init (Map.length vars) (fun i ->
                 if i = j then label.(0) else Char.chr 0)
-            , q' ))
-      ;;
+            , q' ))*)
 
       let model_to_int = z_of_list_msb_str
       let nat_model_to_int = z_of_list_msb_nat_str
@@ -1316,7 +1308,7 @@ let filter_internal =
 let ( let* ) = Result.bind
 let return = Result.ok
 
-let z_of_list_str p =
+let _z_of_list_str p =
   let sign, p =
     if Config.config.mode = `Lsb
     then Z.one, List.rev p
@@ -1399,7 +1391,8 @@ let check_sat ir
         (fun tys ->
           let* model = model () in
           let main_model =
-            Map.mapi
+            failwith "tbd"
+            (*Map.mapi
               ~f:(fun ~key:k ~data:v ->
                 let ty = Map.find tys k |> Option.value ~default:`Int in
                 match ty with
@@ -1411,7 +1404,7 @@ let check_sat ir
                   | Invalid_argument _ -> `Str (v |> z_of_list_str)
                 end
                 | `Str -> `Str (v |> z_of_list_str))
-              model
+              model*)
           in
           return main_model)
     | `Unsat -> `Unsat
