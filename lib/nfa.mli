@@ -13,6 +13,7 @@ module type L = sig
 
   val alphabet : u List.t
   val u_zero : u
+  val get : t -> int -> u
   val equal : t -> t -> bool
   val combine : t -> t -> t
   val project : int list -> t -> t
@@ -25,10 +26,9 @@ module type L = sig
   val zero_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
   val one_with_mask : int list -> t
-  val pp : Format.formatter -> t -> unit
   val pp_u : Format.formatter -> u -> unit
+  val pp : Format.formatter -> t -> unit
   val of_list : (int * u) list -> t
-  val get : t -> int -> u
   val alpha : t -> u Set.t
 end
 
@@ -43,7 +43,6 @@ module Str : sig
   val u_eos : u
   val u_one : u
   val is_end_char : u -> bool
-  val nth : int -> t -> u
   val is_eos_at : int -> t -> bool
   val is_any_at : int -> t -> bool
   val is_zero_at : int -> t -> bool
@@ -57,7 +56,6 @@ module StrBv : sig
   val u_eos : u
   val u_one : u
   val is_end_char : u -> bool
-  val nth : int -> t -> u
   val is_eos_at : int -> t -> bool
   val is_any_at : int -> t -> bool
   val is_zero_at : int -> t -> bool
