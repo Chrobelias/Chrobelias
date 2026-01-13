@@ -11,6 +11,7 @@ module type L = sig
   type t
   type u
 
+  val alphabet : u List.t
   val u_zero : u
   val equal : t -> t -> bool
   val combine : t -> t -> t
@@ -40,6 +41,7 @@ module Str : sig
 
   val u_null : u
   val u_eos : u
+  val u_one : u
   val is_end_char : u -> bool
   val nth : int -> t -> u
   val is_eos_at : int -> t -> bool
@@ -53,6 +55,7 @@ module StrBv : sig
 
   val u_null : u
   val u_eos : u
+  val u_one : u
   val is_end_char : u -> bool
   val nth : int -> t -> u
   val is_eos_at : int -> t -> bool
@@ -142,3 +145,6 @@ module Msb (Label : L) : sig
   val filter_map : t -> (Label.t * int -> (Label.t * int) option) -> t
   val of_lsb : Lsb(Label).t -> t
 end
+
+val convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t
+val convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t
