@@ -2258,13 +2258,13 @@ module Msb (Label : L) = struct
 end
 
 let strbv_of_str (str : Str.t) =
-  ( StrBv.bv_init2 (Array.length str) (fun i ->
-      match Str.nth i str with
+  ( StrBv.bv_init (Array.length str) (fun i ->
+      match Str.get str i with
       | c when c = Str.u_eos -> StrBv.u_eos
       | c when c = Str.u_null -> StrBv.u_null
       | c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0'))
-  , StrBv.bv_init2 (Array.length str) (fun i ->
-      match Str.nth i str with
+  , StrBv.bv_init (Array.length str) (fun i ->
+      match Str.get str i with
       | c when c = Str.u_null -> StrBv.u_eos
       | c -> StrBv.u_one) )
 ;;
