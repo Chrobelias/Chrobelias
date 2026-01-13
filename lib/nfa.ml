@@ -275,7 +275,7 @@ module StrBv = struct
       (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i)))
   ;;
 
-  let get (vec, mask) i = Z.logand mask (bv_get vec i)
+  let get (vec, mask) i = bv_get (Z.logand mask vec) i
   let is_any_at i label = get label i = u_null
   let is_zero_at i label = get label i = u_zero
   let is_one_at i label = get label i = u_one
@@ -289,7 +289,7 @@ module StrBv = struct
   ;;
 
   let bv_of_list =
-    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_one (v * basei))) Z.zero
+    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_eos (v * basei))) Z.zero
   ;;
 
   let equal (vec1, mask1) (vec2, mask2) =
@@ -2266,7 +2266,7 @@ let strbv_of_str (str : Str.t) =
   , StrBv.bv_init (Array.length str) (fun i ->
       match Str.get str i with
       | c when c = Str.u_null -> StrBv.u_eos
-      | c -> StrBv.u_one) )
+      | c -> StrBv.u_eos) )
 ;;
 
 let convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t =
