@@ -49,7 +49,7 @@ module Str : sig
 end
 
 module StrBv : sig
-  include L with type u = char and type t = char array
+  include L with type u = Z.t and type t = Z.t * Z.t
 
   val u_null : u
   val u_eos : u
