@@ -406,8 +406,17 @@ module StrBv : L = struct
     vec, mask*)
 
   let get (vec, _mask) = failwith "todo"
-  let alpha _ = failwith "todo"
-  let nth i label = failwith "todo"
+
+  let alpha _ =
+    u_null :: u_eos :: (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) |> Set.of_list
+  ;;
+
+  let nth i label =
+    Z.logand
+      label
+      (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i)))
+  ;;
+
   let is_end_char c = c = u_eos || c = u_null
   let is_eos_at i label = nth i label = u_eos
 
@@ -425,24 +434,6 @@ module StrBv : L = struct
     res
   ;;
 end
-
-(*module StrBv2 : L = struct
-  type t = Z.t
-  type u = Z.t
-
-  let base = Z.of_int 10
-
-  let u_eos, u_zero, u_one, u_null = Z.zero, Z.one, Z.(2), Z.(pow (of_int 2) (to_int base) - one)
-
-  let equal vec1 vec2 =
-    Z.logor vec1 vec2
-  ;;
-
-  let combine vec1 vec2 =
-    Z.logand vec1 vec2
-  ;;
-
-end*)
 
 module Str = struct
   type t = char array
