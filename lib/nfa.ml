@@ -249,17 +249,16 @@ module Bv = struct
   let alpha _ = [ true; false ] |> Set.of_list
 end
 
-module StrBv : L = struct
+module StrBv = struct
   type t = Z.t * Z.t
   type u = Z.t
 
   let pp_u = Z.pp_print
   let base = Z.of_int 10
-
-  let u_zero, u_one, u_null, u_eos =
-    Z.one, Z.(of_int 2), Z.zero, Z.(pow (of_int 2) (to_int base) - one)
-  ;;
-
+  let u_zero = Z.one
+  let u_one = Z.of_int 2
+  let u_null = Z.zero
+  let u_eos = Z.(pow (of_int 2) (to_int base) - one)
   let basei = Z.to_int base
 
   let bv_of_list =
@@ -267,6 +266,10 @@ module StrBv : L = struct
   ;;
 
   let bv_get v i = Z.logand v (Z.shift_left u_one (i * basei)) |> Z.equal Z.zero |> not
+
+  let bv_get2 v i =
+    (Z.logand v (Z.shift_left u_one (i * basei)) |> Z.shift_right) (i * basei)
+  ;;
 
   let bv_init deg f =
     List.fold_left
@@ -301,14 +304,12 @@ module StrBv : L = struct
     in
     match ok with
     | true ->
-      bv_init deg (fun i ->
+      bv_init2 deg (fun i ->
         (let* js = Map.find m i in
          let* j = Set.nth js 0 in
-         let v = bv_get vec j in
-         match v with
-         | true -> Option.some true
-         | false -> Option.none)
-        |> Option.is_some)
+         let v = bv_get2 vec j in
+         Option.some v)
+        |> Option.value ~default:u_null)
       |> return
     | false -> Option.none
   ;;
@@ -329,10 +330,6 @@ module StrBv : L = struct
   let equal (vec1, mask1) (vec2, mask2) =
     let mask = Z.logand mask1 mask2 in
     Z.equal (Z.logand vec1 mask) (Z.logand vec2 mask)
-  ;;
-
-  let combine (vec1, mask1) (vec2, mask2) =
-    Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
 
   let project proj (vec, mask) =
@@ -433,7 +430,6 @@ module StrBv : L = struct
 
   let get label i = nth i label
   let is_end_char c = c = u_eos || c = u_null
-  let is_eos_at i label = nth i label = u_eos
 
   let is_any_at i label =
     let res = nth i label = u_null in
@@ -443,11 +439,6 @@ module StrBv : L = struct
   let is_zero_at i label = nth i label = u_zero
   let is_one_at i label = nth i label = u_one
   let is_eos_at i label = nth i label = u_eos
-
-  let is_any_at i label =
-    let res = nth i label = u_null in
-    res
-  ;;
 end
 
 module Str = struct
