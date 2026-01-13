@@ -48,6 +48,19 @@ module Str : sig
   val is_one_at : int -> t -> bool
 end
 
+module StrBv : sig
+  include L with type u = char and type t = char array
+
+  val u_null : u
+  val u_eos : u
+  val is_end_char : u -> bool
+  val nth : int -> t -> u
+  val is_eos_at : int -> t -> bool
+  val is_any_at : int -> t -> bool
+  val is_zero_at : int -> t -> bool
+  val is_one_at : int -> t -> bool
+end
+
 module type Type = sig
   type t
   type u

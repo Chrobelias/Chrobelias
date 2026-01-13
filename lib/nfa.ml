@@ -249,6 +249,201 @@ module Bv = struct
   let alpha _ = [ true; false ] |> Set.of_list
 end
 
+module StrBv : L = struct
+  type t = Z.t * Z.t
+  type u = Z.t
+
+  let pp_u = Z.pp_print
+  let base = Z.of_int 10
+
+  let u_zero, u_one, u_null, u_eos =
+    Z.one, Z.(of_int 2), Z.zero, Z.(pow (of_int 2) (to_int base) - one)
+  ;;
+
+  let basei = Z.to_int base
+
+  let bv_of_list =
+    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_one (v * basei))) Z.zero
+  ;;
+
+  let bv_get v i = Z.logand v (Z.shift_left u_one (i * basei)) |> Z.equal Z.zero |> not
+
+  let bv_init deg f =
+    List.fold_left
+      (fun acc v -> if f v then Z.logor acc (Z.shift_left u_one (v * basei)) else acc)
+      Z.zero
+      (0 -- (deg - 1))
+  ;;
+
+  let combine (vec1, mask1) (vec2, mask2) =
+    Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
+  ;;
+
+  let stretch vec mask_list deg =
+    let m =
+      mask_list
+      |> List.mapi (fun i k -> k, Set.singleton i)
+      |> Map.of_alist_reduce ~f:Set.union
+    in
+    let ok =
+      0 -- deg
+      |> List.for_all (fun j ->
+        let js = Map.find m j |> Option.value ~default:Set.empty in
+        Set.for_all ~f:(fun j -> bv_get vec j) js
+        || Set.for_all ~f:(fun j -> bv_get vec j |> not) js)
+    in
+    match ok with
+    | true ->
+      bv_init deg (fun i ->
+        (let* js = Map.find m i in
+         let* j = Set.nth js 0 in
+         let v = bv_get vec j in
+         match v with
+         | true -> Option.some true
+         | false -> Option.none)
+        |> Option.is_some)
+      |> return
+    | false -> Option.none
+  ;;
+
+  let bv_len v = if Z.equal v Z.zero then 0 else Z.log2 v + 1
+
+  let bv_to_list =
+    let rec aux acc z =
+      if Z.equal z Z.zero
+      then acc
+      else (
+        let v = Z.log2 z in
+        aux (v :: acc) (Z.sub z (Z.shift_left Z.one v)))
+    in
+    aux []
+  ;;
+
+  let equal (vec1, mask1) (vec2, mask2) =
+    let mask = Z.logand mask1 mask2 in
+    Z.equal (Z.logand vec1 mask) (Z.logand vec2 mask)
+  ;;
+
+  let combine (vec1, mask1) (vec2, mask2) =
+    Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
+  ;;
+
+  let project proj (vec, mask) =
+    let proj = bv_of_list proj in
+    vec, Z.sub mask (Z.logand mask proj)
+  ;;
+
+  let truncate len (vec, mask) =
+    let proj = Z.sub (Z.shift_left Z.one len) Z.one in
+    vec, Z.logand mask proj
+  ;;
+
+  let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
+  let is_zero_soft = is_zero
+
+  let variations _alpha (_, mask) =
+    let mask_list = mask |> bv_to_list in
+    let length = bv_len mask in
+    Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
+    |> Iter.map Z.of_int
+    |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
+    |> Iter.map (fun x -> x, mask)
+    |> Iter.to_list
+  ;;
+
+  let zero _deg = Z.zero, Z.zero
+  let zero_with_mask mask = Z.zero, bv_of_list mask
+  let singleton_with_mask c mask = Z.shift_left Z.one c, bv_of_list mask
+  let one_with_mask mask = bv_of_list mask, bv_of_list mask
+
+  let pp ppf (vec, mask) =
+    let mask_len = bv_len mask in
+    let vec =
+      Bitv.of_list_with_length (bv_to_list vec |> List.filter (( > ) mask_len)) mask_len
+      |> Bitv.L.to_string
+      |> String.to_seq
+    in
+    let mask =
+      Bitv.of_list_with_length (bv_to_list mask |> List.filter (( > ) mask_len)) mask_len
+      |> Bitv.L.to_string
+      |> String.to_seq
+    in
+    Seq.zip vec mask
+    |> Seq.map (function
+      | _, '0' -> '_'
+      | x, _ -> x)
+    |> String.of_seq
+    |> Format.fprintf ppf "(%s)"
+  ;;
+
+  let reenumerate map (vec, mask) =
+    let length =
+      max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1)
+    in
+    let vec =
+      bv_init length (fun i ->
+        match Map.find map i with
+        | Some j -> bv_get vec j
+        | None -> false)
+    in
+    let mask =
+      bv_init length (fun i ->
+        match Map.find map i with
+        | Some j -> bv_get mask j
+        | None -> false)
+    in
+    vec, mask
+  ;;
+
+  (* FIXME *)
+  let of_list l = failwith "todo"
+  (*let label = List.map snd l in
+    let vars = List.map fst l in
+    let bv = bv_init (List.length l) (fun i -> List.nth label i) in
+    let deg = List.fold_left max 0 vars + 1 in
+    let vec = stretch bv vars deg |> Option.get in
+    let mask = bv_of_list vars in
+    vec, mask*)
+
+  let get (vec, _mask) = failwith "todo"
+  let alpha _ = failwith "todo"
+  let nth i label = failwith "todo"
+  let is_end_char c = c = u_eos || c = u_null
+  let is_eos_at i label = nth i label = u_eos
+
+  let is_any_at i label =
+    let res = nth i label = u_null in
+    res
+  ;;
+
+  let is_zero_at i label = nth i label = u_zero
+  let is_one_at i label = nth i label = u_one
+  let is_eos_at i label = nth i label = u_eos
+
+  let is_any_at i label =
+    let res = nth i label = u_null in
+    res
+  ;;
+end
+
+(*module StrBv2 : L = struct
+  type t = Z.t
+  type u = Z.t
+
+  let base = Z.of_int 10
+
+  let u_eos, u_zero, u_one, u_null = Z.zero, Z.one, Z.(2), Z.(pow (of_int 2) (to_int base) - one)
+
+  let equal vec1 vec2 =
+    Z.logor vec1 vec2
+  ;;
+
+  let combine vec1 vec2 =
+    Z.logand vec1 vec2
+  ;;
+
+end*)
+
 module Str = struct
   type t = char array
   type u = char
