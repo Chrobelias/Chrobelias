@@ -275,6 +275,13 @@ module StrBv : L = struct
       (0 -- (deg - 1))
   ;;
 
+  let bv_init2 deg f =
+    List.fold_left
+      (fun acc v -> Z.logor acc (Z.shift_left (f v) (v * basei)))
+      Z.zero
+      (0 -- (deg - 1))
+  ;;
+
   let combine (vec1, mask1) (vec2, mask2) =
     Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
@@ -396,27 +403,35 @@ module StrBv : L = struct
   ;;
 
   (* FIXME *)
-  let of_list l = failwith "todo"
-  (*let label = List.map snd l in
+  let of_list l =
+    (*failwith "todo"
+    let label = List.map snd l in
     let vars = List.map fst l in
     let bv = bv_init (List.length l) (fun i -> List.nth label i) in
     let deg = List.fold_left max 0 vars + 1 in
     let vec = stretch bv vars deg |> Option.get in
     let mask = bv_of_list vars in
     vec, mask*)
-
-  let get (vec, _mask) = failwith "todo"
+    let label = List.map snd l in
+    let vars = List.map fst l in
+    let bv = bv_init2 (List.length l) (fun i -> List.nth label i) in
+    let deg = List.fold_left max 0 vars + 1 in
+    let vec = stretch bv vars deg |> Option.get in
+    let mask = bv_of_list vars in
+    vec, mask
+  ;;
 
   let alpha _ =
     u_null :: u_eos :: (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) |> Set.of_list
   ;;
 
-  let nth i label =
+  let nth i (vec, mask) =
     Z.logand
-      label
+      (Z.logor vec mask)
       (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i)))
   ;;
 
+  let get label i = nth i label
   let is_end_char c = c = u_eos || c = u_null
   let is_eos_at i label = nth i label = u_eos
 
