@@ -253,13 +253,14 @@ module StrBv = struct
   type t = Z.t * Z.t
   type u = Z.t
 
-  let pp_u = Z.pp_print
-  let base = Z.of_int 10
-  let u_zero = Z.one
-  let u_one = Z.of_int 2
-  let u_null = Z.zero
-  let u_eos = Z.(pow (of_int 2) (to_int base) - one)
+  let base = Config.base ()
+
+  let u_zero, u_one, u_null, u_eos =
+    Z.one, Z.of_int 2, Z.zero, Z.(pow (of_int 2) (to_int base) - one)
+  ;;
+
   let basei = Z.to_int base
+  let is_end_char c = Z.(c = u_eos) || Z.(c = u_null)
 
   let bv_of_list =
     List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_one (v * basei))) Z.zero
@@ -271,7 +272,7 @@ module StrBv = struct
     (Z.logand v (Z.shift_left u_one (i * basei)) |> Z.shift_right) (i * basei)
   ;;
 
-  let bv_init deg f =
+  let _bv_init deg f =
     List.fold_left
       (fun acc v -> if f v then Z.logor acc (Z.shift_left u_one (v * basei)) else acc)
       Z.zero
@@ -314,7 +315,7 @@ module StrBv = struct
     | false -> Option.none
   ;;
 
-  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v / basei) + 1
+  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / basei
 
   let bv_to_list =
     let rec aux acc z =
@@ -342,9 +343,25 @@ module StrBv = struct
     vec, Z.logand mask proj
   ;;
 
+  (* FIXME: GB: I think we should shift right then.or something like this. *)
+  (* MS: looks good. Assume base = 4, then nth 1 vec 11110000 = 2^8 - 2^4*)
+  let nth i (vec, mask) =
+    Z.logand
+      mask
+      (Z.logand
+         vec
+         (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i))))
+  ;;
+
+  let get label i = nth i label
+  let is_any_at i label = Z.(nth i label = u_null)
+  let is_zero_at i label = nth i label = u_zero
+  let is_one_at i label = nth i label = u_one
+  let is_eos_at i label = nth i label = u_eos
+
   let is_zero (vec, mask) =
     let vec = Z.logand vec mask in
-    0 -- bv_len vec
+    0 -- bv_len mask
     |> List.for_all (fun i ->
       let c = bv_get2 vec i in
       c = u_eos || c = u_null)
@@ -374,6 +391,13 @@ module StrBv = struct
   let singleton_with_mask c mask = Z.shift_left Z.one c, bv_of_list mask
   let one_with_mask mask = bv_of_list mask, bv_of_list mask
 
+  let pp_u ppf = function
+    | z when Z.(z = u_null) -> Format.pp_print_char ppf '_'
+    | z when Z.(z = u_eos) -> Format.pp_print_char ppf '$'
+    | z -> Format.pp_print_int ppf (Z.log2 z)
+  ;;
+
+  (* Just a copy*)
   let pp ppf (vec, mask) =
     let mask_len = bv_len mask in
     let vec =
@@ -415,14 +439,6 @@ module StrBv = struct
 
   (* FIXME *)
   let of_list l =
-    (*failwith "todo"
-    let label = List.map snd l in
-    let vars = List.map fst l in
-    let bv = bv_init (List.length l) (fun i -> List.nth label i) in
-    let deg = List.fold_left max 0 vars + 1 in
-    let vec = stretch bv vars deg |> Option.get in
-    let mask = bv_of_list vars in
-    vec, mask*)
     let label = List.map snd l in
     let vars = List.map fst l in
     let bv = bv_init2 (List.length l) (fun i -> List.nth label i) in
@@ -435,25 +451,6 @@ module StrBv = struct
   let alpha _ =
     u_null :: u_eos :: (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) |> Set.of_list
   ;;
-
-  (* FIXME: GB: I think we should shift right then.or something like this. *)
-  let nth i (vec, mask) =
-    Z.logand
-      vec
-      (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i)))
-  ;;
-
-  let get label i = nth i label
-  let is_end_char c = c = u_eos || c = u_null
-
-  let is_any_at i label =
-    let res = nth i label = u_null in
-    res
-  ;;
-
-  let is_zero_at i label = nth i label = u_zero
-  let is_one_at i label = nth i label = u_one
-  let is_eos_at i label = nth i label = u_eos
 end
 
 module Str = struct
@@ -493,15 +490,6 @@ module Str = struct
       |> List.mapi (fun i k -> k, Set.singleton i)
       |> Map.of_alist_reduce ~f:Set.union
     in
-    (*let ok =
-      0 -- deg
-      |> List.for_all (fun j ->
-        let js = Map.find m j |> Option.value ~default:Set.empty in
-        Set.for_all ~f:(fun j -> bv_get vec j) js
-        || Set.for_all ~f:(fun j -> bv_get vec j |> not) js)
-    in
-    match ok with
-    | true ->*)
     Array.init deg (fun i ->
       (let* js = Map.find m i in
        let* j = Set.nth js 0 in
