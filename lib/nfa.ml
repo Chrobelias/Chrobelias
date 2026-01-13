@@ -314,7 +314,7 @@ module StrBv = struct
     | false -> Option.none
   ;;
 
-  let bv_len v = if Z.equal v Z.zero then 0 else Z.log2 v + 1
+  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v / basei) + 1
 
   let bv_to_list =
     let rec aux acc z =
@@ -342,9 +342,23 @@ module StrBv = struct
     vec, Z.logand mask proj
   ;;
 
-  let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
-  let is_zero_soft = is_zero
+  let is_zero (vec, mask) =
+    let vec = Z.logand vec mask in
+    0 -- bv_len vec
+    |> List.for_all (fun i ->
+      let c = bv_get2 vec i in
+      c = u_eos || c = u_null)
+  ;;
 
+  let is_zero_soft (vec, mask) =
+    let vec = Z.logand vec mask in
+    0 -- bv_len vec
+    |> List.for_all (fun i ->
+      let c = bv_get2 vec i in
+      c = u_eos || c = u_null || c = u_zero)
+  ;;
+
+  (* FIXME: (GB) THIS IS COMPLETELY BROKEN. *)
   let variations _alpha (_, mask) =
     let mask_list = mask |> bv_to_list in
     let length = bv_len mask in
@@ -385,16 +399,16 @@ module StrBv = struct
       max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1)
     in
     let vec =
-      bv_init length (fun i ->
+      bv_init2 length (fun i ->
         match Map.find map i with
-        | Some j -> bv_get vec j
-        | None -> false)
+        | Some j -> bv_get2 vec j
+        | None -> u_null)
     in
     let mask =
-      bv_init length (fun i ->
+      bv_init2 length (fun i ->
         match Map.find map i with
-        | Some j -> bv_get mask j
-        | None -> false)
+        | Some j -> bv_get2 mask j
+        | None -> Z.zero)
     in
     vec, mask
   ;;
@@ -422,9 +436,10 @@ module StrBv = struct
     u_null :: u_eos :: (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) |> Set.of_list
   ;;
 
+  (* FIXME: GB: I think we should shift right then.or something like this. *)
   let nth i (vec, mask) =
     Z.logand
-      (Z.logor vec mask)
+      vec
       (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i)))
   ;;
 
