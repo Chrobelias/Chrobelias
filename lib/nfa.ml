@@ -79,6 +79,7 @@ module type L = sig
 
   val alphabet : u List.t
   val u_zero : u
+  val get : t -> int -> u
   val equal : t -> t -> bool
   val combine : t -> t -> t
   val project : int list -> t -> t
@@ -91,10 +92,9 @@ module type L = sig
   val zero_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
   val one_with_mask : int list -> t
-  val pp : formatter -> t -> unit
   val pp_u : formatter -> u -> unit
+  val pp : formatter -> t -> unit
   val of_list : (int * u) list -> t
-  val get : t -> int -> u
   val alpha : t -> u Set.t
 end
 
@@ -102,6 +102,7 @@ module Bv = struct
   type t = Z.t * Z.t
   type u = bool
 
+  (* ----------------- Auxiliary functions ----------------- *)
   let bv_get v i = Z.logand v (Z.shift_left Z.one i) |> Z.equal Z.zero |> not
 
   let bv_init deg f =
@@ -153,7 +154,9 @@ module Bv = struct
     aux []
   ;;
 
+  (* ----------------- Implementaton of the interface ----------------- *)
   let u_zero = false
+  let get (vec, _mask) = bv_get vec
 
   let equal (vec1, mask1) (vec2, mask2) =
     let mask = Z.logand mask1 mask2 in
@@ -246,7 +249,6 @@ module Bv = struct
     vec, mask
   ;;
 
-  let get (vec, _mask) = bv_get vec
   let alpha _ = [ true; false ] |> Set.of_list
   let alphabet = [ true; false ]
 end
@@ -262,77 +264,41 @@ module StrBv = struct
   ;;
 
   let basei = Z.to_int base
-  let is_end_char c = Z.(c = u_eos) || Z.(c = u_null)
+  let is_end_char c = c = u_eos || c = u_null
+  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / basei
 
-  let bv_of_list =
-    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_one (v * basei))) Z.zero
+  (* FIXME: GB: I think we should shift right then.or something like this. *)
+  (* MS: looks good. Assume base = 4, then nth 1 vec 11110000 = 2^8 - 2^4*)
+  let bv_get v i =
+    Z.logand
+      v
+      (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i)))
   ;;
 
-  let bv_get v i = Z.logand v (Z.shift_left u_one (i * basei)) |> Z.equal Z.zero |> not
+  let get (vec, mask) i = Z.logand mask (bv_get vec i)
+  let is_any_at i label = get label i = u_null
+  let is_zero_at i label = get label i = u_zero
+  let is_one_at i label = get label i = u_one
+  let is_eos_at i label = get label i = u_eos
 
-  let bv_get2 v i =
-    (Z.logand v (Z.shift_left u_one (i * basei)) |> Z.shift_right) (i * basei)
-  ;;
-
-  let _bv_init deg f =
-    List.fold_left
-      (fun acc v -> if f v then Z.logor acc (Z.shift_left u_one (v * basei)) else acc)
-      Z.zero
-      (0 -- (deg - 1))
-  ;;
-
-  let bv_init2 deg f =
+  let bv_init deg f =
     List.fold_left
       (fun acc v -> Z.logor acc (Z.shift_left (f v) (v * basei)))
       Z.zero
       (0 -- (deg - 1))
   ;;
 
-  let combine (vec1, mask1) (vec2, mask2) =
-    Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
-  ;;
-
-  let stretch vec mask_list deg =
-    let m =
-      mask_list
-      |> List.mapi (fun i k -> k, Set.singleton i)
-      |> Map.of_alist_reduce ~f:Set.union
-    in
-    let ok =
-      0 -- deg
-      |> List.for_all (fun j ->
-        let js = Map.find m j |> Option.value ~default:Set.empty in
-        Set.for_all ~f:(fun j -> bv_get vec j) js
-        || Set.for_all ~f:(fun j -> bv_get vec j |> not) js)
-    in
-    match ok with
-    | true ->
-      bv_init2 deg (fun i ->
-        (let* js = Map.find m i in
-         let* j = Set.nth js 0 in
-         let v = bv_get2 vec j in
-         Option.some v)
-        |> Option.value ~default:u_null)
-      |> return
-    | false -> Option.none
-  ;;
-
-  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / basei
-
-  let bv_to_list =
-    let rec aux acc z =
-      if Z.equal z Z.zero
-      then acc
-      else (
-        let v = Z.log2 z in
-        aux (v :: acc) (Z.sub z (Z.shift_left Z.one v)))
-    in
-    aux []
+  let bv_of_list =
+    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_one (v * basei))) Z.zero
   ;;
 
   let equal (vec1, mask1) (vec2, mask2) =
     let mask = Z.logand mask1 mask2 in
     Z.equal (Z.logand vec1 mask) (Z.logand vec2 mask)
+  ;;
+
+  let combine (vec1, mask1) (vec2, mask2) =
+    Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
 
   let project proj (vec, mask) =
@@ -345,27 +311,11 @@ module StrBv = struct
     vec, Z.logand mask proj
   ;;
 
-  (* FIXME: GB: I think we should shift right then.or something like this. *)
-  (* MS: looks good. Assume base = 4, then nth 1 vec 11110000 = 2^8 - 2^4*)
-  let nth i (vec, mask) =
-    Z.logand
-      mask
-      (Z.logand
-         vec
-         (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i))))
-  ;;
-
-  let get label i = nth i label
-  let is_any_at i label = Z.(nth i label = u_null)
-  let is_zero_at i label = nth i label = u_zero
-  let is_one_at i label = nth i label = u_one
-  let is_eos_at i label = nth i label = u_eos
-
   let is_zero (vec, mask) =
     let vec = Z.logand vec mask in
     0 -- bv_len mask
     |> List.for_all (fun i ->
-      let c = bv_get2 vec i in
+      let c = bv_get vec i in
       c = u_eos || c = u_null)
   ;;
 
@@ -373,8 +323,34 @@ module StrBv = struct
     let vec = Z.logand vec mask in
     0 -- bv_len vec
     |> List.for_all (fun i ->
-      let c = bv_get2 vec i in
+      let c = bv_get vec i in
       c = u_eos || c = u_null || c = u_zero)
+  ;;
+
+  let stretch vec mask_list deg =
+    let m =
+      mask_list
+      |> List.mapi (fun i k -> k, Set.singleton i)
+      |> Map.of_alist_reduce ~f:Set.union
+    in
+    bv_init deg (fun i ->
+      (let* js = Map.find m i in
+       let* j = Set.nth js 0 in
+       let v = bv_get vec j in
+       Option.some v)
+      |> Option.value ~default:u_null)
+    |> return
+  ;;
+
+  let bv_to_list =
+    let rec aux acc z =
+      if Z.equal z Z.zero
+      then acc
+      else (
+        let v = Z.log2 z in
+        aux (v :: acc) (Z.sub z (Z.shift_left Z.one v)))
+    in
+    aux []
   ;;
 
   (* FIXME: (GB) THIS IS COMPLETELY BROKEN. *)
@@ -388,14 +364,33 @@ module StrBv = struct
     |> Iter.to_list
   ;;
 
+  let reenumerate map (vec, mask) =
+    let length =
+      max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1)
+    in
+    let vec =
+      bv_init length (fun i ->
+        match Map.find map i with
+        | Some j -> bv_get vec j
+        | None -> u_null)
+    in
+    let mask =
+      bv_init length (fun i ->
+        match Map.find map i with
+        | Some j -> bv_get mask j
+        | None -> Z.zero)
+    in
+    vec, mask
+  ;;
+
   let zero _deg = Z.zero, Z.zero
   let zero_with_mask mask = Z.zero, bv_of_list mask
   let singleton_with_mask c mask = Z.shift_left Z.one c, bv_of_list mask
   let one_with_mask mask = bv_of_list mask, bv_of_list mask
 
   let pp_u ppf = function
-    | z when Z.(z = u_null) -> Format.pp_print_char ppf '_'
-    | z when Z.(z = u_eos) -> Format.pp_print_char ppf '$'
+    | z when z = u_null -> Format.pp_print_char ppf '_'
+    | z when z = u_eos -> Format.pp_print_char ppf '$'
     | z -> Format.pp_print_int ppf (Z.log2 z)
   ;;
 
@@ -420,30 +415,11 @@ module StrBv = struct
     |> Format.fprintf ppf "(%s)"
   ;;
 
-  let reenumerate map (vec, mask) =
-    let length =
-      max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1)
-    in
-    let vec =
-      bv_init2 length (fun i ->
-        match Map.find map i with
-        | Some j -> bv_get2 vec j
-        | None -> u_null)
-    in
-    let mask =
-      bv_init2 length (fun i ->
-        match Map.find map i with
-        | Some j -> bv_get2 mask j
-        | None -> Z.zero)
-    in
-    vec, mask
-  ;;
-
   (* FIXME *)
   let of_list l =
     let label = List.map snd l in
     let vars = List.map fst l in
-    let bv = bv_init2 (List.length l) (fun i -> List.nth label i) in
+    let bv = bv_init (List.length l) (fun i -> List.nth label i) in
     let deg = List.fold_left max 0 vars + 1 in
     let vec = stretch bv vars deg |> Option.get in
     let mask = bv_of_list vars in
@@ -465,53 +441,24 @@ module Str = struct
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let is_end_char c = c = u_eos || c = u_null
-
-  let pp ppf (vec : t) =
-    Array.to_seq vec
-    |> Seq.map (function
-      | x when x = u_null -> '_'
-      | x when x = u_eos -> '$'
-      | x -> x)
-    |> String.of_seq
-    |> Format.fprintf ppf "(%s)"
-  ;;
-
   let unsafe_get = Array.get
-  let safe_get arr i = if Array.length arr <= i then u_null else Array.get arr i
-  let nth i label = safe_get label i
-  let is_eos_at i label = nth i label = u_eos
+  let get label i = if Array.length label <= i then u_null else Array.get label i
+  let is_eos_at i label = get label i = u_eos
 
   let is_any_at i label =
-    let res = nth i label = u_null in
+    let res = get label i = u_null in
     res
   ;;
 
-  let is_zero_at i label = nth i label = u_zero
-  let is_one_at i label = nth i label = u_one
-
-  let stretch vec mask_list deg =
-    let m =
-      mask_list
-      |> List.mapi (fun i k -> k, Set.singleton i)
-      |> Map.of_alist_reduce ~f:Set.union
-    in
-    Array.init deg (fun i ->
-      (let* js = Map.find m i in
-       let* j = Set.nth js 0 in
-       let v = safe_get vec j in
-       v |> return)
-      |> Option.value ~default:u_null)
-    |> return
-  ;;
-
-  (*| false -> Option.none*)
+  let is_zero_at i label = get label i = u_zero
+  let is_one_at i label = get label i = u_one
 
   let equal vec1 vec2 =
     let len = max (Array.length vec1) (Array.length vec2) in
     0 -- (len - 1)
     |> List.for_all (fun i ->
-      let v1 = safe_get vec1 i in
-      let v2 = safe_get vec2 i in
+      let v1 = get vec1 i in
+      let v2 = get vec2 i in
       Char.equal v1 u_null || Char.equal v2 u_null || Char.equal v1 v2)
   ;;
 
@@ -521,8 +468,8 @@ module Str = struct
     in
     let len = Array.length vec1 in
     Array.init len (fun i ->
-      let c1 = safe_get vec1 i in
-      if Char.equal c1 u_null then safe_get vec2 i else c1)
+      let c1 = get vec1 i in
+      if Char.equal c1 u_null then get vec2 i else c1)
   ;;
 
   let project proj vec =
@@ -542,28 +489,19 @@ module Str = struct
       vec
   ;;
 
-  let zero deg = Array.init deg (fun _i -> u_null)
-
-  let zero_with_mask mask =
-    let len = List.fold_left max 0 mask + 1 in
-    Array.init len (fun i -> if List.mem i mask then '0' else u_null)
-  ;;
-
-  let singleton_with_mask c mask =
-    let len = max (List.fold_left max 0 mask) c + 1 in
-    Array.init len (fun i ->
-      if not (List.mem i mask) then u_null else if i = c then '1' else '0')
-  ;;
-
-  let one_with_mask mask =
-    let len = List.fold_left max 0 mask + 1 in
-    Array.init len (fun i -> if List.mem i mask then '1' else u_null)
-  ;;
-
-  let pp_u = Format.pp_print_char
-
-  let full_alpha =
-    Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1) |> List.map Char.chr
+  let stretch vec mask_list deg =
+    let m =
+      mask_list
+      |> List.mapi (fun i k -> k, Set.singleton i)
+      |> Map.of_alist_reduce ~f:Set.union
+    in
+    Array.init deg (fun i ->
+      (let* js = Map.find m i in
+       let* j = Set.nth js 0 in
+       let v = get vec j in
+       v |> return)
+      |> Option.value ~default:u_null)
+    |> return
   ;;
 
   let alphabet =
@@ -574,6 +512,10 @@ module Str = struct
   (* FIXME: this should support different bases and symbols. *)
   let variations _alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
+    let full_alpha =
+      Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1)
+      |> List.map Char.chr
+    in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
       | 0 -> []
@@ -601,6 +543,36 @@ module Str = struct
         |> Iter.to_list
   ;;
 
+  let zero deg = Array.init deg (fun _i -> u_null)
+
+  let zero_with_mask mask =
+    let len = List.fold_left max 0 mask + 1 in
+    Array.init len (fun i -> if List.mem i mask then '0' else u_null)
+  ;;
+
+  let singleton_with_mask c mask =
+    let len = max (List.fold_left max 0 mask) c + 1 in
+    Array.init len (fun i ->
+      if not (List.mem i mask) then u_null else if i = c then '1' else '0')
+  ;;
+
+  let one_with_mask mask =
+    let len = List.fold_left max 0 mask + 1 in
+    Array.init len (fun i -> if List.mem i mask then '1' else u_null)
+  ;;
+
+  let pp_u = Format.pp_print_char
+
+  let pp ppf (vec : t) =
+    Array.to_seq vec
+    |> Seq.map (function
+      | x when x = u_null -> '_'
+      | x when x = u_eos -> '$'
+      | x -> x)
+    |> String.of_seq
+    |> Format.fprintf ppf "(%s)"
+  ;;
+
   let reenumerate map vec =
     let len =
       max (Array.length vec) ((map |> Map.keys |> List.fold_left max min_int) + 1)
@@ -623,7 +595,6 @@ module Str = struct
     vec
   ;;
 
-  let get = safe_get
   let alpha s = Array.to_list s |> Set.of_list
 end
 
