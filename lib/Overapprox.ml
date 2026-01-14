@@ -111,7 +111,9 @@ let apply_symnatics (module S : Smtml_symantics) =
 ;;
 
 let check ast =
-  let tracing_on =
+  let _ = ast in
+  (*
+     let tracing_on =
     match Sys.getenv "CHRO_TRACE_OPT" with
     | exception Not_found -> false
     | "1" -> true
@@ -142,7 +144,8 @@ let check ast =
       | None -> ()
     in
     `Unknown ast
-  | `Sat -> `Unknown ast
+  | `Sat -> *)
+  `Unknown ast
 ;;
 
 let check ast =
