@@ -270,12 +270,22 @@ module StrBv = struct
   (* FIXME: GB: I think we should shift right then.or something like this. *)
   (* MS: looks good. Assume base = 4, then nth 1 vec 11110000 = 2^8 - 2^4*)
   let bv_get v i =
-    Z.logand
-      v
-      (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i)))
+    Z.shift_right
+      (Z.logand
+         v
+         (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i))))
+      (basei * i)
   ;;
 
-  let get (vec, mask) i = bv_get (Z.logand mask vec) i
+  let get (vec, mask) i =
+    match bv_get mask i with
+    | c when c = u_eos -> bv_get vec i
+    | c when c = u_null -> u_null
+    | c ->
+      failwith
+        (Format.asprintf "expected 0b111...111 or 0b0000...000 but found %a" Z.pp_print c)
+  ;;
+
   let is_any_at i label = get label i = u_null
   let is_zero_at i label = get label i = u_zero
   let is_one_at i label = get label i = u_one
