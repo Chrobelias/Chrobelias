@@ -1278,9 +1278,10 @@ module MsbStrBv = struct
   (* FIXME: it is actually power_of_base *)
   let power_of_two exp =
     Nfa.create_nfa
-      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1 ]
+      ~transitions:
+        [ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ o ], 1; 1, [ i ], 2; 2, [ o ], 2 ]
       ~start:[ 0 ]
-      ~final:[ 1 ]
+      ~final:[ 2 ]
       ~vars:[ exp ]
       ~deg:(exp + 1)
   ;;
@@ -1508,9 +1509,8 @@ module MsbNatStrBv = struct
 
   let power_of_two exp =
     NfaMsbNat.create_nfa
-      ~transitions:
-        [ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1; 2, [ o ], 0 ]
-      ~start:[ 2 ]
+      ~transitions:[ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
+      ~start:[ 0 ]
       ~final:[ 1 ]
       ~vars:[ exp ]
       ~deg:(exp + 1)
