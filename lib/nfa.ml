@@ -267,6 +267,18 @@ module StrBv = struct
   let is_end_char c = c = u_eos || c = u_null
   let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / basei
 
+  let rec compose = function
+    | [] -> u_null
+    | x :: xs -> Z.(x + Z.shift_left (compose xs) basei)
+  ;;
+
+  let rec decompose s = function
+    | _ when s = 0 -> []
+    | x ->
+      Z.(x mod Z.shift_left Z.one basei)
+      :: decompose (s - 1) (Z.shift_right_trunc x basei)
+  ;;
+
   (* FIXME: GB: I think we should shift right then.or something like this. *)
   (* MS: looks good. Assume base = 4, then nth 1 vec 11110000 = 2^8 - 2^4*)
   let bv_get v i =
@@ -337,8 +349,8 @@ module StrBv = struct
       c = u_eos || c = u_null || c = u_zero)
   ;;
 
-  let stretch vec mask_list deg =
-    let m =
+  let stretch vec mask_list deg = failwith "FIXME: stretch for StrBv"
+  (* let m =
       mask_list
       |> List.mapi (fun i k -> k, Set.singleton i)
       |> Map.of_alist_reduce ~f:Set.union
@@ -350,7 +362,7 @@ module StrBv = struct
        Option.some v)
       |> Option.value ~default:u_null)
     |> return
-  ;;
+  ;; *)
 
   let bv_to_list =
     let rec aux acc z =
@@ -363,15 +375,29 @@ module StrBv = struct
     aux []
   ;;
 
-  (* FIXME: (GB) THIS IS COMPLETELY BROKEN. *)
   let variations _alpha (_, mask) =
-    let mask_list = mask |> bv_to_list in
+    let full_alpha = 0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x) in
+    let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
+    let rec powerset = function
+      | 0 -> []
+      | 1 -> alpha
+      | i ->
+        let open Base.List.Let_syntax in
+        let ( let* ) = ( >>= ) in
+        let* s = powerset (i - 1) in
+        List.map (fun a -> a @ s) alpha
+    in
     let length = bv_len mask in
-    Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
-    |> Iter.map Z.of_int
-    |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
-    |> Iter.map (fun x -> x, mask)
-    |> Iter.to_list
+    let mask_list = decompose length mask in
+    match mask_list with
+    | [] -> [ u_null, mask ]
+    | _ ->
+      powerset length
+      |> Iter.of_list
+      |> Iter.map compose
+      |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
+      |> Iter.map (fun x -> x, mask)
+      |> Iter.to_list
   ;;
 
   let reenumerate map (vec, mask) =
@@ -406,14 +432,8 @@ module StrBv = struct
 
   let pp ppf (vec, mask) =
     let mask_len = bv_len mask in
-    let rec get_list s = function
-      | _ when s = 0 -> []
-      | x ->
-        Z.(x mod Z.shift_left Z.one basei)
-        :: get_list (s - 1) (Z.shift_right_trunc x basei)
-    in
-    let vec = get_list mask_len vec in
-    let mask = get_list mask_len mask in
+    let vec = decompose mask_len vec in
+    let mask = decompose mask_len mask in
     List.combine vec mask
     |> List.map (function
       | _, y when y = u_null -> "_"
