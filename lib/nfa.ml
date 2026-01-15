@@ -413,10 +413,24 @@ module StrBv = struct
     vec, mask
   ;;
 
-  let zero _deg = Z.zero, Z.zero
-  let zero_with_mask mask = Z.zero, bv_of_list mask
-  let singleton_with_mask c mask = Z.shift_left Z.one c, bv_of_list mask
-  let one_with_mask mask = bv_of_list mask, bv_of_list mask
+  let zero deg = Z.zero, Z.zero
+
+  let zero_with_mask mask =
+    let len = List.fold_left max 0 mask + 1 in
+    bv_init len (fun i -> if List.mem i mask then u_zero else u_null), bv_of_list mask
+  ;;
+
+  let singleton_with_mask c mask =
+    let len = max (List.fold_left max 0 mask) c + 1 in
+    ( bv_init len (fun i ->
+        if not (List.mem i mask) then u_null else if i = c then u_one else u_zero)
+    , bv_of_list mask )
+  ;;
+
+  let one_with_mask mask =
+    let len = List.fold_left max 0 mask + 1 in
+    bv_init len (fun i -> if List.mem i mask then u_one else u_null), bv_of_list mask
+  ;;
 
   let pp_u ppf = function
     | z when z = u_null -> Format.pp_print_char ppf '_'
