@@ -343,17 +343,26 @@ struct
              (fun ir ->
                 let nfa = eval ir in
                 Debug.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
-                nfa |> Nfa.reverse)
+                nfa |> Nfa.reverse, ir)
              irs
-           |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
+           |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
          in
          let rec eval_and = function
-           | hd :: [] -> hd
-           | hd :: hd' :: tl ->
-             Debug.printf "Intersecting %d %d\n%!" (Nfa.length hd) (Nfa.length hd');
+           | (hd, _) :: [] -> hd
+           | (hd, ir) :: (hd', ir') :: tl ->
+             Debug.printf
+               "Intersecting\n  [%d (%a)]\n  [%d (%a)]\n%!"
+               (Nfa.length hd)
+               Ir.pp
+               ir
+               (Nfa.length hd')
+               Ir.pp
+               ir';
              let nfa = Nfa.intersect hd hd' in
+             let ir = Ir.land_ [ ir; ir' ] in
              let nfas =
-               nfa :: tl |> List.sort (fun nfa1 nfa2 -> Nfa.length nfa1 - Nfa.length nfa2)
+               (nfa, ir) :: tl
+               |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
              in
              eval_and nfas
            | [] -> NfaCollection.n ()
