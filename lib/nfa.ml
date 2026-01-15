@@ -404,12 +404,13 @@ module StrBv = struct
     | z -> Format.pp_print_int ppf (Z.log2 z)
   ;;
 
-  (* Just a copy*)
   let pp ppf (vec, mask) =
     let mask_len = bv_len mask in
     let rec get_list s = function
       | _ when s = 0 -> []
-      | x -> Z.(x mod base) :: get_list (s - 1) (Z.shift_right_trunc x basei)
+      | x ->
+        Z.(x mod Z.shift_left Z.one basei)
+        :: get_list (s - 1) (Z.shift_right_trunc x basei)
     in
     let vec = get_list mask_len vec in
     let mask = get_list mask_len mask in
@@ -434,11 +435,13 @@ module StrBv = struct
   ;;
 
   let alpha _ =
-    (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
+    (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
     |> Set.of_list
   ;;
 
-  let alphabet = (0 -- 9 |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
+  let alphabet =
+    (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
+  ;;
 end
 
 module Str = struct
