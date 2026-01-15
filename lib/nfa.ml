@@ -397,7 +397,7 @@ module StrBv = struct
     match mask_list with
     | [] -> [ u_null, mask ]
     | _ ->
-      powerset length
+      powerset (List.length mask_list)
       |> Iter.of_list
       |> Iter.map compose
       |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
