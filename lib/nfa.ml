@@ -364,17 +364,6 @@ module StrBv = struct
     |> return
   ;;
 
-  let bv_to_list =
-    let rec aux acc z =
-      if Z.equal z Z.zero
-      then acc
-      else (
-        let v = Z.log2 z in
-        aux (v :: acc) (Z.sub z (Z.shift_left Z.one v)))
-    in
-    aux []
-  ;;
-
   let variations _alpha (_, mask) =
     let full_alpha = 0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x) in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
