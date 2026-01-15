@@ -432,6 +432,7 @@ module StrBv = struct
     |> List.map (function
       | _, y when y = u_null -> "_"
       | x, _ when x = u_null -> "_"
+      | x, _ when x = u_eos -> "$"
       | x, _ -> Int.to_string (Z.log2 x))
     |> List.fold_left (fun acc x -> acc ^ x) ""
     |> Format.fprintf ppf "(%s)"
