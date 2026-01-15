@@ -349,8 +349,8 @@ module StrBv = struct
       c = u_eos || c = u_null || c = u_zero)
   ;;
 
-  let stretch vec mask_list deg = failwith "FIXME: stretch for StrBv"
-  (* let m =
+  let stretch vec mask_list deg =
+    let m =
       mask_list
       |> List.mapi (fun i k -> k, Set.singleton i)
       |> Map.of_alist_reduce ~f:Set.union
@@ -362,7 +362,7 @@ module StrBv = struct
        Option.some v)
       |> Option.value ~default:u_null)
     |> return
-  ;; *)
+  ;;
 
   let bv_to_list =
     let rec aux acc z =
@@ -389,6 +389,11 @@ module StrBv = struct
     in
     let length = bv_len mask in
     let mask_list = decompose length mask in
+    let mask_list =
+      List.filter_map
+        (fun (i, v) -> if v = Z.zero then Option.none else Option.some i)
+        (List.mapi (fun i v -> i, v) mask_list)
+    in
     match mask_list with
     | [] -> [ u_null, mask ]
     | _ ->
