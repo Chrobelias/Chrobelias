@@ -57,6 +57,10 @@ let _pow2 n = List.init n (Fun.const 2) |> List.fold_left ( * ) 1
 type deg = int
 type state = int
 
+(* TODO(Kakadu): Gosha, could you add Sets with Int keys
+where it's acceptable, to reduce amount of calls to polymorhos compare *)
+(* module State_set = Base.Set.M (Base.Int) *)
+
 let ( let* ) = Option.bind
 let return = Option.some
 
@@ -1229,12 +1233,12 @@ struct
       then transitions
       else (
         let q1, q2 = Queue.pop queue in
-        let delta1 = nfa1.transitions.(q1) |> Iter.of_list in
-        let delta2 = nfa2.transitions.(q2) |> Iter.of_list in
+        let delta1 = nfa1.transitions.(q1) in
+        let delta2 = nfa2.transitions.(q2) in
         let delta =
-          Iter.fold
+          List.fold_left
             (fun acc_delta (label1, q1') ->
-               Iter.fold
+               List.fold_left
                  (fun acc_delta (label2, q2') ->
                     let equal = Label.equal label1 label2 in
                     match equal with
@@ -1252,7 +1256,7 @@ struct
             []
             delta1
         in
-        delta :: aux transitions queue)
+        aux (delta :: transitions) queue)
     in
     let start_pairs = cartesian_product nfa1.start nfa2.start in
     let queue = Queue.create () in
@@ -1261,7 +1265,7 @@ struct
         visit x;
         Queue.add x queue)
       start_pairs;
-    let transitions = aux [] queue |> Array.of_list in
+    let transitions = aux [] queue |> List.rev |> Array.of_list in
     let start = start_pairs |> Set.map ~f:q in
     let final =
       cartesian_product nfa1.final nfa2.final
