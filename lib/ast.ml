@@ -654,6 +654,8 @@ let rec in_eia_term f v ast =
   | Unsupp _ -> false
 ;;
 
+let to_nat ast = [ ast ]
+
 let in_stoi v ast =
   let in_stoi_eia v eia =
     Eia.fold2

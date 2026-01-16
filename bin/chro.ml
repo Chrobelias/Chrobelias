@@ -95,7 +95,26 @@ let check_sat ?(verbose = false) ast : rez =
     else ()
   in
   let used_under2 = ref false in
+  let check_nfa_sat ast e =
+    match Lib.Me.ir_of_ast e ast with
+    | Ok ir ->
+      let ir = Lib.Ir.simpl ir in
+      let ir = if config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in
+      let ir = if config.simpl_alpha then Lib.Simpl_alpha.simplify ir else ir in
+      (match ir with
+       | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
+       | Lnot True -> Unsat "simpl"
+       | _ ->
+         (match Lib.Solver.check_sat ir with
+          | `Sat get_model -> sat "nfa" ast e get_model Map.empty
+          | `Unsat -> Unsat "nfa"
+          | `Unknown _ir -> Unknown (ast, e)))
+    | Error s ->
+      if !used_under2 |> not then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
+      (* Unknown (ast, e) *) exit 0
+  in
   let check_eia_sat ast =
+    let can_be_unk = ref false in
     let apporx_rez =
       unknown ast Lib.Env.empty
       <+> (fun ast e ->
@@ -208,25 +227,19 @@ let check_sat ?(verbose = false) ast : rez =
     in
     match apporx_rez with
     | Unknown (ast, e) ->
-      (match Lib.Me.ir_of_ast e ast with
-       (* | Ok True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
-       | Ok (Lnot True) -> Unsat "simpl" *)
-       | Ok ir ->
-         let ir = Lib.Ir.simpl ir in
-         let ir = if config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in
-         let ir = if config.simpl_alpha then Lib.Simpl_alpha.simplify ir else ir in
-         (match ir with
-          | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
-          | Lnot True -> Unsat "simpl"
-          | _ ->
-            (match Lib.Solver.check_sat ir with
-             | `Sat get_model -> sat "nfa" ast e get_model Map.empty
-             | `Unsat -> Unsat "nfa"
-             | `Unknown _ir -> Unknown (ast, e)))
-       | Error s ->
-         if !used_under2 |> not
-         then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
-         (* Unknown (ast, e) *) exit 0)
+      let asts_nat = Lib.Ast.to_nat ast in
+      let check ast =
+        log "Over IN: %a\n" Lib.Ast.pp_smtlib2 ast;
+        match check_nfa_sat ast e with
+        | Sat (s, ast, env, get_model, regexes) -> Some (s, ast, env, get_model, regexes)
+        | Unknown _ ->
+          can_be_unk := true;
+          None
+        | Unsat _ -> None
+      in
+      (match List.find_map check asts_nat with
+       | Some (s, ast, env, get_model, regexes) -> Sat (s, ast, env, get_model, regexes)
+       | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat "nfa")
     | _ -> apporx_rez
   in
   let can_be_unk = ref false in
