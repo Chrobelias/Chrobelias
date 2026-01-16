@@ -96,6 +96,7 @@ module type Type = sig
   val reenumerate : (int, int) Map.t -> t -> t
   val minimize : t -> t
   val minimize_strong : t -> t
+  val minimize_not_very_strong : t -> t
   val invert : t -> t
   val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit

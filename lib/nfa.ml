@@ -896,6 +896,7 @@ module type Type = sig
   val reenumerate : (int, int) Map.t -> t -> t
   val minimize : t -> t
   val minimize_strong : t -> t
+  val minimize_not_very_strong : t -> t
   val invert : t -> t
   val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit
@@ -1878,6 +1879,12 @@ module Lsb (Label : L) = struct
     |> reverse
     |> to_dfa
   ;;
+
+  let minimize_not_very_strong nfa =
+    if length nfa > Config.config.good_for_minimize
+    then minimize nfa
+    else minimize_strong nfa
+  ;;
 end
 
 module MsbNat (Label : L) = struct
@@ -1925,7 +1932,14 @@ module MsbNat (Label : L) = struct
     |> remove_unreachable_from_start
   ;;
 
-  let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa
+  let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa |> minimize
+
+  let minimize_not_very_strong nfa =
+    if length nfa > Config.config.good_for_minimize
+    then minimize nfa
+    else minimize_strong nfa
+  ;;
+
   let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
 
@@ -2252,7 +2266,13 @@ module Msb (Label : L) = struct
     |> remove_unreachable_from_start
   ;;
 
-  let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa
+  let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa |> minimize
+
+  let minimize_not_very_strong nfa =
+    if length nfa > Config.config.good_for_minimize
+    then minimize nfa
+    else minimize_strong nfa
+  ;;
 
   let any_path nfa =
     Debug.dump_nfa ~msg:"ANY PATH INPUT: %s" format_nfa nfa;
