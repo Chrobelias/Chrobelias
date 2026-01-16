@@ -778,7 +778,8 @@ let to_nat ast =
               (Eia.map2
                  Fun.id
                  (function
-                   | Eia.Atom (Var (v, I)) when v = var -> failwith ""
+                   | Eia.Atom (Var (v, I)) as v' when v = var ->
+                     Eia.Mul [ v'; Eia.const Z.minus_one ]
                    | eia' -> eia')
                  Fun.id
                  eia')
