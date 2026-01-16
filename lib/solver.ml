@@ -384,7 +384,10 @@ struct
                ~f:(fun ~key:k ~data:v acc ->
                  (* TODO: this can (and should) be placed inside NfaCollection. *)
                  if Map.mem term k && is_exp k
-                 then Nfa.intersect acc (NfaCollection.power_of_two v)
+                 then
+                   acc
+                   |> Nfa.intersect (NfaCollection.power_of_two v |> Nfa.minimize_strong)
+                   |> Nfa.minimize_not_very_strong
                  else acc)
                vars
            in
@@ -397,7 +400,10 @@ struct
                ~f:(fun ~key:k ~data:v acc ->
                  (* TODO: this can (and should) be placed inside NfaCollection. *)
                  if Map.mem term k && is_exp k
-                 then Nfa.intersect acc (NfaCollection.power_of_two v)
+                 then
+                   acc
+                   |> Nfa.intersect (NfaCollection.power_of_two v |> Nfa.minimize_strong)
+                   |> Nfa.minimize_not_very_strong
                  else acc)
                vars
            in
@@ -817,7 +823,12 @@ struct
       Map.fold
         ~init:nfa
         ~f:(fun ~key:k ~data:v acc ->
-          if is_exp k then Nfa.intersect acc (NfaCollection.power_of_two v) else acc)
+          if is_exp k
+          then
+            acc
+            |> Nfa.intersect (NfaCollection.power_of_two v |> Nfa.minimize_strong)
+            |> Nfa.minimize_not_very_strong
+          else acc)
         vars
     in
     Debug.dump_nfa
