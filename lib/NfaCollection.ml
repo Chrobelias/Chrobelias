@@ -443,8 +443,8 @@ module MsbNat = struct
 
   let power_of_two exp =
     NfaMsbNat.create_nfa
-      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 2, [ o ], 0 ]
-      ~start:[ 2 ]
+      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
+      ~start:[ 0 ]
       ~final:[ 1 ]
       ~vars:[ exp ]
       ~deg:(exp + 1)
@@ -747,12 +747,12 @@ module MsbStr = struct
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  (* FIXME: it is actually power_of_base *)
   let power_of_two exp =
     Nfa.create_nfa
-      ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1 ]
+      ~transitions:
+        [ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ o ], 1; 1, [ i ], 2; 2, [ o ], 2 ]
       ~start:[ 0 ]
-      ~final:[ 1 ]
+      ~final:[ 2 ]
       ~vars:[ exp ]
       ~deg:(exp + 1)
   ;;
@@ -834,9 +834,6 @@ module MsbStr = struct
 
   let leq vars term c =
     let base = Z.of_int base in
-    let minimize_not_very_strong nfa =
-      if Nfa.length nfa > 10 then Nfa.minimize nfa else Nfa.minimize_strong nfa
-    in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -887,7 +884,7 @@ module MsbStr = struct
          ~vars:(List.map fst term)
          ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
        |> fun x -> x)
-      |> minimize_not_very_strong
+      |> Nfa.minimize_not_very_strong
   ;;
 end
 
@@ -980,9 +977,8 @@ module MsbNatStr = struct
 
   let power_of_two exp =
     NfaMsbNat.create_nfa
-      ~transitions:
-        [ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1; 2, [ o ], 0 ]
-      ~start:[ 2 ]
+      ~transitions:[ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
+      ~start:[ 0 ]
       ~final:[ 1 ]
       ~vars:[ exp ]
       ~deg:(exp + 1)
@@ -1363,9 +1359,6 @@ module MsbStrBv = struct
 
   let leq vars term c =
     let base = Z.of_int base in
-    let minimize_not_very_strong nfa =
-      if Nfa.length nfa > 10 then Nfa.minimize nfa else Nfa.minimize_strong nfa
-    in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -1416,7 +1409,7 @@ module MsbStrBv = struct
          ~vars:(List.map fst term)
          ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
        |> fun x -> x)
-      |> minimize_not_very_strong
+      |> Nfa.minimize_not_very_strong
   ;;
 end
 
