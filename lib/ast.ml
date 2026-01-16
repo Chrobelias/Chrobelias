@@ -654,8 +654,6 @@ let rec in_eia_term f v ast =
   | Unsupp _ -> false
 ;;
 
-let to_nat ast = [ ast ]
-
 let in_stoi v ast =
   let in_stoi_eia v eia =
     Eia.fold2
@@ -752,4 +750,51 @@ let safe_eq ast ast' =
     (match Stdlib.(ast = ast') with
      | exception _ -> true
      | smth -> smth)
+;;
+
+let to_nat ast =
+  let module Set = Base.Set.Poly in
+  let rec collect =
+    fold
+      (fun acc -> function
+         | Eia eia' ->
+           Eia.fold2
+             (fun acc -> function
+                | Eia.Atom (Var (v, I)) -> Set.add acc v
+                | eia' -> acc)
+             (fun acc _ -> acc)
+             acc
+             eia'
+         | Lor _ -> failwith "to_nat expected CNF"
+         | ast -> acc)
+      Set.empty
+  in
+  let rec vary var ast =
+    [ ast
+    ; map
+        (function
+          | Eia eia' ->
+            eia
+              (Eia.map2
+                 Fun.id
+                 (function
+                   | Eia.Atom (Var (v, I)) when v = var -> failwith ""
+                   | eia' -> eia')
+                 Fun.id
+                 eia')
+          | Lor _ -> failwith "to_nat expected CNF"
+          | ast -> ast)
+        ast
+    ]
+  in
+  let vars = collect ast |> Set.to_list in
+  let open Base.List.Let_syntax in
+  let ( let* ) = Base.List.Let_syntax.( >>= ) in
+  List.fold_left
+    (fun acc var ->
+       let* acc = acc in
+       let* ast = vary var acc in
+       return ast)
+    (return ast)
+    vars
 ;;
