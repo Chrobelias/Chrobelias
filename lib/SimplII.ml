@@ -3015,7 +3015,7 @@ let arithmetize ast =
                      regexes'
                  in
                  ast', regexes)
-              (ast |> flatten |> arithmetize var_info))
+              (ast |> flatten |> arithmetize var_info |> List.concat_map Ast.to_nat))
          asts_n_regexes)
 ;;
 

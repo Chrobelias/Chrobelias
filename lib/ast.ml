@@ -754,7 +754,7 @@ let safe_eq ast ast' =
 
 let to_nat ast =
   let module Set = Base.Set.Poly in
-  let rec collect =
+  let collect =
     fold
       (fun acc -> function
          | Eia eia' ->
@@ -769,7 +769,7 @@ let to_nat ast =
          | ast -> acc)
       Set.empty
   in
-  let rec vary var ast =
+  let vary var ast =
     [ ast
     ; map
         (function
