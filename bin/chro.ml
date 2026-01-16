@@ -227,19 +227,22 @@ let check_sat ?(verbose = false) ast : rez =
     in
     match apporx_rez with
     | Unknown (ast, e) ->
-      let asts_nat = Lib.Ast.to_nat ast in
-      let check ast =
-        log "Over IN: %a\n" Lib.Ast.pp_smtlib2 ast;
-        match check_nfa_sat ast e with
-        | Sat (s, ast, env, get_model, regexes) -> Some (s, ast, env, get_model, regexes)
-        | Unknown _ ->
-          can_be_unk := true;
-          None
-        | Unsat _ -> None
-      in
-      (match List.find_map check asts_nat with
-       | Some (s, ast, env, get_model, regexes) -> Sat (s, ast, env, get_model, regexes)
-       | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat "nfa")
+      if config.mode = `Msb
+      then check_nfa_sat ast e
+      else (
+        let asts_nat = Lib.Ast.to_nat ast in
+        let check ast =
+          log "Over IN: %a\n" Lib.Ast.pp_smtlib2 ast;
+          match check_nfa_sat ast e with
+          | Sat (s, ast, env, get_model, regexes) -> Some (s, ast, env, get_model, regexes)
+          | Unknown _ ->
+            can_be_unk := true;
+            None
+          | Unsat _ -> None
+        in
+        match List.find_map check asts_nat with
+        | Some (s, ast, env, get_model, regexes) -> Sat (s, ast, env, get_model, regexes)
+        | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat "nfa")
     | _ -> apporx_rez
   in
   let can_be_unk = ref false in

@@ -104,7 +104,7 @@ Basic options:
       , "\tDisable simple overapprox" )
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
-      , "  \tUse least-significant-bit first representation (only supports IN)" )
+      , "  \tUse least-significant-bit first representation" )
     ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
       , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )
