@@ -518,12 +518,19 @@ module Str = struct
   let is_one_at i label = get label i = u_one
 
   let equal vec1 vec2 =
-    let len = max (Array.length vec1) (Array.length vec2) in
-    0 -- (len - 1)
-    |> List.for_all (fun i ->
-      let v1 = get vec1 i in
-      let v2 = get vec2 i in
-      Char.equal v1 u_null || Char.equal v2 u_null || Char.equal v1 v2)
+    let len = Int.min (Array.length vec1) (Array.length vec2) in
+    let exception Break in
+    try
+      for i = 0 to len - 1 do
+        let v1 = get vec1 i in
+        let v2 = get vec2 i in
+        if Char.equal v1 u_null || Char.equal v2 u_null || Char.equal v1 v2
+        then ()
+        else raise_notrace Break
+      done;
+      true
+    with
+    | Break -> false
   ;;
 
   let combine vec1 vec2 =
