@@ -16,7 +16,7 @@ module type Type = sig
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val seq : alpha:v list option -> dest:int -> src:int -> unit -> t
-  val base : int
+  val base : unit -> int
 end
 
 module type NatType = sig

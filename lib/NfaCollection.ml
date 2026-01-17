@@ -17,7 +17,7 @@ module type Type = sig
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val seq : alpha:v list option -> dest:int -> src:int -> unit -> t
-  val base : int
+  val base : unit -> int
 end
 
 module type NatType = sig
@@ -36,7 +36,7 @@ let i = true
 module Lsb = struct
   module Nfa = Nfa.Lsb (Nfa.Bv)
 
-  let base = Z.to_int (Config.base ())
+  let base () = Z.to_int (Config.base ())
 
   type t = Nfa.t
   type v = unit
@@ -108,7 +108,7 @@ module Lsb = struct
   ;;
 
   let eq vars term c =
-    let base = Z.of_int base in
+    let base = Z.of_int (base ()) in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -161,7 +161,7 @@ module Lsb = struct
   ;;
 
   let leq vars term c =
-    let base = Z.of_int base in
+    let base = Z.of_int (base ()) in
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
     let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
     if Z.(gcd_ = zero)
@@ -223,7 +223,7 @@ end
 module Msb = struct
   module Nfa = Nfa.Msb (Nfa.Bv)
 
-  let base = Z.to_int (Config.base ())
+  let base () = Z.to_int (Config.base ())
 
   type t = Nfa.t
   type v = unit
@@ -262,7 +262,7 @@ module Msb = struct
   ;;
 
   let eq vars term c =
-    let base = Z.of_int base in
+    let base = Z.of_int (base ()) in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -316,7 +316,7 @@ module Msb = struct
   ;;
 
   let leq vars term c =
-    let base = Z.of_int base in
+    let base = Z.of_int (base ()) in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -393,7 +393,7 @@ module MsbNat = struct
   type t = NfaMsbNat.t
   type v = unit
 
-  let base = Z.to_int (Config.base ())
+  let base () = Z.to_int (Config.base ())
 
   let n () =
     NfaMsbNat.create_nfa
@@ -480,14 +480,14 @@ module LsbStr = struct
 
   let o = Str.u_zero
   let i = Str.u_one
-  let base = Z.to_int (Config.base ())
+  let base () = Z.to_int (Config.base ())
 
-  let alphabet =
-    Str.alphabet |> List.to_seq |> Seq.take base |> Seq.take base |> List.of_seq
+  let alphabet () =
+    Str.alphabet |> List.to_seq |> Seq.take (base ()) |> Seq.take (base ()) |> List.of_seq
   ;;
 
   let () = assert (List.nth alphabet 0 = Str.u_zero)
-  let itoc i = List.nth alphabet i
+  let itoc i = List.nth (alphabet ()) i
 
   let ( -- ) i j =
     let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -495,7 +495,7 @@ module LsbStr = struct
   ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
     let transitions =
       alpha_transitions @ [ 0, [ Str.u_eos; i ], 1 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
@@ -504,7 +504,7 @@ module LsbStr = struct
   ;;
 
   let seq ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let transitions =
       (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
     in
@@ -550,6 +550,7 @@ module LsbStr = struct
   ;;
 
   let pow_of_log_var var exp =
+    let base = base () in
     Nfa.create_nfa
       ~transitions:
         ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
@@ -572,6 +573,7 @@ module LsbStr = struct
   ;;
 
   let powerset term =
+    let base = base () in
     let rec helper = function
       | [] -> []
       | [ x ] ->
@@ -591,7 +593,7 @@ module LsbStr = struct
   ;;
 
   let eq vars term c =
-    let base = Z.of_int base in
+    let base = Z.of_int (base ()) in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -645,7 +647,7 @@ module LsbStr = struct
 
   let leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t =
     fun vars term c ->
-    let base = Z.of_int base in
+    let base = Z.of_int (base ()) in
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
     let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
     if gcd = Z.zero
@@ -705,14 +707,14 @@ module MsbStr = struct
 
   let o = Str.u_zero
   let i = Str.u_one
-  let base = Z.to_int (Config.base ())
+  let base () = Z.to_int (Config.base ())
 
-  let alphabet =
-    Str.alphabet |> List.to_seq |> Seq.take base |> Seq.take base |> List.of_seq
+  let alphabet () =
+    Str.alphabet |> List.to_seq |> Seq.take (base ()) |> Seq.take (base ()) |> List.of_seq
   ;;
 
-  let () = assert (List.nth alphabet 0 = Str.u_zero)
-  let itoc i = List.nth alphabet i
+  let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
+  let itoc i = List.nth (alphabet ()) i
 
   let ( -- ) i j =
     let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -720,7 +722,7 @@ module MsbStr = struct
   ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
     let transitions =
       alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
@@ -729,7 +731,7 @@ module MsbStr = struct
   ;;
 
   let seq ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let transitions =
       (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
     in
@@ -758,6 +760,7 @@ module MsbStr = struct
   ;;
 
   let powerset term =
+    let base = base () in
     let rec helper = function
       | [] -> []
       | [ x ] ->
@@ -779,6 +782,7 @@ module MsbStr = struct
   let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
 
   let eq vars term c =
+    let base = base () in
     let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
@@ -833,6 +837,7 @@ module MsbStr = struct
   ;;
 
   let leq vars term c =
+    let base = base () in
     let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
@@ -898,13 +903,13 @@ module MsbNatStr = struct
 
   let o = Str.u_zero
   let i = Str.u_one
-  let base = Z.to_int (Config.base ())
+  let base () = Z.to_int (Config.base ())
 
-  let alphabet =
-    Str.alphabet |> List.to_seq |> Seq.take base |> Seq.take base |> List.of_seq
+  let alphabet () =
+    Str.alphabet |> List.to_seq |> Seq.take (base ()) |> Seq.take (base ()) |> List.of_seq
   ;;
 
-  let () = assert (List.nth alphabet 0 = Str.u_zero)
+  let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
 
   let n () =
     NfaMsbNat.create_nfa
@@ -916,7 +921,7 @@ module MsbNatStr = struct
   ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
     let transitions =
       alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
@@ -1008,14 +1013,10 @@ module LsbStrBv = struct
 
   let o = Str.u_zero
   let i = Str.u_one
-  let base = Z.to_int (Config.base ())
-
-  let alphabet =
-    Str.alphabet |> List.to_seq |> Seq.take base |> Seq.take base |> List.of_seq
-  ;;
-
-  let () = assert (List.nth alphabet 0 = Str.u_zero)
-  let itoc i = List.nth alphabet i
+  let base () = Z.to_int (Config.base ())
+  let alphabet () = Str.alphabet |> List.to_seq |> Seq.take (base ()) |> List.of_seq
+  let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
+  let itoc i = List.nth (alphabet ()) i
 
   let ( -- ) i j =
     let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -1023,7 +1024,7 @@ module LsbStrBv = struct
   ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
     let transitions =
       alpha_transitions @ [ 0, [ Str.u_eos; i ], 1 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
@@ -1032,7 +1033,7 @@ module LsbStrBv = struct
   ;;
 
   let seq ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let transitions =
       (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
     in
@@ -1078,6 +1079,7 @@ module LsbStrBv = struct
   ;;
 
   let pow_of_log_var var exp =
+    let base = base () in
     Nfa.create_nfa
       ~transitions:
         ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
@@ -1100,6 +1102,7 @@ module LsbStrBv = struct
   ;;
 
   let powerset term =
+    let base = base () in
     let rec helper = function
       | [] -> []
       | [ x ] ->
@@ -1119,6 +1122,7 @@ module LsbStrBv = struct
   ;;
 
   let eq vars term c =
+    let base = base () in
     let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
@@ -1173,6 +1177,7 @@ module LsbStrBv = struct
 
   let leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t =
     fun vars term c ->
+    let base = base () in
     let base = Z.of_int base in
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
     let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
@@ -1233,10 +1238,10 @@ module MsbStrBv = struct
 
   let o = Str.u_zero
   let i = Str.u_one
-  let base = Z.to_int (Config.base ())
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take base |> List.of_seq
-  let () = assert (List.nth alphabet 0 = Str.u_zero)
-  let itoc i = List.nth alphabet i
+  let base () = Z.to_int (Config.base ())
+  let alphabet () = Str.alphabet |> List.to_seq |> Seq.take (base ()) |> List.of_seq
+  let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
+  let itoc i = List.nth (alphabet ()) i
 
   let ( -- ) i j =
     let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -1244,7 +1249,7 @@ module MsbStrBv = struct
   ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
     let transitions =
       alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
@@ -1253,7 +1258,7 @@ module MsbStrBv = struct
   ;;
 
   let seq ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let transitions =
       (0, [ Str.u_eos; Str.u_eos ], 0) :: List.map (fun c -> 0, [ c; c ], 0) alpha
     in
@@ -1283,6 +1288,7 @@ module MsbStrBv = struct
   ;;
 
   let powerset term =
+    let base = base () in
     let rec helper = function
       | [] -> []
       | [ x ] ->
@@ -1304,6 +1310,7 @@ module MsbStrBv = struct
   let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
 
   let eq vars term c =
+    let base = base () in
     let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
@@ -1358,6 +1365,7 @@ module MsbStrBv = struct
   ;;
 
   let leq vars term c =
+    let base = base () in
     let base = Z.of_int base in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
@@ -1423,13 +1431,9 @@ module MsbNatStrBv = struct
 
   let o = Str.u_zero
   let i = Str.u_one
-  let base = Z.to_int (Config.base ())
-
-  let alphabet =
-    Str.alphabet |> List.to_seq |> Seq.take base |> Seq.take base |> List.of_seq
-  ;;
-
-  let () = assert (List.nth alphabet 0 = Str.u_zero)
+  let base () = Z.to_int (Config.base ())
+  let alphabet () = Str.alphabet |> List.to_seq |> Seq.take (base ()) |> List.of_seq
+  let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
 
   let n () =
     NfaMsbNat.create_nfa
@@ -1441,7 +1445,7 @@ module MsbNatStrBv = struct
   ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
+    let alpha = Option.value ~default:(alphabet ()) alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
     let transitions =
       alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
