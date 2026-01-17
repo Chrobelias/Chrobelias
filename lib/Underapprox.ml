@@ -181,8 +181,9 @@ let omit_z3_model =
 ;;
 
 let check bound ast =
-  try
-    let vars = ref (Base.Set.empty (module Base.String)) in
+  let _, _ = bound, ast in
+  (*try
+    let _vars = ref (Base.Set.empty (module Base.String)) in
     let interestring_vars = apply_symantics (make_collector ()) ast in
     (* TODO(Kakadu): collecting of interesting variables could be buggy. For example, what if
       (exists (x) (...) (exists (x) (= (exp 2 x) 128)))
@@ -192,7 +193,7 @@ let check bound ast =
     log
       "Expecting %d choices ...\n%!"
       (Utils.pow ~base:bound (List.length interestring_vars));
-    let all_choices =
+    let _all_choices =
       let ( let* ) xs f = List.concat_map f xs in
       let choice1 = List.init (bound + 1) Fun.id in
       List.fold_left
@@ -256,5 +257,6 @@ let check bound ast =
       `Sat ("under I", to_normal_env env)
     | Early_Unsat -> `Unsat "nia"
   with
-  | String_op | Bitwise_op -> `Unknown ast
+  | String_op | Bitwise_op -> *)
+  `Unknown ast
 ;;
