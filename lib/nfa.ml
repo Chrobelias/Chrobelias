@@ -895,6 +895,7 @@ module type Type = sig
   val run : t -> bool
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
+  val shrink : t -> t
   val intersect : t -> t -> t
   val unite : t -> t -> t
   val project : int list -> t -> t
@@ -914,7 +915,6 @@ module type Type = sig
   val split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
   val alpha : t -> v Set.t
-  val shrink : t -> t
 end
 
 module type NatType = sig
@@ -1122,6 +1122,66 @@ struct
              labels))
       nfa.transitions;
     fprintf ppf "}"
+  ;;
+
+  let shrink (nfa : t) =
+    let shrink delta =
+      if List.is_empty delta
+      then delta
+      else (
+        let state = delta |> List.hd |> snd in
+        delta
+        |> List.map (fun (label1, _) ->
+          ( 0 -- nfa.deg
+            |> List.fold_left
+                 (fun acc i ->
+                    let label1 = acc in
+                    let symbol1 = Label.get label1 i in
+                    let label1' = Label.project [ i ] label1 in
+                    let flag = ref false in
+                    let symbols =
+                      List.fold_left
+                        (fun acc (label2, q2) ->
+                           if state = q2 && Label.equal label2 label1'
+                           then
+                             if Label.is_any_at i label2
+                             then (
+                               flag := true;
+                               acc)
+                             else (
+                               let symbol2 = Label.get label2 i in
+                               Set.add acc symbol2)
+                           else acc)
+                        (Set.singleton symbol1)
+                        delta
+                    in
+                    if
+                      !flag
+                      || Label.alphabet
+                         |> List.take (Z.to_int (Config.base ()))
+                         |> List.for_all (fun c -> Set.mem symbols c)
+                    then label1'
+                    else label1)
+                 label1
+          , state )))
+    in
+    let transitions' =
+      nfa.transitions
+      |> Array.map (fun delta ->
+        let length = length nfa in
+        let states =
+          Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
+          |> List.fold_left (fun acc x -> Set.union acc x) Set.empty
+        in
+        states
+        |> Set.to_list
+        |> List.map (fun x -> List.filter (fun (label, state) -> state = x) delta)
+        |> List.map shrink
+        |> List.concat)
+    in
+    let result = { nfa with transitions = transitions' } in
+    Debug.dump_nfa ~msg:"Shrinked %s\n%!" format_nfa result;
+    result
   ;;
 
   let intersect nfa1 nfa2 =
@@ -1601,65 +1661,6 @@ struct
     |> Sequence.concat
     |> Set.of_sequence
   ;;
-
-  let shrink (nfa : t) =
-    let shrink delta =
-      if List.is_empty delta
-      then delta
-      else (
-        let state = delta |> List.hd |> snd in
-        delta
-        |> List.map (fun (label, _) -> label)
-        |> List.map (fun label1 ->
-          ( 0 -- nfa.deg
-            |> List.fold_left
-                 (fun acc i ->
-                    let label1 = acc in
-                    let symbol1 = Label.get label1 i in
-                    let label1' = Label.project [ i ] label1 in
-                    let flag = ref false in
-                    let symbols =
-                      List.fold_left
-                        (fun acc (label2, q2) ->
-                           if state = q2 && Label.equal label2 label1'
-                           then
-                             if Label.is_any_at i label2
-                             then (
-                               flag := true;
-                               acc)
-                             else (
-                               let symbol2 = Label.get label2 i in
-                               Set.add acc symbol2)
-                           else acc)
-                        (Set.singleton symbol1)
-                        delta
-                    in
-                    if
-                      !flag
-                      || Label.alphabet
-                         |> List.take (Z.to_int (Config.base ()))
-                         |> List.for_all (fun c -> Set.mem symbols c)
-                    then label1'
-                    else label1)
-                 label1
-          , state )))
-    in
-    let transitions' =
-      nfa.transitions
-      |> Array.map (fun delta ->
-        let length = length nfa in
-        let states =
-          Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
-          |> List.fold_left (fun acc x -> Set.union acc x) Set.empty
-        in
-        states
-        |> Set.to_list
-        |> List.map (fun x -> List.filter (fun (label, state) -> state = x) delta)
-        |> List.map shrink
-        |> List.concat)
-    in
-    { nfa with transitions = transitions' }
-  ;;
 end
 
 module Lsb (Label : L) = struct
@@ -1935,7 +1936,6 @@ module Lsb (Label : L) = struct
     }
     |> remove_unreachable_from_final
     |> remove_unreachable_from_start
-    |> shrink
   ;;
 
   let minimize_strong nfa =
@@ -1946,7 +1946,6 @@ module Lsb (Label : L) = struct
     |> to_dfa
     |> reverse
     |> to_dfa
-    |> shrink
   ;;
 
   let minimize_not_very_strong nfa =
@@ -1999,6 +1998,7 @@ module MsbNat (Label : L) = struct
     }
     |> remove_unreachable_from_final
     |> remove_unreachable_from_start
+    |> shrink
   ;;
 
   let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa |> minimize
@@ -2333,6 +2333,7 @@ module Msb (Label : L) = struct
     }
     |> remove_unreachable_from_final
     |> remove_unreachable_from_start
+    |> shrink
   ;;
 
   let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa |> minimize
