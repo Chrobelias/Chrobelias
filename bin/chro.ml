@@ -259,7 +259,7 @@ let check_sat ?(verbose = false) ast : rez =
     if lhs' <= rhs' then lhs else rhs
   in
   try
-    if config.logic = `Str
+    if config.logic = `Str || config.logic = `StrBv
     then (
       match Lib.SimplII.arithmetize ast with
       | `Sat (s, e) ->
@@ -505,7 +505,7 @@ let () =
       in
       { state with tys }
     | Smtml.Ast.Set_logic (Smtml.Logic.QF_S | Smtml.Logic.QF_SLIA) ->
-      config.logic <- `Str;
+      config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
       config.under_approx <- 0;
       config.over_approx <- false;
       config.simpl_alpha <- false;
