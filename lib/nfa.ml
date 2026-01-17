@@ -1127,6 +1127,19 @@ struct
   ;;
 
   let shrink (nfa : t) =
+    let rec remove_duplicates l =
+      let rec contains l (label', state') =
+        match l with
+        | [] -> false
+        | (label, state) :: xs ->
+          (Label.equal label label' && state = state') || contains xs (label', state')
+      in
+      match l with
+      | [] -> []
+      | x :: xs ->
+        let acc = remove_duplicates xs in
+        if contains acc x then acc else x :: acc
+    in
     let shrink delta =
       if List.is_empty delta
       then delta
@@ -1165,6 +1178,7 @@ struct
                     else label1)
                  label1
           , q1 ))
+        |> remove_duplicates
     in
     let transitions' =
       Array.map shrink nfa.transitions
