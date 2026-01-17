@@ -486,7 +486,7 @@ module LsbStr = struct
     Str.alphabet |> List.to_seq |> Seq.take (base ()) |> Seq.take (base ()) |> List.of_seq
   ;;
 
-  let () = assert (List.nth alphabet 0 = Str.u_zero)
+  let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
   let itoc i = List.nth (alphabet ()) i
 
   let ( -- ) i j =
