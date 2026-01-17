@@ -231,6 +231,7 @@ let check_sat ?(verbose = false) ast : rez =
       then check_nfa_sat ast e
       else (
         let asts_nat = Lib.Ast.to_nat ast in
+        log "To IN gives %d asts..." (List.length asts_nat);
         let check ast =
           log "Over IN: %a\n" Lib.Ast.pp_smtlib2 ast;
           match check_nfa_sat ast e with

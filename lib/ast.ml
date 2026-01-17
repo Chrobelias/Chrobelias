@@ -754,20 +754,30 @@ let safe_eq ast ast' =
 
 let to_nat ast =
   let module Set = Base.Set.Poly in
+  let nat_prefixes = [ "%re_len"; "strlen"; "string" ] in
+  let is_nat v =
+    List.fold_left
+      (fun acc pref -> acc || String.starts_with ~prefix:pref v)
+      false
+      nat_prefixes
+  in
   let collect =
     fold
-      (fun acc -> function
+      (fun (acc_plus, acc_minus) -> function
+         | Eia (RLen (Eia.Atom (Var (v, I)), _)) -> acc_plus, Set.add acc_minus v
+         | Eia (InReRaw (Eia.Atom (Var (v, I)), _, _)) -> acc_plus, Set.add acc_minus v
          | Eia eia' ->
            Eia.fold2
-             (fun acc -> function
-                | Eia.Atom (Var (v, I)) -> Set.add acc v
-                | eia' -> acc)
+             (fun (acc_plus, acc_minus) -> function
+                | Eia.Atom (Var (v, I)) when not (is_nat v) ->
+                  Set.add acc_plus v, acc_minus
+                | eia' -> acc_plus, acc_minus)
              (fun acc _ -> acc)
-             acc
+             (acc_plus, acc_minus)
              eia'
-         | Lor _ -> failwith "to_nat expected CNF"
-         | ast -> acc)
-      Set.empty
+         | Lor _ -> failwith "to_nat expected conjunct"
+         | ast -> acc_plus, acc_minus)
+      (Set.empty, Set.empty)
   in
   let vary var ast =
     [ ast
@@ -783,12 +793,12 @@ let to_nat ast =
                    | eia' -> eia')
                  Fun.id
                  eia')
-          | Lor _ -> failwith "to_nat expected CNF"
+          | Lor _ -> failwith "to_nat expected conjunct"
           | ast -> ast)
         ast
     ]
   in
-  let vars = collect ast |> Set.to_list in
+  let vars = collect ast |> (fun x -> Set.diff (fst x) (snd x)) |> Set.to_list in
   let open Base.List.Let_syntax in
   let ( let* ) = Base.List.Let_syntax.( >>= ) in
   List.fold_left
