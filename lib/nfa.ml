@@ -77,7 +77,8 @@ module type L = sig
   type t
   type u
 
-  val alphabet : unit -> u List.t
+  val base : Z.t
+  val alphabet : u List.t
   val u_zero : u
   val is_any_at : int -> t -> bool
   val get : t -> int -> u
@@ -102,6 +103,8 @@ end
 module Bv = struct
   type t = Z.t * Z.t
   type u = bool
+
+  let base = Z.of_int 2
 
   (* ----------------- Auxiliary functions ----------------- *)
   let bv_get v i = Z.logand v (Z.shift_left Z.one i) |> Z.equal Z.zero |> not
@@ -193,7 +196,12 @@ module Bv = struct
 
   let zero _deg = Z.zero, Z.zero
   let zero_with_mask mask = Z.zero, bv_of_list mask
-  let singleton_with_mask c mask = Z.shift_left Z.one c, bv_of_list mask
+
+  let singleton_with_mask c mask =
+    assert (base = Config.base ());
+    Z.shift_left Z.one c, bv_of_list mask
+  ;;
+
   let one_with_mask mask = bv_of_list mask, bv_of_list mask
 
   let pp ppf (vec, mask) =
@@ -251,51 +259,44 @@ module Bv = struct
   ;;
 
   let alpha _ = [ true; false ] |> Set.of_list
-  let alphabet () = [ true; false ]
+  let alphabet = [ true; false ]
   let is_any_at i (_, mask) = bv_get mask i = false
 end
 
-module
-  StrBv
-  (*(Extra : sig
-    val base : Z.t
-  end)*) =
-struct
+module StrBv = struct
   type t = Z.t * Z.t
   type u = Z.t
 
-  let base () = Config.base ()
-  let basei () = Z.to_int (base ())
+  let base = Z.of_int 10
+  let basei = Z.to_int base
 
   let u_zero, u_one, u_null, u_eos =
-    Z.one, Z.of_int 2, Z.zero, Z.(pow (of_int 2) (basei ()) - one)
+    Z.one, Z.of_int 2, Z.zero, Z.(pow (of_int 2) basei - one)
   ;;
 
   let is_end_char c = c = u_eos || c = u_null
-  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / basei ()
+  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / basei
 
   let rec compose = function
     | [] -> u_null
-    | x :: xs -> Z.(x + Z.shift_left (compose xs) (basei ()))
+    | x :: xs -> Z.(x + Z.shift_left (compose xs) basei)
   ;;
 
   let rec decompose s = function
     | _ when s = 0 -> []
     | x ->
-      Z.(x mod Z.shift_left Z.one (basei ()))
-      :: decompose (s - 1) (Z.shift_right_trunc x (basei ()))
+      Z.(x mod Z.shift_left Z.one basei)
+      :: decompose (s - 1) (Z.shift_right_trunc x basei)
   ;;
 
   (* FIXME: GB: I think we should shift right then.or something like this. *)
-  (* MS: looks good. Assume base = 4, then nth 1 vec 11110000 = 2^8 - 2^4*)
+  (* MS: looks good. Assume basei = 4, then nth 1 vec 11110000 = 2^8 - 2^4*)
   let bv_get v i =
     Z.shift_right
       (Z.logand
          v
-         (Z.sub
-            (Z.shift_left Z.one (basei () * (i + 1)))
-            (Z.shift_left Z.one (basei () * i))))
-      (basei () * i)
+         (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i))))
+      (basei * i)
   ;;
 
   let get (vec, mask) i =
@@ -314,13 +315,13 @@ struct
 
   let bv_init deg f =
     List.fold_left
-      (fun acc v -> Z.logor acc (Z.shift_left (f v) (v * basei ())))
+      (fun acc v -> Z.logor acc (Z.shift_left (f v) (v * basei)))
       Z.zero
       (0 -- (deg - 1))
   ;;
 
   let bv_of_list =
-    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_eos (v * basei ()))) Z.zero
+    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_eos (v * basei))) Z.zero
   ;;
 
   let equal (vec1, mask1) (vec2, mask2) =
@@ -374,7 +375,7 @@ struct
   ;;
 
   let variations _alpha (_, mask) =
-    let full_alpha = 0 -- (basei () - 1) |> List.map (fun x -> Z.shift_left Z.one x) in
+    let full_alpha = 0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x) in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
       | 0 -> []
@@ -430,6 +431,7 @@ struct
   ;;
 
   let singleton_with_mask c mask =
+    assert (base = Config.base ());
     let len = max (List.fold_left max 0 mask) c + 1 in
     ( bv_init len (fun i ->
         if not (List.mem i mask) then u_null else if i = c then u_one else u_zero)
@@ -473,12 +475,12 @@ struct
   ;;
 
   let alpha _ =
-    (0 -- (basei () - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
+    (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
     |> Set.of_list
   ;;
 
-  let alphabet () =
-    (0 -- (basei () - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
+  let alphabet =
+    (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
   ;;
 end
 
@@ -486,6 +488,8 @@ module Str = struct
   type t = char array
   type u = char
 
+  (* TODO: use me here! *)
+  let base = Z.of_int 10
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let is_end_char c = c = u_eos || c = u_null
@@ -552,7 +556,7 @@ module Str = struct
     |> return
   ;;
 
-  let alphabet () =
+  let alphabet =
     (Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1) |> List.map Char.chr)
     @ [ u_eos; u_null ]
   ;;
@@ -599,6 +603,7 @@ module Str = struct
   ;;
 
   let singleton_with_mask c mask =
+    assert (base = Config.base ());
     let len = max (List.fold_left max 0 mask) c + 1 in
     Array.init len (fun i ->
       if not (List.mem i mask) then u_null else if i = c then '1' else '0')
@@ -1171,7 +1176,7 @@ struct
                     in
                     if
                       !flag
-                      || Label.alphabet ()
+                      || Label.alphabet
                          |> List.take (Z.to_int (Config.base ()))
                          |> List.for_all (fun c -> Set.mem symbols c)
                     then label1'
