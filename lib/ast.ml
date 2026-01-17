@@ -754,7 +754,19 @@ let safe_eq ast ast' =
 
 let to_nat ast =
   let module Set = Base.Set.Poly in
-  let nat_prefixes = [ "%re_len"; "strlen"; "string" ] in
+  let nat_prefixes =
+    [ "%r"
+    ; "%under2"
+    ; "%subst"
+    ; "%concat"
+    ; "%arith_flat"
+    ; "%arith_re"
+    ; "%arith_re_raw"
+    ; "%re_len"
+    ; "strlen"
+    ; "string"
+    ]
+  in
   let is_nat v =
     List.fold_left
       (fun acc pref -> acc || String.starts_with ~prefix:pref v)
