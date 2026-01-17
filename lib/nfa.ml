@@ -1168,7 +1168,8 @@ struct
           , state )))
     in
     let transitions' =
-      nfa.transitions
+      Array.map shrink nfa.transitions
+      (*nfa.transitions
       |> Array.map (fun delta ->
         let length = length nfa in
         let states =
@@ -1179,8 +1180,9 @@ struct
         |> Set.to_list
         |> List.map (fun x -> List.filter (fun (label, state) -> state = x) delta)
         |> List.map shrink
-        |> List.concat)
+        |> List.concat)*)
     in
+    Debug.dump_nfa ~msg:"Before %s\n%!" format_nfa nfa;
     let result = { nfa with transitions = transitions' } in
     Debug.dump_nfa ~msg:"Shrinked %s\n%!" format_nfa result;
     result
