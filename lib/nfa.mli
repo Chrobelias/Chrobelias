@@ -11,7 +11,7 @@ module type L = sig
   type t
   type u
 
-  val alphabet : u List.t
+  val alphabet : unit -> u List.t
   val u_zero : u
   val is_any_at : int -> t -> bool
   val get : t -> int -> u
@@ -89,6 +89,7 @@ module type Type = sig
   val run : t -> bool
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
+  val shrink : t -> t
   val intersect : t -> t -> t
   val unite : t -> t -> t
   val project : int list -> t -> t
@@ -108,7 +109,6 @@ module type Type = sig
   val split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
   val alpha : t -> v Set.t
-  val shrink : t -> t
 end
 
 module type NatType = sig
