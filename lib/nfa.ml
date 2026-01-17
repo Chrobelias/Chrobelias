@@ -490,6 +490,7 @@ module Str = struct
 
   (* TODO: use me here! *)
   let base = Z.of_int 10
+  let basei = Z.to_int base
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let is_end_char c = c = u_eos || c = u_null
@@ -557,7 +558,7 @@ module Str = struct
   ;;
 
   let alphabet =
-    (Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1) |> List.map Char.chr)
+    (Char.code '0' -- (Char.code '0' + basei - 1) |> List.map Char.chr)
     @ [ u_eos; u_null ]
   ;;
 
