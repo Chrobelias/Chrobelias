@@ -1130,10 +1130,9 @@ struct
     let shrink delta =
       if List.is_empty delta
       then delta
-      else (
-        let state = delta |> List.hd |> snd in
+      else
         delta
-        |> List.map (fun (label1, _) ->
+        |> List.map (fun (label1, q1) ->
           ( 0 -- nfa.deg
             |> List.fold_left
                  (fun acc i ->
@@ -1144,7 +1143,7 @@ struct
                     let symbols =
                       List.fold_left
                         (fun acc (label2, q2) ->
-                           if state = q2 && Label.equal label2 label1'
+                           if q1 = q2 && Label.equal label2 label1'
                            then
                              if Label.is_any_at i label2
                              then (
@@ -1165,7 +1164,7 @@ struct
                     then label1'
                     else label1)
                  label1
-          , state )))
+          , q1 ))
     in
     let transitions' =
       Array.map shrink nfa.transitions

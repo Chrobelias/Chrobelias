@@ -481,15 +481,7 @@ module LsbStr = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base () = Z.to_int (Config.base ())
-
-  let alphabet () =
-    Str.alphabet ()
-    |> List.to_seq
-    |> Seq.take (base ())
-    |> Seq.take (base ())
-    |> List.of_seq
-  ;;
-
+  let alphabet () = Str.alphabet () |> List.to_seq |> Seq.take (base ()) |> List.of_seq
   let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
   let itoc i = List.nth (alphabet ()) i
 
@@ -712,15 +704,7 @@ module MsbStr = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base () = Z.to_int (Config.base ())
-
-  let alphabet () =
-    Str.alphabet ()
-    |> List.to_seq
-    |> Seq.take (base ())
-    |> Seq.take (base ())
-    |> List.of_seq
-  ;;
-
+  let alphabet () = Str.alphabet () |> List.to_seq |> Seq.take (base ()) |> List.of_seq
   let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
   let itoc i = List.nth (alphabet ()) i
 
@@ -912,15 +896,7 @@ module MsbNatStr = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base () = Z.to_int (Config.base ())
-
-  let alphabet () =
-    Str.alphabet ()
-    |> List.to_seq
-    |> Seq.take (base ())
-    |> Seq.take (base ())
-    |> List.of_seq
-  ;;
-
+  let alphabet () = Str.alphabet () |> List.to_seq |> Seq.take (base ()) |> List.of_seq
   let () = assert (List.nth (alphabet ()) 0 = Str.u_zero)
 
   let n () =
