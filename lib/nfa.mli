@@ -13,6 +13,7 @@ module type L = sig
 
   val alphabet : u List.t
   val u_zero : u
+  val is_any_at : int -> t -> bool
   val get : t -> int -> u
   val equal : t -> t -> bool
   val combine : t -> t -> t
@@ -107,6 +108,7 @@ module type Type = sig
   val split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
   val alpha : t -> v Set.t
+  val shrink : t -> t
 end
 
 module type NatType = sig
