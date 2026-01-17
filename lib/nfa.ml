@@ -79,6 +79,7 @@ module type L = sig
 
   val alphabet : u List.t
   val u_zero : u
+  val is_any_at : int -> t -> bool
   val get : t -> int -> u
   val equal : t -> t -> bool
   val combine : t -> t -> t
@@ -251,9 +252,15 @@ module Bv = struct
 
   let alpha _ = [ true; false ] |> Set.of_list
   let alphabet = [ true; false ]
+  let is_any_at i (_, mask) = bv_get mask i = false
 end
 
-module StrBv = struct
+module
+  StrBv
+  (*(Extra : sig
+    val base : Z.t
+  end)*) =
+struct
   type t = Z.t * Z.t
   type u = Z.t
 
@@ -907,6 +914,7 @@ module type Type = sig
   val split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
   val alpha : t -> v Set.t
+  val shrink : t -> t
 end
 
 module type NatType = sig
@@ -1592,6 +1600,49 @@ struct
       |> Sequence.concat)
     |> Sequence.concat
     |> Set.of_sequence
+  ;;
+
+  let shrink (nfa : t) =
+    let transitions =
+      nfa.transitions
+      |> Array.map (fun delta ->
+        List.map
+          (fun (label1, q1) ->
+             ( 0 -- nfa.deg
+               |> List.fold_left
+                    (fun acc i ->
+                       let label1 = acc in
+                       let symbol1 = Label.get label1 i in
+                       let label1' = Label.project [ i ] label1 in
+                       let flag = ref false in
+                       let symbols =
+                         List.fold_left
+                           (fun acc (label2, q2) ->
+                              if q1 = q2 && Label.equal label2 label1'
+                              then
+                                if Label.is_any_at i label2
+                                then (
+                                  flag := true;
+                                  acc)
+                                else (
+                                  let symbol2 = Label.get label2 i in
+                                  Set.add acc symbol2)
+                              else acc)
+                           (Set.singleton symbol1)
+                           delta
+                       in
+                       if
+                         !flag
+                         || Label.alphabet
+                            |> List.take (Z.to_int (Config.base ()))
+                            |> List.for_all (fun c -> Set.mem symbols c)
+                       then label1'
+                       else label1)
+                    label1
+             , q1 ))
+          delta)
+    in
+    { nfa with transitions }
   ;;
 end
 
