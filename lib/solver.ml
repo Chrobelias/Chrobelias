@@ -1123,6 +1123,47 @@ struct
 end
 
 module LsbStr =
+  Make (Nfa.Lsb (Nfa.Str)) (NfaCollection.LsbStr) (Nfa.Lsb (Nfa.Str))
+    (NfaCollection.LsbStr)
+    (struct
+      module NfaO = Nfa
+      module Str = Nfa.Str
+      module Nfa = Nfa.Lsb (Nfa.Str)
+
+      let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
+
+      let eval_sreg vars atom reg =
+        let nfa = reg |> NfaS.of_regex in
+        Debug.dump_nfa ~msg:"SREG %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
+        (*let reenum = Map.singleton (Map.find_exn vars atom) 0 in*)
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa
+      ;;
+
+      let eval_sregraw vars atom reg =
+        let nfa = reg in
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa
+      ;;
+
+      let model_to_int c =
+        c
+        |> List.to_seq
+        |> Seq.filter (( <> ) Str.u_eos)
+        |> Seq.filter (( <> ) Str.u_null)
+        |> List.of_seq
+        |> List.rev
+        |> Base.List.drop_while ~f:(( = ) Str.u_zero)
+        |> Base.String.of_list
+        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
+      ;;
+
+      let nat_model_to_int = model_to_int
+    end)
+
+let strbv_to_char c = Z.log2 c |> fun i -> Char.chr (Char.code '0' + i)
+
+module LsbStrBv =
   Make (Nfa.Lsb (Nfa.StrBv)) (NfaCollection.LsbStrBv) (Nfa.Lsb (Nfa.StrBv))
     (NfaCollection.LsbStrBv)
     (struct
@@ -1147,43 +1188,76 @@ module LsbStr =
         Nfa.reenumerate reenum nfa
       ;;
 
-      let model_to_int _c = failwith "todo"
-      (*c
+      let model_to_int c =
+        c
         |> List.to_seq
         |> Seq.filter (( <> ) Str.u_eos)
         |> Seq.filter (( <> ) Str.u_null)
         |> List.of_seq
         |> List.rev
-        |> Base.List.drop_while ~f:(( = ) '0')
+        |> Base.List.drop_while ~f:(( = ) Str.u_zero)
+        |> List.map strbv_to_char
         |> Base.String.of_list
-        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s*)
+        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
+      ;;
 
       let nat_model_to_int = model_to_int
     end)
 
-let z_of_list_msb_nat_str p = failwith "todo"
-(*p
-  |> List.to_seq
-  |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-  |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-  |> String.of_seq
-  |> Z.of_string*)
-
-let z_of_list_msb_str p = failwith "todo"
-(*let sign, p =
-    match p with
-    | hd :: tl -> (if hd = '0' || hd = Nfa.Str.u_eos then Z.one else Z.minus_one), tl
-    | _ -> failwith "unreachable"
-  in
-  p
-  |> List.to_seq
-  |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-  |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
-  |> String.of_seq
-  |> Z.of_string
-  |> Z.mul sign*)
-
 module MsbStr =
+  Make (Nfa.MsbNat (Nfa.Str)) (NfaCollection.MsbNatStr) (Nfa.Msb (Nfa.Str))
+    (NfaCollection.MsbStr)
+    (struct
+      module NfaO = Nfa
+      module Str = Nfa.Str
+      module NfaO2 = Nfa.Msb (Str)
+      module Nfa = Nfa.Msb (Str)
+
+      let z_of_list_msb_nat_str p =
+        p
+        |> List.to_seq
+        |> Seq.filter (fun c -> c <> Str.u_eos)
+        |> Seq.map (fun c -> if c = Str.u_null then '0' else c)
+        |> String.of_seq
+        |> Z.of_string
+      ;;
+
+      let z_of_list_msb_str p =
+        let sign, p =
+          match p with
+          | hd :: tl ->
+            (if hd = Str.u_zero || hd = Str.u_eos then Z.one else Z.minus_one), tl
+          | _ -> failwith "unreachable"
+        in
+        p
+        |> List.to_seq
+        |> Seq.filter (fun c -> c <> Str.u_eos)
+        |> Seq.map (fun c -> if c = Str.u_null then '0' else c)
+        |> String.of_seq
+        |> Z.of_string
+        |> Z.mul sign
+      ;;
+
+      let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
+
+      let eval_sreg vars atom reg =
+        let nfa = reg |> NfaO2.of_regex in
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa
+      ;;
+
+      let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> Nfa.t =
+        fun vars atom reg ->
+        let nfa = reg |> NfaO2.of_lsb in
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa
+      ;;
+
+      let model_to_int = z_of_list_msb_str
+      let nat_model_to_int = z_of_list_msb_nat_str
+    end)
+
+module MsbStrBv =
   Make (Nfa.MsbNat (Nfa.StrBv)) (NfaCollection.MsbNatStrBv) (Nfa.Msb (Nfa.StrBv))
     (NfaCollection.MsbStrBv)
     (struct
@@ -1192,13 +1266,36 @@ module MsbStr =
       module Str = Nfa.StrBv
       module Nfa = Nfa.Msb (Nfa.StrBv)
 
+      let z_of_list_msb_nat_str p =
+        p
+        |> List.to_seq
+        |> Seq.filter (fun c -> c <> Str.u_eos)
+        |> Seq.map (fun c -> if c = Str.u_null then '0' else strbv_to_char c)
+        |> String.of_seq
+        |> Z.of_string
+      ;;
+
+      let z_of_list_msb_str p =
+        let sign, p =
+          match p with
+          | hd :: tl ->
+            (if hd = Str.u_zero || hd = Str.u_eos then Z.one else Z.minus_one), tl
+          | _ -> failwith "unreachable"
+        in
+        p
+        |> List.to_seq
+        |> Seq.filter (fun c -> c <> Str.u_eos)
+        |> Seq.map (fun c -> if c = Str.u_null then '0' else strbv_to_char c)
+        |> String.of_seq
+        |> Z.of_string
+        |> Z.mul sign
+      ;;
+
       let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
 
       let eval_sreg vars atom reg =
         let nfa = reg |> NfaO2.of_regex in
         let nfa = nfa |> NfaO.convert_nfa_msb in
-        Debug.dump_nfa ~msg:"SREG %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
-        (*let reenum = Map.singleton (Map.find_exn vars atom) 0 in*)
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
@@ -1210,13 +1307,6 @@ module MsbStr =
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
-
-      (*let j = Map.find_exn vars atom in
-        Nfa.filter_map (Nfa.of_lsb nfa) (fun (label, q') ->
-          Some
-            ( Array.init (Map.length vars) (fun i ->
-                if i = j then label.(0) else Char.chr 0)
-            , q' ))*)
 
       let model_to_int = z_of_list_msb_str
       let nat_model_to_int = z_of_list_msb_nat_str
@@ -1327,7 +1417,7 @@ let filter_internal =
 let ( let* ) = Result.bind
 let return = Result.ok
 
-let _z_of_list_str p =
+let z_of_list_str p =
   let sign, p =
     if Config.config.mode = `Lsb
     then Z.one, List.rev p
@@ -1400,9 +1490,24 @@ let check_sat ir
   in
   let on_strings ir =
     let checker =
-      match Config.config.mode with
-      | `Lsb -> LsbStr.check_sat
-      | `Msb -> MsbStr.check_sat
+      let wrap f =
+        fun ir ->
+        match f ir with
+        | `Sat model ->
+          `Sat
+            (fun () ->
+              let* model = model () in
+              let model = Map.map ~f:(List.map strbv_to_char) model in
+              return model)
+        | `Unknown -> `Unknown
+        | `Unsat -> `Unsat
+      in
+      match Config.config.logic, Config.config.mode with
+      | `Str, `Lsb -> LsbStr.check_sat
+      | `Str, `Msb -> MsbStr.check_sat
+      | `StrBv, `Lsb -> wrap LsbStrBv.check_sat
+      | `StrBv, `Msb -> wrap MsbStrBv.check_sat
+      | _ -> assert false
     in
     match checker ir with
     | `Sat model ->
@@ -1410,8 +1515,7 @@ let check_sat ir
         (fun tys ->
           let* model = model () in
           let main_model =
-            failwith "tbd"
-            (*Map.mapi
+            Map.mapi
               ~f:(fun ~key:k ~data:v ->
                 let ty = Map.find tys k |> Option.value ~default:`Int in
                 match ty with
@@ -1423,7 +1527,7 @@ let check_sat ir
                   | Invalid_argument _ -> `Str (v |> z_of_list_str)
                 end
                 | `Str -> `Str (v |> z_of_list_str))
-              model*)
+              model
           in
           return main_model)
     | `Unsat -> `Unsat
@@ -1431,5 +1535,5 @@ let check_sat ir
   in
   match Config.config.logic with
   | `Eia -> on_no_strings ir
-  | `Str -> on_strings ir
+  | `Str | `StrBv -> on_strings ir
 ;;

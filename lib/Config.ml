@@ -13,10 +13,11 @@ type config =
   ; mutable under_approx : int
   ; mutable input_file : string
   ; mutable no_model : bool
-  ; mutable logic : [ `Eia | `Str ]
+  ; mutable logic : [ `Eia | `Str | `StrBv ]
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
   ; mutable quiet : bool
+  ; mutable no_str_bv : bool
   ; mutable good_for_minimize : int
   }
 
@@ -39,6 +40,7 @@ let config =
   ; with_check_sat = false
   ; with_info = true
   ; quiet = false
+  ; no_str_bv = false
   ; good_for_minimize = 10
   }
 ;;
@@ -65,7 +67,11 @@ let huge_const () = huge_const_config.const
 let under2_config = { amin = 5; amax = 11; flat = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
-let base () = if config.logic = `Str then Z.of_int 10 else Z.of_int 2
+
+let base () =
+  if config.logic = `Str || config.logic = `StrBv then Z.of_int 10 else Z.of_int 2
+;;
+
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
 
 let max_longest_path =
@@ -135,6 +141,7 @@ Basic options:
     ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
     ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t"
     ; "--info", Arg.Unit (fun () -> config.with_info <- true), "\t"
+    ; "--no-str-bv", Arg.Unit (fun () -> config.no_str_bv <- true), "\t"
     ; "-q", Arg.Unit (fun () -> config.quiet <- true), "\t"
     ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
