@@ -461,20 +461,19 @@ struct
   let logBase n =
     let rec helper acc = function
       | 0 -> acc
-      | n -> helper (acc + 1) (n / NfaCollection.base ())
+      | n -> helper (acc + 1) (n / Z.to_int NfaCollection.base)
     in
     helper (-1) n
   ;;
 
   let logBaseZ n =
-    let base = Z.of_int (NfaCollection.base ()) in
+    let base = NfaCollection.base in
     let rec helper acc n = if n = Z.zero then acc else helper (acc + 1) Z.(n / base) in
     helper (-1) n
   ;;
 
   let pow2z n =
-    List.init (Z.to_int n) (Fun.const (NfaCollection.base () |> Z.of_int))
-    |> List.fold_left Z.( * ) Z.one
+    List.init (Z.to_int n) (Fun.const NfaCollection.base) |> List.fold_left Z.( * ) Z.one
   ;;
 
   let to_exp = function
