@@ -282,6 +282,7 @@ open Config
 let level = ref 0
 
 module NfaS = Nfa.Lsb (Nfa.Str)
+module Str = Nfa.Str
 
 module Make
     (NfaNat : Nfa.NatType)
@@ -294,36 +295,50 @@ module Make
        val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
        val model_to_int : Nfa.v list -> Z.t
        val nat_model_to_int : NfaNat.v list -> Z.t
+       val char_to_v : char -> NfaCollection.v
      end) =
 struct
   let is_exp = Ir.is_exp
 
-  (*let collect_alpha (ir : Ir.t) =
-    let ( let* ) = Option.bind in
-    let return = Option.some in
-    let* alpha =
-      Ir.fold
-        (fun acc -> function
-           | Ir.SReg (_, re) ->
-             let* acc = acc in
-             Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
-           | Ir.SRegRaw (_, nfa) ->
-             let* acc = acc in
-             Ir.NfaS.alpha nfa |> Set.union acc |> return
-           | Ir.Lnot _ -> Option.none
-           | _ ->
-             let* acc = acc in
-             return acc)
-        (Some Set.empty)
-        ir
-    in
-    let alpha = Set.diff alpha (Set.of_list [ Nfa.Str.u_eos; Nfa.Str.u_null ]) in
-    return (if Set.is_empty alpha then Set.of_array alphabet else alpha)
-  ;;*)
+  let collect_alpha (ir : Ir.t) =
+    if Config.config.logic = `Eia
+    then None
+    else (
+      let ( let* ) = Option.bind in
+      let return = Option.some in
+      let* alpha =
+        Ir.fold
+          (fun acc -> function
+             | Ir.SReg (_, re) ->
+               let* acc = acc in
+               Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
+             | Ir.SRegRaw (_, nfa) ->
+               let* acc = acc in
+               Ir.NfaS.alpha nfa |> Set.union acc |> return
+             | Ir.Lnot _ -> Option.none
+             | _ ->
+               let* acc = acc in
+               return acc)
+          (Some Set.empty)
+          ir
+      in
+      let alpha =
+        Set.diff alpha (Set.of_list [ Str.u_eos; Str.u_null ])
+        |> Set.map ~f:Extra.char_to_v
+      in
+      return
+        (if Set.is_empty alpha
+         then
+           Set.of_list
+             (Str.alphabet
+              |> List.take (Config.base () |> Z.to_int)
+              |> List.map Extra.char_to_v)
+         else alpha))
+  ;;
 
   let eval ir =
     let ir = Ir.antiprenex ir in
-    (*let alpha = collect_alpha ir |> Option.map Set.to_list in*)
+    let alpha = collect_alpha ir |> Option.map Set.to_list in
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -438,7 +453,7 @@ struct
        | Ir.SRegRaw (atom, reg) -> Extra.eval_sregraw vars atom reg
        | Ir.SLen (atom, atom') ->
          NfaCollection.strlen
-           ~alpha:Option.none
+           ~alpha
            ~dest:(Map.find_exn vars atom')
            ~src:(Map.find_exn vars atom)
            ()
@@ -447,7 +462,7 @@ struct
          (*NfaCollection.stoi ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')*)
        | Ir.SEq (atom, atom') ->
          NfaCollection.seq
-           ~alpha:Option.none
+           ~alpha
            ~dest:(Map.find_exn vars atom)
            ~src:(Map.find_exn vars atom')
            ()
@@ -1167,6 +1182,7 @@ module LsbStr =
       ;;
 
       let nat_model_to_int = model_to_int
+      let char_to_v c = c
     end)
 
 let strbv_to_char =
@@ -1176,6 +1192,16 @@ let strbv_to_char =
   | c when c = StrBv.u_eos -> Str.u_eos
   | c when c = StrBv.u_null -> '0'
   | c -> Z.log2 c |> fun i -> Char.chr (Char.code '0' + i)
+;;
+
+let char_to_strbv =
+  let module StrBv = Nfa.StrBv in
+  let module Str = Nfa.Str in
+  function
+  | '0' .. '9' as c -> Z.pow (Z.of_int 2) (Char.code c - Char.code '0')
+  | c when c = Str.u_eos -> StrBv.u_eos
+  | c when c = Str.u_null -> StrBv.u_null
+  | _ -> assert false
 ;;
 
 module LsbStrBv =
@@ -1217,6 +1243,7 @@ module LsbStrBv =
       ;;
 
       let nat_model_to_int = model_to_int
+      let char_to_v = char_to_strbv
     end)
 
 module MsbStr =
@@ -1270,6 +1297,7 @@ module MsbStr =
 
       let model_to_int = z_of_list_msb_str
       let nat_model_to_int = z_of_list_msb_nat_str
+      let char_to_v c = c
     end)
 
 module MsbStrBv =
@@ -1325,6 +1353,7 @@ module MsbStrBv =
 
       let model_to_int = z_of_list_msb_str
       let nat_model_to_int = z_of_list_msb_nat_str
+      let char_to_v = char_to_strbv
     end)
 
 let z_of_list_lsb p =
@@ -1363,6 +1392,7 @@ module Lsb =
 
       let model_to_int c = z_of_list_lsb c
       let nat_model_to_int = model_to_int
+      let char_to_v _ = failwith "string constraints are not supported in EIA mode"
     end)
 
 let z_of_list_msb p =
@@ -1419,6 +1449,7 @@ module Msb =
 
       let model_to_int c = z_of_list_msb c
       let nat_model_to_int = z_of_list_msb_nat
+      let char_to_v _ = failwith "string constraints are not supported in EIA mode"
     end)
 
 let is_internal = String.starts_with ~prefix:"%"
