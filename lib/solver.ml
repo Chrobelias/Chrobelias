@@ -338,12 +338,13 @@ struct
                        List.fold_left (fun nfa ir -> eval ir |> Nfa.intersect nfa) (eval hd) tl
        *)
        | Ir.Land irs ->
+         let reverse_if_lsb = if Config.config.mode = `Lsb then Nfa.reverse else Fun.id in
          let nfas =
            List.map
              (fun ir ->
                 let nfa = eval ir in
                 Debug.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
-                nfa |> Nfa.reverse, ir)
+                nfa |> reverse_if_lsb, ir)
              irs
            |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
          in
@@ -370,7 +371,7 @@ struct
          eval_and nfas
          |> fun nfa ->
          Debug.printf "Intersect result %d \n%!" (Nfa.length nfa);
-         nfa |> Nfa.reverse
+         nfa |> reverse_if_lsb
        | Ir.Lor (hd :: tl) ->
          List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
        | Ir.Lor [] -> NfaCollection.z ()
