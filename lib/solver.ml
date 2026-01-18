@@ -1161,7 +1161,14 @@ module LsbStr =
       let nat_model_to_int = model_to_int
     end)
 
-let strbv_to_char c = Z.log2 c |> fun i -> Char.chr (Char.code '0' + i)
+let strbv_to_char =
+  let module StrBv = Nfa.StrBv in
+  let module Str = Nfa.Str in
+  function
+  | c when c = StrBv.u_eos -> Str.u_eos
+  | c when c = StrBv.u_null -> '0'
+  | c -> Z.log2 c |> fun i -> Char.chr (Char.code '0' + i)
+;;
 
 module LsbStrBv =
   Make (Nfa.Lsb (Nfa.StrBv)) (NfaCollection.LsbStrBv) (Nfa.Lsb (Nfa.StrBv))

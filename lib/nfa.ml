@@ -1205,9 +1205,7 @@ struct
         |> List.map shrink
         |> List.concat)*)
     in
-    Debug.dump_nfa ~msg:"Before %s\n%!" format_nfa nfa;
     let result = { nfa with transitions = transitions' } in
-    Debug.dump_nfa ~msg:"Shrinked %s\n%!" format_nfa result;
     result
   ;;
 
