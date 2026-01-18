@@ -19,6 +19,7 @@ type config =
   ; mutable quiet : bool
   ; mutable no_str_bv : bool
   ; mutable good_for_minimize : int
+  ; mutable good_for_shrinking : int
   }
 
 let config =
@@ -42,6 +43,7 @@ let config =
   ; quiet = false
   ; no_str_bv = false
   ; good_for_minimize = 10
+  ; good_for_shrinking = 100
   }
 ;;
 

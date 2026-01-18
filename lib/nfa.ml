@@ -1976,9 +1976,13 @@ module Lsb (Label : L) = struct
   ;;
 
   let minimize_not_very_strong nfa =
-    if length nfa > Config.config.good_for_minimize
-    then minimize nfa
-    else minimize_strong nfa
+    match
+      ( length nfa > Config.config.good_for_minimize
+      , length nfa < Config.config.good_for_shrinking )
+    with
+    | true, false -> nfa |> minimize
+    | true, true -> nfa |> minimize |> shrink
+    | false, other -> nfa |> minimize_strong |> shrink
   ;;
 end
 
@@ -2025,15 +2029,18 @@ module MsbNat (Label : L) = struct
     }
     |> remove_unreachable_from_final
     |> remove_unreachable_from_start
-    |> shrink
   ;;
 
   let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa |> minimize
 
   let minimize_not_very_strong nfa =
-    if length nfa > Config.config.good_for_minimize
-    then minimize nfa
-    else minimize_strong nfa
+    match
+      ( length nfa > Config.config.good_for_minimize
+      , length nfa < Config.config.good_for_shrinking )
+    with
+    | true, false -> nfa |> minimize
+    | true, true -> nfa |> minimize |> shrink
+    | false, other -> nfa |> minimize_strong |> shrink
   ;;
 
   let any_path = any_path ~nozero:false
@@ -2360,15 +2367,18 @@ module Msb (Label : L) = struct
     }
     |> remove_unreachable_from_final
     |> remove_unreachable_from_start
-    |> shrink
   ;;
 
   let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa |> minimize
 
   let minimize_not_very_strong nfa =
-    if length nfa > Config.config.good_for_minimize
-    then minimize nfa
-    else minimize_strong nfa
+    match
+      ( length nfa > Config.config.good_for_minimize
+      , length nfa < Config.config.good_for_shrinking )
+    with
+    | true, false -> nfa |> minimize
+    | true, true -> nfa |> minimize |> shrink
+    | false, other -> nfa |> minimize_strong |> shrink
   ;;
 
   let any_path nfa =
