@@ -42,8 +42,8 @@ let config =
   ; with_info = true
   ; quiet = false
   ; no_str_bv = false
-  ; good_for_minimize = 10
-  ; good_for_shrinking = 100
+  ; good_for_minimize = 15
+  ; good_for_shrinking = 200
   }
 ;;
 
