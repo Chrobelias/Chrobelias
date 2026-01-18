@@ -301,29 +301,35 @@ struct
   let is_exp = Ir.is_exp
 
   let collect_alpha (ir : Ir.t) =
-    let ( let* ) = Option.bind in
-    let return = Option.some in
-    let* alpha =
-      Ir.fold
-        (fun acc -> function
-           | Ir.SReg (_, re) ->
-             let* acc = acc in
-             Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
-           | Ir.SRegRaw (_, nfa) ->
-             let* acc = acc in
-             Ir.NfaS.alpha nfa |> Set.union acc |> return
-           | Ir.Lnot _ -> Option.none
-           | _ ->
-             let* acc = acc in
-             return acc)
-        (Some Set.empty)
-        ir
-    in
-    let alpha =
-      Set.diff alpha (Set.of_list [ Str.u_eos; Str.u_null ]) |> Set.map ~f:Extra.char_to_v
-    in
-    return
-      (if Set.is_empty alpha then Set.singleton (Extra.char_to_v Str.u_zero) else alpha)
+    if Config.config.logic = `Eia
+    then None
+    else (
+      let ( let* ) = Option.bind in
+      let return = Option.some in
+      let* alpha =
+        Ir.fold
+          (fun acc -> function
+             | Ir.SReg (_, re) ->
+               let* acc = acc in
+               Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
+             | Ir.SRegRaw (_, nfa) ->
+               let* acc = acc in
+               Ir.NfaS.alpha nfa |> Set.union acc |> return
+             | Ir.Lnot _ -> Option.none
+             | _ ->
+               let* acc = acc in
+               return acc)
+          (Some Set.empty)
+          ir
+      in
+      let alpha =
+        Set.diff alpha (Set.of_list [ Str.u_eos; Str.u_null ])
+        |> Set.map ~f:Extra.char_to_v
+      in
+      return
+        (if Set.is_empty alpha
+         then Set.singleton (Str.u_zero |> Extra.char_to_v)
+         else alpha))
   ;;
 
   let eval ir =
