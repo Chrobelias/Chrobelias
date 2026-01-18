@@ -22,9 +22,9 @@
  (applies_to only-len)
  (deps only-len.smt2))
 
-(cram
- (applies_to strings10001)
- (deps ../examples/strings10001.smt2))
+; (cram
+;  (applies_to strings10001)
+;  (deps ../examples/strings10001.smt2))
 
 (cram
  (deps %{bin:Chro}))

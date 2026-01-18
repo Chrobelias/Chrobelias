@@ -13,5 +13,5 @@ $ cat baba1.smt2
     (<= (* (- 1) b) 1)
     (str.in_re.raw b)
     (chrob.len b (exp 10 (+ 1 b))))
-  unsat (presimpl)
+  unsat (nfa)
   no model
