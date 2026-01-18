@@ -96,8 +96,8 @@ Test EXP-solver simplified problems
   $ Chro ./examples/hash_3_6.smt2
   sat (nfa)
   ((define-fun u () (_ Int) 1)
-   (define-fun w () (_ Int) 205766667)
-   (define-fun x () (_ String) "1234599999"))
+   (define-fun w () (_ Int) 205752058)
+   (define-fun x () (_ String) "1234512345"))
 
   $ Chro ./examples/hash_130_137.smt2
   sat (nfa)
