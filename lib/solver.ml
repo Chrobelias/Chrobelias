@@ -92,6 +92,9 @@ let ( -- ) i j =
   aux j []
 ;;
 
+let do_if_msb f = if Config.config.mode = `Msb then f else Fun.id
+let do_if_lsb f = if Config.config.mode = `Lsb then f else Fun.id
+
 (*type bound =
        | EqConst of Ir.atom * int
   | LeqConst of (Ir.atom, int) Map.t * int
@@ -343,13 +346,12 @@ struct
                        List.fold_left (fun nfa ir -> eval ir |> Nfa.intersect nfa) (eval hd) tl
        *)
        | Ir.Land irs ->
-         let reverse_if_lsb = if Config.config.mode = `Lsb then Nfa.reverse else Fun.id in
          let nfas =
            List.map
              (fun ir ->
                 let nfa = eval ir in
                 Debug.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
-                nfa |> reverse_if_lsb, ir)
+                nfa |> do_if_lsb Nfa.reverse, ir)
              irs
            |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
          in
@@ -376,7 +378,7 @@ struct
          eval_and nfas
          |> fun nfa ->
          Debug.printf "Intersect result %d \n%!" (Nfa.length nfa);
-         nfa |> reverse_if_lsb
+         nfa |> do_if_lsb Nfa.reverse
        | Ir.Lor (hd :: tl) ->
          List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
        | Ir.Lor [] -> NfaCollection.z ()
@@ -392,8 +394,9 @@ struct
                  if Map.mem term k && is_exp k
                  then
                    acc
-                   |> Nfa.intersect (NfaCollection.power_of_two v |> Nfa.minimize_strong)
-                   |> Nfa.minimize_not_very_strong
+                   |> Nfa.intersect
+                        (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                   |> do_if_msb Nfa.minimize_not_very_strong
                  else acc)
                vars
            in
@@ -408,8 +411,9 @@ struct
                  if Map.mem term k && is_exp k
                  then
                    acc
-                   |> Nfa.intersect (NfaCollection.power_of_two v |> Nfa.minimize_strong)
-                   |> Nfa.minimize_not_very_strong
+                   |> Nfa.intersect
+                        (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                   |> do_if_msb Nfa.minimize_not_very_strong
                  else acc)
                vars
            in
@@ -831,8 +835,9 @@ struct
           if is_exp k
           then
             acc
-            |> Nfa.intersect (NfaCollection.power_of_two v |> Nfa.minimize_strong)
-            |> Nfa.minimize_not_very_strong
+            |> Nfa.intersect
+                 (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+            |> do_if_msb Nfa.minimize_not_very_strong
           else acc)
         vars
     in
