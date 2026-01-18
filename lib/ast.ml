@@ -800,8 +800,11 @@ let to_nat ast =
               (Eia.map2
                  Fun.id
                  (function
+                   | Eia.Pow (Eia.Const base, Eia.Atom (Var (v, I))) when v = var ->
+                     Eia.const Z.zero
                    | Eia.Atom (Var (v, I)) as v' when v = var ->
-                     Eia.Mul [ v'; Eia.const Z.minus_one ]
+                     Eia.Add
+                       [ Eia.Mul [ v'; Eia.const Z.minus_one ]; Eia.const Z.minus_one ]
                    | eia' -> eia')
                  Fun.id
                  eia')
