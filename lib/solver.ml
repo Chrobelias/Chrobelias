@@ -1051,6 +1051,8 @@ struct
           | x -> x)
       in
       Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
+      let f = Ir.simpl f in
+      Debug.printfln "Formula after simplifications: %a" Ir.pp f;
       let model = get_model_normal f () in
       Map.merge map model ~f:(fun ~key -> function
         | `Left x -> Some x
