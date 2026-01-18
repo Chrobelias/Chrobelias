@@ -328,7 +328,11 @@ struct
       in
       return
         (if Set.is_empty alpha
-         then Set.singleton (Str.u_zero |> Extra.char_to_v)
+         then
+           Set.of_list
+             (Str.alphabet
+              |> List.take (Config.base () |> Z.to_int)
+              |> List.map Extra.char_to_v)
          else alpha))
   ;;
 
