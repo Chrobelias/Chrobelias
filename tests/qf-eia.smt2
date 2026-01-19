@@ -74,6 +74,8 @@
 (push 1)
   (assert (= x (+ y 1)))
   (assert (not (= (exp 2 x) (* 2 (exp 2 y)))))
+  (assert (>= x 0))
+  (assert (>= y 0))
   (check-sat) ; unsat
 (pop 1)
 
