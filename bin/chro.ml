@@ -98,7 +98,7 @@ let check_sat ?(verbose = false) ast : rez =
   let check_nfa_sat ast e =
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
-      let ir = Lib.Ir.simpl ir in
+      let ir = ir |> Lib.Ir.simpl |> Lib.Ir.simpl_ineq in
       let ir = if config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in
       let ir = if config.simpl_alpha then Lib.Simpl_alpha.simplify ir else ir in
       (match ir with

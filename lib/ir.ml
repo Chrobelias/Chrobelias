@@ -663,6 +663,11 @@ let simpl ir =
       -> true_
     | Rel (Leq, term, c) when Map.length term = 0 && Z.(c >= zero) -> true_
     | Rel (Leq, term, c) when Map.length term = 0 && Z.(c < zero) -> false_
+    | Rel (Eq, term, c) when Map.length term = 1 ->
+      let _, coeff = Map.min_elt_exn term in
+      (match Z.(coeff = zero) with
+       | true -> if Z.(c <> zero) then false_ else true_
+       | false -> if Z.(c mod coeff <> zero) then false_ else Rel (Eq, term, c))
     | ir -> ir)
   |> map (function
     | Lor [] -> false_
@@ -710,6 +715,69 @@ let simpl ir =
            | Lor lst -> lst
            | ir -> [ ir ]))
     | ir -> ir)
+;;
+
+let simpl_ineq ir =
+  let merge lowb uppb =
+    let merge_bounds f = function
+      | Some x, Some y -> Some (f x y)
+      | None, Some y -> Some y
+      | Some x, None -> Some x
+      | None, None -> None
+    in
+    let (lowb1, uppb1), (lowb2, uppb2) = lowb, uppb in
+    merge_bounds max (lowb1, lowb2), merge_bounds min (uppb1, uppb2)
+  in
+  let bounds =
+    fold
+      (fun list -> function
+         | Rel (Eq, term, c) when Map.length term = 1 ->
+           let var, coeff = Map.min_elt_exn term in
+           let value = Z.(c / coeff) in
+           (var, (Some value, Some value)) :: list
+         | Rel (Leq, term, c) when Map.length term = 1 ->
+           let var, coeff = Map.min_elt_exn term in
+           let value = Z.(c / coeff) in
+           if Z.(coeff > zero)
+           then (var, (None, Some value)) :: list
+           else (var, (Some value, None)) :: list
+         | _ -> list)
+      []
+      ir
+  in
+  let bounds_map =
+    bounds
+    |> Map.of_alist_multi
+    |> Map.map ~f:(fun data -> List.fold_left merge (None, None) data)
+  in
+  let ir_without_eq_n_leq =
+    map
+      (function
+        | Rel (Eq, term, c) when Map.length term = 1 -> true_
+        | Rel (Leq, term, c) when Map.length term = 1 -> true_
+        | ir -> ir)
+      ir
+  in
+  let irs =
+    Map.fold
+      ~init:[]
+      ~f:(fun ~key:var ~data:(lowb, uppb) irs ->
+        match lowb, uppb with
+        | Some x, Some y ->
+          if x < y
+          then
+            leq (Map.singleton var Z.minus_one) Z.(-x)
+            :: leq (Map.singleton var Z.one) y
+            :: irs
+          else if x = y
+          then eq (Map.singleton var Z.one) y :: irs
+          else false_ :: irs
+        | Some x, None -> leq (Map.singleton var Z.minus_one) Z.(-x) :: irs
+        | None, Some y -> leq (Map.singleton var Z.one) y :: irs
+        | None, None -> irs)
+      bounds_map
+  in
+  land_ (ir_without_eq_n_leq :: irs) |> simpl
 ;;
 
 (** Habermehl's 2024 monotonicity simplification  *)
