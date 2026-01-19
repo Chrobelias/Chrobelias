@@ -992,16 +992,19 @@ struct
     helper mapVals len order [] models |> Result.map (Map.map_keys_exn ~f:Ir.var)
   ;;
 
+  exception Too_long_model
+
   let get_model_normal ir () =
     let nfa, vars = ir |> eval in
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
     let model, _ =
-      Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) |> Option.get
+      try
+        Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) |> Option.get
+      with
+      | _ -> raise Too_long_model
     in
     model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn
   ;;
-
-  exception Too_long_model
 
   let get_model_semenov_exn f s order (model, len) models () =
     match combine_model_pieces s (List.rev order) (model, len) models with

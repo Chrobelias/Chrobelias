@@ -417,7 +417,10 @@ let print_model tys model regexes env =
         let real_var = String.sub key prefix_len (String.length key - prefix_len) in
         let data =
           match data with
-          | `Int c -> Z.to_int c
+          | `Int c ->
+            if c > Z.of_int Lib.Config.max_longest_path
+            then raise Too_long_model
+            else Z.to_int c
           | _ -> assert false
         in
         begin if not (Map.mem raw_model (var real_var))
@@ -426,7 +429,6 @@ let print_model tys model regexes env =
           then (
             let regexes = Map.find_exn regexes real_var in
             let nfa = regexes in
-            if data > Lib.Config.max_longest_path then raise Too_long_model;
             let path =
               NfaS.path_of_len2 ~var:0 ~len:data nfa
               |> Option.value ~default:(List.init data (fun _ -> '0'))
