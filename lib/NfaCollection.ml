@@ -1269,39 +1269,18 @@ module MsbStrBv = struct
       ~deg:(exp + 1)
   ;;
 
-  let powerset term =
-    let base = basei in
+  let powerset digits term =
     let rec helper = function
       | [] -> []
       | [ x ] ->
         ([ Str.u_eos ], [ Z.zero ])
-        :: (0 -- (base - 1) |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
+        :: (digits |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
       | hd :: tl ->
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
         (Str.u_eos :: n, Z.zero :: thing)
-        :: (0 -- (base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
-    in
-    term
-    |> List.map snd
-    |> helper
-    |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
-  ;;
-
-  let powerset_weak term =
-    let base = basei in
-    let rec helper = function
-      | [] -> []
-      | [ x ] ->
-        ([ Str.u_eos ], [ Z.zero ])
-        :: ([ 0; base - 1 ] |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
-      | hd :: tl ->
-        let open Base.List.Let_syntax in
-        let ( let* ) = ( >>= ) in
-        let* n, thing = helper tl in
-        (Str.u_eos :: n, Z.zero :: thing)
-        :: ([ 0; base - 1 ] |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
+        :: (digits |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
     in
     term
     |> List.map snd
@@ -1321,7 +1300,6 @@ module MsbStrBv = struct
     if gcd_ = Z.zero
     then if Z.(zero = c) then n () else z ()
     else (
-      let thing = powerset term in
       let states = ref Set.empty in
       let transitions = ref [] in
       let rec lp front =
@@ -1332,7 +1310,7 @@ module MsbStrBv = struct
           then lp tl
           else begin
             let t =
-              thing
+              powerset (0 -- (basei - 1)) term
               |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
               |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
             in
@@ -1348,9 +1326,9 @@ module MsbStrBv = struct
       let idx c = Map.find states c |> Option.get in
       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
       let transitions =
-        (thing
+        (powerset [ 0; basei - 1 ] term
          |> List.filter_map (fun (d, sum) ->
-           match Map.find states Z.(-sum) with
+           match Map.find states Z.(sum / (one - base)) with
            | None -> None
            | Some v -> Some (start, d, v)))
         @ transitions
@@ -1374,9 +1352,7 @@ module MsbStrBv = struct
     if Z.(gcd_ = zero)
     then if Z.(zero <= c) then n () else z ()
     else
-      (let thing = powerset term in
-       let thing_weak = powerset_weak term in
-       let states = ref Set.empty in
+      (let states = ref Set.empty in
        let transitions = ref [] in
        let rec lp front =
          match front with
@@ -1386,7 +1362,7 @@ module MsbStrBv = struct
            then lp tl
            else begin
              let t =
-               thing
+               powerset (0 -- (basei - 1)) term
                |> List.map (fun (bits, sum) ->
                  Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
              in
@@ -1402,11 +1378,11 @@ module MsbStrBv = struct
        let idx c = Map.find states c |> Option.get in
        let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
        let transitions =
-         (thing_weak
+         (powerset [ 0; basei - 1 ] term
           |> List.concat_map (fun (d, sum) ->
             Map.to_alist states
             |> List.filter_map (fun (v, idv) ->
-              if Z.(sum <= v / (one - base)) then Some (start, d, idv) else None)))
+              if Z.(sum / (one - base) <= v) then Some (start, d, idv) else None)))
          @ transitions
        in
        Nfa.create_nfa
