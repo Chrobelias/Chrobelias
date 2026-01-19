@@ -718,66 +718,110 @@ let simpl ir =
 ;;
 
 let simpl_ineq ir =
-  let merge lowb uppb =
-    let merge_bounds f = function
-      | Some x, Some y -> Some (f x y)
-      | None, Some y -> Some y
-      | Some x, None -> Some x
-      | None, None -> None
+  let rec fold_no_exists f acc ir =
+    match ir with
+    | True -> f acc ir
+    | Rel _ -> f acc ir
+    | Reg (_, _) -> f acc ir
+    | SReg (_, _) -> f acc ir
+    | SRegRaw (_, _) -> f acc ir
+    | SLen (_, _) -> f acc ir
+    | Stoi (_, _) -> f acc ir
+    | Itos (_, _) -> f acc ir
+    | SEq (_, _) -> f acc ir
+    | SPrefixOf (_, _) | SContains (_, _) | SSuffixOf (_, _) -> f acc ir
+    | Lnot ir' -> acc
+    | Land irs -> f (List.fold_left (fold_no_exists f) acc irs) ir
+    | Lor irs -> f (List.fold_left (fold_no_exists f) acc irs) ir
+    | Exists (_, _) -> acc
+  in
+  let rec map2_no_exists f fleaf ir =
+    match ir with
+    | True -> fleaf ir
+    | Rel (_, _, _) -> fleaf ir
+    | Reg (_, _) -> fleaf ir
+    | SReg (_, _) -> fleaf ir
+    | SRegRaw (_, _) -> fleaf ir
+    | SLen (_, _) -> fleaf ir
+    | Stoi (_, _) -> fleaf ir
+    | Itos (_, _) -> fleaf ir
+    | SEq (_, _) -> fleaf ir
+    | SPrefixOf (_, _) | SSuffixOf (_, _) | SContains (_, _) -> fleaf ir
+    | Lnot ir' as ir -> ir
+    | Land irs -> f (land_ (List.map (map2_no_exists f fleaf) irs))
+    | Lor irs -> f (lor_ (List.map (map2_no_exists f fleaf) irs))
+    | Exists (atoms, ir') as ir -> ir
+  in
+  let map_no_exists f ir = map2_no_exists f f ir in
+  let simpl_ineq ir =
+    let merge lowb uppb =
+      let merge_bounds f = function
+        | Some x, Some y -> Some (f x y)
+        | None, Some y -> Some y
+        | Some x, None -> Some x
+        | None, None -> None
+      in
+      let (lowb1, uppb1), (lowb2, uppb2) = lowb, uppb in
+      merge_bounds max (lowb1, lowb2), merge_bounds min (uppb1, uppb2)
     in
-    let (lowb1, uppb1), (lowb2, uppb2) = lowb, uppb in
-    merge_bounds max (lowb1, lowb2), merge_bounds min (uppb1, uppb2)
+    let bounds =
+      fold_no_exists
+        (fun list -> function
+           | Rel (Eq, term, c) when Map.length term = 1 ->
+             let var, coeff = Map.min_elt_exn term in
+             let value = Z.(c / coeff) in
+             (var, (Some value, Some value)) :: list
+           | Rel (Leq, term, c) when Map.length term = 1 ->
+             let var, coeff = Map.min_elt_exn term in
+             let value = Z.(c / coeff) in
+             if Z.(coeff > zero)
+             then (var, (None, Some value)) :: list
+             else (var, (Some value, None)) :: list
+           | _ -> list)
+        []
+        ir
+    in
+    let bounds_map =
+      bounds
+      |> Map.of_alist_multi
+      |> Map.map ~f:(fun data -> List.fold_left merge (None, None) data)
+    in
+    let ir_without_eq_n_leq =
+      map_no_exists
+        (function
+          | Rel (Eq, term, c) when Map.length term = 1 -> true_
+          | Rel (Leq, term, c) when Map.length term = 1 -> true_
+          | ir -> ir)
+        ir
+    in
+    let irs =
+      Map.fold
+        ~init:[]
+        ~f:(fun ~key:var ~data:(lowb, uppb) irs ->
+          match lowb, uppb with
+          | Some x, Some y ->
+            if x < y
+            then
+              leq (Map.singleton var Z.minus_one) Z.(-x)
+              :: leq (Map.singleton var Z.one) y
+              :: irs
+            else if x = y
+            then eq (Map.singleton var Z.one) y :: irs
+            else false_ :: irs
+          | Some x, None -> leq (Map.singleton var Z.minus_one) Z.(-x) :: irs
+          | None, Some y -> leq (Map.singleton var Z.one) y :: irs
+          | None, None -> irs)
+        bounds_map
+    in
+    land_ (ir_without_eq_n_leq :: irs) |> simpl
   in
-  let bounds =
-    fold
-      (fun list -> function
-         | Rel (Eq, term, c) when Map.length term = 1 ->
-           let var, coeff = Map.min_elt_exn term in
-           let value = Z.(c / coeff) in
-           (var, (Some value, Some value)) :: list
-         | Rel (Leq, term, c) when Map.length term = 1 ->
-           let var, coeff = Map.min_elt_exn term in
-           let value = Z.(c / coeff) in
-           if Z.(coeff > zero)
-           then (var, (None, Some value)) :: list
-           else (var, (Some value, None)) :: list
-         | _ -> list)
-      []
-      ir
-  in
-  let bounds_map =
-    bounds
-    |> Map.of_alist_multi
-    |> Map.map ~f:(fun data -> List.fold_left merge (None, None) data)
-  in
-  let ir_without_eq_n_leq =
-    map
-      (function
-        | Rel (Eq, term, c) when Map.length term = 1 -> true_
-        | Rel (Leq, term, c) when Map.length term = 1 -> true_
-        | ir -> ir)
-      ir
-  in
-  let irs =
-    Map.fold
-      ~init:[]
-      ~f:(fun ~key:var ~data:(lowb, uppb) irs ->
-        match lowb, uppb with
-        | Some x, Some y ->
-          if x < y
-          then
-            leq (Map.singleton var Z.minus_one) Z.(-x)
-            :: leq (Map.singleton var Z.one) y
-            :: irs
-          else if x = y
-          then eq (Map.singleton var Z.one) y :: irs
-          else false_ :: irs
-        | Some x, None -> leq (Map.singleton var Z.minus_one) Z.(-x) :: irs
-        | None, Some y -> leq (Map.singleton var Z.one) y :: irs
-        | None, None -> irs)
-      bounds_map
-  in
-  land_ (ir_without_eq_n_leq :: irs) |> simpl
+  map
+    (function
+      | Exists (v, ir) -> exists v (simpl_ineq ir)
+      | Lnot ir' -> lnot (simpl_ineq ir')
+      | ir -> ir)
+    ir
+  |> simpl_ineq
 ;;
 
 (** Habermehl's 2024 monotonicity simplification  *)
