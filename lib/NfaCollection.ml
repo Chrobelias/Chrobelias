@@ -6,6 +6,11 @@ module Set = Base.Set.Poly
 
 type varpos = int
 
+let ( -- ) i j =
+  let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+  aux j []
+;;
+
 module type Type = sig
   type t
   type v
@@ -485,11 +490,6 @@ module LsbStr = struct
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
-  let ( -- ) i j =
-    let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
-    aux j []
-  ;;
-
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
@@ -707,11 +707,6 @@ module MsbStr = struct
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
-  let ( -- ) i j =
-    let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
-    aux j []
-  ;;
-
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
@@ -891,6 +886,9 @@ module MsbNatStr = struct
   let basei = Z.to_int Str.base
   let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
+  let itoc i = List.nth alphabet i
+  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
+  let () = assert (List.nth alphabet 0 = Str.u_zero)
 
   let n () =
     NfaMsbNat.create_nfa
@@ -948,13 +946,9 @@ module MsbNatStr = struct
   let pow_of_log_var var exp =
     NfaMsbNat.create_nfa
       ~transitions:
-        [ 0, [ i; o ], 0
-        ; 0, [ i; Str.u_eos ], 0
-        ; 0, [ o; o ], 0
-        ; 0, [ Str.u_eos; Str.u_eos ], 0
-        ; 1, [ i; i ], 0
-        ; 1, [ o; o ], 1
-        ]
+        ((0 -- (basei - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
+         @ (1 -- (basei - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
+         @ [ 1, [ Str.u_eos; Str.u_eos ], 1; 1, [ o; Str.u_eos ], 1; 1, [ o; o ], 1 ])
       ~start:[ 1 ]
       ~final:[ 0 ]
       ~vars:[ var; exp ]
@@ -999,11 +993,6 @@ module LsbStrBv = struct
   let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
-
-  let ( -- ) i j =
-    let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
-    aux j []
-  ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
@@ -1222,11 +1211,6 @@ module MsbStrBv = struct
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
-  let ( -- ) i j =
-    let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
-    aux j []
-  ;;
-
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
@@ -1407,6 +1391,7 @@ module MsbNatStrBv = struct
   let basei = Z.to_int Str.base
   let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
+  let itoc i = List.nth alphabet i
 
   let n () =
     NfaMsbNat.create_nfa
@@ -1464,13 +1449,9 @@ module MsbNatStrBv = struct
   let pow_of_log_var var exp =
     NfaMsbNat.create_nfa
       ~transitions:
-        [ 0, [ i; o ], 0
-        ; 0, [ i; Str.u_eos ], 0
-        ; 0, [ o; o ], 0
-        ; 0, [ Str.u_eos; Str.u_eos ], 0
-        ; 1, [ i; i ], 0
-        ; 1, [ o; o ], 1
-        ]
+        ((0 -- (basei - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
+         @ (1 -- (basei - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
+         @ [ 1, [ Str.u_eos; Str.u_eos ], 1; 1, [ o; Str.u_eos ], 1; 1, [ o; o ], 1 ])
       ~start:[ 1 ]
       ~final:[ 0 ]
       ~vars:[ var; exp ]
