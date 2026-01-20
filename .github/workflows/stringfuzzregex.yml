@@ -1,0 +1,57 @@
+name: Run stringfuzzregex
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flags: ["-q", "-q --no-str-bv", "-q -lsb", "-q -lsb --no-str-bv"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.3
+          dune-cache: true
+
+      - name: Install Smtml depedencies
+        working-directory: ./vendor/smtml
+        run: opam install . --deps-only --with-test --with-dev-setup
+
+      - name: Install depedencies
+        run: opam install . --deps-only --with-test
+
+      - name: Build
+        run: opam exec -- dune build
+
+      - name: Run stringfuzzregex and measure time
+        run: |
+          set +e +o pipefail;
+          START_TIME=$(date +%s)
+          for i in ./benchmarks/chrobelias/QF_SLIA/stringfuzzregex/*.smt2; do
+            echo $i;
+            timeout 10s _build/default/bin/chro.exe ${{ matrix.flags }} $i;
+            if [[ $exit_status -eq 124 ]]; then
+              echo "timeout";
+            fi;
+          done 2>&1 | tee res.txt;
+          END_TIME=$(date +%s)
+          DURATION=$(($END_TIME - $START_TIME))
+          echo "Benchmarks completed in: $DURATION seconds with ${{ matrix.flags }}"
+
+      - name: Get stats
+        run: |
+          echo "StringFuzzRegex with ${{ matrix.flags }} flags";
+          echo "errors  : $(grep error res.txt | wc -l)";
+          echo "warnings: $(grep warn res.txt | wc -l)";
+          echo "timeouts: $(grep timeout res.txt | wc -l)";
+          echo "unknown : $(grep unknown res.txt | wc -l)";
+          echo "total   : $(grep chrobelias res.txt | wc -l)";
