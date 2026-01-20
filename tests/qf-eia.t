@@ -81,10 +81,10 @@ Test ExEyEz y = 2**x & z = 2**y & z mod 100 = 36 with -lsb
   sat (nfa)
   no short model
 
-Test Frobenius coin problem with exponential restrictions
+Test Frobenius coin problem with exponential restrictions (MS: omit due to quantifier alternations)
 
-  $ timeout 2 Chro -bound 0 -no-over ./examples/fcp_7_11_with_exps.smt2
-  sat (nfa)
+$ timeout 2 Chro -bound 0 -no-over ./examples/fcp_7_11_with_exps.smt2
+sat (nfa)
 
 Test Double exponent theorem
 

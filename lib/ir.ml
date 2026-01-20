@@ -656,6 +656,9 @@ let antiprenex =
     ir
 ;;
 
+(* let simpl1 ir = 
+  let simp_equalities = function 
+  | Rel (Eq, term, c) when Map.for_all ~f:(fun v -> Z.(equal v zero)) term && c = Z.zero *)
 let simpl ir =
   ir
   |> map (function
@@ -718,41 +721,6 @@ let simpl ir =
 ;;
 
 let simpl_ineq ir =
-  let rec fold_no_exists f acc ir =
-    match ir with
-    | True -> f acc ir
-    | Rel _ -> f acc ir
-    | Reg (_, _) -> f acc ir
-    | SReg (_, _) -> f acc ir
-    | SRegRaw (_, _) -> f acc ir
-    | SLen (_, _) -> f acc ir
-    | Stoi (_, _) -> f acc ir
-    | Itos (_, _) -> f acc ir
-    | SEq (_, _) -> f acc ir
-    | SPrefixOf (_, _) | SContains (_, _) | SSuffixOf (_, _) -> f acc ir
-    | Lnot ir' -> acc
-    | Land irs -> f (List.fold_left (fold_no_exists f) acc irs) ir
-    | Lor irs -> f (List.fold_left (fold_no_exists f) acc irs) ir
-    | Exists (_, _) -> acc
-  in
-  let rec map2_no_exists f fleaf ir =
-    match ir with
-    | True -> fleaf ir
-    | Rel (_, _, _) -> fleaf ir
-    | Reg (_, _) -> fleaf ir
-    | SReg (_, _) -> fleaf ir
-    | SRegRaw (_, _) -> fleaf ir
-    | SLen (_, _) -> fleaf ir
-    | Stoi (_, _) -> fleaf ir
-    | Itos (_, _) -> fleaf ir
-    | SEq (_, _) -> fleaf ir
-    | SPrefixOf (_, _) | SSuffixOf (_, _) | SContains (_, _) -> fleaf ir
-    | Lnot ir' as ir -> ir
-    | Land irs -> f (land_ (List.map (map2_no_exists f fleaf) irs))
-    | Lor irs -> f (lor_ (List.map (map2_no_exists f fleaf) irs))
-    | Exists (atoms, ir') as ir -> ir
-  in
-  let map_no_exists f ir = map2_no_exists f f ir in
   let simpl_ineq ir =
     let merge lowb uppb =
       let merge_bounds f = function
@@ -765,7 +733,7 @@ let simpl_ineq ir =
       merge_bounds max (lowb1, lowb2), merge_bounds min (uppb1, uppb2)
     in
     let bounds =
-      fold_no_exists
+      fold
         (fun list -> function
            | Rel (Eq, term, c) when Map.length term = 1 ->
              let var, coeff = Map.min_elt_exn term in
@@ -787,7 +755,7 @@ let simpl_ineq ir =
       |> Map.map ~f:(fun data -> List.fold_left merge (None, None) data)
     in
     let ir_without_eq_n_leq =
-      map_no_exists
+      map
         (function
           | Rel (Eq, term, c) when Map.length term = 1 -> true_
           | Rel (Leq, term, c) when Map.length term = 1 -> true_
