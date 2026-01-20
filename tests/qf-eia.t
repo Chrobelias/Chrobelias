@@ -49,7 +49,7 @@ Same basic QF_EIA tests using only NFAs but in the LSB mode
   sat (presimpl)
   unsat (nfa)
   sat (nfa)
-  unsat (simpl)
+  unsat (nfa)
   sat (presimpl)
 
 Test ExEy y >=0 x & 2**y = x & x > 4
@@ -96,8 +96,8 @@ Test EXP-solver simplified problems
   $ Chro ./examples/hash_3_6.smt2
   sat (nfa)
   ((define-fun u () (_ Int) 1)
-   (define-fun w () (_ Int) 20576111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112)
-   (define-fun x () (_ String) "123456666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666669"))
+   (define-fun w () (_ Int) 2575257525752575257525752575257525752575257525752575257525752575257525752575577)
+   (define-fun x () (_ String) "123451234512345123451234512345123451234512345123451234512345123451234512345123451234512345123453459"))
 
   $ Chro ./examples/hash_130_137.smt2
   sat (nfa)
