@@ -558,7 +558,6 @@ module LsbStr = struct
       ~deg:(max var exp + 1)
   ;;
 
-  (* FIXME: it is actually power_of_base *)
   let power_of_two exp =
     Nfa.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1 ]
@@ -1062,7 +1061,6 @@ module LsbStrBv = struct
       ~deg:(max var exp + 1)
   ;;
 
-  (* FIXME: it is actually power_of_base *)
   let power_of_two exp =
     Nfa.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1 ]
@@ -1241,17 +1239,10 @@ module MsbStrBv = struct
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  (* FIXME: it is actually power_of_base *)
   let power_of_two exp =
     Nfa.create_nfa
       ~transitions:
-        [ 0, [ o ], 0
-        ; 0, [ Str.u_eos ], 0
-        ; 0, [ o ], 1
-        ; 1, [ i ], 2
-        ; 2, [ o ], 2
-        ; 2, [ Str.u_eos ], 2
-        ]
+        [ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ o ], 1; 1, [ i ], 2; 2, [ o ], 2 ]
       ~start:[ 0 ]
       ~final:[ 2 ]
       ~vars:[ exp ]
