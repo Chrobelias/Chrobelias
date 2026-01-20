@@ -1215,7 +1215,9 @@ module MsbStrBv = struct
     let alpha = Option.value ~default:alphabet alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
     let transitions =
-      alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
+      alpha_transitions
+      @ [ 1, [ Str.u_eos; i ], 0 ]
+      @ [ 1, [ Str.u_eos; Str.u_zero ], 1; 1, [ Str.u_eos; Str.u_eos ], 1 ]
     in
     Nfa.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
   ;;
@@ -1243,7 +1245,13 @@ module MsbStrBv = struct
   let power_of_two exp =
     Nfa.create_nfa
       ~transitions:
-        [ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ o ], 1; 1, [ i ], 2; 2, [ o ], 2 ]
+        [ 0, [ o ], 0
+        ; 0, [ Str.u_eos ], 0
+        ; 0, [ o ], 1
+        ; 1, [ i ], 2
+        ; 2, [ o ], 2
+        ; 2, [ Str.u_eos ], 2
+        ]
       ~start:[ 0 ]
       ~final:[ 2 ]
       ~vars:[ exp ]
