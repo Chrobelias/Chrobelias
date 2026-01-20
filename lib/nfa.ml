@@ -2433,7 +2433,7 @@ module Msb (Label : L) = struct
         (Graph.reverse nfa.transitions)
         (Set.map
            ~f:(fun start' ->
-             [ Label.zero_with_mask [ pos ], start'; Label.eos_with_mask [ pos ], start' ])
+             [ Label.eos_with_mask [ pos ], start'; Label.eos_with_mask [ pos ], start ])
            nfa.final
          |> Set.to_array)
     in
