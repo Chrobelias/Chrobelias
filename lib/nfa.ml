@@ -96,6 +96,7 @@ module type L = sig
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
   val zero_with_mask : int list -> t
+  val eos_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
   val one_with_mask : int list -> t
   val pp_u : formatter -> u -> unit
@@ -200,6 +201,7 @@ module Bv = struct
 
   let zero _deg = Z.zero, Z.zero
   let zero_with_mask mask = Z.zero, bv_of_list mask
+  let eos_with_mask mask = Z.zero, bv_of_list mask
 
   let singleton_with_mask c mask =
     assert (base = Config.base ());
@@ -434,6 +436,11 @@ module StrBv = struct
     bv_init len (fun i -> if List.mem i mask then u_zero else u_null), bv_of_list mask
   ;;
 
+  let eos_with_mask mask =
+    let len = List.fold_left max 0 mask + 1 in
+    bv_init len (fun i -> if List.mem i mask then u_eos else u_null), bv_of_list mask
+  ;;
+
   let singleton_with_mask c mask =
     assert (base = Config.base ());
     let len = max (List.fold_left max 0 mask) c + 1 in
@@ -605,6 +612,11 @@ module Str = struct
   let zero_with_mask mask =
     let len = List.fold_left max 0 mask + 1 in
     Array.init len (fun i -> if List.mem i mask then '0' else u_null)
+  ;;
+
+  let eos_with_mask mask =
+    let len = List.fold_left max 0 mask + 1 in
+    Array.init len (fun i -> if List.mem i mask then u_eos else u_null)
   ;;
 
   let singleton_with_mask c mask =
@@ -2414,11 +2426,21 @@ module Msb (Label : L) = struct
     }
   ;;
 
-  let of_lsb (nfa : Lsb(Label).t) : t =
-    { start = nfa.final
+  let of_lsb (nfa : Lsb(Label).t) (pos : int) : t =
+    let start = Array.length nfa.transitions in
+    let transitions =
+      Array.append
+        (Graph.reverse nfa.transitions)
+        (Set.map
+           ~f:(fun start' ->
+             [ Label.zero_with_mask [ pos ], start'; Label.eos_with_mask [ pos ], start' ])
+           nfa.final
+         |> Set.to_array)
+    in
+    { start = Set.singleton start
     ; is_dfa = false
     ; final = nfa.start
-    ; transitions = Graph.reverse nfa.transitions
+    ; transitions
     ; deg = nfa.deg
     }
   ;;

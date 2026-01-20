@@ -26,6 +26,7 @@ module type L = sig
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
   val zero_with_mask : int list -> t
+  val eos_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
   val one_with_mask : int list -> t
   val pp_u : Format.formatter -> u -> unit
@@ -145,7 +146,7 @@ module Msb (Label : L) : sig
   include Type with type u = MsbNat(Label).t and type v = Label.u
 
   val filter_map : t -> (Label.t * int -> (Label.t * int) option) -> t
-  val of_lsb : Lsb(Label).t -> t
+  val of_lsb : Lsb(Label).t -> int -> t
 end
 
 val convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t

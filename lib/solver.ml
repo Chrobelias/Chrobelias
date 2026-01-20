@@ -1286,6 +1286,7 @@ module MsbStr =
       let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
 
       let eval_sreg vars atom reg =
+        let reg = Regex.concat (Regex.symbol [ Str.u_zero ]) reg in
         let nfa = reg |> NfaO2.of_regex in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
@@ -1293,7 +1294,7 @@ module MsbStr =
 
       let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> Nfa.t =
         fun vars atom reg ->
-        let nfa = reg |> NfaO2.of_lsb in
+        let nfa = NfaO2.of_lsb reg 0 in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
@@ -1348,7 +1349,7 @@ module MsbStrBv =
 
       let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> Nfa.t =
         fun vars atom reg ->
-        let nfa = reg |> NfaO2.of_lsb in
+        let nfa = NfaO2.of_lsb reg 0 in
         let nfa = nfa |> NfaO.convert_nfa_msb in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
