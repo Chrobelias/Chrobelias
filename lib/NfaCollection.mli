@@ -46,16 +46,16 @@ module MsbStr : sig
   include Type with type t = Nfa.Msb(Nfa.Str).t and type v = Nfa.Str.u
 end
 
-module MsbNatStr : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.Str).t and type v = Nfa.Str.u
-end
-
 module LsbStrBv : sig
   include NatType with type t = Nfa.Lsb(Nfa.StrBv).t and type v = Nfa.StrBv.u
 end
 
 module MsbStrBv : sig
   include Type with type t = Nfa.Msb(Nfa.StrBv).t and type v = Nfa.StrBv.u
+end
+
+module MsbNatStr : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.Str).t and type v = Nfa.Str.u
 end
 
 module MsbNatStrBv : sig
