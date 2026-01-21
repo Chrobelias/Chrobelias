@@ -22,7 +22,6 @@ let collect_free_ir (ir : Ir.t) =
        | Ir.SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Ir.SEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Ir.Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Ir.Exists (xs, ir) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
@@ -466,12 +465,13 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | Eq (lhs, rhs, S) ->
-      let* a, sup_a = of_str_atom lhs in
+      (* let* a, sup_a = of_str_atom lhs in
       let* b, sup_b = of_str_atom rhs in
       let sup = sup_a @ sup_b in
-      let ans = Ir.land_ (Ir.seq a b :: sup) in
+      let ans = Ir.land_ (Ir.seq a b :: sup) in *)
       (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
-      return ans
+      (* return ans *)
+      failwith "unexpected due to Arithmetization"
     | Leq (lhs, rhs) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in

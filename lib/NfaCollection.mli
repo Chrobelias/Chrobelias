@@ -15,7 +15,6 @@ module type Type = sig
   val eq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
-  val seq : alpha:v list option -> dest:int -> src:int -> unit -> t
   val base : Z.t
 end
 
@@ -26,38 +25,38 @@ module type NatType = sig
   val pow_of_log_var : int -> int -> t
 end
 
-module Lsb : sig
-  include NatType with type t = Nfa.Lsb(Nfa.Bv).t and type v = unit
-end
-
 module Msb : sig
   include Type with type t = Nfa.Msb(Nfa.Bv).t and type v = unit
-end
-
-module MsbNat : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.Bv).t and type v = unit
-end
-
-module LsbStr : sig
-  include NatType with type t = Nfa.Lsb(Nfa.Str).t and type v = Nfa.Str.u
 end
 
 module MsbStr : sig
   include Type with type t = Nfa.Msb(Nfa.Str).t and type v = Nfa.Str.u
 end
 
-module MsbNatStr : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.Str).t and type v = Nfa.Str.u
-end
-
-module LsbStrBv : sig
-  include NatType with type t = Nfa.Lsb(Nfa.StrBv).t and type v = Nfa.StrBv.u
-end
-
 module MsbStrBv : sig
   include Type with type t = Nfa.Msb(Nfa.StrBv).t and type v = Nfa.StrBv.u
 end
 
+module MsbNat : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.Bv).t and type v = unit
+end
+
+module MsbNatStr : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.Str).t and type v = Nfa.Str.u
+end
+
 module MsbNatStrBv : sig
   include NatType with type t = Nfa.MsbNat(Nfa.StrBv).t and type v = Nfa.StrBv.u
+end
+
+module Lsb : sig
+  include NatType with type t = Nfa.Lsb(Nfa.Bv).t and type v = unit
+end
+
+module LsbStr : sig
+  include NatType with type t = Nfa.Lsb(Nfa.Str).t and type v = Nfa.Str.u
+end
+
+module LsbStrBv : sig
+  include NatType with type t = Nfa.Lsb(Nfa.StrBv).t and type v = Nfa.StrBv.u
 end
