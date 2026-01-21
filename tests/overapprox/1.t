@@ -20,10 +20,7 @@ $ export CHRO_DEBUG=1
   > EOF
 $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
-  $ Chro -bound 0 --dsimpl --stop-after simpl testO2.smt2 | sed 's/[[:space:]]*$//'
-  Early SAT in lib/Overapprox.ml ~~> Unknown
-  (model
-    (x1 int 0))
+  $ Chro -bound 0 -no-over --dsimpl --stop-after simpl testO2.smt2 | sed 's/[[:space:]]*$//'
   (assert (exists (%0 x1)
           (and
             (= (+ (* (- 1) %0) x1 )  0)
