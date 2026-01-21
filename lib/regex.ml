@@ -304,7 +304,7 @@ let bwxor =
        (symbol (s 0b110)))
 ;;
 
-let dec = "0123456789"
+let dec = "123456789"
 
 let digit =
   concat
@@ -312,8 +312,27 @@ let digit =
        (dec
         |> String.to_seq
         |> Seq.map (fun c -> symbol [ c ])
-        |> Seq.fold_left (fun acc a -> mor a acc) epsilon))
+        |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ])))
     (kleene (symbol [ Config.string_config.eos ]))
+;;
+
+let nondigit =
+  concat
+    (concat
+       (kleene
+          (dec
+           |> String.to_seq
+           |> Seq.map (fun c -> symbol [ c ])
+           |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ])))
+       (plus
+          (32 -- 128
+           |> List.map Char.chr
+           |> List.filter (function
+             | '0' .. '9' -> false
+             | _ -> true)
+           |> List.map (fun c -> symbol [ c ])
+           |> List.fold_left (fun acc a -> mor a acc) (symbol [ '0' ]))))
+    (kleene (symbol [ Config.string_config.null ]))
 ;;
 
 let int_to_re s =

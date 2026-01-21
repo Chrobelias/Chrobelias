@@ -45,7 +45,7 @@ module Lsb = struct
   let base = Bv.base
 
   type t = Nfa.t
-  type v = unit
+  type v = bool
   (*
      :'<,'>s/0b0/[o; 1b/g | '<,'>s/0b1/[i; 1b/g | '<,'>s/1b0/o; 2b/g |'<,'>s/1b1/i; 2b/g | '<,'>s/2b0/o]/g | '<,'>s/2b1/i]/g
   :'<,'>s/0b0/[o; 2b/g | '<,'>s/0b1/[i; 2b/g | '<,'>s/2b0/o]/g | '<,'>s/2b1/i]/g
@@ -221,7 +221,18 @@ module Lsb = struct
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let seq = strlen
+  let alphabet = [ true; false ]
+
+  let seq ~alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:alphabet alpha in
+    let transitions = List.map (fun c -> 0, [ c; c ], 0) alpha in
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
+  ;;
 end
 
 module Msb = struct
@@ -231,7 +242,7 @@ module Msb = struct
   let base = Bv.base
 
   type t = Nfa.t
-  type v = unit
+  type v = bool
 
   let n () =
     Nfa.create_nfa ~transitions:[ 0, [], 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
@@ -386,7 +397,18 @@ module Msb = struct
     failwith "Unimplemented for string bitvectors"
   ;;
 
-  let seq = strlen
+  let alphabet = [ true; false ]
+
+  let seq ~alpha ~(dest : int) ~(src : int) () =
+    let alpha = Option.value ~default:alphabet alpha in
+    let transitions = List.map (fun c -> 0, [ c; c ], 0) alpha in
+    Nfa.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
+  ;;
 end
 
 module MsbNat = struct
@@ -395,7 +417,7 @@ module MsbNat = struct
   module NfaMsbNat = Nfa.MsbNat (Bv)
 
   type t = NfaMsbNat.t
-  type v = unit
+  type v = bool
 
   let base = Bv.base
 
@@ -462,11 +484,17 @@ module MsbNat = struct
 
   let eq vars term c = Msb.eq vars term c |> NfaMsb.to_nat
   let leq vars term c = Msb.leq vars term c |> NfaMsb.to_nat
+  let alphabet = [ true; false ]
 
   let seq ~alpha ~(dest : int) ~(src : int) () =
-    let _src = src in
-    let _dest = dest in
-    failwith "Unimplemented for string bitvectors"
+    let alpha = Option.value ~default:alphabet alpha in
+    let transitions = List.map (fun c -> 0, [ c; c ], 0) alpha in
+    NfaMsbNat.create_nfa
+      ~transitions
+      ~start:[ 0 ]
+      ~final:[ 0 ]
+      ~vars:[ src; dest ]
+      ~deg:(max dest src + 1)
   ;;
 end
 

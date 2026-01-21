@@ -114,7 +114,9 @@ let make_collector () =
     let lor_ = List.fold_left ( ++ ) []
     let land_ = List.fold_left ( ++ ) []
     let eqz = ( ++ )
+    let neqz = ( ++ )
     let eq_str = ( ++ )
+    let neq_str = ( ++ )
     let lt = ( ++ )
     let leq = ( ++ )
     let prj xs = Base.List.dedup_and_sort xs ~compare:String.compare
@@ -163,7 +165,9 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
+    | Ast.Eia.Neq (l, r, I) -> S.(helperT l <> helperT r)
     | Eq (_, _, S) -> raise String_op
+    | Neq (_, _, S) -> raise String_op
     | Leq (l, r) -> S.(helperT l <= helperT r)
     | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ | RLen _ ->
       raise String_op

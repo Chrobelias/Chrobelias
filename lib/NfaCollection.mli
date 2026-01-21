@@ -27,15 +27,15 @@ module type NatType = sig
 end
 
 module Lsb : sig
-  include NatType with type t = Nfa.Lsb(Nfa.Bv).t and type v = unit
+  include NatType with type t = Nfa.Lsb(Nfa.Bv).t and type v = bool
 end
 
 module Msb : sig
-  include Type with type t = Nfa.Msb(Nfa.Bv).t and type v = unit
+  include Type with type t = Nfa.Msb(Nfa.Bv).t and type v = bool
 end
 
 module MsbNat : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.Bv).t and type v = unit
+  include NatType with type t = Nfa.MsbNat(Nfa.Bv).t and type v = bool
 end
 
 module LsbStr : sig

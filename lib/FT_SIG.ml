@@ -43,7 +43,9 @@ module type s_ph = sig
   val true_ : ph
   val false_ : ph
   val eqz : term -> term -> ph
+  val neqz : term -> term -> ph
   val eq_str : str -> str -> ph
+  val neq_str : str -> str -> ph
   val leq : term -> term -> ph
   val lt : term -> term -> ph
   val in_re : str -> char list Regex.t -> ph
@@ -57,6 +59,7 @@ module type s_extra = sig
   val ( <= ) : term -> term -> ph
   val ( < ) : term -> term -> ph
   val ( = ) : term -> term -> ph
+  val ( <> ) : term -> term -> ph
 end
 
 module Sugar (S : sig
@@ -69,12 +72,14 @@ module Sugar (S : sig
     val eqz : term -> term -> ph
     val leq : term -> term -> ph
     val lt : term -> term -> ph
+    val neqz : term -> term -> ph
   end) =
 struct
   let ( = ) = S.eqz
   let ( < ) = S.lt
   let ( <= ) = S.leq
   let ( ** ) b e = S.pow b e
+  let ( <> ) = S.neqz
 end
 
 module To_smtml_symantics : sig
@@ -151,10 +156,13 @@ end = struct
   (* let exists vars x = Smtml.Expr.exists (List.map var vars) x *)
   let eqz l r = Smtml.(Expr.relop Ty.Ty_bool Ty.Relop.Eq l r)
   let eq_str _ _ = failwith "tbd"
+  let neqz l r = Smtml.(Expr.relop Ty.Ty_bool Ty.Relop.Ne l r)
+  let neq_str _ _ = failwith "tbd"
   let leq l r = Smtml.(Expr.relop Ty.Ty_int Ty.Relop.Le l r)
   let lt l r = Smtml.(Expr.relop Ty.Ty_int Ty.Relop.Lt l r)
   let ( = ) = eqz
   let ( < ) = lt
   let ( <= ) = leq
   let ( ** ) b e = pow b e
+  let ( <> ) = neqz
 end

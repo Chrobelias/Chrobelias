@@ -300,7 +300,7 @@ module Make
 struct
   let is_exp = Ir.is_exp
 
-  let collect_alpha (ir : Ir.t) =
+  let _collect_alpha (ir : Ir.t) =
     if Config.config.logic = `Eia
     then None
     else (
@@ -338,7 +338,7 @@ struct
 
   let eval ir =
     let ir = Ir.antiprenex ir in
-    let alpha = collect_alpha ir |> Option.map Set.to_list in
+    let alpha = (*collect_alpha ir |> Option.map Set.to_list *) None in
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -466,6 +466,13 @@ struct
            ~dest:(Map.find_exn vars atom)
            ~src:(Map.find_exn vars atom')
            ()
+       | Ir.NEq (atom, atom') ->
+         NfaCollection.seq
+           ~alpha
+           ~dest:(Map.find_exn vars atom)
+           ~src:(Map.find_exn vars atom')
+           ()
+         |> Nfa.invert
        | _ -> failwith "unimplemented")
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;
