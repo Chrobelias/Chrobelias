@@ -457,16 +457,15 @@ struct
            ~dest:(Map.find_exn vars atom')
            ~src:(Map.find_exn vars atom)
            ()
-       | Ir.Stoi (atom, atom') ->
-         NfaCollection.n ()
-         (*NfaCollection.stoi ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')*)
-       | Ir.SEq (atom, atom') ->
+       (*| Ir.Stoi (atom, atom') -> NfaCollection.n ()*)
+       (*NfaCollection.stoi ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')*)
+       (* | Ir.SEq (atom, atom') ->
          NfaCollection.seq
            ~alpha
            ~dest:(Map.find_exn vars atom)
            ~src:(Map.find_exn vars atom')
-           ()
-       | _ -> failwith "unimplemented")
+           () *)
+       | _ -> failwith "unexpected due to Arithmetization")
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;
       Debug.dump_nfa ~msg:"Evaluated %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
