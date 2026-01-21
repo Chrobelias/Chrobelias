@@ -457,8 +457,11 @@ module MsbNat = struct
   ;;
 end
 
-module MsbNatStr = struct
-  module Str = Nfa.Str
+module Make_Msb_Nat_Str (Str : STR) : sig
+  include NatType with type t = Nfa.MsbNat(Str).t and type v = Str.u
+end = struct
+  (* Note: We can't reuse module above, because functor is applied to different argument *)
+  module MsbStr = Make_Msb_Str (Str)
   module NfaMsb = Nfa.Msb (Str)
   module NfaMsbNat = Nfa.MsbNat (Str)
 
@@ -553,99 +556,8 @@ module MsbNatStr = struct
   ;;
 end
 
-module MsbNatStrBv = struct
-  module Str = Nfa.StrBv
-  module NfaMsb = Nfa.Msb (Str)
-  module NfaMsbNat = Nfa.MsbNat (Str)
-
-  type t = NfaMsbNat.t
-  type v = Str.u
-
-  let o = Str.u_zero
-  let i = Str.u_one
-  let base = Str.base
-  let basei = Z.to_int Str.base
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
-  let () = assert (List.nth alphabet 0 = Str.u_zero)
-  let itoc i = List.nth alphabet i
-
-  let n () =
-    NfaMsbNat.create_nfa
-      ~transitions:[ 0, [], 0 ]
-      ~start:[ 0 ]
-      ~final:[ 0 ]
-      ~vars:[]
-      ~deg:1
-  ;;
-
-  let z () = NfaMsbNat.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
-
-  let div_in_pow var a c =
-    if c = 0
-    then (
-      let trans1 = List.init a Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
-      let nfa =
-        NfaMsbNat.create_nfa
-          ~transitions:
-            ([ a + 1, [ i ], a; a + 1, [ o ], a + 1; a + 1, [ Str.u_eos ], a + 1 ]
-             @ trans1)
-          ~start:[ a + 1 ]
-          ~final:[ 0 ]
-          ~vars:[ var ]
-          ~deg:(var + 1)
-      in
-      Debug.printfln "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
-      Debug.dump_nfa ~msg:"Nfa: %s" NfaMsbNat.format_nfa nfa;
-      nfa)
-    else (
-      let trans1 = List.init (a + c - 1) Fun.id |> List.map (fun x -> x + 1, [ o ], x) in
-      NfaMsbNat.create_nfa
-        ~transitions:
-          ([ a, [ o ], a + c - 1
-           ; a + c, [ i ], a
-           ; a + c, [ o ], a + c
-           ; a + c, [ Str.u_eos ], a + c
-           ]
-           @ trans1)
-        ~start:[ a + c ]
-        ~final:[ 0 ]
-        ~vars:[ var ]
-        ~deg:(var + 1))
-  ;;
-
-  let pow_of_log_var var exp =
-    NfaMsbNat.create_nfa
-      ~transitions:
-        ((0 -- (basei - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
-         @ (1 -- (basei - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
-         @ [ 1, [ Str.u_eos; Str.u_eos ], 1; 1, [ o; Str.u_eos ], 1; 1, [ o; o ], 1 ])
-      ~start:[ 1 ]
-      ~final:[ 0 ]
-      ~vars:[ var; exp ]
-      ~deg:(max var exp + 1)
-  ;;
-
-  let power_of_two exp =
-    NfaMsbNat.create_nfa
-      ~transitions:[ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
-      ~start:[ 0 ]
-      ~final:[ 1 ]
-      ~vars:[ exp ]
-      ~deg:(exp + 1)
-  ;;
-
-  let eq vars term c = MsbStrBv.eq vars term c |> NfaMsb.to_nat
-  let leq vars term c = MsbStrBv.leq vars term c |> NfaMsb.to_nat
-
-  let strlen ~alpha ~(dest : int) ~(src : int) () =
-    let alpha = Option.value ~default:alphabet alpha in
-    let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
-    let transitions =
-      alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
-    in
-    NfaMsbNat.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
-  ;;
-end
+module MsbNatStr = Make_Msb_Nat_Str (Nfa.Str)
+module MsbNatStrBv = Make_Msb_Nat_Str (Nfa.StrBv)
 
 (* ------------------------------------------------------------- *)
 (* ------------------------- LSB types ------------------------- *)
