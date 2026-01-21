@@ -3060,13 +3060,13 @@ let arithmetize ast =
         in
         ast_if (can_be_both_digit lhs rhs) ast)
     ; aux (fun lhs rhs ->
-        let nfa = both_nondigit lhs rhs in
+        let nfa = both_nondigit lhs rhs |> NfaL.run in
         let ast =
           Ast.land_
             [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
             ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
             ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
-            ; Ast.lor_
+              (*; Ast.lor_
                 (NfaL.chrobak nfa
                  |> Seq.map (fun (c, d) ->
                    let const = Id_symantics.constz in
@@ -3080,10 +3080,10 @@ let arithmetize ast =
                             (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
                             Ast.I)
                      ])
-                 |> List.of_seq)
+                 |> List.of_seq)*)
             ]
         in
-        ast)
+        ast_if nfa ast)
     ]
     |> List.concat_map Ast.to_dnf
     |> List.filter (( <> ) Ast.false_)
