@@ -37,23 +37,13 @@ let alpha_compare =
   let rec helper (subst : subst) (l, r) =
     match l, r with
     | Lnot l, Lnot r -> helper subst (l, r)
-    | Rel (Eq, _, _), (Rel (Leq, _, _) | SEq _ | SReg _ | Itos _)
-    | SLen _, (SEq _ | SReg _ | True | Reg _ | Itos _ | Lnot _ | Land _ | Lor _)
+    | Rel (Eq, _, _), (Rel (Leq, _, _) | SReg _ | Itos _)
+    | SLen _, (SReg _ | True | Reg _ | Itos _ | Lnot _ | Land _ | Lor _)
     | Rel (Eq, _, _), SLen (_, _)
     | Rel (Leq, _, _), (SLen (_, _) | Itos _)
-    | SEq (_, _), Exists (_, _)
-    | ( SEq (_, _)
-      , ( True
-        | Reg (_, _)
-        | SReg (_, _)
-        | SLen (_, _)
-        | SEq (_, _)
-        | Itos (_, _)
-        | Stoi (_, _)
-        | Lnot _ | Land _ | Lor _ ) )
-    | (Rel (Leq, _, _) | SEq _), Rel (Eq, _, _)
-    | (Exists _ | Stoi _ | Reg _ | SEq _), Rel _
-    | Rel _, (Exists _ | Stoi _ | Reg _ | SEq _)
+    | Rel (Leq, _, _), Rel (Eq, _, _)
+    | (Exists _ | Stoi _ | Reg _), Rel _
+    | Rel _, (Exists _ | Stoi _ | Reg _)
     | Rel _, SReg _
     | SReg _, Rel _
     | Lnot _, Rel _
@@ -67,18 +57,16 @@ let alpha_compare =
       , ( True
         | Reg (_, _)
         | SLen (_, _)
-        | SEq (_, _)
         | SReg _ | Exists _
         | Itos (_, _)
         | Lnot _ | Land _ | Lor _ ) )
-    | Lnot _, (SReg (_, _) | SLen (_, _) | SEq (_, _) | Stoi (_, _) | Itos _)
+    | Lnot _, (SReg (_, _) | SLen (_, _) | Stoi (_, _) | Itos _)
     | Lnot _, (True | Reg (_, _) | Land _ | Lor _ | Exists _)
     | ( Reg (_, _)
       , ( True
         | Exists (_, _)
         | SReg (_, _)
         | SLen (_, _)
-        | SEq (_, _)
         | Stoi (_, _)
         | Itos (_, _)
         | Lnot _ | Land _ | Lor _ ) )
@@ -86,7 +74,6 @@ let alpha_compare =
       , ( SLen _ | True
         | Reg (_, _)
         | SReg (_, _)
-        | SEq (_, _)
         | Stoi (_, _)
         | Itos (_, _)
         | Land _ | Lor _ ) )
@@ -175,7 +162,6 @@ let rec simplify : Ir.t -> Ir.t = function
   | SLen _ as x -> x
   | Stoi _ as x -> x
   | Itos _ as x -> x
-  | SEq _ as x -> x
   | SPrefixOf _ as x -> x
   | SContains _ as x -> x
   | SSuffixOf _ as x -> x
