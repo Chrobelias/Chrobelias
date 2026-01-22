@@ -377,7 +377,6 @@ struct
                Ir.pp
                ir';
              let nfa = Nfa.intersect hd hd' in
-             Debug.dump_nfa ~msg:"Dump %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
              let ir = Ir.land_ [ ir; ir' ] in
              let nfas =
                (nfa, ir) :: tl

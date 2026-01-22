@@ -1284,7 +1284,7 @@ let shrink_variables ast =
   end
   in
   let ast2 = apply_symantics_unsugared (module Sy) ast in
-  if Set.length (ast2 |> Ast.collect_lin_exp |> fst) < Set.length lin
+  if Set.length (Ast.collect_lin ast2) < Set.length (Ast.collect_lin ast)
   then (
     log "Post-simplification: @[%a@]\n" Ast.pp_smtlib2 ast2;
     let info2 = apply_symantics (module Who_in_exponents) ast in
