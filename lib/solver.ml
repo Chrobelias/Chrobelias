@@ -377,6 +377,7 @@ struct
                Ir.pp
                ir';
              let nfa = Nfa.intersect hd hd' in
+             Debug.dump_nfa ~msg:"Dump %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
              let ir = Ir.land_ [ ir; ir' ] in
              let nfas =
                (nfa, ir) :: tl
@@ -1299,7 +1300,7 @@ module MsbStr =
 
       let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> Nfa.t =
         fun vars atom reg ->
-        let nfa = NfaO2.of_lsb reg 0 in
+        let nfa = NfaO2.of_lsb reg in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
@@ -1354,7 +1355,7 @@ module MsbStrBv =
 
       let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> Nfa.t =
         fun vars atom reg ->
-        let nfa = NfaO2.of_lsb reg 0 in
+        let nfa = NfaO2.of_lsb reg in
         let nfa = nfa |> NfaO.convert_nfa_msb in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
