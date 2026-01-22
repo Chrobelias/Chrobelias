@@ -304,6 +304,19 @@ module Eia = struct
     | Mod (t, _) as term -> fz (fold_term fz fs acc t) term
   ;;
 
+  let rec fold_term_skip_pow =
+    fun fz acc (type a) (term : a term) ->
+    match term with
+    | (Const _ | Atom (Var (_, I))) as term -> fz acc term
+    | (Add terms | Mul terms) as term ->
+      fz (List.fold_left (fold_term_skip_pow fz) acc terms) term
+    | (Bwand (term', term'') | Bwor (term', term'') | Bwxor (term', term'')) as term ->
+      fz (fold_term_skip_pow fz (fold_term_skip_pow fz acc term') term'') term
+    | Mod (t, _) as term -> fz (fold_term_skip_pow fz acc t) term
+    | Pow (_, _) -> acc
+    | term -> acc
+  ;;
+
   let compare_term (type a) : a term -> a term -> int = fun l r -> Stdlib.compare l r
   (*match l, r with
     | _ -> failwith "tbd"*)
@@ -364,6 +377,17 @@ module Eia = struct
     | InReRaw (term, _, re) -> fold_term fz fs acc term
     | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
       fold_term fz fs (fold_term fz fs acc term) term'
+  ;;
+
+  let fold2_skip_pow fz acc : t -> _ =
+    let _ : 'acc -> Z.t term -> 'acc = fz in
+    function
+    | Eq (l, r, I) -> fold_term_skip_pow fz (fold_term_skip_pow fz acc l) r
+    | Leq (term, term') -> fold_term_skip_pow fz (fold_term_skip_pow fz acc term) term'
+    | RLen (v, pow) -> fold_term_skip_pow fz (fold_term_skip_pow fz acc v) pow
+    | InRe (term, I, re) -> fold_term_skip_pow fz acc term
+    | InReRaw (term, I, re) -> fold_term_skip_pow fz acc term
+    | _ -> acc
   ;;
 
   let pp fmt = function
@@ -710,6 +734,23 @@ let collect_lin_exp ast =
           | _ -> lin, exp)
        | _ -> lin, exp)
     (Set.empty, Set.empty)
+    ast
+;;
+
+let collect_lin ast =
+  let module Set = Base.Set.Poly in
+  fold
+    (fun acc ast ->
+       match ast with
+       | Eia eia ->
+         Eia.fold2_skip_pow
+           (fun acc -> function
+              | Atom (Var (x, I)) -> Set.add acc x
+              | _ -> acc)
+           acc
+           eia
+       | _ -> acc)
+    Set.empty
     ast
 ;;
 
