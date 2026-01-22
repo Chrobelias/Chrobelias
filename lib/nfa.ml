@@ -2433,21 +2433,20 @@ module Msb (Label : L) = struct
     }
   ;;
 
-  let of_lsb (nfa : Lsb(Label).t) (pos : int) : t =
-    let start = Array.length nfa.transitions in
-    let transitions =
+  let of_lsb (nfa : Lsb(Label).t) : t =
+    let nfa = minimize_not_very_strong nfa in
+    let start = length nfa in
+    let transitions' =
       Array.append
         (Graph.reverse nfa.transitions)
-        (Set.map
-           ~f:(fun start' ->
-             [ Label.eos_with_mask [ pos ], start'; Label.eos_with_mask [ pos ], start ])
-           nfa.final
-         |> Set.to_array)
+        (Set.map ~f:(fun start' -> Label.eos_with_mask [ 0 ], start') nfa.final
+         |> Set.to_list
+         |> fun x -> [ Label.eos_with_mask [ 0 ], start ] @ x |> fun x -> [| x |])
     in
     { start = Set.singleton start
     ; is_dfa = false
     ; final = nfa.start
-    ; transitions
+    ; transitions = transitions'
     ; deg = nfa.deg
     }
   ;;
