@@ -752,7 +752,15 @@ let simpl_ineq ir =
              (var, (Some value, Some value)) :: list
            | Rel (Leq, term, c) when Map.length term = 1 ->
              let var, coeff = Map.min_elt_exn term in
-             let value = Z.(c / coeff) in
+             let div a b =
+               let c, r = Z.div_rem a b in
+               if Z.(r < zero) && Z.(c > zero)
+               then Z.(c + one)
+               else if Z.(r < zero) && Z.(c <= zero)
+               then Z.(c - one)
+               else c
+             in
+             let value = div c coeff in
              if Z.(coeff > zero)
              then (var, (None, Some value)) :: list
              else (var, (Some value, None)) :: list
@@ -780,10 +788,7 @@ let simpl_ineq ir =
           match lowb, uppb with
           | Some x, Some y ->
             if x < y
-            then
-              leq (Map.singleton var Z.minus_one) Z.(-x)
-              :: leq (Map.singleton var Z.one) y
-              :: irs
+            then geq (Map.singleton var Z.one) x :: leq (Map.singleton var Z.one) y :: irs
             else if x = y
             then eq (Map.singleton var Z.one) y :: irs
             else false_ :: irs

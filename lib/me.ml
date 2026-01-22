@@ -484,7 +484,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let* a, sup_a = of_str_atom lhs in
       let* b, sup_b = of_str_atom rhs in
       let sup = sup_a @ sup_b in
-      let ans = Ir.land_ (Ir.seq a b :: sup) in
+      let ans = Ir.land_ (Ir.neq a b :: sup) in
       (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | Leq (lhs, rhs) ->

@@ -912,6 +912,10 @@ let make_main_symantics env =
       match l, r with
       | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
         Eia (Eia.Eq (l, r, I))
+      | Eia.Str_const str, Eia.Str_const str' ->
+        if str = str' then Id_symantics.true_ else Id_symantics.false_
+      | v, Eia.Str_const str | Eia.Str_const str, v ->
+        Ast.eia (Ast.Eia.inre v Ast.S (Regex.str_to_re str))
       | _ -> Id_symantics.eq_str l r
     ;;
 

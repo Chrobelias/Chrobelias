@@ -58,7 +58,7 @@ type deg = int
 type state = int
 
 (* TODO(Kakadu): Gosha, could you add Sets with Int keys
-where it's acceptable, to reduce amount of calls to polymorhos compare *)
+  where it's acceptable, to reduce amount of calls to polymorhos compare *)
 (* module State_set = Base.Set.M (Base.Int) *)
 
 let ( let* ) = Option.bind
