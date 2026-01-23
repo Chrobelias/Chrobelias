@@ -2057,7 +2057,8 @@ let run_basic_simplify ast =
     match basic_simplify [ 1 ] Env.empty ast with
     | `Sat env -> `Sat ("presimpl", env)
     | `Unsat -> `Unsat
-    | `Unknown (ast, e, _, _) -> `Unknown (ast |> shrink_variables, e))
+    | `Unknown (ast, e, _, _) ->
+      `Unknown (ast |> shrink_variables |> flatten Info.empty, e))
   else `Unknown (ast, Env.empty)
 ;;
 

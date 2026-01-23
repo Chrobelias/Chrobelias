@@ -257,7 +257,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
            | x -> failf "not implemented: %a\n%!" Ir.pp_atom (x |> fst)
          in
          Poly (Map.singleton var coeff, Z.zero, merged_sups)
-       | _ ->
+       | expr ->
          let var = Ir.internal_name () in
          let coeff =
            if Z.(exp_c > zero)
