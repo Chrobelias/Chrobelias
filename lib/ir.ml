@@ -769,7 +769,34 @@ let simpl_ineq ir =
           | None, None -> irs)
         bounds_map
     in
-    land_ (ir_without_eq_n_leq :: irs) |> simpl
+    let ir = land_ (ir_without_eq_n_leq :: irs) |> simpl in
+    let complex_bounds =
+      fold
+        (fun list -> function
+           | Rel (Leq, term, value) -> (term, value) :: list
+           | _ -> list)
+        []
+        ir
+    in
+    let complex_bounds_map =
+      complex_bounds
+      |> Map.of_alist_multi
+      |> Map.map ~f:(function
+        | hd :: tl -> List.fold_left Z.min hd tl
+        | [] -> assert false)
+    in
+    let ir_without_leq =
+      map
+        (function
+          | Rel (Leq, term, c) -> true_
+          | ir -> ir)
+        ir_without_eq_n_leq
+    in
+    let irs =
+      Map.fold ~init:[] ~f:(fun ~key ~data irs -> leq key data :: irs) complex_bounds_map
+    in
+    let ir = land_ (ir_without_leq :: irs) |> simpl in
+    ir
   in
   map
     (function
