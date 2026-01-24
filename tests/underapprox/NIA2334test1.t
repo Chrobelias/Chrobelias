@@ -1,7 +1,7 @@
 
   $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
-  $ Chro -no-over -bound 3 --dsimpl --stop-after simpl ../overapprox/NIA2334test1.smt2
+  $ Chro -no-over --dsimpl --stop-after simpl ../overapprox/NIA2334test1.smt2
   Basic simplifications:
   
   iter(1)= (and
@@ -72,44 +72,12 @@
                  (* 25332 x3) (* 84701 x1)) 96869))
   fixed-point
   
+  Bound for underapproximation: 18
+  
   Interesting: x1 x2
   
-  Expecting 9 choices ...
+  Expecting 324 choices ...
   
-  Can't decide in lib/Underapprox.ml
-  (assert (exists (x4 x5)
-          (and
-            (exists (x3)
-            (and
-              (<= (+ (* 2817 x1) (* (- 24158) x2) (* (- 15169) x3)
-                  (* (- 90303) x4) (* 74384 x5) (* (- 66) pow2(x1))
-                  (* (- 73) pow2(x2)) )
-               6606) 
-              (<= (+ (* 11240 x1) (* (- 6357) x2) (* (- 57242) x3) (* 57487 x4)
-                  (* (- 82001) x5) )
-               -8403) 
-              (<= (+ (* (- 43994) x1) (* (- 34064) x2) (* 48000 x3)
-                  (* 95204 x4) (* (- 79965) x5) )
-               25) 
-              (<= (+ (* 95792 x1) (* 19684 x2) (* (- 10671) x3)
-                  (* (- 78209) x4) (* 86876 x5) (* (- 69) pow2(x1))
-                  (* 97 pow2(x2)) )
-               -97300) 
-              (<= (+ (* (- 59357) x1) (* (- 1494) x2) (* (- 76257) x3)
-                  (* 56802 x4) (* 39683 x5) )
-               -45546) 
-              (<= (+ (* 84682 x1) (* 63074 x2) (* 72701 x3) (* (- 25207) x4)
-                  (* (- 45670) x5) (* (- 35) pow2(x1)) (* (- 36) pow2(x2)) )
-               58485) 
-              (<= (+ (* 84701 x1) (* (- 6295) x2) (* 25332 x3) (* (- 20749) x4)
-                  (* (- 37170) x5) )
-               96869) 
-              (<= (* (- 1) x3)  0) 
-              )
-            
-            (<= (* (- 1) x5)  0) 
-            (<= (* (- 1) x4)  0) 
-            (<= (* (- 1) x2)  0) 
-            (<= (* (- 1) x1)  0) 
-            )
-  )
+  lib/Underapprox.ml gives early Sat.
+  env = {| x1->16 x2->0 x3->18 x4->9 x5->42 |}
+  sat (under I)

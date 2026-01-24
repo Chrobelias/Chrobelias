@@ -13,6 +13,8 @@
   iter(2)= (<= (+ x2 (* 5 x1)) (* 6 x2))
   fixed-point
   
+  Bound for underapproximation: 3
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -34,6 +36,8 @@ Should be (<= x 2)
   iter(1)= (<= (* 5 x1) 13)
   iter(2)= (<= x1 2)
   fixed-point
+  
+  Bound for underapproximation: 2
   
   Interesting:
   
@@ -90,6 +94,8 @@ Fold exps
   iter(3)= (<= (exp 2 (+ it134 it135)) 2)
   fixed-point
   
+  Bound for underapproximation: 2
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -109,6 +115,8 @@ Fold exps
   iter(1)= (<= (* (+ x1 x2) (exp 2 x3)) 2)
   iter(2)= (<= (+ (* x1 (exp 2 x3)) (* x2 (exp 2 x3))) 2)
   fixed-point
+  
+  Bound for underapproximation: 2
   
   Interesting: x3
   
@@ -132,6 +140,8 @@ Fold exps
   iter(2)= (<= (exp 2 (+ (+ (- 1) it134) it134)) 2)
   iter(3)= (<= (exp 2 (+ it134 it134)) 4)
   fixed-point
+  
+  Bound for underapproximation: 2
   
   Interesting:
   
@@ -160,6 +170,8 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   iter(3)= (<= (+ it646 (* (- 3) it646)) (- 2))
   fixed-point
   
+  Bound for underapproximation: 2
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -186,6 +198,8 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   iter(2)= (= (+ (* (- 1) (* 3 i3) (exp 2 it134)) (* 2 (exp 2 it134))) 0)
   iter(3)= (= (+ (* (- 3) i3 (exp 2 it134)) (* 2 (exp 2 it134))) 0)
   fixed-point
+  
+  Bound for underapproximation: 2
   
   Interesting: it134
   

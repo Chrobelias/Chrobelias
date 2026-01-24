@@ -1042,6 +1042,8 @@ $ cat input1.smt2
               (<= (* (- 1) it140) (- 1)))
   fixed-point
   
+  Bound for underapproximation: 4
+  
   Interesting:
   
   Expecting 1 choices ...

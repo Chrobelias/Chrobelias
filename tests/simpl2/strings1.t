@@ -163,9 +163,11 @@
     Str:
     ALL: strlenx y
   
+  Bound for underapproximation: 9
+  
   Interesting: strlenx
   
-  Expecting 0 choices ...
+  Expecting 9 choices ...
   
   lib/Underapprox.ml gives early Sat.
   env = {| strlenx->0 y->999 |}

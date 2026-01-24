@@ -40,12 +40,12 @@ $ export CHRO_DEBUG=1
 
 $ export CHRO_DEBUG=1
   $ Chro -bound 0  --no-pre-simpl --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
-  sat (nia)
+  sat (under I)
 
   $ unset CHRO_DEBUG
   $ export CHRO_EIA=old
   $ Chro -bound 0 --no-pre-simpl --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
-  sat (nia)
+  sat (under I)
 
 Run solver
   $ unset CHRO_EIA

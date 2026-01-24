@@ -168,9 +168,11 @@ $ export CHRO_DEBUG=1
     Str:
     ALL: strlenx x
   
+  Bound for underapproximation: 7
+  
   Interesting: strlenx
   
-  Expecting 0 choices ...
+  Expecting 7 choices ...
   
   Can't decide in lib/Underapprox.ml
   (and

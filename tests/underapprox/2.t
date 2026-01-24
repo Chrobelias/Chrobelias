@@ -16,6 +16,8 @@
              (exists (x) (<= (exp 2 x) x)))
   fixed-point
   
+  Bound for underapproximation: 3
+  
   Interesting: x y
   
   Expecting 9 choices ...

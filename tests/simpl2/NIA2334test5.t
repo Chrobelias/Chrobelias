@@ -72,8 +72,10 @@
                  (* 52371 x5) (* 70809 x1) (* 77330 x2) (* 91984 x3)) (- 55034)))
   fixed-point
   
+  Bound for underapproximation: 18
+  
   Interesting: x1 x2
   
-  Expecting 4 choices ...
+  Expecting 324 choices ...
   
   Can't decide in lib/Underapprox.ml

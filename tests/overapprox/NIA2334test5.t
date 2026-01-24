@@ -3,9 +3,11 @@
   $ export CHRO_TRACE_OPT=1
   $ export OCAMLRUNPARAM="b=0"
   $ Chro --no-pre-simpl --dsimpl --stop-after simpl ../overapprox/NIA2334test5.smt2 | sed 's/[[:space:]]*$//'
+  Bound for underapproximation: 18
+  
   Interesting: x1 x2
   
-  Expecting 4 choices ...
+  Expecting 324 choices ...
   
   Can't decide in lib/Underapprox.ml
   whole: (bool.and

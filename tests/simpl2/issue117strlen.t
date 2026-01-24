@@ -49,6 +49,8 @@ $ cat len1.smt2
              (<= (+ 1 strlenx) strleny))
   fixed-point
   
+  Bound for underapproximation: 9
+  
   Interesting:
   
   Expecting 1 choices ...
