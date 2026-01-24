@@ -12,6 +12,8 @@
   iter(1)= (= (exp x 2) 32)
   fixed-point
   
+  Bound for underapproximation: 5
+  
   Interesting:
   
   Expecting 1 choices ...

@@ -659,9 +659,11 @@
               (<= (* (- 1) it147) (- 1)))
   fixed-point
   
+  Bound for underapproximation: 2
+  
   Interesting: it147
   
-  Expecting 1 choices ...
+  Expecting 2 choices ...
   
   lib/Underapprox.ml gives early Sat.
   env = {| i10->3 it147->1 it154->2 it155->3 it157->3 it158->1 it159->3

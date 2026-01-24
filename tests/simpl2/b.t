@@ -8,7 +8,7 @@
   > (assert (< 111111 (+ (exp 2 x) (exp 2 y)) ))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over -bound 0  --pre-simpl --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound -1  --pre-simpl --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -26,8 +26,3 @@
              (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
   fixed-point
   
-  Interesting: x y
-  
-  Expecting 0 choices ...
-  
-  Can't decide in lib/Underapprox.ml

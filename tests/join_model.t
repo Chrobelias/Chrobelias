@@ -24,6 +24,8 @@
              (<= 100 z))
   fixed-point
   
+  Bound for underapproximation: 6
+  
   Interesting:
   
   Expecting 1 choices ...

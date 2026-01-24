@@ -1,7 +1,7 @@
 Basic QF_EIA tests
 
   $ Chro ./qf-eia.smt2
-  sat (nfa)
+  sat (under I)
   unsat (nfa)
   unsat (nfa)
   sat (presimpl)
@@ -64,7 +64,7 @@ Test Ex x > 2**x
 
 Test ExEyEz y = 2**x & z = 2**y & z mod 10 = 6
 
-  $ Chro ./examples/QF_EIA/double_exp-10-sat.smt2
+  $ Chro -bound -1 ./examples/QF_EIA/double_exp-10-sat.smt2
   sat (nfa)
 
 Test ExEyEz y = 2**x & z = 2**y & z mod 100 = 36

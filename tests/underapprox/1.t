@@ -19,6 +19,8 @@
              (<= (exp 2 y) x))
   fixed-point
   
+  Bound for underapproximation: 3
+  
   Interesting: x y
   
   Expecting 9 choices ...
@@ -36,9 +38,11 @@
 
 
   $ Chro -no-over -bound 3 --dsimpl --no-pre-simpl --stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
+  Bound for underapproximation: 10
+  
   Interesting: x1 x2
   
-  Expecting 9 choices ...
+  Expecting 100 choices ...
   
   lib/Underapprox.ml gives early Sat.
   env = {| x1->1 x2->0 |}

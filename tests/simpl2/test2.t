@@ -5,6 +5,8 @@
   iter(2)= (<= (+ x y) z)
   fixed-point
   
+  Bound for underapproximation: 2
+  
   Interesting:
   
   Expecting 1 choices ...

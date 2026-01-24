@@ -35,6 +35,8 @@
   iter(5)= (= (+ z z) 10099)
   fixed-point
   
+  Bound for underapproximation: 13
+  
   Interesting:
   
   Expecting 1 choices ...
@@ -52,6 +54,8 @@
   iter(1)= (= (+ y y) (* (- 1) 9899))
   iter(2)= (= (+ y y) (- 9899))
   fixed-point
+  
+  Bound for underapproximation: 13
   
   Interesting:
   
@@ -81,6 +85,8 @@
              (= (+ it19 it23 (* (- 1) i4)) (- 1))
              (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0))
   fixed-point
+  
+  Bound for underapproximation: 2
   
   Interesting:
   

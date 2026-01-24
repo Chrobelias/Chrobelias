@@ -20,9 +20,11 @@
              (<= (* (- 5) x) 13))
   fixed-point
   
+  Bound for underapproximation: 8
+  
   Interesting: y
   
-  Expecting 2 choices ...
+  Expecting 8 choices ...
   
   lib/Underapprox.ml gives early Sat.
   env = {| x->0 y->0 |}
@@ -60,9 +62,11 @@
              (<= (* (- 5) x) 13))
   fixed-point
   
+  Bound for underapproximation: 8
+  
   Interesting: y
   
-  Expecting 0 choices ...
+  Expecting 8 choices ...
   
   lib/Underapprox.ml gives early Sat.
   env = {| x->0 y->0 |}

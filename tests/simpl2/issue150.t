@@ -58,6 +58,8 @@
              (chrob.len x (exp 10 strlenx)))
   fixed-point
   
+  Bound for underapproximation: 10
+  
   (and
     (= (* 1171 w) (+ x (* 444 u)))
     (<= 0 strlenx)

@@ -72,8 +72,12 @@
                  (* 25332 x3) (* 84701 x1)) 96869))
   fixed-point
   
+  Bound for underapproximation: 18
+  
   Interesting: x1 x2
   
-  Expecting 1 choices ...
+  Expecting 324 choices ...
   
-  Can't decide in lib/Underapprox.ml
+  lib/Underapprox.ml gives early Sat.
+  env = {| x1->16 x2->0 x3->15 x4->8 x5->40 |}
+  sat (under I)
