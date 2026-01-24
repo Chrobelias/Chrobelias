@@ -130,6 +130,10 @@ Basic options:
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
+    ; ( "-q"
+      , Arg.Unit (fun () -> config.quiet <- true)
+      , "   \tPrint 'unknown' instead od Exceptions\t" )
+    ; "-base10", Arg.Unit (fun () -> config.logic <- `Str), "\tBase 10 EIA\t"
     ; ( "--stop-after"
       , Arg.String
           (function
@@ -144,7 +148,6 @@ Basic options:
     ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t"
     ; "--info", Arg.Unit (fun () -> config.with_info <- true), "\t"
     ; "--no-str-bv", Arg.Unit (fun () -> config.no_str_bv <- true), "\t"
-    ; "-q", Arg.Unit (fun () -> config.quiet <- true), "\t"
     ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , "\tDon't try simplifications based on alpha-equivalence" )
