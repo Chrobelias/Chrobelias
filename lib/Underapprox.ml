@@ -180,8 +180,30 @@ let omit_z3_model =
   | Some _ -> true
 ;;
 
+let semenov_bound bound ast =
+  let rec compute_bound =
+    let open Ast.Eia in
+    function
+    | Const c -> Z.(max one (abs c))
+    | Atom (Var (_, I)) | Pow (_, _) -> Z.one
+    | Add terms -> List.fold_left (fun acc x -> Z.(acc + compute_bound x)) Z.one terms
+    | Mul terms -> List.fold_left (fun acc x -> Z.(acc * compute_bound x)) Z.one terms
+    | term -> Z.one
+  in
+  Ast.fold
+    (fun acc -> function
+       | Eia (Eq (lhs, rhs, I)) ->
+         max acc Z.(log2 (compute_bound lhs + compute_bound rhs))
+       | Eia (Leq (lhs, rhs)) -> max acc Z.(log2 (compute_bound lhs + compute_bound rhs))
+       | _ -> acc)
+    bound
+    ast
+;;
+
 let check bound ast =
   try
+    let bound = if bound < 0 then -1 else semenov_bound bound ast in
+    log "Bound for underapproximation: %d\n" bound;
     let vars = ref (Base.Set.empty (module Base.String)) in
     let interestring_vars = apply_symantics (make_collector ()) ast in
     (* TODO(Kakadu): collecting of interesting variables could be buggy. For example, what if
@@ -212,6 +234,7 @@ let check bound ast =
              make_sym env (fun s -> vars := Base.Set.add !vars s) bound
            in
            let ph = apply_symantics sym ast in
+           (* log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph; *)
            let module Z3 = Smtml.Z3_mappings.Solver in
            (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
            let solver =
