@@ -42,10 +42,10 @@ jobs:
             cat $i > problem.smt;
             sed -i '/(define-fun-rec*/d' problem.smt;
             sed -i 's/pow/exp 10/g' problem.smt;
-            if pcregrep -q -M "$number\nSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/2-3-3-4/math-result; then 
+            if pcregrep -q -M "\n$number\nSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/2-3-3-4/math-result; then 
               sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status sat)/g' problem.smt;
             else 
-              if pcregrep -q -M "$number\nUNSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/2-3-3-4/math-result; then 
+              if pcregrep -q -M "\n$number\nUNSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/2-3-3-4/math-result; then 
                 sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unsat)/g' problem.smt;
               else 
                 sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unknown)/g' problem.smt;
