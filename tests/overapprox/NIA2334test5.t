@@ -60,8 +60,8 @@
                     (int.add
                      (int.add
                       (int.add
-                       (int.add (int.add 0 (int.mul (int.mul -1 96) exp_2_1))
-                        (int.mul 40 exp_2_2)) (int.mul 75146 x1))
+                       (int.add (int.add 0 (int.mul (int.mul -1 96) exp_2_x1))
+                        (int.mul 40 exp_2_x2)) (int.mul 75146 x1))
                       (int.mul (int.mul -1 33357) x2))
                      (int.mul (int.mul -1 55318) x3)) (int.mul 16322 x4))
                    (int.mul (int.mul -1 42327) x5)) (int.mul -1 54594)))
@@ -71,8 +71,8 @@
                    (int.add
                     (int.add
                      (int.add
-                      (int.add (int.add 0 (int.mul 38 exp_2_1))
-                       (int.mul (int.mul -1 69) exp_2_2)) (int.mul 70809 x1))
+                      (int.add (int.add 0 (int.mul 38 exp_2_x1))
+                       (int.mul (int.mul -1 69) exp_2_x2)) (int.mul 70809 x1))
                      (int.mul 77330 x2)) (int.mul 91984 x3)) (int.mul 4945 x4))
                   (int.mul 52371 x5)) (int.mul -1 55034)))
                (int.le_s
@@ -81,14 +81,14 @@
                   (int.add
                    (int.add
                     (int.add
-                     (int.add (int.add 0 (int.mul (int.mul -1 73) exp_2_1))
-                      (int.mul 5 exp_2_2)) (int.mul (int.mul -1 11652) x1))
+                     (int.add (int.add 0 (int.mul (int.mul -1 73) exp_2_x1))
+                      (int.mul 5 exp_2_x2)) (int.mul (int.mul -1 11652) x1))
                     (int.mul 91714 x2)) (int.mul 75317 x3)) (int.mul 87603 x4))
                  (int.mul (int.mul -1 53824) x5)) 66490)) (int.le_s 0 x5))
              (int.le_s 0 x4)) (int.le_s 0 x3)) (int.le_s 0 x2))
           (int.le_s 0 x1))
-         (int.lt_s x1 exp_2_1)
-         (int.lt_s x2 exp_2_2)
+         (int.lt_s (int.mul 1 x1) exp_2_x1)
+         (int.lt_s (int.mul 1 x2) exp_2_x2)
   
   Early Unsat in lib/Overapprox.ml
   unsat (over)
