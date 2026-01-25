@@ -33,8 +33,8 @@ jobs:
         run: opam exec -- dune build
 
       - name: Run NIA-test 2-3-3-4 and measure time
-        run: sudo apt-get update && sudo apt-get install -y pcregrep
         run: |
+          sudo apt-get update && sudo apt-get install -y pcregrep;
           set +e +o pipefail;
           START_TIME=$(date +%s)
           for i in ./benchmarks/EXP-solver/Benchmark/NIA-test/2-3-3-4/test*; do
