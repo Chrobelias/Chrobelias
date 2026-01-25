@@ -36,20 +36,22 @@ end
 let cache : (string, string, _) Base.Map.t ref = ref (Base.Map.empty (module Base.String))
 let extend vk vv = cache := Base.Map.add_exn !cache ~key:vk ~data:vv
 
+(* MS: Config.base () must be replaced with a base taken from the phormula *)
 let formulas_of_cache () =
   Base.Map.to_sequence !cache
-  |> Base.Sequence.map ~f:(fun (x, fv) -> Symantics.(var x < var fv))
+  |> Base.Sequence.map ~f:(fun (x, fv) ->
+    Symantics.(mul [ constz Z.(Config.base () - one); var x ] < var fv))
   |> Base.Sequence.to_list
 ;;
 
-let gensym =
+let gensym base =
   let n = ref 0 in
-  let prefix = "exp_2_" in
+  let prefix = Format.asprintf "exp_%a_" Z.pp_print base in
   fun name ->
     match Base.Map.find_exn !cache name with
     | exception Base.Not_found_s _ ->
       incr n;
-      let ans = Printf.sprintf "%s%d" prefix !n in
+      let ans = Printf.sprintf "%s%s" prefix name in
       extend name ans;
       ans
     | x -> x
@@ -57,6 +59,7 @@ let gensym =
 
 exception Bitwise_op
 exception String_op
+exception Difficult_Exp_op
 
 let apply_symnatics (module S : Smtml_symantics) =
   let rec helper = function
@@ -85,9 +88,9 @@ let apply_symnatics (module S : Smtml_symantics) =
     | Atom (Ast.Var (s, _)) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (Const base, Atom (Ast.Var (x, _k))) when base = Z.of_int 2 ->
-      Symantics.var (gensym x)
-    | Pow (base, p) -> S.pow (helperT base) (helperT p)
+    | Pow (Const base, Atom (Ast.Var (x, _k))) -> Symantics.var (gensym base x)
+    | Pow (base, Const p) -> S.pow (helperT base) (helperT (Const p))
+    | Pow (_, _) -> raise Difficult_Exp_op
     | Mod (t, z) -> S.mod_ (helperT t) z
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
     | Concat _ | At _ | Substr _ | Ast.Eia.Str_const _ | Len _ | Sofi _ | Iofs _ | Len2 _
@@ -105,7 +108,7 @@ let apply_symnatics (module S : Smtml_symantics) =
       | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ | RLen _ ->
         raise String_op
     with
-    | String_op | Bitwise_op -> Symantics.true_
+    | String_op | Bitwise_op | Difficult_Exp_op -> Symantics.true_
   in
   fun x -> S.prj (helper x)
 ;;
@@ -122,9 +125,11 @@ let check ast =
   let whole = _repr :: formulas_of_cache () in
   Format.pp_print_flush Format.std_formatter ();
   log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
-  let solver = Smtml.Z3_mappings.Solver.make () in
-  Smtml.Z3_mappings.Solver.reset solver;
-  match Smtml.Z3_mappings.Solver.check solver ~assumptions:whole with
+  let module Z3 = Smtml.Z3_mappings.Solver in
+  (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
+  let solver = Z3.make ~params:Smtml.Params.(default () $ (Timeout, 20000)) () in
+  Z3.reset solver;
+  match Z3.check solver ~assumptions:whole with
   | `Unsat ->
     if tracing_on then Format.printf "Early Unsat in %s\n%!" __FILE__;
     `Unsat
