@@ -10,6 +10,7 @@ type config =
   ; mutable simpl_mono : bool
   ; mutable over_approx : bool
   ; mutable over_approx_early : bool
+  ; mutable over_nfa : bool
   ; mutable under_approx : int
   ; mutable input_file : string
   ; mutable no_model : bool
@@ -34,6 +35,7 @@ let config =
   ; simpl_mono = true
   ; over_approx = true
   ; over_approx_early = false
+  ; over_nfa = false
   ; under_approx = 2
   ; input_file = ""
   ; no_model = false
@@ -132,7 +134,7 @@ Basic options:
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
     ; ( "-q"
       , Arg.Unit (fun () -> config.quiet <- true)
-      , "   \tPrint 'unknown' instead od Exceptions\t" )
+      , "   \tPrint 'unknown' instead of Exceptions\t" )
     ; "-base10", Arg.Unit (fun () -> config.logic <- `Str), "\tBase 10 EIA\t"
     ; ( "--stop-after"
       , Arg.String
@@ -154,6 +156,7 @@ Basic options:
     ; ( "--alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- true)
       , "\tDO simplifications based on alpha-equivalence" )
+    ; "--over-nfa", Arg.Unit (fun () -> config.over_nfa <- true), "\t"
     ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t"
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"

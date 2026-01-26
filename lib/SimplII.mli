@@ -32,10 +32,8 @@ val run_basic_simplify
 
 val run_under2 : Env.t -> Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val check_nia : Ast.t -> [ `Sat | `Unsat | `Unknown ]
-
-(* val arithmetize : Ast.t -> Ast.t *)
 val pp_error : Format.formatter -> error -> unit
-val shrink_variables : Ast.t -> Ast.t
+
 (* val rewrite_len : Ast.t -> Ast.t *)
 
 (** Underapproximation 2 related functions *)

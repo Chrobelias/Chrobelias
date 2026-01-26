@@ -96,6 +96,7 @@ let check_sat ?(verbose = false) ast : rez =
   in
   let used_under2 = ref false in
   let check_nfa_sat ast e =
+    log "Starting NFA Solver ...\n%!";
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
       let ir = ir |> Lib.Ir.simpl |> Lib.Ir.simpl_ineq in
@@ -189,21 +190,9 @@ let check_sat ?(verbose = false) ast : rez =
                | Error s -> Result.error s
              in
              let _results = List.map f asts in
-             (*let extra =
-               List.map
-                 (function
-                   | Ok _ -> "unsat;"
-                   | Error s -> s)
-                 results
-               |> String.concat " "
-             in*)
-             (*report_result2 (`Unknown (Format.sprintf "under II %s" extra));*)
-             (* TODO(Kakadu): actually, exiting after check-sat is not OK *)
              unknown ast e
            with
-           | Sat_found model ->
-             (*report_result2 (`Sat "under II");*)
-             sat "under II" ast e model Map.empty))
+           | Sat_found model -> sat "under II" ast e model Map.empty))
       else unknown ast e)
       <+> (fun ast e ->
       if config.dump_pre_simpl then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
