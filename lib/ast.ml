@@ -678,20 +678,6 @@ let rec in_eia_term f v ast =
   | Unsupp _ -> false
 ;;
 
-let in_stoi v ast =
-  let in_stoi_eia v eia =
-    Eia.fold2
-      (fun acc el ->
-         match el with
-         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
-         | _ -> acc)
-      (fun acc _ -> acc)
-      false
-      eia
-  in
-  in_eia_term in_stoi_eia v ast
-;;
-
 let in_concat v ast =
   in_eia_term
     (fun v eia ->
@@ -791,6 +777,29 @@ let rec map f = function
 ;;
 
 (* failwith "unable to map; unsupported constraint" *)
+
+let in_stoi v ast =
+  (* MS: Here, we can add any cases when we do not want to treat to_int as something special*)
+  (* Here, we omit (0 <= str.to_int x) *)
+  let ast' =
+    map
+      (function
+        | Eia (Leq (Const c, Iofs (Atom (Var (_, S))))) when Z.(c = zero) -> True
+        | ph -> ph)
+      ast
+  in
+  let in_stoi_eia v eia =
+    Eia.fold2
+      (fun acc el ->
+         match el with
+         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      eia
+  in
+  in_eia_term in_stoi_eia v ast'
+;;
 
 let rec equal ast ast' =
   match ast, ast' with
