@@ -178,6 +178,8 @@ $ export CHRO_DEBUG=1
   (and
     (= (+ x (* (- 198) (exp 10 strlenx)) (* (- 1) x)) 0)
     (<= (exp 10 0) (exp 10 strlenx)))
+  Starting NFA Solver ...
+  
   (assert (exists (x)
           (and
             (= (+ (* (- 0) x) (* (- 198) pow2(strlenx)) )  0)

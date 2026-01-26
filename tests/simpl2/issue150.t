@@ -68,6 +68,8 @@
     (<= u 2)
     (str.in_re.raw x)
     (chrob.len x (exp 10 strlenx)))
+  Starting NFA Solver ...
+  
 $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
 
 

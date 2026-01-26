@@ -737,7 +737,30 @@ let collect_lin_exp ast =
     ast
 ;;
 
-let collect_lin ast =
+(* MS: the same thing as the fashionable Who_in_exponents from SimplII.ml*)
+let collect_all ast =
+  let module Set = Base.Set.Poly in
+  fold
+    (fun acc ast ->
+       match ast with
+       | Eia eia ->
+         Eia.fold2
+           (fun acc -> function
+              | Atom (Var (x, I)) -> x :: fst acc, snd acc
+              | Pow (_, Atom (Var (x, I))) -> fst acc, x :: snd acc
+              | _ -> acc)
+           (fun acc _ -> acc)
+           acc
+           eia
+       | _ -> acc)
+    ([], [])
+    ast
+;;
+
+let get_all_vars ast = ast |> collect_all |> fst
+let get_exp_vars ast = ast |> collect_all |> snd
+
+let get_lin_vars ast =
   let module Set = Base.Set.Poly in
   fold
     (fun acc ast ->
