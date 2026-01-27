@@ -589,6 +589,39 @@ let ir_of_ast env ast =
   ir |> return
 ;;
 
+let rec eia_of_ir : Ir.t -> Ast.t =
+  let ir_atom_to_eia_term = function
+    | Ir.Var s -> Ast.Eia.atom (Ast.var s I)
+    | Ir.Pow2 s ->
+      Ast.Eia.pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var s I))
+  in
+  let ir_atom_to_atom = function
+    | Ir.Var s -> Ast.Any_atom (Ast.Var (s, I))
+    | Ir.Pow2 _ -> failwith "only vars are supported to be converted back in AST"
+  in
+  function
+  | True -> Ast.true_
+  | Lnot lhs -> Ast.lnot (eia_of_ir lhs)
+  | Land ls -> Ast.land_ (List.map eia_of_ir ls)
+  | Lor ls -> Ast.lor_ (List.map eia_of_ir ls)
+  | Rel (rel, poly, c) ->
+    let poly =
+      Map.fold
+        ~f:(fun ~key ~data acc ->
+          Ast.Eia.mul [ Ast.Eia.const data; ir_atom_to_eia_term key ] :: acc)
+        ~init:[]
+        poly
+    in
+    let lhs = Ast.Eia.add poly in
+    let rhs = Ast.Eia.const c in
+    (match rel with
+     | Leq -> Ast.eia (Ast.Eia.leq lhs rhs)
+     | Eq -> Ast.eia (Ast.Eia.eq lhs rhs I))
+  | Exists ([], lhs) -> eia_of_ir lhs
+  | Exists (atoms, lhs) -> Ast.exists (List.map ir_atom_to_atom atoms) (eia_of_ir lhs)
+  | _ -> Ast.true_
+;;
+
 let%expect_test _ =
   let open Ast in
   let wrap ast =
