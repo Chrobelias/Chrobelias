@@ -264,24 +264,27 @@ module MsbStr = struct
     else (
       let states = ref Set.empty in
       let transitions = ref [] in
+      let thing = powerset (0 -- (basei - 1)) term in
       let rec lp front =
         match front with
-        | [] -> ()
-        | hd :: tl ->
+        | s when Set.is_empty s -> ()
+        | s ->
+          let hd = Set.nth s 0 |> Option.get in
+          let tl = Set.remove_index s 0 in
           if Set.mem !states hd
           then lp tl
           else begin
             let t =
-              powerset (0 -- (basei - 1)) term
+              thing
               |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
               |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (List.map (fun (x, _, _) -> x) t @ tl)
+            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
           end
       in
-      lp [ c ];
+      lp (Set.singleton c);
       let states = Set.to_list !states in
       let start = List.length states in
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
@@ -316,24 +319,27 @@ module MsbStr = struct
     else
       (let states = ref Set.empty in
        let transitions = ref [] in
+       let thing = powerset (0 -- (basei - 1)) term in
        let rec lp front =
          match front with
-         | [] -> ()
-         | hd :: tl ->
+         | s when Set.is_empty s -> ()
+         | s ->
+           let hd = Set.nth s 0 |> Option.get in
+           let tl = Set.remove_index s 0 in
            if Set.mem !states hd
            then lp tl
            else begin
              let t =
-               powerset (0 -- (basei - 1)) term
+               thing
                |> List.map (fun (bits, sum) ->
                  Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
              in
              states := Set.add !states hd;
              transitions := t @ !transitions;
-             lp (List.map (fun (x, _, _) -> x) t @ tl)
+             lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
            end
        in
-       lp [ c ];
+       lp (Set.singleton c);
        let states = Set.to_list !states in
        let start = List.length states in
        let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
@@ -431,24 +437,27 @@ module MsbStrBv = struct
     else (
       let states = ref Set.empty in
       let transitions = ref [] in
+      let thing = powerset (0 -- (basei - 1)) term in
       let rec lp front =
         match front with
-        | [] -> ()
-        | hd :: tl ->
+        | s when Set.is_empty s -> ()
+        | s ->
+          let hd = Set.nth s 0 |> Option.get in
+          let tl = Set.remove_index s 0 in
           if Set.mem !states hd
           then lp tl
           else begin
             let t =
-              powerset (0 -- (basei - 1)) term
+              thing
               |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
               |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (List.map (fun (x, _, _) -> x) t @ tl)
+            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
           end
       in
-      lp [ c ];
+      lp (Set.singleton c);
       let states = Set.to_list !states in
       let start = List.length states in
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
@@ -1096,8 +1105,10 @@ module LsbStr = struct
       let transitions = ref [] in
       let rec lp front =
         match front with
-        | [] -> ()
-        | hd :: tl ->
+        | s when Set.is_empty s -> ()
+        | s ->
+          let hd = Set.nth s 0 |> Option.get in
+          let tl = Set.remove_index s 0 in
           if Set.mem !states hd
           then lp tl
           else begin
@@ -1108,10 +1119,10 @@ module LsbStr = struct
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (List.map (fun (_, _, x) -> x) t @ tl)
+            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
           end
       in
-      lp [ c ];
+      lp (Set.singleton c);
       let states = Set.to_list !states in
       Debug.printfln
         "states:[%a]"
@@ -1145,8 +1156,10 @@ module LsbStr = struct
       let transitions = ref [] in
       let rec lp front =
         match front with
-        | [] -> ()
-        | hd :: tl ->
+        | s when Set.is_empty s -> ()
+        | s ->
+          let hd = Set.nth s 0 |> Option.get in
+          let tl = Set.remove_index s 0 in
           if Set.mem !states hd
           then lp tl
           else begin
@@ -1162,10 +1175,10 @@ module LsbStr = struct
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (List.map (fun (_, _, x) -> x) t @ tl)
+            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
           end
       in
-      lp [ c ];
+      lp (Set.singleton c);
       let states = Set.to_list !states in
       Debug.printfln
         "states:[%a]"
@@ -1299,8 +1312,10 @@ module LsbStrBv = struct
       let transitions = ref [] in
       let rec lp front =
         match front with
-        | [] -> ()
-        | hd :: tl ->
+        | s when Set.is_empty s -> ()
+        | s ->
+          let hd = Set.nth s 0 |> Option.get in
+          let tl = Set.remove_index s 0 in
           if Set.mem !states hd
           then lp tl
           else begin
@@ -1311,10 +1326,10 @@ module LsbStrBv = struct
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (List.map (fun (_, _, x) -> x) t @ tl)
+            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
           end
       in
-      lp [ c ];
+      lp (Set.singleton c);
       let states = Set.to_list !states in
       Debug.printfln
         "states:[%a]"
@@ -1348,8 +1363,10 @@ module LsbStrBv = struct
       let transitions = ref [] in
       let rec lp front =
         match front with
-        | [] -> ()
-        | hd :: tl ->
+        | s when Set.is_empty s -> ()
+        | s ->
+          let hd = Set.nth s 0 |> Option.get in
+          let tl = Set.remove_index s 0 in
           if Set.mem !states hd
           then lp tl
           else begin
@@ -1365,10 +1382,10 @@ module LsbStrBv = struct
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (List.map (fun (_, _, x) -> x) t @ tl)
+            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
           end
       in
-      lp [ c ];
+      lp (Set.singleton c);
       let states = Set.to_list !states in
       Debug.printfln
         "states:[%a]"
