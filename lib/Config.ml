@@ -135,7 +135,7 @@ Basic options:
     ; ( "-q"
       , Arg.Unit (fun () -> config.quiet <- true)
       , "   \tPrint 'unknown' instead of Exceptions\t" )
-    ; "-base10", Arg.Unit (fun () -> config.logic <- `Str), "\tBase 10 EIA\t"
+    ; "-base10", Arg.Unit (fun () -> config.logic <- `StrBv), "\tBase 10 EIA\t"
     ; ( "--stop-after"
       , Arg.String
           (function

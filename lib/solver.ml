@@ -1503,10 +1503,18 @@ let check_sat ir
         | `Unsat -> `Unsat
       in
       match Config.config.logic, Config.config.mode with
-      | `Str, `Lsb -> LsbStr.check_sat
-      | `Str, `Msb -> MsbStr.check_sat
-      | `StrBv, `Lsb -> wrap LsbStrBv.check_sat
-      | `StrBv, `Msb -> wrap MsbStrBv.check_sat
+      | `Str, `Lsb ->
+        Debug.printfln "Running string LSB mode";
+        LsbStr.check_sat
+      | `Str, `Msb ->
+        Debug.printfln "Running string MSB mode";
+        MsbStr.check_sat
+      | `StrBv, `Lsb ->
+        Debug.printfln "Running string-bitvector LSB mode";
+        wrap LsbStrBv.check_sat
+      | `StrBv, `Msb ->
+        Debug.printfln "Running string-bitvector MSB mode";
+        wrap MsbStrBv.check_sat
       | _ -> assert false
     in
     match checker ir with
