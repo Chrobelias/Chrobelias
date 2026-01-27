@@ -12,8 +12,8 @@ module type Type = sig
   val n : unit -> t
   val z : unit -> t
   val power_of_two : int -> t
-  val eq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
-  val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
+  val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
+  val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val base : Z.t
 end

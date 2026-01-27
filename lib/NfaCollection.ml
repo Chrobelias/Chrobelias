@@ -13,8 +13,8 @@ module type Type = sig
   val n : unit -> t
   val z : unit -> t
   val power_of_two : int -> t
-  val eq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
-  val leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t
+  val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
+  val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val base : Z.t
 end
@@ -1119,7 +1119,7 @@ module LsbStr = struct
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
+            lp (Set.union (List.map (fun (_, _, x) -> x) t |> Set.of_list) tl)
           end
       in
       lp (Set.singleton c);
@@ -1175,7 +1175,7 @@ module LsbStr = struct
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
+            lp (Set.union (List.map (fun (_, _, x) -> x) t |> Set.of_list) tl)
           end
       in
       lp (Set.singleton c);
@@ -1281,23 +1281,23 @@ module LsbStrBv = struct
     let base = basei in
     let rec helper = function
       | [] -> []
-      | [ x ] ->
+      | [ (var, x) ] ->
+        let range = if Ir.is_exp var then 0 -- 1 else 0 -- (base - 1) in
         ([ Str.u_eos ], [ Z.zero ])
-        :: (0 -- (base - 1) |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
-      | hd :: tl ->
+        :: (range |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
+      | (var, x) :: tl ->
+        let range = if Ir.is_exp var then 0 -- 1 else 0 -- (base - 1) in
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
         (Str.u_eos :: n, Z.zero :: thing)
-        :: (0 -- (base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
+        :: (range |> List.map (fun c -> itoc c :: n, Z.(x * of_int c) :: thing))
     in
-    term
-    |> List.map snd
-    |> helper
-    |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
+    term |> helper |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
   ;;
 
   let eq vars term c =
+    let term' = term |> Map.to_alist in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -1307,7 +1307,7 @@ module LsbStrBv = struct
     if gcd = Z.zero
     then if Z.(zero = c) then n () else z ()
     else (
-      let thing = powerset term in
+      let thing = powerset term' in
       let states = ref Set.empty in
       let transitions = ref [] in
       let rec lp front =
@@ -1326,7 +1326,7 @@ module LsbStrBv = struct
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
+            lp (Set.union (List.map (fun (_, _, x) -> x) t |> Set.of_list) tl)
           end
       in
       lp (Set.singleton c);
@@ -1353,12 +1353,13 @@ module LsbStrBv = struct
 
   let leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t =
     fun vars term c ->
+    let term' = term |> Map.to_alist in
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
     let gcd = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
     if gcd = Z.zero
     then if Z.(zero <= c) then n () else z ()
     else (
-      let thing = powerset term in
+      let thing = powerset term' in
       let states = ref Set.empty in
       let transitions = ref [] in
       let rec lp front =
@@ -1382,7 +1383,7 @@ module LsbStrBv = struct
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
-            lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
+            lp (Set.union (List.map (fun (_, _, x) -> x) t |> Set.of_list) tl)
           end
       in
       lp (Set.singleton c);
