@@ -476,6 +476,7 @@ type state =
   }
 
 let () =
+  Smtml.Expr.use_eval := false;
   let f =
     match Fpath.of_string config.input_file with
     | Result.Error (`Msg msg) ->
