@@ -42,7 +42,7 @@ jobs:
             if [[ $exit_status -eq 124 ]]; then
               echo "timeout";
             fi;
-          done;
+          done 2>&1 | tee res_ln2.txt;
           END_TIME=$(date +%s)
           DURATION=$(($END_TIME - $START_TIME))
           echo "Benchmarks with 2 variables completed in: $DURATION seconds with ${{ matrix.flags }}"
@@ -51,13 +51,13 @@ jobs:
         run: |
           set +e +o pipefail;
           START_TIME=$(date +%s)
-          for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v2_"*.smt2; do
+          for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v2_w02"*.smt2 "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v2_w03"*.smt2 "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v2_w04"*.smt2; do
             echo $i;
             timeout 60s time _build/default/bin/chro.exe ${{ matrix.flags }} $i;
             if [[ $exit_status -eq 124 ]]; then
               echo "timeout";
             fi;
-          done;
+          done 2>&1 | tee res_reln2.txt;
           END_TIME=$(date +%s)
           DURATION=$(($END_TIME - $START_TIME))
           echo "Benchmarks with 2 variables completed in: $DURATION seconds with ${{ matrix.flags }}"
@@ -68,12 +68,34 @@ jobs:
           START_TIME=$(date +%s)
           for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v3_w02"*.smt2; do
             echo $i;
-            timeout 60s time _build/default/bin/chro.exe ${{ matrix.flags }} $i;
+            timeout 30s time _build/default/bin/chro.exe ${{ matrix.flags }} $i;
             if [[ $exit_status -eq 124 ]]; then
               echo "timeout";
             fi;
-          done 2>&1 | tee res.txt;
+          done 2>&1 | tee res_reln3.txt;
           END_TIME=$(date +%s)
           DURATION=$(($END_TIME - $START_TIME))
           echo "Benchmarks with 3 variables completed in: $DURATION seconds with ${{ matrix.flags }}"
+
+      - name: Get stats
+        run: |
+          sudo apt-get update && sudo apt-get install -y pcregrep;
+          echo "Strln with 2 variables results:";
+          echo "sat     : $(pcregrep \nsat res_ln2.txt | wc -l)";
+          echo "unsat   : $(pcregrep \nunsat res_ln2.txt | wc -l)";
+          echo "timeout : $(pcregrep timeout res_ln2.txt | wc -l)";
+          echo "total   : $(pcregrep smt2 res_ln2.txt | wc -l)";
+          echo "|---------------------------------------|";
+          echo "StrREln with 2 variables (w02-03-04) results:";
+          echo "sat     : $(pcregrep \nsat res_reln2.txt | wc -l)";
+          echo "unsat   : $(pcregrep \nunsat res_reln2.txt | wc -l)";
+          echo "timeout : $(pcregrep timeout res_reln2.txt | wc -l)";
+          echo "total   : $(pcregrep smt2 res_reln2.txt | wc -l)";
+          echo "|---------------------------------------|";
+          echo "StrREln with 3 variables (w02) results:";
+          echo "sat     : $(pcregrep \nsat res_reln3.txt | wc -l)";
+          echo "unsat   : $(pcregrep \nunsat res_reln3.txt | wc -l)";
+          echo "timeout : $(pcregrep timeout res_reln3.txt | wc -l)";
+          echo "total   : $(pcregrep smt2 res_reln3.txt | wc -l)";
+          echo "|---------------------------------------|";
 
