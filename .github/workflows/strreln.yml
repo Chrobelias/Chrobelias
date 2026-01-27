@@ -38,7 +38,7 @@ jobs:
           START_TIME=$(date +%s)
           for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln/benchmark_v2_"*.smt2; do
             echo $i;
-            timeout 60s time _build/default/bin/chro.exe ${{ matrix.flags }} $i;
+            timeout 30s time _build/default/bin/chro.exe ${{ matrix.flags }} $i;
             if [[ $exit_status -eq 124 ]]; then
               echo "timeout";
             fi;
@@ -79,22 +79,27 @@ jobs:
 
       - name: Get stats
         run: |
-          sudo apt-get update && sudo apt-get install -y pcregrep;
           echo "Strln with 2 variables results:";
-          echo "sat     : $(pcregrep \nsat res_ln2.txt | wc -l)";
-          echo "unsat   : $(pcregrep \nunsat res_ln2.txt | wc -l)";
+          unsat_c=$(grep unsat res_ln2.txt | wc -l); 
+          sat_c=$(grep sat res_ln2.txt | wc -l); 
+          echo "sat     : $((sat_c - unsat_c))"; 
+          echo "unsat   : $unsat_c";
           echo "timeout : $(pcregrep timeout res_ln2.txt | wc -l)";
           echo "total   : $(pcregrep smt2 res_ln2.txt | wc -l)";
           echo "|---------------------------------------|";
           echo "StrREln with 2 variables (w02-03-04) results:";
-          echo "sat     : $(pcregrep \nsat res_reln2.txt | wc -l)";
-          echo "unsat   : $(pcregrep \nunsat res_reln2.txt | wc -l)";
+          unsat_c2=$(grep unsat res_reln2.txt | wc -l); 
+          sat_c2=$(grep sat res_reln2.txt | wc -l); 
+          echo "sat     : $((sat_c2 - unsat_c2))"; 
+          echo "unsat   : $unsat_c2";
           echo "timeout : $(pcregrep timeout res_reln2.txt | wc -l)";
           echo "total   : $(pcregrep smt2 res_reln2.txt | wc -l)";
           echo "|---------------------------------------|";
           echo "StrREln with 3 variables (w02) results:";
-          echo "sat     : $(pcregrep \nsat res_reln3.txt | wc -l)";
-          echo "unsat   : $(pcregrep \nunsat res_reln3.txt | wc -l)";
+          unsat_c3=$(grep unsat res_reln3.txt | wc -l); 
+          sat_c3=$(grep sat res_reln3.txt | wc -l); 
+          echo "sat     : $((sat_c3 - unsat_c3))"; 
+          echo "unsat   : $unsat_c3";
           echo "timeout : $(pcregrep timeout res_reln3.txt | wc -l)";
           echo "total   : $(pcregrep smt2 res_reln3.txt | wc -l)";
           echo "|---------------------------------------|";
