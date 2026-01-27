@@ -1408,7 +1408,7 @@ module Msb =
 
 let is_internal = String.starts_with ~prefix:"%"
 
-let filter_internal =
+let _filter_internal =
   Map.filter_keys ~f:(function
     | Ir.Var s -> not (is_internal s)
     | _ -> true)
@@ -1481,8 +1481,7 @@ let check_sat ir
                   failwith "it is something strange: there is string variable in EIA")
               |> Map.map_keys_exn ~f:(function
                 | Ir.Pow2 k as atom -> get_exp atom
-                | atom -> atom)
-              |> filter_internal)
+                | atom -> atom) (*|> filter_internal*))
          in
          `Sat f)
     | `Unsat -> `Unsat
