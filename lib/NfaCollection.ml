@@ -34,6 +34,8 @@ let ( -- ) i j =
   aux j []
 ;;
 
+let for_alli filter l = List.is_empty (List.filteri filter l)
+
 (* ------------------------------------------------------------- *)
 (* ------------------------- MSB types ------------------------- *)
 (* ------------------------------------------------------------- *)
@@ -532,6 +534,95 @@ module MsbStrBv = struct
          ~final:(states |> Map.filter_keys ~f:(fun x -> x <= c) |> Map.data)
          ~vars:(List.map fst term)
          ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+       |> fun x -> x)
+      |> Nfa.minimize_not_very_strong
+  ;;
+
+  let leqs vars terms cs =
+    let terms =
+      List.map
+        (fun term ->
+           Map.map_keys_exn ~f:(Map.find_exn vars) term
+           |> Map.to_alist
+           |> List.filter (fun (_, v) -> Z.(v <> zero)))
+        terms
+    in
+    let gcds_ =
+      List.map
+        (fun term -> List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term)
+        terms
+    in
+    let good_term i gcd_ = Z.(gcd_ = zero && zero <= List.nth cs i) in
+    let terms = List.filteri (fun i _ -> good_term i (List.nth gcds_ i)) terms in
+    let gcds_ = List.filteri good_term gcds_ in
+    if List.is_empty terms
+    then n ()
+    else
+      (let states = ref Set.empty in
+       let transitions = ref [] in
+       let things =
+         terms
+         |> List.concat_map (fun term -> powerset (0 -- (basei - 1)) term)
+         |> Map.of_alist_multi
+       in
+       let rec lp front =
+         match front with
+         | s when Set.is_empty s -> ()
+         | s ->
+           let hd = Set.nth s 0 |> Option.get in
+           let tl = Set.remove_index s 0 in
+           if Set.mem !states hd
+           then lp tl
+           else begin
+             let t =
+               things
+               |> Map.map ~f:(fun sums ->
+                 List.mapi
+                   (fun i sum ->
+                      Z.(
+                        List.nth gcds_ i
+                        * div_ (List.nth hd i - sum) (base * List.nth gcds_ i)))
+                   sums)
+               |> Map.to_alist
+               |> List.map (fun (bits, state) -> state, bits, hd)
+             in
+             states := Set.add !states hd;
+             transitions := t @ !transitions;
+             lp (Set.union (List.map (fun (x, _, _) -> x) t |> Set.of_list) tl)
+           end
+       in
+       lp (Set.singleton cs);
+       let states = Set.to_list !states in
+       let start = List.length states in
+       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+       let idx c = Map.find states c |> Option.get in
+       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+       let transitions =
+         let sign_things =
+           terms
+           |> List.concat_map (fun term -> powerset [ 0; basei - 1 ] term)
+           |> Map.of_alist_multi
+           |> Map.to_alist
+         in
+         (sign_things
+          |> List.concat_map (fun (d, sums) ->
+            Map.to_alist states
+            |> List.filter_map (fun (v, idv) ->
+              if for_alli (fun i val_ -> Z.(List.nth sums i / (one - base) <= val_)) v
+              then Some (start, d, idv)
+              else None)))
+         @ transitions
+       in
+       Nfa.create_nfa
+         ~transitions
+         ~start:[ start ]
+         ~final:
+           (states
+            |> Map.filter_keys ~f:(fun vals ->
+              for_alli (fun i x -> x <= List.nth cs i) vals)
+            |> Map.data)
+         ~vars:(Map.keys vars)
+         ~deg:(1 + List.fold_left Int.max 0 (Map.keys vars))
        |> fun x -> x)
       |> Nfa.minimize_not_very_strong
   ;;
