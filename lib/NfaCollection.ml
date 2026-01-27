@@ -15,6 +15,7 @@ module type Type = sig
   val power_of_two : int -> t
   val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
+  val leqs : (Ir.atom, int) Map.t -> ((Ir.atom, Z.t) Map.t -> Z.t) list -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val base : Z.t
 end
@@ -197,6 +198,8 @@ module Msb = struct
   generally produces nondeterministic NDD. This may be problematic in some applications, 
   in particular if automata need to be minimised in order to obtain canonical set
   representations.*)
+  let leqs vars terms = failwith "later ..."
+
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     failwith "Unimplemented for string bitvectors"
   ;;
@@ -364,6 +367,8 @@ module MsbStr = struct
        |> fun x -> x)
       |> Nfa.minimize_not_very_strong
   ;;
+
+  let leqs vars terms = failwith "later ..."
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
@@ -538,14 +543,15 @@ module MsbStrBv = struct
       |> Nfa.minimize_not_very_strong
   ;;
 
-  let leqs vars terms cs =
+  let leqs vars terms =
+    let cs = List.map snd terms in
     let terms =
-      List.map
-        (fun term ->
-           Map.map_keys_exn ~f:(Map.find_exn vars) term
-           |> Map.to_alist
-           |> List.filter (fun (_, v) -> Z.(v <> zero)))
-        terms
+      terms
+      |> List.map fst
+      |> List.map (fun term ->
+        Map.map_keys_exn ~f:(Map.find_exn vars) term
+        |> Map.to_alist
+        |> List.filter (fun (_, v) -> Z.(v <> zero)))
     in
     let gcds_ =
       List.map
@@ -621,8 +627,8 @@ module MsbStrBv = struct
             |> Map.filter_keys ~f:(fun vals ->
               for_alli (fun i x -> x <= List.nth cs i) vals)
             |> Map.data)
-         ~vars:(Map.keys vars)
-         ~deg:(1 + List.fold_left Int.max 0 (Map.keys vars))
+         ~vars:(Map.data vars)
+         ~deg:(1 + List.fold_left Int.max 0 (Map.data vars))
        |> fun x -> x)
       |> Nfa.minimize_not_very_strong
   ;;
@@ -712,6 +718,7 @@ module MsbNat = struct
 
   let eq vars term c = Msb.eq vars term c |> NfaMsb.to_nat
   let leq vars term c = Msb.leq vars term c |> NfaMsb.to_nat
+  let leqs vars terms = failwith "later ..."
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     failwith "Unimplemented for string bitvectors"
@@ -1085,6 +1092,8 @@ module Lsb = struct
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
+
+  let leqs vars terms = failwith "later ..."
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     failwith "Unimplemented for string bitvectors"
