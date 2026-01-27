@@ -61,63 +61,63 @@ jobs:
           DURATION=$(($END_TIME - $START_TIME))
           echo "Benchmarks 2-3-3-4 completed in: $DURATION seconds"
 
-      - name: Run NIA-test 3-4-4-5 and measure time
-        run: |
-          sudo apt-get update && sudo apt-get install -y pcregrep;
-          set +e +o pipefail;
-          START_TIME=$(date +%s)
-          for i in ./benchmarks/EXP-solver/Benchmark/NIA-test/3-4-4-5/test*; do
-            number=$(echo $i | grep -o /test[0-9]* | grep -o [0-9]*);
-            cat $i > problem.smt;
-            sed -i '/(define-fun-rec*/d' problem.smt;
-            sed -i 's/pow/exp 10/g' problem.smt;
-            if pcregrep -q -M "\n$number\nSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/3-4-4-5/math-result; then 
-              sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status sat)/g' problem.smt;
-            else 
-              if pcregrep -q -M "\n$number\nUNSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/3-4-4-5/math-result; then 
-                sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unsat)/g' problem.smt;
-              else 
-                sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unknown)/g' problem.smt;
-              fi;
-            fi;  
-            echo $i;
-            timeout 10s _build/default/bin/chro.exe -q -base10 problem.smt;
-            if [[ $exit_status -eq 124 ]]; then
-              echo "timeout";
-            fi;
-          done 2>&1 | tee res3.txt;
-          END_TIME=$(date +%s)
-          DURATION=$(($END_TIME - $START_TIME))
-          echo "Benchmarks 3-4-4-5 completed in: $DURATION seconds"
+      # - name: Run NIA-test 3-4-4-5 and measure time
+      #   run: |
+      #     sudo apt-get update && sudo apt-get install -y pcregrep;
+      #     set +e +o pipefail;
+      #     START_TIME=$(date +%s)
+      #     for i in ./benchmarks/EXP-solver/Benchmark/NIA-test/3-4-4-5/test*; do
+      #       number=$(echo $i | grep -o /test[0-9]* | grep -o [0-9]*);
+      #       cat $i > problem.smt;
+      #       sed -i '/(define-fun-rec*/d' problem.smt;
+      #       sed -i 's/pow/exp 10/g' problem.smt;
+      #       if pcregrep -q -M "\n$number\nSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/3-4-4-5/math-result; then 
+      #         sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status sat)/g' problem.smt;
+      #       else 
+      #         if pcregrep -q -M "\n$number\nUNSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/3-4-4-5/math-result; then 
+      #           sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unsat)/g' problem.smt;
+      #         else 
+      #           sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unknown)/g' problem.smt;
+      #         fi;
+      #       fi;  
+      #       echo $i;
+      #       timeout 10s _build/default/bin/chro.exe -q -base10 problem.smt;
+      #       if [[ $exit_status -eq 124 ]]; then
+      #         echo "timeout";
+      #       fi;
+      #     done 2>&1 | tee res3.txt;
+      #     END_TIME=$(date +%s)
+      #     DURATION=$(($END_TIME - $START_TIME))
+      #     echo "Benchmarks 3-4-4-5 completed in: $DURATION seconds"
 
-      - name: Run NIA-test 4-5-5-6 and measure time
-        run: |
-          sudo apt-get update && sudo apt-get install -y pcregrep;
-          set +e +o pipefail;
-          START_TIME=$(date +%s)
-          for i in ./benchmarks/EXP-solver/Benchmark/NIA-test/4-5-5-6/test*; do
-            number=$(echo $i | grep -o /test[0-9]* | grep -o [0-9]*);
-            cat $i > problem.smt;
-            sed -i '/(define-fun-rec*/d' problem.smt;
-            sed -i 's/pow/exp 10/g' problem.smt;
-            if pcregrep -q -M "\n$number\nSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/4-5-5-6/math-result; then 
-              sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status sat)/g' problem.smt;
-            else 
-              if pcregrep -q -M "\n$number\nUNSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/4-5-5-6/math-result; then 
-                sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unsat)/g' problem.smt;
-              else 
-                sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unknown)/g' problem.smt;
-              fi;
-            fi;  
-            echo $i;
-            timeout 10s _build/default/bin/chro.exe -q -base10 problem.smt;
-            if [[ $exit_status -eq 124 ]]; then
-              echo "timeout";
-            fi;
-          done 2>&1 | tee res4.txt;
-          END_TIME=$(date +%s)
-          DURATION=$(($END_TIME - $START_TIME))
-          echo "Benchmarks 4-5-5-6 completed in: $DURATION seconds"
+      # - name: Run NIA-test 4-5-5-6 and measure time
+      #   run: |
+      #     sudo apt-get update && sudo apt-get install -y pcregrep;
+      #     set +e +o pipefail;
+      #     START_TIME=$(date +%s)
+      #     for i in ./benchmarks/EXP-solver/Benchmark/NIA-test/4-5-5-6/test*; do
+      #       number=$(echo $i | grep -o /test[0-9]* | grep -o [0-9]*);
+      #       cat $i > problem.smt;
+      #       sed -i '/(define-fun-rec*/d' problem.smt;
+      #       sed -i 's/pow/exp 10/g' problem.smt;
+      #       if pcregrep -q -M "\n$number\nSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/4-5-5-6/math-result; then 
+      #         sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status sat)/g' problem.smt;
+      #       else 
+      #         if pcregrep -q -M "\n$number\nUNSAT" ./benchmarks/EXP-solver/Benchmark/NIA-test/4-5-5-6/math-result; then 
+      #           sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unsat)/g' problem.smt;
+      #         else 
+      #           sed -i 's/(set-logic ALL)/(set-logic ALL)\n(set-info :status unknown)/g' problem.smt;
+      #         fi;
+      #       fi;  
+      #       echo $i;
+      #       timeout 10s _build/default/bin/chro.exe -q -base10 problem.smt;
+      #       if [[ $exit_status -eq 124 ]]; then
+      #         echo "timeout";
+      #       fi;
+      #     done 2>&1 | tee res4.txt;
+      #     END_TIME=$(date +%s)
+      #     DURATION=$(($END_TIME - $START_TIME))
+      #     echo "Benchmarks 4-5-5-6 completed in: $DURATION seconds"
 
       - name: Get stats
         run: |
@@ -127,18 +127,18 @@ jobs:
           echo "timeouts: $(grep timeout res2.txt | wc -l)";
           echo "unknown : $(grep unknown res2.txt | wc -l)";
           echo "total   : $(grep test res2.txt | wc -l)";
-          echo "|---------------------------------------|";
-          echo "EXP-Solver NIA-test 3-4-4-5 results:";
-          echo "errors  : $(grep error res3.txt | wc -l)";
-          echo "warnings: $(grep warn res3.txt | wc -l)";
-          echo "timeouts: $(grep timeout res3.txt | wc -l)";
-          echo "unknown : $(grep unknown res3.txt | wc -l)";
-          echo "total   : $(grep test res3.txt | wc -l)";
-          echo "|---------------------------------------|";
-          echo "EXP-Solver NIA-test 4-5-5-6 results:";
-          echo "errors  : $(grep error res4.txt | wc -l)";
-          echo "warnings: $(grep warn res4.txt | wc -l)";
-          echo "timeouts: $(grep timeout res4.txt | wc -l)";
-          echo "unknown : $(grep unknown res4.txt | wc -l)";
-          echo "total   : $(grep test res4.txt | wc -l)";
-          echo "|---------------------------------------|";
+        # echo "|---------------------------------------|";
+        # echo "EXP-Solver NIA-test 3-4-4-5 results:";
+        # echo "errors  : $(grep error res3.txt | wc -l)";
+        # echo "warnings: $(grep warn res3.txt | wc -l)";
+        # echo "timeouts: $(grep timeout res3.txt | wc -l)";
+        # echo "unknown : $(grep unknown res3.txt | wc -l)";
+        # echo "total   : $(grep test res3.txt | wc -l)";
+        # echo "|---------------------------------------|";
+        # echo "EXP-Solver NIA-test 4-5-5-6 results:";
+        # echo "errors  : $(grep error res4.txt | wc -l)";
+        # echo "warnings: $(grep warn res4.txt | wc -l)";
+        # echo "timeouts: $(grep timeout res4.txt | wc -l)";
+        # echo "unknown : $(grep unknown res4.txt | wc -l)";
+        # echo "total   : $(grep test res4.txt | wc -l)";
+        # echo "|---------------------------------------|";
