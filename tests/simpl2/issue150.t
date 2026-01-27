@@ -70,6 +70,7 @@
     (chrob.len x (exp 10 strlenx)))
   Starting NFA Solver ...
   
+  Running string-bitvector MSB mode
 $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
 
 

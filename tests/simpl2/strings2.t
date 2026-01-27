@@ -180,6 +180,7 @@ $ export CHRO_DEBUG=1
     (<= (exp 10 0) (exp 10 strlenx)))
   Starting NFA Solver ...
   
+  Running string-bitvector MSB mode
   (assert (exists (x)
           (and
             (= (+ (* (- 0) x) (* (- 198) pow2(strlenx)) )  0)
