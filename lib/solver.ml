@@ -21,71 +21,6 @@ let internal s =
 ;;
 
 let get_exp = Ir.get_exp
-(*let ir_atom_to_eia_term : Ir.atom -> Ast.Eia.term = function
-  | Ir.Var s -> Ast.Eia.atom (Ast.var s)
-  | Ir.Pow2 s ->
-    Ast.Eia.pow (Ast.Eia.atom (Ast.const (Config.base ()))) (Ast.Eia.atom (Ast.var s))
-;;
-
-let ir_atom_to_str_term : Ir.atom -> Ast.Str.term = function
-  | Ir.Var s -> Ast.Eia.atom (Ast.var s)
-  | Ir.Pow2 _ -> failwith "only vars are supported inside string IRs"
-;;
-
-let ir_atom_to_atom : Ir.atom -> Ast.atom = function
-  | Ir.Var s -> Ast.var s
-  | Ir.Pow2 _ -> failwith "only vars are supported to be converted back in AST"
-;;
-
-let rec ir_to_ast : Ir.t -> Ast.t = function
-  | True -> Ast.true_
-  | Lnot lhs -> Ast.lnot (ir_to_ast lhs)
-  | Land ls -> Ast.land_ (List.map ir_to_ast ls)
-  | Lor ls -> Ast.lor_ (List.map ir_to_ast ls)
-  | Reg (_, _) -> failwith "TBD"
-  | Rel (rel, poly, c) ->
-    let build =
-      match rel with
-      | Ir.Leq -> Ast.Eia.leq
-      | Ir.Eq -> Ast.Eia.eq
-    in
-    let poly =
-      Map.fold
-        ~f:(fun ~key ~data acc ->
-          Ast.Eia.mul [ Ast.Eia.atom (Ast.const data); ir_atom_to_eia_term key ] :: acc)
-        ~init:[]
-        poly
-    in
-    let lhs = Ast.Eia.add poly in
-    let rhs = Ast.Eia.atom (Ast.const c) in
-    Ast.eia (build lhs rhs)
-  | SReg (atom, re) -> Ast.str (Ast.Str.inre (ir_atom_to_str_term atom) re)
-  | SEq (atom, atom') ->
-    Ast.eia (Ast.Eia.eq (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
-  | SPrefixOf (atom, atom') ->
-    Ast.str (Ast.Str.prefixof (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
-  | SContains (atom, atom') ->
-    Ast.str (Ast.Str.contains (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
-  | SSuffixOf (atom, atom') ->
-    Ast.str (Ast.Str.suffixof (ir_atom_to_str_term atom) (ir_atom_to_str_term atom'))
-  | SLen (atom, atom') ->
-    Ast.eia
-      (Ast.Eia.eq
-         (Ast.Eia.atom (ir_atom_to_atom atom))
-         (Ast.Eia.len2 (ir_atom_to_atom atom')))
-  | Stoi (atom, atom') ->
-    Ast.eia
-      (Ast.Eia.eq
-         (Ast.Eia.atom (ir_atom_to_atom atom))
-         (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
-  | Itos (atom, atom') ->
-    Ast.eia
-      (Ast.Eia.eq
-         (Ast.Eia.atom (ir_atom_to_atom atom))
-         (Ast.Eia.iofs (Ast.Eia.atom (ir_atom_to_atom atom'))))
-  | Exists ([], lhs) -> ir_to_ast lhs
-  | Exists (atoms, lhs) -> Ast.exists (List.map ir_atom_to_atom atoms) (ir_to_ast lhs)
-;;*)
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -783,12 +718,12 @@ struct
           | [] -> failwith ""
           | comps -> Ir.land_ comps
         in
-        (*let* () =
-          match Overapprox.check (ir_to_ast (Ir.land_ [ ir; order_ir ])) with
+        let* () =
+          match Overapprox.check (Me.eia_of_ir (Ir.land_ [ ir; order_ir ])) with
           | `Unknown ast -> Some ()
           | `Unsat -> None
           | _ -> Some ()
-        in*)
+        in
         let order_nfa, order_vars = eval order_ir in
         Debug.dump_nfa ~msg:"Nfa order1: %s" Nfa.format_nfa order_nfa;
         order_vars
