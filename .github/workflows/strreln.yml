@@ -36,7 +36,7 @@ jobs:
         run: |
           set +e +o pipefail;
           START_TIME=$(date +%s)
-          for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln/benchmark_v2_"*.smt2 "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v2_w03"*.smt2; do
+          for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln/benchmark_v2_"*.smt2; do
             echo $i;
             timeout 60s time _build/default/bin/chro.exe ${{ matrix.flags }} $i;
             if [[ $exit_status -eq 124 ]]; then
@@ -51,7 +51,7 @@ jobs:
         run: |
           set +e +o pipefail;
           START_TIME=$(date +%s)
-          for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v2_"*.smt2 "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v2_w03"*.smt2; do
+          for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v2_"*.smt2; do
             echo $i;
             timeout 60s time _build/default/bin/chro.exe ${{ matrix.flags }} $i;
             if [[ $exit_status -eq 124 ]]; then
@@ -66,7 +66,7 @@ jobs:
         run: |
           set +e +o pipefail;
           START_TIME=$(date +%s)
-          for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v3_w02"*.smt2 "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v3_w03"; do
+          for i in "./benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln/benchmark_v3_w02"*.smt2; do
             echo $i;
             timeout 60s time _build/default/bin/chro.exe ${{ matrix.flags }} $i;
             if [[ $exit_status -eq 124 ]]; then
