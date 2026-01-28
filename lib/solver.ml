@@ -291,13 +291,35 @@ struct
                        List.fold_left (fun nfa ir -> eval ir |> Nfa.intersect nfa) (eval hd) tl
        *)
        | Ir.Land irs ->
+         let irs' =
+           irs
+           |> List.filter_map (fun ir ->
+             match ir with
+             | Ir.Rel (rel, term, c) ->
+               (match rel with
+                | Ir.Leq -> Some (term, c)
+                | _ -> None)
+             | _ -> None)
+         in
+         let nfas' = NfaCollection.leqs vars irs' in
+         Debug.printf "Nfa for inequalities has %d nodes\n%!" (Nfa.length nfas');
+         let irs'' =
+           irs
+           |> List.filter_map (fun ir ->
+             match ir with
+             | Ir.Rel (rel, term, c) ->
+               (match rel with
+                | Ir.Leq -> None
+                | _ -> Some (Ir.Rel (rel, term, c)))
+             | _ -> Some ir)
+         in
          let nfas =
            List.map
              (fun ir ->
                 let nfa = eval ir in
                 Debug.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
                 nfa |> do_if_lsb Nfa.reverse, ir)
-             irs
+             irs''
            |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
          in
          let rec eval_and = function
@@ -320,7 +342,7 @@ struct
              eval_and nfas
            | [] -> NfaCollection.n ()
          in
-         eval_and nfas
+         Nfa.intersect nfas' (eval_and nfas)
          |> fun nfa ->
          Debug.printf "Intersect result %d \n%!" (Nfa.length nfa);
          nfa |> do_if_lsb Nfa.reverse

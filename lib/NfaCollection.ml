@@ -15,7 +15,7 @@ module type Type = sig
   val power_of_two : int -> t
   val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
-  val leqs : (Ir.atom, int) Map.t -> ((Ir.atom, Z.t) Map.t -> Z.t) list -> t
+  val leqs : (Ir.atom, int) Map.t -> ((Ir.atom, Z.t) Map.t * Z.t) list -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val base : Z.t
 end
@@ -810,6 +810,7 @@ module MsbNatStr = struct
 
   let eq vars term c = MsbStr.eq vars term c |> NfaMsb.to_nat
   let leq vars term c = MsbStr.leq vars term c |> NfaMsb.to_nat
+  let leqs vars terms = failwith "later ..."
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
@@ -904,6 +905,7 @@ module MsbNatStrBv = struct
 
   let eq vars term c = MsbStrBv.eq vars term c |> NfaMsb.to_nat
   let leq vars term c = MsbStrBv.leq vars term c |> NfaMsb.to_nat
+  let leqs vars terms = failwith "later ..."
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
@@ -1297,6 +1299,8 @@ module LsbStr = struct
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
+  let leqs vars terms = failwith "later ..."
+
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
     let alpha_transitions = List.map (fun c -> 0, [ c; Str.u_zero ], 0) alpha in
@@ -1504,6 +1508,8 @@ module LsbStrBv = struct
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
+
+  let leqs vars terms = failwith "later ..."
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
