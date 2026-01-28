@@ -4594,13 +4594,13 @@
   
   Bound for underapproximation: 4
   
-  Interesting: it147
+  Interesting: %flat_pow1 it147
   
-  Expecting 4 choices ...
+  Expecting 16 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| i10->6 i2->-27 it147->1 it154->2 it155->3 it157->3 it158->1
-        it159->3 it163->0 it168->0 it2->0 it4->1 |}
+  env = {| %flat_pow1->0 i10->6 i2->0 it147->1 it154->2 it155->3 it157->3
+        it158->1 it159->3 it163->0 it168->27 it2->0 it4->1 |}
   sat (under I)
 
 

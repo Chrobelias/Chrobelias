@@ -35,8 +35,7 @@ $ export CHRO_DEBUG=1
 $ export CHRO_DEBUG=1
   $ unset CHRO_EIA
   $ Chro -bound 0 --dsimpl --stop-after simpl test.smt2 || echo TIMEOUT | sed 's/[[:space:]]*$//'
-  (assert (exists (it1) (= (+ (* 2 it1) (* 7 pow2(it2)) )  30) )
-  )
+  sat (under I)
 
 $ export CHRO_DEBUG=1
   $ Chro -bound 0  --no-pre-simpl --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'

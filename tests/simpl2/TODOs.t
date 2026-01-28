@@ -96,11 +96,13 @@ Fold exps
   
   Bound for underapproximation: 2
   
-  Interesting:
+  Interesting: %flat_pow1
   
-  Expecting 1 choices ...
+  Expecting 2 choices ...
   
-  Can't decide in lib/Underapprox.ml
+  lib/Underapprox.ml gives early Sat.
+  env = {| %flat_pow1->0 it134->0 it135->0 |}
+  sat (under I)
   $ cat > i4.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x1 () Int)
@@ -143,11 +145,13 @@ Fold exps
   
   Bound for underapproximation: 2
   
-  Interesting:
+  Interesting: %flat_pow1
   
-  Expecting 1 choices ...
+  Expecting 2 choices ...
   
-  Can't decide in lib/Underapprox.ml
+  lib/Underapprox.ml gives early Sat.
+  env = {| %flat_pow1->0 it134->0 |}
+  sat (under I)
 
 
 $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's/[[:space:]]*$//'

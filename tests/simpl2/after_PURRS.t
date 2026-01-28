@@ -41,4 +41,5 @@
   iter(3)= (= (+ (exp 2 n) (exp 2 n)) 333)
   fixed-point
   
-  (= (+ (exp 2 n) (exp 2 n)) 333)
+  (and
+    (= (+ (exp 2 n) (exp 2 n)) 333))
