@@ -917,20 +917,23 @@ struct
              exp
              Ir.pp_atom
              prev_var;
-           let path_len = len_of_var exp - len_of_var prev_var in
-           if path_len > Config.max_longest_path
-           then
-             (* let () = Format.eprintf "Calculated path_len = %d\n%!" path_len in *)
-             Result.Error `Too_long
-           else (
-             let model2 = part path_len |> Option.get in
-             let new_model, new_len =
-               NfaNat.combine_model_pieces
-                 (List.map (Map.find_exn mapVals) vars, len)
-                 model2
-             in
-             let mapVals = new_model |> Base.List.zip_exn vars |> Map.of_alist_exn in
-             helper mapVals new_len tl (exp :: past_order) parts))
+           (try
+              let path_len = len_of_var exp - len_of_var prev_var in
+              if path_len > Config.max_longest_path
+              then
+                (* let () = Format.eprintf "Calculated path_len = %d\n%!" path_len in *)
+                Result.Error `Too_long
+              else (
+                let model2 = part path_len |> Option.get in
+                let new_model, new_len =
+                  NfaNat.combine_model_pieces
+                    (List.map (Map.find_exn mapVals) vars, len)
+                    model2
+                in
+                let mapVals = new_model |> Base.List.zip_exn vars |> Map.of_alist_exn in
+                helper mapVals new_len tl (exp :: past_order) parts)
+            with
+            | _ -> Result.Error `Too_long))
     in
     let mapVals = Base.List.zip_exn vars model |> Map.of_alist_exn in
     helper mapVals len order [] models |> Result.map (Map.map_keys_exn ~f:Ir.var)
