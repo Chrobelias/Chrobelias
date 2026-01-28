@@ -578,11 +578,10 @@ let () =
                       eia
                         (Eia.leq
                            (Atom (Var (v, I)))
-                           (Const
-                              (Z.of_int Lib.Config.max_longest_path)
-                              (* (Pow
+                           (Const (Z.of_int Lib.Config.max_int))
+                           (* (Pow
                               ( Const (Lib.Config.base ())
-                              , Const (Z.of_int Lib.Config.max_longest_path) ) *))))
+                              , Const (Z.of_int Lib.Config.max_longest_path) )) *)))
                     :: acc
                   | _ -> acc)
                 |> Lib.Ast.land_

@@ -87,6 +87,15 @@ let max_longest_path =
      | None -> exit 1)
 ;;
 
+let max_int =
+  match Sys.getenv_opt "CHRO_MAX_INT" with
+  | None -> 1000000000000000000
+  | Some s ->
+    (match int_of_string_opt s with
+     | Some n -> n
+     | None -> exit 1)
+;;
+
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let usage_msg =
