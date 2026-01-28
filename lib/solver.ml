@@ -1046,7 +1046,7 @@ struct
   ;;
 
   let check_sat ir
-    : [ `Sat of unit -> ((Ir.atom, Nfa.v list) Map.t, [ `Too_long ]) Result.t
+    : [ `Sat of unit -> ((Ir.atom, Nfa.v list) Map.t, [ `Too_long | `No_model ]) Result.t
       | `Unsat
       | `Unknown
       ]
@@ -1061,7 +1061,7 @@ struct
              (fun _ _ nfa _ -> if NfaNat.run nfa then Some () else None)
              (fun var nfa -> NfaNat.project [ var ] nfa)
         |> function
-        | Some _ -> `Sat (fun () -> failwith "No model can be generated due to config")
+        | Some _ -> `Sat (fun () -> Result.error `No_model)
         | None -> `Unsat
       else (
         let res =
@@ -1441,7 +1441,8 @@ let z_of_list_str p =
 ;;
 
 let check_sat ir
-  : [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long ]) Result.t
+  : [ `Sat of
+        (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long | `No_model ]) Result.t
     | `Unsat
     | `Unknown of Ir.t
     ]
@@ -1457,6 +1458,9 @@ let check_sat ir
       (match model () with
        | Result.Error `Too_long ->
          let f tys = Result.Error `Too_long in
+         `Sat f
+       | Result.Error `No_model ->
+         let f tys = Result.Error `No_model in
          `Sat f
        | Result.Ok model ->
          let f tys =

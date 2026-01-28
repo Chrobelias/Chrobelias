@@ -25,7 +25,8 @@ type rez =
       string
       * Lib.Ast.t
       * Lib.Env.t
-      * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> (Lib.Ir.model, [ `Too_long ]) Result.t)
+      * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
+         -> (Lib.Ir.model, [ `Too_long | `No_model ]) Result.t)
       * (string, Lib.Nfa.Lsb(Lib.Nfa.Str).u) Base.Map.Poly.t
   | Unknown of Lib.Ast.t * Lib.Env.t
   | Unsat of string
@@ -176,7 +177,7 @@ let check_sat ?(verbose = false) ast : rez =
           let exception
             Sat_found of
               ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
-               -> (Lib.Ir.model, [ `Too_long ]) Result.t)
+               -> (Lib.Ir.model, [ `Too_long | `No_model ]) Result.t)
           in
           (try
              let f ast =
@@ -584,14 +585,16 @@ let () =
                    | Result.Ok model ->
                      let model = join_int_model env model in
                      print_model tys model regexes env
-                   | Result.Error `Too_long -> Format.printf "no short model\n%!")
+                   | Result.Error `Too_long -> Format.printf "no short model\n%!"
+                   | Result.Error `No_model -> assert false)
             in
             (match get_model tys with
              | Result.Ok model -> begin
                try print_model tys model regexes env with
                | Too_long_model -> shrink_model ()
              end
-             | Result.Error `Too_long -> shrink_model ())
+             | Result.Error `Too_long -> shrink_model ()
+             | Result.Error `No_model -> Format.printf "no model mode\n%!")
         in
         state)
     | Smtml.Ast.Assert expr -> begin
