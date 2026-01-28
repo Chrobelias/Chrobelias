@@ -15,7 +15,8 @@
   $ export CHRO_LONGEST_PATH=100
   $ timeout 4 Chro -no-over -bound 0 2.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
-  ((define-fun x () (_ String) "1999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999")
+  ((define-fun u () (_ Int) 0)
+   (define-fun x () (_ String) "1999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999")
    (define-fun y () (_ String) "99")
    (define-fun z () (_ Int) 1))
 

@@ -40,8 +40,8 @@ Habermehl demo
           (and
             (exists (x)
             (and
-              (= (+ x pow2(z) )  52)
               (<= (+ x (* (- 3) y) z )  0)
+              (= (+ x pow2(z) )  52)
               )
   
             (<= y  8)

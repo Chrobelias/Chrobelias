@@ -2791,13 +2791,13 @@
   
   Bound for underapproximation: 5
   
-  Interesting: it273 it87
+  Interesting: %flat_pow1 it273 it87
   
-  Expecting 25 choices ...
+  Expecting 125 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| i2->-11 i3->5 it273->1 it645->0 it648->2 it649->2 it730->9 it87->1
-         |}
+  env = {| %flat_pow1->2 i2->-11 i3->5 it273->1 it645->0 it648->2 it649->2
+        it730->9 it87->1 |}
   sat (under I)
   $ timeout 2 Chro --pre-simpl input.smt2 || echo "timeout"
   sat (under I)

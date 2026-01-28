@@ -26,7 +26,7 @@
   Starting NFA Solver ...
   
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
-  (assert (exists (x) (<= (+ (* (- 1) x) pow2(x) )  0) ) )
+  (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   
 
 

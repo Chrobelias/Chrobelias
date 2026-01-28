@@ -9,7 +9,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ OCAMLRUNPARAM='b=0' Chro -no-over -bound 6 -lsb 0.smt2
-  sat (nia)
+  sat (under I)
 
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)
