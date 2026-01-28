@@ -558,7 +558,7 @@ module MsbStrBv = struct
         (fun term -> List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term)
         terms
     in
-    let good_term i gcd_ = Z.(gcd_ = zero && zero <= List.nth cs i) in
+    let good_term i gcd_ = Z.(gcd_ > zero) || Z.(gcd_ = zero && zero <= List.nth cs i) in
     let terms = List.filteri (fun i _ -> good_term i (List.nth gcds_ i)) terms in
     let gcds_ = List.filteri good_term gcds_ in
     if List.is_empty terms
