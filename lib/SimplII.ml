@@ -589,7 +589,7 @@ let apply_symantics_unsugared (type a) (module S : SYM with type ph = a) =
   apply_symantics (module M)
 ;;
 
-let make_main_symantics env =
+let make_main_symantics ?agressive env =
   let _ : Env.t = env in
   let module Main_symantics_ = struct
     open Ast
@@ -735,9 +735,12 @@ let make_main_symantics env =
       | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
       | Mul ((Const c as base0) :: tl), Eia.Const e ->
         mul [ pow base0 xs; pow (Mul tl) xs ]
-      | Eia.Const b, Eia.Const exp when Z.(exp > zero) ->
+      | Eia.Const b, Eia.Const exp when Z.(exp > zero) && agressive |> Option.is_none ->
         (try const (Z.to_int (Utils.powz ~base:b exp)) with
          | Z.Overflow -> Ast.Eia.Pow (base, xs))
+      | Eia.Const b, Eia.Const exp
+        when Z.(exp > zero) && agressive |> Option.value ~default:false ->
+        constz (Utils.powz ~base:b exp)
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
@@ -1074,7 +1077,7 @@ let make_main_symantics env =
 ;; *)
 
 let subst_term (type a) env (term : a Ast.Eia.term) =
-  let (module S : SYM_SUGAR_AST) = make_main_symantics env in
+  let (module S : SYM_SUGAR_AST) = make_main_symantics ~agressive:true env in
   let on_z, on_s = apply_term_symantics (module S) in
   match Ast.Eia.cast_to_sterm term with
   | Some proof ->
@@ -2076,7 +2079,7 @@ let get_range () =
 ;;
 
 let subst env ast =
-  let (module S : SYM_SUGAR_AST) = make_main_symantics env in
+  let (module S : SYM_SUGAR_AST) = make_main_symantics ~agressive:true env in
   apply_symantics_unsugared (module S) ast
 ;;
 
