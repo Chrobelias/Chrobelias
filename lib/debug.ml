@@ -7,6 +7,12 @@ let printf ppf =
   else Format.ifprintf Format.std_formatter ppf
 ;;
 
+let printflics ppf =
+  if flag () || Config.config.dump_lics
+  then Format.kasprintf (Format.printf "%s%!") ppf
+  else Format.ifprintf Format.std_formatter ppf
+;;
+
 let printfln ppf =
   if flag ()
   then Format.kasprintf (Format.printf "%s\n%!") ppf

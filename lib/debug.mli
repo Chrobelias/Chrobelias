@@ -4,6 +4,7 @@
 val flag : unit -> bool
 val printf : ('a, Format.formatter, unit) format -> 'a
 val printfln : ('a, Format.formatter, unit) format -> 'a
+val printflics : ('a, Format.formatter, unit) format -> 'a
 
 val dump_nfa
   :  ?msg:(string -> unit, Format.formatter, unit) format

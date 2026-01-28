@@ -487,7 +487,7 @@ struct
   let nfa_for_exponent2 s var var2 chrob =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
-    Debug.printf
+    Debug.printflics
       "nfa_for_exponent2: internal_counter=%d var=%a var2=%a\n%!"
       s.internal_counter
       Ir.pp_atom
@@ -501,7 +501,7 @@ struct
         let poly = Map.of_alist_exn [ var, Z.one; var2, Z.minus_one ] in
         let nfa = NfaCollection.eq s.vars poly (Z.of_int a) in
         (* var = var2 + a*)
-        Debug.printf
+        Debug.printflics
           "nfa_for_exponent2: we have %a = %a + %d\n%!"
           Ir.pp_atom
           var
@@ -522,7 +522,7 @@ struct
           (* |> Nfa.intersect t_non_neg t >= 0 (* We are assuming to work only with non-negative integers*)*)
           |> Nfa.project [ Map.find_exn s.vars t ]
         in
-        Debug.printf
+        Debug.printflics
           "nfa_for_exponent2: we have Et : %a = %a + %d + %d * t\n%!"
           Ir.pp_atom
           var
@@ -548,7 +548,16 @@ struct
           let poly = Map.of_alist_exn [ var, Z.one ] in
           let nfa = NfaCollection.eq s.vars poly (Z.of_int a') in
           (*var = a'*)
-          Debug.printf "nfa_for_exponent: a=%d, a'=%d, c=%d\n%!" a a' c;
+          Debug.printflics
+            "nfa_for_exponent: we have %a = log(%a) + %d ~~> %a = %d\n%!"
+            Ir.pp_atom
+            var
+            Ir.pp_atom
+            var
+            a
+            Ir.pp_atom
+            var
+            a';
           Debug.dump_nfa
             ~msg:"nfa_for_exponent output nfa: %s"
             Nfa.format_nfa
@@ -571,7 +580,13 @@ struct
             |> List.filter (fun x -> x - logBase x >= a)
             |> List.hd
           in
-          Debug.printf "nfa_for_exponent: a=%d, d=%d, c=%d, n=%d\n%!" a d c n;
+          Debug.printflics
+            "nfa_for_exponent: we have Et : %a = %d + %d + %d*t \n%!"
+            Ir.pp_atom
+            var
+            a
+            d
+            c;
           Debug.dump_nfa ~msg:"nfa_for_exponent var nfa: %s" Nfa.format_nfa nfa;
           let newvar_nfa = NfaCollection.div_in_pow newvar d c in
           Debug.dump_nfa ~msg:"nfa_for_exponent div_in_pow: %s" Nfa.format_nfa newvar_nfa;
@@ -601,7 +616,7 @@ struct
     let inter, s = internal s in
     let get_deg = Map.find_exn s.vars in
     let x' = get_exp x in
-    Debug.printfln
+    Debug.printf
       "vars: [%a]"
       (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_int)
       vars;
@@ -667,7 +682,7 @@ struct
           let x_eq_1_model =
             if num_of_exp == 0
             then (
-              Debug.printf "We are trying zeros for %a\n%!" Ir.pp_atom x';
+              Debug.printflics "We are trying zeros for %a\n%!" Ir.pp_atom x';
               let zero_nfa =
                 List.fold_left
                   (fun nfa y' ->
@@ -695,7 +710,7 @@ struct
 
   let prepare_order s ir nfa order =
     let ( let* ) = Option.bind in
-    Debug.printf
+    Debug.printflics
       "\n\n\nTrying order %a\n%!"
       (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " <= ") Ir.pp_atom)
       (order |> List.rev);
@@ -1088,7 +1103,7 @@ struct
     else (
       let free_vars = Ir.collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
-      Debug.printf "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
+      Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
       if ir' |> eval |> fst |> Nfa.run
       then `Sat (fun () -> Result.Ok (get_model_normal ir ()))
       else `Unsat)
