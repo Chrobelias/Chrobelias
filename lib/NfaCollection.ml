@@ -35,7 +35,7 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let for_alli filter l = List.is_empty (List.filteri filter l)
+let for_alli filter l = List.is_empty (List.filteri (fun i f -> not (filter i f)) l)
 
 (* ------------------------------------------------------------- *)
 (* ------------------------- MSB types ------------------------- *)
