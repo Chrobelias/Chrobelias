@@ -573,6 +573,17 @@ let () =
                            (Len (Atom (Var (v, S))))
                            (Const (Z.of_int Lib.Config.max_longest_path))))
                     :: acc
+                  | Lib.Ir.Var v, `Int ->
+                    Lib.Ast.(
+                      eia
+                        (Eia.leq
+                           (Atom (Var (v, I)))
+                           (Const
+                              (Z.of_int Lib.Config.max_longest_path)
+                              (* (Pow
+                              ( Const (Lib.Config.base ())
+                              , Const (Z.of_int Lib.Config.max_longest_path) ) *))))
+                    :: acc
                   | _ -> acc)
                 |> Lib.Ast.land_
               in
