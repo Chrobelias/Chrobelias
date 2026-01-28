@@ -4,6 +4,7 @@ type config =
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
+  ; mutable dump_lics : bool
   ; mutable pre_simpl : bool
   ; mutable error_check : bool
   ; mutable simpl_alpha : bool
@@ -46,6 +47,7 @@ let config =
   ; no_str_bv = false
   ; good_for_minimize = 15
   ; good_for_shrinking = 20
+  ; dump_lics = false
   }
 ;;
 
@@ -169,6 +171,7 @@ Basic options:
     ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t"
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
+    ; "--dlics", Arg.Unit (fun () -> config.dump_lics <- true), "  \tDump LICS steps"
     ; ( "--dpresimpl"
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , "\tDump AST simplifications" )

@@ -2173,13 +2173,13 @@ module MsbNat (Label : L) = struct
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
     let result = find_c_d nfa important in
-    (* Debug.printf "Chrobak output: "; *)
-    (* Debug.printf *)
-    (*   "%a\n" *)
-    (*   (Format.pp_print_list *)
-    (*      ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ") *)
-    (*      (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b)) *)
-    (*   result; *)
+    Debug.printfln "Chrobak output: ";
+    Debug.printfln
+      "%a\n"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
+         (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
+      (result |> List.of_seq);
     result
   ;;
 
