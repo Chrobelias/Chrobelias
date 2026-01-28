@@ -546,12 +546,22 @@ module MsbStrBv = struct
   let leqs vars terms =
     let cs = List.map snd terms in
     let terms =
+      List.map
+        (fun (term, c) ->
+           ( List.fold_left
+               (fun acc var ->
+                  if Map.mem acc var then acc else Map.add_exn ~key:var ~data:Z.zero acc)
+               term
+               (Map.keys vars)
+           , c ))
+        terms
+    in
+    let terms =
       terms
       |> List.map fst
       |> List.map (fun term ->
-        Map.map_keys_exn ~f:(Map.find_exn vars) term
-        |> Map.to_alist
-        |> List.filter (fun (_, v) -> Z.(v <> zero)))
+        Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist
+        (*|> List.filter (fun (_, v) -> Z.(v <> zero))*))
     in
     let gcds_ =
       List.map
