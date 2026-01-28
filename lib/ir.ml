@@ -340,6 +340,7 @@ let of_bool = function
 ;;
 
 let neg term = Map.map ~f:Z.( ~- ) term
+let _equal term1 term2 = Base.Map.equal Z.equal term1 term2
 
 let is_zero_lhs (map : (atom, Z.t) Map.t) =
   match Map.length map with
@@ -792,7 +793,15 @@ let simpl_ineq ir =
         ir_without_eq_n_leq
     in
     let irs' =
-      Map.fold ~init:[] ~f:(fun ~key ~data irs -> leq key data :: irs) complex_bounds_map
+      let decide term c =
+        match Map.find complex_bounds_map (neg term) with
+        | None -> leq term c
+        | Some c' -> if Z.(c = -c') && Z.(c >= zero) then eq term c else true_
+      in
+      Map.fold
+        ~init:[]
+        ~f:(fun ~key ~data irs -> decide key data :: irs)
+        complex_bounds_map
     in
     let ir = land_ (List.concat [ irs'; ir_without_leq :: irs ]) |> simpl in
     ir
