@@ -796,7 +796,7 @@ let simpl_ineq ir =
       let decide term c =
         match Map.find complex_bounds_map (neg term) with
         | None -> leq term c
-        | Some c' -> if Z.(c = -c') && Z.(c >= zero) then eq term c else true_
+        | Some c' -> if Z.(c = -c') && Z.(c >= zero) then eq term c else leq term c
       in
       Map.fold
         ~init:[]
