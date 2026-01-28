@@ -303,6 +303,7 @@ struct
          in
          let nfas' = NfaCollection.leqs vars irs' in
          Debug.printf "Nfa for inequalities has %d nodes\n%!" (Nfa.length nfas');
+         Debug.dump_nfa ~msg:"Nfa: %s" Nfa.format_nfa nfas';
          let irs'' =
            irs
            |> List.filter_map (fun ir ->

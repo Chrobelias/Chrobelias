@@ -255,9 +255,31 @@ module MsbStr = struct
     |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
   ;;
 
+  let powerset2 digits term =
+    let filter var =
+      if Ir.is_exp var then List.filter (fun x -> x = 0 || x = 1) else Fun.id
+    in
+    let rec helper = function
+      | [] -> []
+      | [ (var, x) ] ->
+        ([ Str.u_eos ], [ Z.zero ])
+        :: (digits |> filter var |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
+      | (var, x) :: tl ->
+        let open Base.List.Let_syntax in
+        let ( let* ) = ( >>= ) in
+        let* n, thing = helper tl in
+        (Str.u_eos :: n, Z.zero :: thing)
+        :: (digits
+            |> filter var
+            |> List.map (fun c -> itoc c :: n, Z.(x * of_int c) :: thing))
+    in
+    term |> helper |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
+  ;;
+
   let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
 
   let eq vars term c =
+    let term' = term |> Map.to_alist in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -269,7 +291,7 @@ module MsbStr = struct
     else (
       let states = ref Set.empty in
       let transitions = ref [] in
-      let thing = powerset (0 -- (basei - 1)) term in
+      let thing = powerset2 (0 -- (basei - 1)) term' in
       let rec lp front =
         match front with
         | s when Set.is_empty s -> ()
@@ -296,7 +318,7 @@ module MsbStr = struct
       let idx c = Map.find states c |> Option.get in
       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
       let transitions =
-        (powerset [ 0; basei - 1 ] term
+        (powerset [ 0; basei - 1 ] term'
          |> List.filter_map (fun (d, sum) ->
            match Map.find states Z.(sum / (one - base)) with
            | None -> None
@@ -313,6 +335,7 @@ module MsbStr = struct
   ;;
 
   let leq vars term c =
+    let term' = term |> Map.to_alist in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -324,7 +347,7 @@ module MsbStr = struct
     else
       (let states = ref Set.empty in
        let transitions = ref [] in
-       let thing = powerset (0 -- (basei - 1)) term in
+       let thing = powerset2 (0 -- (basei - 1)) term' in
        let rec lp front =
          match front with
          | s when Set.is_empty s -> ()
@@ -351,7 +374,7 @@ module MsbStr = struct
        let idx c = Map.find states c |> Option.get in
        let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
        let transitions =
-         (powerset [ 0; basei - 1 ] term
+         (powerset [ 0; basei - 1 ] term'
           |> List.concat_map (fun (d, sum) ->
             Map.to_alist states
             |> List.filter_map (fun (v, idv) ->
@@ -558,27 +581,25 @@ module MsbStrBv = struct
     in
     let terms =
       terms
-      |> List.map fst
-      |> List.map (fun term ->
-        Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist
-        (*|> List.filter (fun (_, v) -> Z.(v <> zero))*))
+      |> List.map (fun (term, c) ->
+        Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist, c)
     in
-    let gcds_ =
-      List.map
-        (fun term -> List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term)
-        terms
+    let terms_wth_gcds_ =
+      terms
+      |> List.map (fun (term, c) ->
+        (term, c), List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term)
+      |> List.filter (fun ((term, c), gcd_) ->
+        Z.(gcd_ > zero) || Z.(gcd_ = zero && zero <= c))
     in
-    let good_term i gcd_ = Z.(gcd_ > zero) || Z.(gcd_ = zero && zero <= List.nth cs i) in
-    let terms = List.filteri (fun i _ -> good_term i (List.nth gcds_ i)) terms in
-    let gcds_ = List.filteri good_term gcds_ in
-    if List.is_empty terms
+    let terms, gcds_ = List.split terms_wth_gcds_ in
+    if List.is_empty terms_wth_gcds_
     then n ()
     else
       (let states = ref Set.empty in
        let transitions = ref [] in
        let things =
          terms
-         |> List.concat_map (fun term -> powerset (0 -- (basei - 1)) term)
+         |> List.concat_map (fun (term, _) -> powerset (0 -- (basei - 1)) term)
          |> Map.of_alist_multi
        in
        let rec lp front =
@@ -616,7 +637,7 @@ module MsbStrBv = struct
        let transitions =
          let sign_things =
            terms
-           |> List.concat_map (fun term -> powerset [ 0; basei - 1 ] term)
+           |> List.concat_map (fun (term, _) -> powerset [ 0; basei - 1 ] term)
            |> Map.of_alist_multi
            |> Map.to_alist
          in
@@ -637,8 +658,8 @@ module MsbStrBv = struct
             |> Map.filter_keys ~f:(fun vals ->
               for_alli (fun i x -> x <= List.nth cs i) vals)
             |> Map.data)
-         ~vars:(Map.data vars)
-         ~deg:(1 + List.fold_left Int.max 0 (Map.data vars))
+         ~vars:(List.map fst (terms |> List.hd |> fst))
+         ~deg:(1 + List.fold_left Int.max 0 (List.map fst (terms |> List.hd |> fst)))
        |> fun x -> x)
       |> Nfa.minimize_not_very_strong
   ;;
