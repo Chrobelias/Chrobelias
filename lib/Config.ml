@@ -23,6 +23,7 @@ type config =
   ; mutable good_for_minimize : int
   ; mutable good_for_shrinking : int
   ; mutable bound_res : int
+  ; mutable bound_states : int
   }
 
 let config =
@@ -50,6 +51,7 @@ let config =
   ; good_for_shrinking = 20
   ; dump_lics = false
   ; bound_res = -1
+  ; bound_states = -1
   }
 ;;
 
@@ -121,7 +123,10 @@ Basic options:
       , "  \tUse least-significant-bit first representation" )
     ; ( "-bres"
       , Arg.Int (fun n -> config.bound_res <- n)
-      , "  \tMaximal residue used in Linearization" )
+      , "  \tMaximal residue used in NFA Solver" )
+    ; ( "-bstates"
+      , Arg.Int (fun n -> config.bound_states <- n)
+      , "  \tMaximal number of states in NFAs used in NFA Solver" )
     ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
       , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )

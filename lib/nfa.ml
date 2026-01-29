@@ -7,6 +7,8 @@ module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 module Sequence = Base.Sequence
 
+let config = Config.config
+
 module Debug = struct
   let nfa_cnt = ref 0
   let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
@@ -802,9 +804,12 @@ module Graph (Label : L) = struct
   ;;
 
   let find_important_verticies graph =
+    let bound x =
+      if config.bound_states > 0 then List.take config.bound_states x else x
+    in
     find_strongly_connected_components graph
     |> List.concat_map (fun vs ->
-      let list = List.map (fun v -> v, find_shortest_cycle graph v) vs in
+      let list = vs |> bound |> List.map (fun v -> v, find_shortest_cycle graph v) in
       let min = list |> List.map snd |> List.fold_left Int.min (verticies graph) in
       list |> List.find_all (fun (_, len) -> len = min))
   ;;
@@ -1490,7 +1495,11 @@ struct
 
   let find_c_d nfa (imp : (int, int) Map.t) =
     assert (Set.length nfa.start = 1);
-    let n = max 2 (length nfa) in
+    let n =
+      if config.bound_states > 0
+      then max 2 (min config.bound_states (length nfa))
+      else max 2 (length nfa)
+    in
     let m = n * n in
     let t =
       Graph.reachable_in_range (Graph.reverse nfa.transitions) 0 (m - n - 1) nfa.final
