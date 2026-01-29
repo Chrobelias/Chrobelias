@@ -5,6 +5,7 @@
   (declare-const y String)
   (assert (= (str.++ "999" x) (str.++ y x)))
   (check-sat)
+  (get-model)
 
   $ Chro strings3.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
@@ -169,8 +170,9 @@
   Expecting 9 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| strlenx->0 y->999 |}
   sat (under I)
+  ((define-fun x () (_ String) "") (define-fun y () (_ String) "999"))
   $ unset CHRO_DEBUG
   $ timeout 8 Chro -flat 0 -amin 0 -amax 1 --dsimpl strings3.smt2
   sat (under I)
+  ((define-fun x () (_ String) "") (define-fun y () (_ String) "999"))

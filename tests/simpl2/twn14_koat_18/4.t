@@ -122,7 +122,6 @@ $ cat input4.smt2
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| %flat_pow1->0 %flat_pow2->0 i3->1 i6->0 i7->2 it140->1 |}
   sat (under I)
 
   $ timeout 5 Chro --pre-simpl input4.smt2 || echo "timeout"

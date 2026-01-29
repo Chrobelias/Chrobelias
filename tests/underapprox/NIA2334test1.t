@@ -80,5 +80,5 @@
   Expecting 324 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| x1->16 x2->0 |}
   sat (under I)
+  ((define-fun x1 () (_ Int) 16) (define-fun x2 () (_ Int) 0))

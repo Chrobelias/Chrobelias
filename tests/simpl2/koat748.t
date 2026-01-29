@@ -2129,7 +2129,6 @@
   Expecting 27 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| %flat_pow1->2 it134->1 it57->1 |}
   sat (under I)
 
 

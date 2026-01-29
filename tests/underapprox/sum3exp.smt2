@@ -8,3 +8,4 @@
 (assert (>= x2 (exp 2 x1)))
 (assert (<= (+ (exp 2 x1) (exp 2 x2) (exp 2 x3)) (+ x1 x2 x3 10)))
 (check-sat)
+(get-model)

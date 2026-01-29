@@ -34,7 +34,9 @@ $ cat  sum3exp.smt2
   Expecting 64 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| x1->0 x2->2 x3->0 |}
   sat (under I)
+  ((define-fun x1 () (_ Int) 0)
+   (define-fun x2 () (_ Int) 2)
+   (define-fun x3 () (_ Int) 0))
 
 
