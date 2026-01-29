@@ -170,5 +170,7 @@ let check ast =
         | _ -> false)
       ast
   then `Unknown ast
-  else check ast
+  else (
+    try check ast with
+    | _ -> `Unknown ast)
 ;;

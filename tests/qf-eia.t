@@ -79,8 +79,7 @@ Test ExEyEz y = 2**x & z = 2**y & z mod 100 = 36 with -lsb
 
   $ Chro ./examples/QF_EIA/double_exp-100-sat.smt2 -lsb
   sat (nfa)
-  ((define-fun k () (_ Int) 0)
-   (define-fun x () (_ Int) 4)
+  ((define-fun x () (_ Int) 4)
    (define-fun y () (_ Int) 16)
    (define-fun z () (_ Int) 65536))
 
