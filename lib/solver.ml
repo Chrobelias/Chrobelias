@@ -534,14 +534,15 @@ struct
         nfa))
   ;;
 
-  let bounded_unsat = ref false
-
   let nfa_for_exponent s var newvar chrob =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
+    let bound_res = Config.config.bound_res in
     let segm c =
-      if Config.config.bound_res >= 0
-      then 0 -- (min c Config.config.bound_res - 1)
+      if bound_res >= 0 && bound_res < c
+      then (
+        Config.bounded_unsat := true;
+        0 -- (bound_res - 1))
       else 0 -- (c - 1)
     in
     let get_deg = Map.find_exn s.vars in
@@ -572,12 +573,7 @@ struct
             ~vars:[ var, get_deg var ];
           nfa)
       else
-        c
-        |> (fun c ->
-        let bound_res = Config.config.bound_res in
-        if bound_res >= 0 && bound_res < c then bounded_unsat := true;
-        c)
-        |> segm
+        segm c
         |> List.map (fun d -> a, d, c)
         |> List.to_seq
         |> Seq.map (fun (a, d, c) ->
@@ -1079,7 +1075,6 @@ struct
       | `Unknown
       ]
     =
-    bounded_unsat := false;
     let run_semenov = Ir.collect_vars ir |> Map.keys |> List.exists is_exp in
     if run_semenov
     then
@@ -1107,7 +1102,7 @@ struct
                (fun _ nfa -> nfa)
         in
         begin match res with
-        | None -> if !bounded_unsat then `Unknown else `Unsat
+        | None -> if !Config.bounded_unsat then `Unknown else `Unsat
         | Some (s, order, (model, len), models) ->
           `Sat (get_model_semenov ir s order (model, len) models)
         (* (match get_model_semenov ir s order (model, len) models with

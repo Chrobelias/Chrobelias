@@ -4,3 +4,7 @@
 (cram
  (deps 3exp.smt2)
  (applies_to 3exp))
+
+(cram
+ (deps issue188.smt2)
+ (applies_to issue188))

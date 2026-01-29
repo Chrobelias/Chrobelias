@@ -805,7 +805,11 @@ module Graph (Label : L) = struct
 
   let find_important_verticies graph =
     let bound x =
-      if config.bound_states > 0 then List.take config.bound_states x else x
+      if config.bound_states > 0
+      then (
+        Config.bounded_unsat := true;
+        List.take config.bound_states x)
+      else x
     in
     find_strongly_connected_components graph
     |> List.concat_map (fun vs ->
@@ -1496,8 +1500,10 @@ struct
   let find_c_d nfa (imp : (int, int) Map.t) =
     assert (Set.length nfa.start = 1);
     let n =
-      if config.bound_states > 0
-      then max 2 (min config.bound_states (length nfa))
+      if config.bound_states > 2 && config.bound_states < length nfa
+      then (
+        Config.bounded_unsat := true;
+        max 2 config.bound_states)
       else max 2 (length nfa)
     in
     let m = n * n in
@@ -1521,9 +1527,10 @@ struct
     in
     let r2 =
       states
+      |> Sequence.filter ~f:(fun (_, d) -> (n * n) - n - d >= 0)
       |> Sequence.concat_map ~f:(fun (state, d) ->
         let first = (n * n) - n - d in
-        assert (first >= 0);
+        (* assert (first >= 0); *)
         let last = (n * n) - n - 1 in
         first -- last
         |> List.filter (fun i -> Set.mem t.(i) state)
