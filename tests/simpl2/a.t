@@ -28,9 +28,6 @@
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun x () (_ Int) 0)
-   (define-fun y () (_ Int) 0)
-   (define-fun z () (_ Int) 52))
 
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)

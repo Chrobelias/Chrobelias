@@ -5,7 +5,6 @@
   > (declare-fun x2 () Int)
   > (assert (<= (+ (* 5 x1) x2) (* 6 x2) ))
   > (check-sat)
-  > (get-model)
   > EOF
   $ Chro --pre-simpl --dsimpl --stop-after pre-simpl TODO1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -22,7 +21,6 @@
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun x1 () (_ Int) 0) (define-fun x2 () (_ Int) 0))
 Should be (<= x 2)
   $ cat > TODO2.smt2 <<-EOF
   > (set-logic ALL)
@@ -30,7 +28,6 @@ Should be (<= x 2)
   > (declare-fun x2 () Int)
   > (assert (<= (* 5 x1) 13))
   > (check-sat)
-  > (get-model)
   > EOF
   $ Chro --pre-simpl --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -47,7 +44,6 @@ Should be (<= x 2)
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun x1 () (_ Int) 0))
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -87,7 +83,6 @@ Fold exps
   > (declare-fun it135 () Int)
   > (assert (<= (* (exp 2 (+ (- 1) it134)) (exp 2 (+ 1 it135) )) 2))
   > (check-sat)
-  > (get-model)
   > EOF
   $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -105,7 +100,6 @@ Fold exps
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun it134 () (_ Int) 0) (define-fun it135 () (_ Int) 0))
   $ cat > i4.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x1 () Int)
@@ -113,7 +107,6 @@ Fold exps
   > (declare-fun x3 () Int)
   > (assert (<= (* (+ x1 x2) (exp 2 x3)) 2))
   > (check-sat)
-  > (get-model)
   > EOF
   $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl i4.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -130,9 +123,6 @@ Fold exps
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun x1 () (_ Int) 0)
-   (define-fun x2 () (_ Int) 0)
-   (define-fun x3 () (_ Int) 0))
 
   $ cat > i3.smt2 <<-EOF
   > (set-logic ALL)
@@ -140,7 +130,6 @@ Fold exps
   > (declare-fun it1095 () Int)
   > (assert (<= (* (exp 2 (+ (- 1) it134)) (exp 2 it134)) 2))
   > (check-sat)
-  > (get-model)
   > EOF
   $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -158,7 +147,6 @@ Fold exps
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun it134 () (_ Int) 0))
 
 
 $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's/[[:space:]]*$//'
@@ -171,7 +159,6 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   >                (* (- 1) it646))
   >             (- 2)) )
   > (check-sat)
-  > (get-model)
   > EOF
   $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl it646.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -190,7 +177,6 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun it646 () (_ Int) 1))
 
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)

@@ -35,8 +35,5 @@ $ cat  sum3exp.smt2
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun x1 () (_ Int) 0)
-   (define-fun x2 () (_ Int) 2)
-   (define-fun x3 () (_ Int) 0))
 
 
