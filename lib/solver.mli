@@ -14,4 +14,3 @@ val check_sat
 
 (* TODO(Kakadu): Move somewhere else... *)
 val is_internal : string -> bool
-(*val ir_to_ast : Ir.t -> Ast.t*)
