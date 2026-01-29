@@ -363,6 +363,23 @@ struct
                vars
            in
            nfa
+         | Ir.Neq ->
+           let nfa = NfaCollection.neq vars term c in
+           let nfa =
+             Map.fold
+               ~init:nfa
+               ~f:(fun ~key:k ~data:v acc ->
+                 (* TODO: It seems ensuring the variables are powers is really important here. *)
+                 if Map.mem term k && is_exp k
+                 then
+                   acc
+                   |> Nfa.intersect
+                        (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                   |> do_if_msb Nfa.minimize_not_very_strong
+                 else acc)
+               vars
+           in
+           nfa
        end
        | Ir.Reg (reg, atoms) -> Extra.eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
@@ -400,14 +417,6 @@ struct
            ~dest:(Map.find_exn vars atom)
            ~src:(Map.find_exn vars atom')
            () *)
-       | Ir.NEq (atom, atom') ->
-         failwith "tbd"
-         (*NfaCollection.neq
-           ~alpha
-           ~dest:(Map.find_exn vars atom)
-           ~src:(Map.find_exn vars atom')
-           ()
-         |> Nfa.invert*)
        | _ -> failwith "unexpected due to Arithmetization")
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;

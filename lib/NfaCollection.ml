@@ -136,7 +136,7 @@ module Msb = struct
       |> fun x -> x)
   ;;
 
-  let neq vars term c = eq vars term c |> Nfa.reverse
+  let neq vars term c = eq vars term c |> Nfa.invert
 
   let leq vars term c =
     let term =
@@ -310,7 +310,7 @@ module MsbStr = struct
       |> fun x -> x)
   ;;
 
-  let neq vars term c = eq vars term c |> Nfa.reverse
+  let neq vars term c = eq vars term c |> Nfa.invert
 
   let leq vars term c =
     let term =
@@ -485,7 +485,7 @@ module MsbStrBv = struct
       |> fun x -> x)
   ;;
 
-  let neq vars term c = eq vars term c |> Nfa.reverse
+  let neq vars term c = eq vars term c |> Nfa.invert
 
   let leq vars term c =
     let term =
@@ -955,7 +955,7 @@ module Lsb = struct
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
-  let neq vars term c = eq vars term c |> Nfa.reverse
+  let neq vars term c = eq vars term c |> Nfa.invert
 
   let leq vars term c =
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
@@ -1156,7 +1156,7 @@ module LsbStr = struct
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
-  let neq vars term c = eq vars term c |> Nfa.reverse
+  let neq vars term c = eq vars term c |> Nfa.invert
 
   let leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t =
     fun vars term c ->
@@ -1365,7 +1365,7 @@ module LsbStrBv = struct
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
 
-  let neq vars term c = eq vars term c |> Nfa.reverse
+  let neq vars term c = eq vars term c |> Nfa.invert
 
   let leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t =
     fun vars term c ->

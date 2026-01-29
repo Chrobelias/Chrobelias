@@ -475,18 +475,13 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
     | Neq (lhs, rhs, I) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in
-      let lhs, lhs_phs = Symantics.prjs lhs in
-      let rhs, rhs_phs = Symantics.prjs rhs in
-      let ans = Ir.land_ ((Ir.neq lhs rhs :: lhs_phs) @ rhs_phs) in
+      let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in
+      let ans = Ir.land_ (Ir.neq poly c :: sups) in
       (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | Neq (lhs, rhs, S) ->
-      let* a, sup_a = of_str_atom lhs in
-      let* b, sup_b = of_str_atom rhs in
-      let sup = sup_a @ sup_b in
-      let ans = Ir.land_ (Ir.neq a b :: sup) in
+      failwith "unexpected due to Arithmetization"
       (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
-      return ans
     | Leq (lhs, rhs) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in
@@ -630,6 +625,7 @@ let rec eia_of_ir : Ir.t -> Ast.t =
     let lhs = Ast.Eia.add poly in
     let rhs = Ast.Eia.const c in
     (match rel with
+     | Neq -> Ast.eia (Ast.Eia.neq lhs rhs I)
      | Leq -> Ast.eia (Ast.Eia.leq lhs rhs)
      | Eq -> Ast.eia (Ast.Eia.eq lhs rhs I))
   | Exists ([], lhs) -> eia_of_ir lhs

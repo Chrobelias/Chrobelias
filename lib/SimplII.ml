@@ -918,6 +918,19 @@ let make_main_symantics ?agressive env =
       | _ -> Id_symantics.eq_str l r
     ;;
 
+    let neqz l r =
+      match l, r with
+      | Ast.Eia.Const l, Ast.Eia.Const r -> if l <> r then Ast.true_ else Ast.false_
+      | _ -> Id_symantics.neqz l r
+    ;;
+
+    let neq_str l r =
+      match l, r with
+      | Ast.Eia.Str_const l, Ast.Eia.Str_const r ->
+        if l <> r then Ast.true_ else Ast.false_
+      | _ -> Id_symantics.neq_str l r
+    ;;
+
     let eqz x y =
       (* TODO(Kakadu): rewrite to match twice for readability *)
       let ans = relop Eq x y in
