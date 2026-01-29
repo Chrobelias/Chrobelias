@@ -162,7 +162,6 @@ let rec simplify : Ir.t -> Ir.t = function
   | SLen _ as x -> x
   | Stoi _ as x -> x
   | Itos _ as x -> x
-  | NEq _ as x -> x
   | SPrefixOf _ as x -> x
   | SContains _ as x -> x
   | SSuffixOf _ as x -> x
