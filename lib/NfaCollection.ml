@@ -14,6 +14,7 @@ module type Type = sig
   val z : unit -> t
   val power_of_two : int -> t
   val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
+  val neq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val base : Z.t
@@ -43,7 +44,7 @@ module Msb = struct
   module Nfa = Nfa.Msb (Bv)
 
   type t = Nfa.t
-  type v = unit
+  type v = bool
 
   let base = Bv.base
   let o = false
@@ -134,6 +135,8 @@ module Msb = struct
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
       |> fun x -> x)
   ;;
+
+  let neq vars term c = eq vars term c |> Nfa.reverse
 
   let leq vars term c =
     let term =
@@ -306,6 +309,8 @@ module MsbStr = struct
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
       |> fun x -> x)
   ;;
+
+  let neq vars term c = eq vars term c |> Nfa.reverse
 
   let leq vars term c =
     let term =
@@ -480,6 +485,8 @@ module MsbStrBv = struct
       |> fun x -> x)
   ;;
 
+  let neq vars term c = eq vars term c |> Nfa.reverse
+
   let leq vars term c =
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
@@ -558,7 +565,7 @@ module MsbNat = struct
   module NfaMsbNat = Nfa.MsbNat (Bv)
 
   type t = NfaMsbNat.t
-  type v = unit
+  type v = bool
 
   let base = Bv.base
   let o = false
@@ -620,6 +627,7 @@ module MsbNat = struct
   ;;
 
   let eq vars term c = Msb.eq vars term c |> NfaMsb.to_nat
+  let neq vars term c = Msb.neq vars term c |> NfaMsb.to_nat
   let leq vars term c = Msb.leq vars term c |> NfaMsb.to_nat
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
@@ -711,6 +719,7 @@ module MsbNatStr = struct
   ;;
 
   let eq vars term c = MsbStr.eq vars term c |> NfaMsb.to_nat
+  let neq vars term c = MsbStr.neq vars term c |> NfaMsb.to_nat
   let leq vars term c = MsbStr.leq vars term c |> NfaMsb.to_nat
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
@@ -805,6 +814,7 @@ module MsbNatStrBv = struct
   ;;
 
   let eq vars term c = MsbStrBv.eq vars term c |> NfaMsb.to_nat
+  let neq vars term c = MsbStrBv.neq vars term c |> NfaMsb.to_nat
   let leq vars term c = MsbStrBv.leq vars term c |> NfaMsb.to_nat
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
@@ -826,7 +836,7 @@ module Lsb = struct
   module Nfa = Nfa.Lsb (Bv)
 
   type t = Nfa.t
-  type v = unit
+  type v = bool
 
   let base = Bv.base
   let o = false
@@ -944,6 +954,8 @@ module Lsb = struct
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
+
+  let neq vars term c = eq vars term c |> Nfa.reverse
 
   let leq vars term c =
     let term = Map.map_keys_exn ~f:(Map.find_exn vars) term |> Map.to_alist in
@@ -1143,6 +1155,8 @@ module LsbStr = struct
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
+
+  let neq vars term c = eq vars term c |> Nfa.reverse
 
   let leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t =
     fun vars term c ->
@@ -1350,6 +1364,8 @@ module LsbStrBv = struct
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term)))
   ;;
+
+  let neq vars term c = eq vars term c |> Nfa.reverse
 
   let leq : ('a, int) Map.t -> ('a, Z.t) Map.t -> Z.t -> t =
     fun vars term c ->
