@@ -94,7 +94,7 @@ module type L = sig
   val truncate : int -> t -> t
   val is_zero : t -> bool
   val is_zero_soft : t -> bool
-  val variations : u list -> t -> t list
+  val variations : ?alpha:u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
   val zero_with_mask : int list -> t
@@ -191,7 +191,7 @@ module Bv = struct
   let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
   let is_zero_soft = is_zero
 
-  let variations _alpha (_, mask) =
+  let variations ?alpha:_ (_, mask) =
     let mask_list = mask |> bv_to_list in
     let length = bv_len mask in
     Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
@@ -382,7 +382,7 @@ module StrBv = struct
     |> return
   ;;
 
-  let variations _alpha (_, mask) =
+  let variations ?alpha:_ (_, mask) =
     let full_alpha = 0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x) in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
@@ -583,12 +583,13 @@ module Str = struct
   ;;
 
   (* FIXME: this should support different bases and symbols. *)
-  let variations _alpha vec =
+  let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let full_alpha =
       Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1)
       |> List.map Char.chr
     in
+    let full_alpha = Option.value ~default:full_alpha alpha in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
       | 0 -> []
@@ -945,7 +946,7 @@ module type Type = sig
   val minimize : t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
-  val invert : t -> t
+  val invert : ?alpha:v list -> t -> t
   val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
@@ -1377,17 +1378,20 @@ struct
   ;;
 
   (* Note(Kakadu): it seems to be the slowest function *)
-  let to_dfa nfa =
+  let to_dfa ?alpha nfa =
     (* Format.printf "Runinng to_dfa\n%!"; *)
     let alpha =
-      nfa.transitions
-      |> Array.to_seq
-      |> Seq.map List.to_seq
-      |> Seq.concat_map Fun.id
-      |> Seq.map fst
-      |> Seq.map Label.alpha
-      |> Seq.fold_left Set.union Set.empty
-      |> Set.to_list
+      Option.value
+        ~default:
+          (nfa.transitions
+           |> Array.to_seq
+           |> Seq.map List.to_seq
+           |> Seq.concat_map Fun.id
+           |> Seq.map fst
+           |> Seq.map Label.alpha
+           |> Seq.fold_left Set.union Set.empty
+           |> Set.to_list)
+        alpha
     in
     if nfa.is_dfa
     then nfa
@@ -1434,7 +1438,7 @@ struct
                 ~init:(Label.zero nfa.deg)
                 qs
             in
-            let variations = Label.variations alpha acc in
+            let variations = Label.variations ~alpha acc in
             let delta =
               List.fold_left
                 (fun acc label ->
@@ -1484,9 +1488,9 @@ struct
       { final; start = Set.singleton 0; transitions; deg = nfa.deg; is_dfa = true })
   ;;
 
-  let invert nfa =
+  let invert ?alpha nfa =
     (* We need complete DFA here, to_dfa() makes a complete DFA thus we're using it. *)
-    let dfa = nfa |> to_dfa in
+    let dfa = nfa |> to_dfa ?alpha in
     let states = states dfa in
     let final = Set.diff states dfa.final in
     { final
