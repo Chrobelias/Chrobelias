@@ -18,6 +18,11 @@ let internal_name () =
   r
 ;;
 
+let name = function
+  | Var name -> name
+  | Pow2 name -> Format.asprintf "%a" Z.pp_print (Config.base ()) ^ name
+;;
+
 let internal () = var (internal_name ())
 
 let internal_pow () =
