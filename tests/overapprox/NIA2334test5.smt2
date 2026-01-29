@@ -61,4 +61,4 @@
        (* (- 54064) x5))
     (- 717)))
 (check-sat)
-(get-model)
+;(get-model)

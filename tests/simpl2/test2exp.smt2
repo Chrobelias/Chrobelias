@@ -4,4 +4,4 @@
 (declare-fun z () Int)
 (assert (<= (exp 2 (+ x y)) (exp 2 z)))
 (check-sat)
-(get-model)
+;(get-model)

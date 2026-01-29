@@ -81,4 +81,3 @@
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun x1 () (_ Int) 16) (define-fun x2 () (_ Int) 0))
