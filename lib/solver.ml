@@ -537,6 +537,11 @@ struct
   let nfa_for_exponent s var newvar chrob =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
+    let segm c =
+      if Config.config.bound_res >= 0
+      then 0 -- (min c Config.config.bound_res - 1)
+      else 0 -- (c - 1)
+    in
     let get_deg = Map.find_exn s.vars in
     chrob
     |> Seq.concat_map (fun (a, c) ->
@@ -548,18 +553,16 @@ struct
           let poly = Map.of_alist_exn [ var, Z.one ] in
           let nfa = NfaCollection.eq s.vars poly (Z.of_int a') in
           (*var = a'*)
-          if String.equal (Ir.name var) "y"
-          then
-            Debug.printflics
-              "nfa_for_exponent: we have %a = log(%a) + %d ~~> %a = %d\n%!"
-              Ir.pp_atom
-              var
-              Ir.pp_atom
-              var
-              a
-              Ir.pp_atom
-              var
-              a';
+          Debug.printflics
+            "nfa_for_exponent: we have %a = log(%a) + %d ~~> %a = %d\n%!"
+            Ir.pp_atom
+            var
+            Ir.pp_atom
+            var
+            a
+            Ir.pp_atom
+            var
+            a';
           Debug.dump_nfa
             ~msg:"nfa_for_exponent output nfa: %s"
             Nfa.format_nfa
@@ -567,7 +570,7 @@ struct
             ~vars:[ var, get_deg var ];
           nfa)
       else
-        0 -- (c - 1)
+        segm c
         |> List.map (fun d -> a, d, c)
         |> List.to_seq
         |> Seq.map (fun (a, d, c) ->
@@ -582,15 +585,13 @@ struct
             |> List.filter (fun x -> x - logBase x >= a)
             |> List.hd
           in
-          if String.equal (Ir.name var) "y"
-          then
-            Debug.printflics
-              "nfa_for_exponent: we have Et : %a = %d + %d + %d*t \n%!"
-              Ir.pp_atom
-              var
-              a
-              d
-              c;
+          Debug.printflics
+            "nfa_for_exponent: we have Et : %a = %d + %d + %d*t \n%!"
+            Ir.pp_atom
+            var
+            a
+            d
+            c;
           Debug.dump_nfa ~msg:"nfa_for_exponent var nfa: %s" Nfa.format_nfa nfa;
           let newvar_nfa = NfaCollection.div_in_pow newvar d c in
           Debug.dump_nfa ~msg:"nfa_for_exponent div_in_pow: %s" Nfa.format_nfa newvar_nfa;
@@ -669,10 +670,7 @@ struct
     let module NfaCollection = NfaCollectionNat in
     let get_deg = Map.find_exn s.vars in
     let rec helper nfa remaining_order model =
-      if List.length remaining_order > 2
-      then
-        Debug.printflics
-          "<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>\n%!";
+      Debug.printflics "<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>\n%!";
       Debug.dump_nfa
         ~msg:"Nfa inside proof_order: %s"
         ~vars:(Map.to_alist s.vars)
