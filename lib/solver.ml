@@ -665,6 +665,7 @@ struct
     let module NfaCollection = NfaCollectionNat in
     let get_deg = Map.find_exn s.vars in
     let rec helper nfa remaining_order model =
+      Debug.printflics "<><><><><><><><><><><><><><><>\n%!";
       Debug.dump_nfa
         ~msg:"Nfa inside proof_order: %s"
         ~vars:(Map.to_alist s.vars)

@@ -578,15 +578,15 @@ let () =
                       eia
                         (Eia.leq
                            (Atom (Var (v, I)))
-                           (Const (Z.of_int Lib.Config.max_int))
-                           (* (Pow
+                           (Pow
                               ( Const (Lib.Config.base ())
-                              , Const (Z.of_int Lib.Config.max_longest_path) )) *)))
+                              , Const (Z.of_int (Lib.Config.huge_const ())) ))))
                     :: acc
                   | _ -> acc)
                 |> Lib.Ast.land_
               in
               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
+              Lib.Config.config.under_approx <- -1;
               match check_sat shrinked_ast with
               | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
               | Sat (_, _, env, get_model, _regexes) ->
