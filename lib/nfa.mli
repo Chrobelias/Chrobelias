@@ -22,7 +22,7 @@ module type L = sig
   val truncate : int -> t -> t
   val is_zero : t -> bool
   val is_zero_soft : t -> bool
-  val variations : u list -> t -> t list
+  val variations : ?alpha:u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
   val zero_with_mask : int list -> t
@@ -101,7 +101,7 @@ module type Type = sig
   val minimize : t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
-  val invert : t -> t
+  val invert : ?alpha:v list -> t -> t
   val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
