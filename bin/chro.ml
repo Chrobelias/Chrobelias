@@ -310,12 +310,14 @@ let logBaseZ n =
   helper Z.minus_one n
 ;;
 
-let join_int_model prefix m =
+let join_int_model _tys prefix m =
   let open Lib in
   (* Format.printf
     "prefix.length = %d, n.length = %d\n%!"
     (Env.length prefix)
     (Base.Map.Poly.length m); *)
+  (*Format.printf "PREFIX %a\n%!" (Env.pp ~title:"prefix") prefix;
+  Format.printf "MODEL %a\n%!" Ir.pp_model_smtlib2 m;*)
   let prefix =
     let shrink_ir_model =
       Base.Map.Poly.map_keys_exn m ~f:(function
@@ -365,6 +367,24 @@ let join_int_model prefix m =
     if Env.equal env' env then env' else saturate env'
   in
   let prefix = saturate prefix in
+  let module Set = Base.Set.Poly in
+  let unknown_vars =
+    Env.fold
+      ~init:Set.empty
+      ~f:(fun ~key:_ ~data:tt acc ->
+        match tt with
+        | Ast.TT (Ast.I, eia) ->
+          Set.union
+            acc
+            (Ast.get_all_vars (Ast.Eia (Ast.Eia.eq (Ast.Eia.const Z.zero) eia Ast.I))
+             |> Set.of_list)
+        | Ast.TT (Ast.S, _) -> acc)
+      prefix
+  in
+  let prefix =
+    Set.fold unknown_vars ~init:prefix ~f:(fun acc var ->
+      Env.extend_int_exn acc var (Ast.Eia.const Z.zero))
+  in
   Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek prefix key with
     | Some value -> Map.set acc ~key:(Ir.var key) ~data:value
@@ -391,7 +411,7 @@ let print_model tys model regexes env =
       | Lib.Ir.Var _ as v -> v
       | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
   in
-  let model = join_int_model env model in
+  let model = join_int_model tys env model in
   (*New code goes here *)
   let var = Lib.Ir.var in
   let raw_model = model in
@@ -446,9 +466,12 @@ let print_model tys model regexes env =
               | _ -> String.length str
             in
             let str =
-              String.concat
-                ""
-                [ String.init (len - String.length str) (fun _ -> '0'); str ]
+              if len = 0
+              then ""
+              else
+                String.concat
+                  ""
+                  [ String.init (len - String.length str) (fun _ -> '0'); str ]
             in
             `Str str
           | `Int d -> `Int d
@@ -591,7 +614,7 @@ let () =
                 (* let tys = merge_tys state in *)
                   (match get_model tys with
                    | Result.Ok model ->
-                     let model = join_int_model env model in
+                     let model = join_int_model tys env model in
                      print_model tys model regexes env
                    | Result.Error `Too_long -> Format.printf "no short model\n%!"
                    | Result.Error `No_model -> assert false)
