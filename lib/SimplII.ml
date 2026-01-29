@@ -601,12 +601,10 @@ let make_main_symantics ?alpha ?agressive env =
   let alpha_with_extra_char =
     match alpha with
     | Some alpha ->
+      let ascii = List.init (128 - 32) (fun i -> Char.chr (i + 32)) |> Set.of_list in
+      let diff = Set.diff ascii alpha in
       let extra_char =
-        Set.nth
-          (Set.diff
-             (List.init (128 - 32) (fun i -> Char.chr (i + 32)) |> Set.of_list)
-             alpha)
-          0
+        (if Set.mem diff '#' then Option.some '#' else Set.nth diff 0)
         |> Option.map Set.singleton
         |> Option.value ~default:Set.empty
       in
