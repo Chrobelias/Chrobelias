@@ -68,7 +68,7 @@ type string_config =
   ; eos : char
   }
 
-let huge_const_config = { const = 10 }
+let huge_const_config = { const = 20 }
 let huge_const () = huge_const_config.const
 let under2_config = { amin = 5; amax = 11; flat = -1 }
 let get_flat () = under2_config.flat
@@ -83,15 +83,6 @@ let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3
 let max_longest_path =
   match Sys.getenv_opt "CHRO_LONGEST_PATH" with
   | None -> 10000
-  | Some s ->
-    (match int_of_string_opt s with
-     | Some n -> n
-     | None -> exit 1)
-;;
-
-let max_int =
-  match Sys.getenv_opt "CHRO_MAX_INT" with
-  | None -> 1000000000000000000
   | Some s ->
     (match int_of_string_opt s with
      | Some n -> n

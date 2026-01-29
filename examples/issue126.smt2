@@ -1,12 +1,12 @@
 (set-logic ALL)
-(declare-fun x () Int)
+(declare-fun u () Int)
 (declare-fun y () Int)
 (declare-fun z () Int)
-(declare-fun t () Int)
  
-(assert (= (exp 2 x) y))
-(assert (= (exp 2 y) z))
-(assert (= (mod (+ z x y) 100) 67))
- 
+(assert (and
+          (= (* (exp 2 z) (+ 1 (exp 2 u))) y)
+          (<= y 20)
+          (>= z 1)
+          (>= (exp 2 u) 3)
+          ))
 (check-sat)
-(get-model)
