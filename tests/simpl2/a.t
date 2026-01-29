@@ -27,8 +27,10 @@
   Expecting 8 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| x->0 y->0 |}
   sat (under I)
+  ((define-fun x () (_ Int) 0)
+   (define-fun y () (_ Int) 0)
+   (define-fun z () (_ Int) 52))
 
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
@@ -69,7 +71,6 @@
   Expecting 8 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| x->0 y->0 |}
   sat (under I)
   $ cat > sum_join1.smt2 <<-EOF
   > (set-logic ALL)

@@ -275,7 +275,7 @@ let check bound ast =
     with
     | Early env ->
       log "%s gives early Sat." __FILE__;
-      log "env = %a" pp_env env;
+      (* log "env = %a" pp_env env; *)
       `Sat ("under I", to_normal_env env)
     | Early_Unsat -> `Unsat "nia"
   with

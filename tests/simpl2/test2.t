@@ -12,5 +12,7 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| x->0 y->0 z->0 |}
   sat (under I)
+  ((define-fun x () (_ Int) 0)
+   (define-fun y () (_ Int) 0)
+   (define-fun z () (_ Int) 0))

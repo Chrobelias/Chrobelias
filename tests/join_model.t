@@ -31,7 +31,6 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| u->0 x->-1 z->100 |}
   sat (under I)
   ((define-fun u () (_ Int) 0)
    (define-fun x () (_ Int) -1)

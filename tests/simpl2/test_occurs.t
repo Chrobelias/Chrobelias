@@ -74,6 +74,7 @@
   >           (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0)
   > ))
   > (check-sat)
+  > (get-model)
   > EOF
   $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --stop-after pre-simpl 4.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -93,8 +94,12 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| i4->0 it19->-1 it21->0 it23->0 it57->0 |}
   sat (under I)
+  ((define-fun i4 () (_ Int) 0)
+   (define-fun it19 () (_ Int) -1)
+   (define-fun it21 () (_ Int) 0)
+   (define-fun it23 () (_ Int) 0)
+   (define-fun it57 () (_ Int) 0))
 
   $ cat > 5.smt2 <<-EOF
   > (set-logic ALL)

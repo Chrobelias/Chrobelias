@@ -6,3 +6,4 @@
 (assert (= (+ z y) 52))
 (assert (> (+ (* x 5) (* (pow2 y) 8) (* z 7) ) 13))
 (check-sat)
+(get-model)

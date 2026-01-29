@@ -47,7 +47,6 @@
   Expecting 100 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  env = {| x1->1 x2->0 |}
   sat (under I)
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
