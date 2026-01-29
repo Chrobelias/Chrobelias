@@ -1,5 +1,5 @@
   $ export CHRO_DEBUG=1
-  $ Chro -bound 1 --dsimpl --pre-simpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound -1 --dsimpl --pre-simpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -659,13 +659,56 @@
               (<= (* (- 1) it147) (- 1)))
   fixed-point
   
-  Bound for underapproximation: 2
+  whole: (bool.and
+          (bool.and
+           (bool.and
+            (bool.and
+             (bool.and
+              (bool.and
+               (bool.and
+                (bool.and
+                 (bool.and
+                  (bool.and
+                   (bool.and
+                    (bool.and
+                     (bool.and
+                      (bool.and
+                       (bool.and (bool.eq %flat_pow1 (int.add -1 it147))
+                        (bool.eq (int.add it154 (int.mul -2 exp_2_it147)) -2))
+                       (bool.eq (int.add it155 (int.mul -2 exp_2_it147)) -1))
+                      (bool.eq (int.add it157 (int.mul -2 exp_2_it147)) -1))
+                     (bool.eq (int.add it158 (int.mul -1 exp_2_it147)) -1))
+                    (bool.eq (int.add it159 (int.mul -2 exp_2_it147)) -1))
+                   (int.le_s 0 (int.mul -1 it2))) (int.le_s 1 i10))
+                 (int.le_s 1 it4))
+                (int.le_s
+                 (int.add (int.add (int.mul -1 i10) exp_2_it147) exp_2_it147)
+                 1))
+               (int.le_s
+                (int.add (int.add (int.mul -1 i10) exp_2_it147) exp_2_it147) 2))
+              (int.le_s
+               (int.add (int.add (int.mul -1 i10) exp_2_%flat_pow1)
+                exp_2_%flat_pow1) 1)) (int.le_s (int.mul -1 i10) -3))
+            (int.le_s (int.mul -1 i10) -2)) (int.le_s (int.mul -1 i10) -1))
+          (int.le_s (int.mul -1 it147) -1))
+         (int.lt_s (int.mul 1 %flat_pow1) exp_2_%flat_pow1)
+         (int.lt_s (int.mul 1 it147) exp_2_it147)
   
-  Interesting: %flat_pow1 it147
+  Starting NFA Solver ...
   
-  Expecting 4 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  env = {| %flat_pow1->0 i10->3 it147->1 it154->2 it155->3 it157->3 it158->1
-        it159->3 it2->0 it4->1 |}
-  sat (under I)
+  (assert (exists (i10 it155 it157 it158 it159 it2 it4)
+          (and
+            (exists (it154) (= (+ it154 (* (- 2) pow2(it147)) )  -2) )
+            (<= (+ (* (- 1) i10) (* 2 pow2(it147)) )  1)
+            (<= (+ (* (- 1) i10) (* 2 pow2(%flat_pow1)) )  1)
+            (= (+ %flat_pow1 (* (- 1) it147) )  -1)
+            (= (+ it155 (* (- 2) pow2(it147)) )  -1)
+            (= (+ it157 (* (- 2) pow2(it147)) )  -1)
+            (= (+ it158 (* (- 1) pow2(it147)) )  -1)
+            (= (+ it159 (* (- 2) pow2(it147)) )  -1)
+            (<= (* (- 1) it4)  -1)
+            (<= it2  0)
+            (<= (* (- 1) it147)  -1)
+            (<= (* (- 1) i10)  -3)
+            )
+  )
