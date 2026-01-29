@@ -22,6 +22,7 @@ type config =
   ; mutable no_str_bv : bool
   ; mutable good_for_minimize : int
   ; mutable good_for_shrinking : int
+  ; mutable bound_res : int
   }
 
 let config =
@@ -48,6 +49,7 @@ let config =
   ; good_for_minimize = 15
   ; good_for_shrinking = 20
   ; dump_lics = false
+  ; bound_res = -1
   }
 ;;
 
@@ -117,6 +119,9 @@ Basic options:
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , "  \tUse least-significant-bit first representation" )
+    ; ( "-bres"
+      , Arg.Int (fun n -> config.bound_res <- n)
+      , "  \tMaximal residue used in Linearization" )
     ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
       , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )
