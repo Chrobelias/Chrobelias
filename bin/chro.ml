@@ -578,9 +578,7 @@ let () =
                       eia
                         (Eia.leq
                            (Atom (Var (v, I)))
-                           (Pow
-                              ( Const (Lib.Config.base ())
-                              , Const (Z.of_int (Lib.Config.huge_const ())) ))))
+                           (Const Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ())))))
                     :: acc
                   | _ -> acc)
                 |> Lib.Ast.land_
