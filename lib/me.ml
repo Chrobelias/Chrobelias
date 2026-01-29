@@ -472,6 +472,21 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       (* return ans *)
       failwith "unexpected due to Arithmetization"
+    | Neq (lhs, rhs, I) ->
+      let* lhs = helper lhs in
+      let* rhs = helper rhs in
+      let lhs, lhs_phs = Symantics.prjs lhs in
+      let rhs, rhs_phs = Symantics.prjs rhs in
+      let ans = Ir.land_ ((Ir.neq lhs rhs :: lhs_phs) @ rhs_phs) in
+      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      return ans
+    | Neq (lhs, rhs, S) ->
+      let* a, sup_a = of_str_atom lhs in
+      let* b, sup_b = of_str_atom rhs in
+      let sup = sup_a @ sup_b in
+      let ans = Ir.land_ (Ir.neq a b :: sup) in
+      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      return ans
     | Leq (lhs, rhs) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in

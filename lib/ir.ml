@@ -82,6 +82,7 @@ type t =
   | SSuffixOf of atom * atom
   | SContains of atom * atom
   | SLen of atom * atom
+  | NEq of atom * atom
   | Stoi of atom * atom
   | Itos of atom * atom
   | Rel of rel * polynom * Z.t
@@ -99,6 +100,7 @@ let sprefixof a b = SPrefixOf (a, b)
 let ssuffixof a b = SSuffixOf (a, b)
 let scontains a b = SContains (a, b)
 let slen a b = SLen (a, b)
+let neq a b = NEq (a, b)
 let stoi a b = Stoi (a, b)
 let itos a b = Itos (a, b)
 let rel a b c = Rel (a, b, c)
@@ -149,6 +151,7 @@ let rec pp fmt = function
     Format.fprintf fmt "(str.suffixof %a %a)" pp_atom atom pp_atom atom'
   | SContains (atom, atom') ->
     Format.fprintf fmt "(str.contains %a %a)" pp_atom atom pp_atom atom'
+  | NEq (atom, atom') -> Format.fprintf fmt "(chrob.neq %a %a)" pp_atom atom pp_atom atom'
   | SReg (atom, re) ->
     Format.fprintf
       fmt
@@ -254,6 +257,7 @@ let pp_smtlib2 ppf ir =
       (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
       fprintf ppf ")@]" *)
     | ( SLen _ | Stoi _ | SReg _ | SRegRaw _
+      | NEq (_, _)
       | SPrefixOf (_, _)
       | SContains (_, _)
       | SSuffixOf (_, _)
@@ -374,6 +378,7 @@ let rec equal ir ir' =
     List.equal ( = ) atoms atoms' && equal ir ir'
   | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
   | SRegRaw (atom, regex), SRegRaw (atom', regex') -> atom = atom' && regex = regex'
+  | NEq (atom, atom'), NEq (atom'', atom''')
   | SPrefixOf (atom, atom'), SPrefixOf (atom'', atom''')
   | SContains (atom, atom'), SContains (atom'', atom''')
   | SSuffixOf (atom, atom'), SSuffixOf (atom'', atom''')
@@ -393,6 +398,7 @@ let rec map2 f fleaf ir =
   | SLen (_, _) -> fleaf ir
   | Stoi (_, _) -> fleaf ir
   | Itos (_, _) -> fleaf ir
+  | NEq (_, _) -> fleaf ir
   | SPrefixOf (_, _) | SSuffixOf (_, _) | SContains (_, _) -> fleaf ir
   | Lnot ir' -> f (lnot (map2 f fleaf ir'))
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
@@ -412,6 +418,7 @@ let rec fold f acc ir =
   | SLen (_, _) -> f acc ir
   | Stoi (_, _) -> f acc ir
   | Itos (_, _) -> f acc ir
+  | NEq (_, _) -> f acc ir
   | SPrefixOf (_, _) | SContains (_, _) | SSuffixOf (_, _) -> f acc ir
   | Lnot ir' -> f (fold f acc ir') ir
   | Land irs -> f (List.fold_left (fold f) acc irs) ir
@@ -489,6 +496,7 @@ let collect_vars ir =
        | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | NEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
@@ -519,6 +527,7 @@ let collect_atoms ir =
        | Stoi (atom, atom')
        | SPrefixOf (atom, atom')
        | SContains (atom, atom')
+       | NEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Rel (_, term, _) ->
          Set.union
@@ -544,6 +553,7 @@ let collect_free_atoms ir =
        | Stoi (atom, atom')
        | SPrefixOf (atom, atom')
        | SContains (atom, atom')
+       | NEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Rel (_, term, _) ->
          Set.union
@@ -570,6 +580,7 @@ let collect_free (ir : t) =
        | Itos (atom, atom')
        | SPrefixOf (atom, atom')
        | SContains (atom, atom')
+       | NEq (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Exists (xs, ir) -> Set.diff acc (Set.of_list xs)

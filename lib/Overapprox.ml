@@ -104,7 +104,9 @@ let apply_symnatics (module S : Smtml_symantics) =
       (*| Eq (Atom (Var (name, I)), r, I) -> S.(helperT (Atom (Var (name, I))) = helperT r)
       | Eq (Atom (Var (_, S)), _, S) -> raise String_op*)
       | Eq (l, r, I) -> S.(helperT l = helperT r)
+      | Neq (l, r, I) -> S.(helperT l = helperT r)
       | Eq (l, r, S) -> raise String_op
+      | Neq (l, r, S) -> raise String_op
       | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ | RLen _ ->
         raise String_op
     with

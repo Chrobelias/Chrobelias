@@ -243,7 +243,9 @@ module Id_symantics :
   let var s = Ast.Eia.Atom (Ast.Var (s, I))
   let exists atoms ph = Ast.exists atoms ph
   let eqz l r = Ast.Eia (Ast.Eia.eq l r Ast.I)
+  let neqz l r = Ast.Eia (Ast.Eia.neq l r Ast.I)
   let eq_str l r = Ast.Eia (Ast.Eia.eq l r Ast.S)
+  let neq_str l r = Ast.Eia (Ast.Eia.neq l r Ast.S)
   let leq l r = Ast.Eia (Ast.Eia.leq l r)
   let lt l r = Ast.Eia (Ast.Eia.lt l r)
   let true_ = Ast.true_
@@ -514,7 +516,9 @@ module Who_in_exponents_ = struct
   let lor_ = List.fold_left ( ++ ) empty
   let not = Fun.id
   let eqz = ( ++ )
+  let neqz = ( ++ )
   let eq_str = ( ++ )
+  let neq_str = ( ++ )
   let leq = ( ++ )
   let lt = ( ++ )
   let exists _ info = (* This place could be buggy when name clashes  *) info
@@ -567,6 +571,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
     match eia with
     | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
     | Eq (l, r, S) -> S.eq_str (helperS l) (helperS r)
+    | Neq (l, r, I) -> S.(helperT l <> helperT r)
+    | Neq (l, r, S) -> S.neq_str (helperS l) (helperS r)
     | Leq (l, r) -> S.(helperT l <= helperT r)
     | PrefixOf (term, term') -> S.str_prefixof (helperS term) (helperS term')
     | Contains (term, term') -> S.str_contains (helperS term) (helperS term')
@@ -648,7 +654,11 @@ let make_main_symantics ?agressive env =
     ;;
 
     let iofs = function
-      | Ast.Eia.Str_const s -> Id_symantics.constz (Z.of_string s)
+      | Ast.Eia.Str_const s -> begin
+        match s with
+        | "" -> Id_symantics.constz Z.minus_one
+        | s -> Id_symantics.constz (Z.of_string s)
+      end
       | s -> Id_symantics.iofs s
     ;;
 
@@ -818,6 +828,15 @@ let make_main_symantics ?agressive env =
     let false_ = Ast.false_
 
     let rec not = function
+      | Ast.Eia (Ast.Eia.Leq (lhs, rhs)) -> Ast.eia (Ast.Eia.gt lhs rhs)
+      (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
+      | Ast.Eia (Ast.Eia.InReRaw (v, kind, re)) ->
+        Ast.eia (Ast.Eia.inreraw v kind (NfaS.invert re))
+      (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
+      | Ast.Eia (Ast.Eia.InRe (v, kind, re)) ->
+        Ast.eia (Ast.Eia.inreraw v kind (NfaS.invert (NfaS.of_regex re)))
+      | Ast.Eia (Ast.Eia.Eq (lhs, rhs, I)) -> Id_symantics.neqz lhs rhs
+      | Ast.Eia (Ast.Eia.Eq (lhs, rhs, S)) -> Id_symantics.neq_str lhs rhs
       | Ast.Lnot x -> x
       | Land xs -> Ast.Lor (List.map not xs)
       | Lor xs -> Ast.Land (List.map not xs)
@@ -2630,10 +2649,12 @@ struct
 end*)
 
 let arithmetize ast =
+  let strlens s = String.concat "" [ "strlen"; s ] in
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
   let in_stoi' v = Ast.in_stoi v ast in
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
+  let module NfaCL = NfaCollection.LsbStr in
   let module Map = Base.Map.Poly in
   let is_regex : Ast.t -> bool = function
     | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const _, S))
@@ -2671,9 +2692,11 @@ let arithmetize ast =
               (InReRaw
                  ( Ast.Eia.Atom (Ast.Var (s, S))
                  , Ast.S
+                   (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
                  , Regex.str_to_re str |> NfaL.of_regex |> NfaL.invert ))
           | Lnot (Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re))) ->
             Ast.Eia
+              (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
               (InReRaw
                  (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re |> NfaL.of_regex |> NfaL.invert))
           | Lnot (Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa))) ->
@@ -2837,7 +2860,7 @@ let arithmetize ast =
         | Len2 _ -> failwith "unexpected len2"
     in
     let arithmetize_in_re s nfa =
-      let strlens = String.concat "" [ "strlen"; s ] in
+      let strlens = strlens s in
       let csds =
         NfaL.filter_map nfa (fun (label, q') ->
           if Nfa.Str.is_zero label then Option.none else Option.some (label, q'))
@@ -2931,11 +2954,12 @@ let arithmetize ast =
                   :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
                   :: (phs |> List.map Ast.eia))
              ; Ast.land_
+                 (* TODO: I am not sure we should use integer in re raw with non-digit automaton, it fails the model. *)
                  (Ast.Eia
                     (Ast.Eia.inreraw
                        (atomi (String.concat "" [ "string"; s ]))
                        Ast.I
-                       (Regex.digit |> NfaS.of_regex |> NfaS.invert))
+                       (Regex.nondigit |> NfaS.of_regex))
                   :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
                   :: Ast.Eia
                        (Ast.Eia.inreraw
@@ -2989,6 +3013,85 @@ let arithmetize ast =
           | ast -> ast)
         ast)
   in
+  let unfold_neq var_info regexes ast =
+    let strleni s = Ast.Eia.Atom (Ast.Var (s, Ast.I)) in
+    let ast_if cond ast = if cond then ast else Ast.false_ in
+    let aux (f : string -> string -> Ast.t) =
+      Ast.map
+        (function
+          | Ast.Eia
+              (Ast.Eia.Neq
+                 ( Ast.Eia.Atom (Ast.Var (lhs, Ast.S))
+                 , Ast.Eia.Atom (Ast.Var (rhs, Ast.S))
+                 , Ast.S )) -> f lhs rhs
+          | ast -> ast)
+        ast
+    in
+    let both_nondigit lhs rhs =
+      let lhs_re =
+        Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
+      in
+      let rhs_re =
+        Map.find regexes rhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
+      in
+      match lhs_re, rhs_re with
+      (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
+      | Some lhs_re, Some rhs_re -> NfaL.intersect (lhs_re |> NfaL.invert) rhs_re
+      | Some re, None | None, Some re -> re
+      | None, None -> NfaCL.n ()
+    in
+    let can_be_both_digit lhs rhs =
+      let lhs_re =
+        Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
+      in
+      let rhs_re =
+        Map.find regexes rhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
+      in
+      match lhs_re, rhs_re with
+      | Some lhs_re, Some rhs_re -> lhs_re |> NfaL.run && rhs_re |> NfaL.run
+      | Some re, None | None, Some re -> NfaL.run re
+      | None, None -> false
+    in
+    [ aux (fun lhs rhs ->
+        let ast = Ast.eia (Ast.Eia.neq (strleni lhs) (strleni rhs) Ast.I) in
+        ast_if (can_be_both_digit lhs rhs) ast)
+    ; aux (fun lhs rhs ->
+        let ast =
+          Ast.land_
+            [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+            ; Ast.eia (Ast.Eia.neq (atomi lhs) (atomi rhs) Ast.I)
+            ]
+        in
+        ast_if (can_be_both_digit lhs rhs) ast)
+    ; aux (fun lhs rhs ->
+        let nfa = both_nondigit lhs rhs in
+        let ast =
+          Ast.land_
+            [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+            ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
+            ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+            ; Ast.lor_
+                (NfaL.chrobak nfa
+                 |> Seq.map (fun (c, d) ->
+                   let const = Id_symantics.constz in
+                   let c, d = Z.of_int c, Z.of_int d in
+                   let n = gensym ~prefix:"%neq_re_len" () in
+                   Ast.land_
+                     [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
+                     ; Ast.eia
+                         (Ast.Eia.eq
+                            (strleni lhs)
+                            (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
+                            Ast.I)
+                     ])
+                 |> List.of_seq)
+            ]
+        in
+        ast)
+    ]
+    |> List.concat_map Ast.to_dnf
+    |> List.filter (( <> ) Ast.false_)
+  in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
   | `Sat env -> `Sat ("presimpl", env)
@@ -3020,7 +3123,9 @@ let arithmetize ast =
                  in
                  ast', regexes)
               (ast |> flatten |> arithmetize var_info))
-         asts_n_regexes)
+         asts_n_regexes
+       |> List.concat_map (fun (a, b) ->
+         unfold_neq var_info b a |> List.map (fun a -> a, b)))
 ;;
 
 (* let distribute xs =
