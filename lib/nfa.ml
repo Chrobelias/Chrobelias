@@ -1380,7 +1380,7 @@ struct
   (* Note(Kakadu): it seems to be the slowest function *)
   let to_dfa ?alpha nfa =
     (* Format.printf "Runinng to_dfa\n%!"; *)
-    let alpha =
+    (*let alpha =
       Option.value
         ~default:
           (nfa.transitions
@@ -1392,7 +1392,7 @@ struct
            |> Seq.fold_left Set.union Set.empty
            |> Set.to_list)
         alpha
-    in
+    in*)
     if nfa.is_dfa
     then nfa
     else (
@@ -1438,7 +1438,7 @@ struct
                 ~init:(Label.zero nfa.deg)
                 qs
             in
-            let variations = Label.variations ~alpha acc in
+            let variations = Label.variations ?alpha acc in
             let delta =
               List.fold_left
                 (fun acc label ->
