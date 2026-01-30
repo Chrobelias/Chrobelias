@@ -692,12 +692,12 @@ let in_concat v ast =
   in_eia_term
     (fun v eia ->
        Eia.fold2
+         (fun acc _ -> acc)
          (fun acc el ->
             match el with
             | Eia.Concat (_, Eia.Atom (Var (s, S))) when s = v -> true
             | Eia.Concat (Eia.Atom (Var (s, S)), _) when s = v -> true
             | _ -> acc)
-         (fun acc _ -> acc)
          false
          eia)
     v

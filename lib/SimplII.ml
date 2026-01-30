@@ -687,6 +687,12 @@ let make_main_symantics ?alpha ?agressive env =
       | s -> Id_symantics.sofi s
     ;;
 
+    let rlen term term' =
+      match term with
+      | Ast.Eia.Const c when Z.(c = minus_one) -> true_
+      | _ -> Ast.Eia (Ast.Eia.RLen (term, term'))
+    ;;
+
     (* let str_from_eia s =
       match Env.lookup s env with
       | Some (Ast.Eia.Atom (Ast.Const c)) -> Ast.Str.fromeia (Ast.const c)
@@ -3002,6 +3008,7 @@ let arithmetize ast =
         (* TODO: Add regular constraints with automata*)
           (match in_stoi s, in_concat s with
            | true, false ->
+             Format.printf "WHY?\n%!";
              [ Ast.land_
                  (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I (Regex.digit |> NfaS.of_regex))
                   :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
