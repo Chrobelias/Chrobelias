@@ -655,8 +655,9 @@ let make_main_symantics ?alpha ?agressive env =
       end
     ;;
 
-    let str_len = function
+    let rec str_len = function
       | Ast.Eia.Str_const s -> Id_symantics.const (String.length s)
+      | Ast.Eia.Concat (l, r) -> add [ str_len l; str_len r ]
       | s -> Id_symantics.str_len s
     ;;
 
@@ -3008,7 +3009,6 @@ let arithmetize ast =
         (* TODO: Add regular constraints with automata*)
           (match in_stoi s, in_concat s with
            | true, false ->
-             Format.printf "WHY?\n%!";
              [ Ast.land_
                  (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I (Regex.digit |> NfaS.of_regex))
                   :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
