@@ -3073,15 +3073,13 @@ let arithmetize ast =
     let strleni s = Ast.Eia.Atom (Ast.Var (s, Ast.I)) in
     let ast_if cond ast = if cond then ast else Ast.false_ in
     let aux (f : string -> string -> Ast.t) =
-      Ast.map
-        (function
-          | Ast.Eia
-              (Ast.Eia.Neq
-                 ( Ast.Eia.Atom (Ast.Var (lhs, Ast.S))
-                 , Ast.Eia.Atom (Ast.Var (rhs, Ast.S))
-                 , Ast.S )) -> f lhs rhs
-          | ast -> ast)
-        ast
+      Ast.map (function
+        | Ast.Eia
+            (Ast.Eia.Neq
+               ( Ast.Eia.Atom (Ast.Var (lhs, Ast.S))
+               , Ast.Eia.Atom (Ast.Var (rhs, Ast.S))
+               , Ast.S )) -> f lhs rhs
+        | ast -> ast)
     in
     let both_nondigit lhs rhs =
       let lhs_re =
@@ -3108,44 +3106,46 @@ let arithmetize ast =
       | Some re, None | None, Some re -> NfaL.run re
       | None, None -> false
     in
-    [ aux (fun lhs rhs ->
+    ast
+    |> aux (fun lhs rhs ->
+      let ast1 =
         let ast = Ast.eia (Ast.Eia.neq (strleni lhs) (strleni rhs) Ast.I) in
-        ast_if (can_be_both_digit lhs rhs) ast)
-    ; aux (fun lhs rhs ->
+        ast_if (can_be_both_digit lhs rhs) ast
+      in
+      let ast2 =
         let ast =
           Ast.land_
             [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
             ; Ast.eia (Ast.Eia.neq (atomi lhs) (atomi rhs) Ast.I)
             ]
         in
-        ast_if (can_be_both_digit lhs rhs) ast)
-    ; aux (fun lhs rhs ->
+        ast_if (can_be_both_digit lhs rhs) ast
+      in
+      let ast3 =
         let nfa = both_nondigit lhs rhs in
-        let ast =
-          Ast.land_
-            [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-            ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
-            ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
-            ; Ast.lor_
-                (NfaL.chrobak nfa
-                 |> Seq.map (fun (c, d) ->
-                   let const = Id_symantics.constz in
-                   let c, d = Z.of_int c, Z.of_int d in
-                   let n = gensym ~prefix:"%neq_re_len" () in
-                   Ast.land_
-                     [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
-                     ; Ast.eia
-                         (Ast.Eia.eq
-                            (strleni lhs)
-                            (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
-                            Ast.I)
-                     ])
-                 |> List.of_seq)
-            ]
-        in
-        ast)
-    ]
-    |> List.concat_map Ast.to_dnf
+        Ast.land_
+          [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+          ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
+          ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+          ; Ast.lor_
+              (NfaL.chrobak nfa
+               |> Seq.map (fun (c, d) ->
+                 let const = Id_symantics.constz in
+                 let c, d = Z.of_int c, Z.of_int d in
+                 let n = gensym ~prefix:"%neq_re_len" () in
+                 Ast.land_
+                   [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
+                   ; Ast.eia
+                       (Ast.Eia.eq
+                          (strleni lhs)
+                          (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
+                          Ast.I)
+                   ])
+               |> List.of_seq)
+          ]
+      in
+      Ast.lor_ [ ast1; ast2; ast3 ])
+    |> Ast.to_dnf
     |> List.filter (( <> ) Ast.false_)
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
