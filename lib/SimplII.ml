@@ -850,12 +850,12 @@ let make_main_symantics ?alpha ?agressive env =
     let rec not = function
       | Ast.Eia (Ast.Eia.Leq (lhs, rhs)) -> Ast.eia (Ast.Eia.gt lhs rhs)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-      | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) ->
+      | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) when Option.is_some alpha_with_extra_char ->
         Id_symantics.in_re_raw v (re |> NfaS.invert ?alpha:alpha_with_extra_char)
-      | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) ->
+      | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) when Option.is_some alpha_with_extra_char ->
         Id_symantics.in_re_rawi v (re |> NfaS.invert ?alpha:alpha_with_extra_char)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-      | Ast.Eia (Ast.Eia.InRe (v, kind, re)) ->
+      | Ast.Eia (Ast.Eia.InRe (v, kind, re)) when Option.is_some alpha_with_extra_char ->
         Ast.eia
           (Ast.Eia.inreraw
              v
@@ -949,7 +949,8 @@ let make_main_symantics ?alpha ?agressive env =
       match l, r with
       | Ast.Eia.Str_const l, Ast.Eia.Str_const r ->
         if l <> r then Ast.true_ else Ast.false_
-      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
+      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v)
+        when Option.is_some alpha_with_extra_char ->
         Id_symantics.in_re_raw
           v
           (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha:alpha_with_extra_char)
@@ -1048,7 +1049,9 @@ let make_main_symantics ?alpha ?agressive env =
       let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
       | Ast.Eia.(Str_const str) -> begin
-        match re |> NfaStr.re_accepts (String.to_seq str |> List.of_seq |> List.rev) with
+        match
+          Regex.str_to_re str |> NfaStr.of_regex |> NfaStr.intersect re |> NfaStr.run
+        with
         | true -> Ast.true_
         | false -> Ast.false_
       end
@@ -2728,7 +2731,8 @@ let arithmetize ast =
   in
   let fold_regexes ast =
     let ast_with_positive_regex =
-      Ast.map
+      ast
+      (*Ast.map
         (function
           | Lnot (Lnot ast) -> ast
           | Lnot (Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const str, S)))
@@ -2747,7 +2751,7 @@ let arithmetize ast =
           | Lnot (Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa))) ->
             Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa |> NfaL.invert))
           | ast -> ast)
-        ast
+        ast*)
     in
     let regexes =
       Map.map
