@@ -237,7 +237,7 @@ let check_sat ?(verbose = false) ast : rez =
     | _ -> apporx_rez
   in
   let can_be_unk = ref false in
-  let unsat_reason = ref "" in
+  let unsat_reason = ref "presimpl" in
   let reason lhs rhs =
     let ord = [ "nfa"; "nia"; "over"; "simpl"; "presimpl"; "?" ] in
     let lhs' =

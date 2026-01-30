@@ -947,6 +947,7 @@ let make_main_symantics ?alpha ?agressive env =
     let neqz l r =
       match l, r with
       | Ast.Eia.Const l, Ast.Eia.Const r -> if l <> r then Ast.true_ else Ast.false_
+      | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | _ -> Id_symantics.neqz l r
     ;;
 
@@ -958,6 +959,7 @@ let make_main_symantics ?alpha ?agressive env =
         Id_symantics.in_re_raw
           v
           (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha:alpha_with_extra_char)
+      | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | _ -> Id_symantics.neq_str l r
     ;;
 
