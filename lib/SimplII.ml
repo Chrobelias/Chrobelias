@@ -941,14 +941,8 @@ let make_main_symantics ?alpha ?agressive env =
       match l, r with
       | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
         Eia (Eia.Eq (l, r, I))
+      | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
       | _ -> Id_symantics.eq_str l r
-    ;;
-
-    let neqz l r =
-      match l, r with
-      | Ast.Eia.Const l, Ast.Eia.Const r -> if l <> r then Ast.true_ else Ast.false_
-      | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
-      | _ -> Id_symantics.neqz l r
     ;;
 
     let neq_str l r =
@@ -963,31 +957,24 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> Id_symantics.neq_str l r
     ;;
 
-    let eqz x y =
-      (* TODO(Kakadu): rewrite to match twice for readability *)
-      let ans = relop Eq x y in
-      match ans with
-      | Eia (Eia.Eq (Add xs, Add ys, _)) -> assert false
-      | Eia (Eia.Eq (Mul (Const l :: ltl), Mul (Const r :: rtl), I)) ->
-        let gcd1 = Z.gcd l r in
+    let eqz l r =
+      let open Ast.Eia in
+      match l, r with
+      | Mul (Const lc :: ltl), Mul (Const rc :: rtl) ->
+        let gcd1 = Z.gcd lc rc in
         if Z.(equal gcd1 one)
-        then ans
+        then relop Eq l r
         else
-          Eia
-            (Eia.Eq (mul (constz Z.(l / gcd1) :: ltl), mul (constz Z.(r / gcd1) :: rtl), I))
-      | Eia (Eia.Eq (l, r, I)) when Eia.eq_term l r -> true_
-      | Eia (Eia.Eq (Eia.Sofi (Const v1), Str_const r, I))
-      | Eia (Eia.Eq (Str_const r, Eia.Sofi (Const v1), I)) ->
-        let l = Z.to_string v1 in
-        if
-          String.length l <= String.length r
-          && String.ends_with ~suffix:l r
-          && String.for_all
-               (Char.equal '0')
-               (String.sub r (String.length l) (String.length r - String.length l))
-        then Ast.true_
-        else Ast.false_
-      | _ -> ans
+          relop Eq (mul (constz Z.(lc / gcd1) :: ltl)) (mul (constz Z.(rc / gcd1) :: rtl))
+      | l, r when eq_term l r -> true_
+      | _ -> relop Eq l r
+    ;;
+
+    let neqz l r =
+      match l, r with
+      | Ast.Eia.Const l, Ast.Eia.Const r -> if l <> r then Ast.true_ else Ast.false_
+      | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
+      | _ -> Id_symantics.neqz l r
     ;;
 
     let from_eia_nfa c =

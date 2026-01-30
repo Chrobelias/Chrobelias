@@ -22,6 +22,7 @@ $ cat len1.smt2
              (<= (+ 1 (str.len x)) (str.len y)))
   fixed-point
   
+  Alphabet '#', extra '#'
   Arithmetization gives 1 asts...
   Arithmetized: (and
                   (<= 2 strlenx)
