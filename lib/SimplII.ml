@@ -3052,7 +3052,7 @@ let arithmetize ast =
         ast)
   in
   let unfold_neq var_info regexes ast =
-    let strleni s = Ast.Eia.Atom (Ast.Var (s, Ast.I)) in
+    let strleni s = Ast.Eia.Atom (Ast.Var (String.concat "" [ "strlen"; s ], Ast.I)) in
     let ast_if cond ast = if cond then ast else Ast.false_ in
     let aux (f : string -> string -> Ast.t) =
       Ast.map (function
@@ -3064,6 +3064,7 @@ let arithmetize ast =
         | ast -> ast)
     in
     let both_nondigit lhs rhs =
+      let module Set = Base.Set.Poly in
       let lhs_re =
         Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
       in
@@ -3071,8 +3072,25 @@ let arithmetize ast =
         Map.find regexes rhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
       in
       match lhs_re, rhs_re with
-      (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-      | Some lhs_re, Some rhs_re -> NfaL.intersect (lhs_re |> NfaL.invert) rhs_re
+      | Some lhs_re, Some rhs_re ->
+        let alpha = Set.union (NfaL.alpha lhs_re) (NfaL.alpha rhs_re) in
+        let alpha_with_extra_char =
+          let ascii = List.init (128 - 32) (fun i -> Char.chr (i + 32)) |> Set.of_list in
+          let diff = Set.diff ascii alpha in
+          let extra_char =
+            (if Set.mem diff '#' then Option.some '#' else Set.nth diff 0)
+            |> Option.map Set.singleton
+            |> Option.value ~default:Set.empty
+          in
+          let alpha = Set.union alpha extra_char in
+          let alpha = Set.to_list alpha in
+          Debug.printf
+            "Alphabet '%s', extra '%s'\n%!"
+            (List.to_seq alpha |> String.of_seq)
+            (Set.to_list extra_char |> List.to_seq |> String.of_seq);
+          alpha
+        in
+        NfaL.intersect (lhs_re |> NfaL.invert ~alpha:alpha_with_extra_char) rhs_re
       | Some re, None | None, Some re -> re
       | None, None -> NfaCL.n ()
     in
@@ -3086,7 +3104,7 @@ let arithmetize ast =
       match lhs_re, rhs_re with
       | Some lhs_re, Some rhs_re -> lhs_re |> NfaL.run && rhs_re |> NfaL.run
       | Some re, None | None, Some re -> NfaL.run re
-      | None, None -> false
+      | None, None -> true
     in
     ast
     |> aux (fun lhs rhs ->

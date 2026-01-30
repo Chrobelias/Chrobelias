@@ -318,20 +318,27 @@ let digit =
 
 let nondigit =
   concat
-    (concat
-       (kleene
-          (dec
-           |> String.to_seq
-           |> Seq.map (fun c -> symbol [ c ])
-           |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ])))
-       (plus
-          (32 -- 128
-           |> List.map Char.chr
-           |> List.filter (function
-             | '0' .. '9' -> false
-             | _ -> true)
-           |> List.map (fun c -> symbol [ c ])
-           |> List.fold_left (fun acc a -> mor a acc) (symbol [ '0' ]))))
+    (opt
+       (concat
+          (concat
+             (kleene
+                (dec
+                 |> String.to_seq
+                 |> Seq.map (fun c -> symbol [ c ])
+                 |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ])))
+             (plus
+                (32 -- 128
+                 |> List.map Char.chr
+                 |> List.filter (function
+                   | '0' .. '9' -> false
+                   | _ -> true)
+                 |> List.map (fun c -> symbol [ c ])
+                 |> List.fold_left (fun acc a -> mor a acc) (symbol [ '0' ]))))
+          (kleene
+             (dec
+              |> String.to_seq
+              |> Seq.map (fun c -> symbol [ c ])
+              |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ])))))
     (kleene (symbol [ Config.string_config.null ]))
 ;;
 
