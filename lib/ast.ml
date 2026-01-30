@@ -289,7 +289,7 @@ module Eia = struct
     | (Str_const _ | Atom (Var (_, S))) as term -> fs acc term
     | (Iofs ts | Len ts | Len2 ts) as term -> fz (fold_term fz fs acc ts) term
     | Sofi t as term -> fs (fold_term fz fs acc t) term
-    | Concat (lhs, rhs) -> fold_term fz fs (fold_term fz fs acc lhs) rhs
+    | Concat (lhs, rhs) as term -> fs (fold_term fz fs (fold_term fz fs acc lhs) rhs) term
     | Substr (term', tz1, tz2) as term ->
       fs (fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2) term
     | At (term', tidx) as term ->
