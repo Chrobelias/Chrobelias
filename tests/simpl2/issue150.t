@@ -24,6 +24,11 @@
              (str.in_re x (re.++ (re.++ (re.++ (re.++ (str.to.re "9") (re.++ (str.to.re "8") (re.++ (str.to.re "7") (str.to.re "6")))) (re.* (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (re.union (str.to.re "0") (str.to.re "1")) (str.to.re "2")) (str.to.re "3")) (str.to.re "4")) (str.to.re "5")) (str.to.re "6")) (str.to.re "7")) (str.to.re "8")) (str.to.re "9")))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (str.to.re "1")))))) (re.* (str.to.re "")))))
   fixed-point
   
+  Alphabet '#0123456789', extra '#'
+  sh: 1: dot: not found
+  Chrobak input: debugs/150747/n1.svg
+  important verticies: [(4: 1) (5: 1) (6: 1) (7: 1)
+  (8: 1)]
   Arithmetization gives 2 asts...
   Arithmetized: (and
                   (= (* 1171 w) (+ (* 444 u) x))

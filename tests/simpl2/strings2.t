@@ -20,6 +20,7 @@ $ export CHRO_DEBUG=1
   iter(3)= (= (str.++ "123" x) (str.++ "321" x))
   fixed-point
   
+  Alphabet '#123', extra '#'
   Arithmetization gives 1 asts...
   Arithmetized: (and
                   (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))
