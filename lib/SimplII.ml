@@ -3009,21 +3009,14 @@ let arithmetize ast =
                  (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I (Regex.digit |> NfaS.of_regex))
                   :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
                   :: (phs |> List.map Ast.eia))
-             ; Ast.land_
-                 (* TODO: I am not sure we should use integer in re raw with non-digit automaton, it fails the model. *)
-                 (Ast.Eia
-                    (Ast.Eia.inreraw
-                       (atomi (String.concat "" [ "string"; s ]))
-                       Ast.I
-                       (Regex.nondigit |> NfaS.of_regex))
-                  :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
-                  :: Ast.Eia
-                       (Ast.Eia.inreraw
-                          (atomi (String.concat "" [ "string"; s ]))
-                          Ast.I
-                          nfa)
-                  :: (phs |> List.map Ast.eia))
              ]
+             @ (arithmetize_in_re s (Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa)
+                |> List.map (fun ast' ->
+                  Ast.land_
+                    (ast'
+                     (* TODO: I am not sure we should use integer in re raw with non-digit automaton, it fails the model. *)
+                     :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
+                     :: (phs |> List.map Ast.eia))))
            | false, false ->
              let csds = arithmetize_in_re s nfa in
              List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds
