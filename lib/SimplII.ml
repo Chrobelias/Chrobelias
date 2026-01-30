@@ -1642,6 +1642,10 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            between <var 1> and <var 2> is lost. *)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Sofi (Atom (Var _)) as rhs), _))
       when var_can_subst vn -> Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, S)) when var_can_subst vn ->
+      Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (lhs, Atom (Var (vn, _) as v), S)) when var_can_subst vn ->
+      Some (extend_exn env v lhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Iofs (Atom (Var _)) as rhs), _))
       when var_can_subst vn -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len (Atom (Var _)) as rhs), _))
