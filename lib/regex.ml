@@ -317,8 +317,9 @@ let digit =
 ;;
 
 let nondigit =
-  concat
-    (opt
+  mor
+    epsilon
+    (concat
        (concat
           (concat
              (kleene
@@ -338,8 +339,8 @@ let nondigit =
              (dec
               |> String.to_seq
               |> Seq.map (fun c -> symbol [ c ])
-              |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ])))))
-    (kleene (symbol [ Config.string_config.null ]))
+              |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ]))))
+       (kleene (symbol [ Config.string_config.null ])))
 ;;
 
 let int_to_re s =
