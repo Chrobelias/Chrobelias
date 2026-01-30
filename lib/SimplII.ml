@@ -3112,10 +3112,7 @@ let arithmetize ast =
     in
     ast
     |> aux (fun lhs rhs ->
-      let ast1 =
-        let ast = Ast.eia (Ast.Eia.neq (strleni lhs) (strleni rhs) Ast.I) in
-        ast_if (can_be_both_digit lhs rhs) ast
-      in
+      let ast1 = Ast.eia (Ast.Eia.neq (strleni lhs) (strleni rhs) Ast.I) in
       let ast2 =
         let ast =
           Ast.land_
