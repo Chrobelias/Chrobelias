@@ -9,15 +9,15 @@
                                            (exp 2 n))))
              (<= (+ 0 1) n))
   iter(2)= (and
-             (not (= (+ (* (- 2) (* (- 1) (exp 2 (+ (- 1) n))))
-                     (* (- 2) (* n (exp 2 (+ (- 1) n))))
-                     (* (- 2) (* x (exp 2 (+ (- 1) n)))) (* (- 1) (exp 2 n))
-                     (* n (exp 2 n)) (* x (exp 2 n))) 0))
+             (distinct (+ (* (- 2) (* (- 1) (exp 2 (+ (- 1) n))))
+                       (* (- 2) (* n (exp 2 (+ (- 1) n))))
+                       (* (- 2) (* x (exp 2 (+ (- 1) n)))) (* (- 1) (exp 2 n))
+                       (* n (exp 2 n)) (* x (exp 2 n))) 0)
              (<= 1 n))
   iter(3)= (and
-             (not (= (+ (* (- 1) n (exp 2 (+ n))) (* (- 1) x (exp 2 (+ n)))
-                     (* (- 1) (exp 2 n)) (* n (exp 2 n)) (* x (exp 2 n))
-                     (exp 2 (+ n))) 0))
+             (distinct (+ (* (- 1) n (exp 2 (+ n))) (* (- 1) x (exp 2 (+ n)))
+                       (* (- 1) (exp 2 n)) (* n (exp 2 n)) (* x (exp 2 n))
+                       (exp 2 (+ n))) 0)
              (<= 1 n))
   iter(4)= (not True)
   fixed-point

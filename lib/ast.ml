@@ -289,7 +289,7 @@ module Eia = struct
     | (Str_const _ | Atom (Var (_, S))) as term -> fs acc term
     | (Iofs ts | Len ts | Len2 ts) as term -> fz (fold_term fz fs acc ts) term
     | Sofi t as term -> fs (fold_term fz fs acc t) term
-    | Concat (lhs, rhs) -> fold_term fz fs (fold_term fz fs acc lhs) rhs
+    | Concat (lhs, rhs) as term -> fs (fold_term fz fs (fold_term fz fs acc lhs) rhs) term
     | Substr (term', tz1, tz2) as term ->
       fs (fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2) term
     | At (term', tidx) as term ->
@@ -323,6 +323,7 @@ module Eia = struct
 
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
+    | Neq : 'a term * 'a term * 'a kind -> t
     | Leq : Z.t term * Z.t term -> t
     | InRe : 'a term * 'a kind * char list Regex.t -> t
     | InReRaw : 'a term * 'a kind * NfaS.t -> t
@@ -339,6 +340,7 @@ module Eia = struct
 
   let map f = function
     | Eq _ as eia -> f eia
+    | Neq _ as eia -> f eia
     | Leq _ as eia -> f eia
     | InRe _ as eia -> f eia
     | InReRaw _ as eia -> f eia
@@ -352,6 +354,9 @@ module Eia = struct
     | Eq (term, term', I) ->
       f (Eq (map_term fint fstring term, map_term fint fstring term', I))
     | Eq (l, r, S) -> f (Eq (map_term fint fstring l, map_term fint fstring r, S))
+    | Neq (term, term', I) ->
+      f (Neq (map_term fint fstring term, map_term fint fstring term', I))
+    | Neq (l, r, S) -> f (Neq (map_term fint fstring l, map_term fint fstring r, S))
     | Leq (term, term') ->
       f (leq (map_term fint fstring term) (map_term fint fstring term'))
     | RLen (v, pow) -> f (rlen (map_term fint fstring v) (map_term fint fstring pow))
@@ -371,6 +376,8 @@ module Eia = struct
     function
     | Eq (l, r, I) -> fold_term fz fs (fold_term fz fs acc l) r
     | Eq (l, r, S) -> fold_term fz fs (fold_term fz fs acc l) r
+    | Neq (l, r, I) -> fold_term fz fs (fold_term fz fs acc l) r
+    | Neq (l, r, S) -> fold_term fz fs (fold_term fz fs acc l) r
     | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
     | RLen (v, pow) -> fold_term fz fs (fold_term fz fs acc v) pow
     | InRe (term, _, re) -> fold_term fz fs acc term
@@ -392,6 +399,8 @@ module Eia = struct
 
   let pp fmt = function
     | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
+    | Neq (term, term', _) ->
+      Format.fprintf fmt "@[(distinct %a %a)@]" pp_term term pp_term term'
     | Leq (term, term') -> Format.fprintf fmt "@[(<= %a %a)@]" pp_term term pp_term term'
     | InRe (str, _, re) ->
       Format.fprintf
@@ -446,8 +455,10 @@ let land_ = function
     Land asts
 ;;
 
+let false_ = Lnot true_
+
 let lor_ = function
-  | [] -> true_
+  | [] -> false_
   | [ ast ] -> ast
   | asts when List.exists (( = ) True) asts -> True
   | asts ->
@@ -483,7 +494,6 @@ let rec exists = function
 
 let limpl a b = lor_ [ lnot a; b ]
 let any atoms ast = lnot (exists atoms (lnot ast))
-let false_ = lnot true_
 
 let rec pp ppf = function
   | True -> Format.fprintf ppf "True"
@@ -682,12 +692,12 @@ let in_concat v ast =
   in_eia_term
     (fun v eia ->
        Eia.fold2
+         (fun acc _ -> acc)
          (fun acc el ->
             match el with
             | Eia.Concat (_, Eia.Atom (Var (s, S))) when s = v -> true
             | Eia.Concat (Eia.Atom (Var (s, S)), _) when s = v -> true
             | _ -> acc)
-         (fun acc _ -> acc)
          false
          eia)
     v

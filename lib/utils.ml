@@ -36,3 +36,12 @@ let log ppf =
   | exception Not_found -> Format.ifprintf Format.std_formatter ppf
   | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
 ;;
+
+let rec strings_of_len n alpha =
+  match n with
+  | 0 -> [ "" ]
+  | 1 -> alpha
+  | n ->
+    strings_of_len (n - 1) alpha
+    |> List.concat_map (fun s -> List.map (fun a -> s ^ a) alpha)
+;;

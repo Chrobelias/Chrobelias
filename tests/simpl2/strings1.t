@@ -14,6 +14,7 @@
   iter(2)= (= (str.++ "999" x) (str.++ y x))
   fixed-point
   
+  Alphabet '#9', extra '#'
   Arithmetization gives 1 asts...
   Arithmetized: (and
                   (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))

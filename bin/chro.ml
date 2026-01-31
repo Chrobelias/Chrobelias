@@ -237,7 +237,7 @@ let check_sat ?(verbose = false) ast : rez =
     | _ -> apporx_rez
   in
   let can_be_unk = ref false in
-  let unsat_reason = ref "" in
+  let unsat_reason = ref "presimpl" in
   let reason lhs rhs =
     let ord = [ "nfa"; "nia"; "over"; "simpl"; "presimpl"; "?" ] in
     let lhs' =
@@ -522,7 +522,7 @@ let () =
       { state with tys }
     | Smtml.Ast.Set_logic (Smtml.Logic.QF_S | Smtml.Logic.QF_SLIA) ->
       config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
-      config.under_approx <- 0;
+      (* config.under_approx <- 0; *)
       config.over_approx <- false;
       config.simpl_alpha <- false;
       config.simpl_mono <- true;

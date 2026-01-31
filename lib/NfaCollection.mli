@@ -13,6 +13,7 @@ module type Type = sig
   val z : unit -> t
   val power_of_two : int -> t
   val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
+  val neq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val base : Z.t
@@ -26,7 +27,7 @@ module type NatType = sig
 end
 
 module Msb : sig
-  include Type with type t = Nfa.Msb(Nfa.Bv).t and type v = unit
+  include Type with type t = Nfa.Msb(Nfa.Bv).t and type v = bool
 end
 
 module MsbStr : sig
@@ -38,7 +39,7 @@ module MsbStrBv : sig
 end
 
 module MsbNat : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.Bv).t and type v = unit
+  include NatType with type t = Nfa.MsbNat(Nfa.Bv).t and type v = bool
 end
 
 module MsbNatStr : sig
@@ -50,7 +51,7 @@ module MsbNatStrBv : sig
 end
 
 module Lsb : sig
-  include NatType with type t = Nfa.Lsb(Nfa.Bv).t and type v = unit
+  include NatType with type t = Nfa.Lsb(Nfa.Bv).t and type v = bool
 end
 
 module LsbStr : sig

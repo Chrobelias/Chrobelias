@@ -40,11 +40,13 @@ let pp_atom fmt = function
 type rel =
   | Leq
   | Eq
+  | Neq
 [@@deriving variants]
 
 let pp_rel fmt = function
   | Leq -> Format.fprintf fmt "<="
   | Eq -> Format.fprintf fmt "="
+  | Neq -> Format.fprintf fmt "distinct"
 ;;
 
 type polynom = (atom, Z.t) Map.t
@@ -293,6 +295,7 @@ let pp_smtlib2 ppf ir =
         "@[(%s %a %a)@]@ "
         (match op with
          | Leq -> "<="
+         | Neq -> "distinct"
          | Eq -> "=")
         pp_map
         poly
@@ -356,6 +359,7 @@ let is_zero_lhs (map : (atom, Z.t) Map.t) =
 
 let eq = rel eq
 let leq m rhs = if is_zero_lhs m then of_bool Z.(zero <= rhs) else rel leq m rhs
+let neq m rhs = rel neq m rhs
 let lt t c = leq t Z.(pred c)
 let geq t c = leq (neg t) Z.(-c)
 let gt t c = leq (neg t) Z.(pred ~-c)

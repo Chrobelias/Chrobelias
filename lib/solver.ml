@@ -235,7 +235,7 @@ module Make
 struct
   let is_exp = Ir.is_exp
 
-  let collect_alpha (ir : Ir.t) =
+  let _collect_alpha (ir : Ir.t) =
     if Config.config.logic = `Eia
     then None
     else (
@@ -273,7 +273,7 @@ struct
 
   let eval ir =
     let ir = Ir.antiprenex ir in
-    let alpha = collect_alpha ir |> Option.map Set.to_list in
+    let alpha = (*collect_alpha ir |> Option.map Set.to_list *) None in
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
@@ -353,6 +353,23 @@ struct
                ~init:nfa
                ~f:(fun ~key:k ~data:v acc ->
                  (* TODO: this can (and should) be placed inside NfaCollection. *)
+                 if Map.mem term k && is_exp k
+                 then
+                   acc
+                   |> Nfa.intersect
+                        (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                   |> do_if_msb Nfa.minimize_not_very_strong
+                 else acc)
+               vars
+           in
+           nfa
+         | Ir.Neq ->
+           let nfa = NfaCollection.neq vars term c in
+           let nfa =
+             Map.fold
+               ~init:nfa
+               ~f:(fun ~key:k ~data:v acc ->
+                 (* TODO: It seems ensuring the variables are powers is really important here. *)
                  if Map.mem term k && is_exp k
                  then
                    acc
