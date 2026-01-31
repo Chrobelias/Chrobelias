@@ -665,6 +665,8 @@ let make_main_symantics ?alpha ?agressive env =
       match lhs, rhs with
       | Ast.Eia.Str_const lhs, Ast.Eia.Str_const rhs ->
         Id_symantics.str_const (String.concat "" [ lhs; rhs ])
+      | Ast.Eia.Str_const c, rhs when String.equal c "" -> rhs
+      | lhs, Ast.Eia.Str_const c when String.equal c "" -> lhs
       | lhs, rhs -> Id_symantics.str_concat lhs rhs
     ;;
 
@@ -677,8 +679,9 @@ let make_main_symantics ?alpha ?agressive env =
     let iofs = function
       | Ast.Eia.Str_const s -> begin
         match s with
-        | "" -> Id_symantics.constz Z.minus_one
-        | s -> Id_symantics.constz (Z.of_string s)
+        | s when String.for_all Base.Char.is_digit s ->
+          Id_symantics.constz (Z.of_string s)
+        | _ -> Id_symantics.constz Z.minus_one
       end
       | s -> Id_symantics.iofs s
     ;;
@@ -949,6 +952,36 @@ let make_main_symantics ?alpha ?agressive env =
       | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
         Eia (Eia.Eq (l, r, I))
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
+      | Eia.Concat (l, Str_const c1), Eia.Concat (r, Str_const c2) ->
+        (match String.length c1 - String.length c2 with
+         | 0 -> if String.equal c1 c2 then Id_symantics.eq_str l r else false_
+         | d when d > 0 ->
+           if Base.String.is_suffix c1 ~suffix:c2
+           then (
+             let c1' = Base.String.chop_suffix_if_exists c1 ~suffix:c2 in
+             Id_symantics.eq_str (Eia.Concat (l, Id_symantics.str_const c1')) r)
+           else false_
+         | _ ->
+           if Base.String.is_suffix c2 ~suffix:c1
+           then (
+             let c2' = Base.String.chop_suffix_if_exists c2 ~suffix:c1 in
+             Id_symantics.eq_str l (Eia.Concat (r, Id_symantics.str_const c2')))
+           else false_)
+      | Eia.Concat (Str_const c1, l), Eia.Concat (Str_const c2, r) ->
+        (match String.length c1 - String.length c2 with
+         | 0 -> if String.equal c1 c2 then Id_symantics.eq_str l r else false_
+         | d when d > 0 ->
+           if Base.String.is_prefix c1 ~prefix:c2
+           then (
+             let c1' = Base.String.chop_prefix_if_exists c1 ~prefix:c2 in
+             Id_symantics.eq_str (Eia.Concat (Id_symantics.str_const c1', l)) r)
+           else false_
+         | _ ->
+           if Base.String.is_prefix c2 ~prefix:c1
+           then (
+             let c2' = Base.String.chop_prefix_if_exists c2 ~prefix:c1 in
+             Id_symantics.eq_str l (Eia.Concat (Id_symantics.str_const c2', r)))
+           else false_)
       | _ -> Id_symantics.eq_str l r
     ;;
 
@@ -1245,6 +1278,33 @@ let propagate_exponents ast =
   match ast with
   | Ast.Land xs -> Ast.land_ (List.map on_eia xs)
   | _ -> ast
+;;
+
+let find_vars_for_under2s ast =
+  let module S = Base.Set.Poly in
+  let open Ast.Eia in
+  let fz = fun acc _ -> acc in
+  let fs : string S.t -> string Ast.Eia.term -> _ =
+    fun acc ->
+    fun c ->
+    match c with
+    | Concat (Const _, Atom (Var (s, S))) -> acc
+    | Concat (_, Atom (Var (s, S))) -> S.add acc s
+    | t -> acc
+  in
+  Ast.fold
+    (fun acc ->
+       let open Ast.Eia in
+       function
+       | Eia (Eq (l, r, S)) ->
+         (match l, r with
+          | Const c, _ | _, Const c -> acc
+          | _, _ -> fold_term fz fs (fold_term fz fs acc r) l)
+       | Eia (Eq (l, r, I)) -> fold_term fz fs (fold_term fz fs acc r) l
+       | Eia (Leq (l, r)) -> fold_term fz fs (fold_term fz fs acc r) l
+       | _ -> acc)
+    S.empty
+    ast
 ;;
 
 let find_vars_for_under2 ast =
@@ -2143,9 +2203,70 @@ let get_range () =
   ans
 ;;
 
+let get_strings_range length alpha =
+  let alpha = List.map (fun x -> String.make 1 x) alpha in
+  List.init length Fun.id |> List.concat_map (fun len -> Utils.strings_of_len len alpha)
+;;
+
 let subst env ast =
   let (module S : SYM_SUGAR_AST) = make_main_symantics ~agressive:true env in
   apply_symantics_unsugared (module S) ast
+;;
+
+let try_under_concats env alpha ast =
+  (*FIXME: please, compute the maximal lengths of string constants correctly*)
+  let under2length = Config.config.under_approx in
+  (* List.fold_left
+      (fun acc s -> max acc (String.length s))
+      Config.config.under_approx
+      (Ast.fold
+         (fun s_consts -> function
+            | Ast.Eia eia ->
+              Ast.Eia.fold2
+                (fun acc _ -> acc)
+                (fun acc eia ->
+                   match eia with
+                   | Str_const s -> s :: acc
+                   | _ -> acc)
+                []
+                eia
+            | _ -> s_consts)
+         []
+         ast)
+  in *)
+  log "Bound for string underapproximation: %d\n%!" under2length;
+  let under2vars = find_vars_for_under2s ast in
+  log
+    "vars_for_under for strings: %a\n%!"
+    Format.(pp_print_list pp_print_string)
+    (Base.Set.to_list under2vars);
+  log "@[%a@]" (Env.pp ~title:"env = ") env;
+  log "ast = @[%a@]" Ast.pp_smtlib2 ast;
+  let ( let* ) xs f = List.concat_map f xs in
+  let _k = 0 in
+  let envs =
+    if Config.config.under_approx < 0
+    then [ env ]
+    else (
+      let all_as = get_strings_range under2length alpha in
+      log
+        "all as: @[%a@]\n%!"
+        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
+        all_as;
+      Base.Set.Poly.fold
+        ~f:(fun acc name ->
+          let* s = all_as in
+          let* acc = acc in
+          (*if Env.is_absent_key name env then*)
+          [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
+        ~init:[ env ]
+        under2vars)
+  in
+  List.map
+    (fun e ->
+       let (module Symantics) = make_main_symantics e in
+       apply_symantics (module Symantics) ast)
+    envs
 ;;
 
 let try_under2_heuristics env ast =
@@ -2391,16 +2512,6 @@ let simpl bound ast =
        | Error (ast, errs) -> `Error (ast, errs))
 ;;
 
-(* let run_under1 bound ast : [> `Sat of string * Env.t | `Unknown ] =
-  if bound >= 0
-  then (
-    match Underapprox.check bound ast with
-    | `Sat s -> `Sat s
-    | `Unsat s -> `Unsat s
-    | `Unknown _ -> `Unknown)
-  else `Unknown
-;; *)
-
 let run_under2 env ast =
   let asts = try_under2_heuristics env ast in
   let asts =
@@ -2422,6 +2533,23 @@ let run_under2 env ast =
   in
   `Underapprox asts
 ;;
+
+let under_concats env alpha ast =
+  let asts = try_under_concats env alpha ast in
+  log "Simplifications for underapproximated concats:\n%!";
+  let asts =
+    List.filter_map
+      (fun ast ->
+         match basic_simplify [ 1 ] env ast with
+         | `Unsat -> None
+         | `Sat env -> raise_notrace (Underapprox_fired env)
+         | `Unknown (ast, _, _, _) -> Some ast)
+      asts
+  in
+  asts
+;;
+
+(* `Underapprox asts *)
 
 let split_concats { Info.all; _ } =
   let module Map = Base.Map.Poly in
@@ -3168,33 +3296,37 @@ let arithmetize ast =
     let var_info = apply_symantics (module Who_in_exponents) ast' in
     let alpha = collect_alpha ast' in
     let (module Symantics) = make_main_symantics ~alpha e in
-    let asts_n_regexes =
-      ast'
-      |> split_concats var_info
-      |> Ast.to_dnf
-      |> List.map (apply_symantics (module Symantics))
-      |> List.map fold_regexes
-    in
-    `Unknown
-      (List.concat_map
-         (fun (ast, regexes) ->
-            List.map
-              (fun ast' ->
-                 let ast', regexes' = fold_regexes_i ast' in
-                 let regexes =
-                   Map.merge
-                     ~f:(fun ~key -> function
-                        | `Left v -> Some v
-                        | `Right v -> Some v
-                        | `Both (v, v') -> Some (NfaS.intersect v v'))
-                     regexes
-                     regexes'
-                 in
-                 ast', regexes)
-              (ast |> flatten |> arithmetize var_info))
-         asts_n_regexes
-       |> List.concat_map (fun (a, b) ->
-         unfold_neq var_info b a |> List.map (fun a -> a, b)))
+    (try
+       let asts_n_regexes =
+         ast'
+         |> under_concats e (Base.Set.to_list alpha)
+         |> List.map (split_concats var_info)
+         |> List.concat_map Ast.to_dnf
+         |> List.map (apply_symantics (module Symantics))
+         |> List.map fold_regexes
+       in
+       `Unknown
+         (List.concat_map
+            (fun (ast, regexes) ->
+               List.map
+                 (fun ast' ->
+                    let ast', regexes' = fold_regexes_i ast' in
+                    let regexes =
+                      Map.merge
+                        ~f:(fun ~key -> function
+                           | `Left v -> Some v
+                           | `Right v -> Some v
+                           | `Both (v, v') -> Some (NfaS.intersect v v'))
+                        regexes
+                        regexes'
+                    in
+                    ast', regexes)
+                 (ast |> flatten |> arithmetize var_info))
+            asts_n_regexes
+          |> List.concat_map (fun (a, b) ->
+            unfold_neq var_info b a |> List.map (fun a -> a, b)))
+     with
+     | Underapprox_fired env -> `Sat ("under I", env))
 ;;
 
 (* let distribute xs =
