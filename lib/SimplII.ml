@@ -942,6 +942,7 @@ let make_main_symantics ?alpha ?agressive env =
       match l, r with
       | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
         Eia (Eia.Eq (l, r, I))
+      | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
       | Eia.Concat (l, Str_const c1), Eia.Concat (r, Str_const c2) ->
         (match String.length c1 - String.length c2 with
@@ -2044,9 +2045,16 @@ let subst env ast =
 ;;
 
 let try_under_concats env alpha ast =
-  (*FIXME: please, compute the maximal lengths of string constants correctly*)
-  let under2length = Config.config.under_approx in
-  (* List.fold_left
+  let under2vars = find_vars_for_under2s ast in
+  log
+    "\t vars_for_under for strings: %a %!"
+    Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
+    (Base.Set.to_list under2vars);
+  if Base.Set.length under2vars > 0
+  then (
+    let under2length = Config.config.under_approx in
+    (*FIXME: please, compute the maximal lengths of string constants correctly*)
+    (* List.fold_left
       (fun acc s -> max acc (String.length s))
       Config.config.under_approx
       (Ast.fold
@@ -2064,38 +2072,34 @@ let try_under_concats env alpha ast =
          []
          ast)
   in *)
-  log "Bound for string underapproximation: %d\n%!" under2length;
-  let under2vars = find_vars_for_under2s ast in
-  log
-    "\t vars_for_under for strings: %a %!"
-    Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
-    (Base.Set.to_list under2vars);
-  (* log "ast = @[%a@]" Ast.pp_smtlib2 ast; *)
-  let ( let* ) xs f = List.concat_map f xs in
-  let _k = 0 in
-  let envs =
-    if Config.config.under_approx < 0
-    then [ env ]
-    else (
-      let all_as = get_strings_range under2length alpha in
-      log
-        "\t string constants: @[%a@]\n%!"
-        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
-        all_as;
-      Base.Set.Poly.fold
-        ~f:(fun acc name ->
-          let* s = all_as in
-          let* acc = acc in
-          (*if Env.is_absent_key name env then*)
-          [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
-        ~init:[ env ]
-        under2vars)
-  in
-  List.map
-    (fun e ->
-       let (module Symantics) = make_main_symantics e in
-       apply_symantics (module Symantics) ast)
-    envs
+    log "Bound for string underapproximation: %d\n%!" under2length;
+    (* log "ast = @[%a@]" Ast.pp_smtlib2 ast; *)
+    let ( let* ) xs f = List.concat_map f xs in
+    let _k = 0 in
+    let envs =
+      if Config.config.under_approx < 0
+      then [ env ]
+      else (
+        let all_as = get_strings_range under2length alpha in
+        log
+          "\t string constants: @[%a@]\n%!"
+          Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
+          all_as;
+        Base.Set.Poly.fold
+          ~f:(fun acc name ->
+            let* s = all_as in
+            let* acc = acc in
+            (*if Env.is_absent_key name env then*)
+            [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
+          ~init:[ env ]
+          under2vars)
+    in
+    List.map
+      (fun e ->
+         let (module Symantics) = make_main_symantics e in
+         apply_symantics (module Symantics) ast)
+      envs)
+  else [ ast ]
 ;;
 
 let try_under2_heuristics env ast =
