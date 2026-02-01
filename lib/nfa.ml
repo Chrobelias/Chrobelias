@@ -956,6 +956,8 @@ module type Type = sig
   val split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
   val alpha : t -> v Set.t
+  val deriv : t -> v list -> u
+  val deriv_final : t -> v list -> u
 end
 
 module type NatType = sig
@@ -1724,6 +1726,35 @@ struct
       |> Sequence.concat)
     |> Sequence.concat
     |> Set.of_sequence
+  ;;
+
+  let deriv : t -> v list -> t =
+    fun nfa vs ->
+    let start =
+      List.fold_left
+        (fun acc v ->
+           let qs =
+             Set.map
+               ~f:(fun q ->
+                 let delta = nfa.transitions.(q) in
+                 List.filter_map
+                   (fun (label, q') ->
+                      if Label.get label 0 = v then Option.some q' else Option.none)
+                   delta
+                 |> Set.of_list)
+               acc
+           in
+           Set.fold_right ~init:Set.empty ~f:Set.union qs)
+        nfa.start
+        vs
+    in
+    { nfa with start }
+  ;;
+
+  let deriv_final : t -> v list -> t =
+    fun nfa vs ->
+    let nfa = reverse nfa in
+    deriv nfa vs |> reverse
   ;;
 end
 

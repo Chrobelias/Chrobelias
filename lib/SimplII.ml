@@ -2288,6 +2288,13 @@ let split_concats { Info.all; _ } =
       let rec helper lhs rhs nfa =
         let nfas : (NfaS.t * NfaS.t) list = NfaS.split nfa in
         match lhs, rhs with
+        | x, Ast.Eia.Str_const y ->
+          let nfa = NfaS.deriv_final nfa (String.to_seq y |> List.of_seq |> List.rev) in
+          [ [ Id_symantics.in_re_raw x nfa ] ]
+        | Ast.Eia.Str_const x, y ->
+          let nfa = NfaS.deriv nfa (String.to_seq x |> List.of_seq) in
+          Debug.dump_nfa ~msg:"Splitting derivative %s" NfaS.format_nfa nfa;
+          [ [ Id_symantics.in_re_raw y nfa ] ]
         | x, y when var_or_const x && var_or_const y ->
           List.map
             (fun (nfa, nfa') ->
