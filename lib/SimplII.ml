@@ -661,6 +661,7 @@ let make_main_symantics ?alpha ?agressive env =
     let iofs = function
       | Ast.Eia.Str_const s -> begin
         match s with
+        | "" -> Id_symantics.constz Z.minus_one
         | s when String.for_all Base.Char.is_digit s ->
           Id_symantics.constz (Z.of_string s)
         | _ -> Id_symantics.constz Z.minus_one
@@ -2036,7 +2037,8 @@ let get_range () =
 
 let get_strings_range length alpha =
   let alpha = List.map (fun x -> String.make 1 x) alpha in
-  List.init length Fun.id |> List.concat_map (fun len -> Utils.strings_of_len len alpha)
+  List.init (1 + length) Fun.id
+  |> List.concat_map (fun len -> Utils.strings_of_len len alpha)
 ;;
 
 let subst env ast =
