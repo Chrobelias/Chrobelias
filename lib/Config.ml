@@ -13,6 +13,7 @@ type config =
   ; mutable over_approx_early : bool
   ; mutable over_nfa : bool
   ; mutable under_approx : int
+  ; mutable under_approx_str : int
   ; mutable input_file : string
   ; mutable no_model : bool
   ; mutable logic : [ `Eia | `Str | `StrBv ]
@@ -40,6 +41,7 @@ let config =
   ; over_approx_early = false
   ; over_nfa = false
   ; under_approx = 2
+  ; under_approx_str = 10
   ; input_file = ""
   ; no_model = false
   ; logic = `Eia
@@ -110,6 +112,9 @@ Basic options:
     ; ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
       , "\tUpper bound for underapprox I (negative disables)" )
+    ; ( "-sbound"
+      , Arg.Int (fun n -> config.under_approx_str <- n)
+      , "\tUnderapproximate strings in concats (via first <n> words w.r.t. regexes)" )
       (*; ( "-over"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , "\tSimple overapprox" )*)

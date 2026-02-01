@@ -1281,7 +1281,7 @@ let find_vars_for_under2s ast =
     fun acc ->
     fun c ->
     match c with
-    | Concat (Const _, Atom (Var (s, S))) -> acc
+    | Concat (Str_const _, Atom (Var (s, S))) -> acc
     | Concat (_, Atom (Var (s, S))) -> S.add acc s
     | t -> acc
   in
@@ -1291,7 +1291,7 @@ let find_vars_for_under2s ast =
        function
        | Eia (Eq (l, r, S)) ->
          (match l, r with
-          | Const c, _ | _, Const c -> acc
+          | Str_const c, _ | _, Str_const c -> acc
           | _, _ -> fold_term fz fs (fold_term fz fs acc r) l)
        | Eia (Eq (l, r, I)) -> fold_term fz fs (fold_term fz fs acc r) l
        | Eia (Leq (l, r)) -> fold_term fz fs (fold_term fz fs acc r) l
@@ -2022,6 +2022,24 @@ let run_basic_simplify ast =
   else `Unknown (ast, Env.empty)
 ;;
 
+let collect_regexes ast =
+  let module NfaL = Nfa.Lsb (Nfa.Str) in
+  let module Map = Base.Map.Poly in
+  Ast.fold
+    (fun acc -> function
+       (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
+       | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const str, S)) ->
+         (s, Regex.str_to_re str |> NfaL.of_regex) :: acc
+       | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) ->
+         (s, re |> NfaL.of_regex) :: acc
+       | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa)) -> (s, nfa) :: acc
+       | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, nfa)) -> (s, nfa) :: acc
+       | _ -> acc)
+    []
+    ast
+  |> Map.of_alist_multi
+;;
+
 let get_range () =
   let ans =
     List.init
@@ -2035,10 +2053,11 @@ let get_range () =
   ans
 ;;
 
-let get_strings_range length alpha =
-  let alpha = List.map (fun x -> String.make 1 x) alpha in
-  List.init (1 + length) Fun.id
-  |> List.concat_map (fun len -> Utils.strings_of_len len alpha)
+let get_strings_range num nfa =
+  Debug.printf
+    "TODO: add to nfa.ml a function that returns a list of first <num> \n\
+     words accepted by nfa in lexicographic order";
+  [ "TODO" ]
 ;;
 
 let subst env ast =
@@ -2047,51 +2066,39 @@ let subst env ast =
 ;;
 
 let try_under_concats env alpha ast =
+  let module Map = Base.Map.Poly in
   let under2vars = find_vars_for_under2s ast in
   log
-    "\t vars_for_under for strings: %a %!"
+    "Vars_for_under for strings: %a %!"
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
     (Base.Set.to_list under2vars);
   if Base.Set.length under2vars > 0
   then (
-    let under2length = Config.config.under_approx in
-    (*FIXME: please, compute the maximal lengths of string constants correctly*)
-    (* List.fold_left
-      (fun acc s -> max acc (String.length s))
-      Config.config.under_approx
-      (Ast.fold
-         (fun s_consts -> function
-            | Ast.Eia eia ->
-              Ast.Eia.fold2
-                (fun acc _ -> acc)
-                (fun acc eia ->
-                   match eia with
-                   | Str_const s -> s :: acc
-                   | _ -> acc)
-                []
-                eia
-            | _ -> s_consts)
-         []
-         ast)
-  in *)
-    log "Bound for string underapproximation: %d\n%!" under2length;
-    (* log "ast = @[%a@]" Ast.pp_smtlib2 ast; *)
     let ( let* ) xs f = List.concat_map f xs in
     let _k = 0 in
     let envs =
-      if Config.config.under_approx < 0
+      if Config.config.under_approx_str < 0
       then [ env ]
       else (
-        let all_as = get_strings_range under2length alpha in
-        log
-          "\t string constants: @[%a@]\n%!"
-          Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
-          all_as;
+        let regexes =
+          Map.map
+            ~f:(fun data ->
+              List.fold_left
+                (fun acc nfa -> NfaS.intersect nfa acc)
+                (NfaCollection.LsbStr.n ())
+                data)
+            (collect_regexes ast)
+        in
+        let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
+        let all_as name =
+          get_strings_range
+            Config.config.under_approx_str
+            (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+        in
         Base.Set.Poly.fold
           ~f:(fun acc name ->
-            let* s = all_as in
+            let* s = all_as name in
             let* acc = acc in
-            (*if Env.is_absent_key name env then*)
             [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
           ~init:[ env ]
           under2vars)
@@ -2580,24 +2587,6 @@ let arithmetize ast =
     | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, _))
     | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, _)) -> true
     | _ -> false
-  in
-  let collect_regexes ast =
-    Ast.fold
-      (fun acc -> function
-         (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
-         | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const str, S)) ->
-           (s, Regex.str_to_re str |> NfaL.of_regex) :: acc
-         | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) ->
-           (s, re |> NfaL.of_regex) :: acc
-         | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa)) ->
-           (s, nfa) :: acc
-         | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, nfa)) ->
-           (s, nfa) :: acc
-         | ast when is_regex ast -> failwith "unexpected"
-         | _ -> acc)
-      []
-      ast
-    |> Map.of_alist_multi
   in
   let fold_regexes ast =
     let ast_with_positive_regex =
