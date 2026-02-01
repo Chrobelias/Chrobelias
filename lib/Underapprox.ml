@@ -177,7 +177,7 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
 
 let log = Debug.printfln
 
-(* Needed for tests, because Z3 gives a module non-deterministically *)
+(* Needed for tests, because Z3 gives a model "non-deterministically" *)
 let omit_z3_model =
   match Sys.getenv_opt "CHRO_OMIT_Z3_MODEL" with
   | None -> false

@@ -277,7 +277,7 @@ let check_sat ?(verbose = false) ast : rez =
            report_result2 (`Sat s);
            Sat (s, ast, env, get_model, regexes)
          | None ->
-           if !can_be_unk
+           if !can_be_unk || !Lib.Config.bounded_unsat
            then (
              report_result2 (`Unknown "");
              unknown ast Lib.Env.empty)
