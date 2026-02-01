@@ -2054,10 +2054,11 @@ let get_range () =
 ;;
 
 let get_strings_range num nfa =
-  Debug.printf
-    "TODO: add to nfa.ml a function that returns a list of first <num> \n\
-     words accepted by nfa in lexicographic order";
-  [ "TODO" ]
+  NfaS.any_n_paths nfa num
+  |> List.map (fun c -> List.to_seq c |> String.of_seq)
+  |> List.map (fun c ->
+    (* Format.printf ">>>>> %s\n%!" c; *)
+    c)
 ;;
 
 let subst env ast =

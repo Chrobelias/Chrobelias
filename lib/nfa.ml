@@ -936,6 +936,7 @@ module type Type = sig
   val run : t -> bool
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
+  val any_n_paths : t -> int -> v list list
   val shrink : t -> t
   val intersect : t -> t -> t
   val unite : t -> t -> t
@@ -1700,6 +1701,41 @@ struct
             vars
         , length )
     | None -> None
+  ;;
+
+  let any_n_paths (nfa : t) n =
+    let transitions = nfa.transitions in
+    let p =
+      let frontier = Queue.create () in
+      let visited = Array.init (length nfa) (Fun.const false) in
+      let rec bfs cool_paths =
+        let cool_paths_cnt = Set.length cool_paths in
+        match Queue.take_opt frontier with
+        | None -> cool_paths
+        | Some _ when cool_paths_cnt >= n -> cool_paths
+        | Some ((_, hd) :: _ as path) ->
+          visited.(hd) <- true;
+          let new_paths =
+            Array.get transitions hd |> List.map (fun part -> part :: path)
+          in
+          let cool_paths' =
+            List.filter (fun path' -> Set.mem nfa.final (List.hd path' |> snd)) new_paths
+            |> List.map (fun path' ->
+              (*List.rev*)
+              path'
+              (*|> List.tl*) |> List.map (fun (label, q') -> label)
+              |> List.drop_while Label.is_zero_soft
+              |> List.map (fun label -> Label.get label 0))
+          in
+          let cool_paths = Set.union cool_paths (cool_paths' |> Set.of_list) in
+          List.iter (fun path' -> Queue.add path' frontier) new_paths;
+          bfs cool_paths
+        | Some [] -> failwith ""
+      in
+      Set.iter ~f:(fun q -> Queue.add [ Label.zero nfa.deg, q ] frontier) nfa.start;
+      bfs Set.empty
+    in
+    p |> Set.to_list
   ;;
 
   let re_accepts path nfa =
