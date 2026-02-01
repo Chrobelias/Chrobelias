@@ -111,6 +111,8 @@ module type Type = sig
   val split : t -> (t * t) list
   val equal_start_and_final : t -> t -> bool
   val alpha : t -> v Set.t
+  val deriv : t -> v list -> u
+  val deriv_final : t -> v list -> u
 end
 
 module type NatType = sig
