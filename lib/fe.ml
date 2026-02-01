@@ -209,6 +209,24 @@ and _to_ir tys orig_expr =
       | Expr.Cvtop (_, Ty.Cvtop.ToString, _) -> true
       | _ -> false
   in
+  let to_regex_helper term re =
+    let term = to_string term in
+    let expr = Expr.view re in
+    match expr with
+    | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
+    | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
+      let str =
+        match to_string expr with
+        | Ast.Eia.Str_const s -> s
+        | _ ->
+          failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp expr)
+      in
+      Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const str) Ast.S)
+    | _ ->
+      let re = to_regex re in
+      let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
+      Ast.Eia (Ast.Eia.inre term Ast.S re)
+  in
   let expr = Expr.view orig_expr in
   try
     match expr with
@@ -260,11 +278,7 @@ and _to_ir tys orig_expr =
       build lhs rhs
     (* Strings. *)
     | Expr.App ({ name = Symbol.Simple "str.in.re"; _ }, [ str; re ])
-    | Expr.Binop (_, Ty.Binop.String_in_re, str, re) ->
-      let str = to_string str in
-      let re = to_regex re in
-      let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
-      Ast.Eia (Ast.Eia.inre str Ast.S re)
+    | Expr.Binop (_, Ty.Binop.String_in_re, str, re) -> to_regex_helper str re
     | Expr.App ({ name = Symbol.Simple "str.prefixof"; _ }, [ str; str' ])
     | Expr.Binop (_, Ty.Binop.String_prefix, str, str') ->
       let str = to_string str in
