@@ -2,6 +2,7 @@
 (* Copyright 2024-2025, Chrobelias. *)
 
 module Map = Base.Map.Poly
+module Set = Base.Set.Poly
 
 let ( let* ) = Option.bind
 
@@ -44,4 +45,15 @@ let rec strings_of_len n alpha =
   | n ->
     strings_of_len (n - 1) alpha
     |> List.concat_map (fun s -> List.map (fun a -> s ^ a) alpha)
+;;
+
+let with_extra_char alpha =
+  let ascii = List.init (128 - 32) (fun i -> Char.chr (i + 32)) |> Set.of_list in
+  let diff = Set.diff ascii alpha in
+  let extra_char =
+    (if Set.mem diff '#' then Option.some '#' else Set.nth diff 0)
+    |> Option.map Set.singleton
+    |> Option.value ~default:Set.empty
+  in
+  Set.union alpha extra_char
 ;;
