@@ -579,7 +579,8 @@ let ir_of_ast env ast =
        (*| Some "old" -> of_eia*)
        | _ -> of_eia2)
         eia
-    | Pred s | Unsupp s -> failf "Unexpected %s" s
+    | Unsupp s -> return (Ir.Unsupp s)
+    | Pred s -> failf "Unexpected %s" s
   in
   (*let ast =
     Env.fold

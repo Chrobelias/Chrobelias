@@ -92,6 +92,7 @@ type t =
   | Land of t list
   | Lor of t list
   | Exists of atom list * t (*| Pred of string * 'atom Eia.t list*)
+  | Unsupp of string
 
 let true_ = True
 let reg a b = Reg (a, b)
@@ -214,6 +215,7 @@ let rec pp fmt = function
       atoms
       pp
       ir
+  | Unsupp s -> Format.fprintf fmt "(unsupported %s)" s
 ;;
 
 (** A manually implemented printer to SMTLIB2-like format *)
@@ -306,6 +308,7 @@ let pp_smtlib2 ppf ir =
       fprintf ppf "@[(%a" (Regex.pp pp_sym) r;
       (* List.iter (fprintf ppf " %a" pp_atom) atoms; *)
       fprintf ppf ")@]"
+    | Unsupp s -> fprintf ppf "@[(%s)@]" s
   in
   match ir with
   | Land xs ->
@@ -402,6 +405,7 @@ let rec map2 f fleaf ir =
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
   | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
   | Exists (atoms, ir') -> f (exists atoms (map2 f fleaf ir'))
+  | Unsupp _ -> ir
 ;;
 
 let map f ir = map2 f f ir
@@ -421,6 +425,7 @@ let rec fold f acc ir =
   | Land irs -> f (List.fold_left (fold f) acc irs) ir
   | Lor irs -> f (List.fold_left (fold f) acc irs) ir
   | Exists (_, ir') -> f (fold f acc ir') ir
+  | Unsupp _ -> acc
 ;;
 
 let is_used_atom (v : string) inside =
