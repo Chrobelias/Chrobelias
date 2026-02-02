@@ -797,6 +797,20 @@ let rec map f = function
 (* failwith "unable to map; unsupported constraint" *)
 
 let in_stoi v ast =
+  let in_stoi_eia v eia =
+    Eia.fold2
+      (fun acc el ->
+         match el with
+         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      eia
+  in
+  in_eia_term in_stoi_eia v ast
+;;
+
+let in_stoi2 v ast =
   (* MS: Here, we can add any cases when we do not want to treat to_int as something special*)
   (* Here, we omit (0 <= str.to_int x) *)
   let ast' =

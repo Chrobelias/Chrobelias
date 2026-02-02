@@ -150,7 +150,7 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
           vs
       in
       S.exists vs (helper ph)
-    | Unsupp _ -> S.true_
+    | Unsupp _ -> raise String_op
   and helperT = function
     | Ast.Eia.Const n -> S.constz n
     | Atom (Ast.Var (s, _)) -> S.var s
