@@ -674,6 +674,13 @@ let simpl ir =
       (match Z.(coeff = zero) with
        | true -> if Z.(c <> zero) then false_ else true_
        | false -> if Z.(c mod coeff <> zero) then false_ else Rel (Eq, term, c))
+    | Rel (Eq, term, c) ->
+      let gcd_ = List.fold_left Z.gcd Z.zero (Map.data term) in
+      if Z.(c mod gcd_ = zero)
+      then (
+        let term' = Map.map ~f:(fun coeff -> Z.(coeff / gcd_)) term in
+        Rel (Eq, term', Z.(c / gcd_)))
+      else false_
     | ir -> ir)
   |> map (function
     | Lor [] -> false_

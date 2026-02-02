@@ -5,6 +5,9 @@ module Set = Base.Set.Poly
 
 let log = Utils.log
 let failf fmt = Format.kasprintf Result.error fmt
+
+exception Unsupported_constraint of string
+
 let return = Result.ok
 let ( let* ) = Result.bind
 
@@ -200,12 +203,14 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
         else if Map.length poly = 0
         then poly', c', c
         else
-          failf
-            "unable to multiply var by var: %a with %a"
-            pp_polynom
-            poly
-            pp_polynom
-            poly'
+          raise
+            (Unsupported_constraint
+               (Format.asprintf
+                  "unable to multiply var by var: %a with %a"
+                  pp_polynom
+                  poly
+                  pp_polynom
+                  poly'))
       in
       let poly = poly |> Map.map ~f:Q.(fun a -> a * Q.of_bigint d) in
       let c = Z.(c * d) in
@@ -254,7 +259,10 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
                  Z.zero
                :: merged_sups
              , Ir.pow2 newv )
-           | x -> failf "not implemented: %a\n%!" Ir.pp_atom (x |> fst)
+           | x ->
+             raise
+               (Unsupported_constraint
+                  (Format.asprintf "not implemented: %a\n%!" Ir.pp_atom (x |> fst)))
          in
          Poly (Map.singleton var coeff, Z.zero, merged_sups)
        | expr ->
@@ -425,9 +433,9 @@ and helper : 'a. 'a Ast.Eia.term -> _ =
          Ast.Eia.pp_term
          el)
   | Len2 v -> return (Symantics.len2 v)
-  | other ->
-    (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
-    failf "unimplemented %a" Ast.Eia.pp_term other
+  | other -> raise (Unsupported_constraint (Format.asprintf "%a" Ast.Eia.pp_term other))
+(* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
+(* failf "unimplemented %a" Ast.Eia.pp_term other *)
 
 and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
   fun eia ->
@@ -575,10 +583,13 @@ let ir_of_ast env ast =
       let* ir = ir_of_ast ast in
       return (Ir.exists atoms ir)
     | Eia eia ->
-      (match Sys.getenv_opt "CHRO_EIA" with
-       (*| Some "old" -> of_eia*)
-       | _ -> of_eia2)
-        eia
+      (try
+         (match Sys.getenv_opt "CHRO_EIA" with
+          (*| Some "old" -> of_eia*)
+          | _ -> of_eia2)
+           eia
+       with
+       | Unsupported_constraint s -> return (Ir.Unsupp s))
     | Unsupp s -> return (Ir.Unsupp s)
     | Pred s -> failf "Unexpected %s" s
   in
