@@ -469,7 +469,7 @@ module StrBv = struct
     List.combine vec mask
     |> List.map (function
       | _, y when y = u_null -> "_"
-      | x, _ when x = u_null -> "_"
+      | x, _ when x = u_null -> "#"
       | x, _ when x = u_eos -> "$"
       | x, _ -> Int.to_string (Z.log2 x))
     |> List.fold_left (fun acc x -> acc ^ x) ""
@@ -2544,10 +2544,11 @@ let strbv_of_str (str : Str.t) =
       match Str.get str i with
       | c when c = Str.u_eos -> StrBv.u_eos
       | c when c = Str.u_null -> StrBv.u_null
-      | c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0'))
+      | '0' .. '9' as c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0')
+      | _ -> StrBv.u_null)
   , StrBv.bv_init (Array.length str) (fun i ->
       match Str.get str i with
-      | c when c = Str.u_null -> StrBv.u_eos
+      | c when c = Str.u_null -> StrBv.u_null
       | c -> StrBv.u_eos) )
 ;;
 
