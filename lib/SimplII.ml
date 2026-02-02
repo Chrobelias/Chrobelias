@@ -2092,9 +2092,13 @@ let try_under_concats env alpha ast =
         in
         let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
         let all_as name =
-          get_strings_range
-            Config.config.under_approx_str
-            (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+          let list =
+            get_strings_range
+              Config.config.under_approx_str
+              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+          in
+          log "Strings for %s:\n %a\n%!" name Format.(pp_print_list pp_print_string) list;
+          list
         in
         Base.Set.Poly.fold
           ~f:(fun acc name ->

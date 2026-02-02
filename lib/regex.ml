@@ -306,12 +306,10 @@ let bwxor =
 
 let all alpha =
   let module Set = Base.Set.Poly in
-  mor
-    epsilon
-    (plus
-       (alpha
-        |> List.map (fun c -> symbol [ c ])
-        |> List.fold_left (fun acc a -> mor a acc) epsilon))
+  kleene
+    (alpha
+     |> List.map (fun c -> symbol [ c ])
+     |> List.fold_left (fun acc a -> mor a acc) epsilon)
 ;;
 
 let dec = "123456789"
