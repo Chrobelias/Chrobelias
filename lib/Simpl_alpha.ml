@@ -165,6 +165,7 @@ let rec simplify : Ir.t -> Ir.t = function
   | SPrefixOf _ as x -> x
   | SContains _ as x -> x
   | SSuffixOf _ as x -> x
+  | Unsupp _ as x -> x
   | Land xs ->
     (* We simplify only conjuncts because interesting test needs it.
       benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2

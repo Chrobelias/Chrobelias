@@ -284,6 +284,7 @@ struct
       then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
       level := !level + 1;
       (match ir with
+       | Ir.Unsupp s -> raise Exit
        | Ir.True -> NfaCollection.n ()
        | Ir.Lnot ir -> eval ir |> Nfa.invert
        (*

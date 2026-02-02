@@ -1651,7 +1651,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
       | Land asts | Lor asts ->
         List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
-      | Unsupp _ -> failwith "unable to fold; unsupported constraint"
+      | Unsupp _ -> false
     in
     let var_can_subst v = Env.is_absent_key v env in
     let var_can_subst_complex v = var_can_subst v && not (in_strlen v orig_ast) in
@@ -2278,7 +2278,7 @@ let run_under2 env ast =
 
 let under_concats env alpha ast =
   let asts = try_under_concats env alpha ast in
-  if List.length asts > 1 then Config.bounded_unsat := true;
+  let asts = if List.length asts > 1 then ast :: asts else asts in
   (* log "Simplifications for underapproximated concats:\n%!"; *)
   let asts =
     List.filter_map
@@ -2837,27 +2837,29 @@ let arithmetize ast =
             v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
         in
         (* raise Exit if in_concat and intersection with Regex.digit is empty*)
-          (match in_stoi s, in_concat s with
-           | true, false ->
-             [ Ast.land_
-                 (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I Regex.digit)
-                  :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
-                  :: (phs |> List.map Ast.eia))
-             ; Ast.land_
-                 (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I (Regex.digit |> Regex.mnot))
-                  :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
-                  :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
-                  :: (phs |> List.map Ast.eia))
-             ]
-           | false, false ->
-             let csds = arithmetize_in_re s (re |> NfaL.of_regex) in
-             List.map
-               (fun x ->
-                  Ast.land_
-                    (x (* :: Ast.Eia (Ast.Eia.lt (atomi s) (pow_base (atomi strlens))) *)
-                     :: (phs |> List.map Ast.eia)))
-               csds
-           | other, true -> raise Exit)
+        let result =
+          if in_stoi s
+          then
+            [ Ast.land_
+                (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I Regex.digit)
+                 :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
+                 :: (phs |> List.map Ast.eia))
+            ; Ast.land_
+                (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I (Regex.digit |> Regex.mnot))
+                 :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
+                 :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
+                 :: (phs |> List.map Ast.eia))
+            ]
+          else (
+            let csds = arithmetize_in_re s (re |> NfaL.of_regex) in
+            List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds)
+        in
+        if in_concat s
+        then
+          List.map
+            (fun ast -> Ast.land_ [ Ast.Unsupp (s ^ " in unsupported concat"); ast ])
+            result
+        else result
       | Ast.Eia (InReRaw (s, S, nfa)) ->
         let s, phs = arithmetize_term s in
         let s, phs =
@@ -2868,24 +2870,31 @@ let arithmetize ast =
             v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
         in
         (* TODO: Add regular constraints with automata*)
-          (match in_stoi s, in_concat s with
-           | true, false ->
-             [ Ast.land_
-                 (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I (Regex.digit |> NfaS.of_regex))
-                  :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
-                  :: (phs |> List.map Ast.eia))
-             ]
-             @ (arithmetize_in_re s (Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa)
-                |> List.map (fun ast' ->
-                  Ast.land_
-                    (ast'
-                     (* TODO: I am not sure we should use integer in re raw with non-digit automaton, it fails the model. *)
-                     :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
-                     :: (phs |> List.map Ast.eia))))
-           | false, false ->
-             let csds = arithmetize_in_re s nfa in
-             List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds
-           | other, true -> raise Exit)
+        let result =
+          if in_stoi s
+          then
+            [ Ast.land_
+                (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I (Regex.digit |> NfaS.of_regex))
+                 :: Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa)
+                 :: (phs |> List.map Ast.eia))
+            ]
+            @ (arithmetize_in_re s (Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa)
+               |> List.map (fun ast' ->
+                 Ast.land_
+                   (ast'
+                    (* TODO: I am not sure we should use integer in re raw with non-digit automaton, it fails the model. *)
+                    :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
+                    :: (phs |> List.map Ast.eia))))
+          else (
+            let csds = arithmetize_in_re s nfa in
+            List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds)
+        in
+        if in_concat s
+        then
+          List.map
+            (fun ast -> Ast.land_ [ Ast.Unsupp (s ^ " in unsupported concat"); ast ])
+            result
+        else result
       | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
       | Ast.Unsupp s -> [ Ast.Unsupp s ]
       | _ as non_eia -> [ non_eia ]
@@ -2911,7 +2920,7 @@ let arithmetize ast =
        | Lnot ast' | Exists (_, ast') -> var_appears_as_string v ast'
        | Land asts | Lor asts ->
          List.fold_left (fun acc ast -> acc || var_appears_as_string v ast) false asts
-       | Unsupp _ -> failwith "unable to fold; unsupported constraint")
+       | Unsupp _ -> false)
       |> fun res -> res
     in
     arithmetize_conj ast
