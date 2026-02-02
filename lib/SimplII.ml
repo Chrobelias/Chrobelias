@@ -2097,7 +2097,12 @@ let try_under_concats env alpha ast =
               Config.config.under_approx_str
               (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
           in
-          log "Strings for %s:\n %a\n%!" name Format.(pp_print_list pp_print_string) list;
+          log
+            "Strings for %s:\n %a\n%!"
+            name
+            Format.(
+              pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
+            list;
           list
         in
         Base.Set.Poly.fold
