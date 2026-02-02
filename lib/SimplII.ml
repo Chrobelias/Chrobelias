@@ -2057,8 +2057,9 @@ let get_strings_range num nfa =
   NfaS.any_n_paths nfa num
   |> List.map (fun c -> List.to_seq c |> String.of_seq)
   |> List.map (fun c ->
-    (* Format.printf ">>>>> %s\n%!" c; *)
-    c)
+    if String.length c > 0
+    then String.sub c 0 (String.length c - 1)
+    else c (* Format.printf ">>>>> %s\n%!" c; *))
 ;;
 
 let subst env ast =
@@ -2116,6 +2117,8 @@ let try_under_concats env alpha ast =
     List.map
       (fun e ->
          let (module Symantics) = make_main_symantics e in
+         (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
+         log "@[%a@]" (Env.pp ~title:"env = ") e; *)
          apply_symantics (module Symantics) ast)
       envs)
   else [ ast ]
@@ -2266,7 +2269,7 @@ let run_under2 env ast =
             | [] -> Some ast
             | errors ->
               log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
-              Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
+              Debug.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
               None))
       asts
   in
