@@ -2329,12 +2329,13 @@ let run_under2 env ast =
 
 let under_concats env alpha ast =
   let asts = try_under_concats env alpha ast in
-  let asts = if List.length asts > 1 then ast :: asts else asts in
+  (*FIXME: dangerous thing below. I add ast behind all underapproxed ones*)
+  let asts = if List.length asts > 1 then asts @ [ ast ] else asts in
   (* log "Simplifications for underapproximated concats:\n%!"; *)
   let asts =
     List.filter_map
       (fun ast ->
-         match basic_simplify [ 0 ] env ast with
+         match basic_simplify [ 1 ] env ast with
          | `Unsat -> None
          | `Sat env -> raise_notrace (Underapprox_fired env)
          | `Unknown (ast, _, _, _) -> Some ast)
@@ -2640,7 +2641,7 @@ let arithmetize ast =
   let module Set = Base.Set.Poly in
   let strlens s = String.concat "" [ "strlen"; s ] in
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
-  let in_stoi' v = Ast.in_stoi v ast in
+  let in_stoi2 v = Ast.in_stoi2 v ast in
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module NfaCL = NfaCollection.LsbStr in
@@ -2797,7 +2798,7 @@ let arithmetize ast =
           let phs = phs @ phs' in
           let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
           let phs =
-            match in_stoi' var, Map.mem (collect_regexes ast) var with
+            match in_stoi2 var, Map.mem (collect_regexes ast) var with
             | true, true -> Ast.Eia.rlen s (pow_base v) :: phs
             | true, false -> Ast.Eia.lt s (pow_base v) :: phs
             | false, other -> phs
