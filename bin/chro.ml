@@ -47,7 +47,7 @@ let lift ?(unsat_info = "") ast = function
   | `Sat (s, e) -> Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
 ;;
 
-let check_sat ?(verbose = false) ast : rez =
+let check_sat ?(verbose = false) tys ast : rez =
   let __ () =
     if config.stop_after = `Pre_simplify
     then (
@@ -261,10 +261,10 @@ let check_sat ?(verbose = false) ast : rez =
       | `Unknown asts_n_regexes ->
         log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
         let f ast_n_regex =
-          let ast, regex = ast_n_regex in
+          let ast, post, regex = ast_n_regex in
           log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
           match check_eia_sat ast with
-          | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, regex)
+          | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, post, regex)
           | Unknown _ ->
             can_be_unk := true;
             None
@@ -272,8 +272,33 @@ let check_sat ?(verbose = false) ast : rez =
             unsat_reason := reason s !unsat_reason;
             None
         in
-        (match List.find_map f asts_n_regexes with
-         | Some (s, ast, env, get_model, regexes) ->
+        let asts_n_regexes = asts_n_regexes |> List.to_seq in
+        let asts_n_regexes = Seq.map f asts_n_regexes in
+        let asts_n_regexes =
+          Seq.map
+            (function
+              | Some (_, _, _, _, [], _) as rez -> rez
+              | Some (_, _, _, get_model, post, _) as rez ->
+                let model = get_model tys in
+                begin match model with
+                | Result.Ok model -> begin
+                  if
+                    List.for_all
+                      (fun post ->
+                         match post model with
+                         | `Sat -> true
+                         | `Unknown -> false)
+                      post
+                  then rez
+                  else Option.none
+                end
+                | _ -> rez
+                end
+              | None -> Option.none)
+            asts_n_regexes
+        in
+        (match Seq.find_map Fun.id asts_n_regexes with
+         | Some (s, ast, env, get_model, _, regexes) ->
            report_result2 (`Sat s);
            Sat (s, ast, env, get_model, regexes)
          | None ->
@@ -548,7 +573,7 @@ let () =
         Lib.Ast.land_
           (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
       in
-      let rez = check_sat ~verbose:true ast in
+      let rez = check_sat ~verbose:true state.tys ast in
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
       if config.no_model = true
@@ -577,7 +602,7 @@ let () =
         let rez =
           match state.last_result with
           | Some r -> r
-          | None -> check_sat ast
+          | None -> check_sat state.tys ast
         in
         let () =
           match rez with
@@ -608,7 +633,7 @@ let () =
               in
               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
               Lib.Config.config.under_approx <- -1;
-              match check_sat shrinked_ast with
+              match check_sat tys shrinked_ast with
               | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
               | Sat (_, _, env, get_model, _regexes) ->
                 (* let tys = merge_tys state in *)
