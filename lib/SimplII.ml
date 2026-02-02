@@ -1968,6 +1968,57 @@ let lower_mod ast =
   | acc -> Ast.land_ (ph :: acc)
 ;;
 
+let over_concat ast =
+  let open Ast in
+  (* let module Set = Base.Set.Poly in
+  let atoms term =
+    term
+    |> Ast.Eia.fold_term
+         (fun acc -> function
+            | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
+            | _ -> acc)
+         (fun acc -> function
+            | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
+            | _ -> acc)
+         Set.empty
+    |> Set.to_list
+  in
+  let in_strlen_only_eia v eia =
+    Eia.fold2
+      (fun acc el ->
+         match el with
+         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> false
+         | _ -> acc)
+      (fun acc _ -> acc)
+      true
+      eia
+  in
+  let rec in_strlen_only v ast =
+    match ast with
+    | True | Pred _ -> true
+    | Eia eia -> begin
+      match eia with
+      | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> false
+      | Eia.InRe (Eia.Atom (Var (s, _)), S, _) when s = v -> false
+      | Eia.InReRaw (Eia.Atom (Var (s, _)), S, _) when s = v -> false
+      | _ -> in_strlen_only_eia v eia
+    end
+    | Lnot ast' | Exists (_, ast') -> in_strlen_only v ast'
+    | Land asts | Lor asts ->
+      List.fold_left (fun acc ast -> acc && in_strlen_only v ast) true asts
+    | Unsupp _ -> false
+  in
+  let strlen_vars term = List.for_all (fun v -> in_strlen_only v ast) (atoms term) in *)
+  let over_ast =
+    Ast.map
+      (function
+        | Ast.Eia (Eq (lhs, rhs, S)) -> Ast.Eia (Eq (Ast.Eia.len lhs, Ast.Eia.len rhs, I))
+        | ast -> ast)
+      ast
+  in
+  Ast.land_ [ ast; over_ast ]
+;;
+
 let basic_simplify step ?multiple (env : Env.t) ast =
   let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
@@ -3037,6 +3088,7 @@ let arithmetize ast =
     (try
        let asts_n_regexes =
          ast'
+         |> over_concat
          |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list)
          |> List.map (split_concats var_info)
          |> List.concat_map Ast.to_dnf
