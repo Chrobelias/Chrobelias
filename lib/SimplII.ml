@@ -2104,7 +2104,25 @@ let get_range () =
   ans
 ;;
 
-let get_strings_range num nfa =
+let get_strings_range nfa length num =
+  let nfa =
+    if length < 0
+    then nfa
+    else
+      (let nfa_length =
+         NfaS.create_dfa
+           ~transitions:
+             (List.init length Fun.id |> List.map (fun x -> x, [ Nfa.Str.u_null ], x + 1))
+           ~start:0
+           ~final:[ length ]
+           ~vars:[ 0 ]
+           ~deg:1
+       in
+       NfaS.intersect nfa nfa_length)
+      |> fun x ->
+      NfaS.filter_map x (fun (s, v) ->
+        if Nfa.Str.equal s (Array.make 1 Nfa.Str.u_eos) then None else Some (s, v))
+  in
   NfaS.any_n_paths nfa num
   |> List.map (fun c -> List.to_seq c |> String.of_seq)
   |> List.map (fun c ->
@@ -2142,19 +2160,38 @@ let try_under_concats env alpha ast =
                 data)
             (collect_regexes ast)
         in
-        let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
         let all_as name =
+          let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
+          let under_const = Config.config.under_approx_str in
+          let str_len =
+            Ast.fold
+              (fun acc -> function
+                 | Ast.Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name ->
+                   Z.max c acc
+                 | Ast.Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name ->
+                   Z.max c acc
+                 | _ -> acc)
+              Z.minus_one
+              ast
+            |> Z.to_int
+          in
+          let size =
+            if str_len >= 0
+            then min under_const (Utils.pow ~base:(List.length alpha) str_len)
+            else under_const
+          in
           let list =
             get_strings_range
-              Config.config.under_approx_str
               (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+              str_len
+              size
           in
-          log
+          (* log
             "Strings for %s:\n %a\n%!"
             name
             Format.(
               pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
-            list;
+            list; *)
           list
         in
         Base.Set.Poly.fold
