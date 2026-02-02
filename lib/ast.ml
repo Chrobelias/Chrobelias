@@ -427,6 +427,14 @@ end
 
 type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
 
+module Map = Base.Map.Poly
+
+type post =
+  [ `Sat of (string, [ `Int of Z.t | `Str of string ]) Map.t | `Unsat | `Unkown ]
+  -> [ `Sat of (string, [ `Int of Z.t | `Str of string ]) Map.t | `Unsat | `Unkown ]
+
+let compare_post _ _ = 0
+
 type t =
   | True
   | Eia of Eia.t
@@ -643,7 +651,7 @@ let rec fold f acc ast =
   | Lor asts -> f (List.fold_left (fold f) acc asts) ast
   | Exists (_, ast') -> f (fold f acc ast') ast
   | Pred _ -> f acc ast
-  | Unsupp s -> acc
+  | Unsupp _ -> f acc ast
 ;;
 
 let forall f = fold (fun acc ast -> acc && f ast) true
@@ -783,7 +791,7 @@ let rec map f = function
   | Lor asts -> f (lor_ (List.map (map f) asts))
   | Exists (atoms, ast) -> f (exists atoms (map f ast))
   | Pred _ as ast -> f ast
-  | Unsupp x -> Unsupp x
+  | Unsupp _ as ast -> f ast
 ;;
 
 (* failwith "unable to map; unsupported constraint" *)

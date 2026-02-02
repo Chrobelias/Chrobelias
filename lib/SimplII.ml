@@ -2948,27 +2948,6 @@ let arithmetize ast =
                , Ast.S )) -> f lhs rhs
         | ast -> ast)
     in
-    let both_nondigit lhs rhs =
-      let lhs_re =
-        Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
-      in
-      let rhs_re =
-        Map.find regexes rhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
-      in
-      match lhs_re, rhs_re with
-      | Some lhs_re, Some rhs_re ->
-        let alpha = Set.union (NfaL.alpha lhs_re) (NfaL.alpha rhs_re) in
-        let alpha_with_extra_char = alpha |> Utils.with_extra_char |> Set.to_list in
-        Debug.printf
-          "Alphabet: '%a'\n Alphapbet with extra char: %a\n%!"
-          Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
-          (Set.to_list alpha)
-          Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
-          alpha_with_extra_char;
-        NfaL.intersect (lhs_re |> NfaL.invert ~alpha:alpha_with_extra_char) rhs_re
-      | Some re, None | None, Some re -> re
-      | None, None -> NfaCL.n ()
-    in
     let can_be_both_digit lhs rhs =
       let lhs_re =
         Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
@@ -2981,44 +2960,71 @@ let arithmetize ast =
       | Some re, None | None, Some re -> NfaL.run re
       | None, None -> true
     in
-    ast
-    |> aux (fun lhs rhs ->
-      let ast1 = Ast.eia (Ast.Eia.neq (strleni lhs) (strleni rhs) Ast.I) in
-      let ast2 =
-        let ast =
-          Ast.land_
-            [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-            ; Ast.eia (Ast.Eia.neq (atomi lhs) (atomi rhs) Ast.I)
-            ]
+    let posts = ref Map.empty in
+    let asts =
+      ast
+      |> aux (fun lhs rhs ->
+        let ast1 = Ast.eia (Ast.Eia.neq (strleni lhs) (strleni rhs) Ast.I) in
+        let ast2 =
+          let ast =
+            Ast.land_
+              [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+              ; Ast.eia (Ast.Eia.neq (atomi lhs) (atomi rhs) Ast.I)
+              ]
+          in
+          ast_if (can_be_both_digit lhs rhs) ast
         in
-        ast_if (can_be_both_digit lhs rhs) ast
+        let ast3 =
+          let lhs_re =
+            Map.find regexes lhs
+            |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
+            |> Option.value ~default:(NfaCL.n ())
+          in
+          let rhs_re =
+            Map.find regexes rhs
+            |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
+            |> Option.value ~default:(NfaCL.n ())
+          in
+          if lhs_re |> NfaS.run && rhs_re |> NfaS.run
+          then (
+            let constr = gensym ~prefix:"%under_distinct_3" () in
+            posts
+            := Map.add_exn !posts ~key:constr ~data:(fun (model : Ir.model) ->
+                 let len =
+                   Map.find model (Ir.var constr)
+                   |> function
+                   | Some (`Int v) -> v
+                   | Some (`Str v) -> assert false
+                   | None -> failwith "no length found in model: need to improve"
+                 in
+                 let len = Z.to_int len in
+                 let w1 = NfaS.path_of_len2 ~var:0 ~len lhs_re |> Option.get in
+                 let w2 = NfaS.path_of_len2 ~var:0 ~len rhs_re |> Option.get in
+                 if w1 <> w2 then `Sat else `Unknown);
+            Ast.land_
+              [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+              ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
+              ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+              ; Ast.Unsupp constr
+              ])
+          else Ast.false_
+        in
+        Ast.lor_ [ ast1; ast2; ast3 ])
+    in
+    asts
+    |> (fun asts -> Ast.to_dnf asts)
+    |> List.map (fun ast ->
+      let posts' = ref [] in
+      let ast =
+        Ast.map
+          (function
+            | Unsupp s when Map.mem !posts s ->
+              posts' := Map.find_exn !posts s :: !posts';
+              Ast.true_
+            | ast -> ast)
+          ast
       in
-      let ast3 =
-        let nfa = both_nondigit lhs rhs in
-        Ast.land_
-          [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-          ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
-          ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
-          ; Ast.lor_
-              (NfaL.chrobak nfa
-               |> Seq.map (fun (c, d) ->
-                 let const = Id_symantics.constz in
-                 let c, d = Z.of_int c, Z.of_int d in
-                 let n = gensym ~prefix:"%neq_re_len" () in
-                 Ast.land_
-                   [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
-                   ; Ast.eia
-                       (Ast.Eia.eq
-                          (strleni lhs)
-                          (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
-                          Ast.I)
-                   ])
-               |> List.of_seq)
-          ]
-      in
-      Ast.lor_ [ ast1; ast2; ast3 ])
-    |> Ast.to_dnf
-    |> List.filter (( <> ) Ast.false_)
+      ast, !posts')
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
@@ -3056,7 +3062,7 @@ let arithmetize ast =
                  (ast |> flatten |> arithmetize var_info))
             asts_n_regexes
           |> List.concat_map (fun (a, b) ->
-            unfold_neq var_info b a |> List.map (fun a -> a, b)))
+            unfold_neq var_info b a |> List.map (fun (a, a') -> a, a', b)))
      with
      | Underapprox_fired env -> `Sat ("under I", env))
 ;;
