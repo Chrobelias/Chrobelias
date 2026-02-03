@@ -1277,7 +1277,15 @@ let find_vars_for_under2s ast =
   let module S = Base.Set.Poly in
   let open Ast.Eia in
   let fz = fun acc _ -> acc in
-  let fs : string S.t -> string Ast.Eia.term -> _ =
+  let fs_left : string S.t -> string Ast.Eia.term -> _ =
+    fun acc ->
+    fun c ->
+    match c with
+    | Concat (Atom (Var (s, S)), Str_const _) -> acc
+    | Concat (Atom (Var (s, S)), _) -> S.add acc s
+    | t -> acc
+  in
+  let fs_right : string S.t -> string Ast.Eia.term -> _ =
     fun acc ->
     fun c ->
     match c with
@@ -1285,19 +1293,22 @@ let find_vars_for_under2s ast =
     | Concat (_, Atom (Var (s, S))) -> S.add acc s
     | t -> acc
   in
-  Ast.fold
-    (fun acc ->
-       let open Ast.Eia in
-       function
-       | Eia (Eq (l, r, S)) ->
-         (match l, r with
-          | Str_const c, _ | _, Str_const c -> acc
-          | _, _ -> fold_term fz fs (fold_term fz fs acc r) l)
-       | Eia (Eq (l, r, I)) -> fold_term fz fs (fold_term fz fs acc r) l
-       | Eia (Leq (l, r)) -> fold_term fz fs (fold_term fz fs acc r) l
-       | _ -> acc)
-    S.empty
-    ast
+  let collect fs ast =
+    Ast.fold
+      (fun acc ->
+         let open Ast.Eia in
+         function
+         | Eia (Eq (l, r, S)) ->
+           (match l, r with
+            | Str_const c, _ | _, Str_const c -> acc
+            | _, _ -> fold_term fz fs (fold_term fz fs acc r) l)
+         | Eia (Eq (l, r, I)) -> fold_term fz fs (fold_term fz fs acc r) l
+         | Eia (Leq (l, r)) -> fold_term fz fs (fold_term fz fs acc r) l
+         | _ -> acc)
+      S.empty
+      ast
+  in
+  collect fs_left ast, collect fs_right ast
 ;;
 
 let find_vars_for_under2 ast =
@@ -2128,81 +2139,84 @@ let subst env ast =
 
 let try_under_concats env alpha ast =
   let module Map = Base.Map.Poly in
-  let under2vars = find_vars_for_under2s ast in
-  log
-    "Vars_for_under for strings: %a %!"
-    Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
-    (Base.Set.to_list under2vars);
-  if Base.Set.length under2vars > 0
-  then
-    (let ( let* ) xs f = List.concat_map f xs in
-     let _k = 0 in
-     let envs =
-       if Config.under_str_config.max_cnt < 0
-       then [ env ]
-       else (
-         let regexes =
-           Map.map
-             ~f:(fun data ->
-               List.fold_left
-                 (fun acc nfa -> NfaS.intersect nfa acc)
-                 (NfaCollection.LsbStr.n ())
-                 data)
-             (collect_regexes ast)
-         in
-         let all_as name =
-           let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
-           let max_cnt = Config.under_str_config.max_cnt in
-           let str_len =
-             Ast.fold
-               (fun acc -> function
-                  | Ast.Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name ->
-                    Z.max c acc
-                  | Ast.Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name ->
-                    Z.max c acc
-                  | _ -> acc)
-               Z.minus_one
-               ast
-             |> Z.to_int
-           in
-           let size =
-             if str_len >= 0
-             then min max_cnt (Utils.pow ~base:(List.length alpha) str_len)
-             else max_cnt
-           in
-           let list =
-             get_strings_range
-               (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
-               str_len
-               size
-           in
-           log
-             "Strings for %s:\n %a\n%!"
-             name
-             Format.(
-               pp_print_list pp_print_string ~pp_sep:(fun ppf () ->
-                 Format.fprintf ppf " "))
-             list;
-           list
-         in
-         Base.Set.Poly.fold
-           ~f:(fun acc name ->
-             let* s = all_as name in
-             let* acc = acc in
-             [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
-           ~init:[ env ]
-           under2vars)
-     in
-     List.map
-       (fun e ->
-          let (module Symantics) = make_main_symantics e in
-          (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
+  let approxed_env_n_ast vars from =
+    log
+      "Vars for underapporx (%s): %a %!"
+      from
+      Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
+      (Base.Set.to_list vars);
+    if Base.Set.length vars = 0
+    then []
+    else (
+      let ( let* ) xs f = List.concat_map f xs in
+      let envs =
+        let regexes =
+          Map.map
+            ~f:(fun data ->
+              List.fold_left
+                (fun acc nfa -> NfaS.intersect nfa acc)
+                (NfaCollection.LsbStr.n ())
+                data)
+            (collect_regexes ast)
+        in
+        let all_as name =
+          let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
+          let max_cnt = Config.under_str_config.max_cnt in
+          let str_len =
+            Ast.fold
+              (fun acc -> function
+                 | Ast.Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name ->
+                   Z.max c acc
+                 | Ast.Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name ->
+                   Z.max c acc
+                 | _ -> acc)
+              Z.minus_one
+              ast
+            |> Z.to_int
+          in
+          let size =
+            if str_len >= 0
+            then min max_cnt (Utils.pow ~base:(List.length alpha) str_len)
+            else max_cnt
+          in
+          let list =
+            get_strings_range
+              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+              str_len
+              size
+          in
+          log
+            "Strings for %s:\n %a\n%!"
+            name
+            Format.(
+              pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
+            list;
+          list
+        in
+        Base.Set.Poly.fold
+          ~f:(fun acc name ->
+            let* s = all_as name in
+            let* acc = acc in
+            [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
+          ~init:[ env ]
+          vars
+      in
+      List.map
+        (fun e ->
+           let (module Symantics) = make_main_symantics e in
+           (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
          log "@[%a@]" (Env.pp ~title:"env = ") e; *)
-          e, apply_symantics (module Symantics) ast)
-       envs)
-    |> List.append [ env, ast ]
+           e, apply_symantics (module Symantics) ast)
+        envs)
+  in
+  if Config.under_str_config.max_cnt < 0
+  then [ env, ast ]
+  else (
+    let vars_left, vars_right = find_vars_for_under2s ast in
     (*FIXME: dangerous thing above. I add (env, ast) _behind_ all underapproxed ones*)
-  else [ env, ast ]
+    approxed_env_n_ast vars_left "left"
+    @ approxed_env_n_ast vars_right "rigth"
+    @ [ env, ast ])
 ;;
 
 let try_under2_heuristics env ast =
