@@ -405,7 +405,7 @@ let rec map2 f fleaf ir =
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
   | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
   | Exists (atoms, ir') -> f (exists atoms (map2 f fleaf ir'))
-  | Unsupp _ -> ir
+  | Unsupp _ -> f ir
 ;;
 
 let map f ir = map2 f f ir
@@ -425,7 +425,7 @@ let rec fold f acc ir =
   | Land irs -> f (List.fold_left (fold f) acc irs) ir
   | Lor irs -> f (List.fold_left (fold f) acc irs) ir
   | Exists (_, ir') -> f (fold f acc ir') ir
-  | Unsupp _ -> acc
+  | Unsupp _ -> f acc ir
 ;;
 
 let is_used_atom (v : string) inside =

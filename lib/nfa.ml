@@ -1713,7 +1713,9 @@ struct
         match Queue.take_opt frontier with
         | None -> cool_paths
         | Some _ when cool_paths_cnt >= n -> cool_paths
-        | Some path when Option.is_some len && List.length path = Option.get len ->
+        | Some path when Option.is_some len && List.length path = Option.get len + 1 ->
+          bfs cool_paths
+        | Some path when List.length path > Array.length nfa.transitions * n ->
           bfs cool_paths
         | Some ((_, hd) :: _ as path) ->
           visited.(hd) <- true;
@@ -1728,7 +1730,7 @@ struct
               |> List.drop_while Label.is_zero_soft
               |> List.map (fun label -> Label.get label 0))
             |> List.filter (fun path' ->
-              Option.is_none len || List.length path' = Option.get len)
+              Option.is_none len || List.length path' = Option.get len + 1)
           in
           let cool_paths = Set.union cool_paths (cool_paths' |> Set.of_list) in
           List.iter (fun path' -> Queue.add path' frontier) new_paths;
