@@ -2105,25 +2105,10 @@ let get_range () =
 ;;
 
 let get_strings_range nfa length num =
-  let nfa =
-    if length < 0
-    then nfa
-    else
-      (let nfa_length =
-         NfaS.create_dfa
-           ~transitions:
-             (List.init length Fun.id |> List.map (fun x -> x, [ Nfa.Str.u_null ], x + 1))
-           ~start:0
-           ~final:[ length ]
-           ~vars:[ 0 ]
-           ~deg:1
-       in
-       NfaS.intersect nfa nfa_length)
-      |> fun x ->
-      NfaS.filter_map x (fun (s, v) ->
-        if Nfa.Str.equal s (Array.make 1 Nfa.Str.u_eos) then None else Some (s, v))
-  in
-  NfaS.any_n_paths nfa num
+  let max_len = Config.under_str_config.max_len in
+  (if length < 0
+   then NfaS.any_n_paths_range nfa ~len:max_len num
+   else NfaS.any_n_paths nfa ~len:length num)
   |> List.map (fun c -> List.to_seq c |> String.of_seq)
   |> List.map (fun c ->
     if String.length c > 0
@@ -2148,7 +2133,7 @@ let try_under_concats env alpha ast =
     let ( let* ) xs f = List.concat_map f xs in
     let _k = 0 in
     let envs =
-      if Config.config.under_approx_str < 0
+      if Config.under_str_config.max_cnt < 0
       then [ env ]
       else (
         let regexes =
@@ -2162,7 +2147,7 @@ let try_under_concats env alpha ast =
         in
         let all_as name =
           let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
-          let under_const = Config.config.under_approx_str in
+          let max_cnt = Config.under_str_config.max_cnt in
           let str_len =
             Ast.fold
               (fun acc -> function
@@ -2177,8 +2162,8 @@ let try_under_concats env alpha ast =
           in
           let size =
             if str_len >= 0
-            then min under_const (Utils.pow ~base:(List.length alpha) str_len)
-            else under_const
+            then min max_cnt (Utils.pow ~base:(List.length alpha) str_len)
+            else max_cnt
           in
           let list =
             get_strings_range
@@ -2186,12 +2171,12 @@ let try_under_concats env alpha ast =
               str_len
               size
           in
-          (* log
+          log
             "Strings for %s:\n %a\n%!"
             name
             Format.(
               pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
-            list; *)
+            list;
           list
         in
         Base.Set.Poly.fold

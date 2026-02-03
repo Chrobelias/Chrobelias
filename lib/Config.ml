@@ -13,7 +13,6 @@ type config =
   ; mutable over_approx_early : bool
   ; mutable over_nfa : bool
   ; mutable under_approx : int
-  ; mutable under_approx_str : int
   ; mutable input_file : string
   ; mutable no_model : bool
   ; mutable logic : [ `Eia | `Str | `StrBv ]
@@ -41,7 +40,6 @@ let config =
   ; over_approx_early = false
   ; over_nfa = false
   ; under_approx = 2
-  ; under_approx_str = 512
   ; input_file = ""
   ; no_model = false
   ; logic = `Eia
@@ -65,6 +63,11 @@ type under2_config =
   ; mutable flat : int [@warning "-69"]
   }
 
+type under_str_config =
+  { mutable max_len : int
+  ; mutable max_cnt : int
+  }
+
 type huge_const_config = { mutable const : int }
 
 type string_config =
@@ -77,6 +80,7 @@ type string_config =
 let huge_const_config = { const = 20 }
 let huge_const () = huge_const_config.const
 let under2_config = { amin = 5; amax = 11; flat = -1 }
+let under_str_config = { max_len = 512; max_cnt = 20 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
@@ -112,9 +116,12 @@ Basic options:
     ; ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
       , "\tUpper bound for underapprox I (negative disables)" )
-    ; ( "-sbound"
-      , Arg.Int (fun n -> config.under_approx_str <- n)
+    ; ( "-sbound-cnt"
+      , Arg.Int (fun n -> under_str_config.max_cnt <- n)
       , "\tUnderapproximate strings in concats (via first <n> words w.r.t. regexes)" )
+    ; ( "-sbound-len"
+      , Arg.Int (fun n -> under_str_config.max_len <- n)
+      , "\tUnderapproximate strings in concats (via words of length at most <n>)" )
       (*; ( "-over"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , "\tSimple overapprox" )*)

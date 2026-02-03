@@ -937,6 +937,7 @@ module type Type = sig
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
+  val any_n_paths_range : t -> ?len:int -> int -> v list list
   val shrink : t -> t
   val intersect : t -> t -> t
   val unite : t -> t -> t
@@ -1703,7 +1704,7 @@ struct
     | None -> None
   ;;
 
-  let any_n_paths (nfa : t) ?len n =
+  let any_n_paths_helper (nfa : t) ?len n sign =
     let transitions = nfa.transitions in
     let p =
       let frontier = Queue.create () in
@@ -1730,7 +1731,7 @@ struct
               |> List.drop_while Label.is_zero_soft
               |> List.map (fun label -> Label.get label 0))
             |> List.filter (fun path' ->
-              Option.is_none len || List.length path' = Option.get len + 1)
+              Option.is_none len || sign (List.length path') (Option.get len + 1))
           in
           let cool_paths = Set.union cool_paths (cool_paths' |> Set.of_list) in
           List.iter (fun path' -> Queue.add path' frontier) new_paths;
@@ -1741,6 +1742,12 @@ struct
       bfs Set.empty
     in
     p |> Set.to_list
+  ;;
+
+  let any_n_paths (nfa : t) ?len n = any_n_paths_helper nfa ?len n (fun x y -> x = y)
+
+  let any_n_paths_range (nfa : t) ?len n =
+    any_n_paths_helper nfa ?len n (fun x y -> x <= y)
   ;;
 
   let re_accepts path nfa =
