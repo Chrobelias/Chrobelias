@@ -938,6 +938,7 @@ module type Type = sig
   val any_path : t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
+  val all_paths_of_len : t -> int -> v list list
   val shrink : t -> t
   val intersect : t -> t -> t
   val unite : t -> t -> t
@@ -1704,7 +1705,7 @@ struct
     | None -> None
   ;;
 
-  let any_n_paths_helper (nfa : t) ?len n sign =
+  let any_n_paths_helper (nfa : t) ?len ?n sign =
     let transitions = nfa.transitions in
     let p =
       let frontier = Queue.create () in
@@ -1713,10 +1714,12 @@ struct
         let cool_paths_cnt = Set.length cool_paths in
         match Queue.take_opt frontier with
         | None -> cool_paths
-        | Some _ when cool_paths_cnt >= n -> cool_paths
+        | Some _ when Option.is_some n && cool_paths_cnt >= Option.get n -> cool_paths
         | Some path when Option.is_some len && List.length path = Option.get len + 1 ->
           bfs cool_paths
-        | Some path when List.length path > Array.length nfa.transitions * n ->
+        | Some path
+          when Option.is_some n
+               && List.length path > Array.length nfa.transitions * Option.get n ->
           bfs cool_paths
         | Some ((_, hd) :: _ as path) ->
           visited.(hd) <- true;
@@ -1744,11 +1747,13 @@ struct
     p |> Set.to_list
   ;;
 
-  let any_n_paths (nfa : t) ?len n = any_n_paths_helper nfa ?len n (fun x y -> x = y)
+  let any_n_paths (nfa : t) ?len n = any_n_paths_helper nfa ?len ~n (fun x y -> x = y)
 
   let any_n_paths_range (nfa : t) ?len n =
-    any_n_paths_helper nfa ?len n (fun x y -> x <= y)
+    any_n_paths_helper nfa ?len ~n (fun x y -> x <= y)
   ;;
+
+  let all_paths_of_len (nfa : t) len = any_n_paths_helper nfa ~len (fun x y -> x = y)
 
   let re_accepts path nfa =
     let dfa =
