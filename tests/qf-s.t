@@ -1,18 +1,18 @@
 Basic QF_S tests
 
   $ Chro ./qf-s.smt2
-  sat (under I)
+  sat (presimpl)
   ((define-fun a () (_ String) "abc"))
   sat (presimpl)
   sat (presimpl)
   unsat (presimpl)
-  sat (under I)
+  sat (presimpl)
   unsat (presimpl)
   unsat (presimpl)
   sat (under I)
-  sat (under I)
-  sat (nfa)
-  unsat (simpl)
+  sat (presimpl)
+  sat (presimpl)
+  unsat (presimpl)
   sat (nfa)
   unsat (nia)
   sat (presimpl)
