@@ -1258,8 +1258,8 @@ module MsbStr =
       let z_of_list_msb_nat_str p =
         p
         |> List.to_seq
-        |> Seq.filter (fun c -> c <> Str.u_eos)
-        |> Seq.map (fun c -> if c = Str.u_null then '0' else c)
+        |> Seq.drop_while (fun c -> c = Str.u_eos)
+        |> Seq.map (fun c -> if c = Str.u_null || c = Str.u_eos then '0' else c)
         |> String.of_seq
         |> Z.of_string
       ;;
@@ -1273,8 +1273,8 @@ module MsbStr =
         in
         p
         |> List.to_seq
-        |> Seq.filter (fun c -> c <> Str.u_eos)
-        |> Seq.map (fun c -> if c = Str.u_null then '0' else c)
+        |> Seq.drop_while (fun c -> c = Str.u_eos)
+        |> Seq.map (fun c -> if c = Str.u_null || c = Str.u_eos then '0' else c)
         |> String.of_seq
         |> Z.of_string
         |> Z.mul sign
@@ -1319,8 +1319,9 @@ module MsbStrBv =
       let z_of_list_msb_nat_str p =
         p
         |> List.to_seq
-        |> Seq.filter (fun c -> c <> Str.u_eos)
-        |> Seq.map (fun c -> if c = Str.u_null then '0' else strbv_to_char c)
+        |> Seq.drop_while (fun c -> c = Str.u_eos)
+        |> Seq.map (fun c ->
+          if c = Str.u_null || c = Str.u_eos then '0' else strbv_to_char c)
         |> String.of_seq
         |> Z.of_string
       ;;
@@ -1334,8 +1335,9 @@ module MsbStrBv =
         in
         p
         |> List.to_seq
-        |> Seq.filter (fun c -> c <> Str.u_eos)
-        |> Seq.map (fun c -> if c = Str.u_null then '0' else strbv_to_char c)
+        |> Seq.drop_while (fun c -> c = Str.u_eos)
+        |> Seq.map (fun c ->
+          if c = Str.u_null || c = Str.u_eos then '0' else strbv_to_char c)
         |> String.of_seq
         |> Z.of_string
         |> Z.mul sign
@@ -1484,8 +1486,8 @@ let z_of_list_str p =
   in
   p
   |> List.to_seq
-  |> Seq.filter (fun c -> c <> Nfa.Str.u_eos)
-  |> Seq.map (fun c -> if c = Nfa.Str.u_null then '0' else c)
+  |> Seq.drop_while (fun c -> c = Nfa.Str.u_eos)
+  |> Seq.map (fun c -> if c = Nfa.Str.u_null || c = Nfa.Str.u_eos then '0' else c)
   |> (fun s -> if sign = Z.one then s else Seq.append (List.to_seq [ '-' ]) s)
   |> String.of_seq
 ;;
