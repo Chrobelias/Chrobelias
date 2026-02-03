@@ -211,10 +211,12 @@ let model_from_parts_regexes_env tys model regexes env =
             let str =
               if len = 0
               then ""
-              else
+              else if len > String.length str
+              then
                 String.concat
                   ""
                   [ String.init (len - String.length str) (fun _ -> '0'); str ]
+              else str
             in
             `Str str
           | `Int d -> `Int d

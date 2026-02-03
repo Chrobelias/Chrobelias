@@ -3083,7 +3083,7 @@ let arithmetize ast =
                        failwith "no length found in model: need to improve"
                    end
                  in
-                 (* Format.printf "LENGTH %a\n%!" Z.pp_print len; *)
+                 (*Format.printf "LENGTH %a\n%!" Z.pp_print len;*)
                  let len = Z.to_int len in
                  let w1 = NfaS.all_paths_of_len lhs_re len in
                  let w2 = NfaS.all_paths_of_len rhs_re len in
@@ -3106,6 +3106,7 @@ let arithmetize ast =
               [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
               ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
               ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+              ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
               ; Ast.Unsupp constr
               ])
           else Ast.false_
