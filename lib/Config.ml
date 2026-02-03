@@ -175,13 +175,21 @@ Basic options:
     ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t"
     ; "--info", Arg.Unit (fun () -> config.with_info <- true), "\t"
     ; "--no-str-bv", Arg.Unit (fun () -> config.no_str_bv <- true), "\t"
+    ; ( "--no-str-under"
+      , Arg.Unit
+          (fun () ->
+            under_str_config.max_cnt <- -1;
+            under_str_config.max_len <- -1)
+      , "\tDisable string underapproximations" )
     ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , "\tDon't try simplifications based on alpha-equivalence" )
     ; ( "--alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- true)
       , "\tDO simplifications based on alpha-equivalence" )
-    ; "--over-nfa", Arg.Unit (fun () -> config.over_nfa <- true), "\t"
+    ; ( "--over-nfa"
+      , Arg.Unit (fun () -> config.over_nfa <- true)
+      , "\tOverapproximate orderings in NFA Solver" )
     ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t"
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
