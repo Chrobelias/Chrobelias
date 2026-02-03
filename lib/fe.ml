@@ -211,6 +211,15 @@ and _to_ir tys orig_expr =
   in
   let to_regex_helper term re =
     let term = to_string term in
+    let is_empty re =
+      match Expr.view re with
+      | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
+      | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
+        (match to_string expr with
+         | Ast.Eia.Str_const "" -> true
+         | _ -> false)
+      | _ -> false
+    in
     let expr = Expr.view re in
     match expr with
     | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
@@ -222,6 +231,10 @@ and _to_ir tys orig_expr =
           failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp expr)
       in
       Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const str) Ast.S)
+    | Expr.Unop (_ty, Ty.Unop.Regexp_plus, re') when is_empty re' ->
+      Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const "") Ast.S)
+    | Expr.Unop (_ty, Ty.Unop.Regexp_star, re') when is_empty re' ->
+      Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const "") Ast.S)
     | _ ->
       let re = to_regex re in
       let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
