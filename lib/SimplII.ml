@@ -2134,71 +2134,74 @@ let try_under_concats env alpha ast =
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
     (Base.Set.to_list under2vars);
   if Base.Set.length under2vars > 0
-  then (
-    let ( let* ) xs f = List.concat_map f xs in
-    let _k = 0 in
-    let envs =
-      if Config.under_str_config.max_cnt < 0
-      then [ env ]
-      else (
-        let regexes =
-          Map.map
-            ~f:(fun data ->
-              List.fold_left
-                (fun acc nfa -> NfaS.intersect nfa acc)
-                (NfaCollection.LsbStr.n ())
-                data)
-            (collect_regexes ast)
-        in
-        let all_as name =
-          let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
-          let max_cnt = Config.under_str_config.max_cnt in
-          let str_len =
-            Ast.fold
-              (fun acc -> function
-                 | Ast.Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name ->
-                   Z.max c acc
-                 | Ast.Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name ->
-                   Z.max c acc
-                 | _ -> acc)
-              Z.minus_one
-              ast
-            |> Z.to_int
-          in
-          let size =
-            if str_len >= 0
-            then min max_cnt (Utils.pow ~base:(List.length alpha) str_len)
-            else max_cnt
-          in
-          let list =
-            get_strings_range
-              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
-              str_len
-              size
-          in
-          log
-            "Strings for %s:\n %a\n%!"
-            name
-            Format.(
-              pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
-            list;
-          list
-        in
-        Base.Set.Poly.fold
-          ~f:(fun acc name ->
-            let* s = all_as name in
-            let* acc = acc in
-            [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
-          ~init:[ env ]
-          under2vars)
-    in
-    List.map
-      (fun e ->
-         let (module Symantics) = make_main_symantics e in
-         (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
+  then
+    (let ( let* ) xs f = List.concat_map f xs in
+     let _k = 0 in
+     let envs =
+       if Config.under_str_config.max_cnt < 0
+       then [ env ]
+       else (
+         let regexes =
+           Map.map
+             ~f:(fun data ->
+               List.fold_left
+                 (fun acc nfa -> NfaS.intersect nfa acc)
+                 (NfaCollection.LsbStr.n ())
+                 data)
+             (collect_regexes ast)
+         in
+         let all_as name =
+           let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
+           let max_cnt = Config.under_str_config.max_cnt in
+           let str_len =
+             Ast.fold
+               (fun acc -> function
+                  | Ast.Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name ->
+                    Z.max c acc
+                  | Ast.Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name ->
+                    Z.max c acc
+                  | _ -> acc)
+               Z.minus_one
+               ast
+             |> Z.to_int
+           in
+           let size =
+             if str_len >= 0
+             then min max_cnt (Utils.pow ~base:(List.length alpha) str_len)
+             else max_cnt
+           in
+           let list =
+             get_strings_range
+               (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+               str_len
+               size
+           in
+           log
+             "Strings for %s:\n %a\n%!"
+             name
+             Format.(
+               pp_print_list pp_print_string ~pp_sep:(fun ppf () ->
+                 Format.fprintf ppf " "))
+             list;
+           list
+         in
+         Base.Set.Poly.fold
+           ~f:(fun acc name ->
+             let* s = all_as name in
+             let* acc = acc in
+             [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
+           ~init:[ env ]
+           under2vars)
+     in
+     List.map
+       (fun e ->
+          let (module Symantics) = make_main_symantics e in
+          (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
          log "@[%a@]" (Env.pp ~title:"env = ") e; *)
-         e, apply_symantics (module Symantics) ast)
-      envs)
+          e, apply_symantics (module Symantics) ast)
+       envs)
+    |> List.append [ env, ast ]
+    (*FIXME: dangerous thing above. I add (env, ast) _behind_ all underapproxed ones*)
   else [ env, ast ]
 ;;
 
@@ -2357,17 +2360,13 @@ let run_under2 env ast =
 let under_concats env alpha ast =
   let envs_n_asts = try_under_concats env alpha ast in
   (* log "Simplifications for underapproximated concats:\n%!"; *)
-  let simplified =
-    List.filter_map
-      (fun (env, ast) ->
-         match basic_simplify [ 0 ] env ast with
-         | `Unsat -> None
-         | `Sat env -> raise_notrace (Underapprox_fired env)
-         | `Unknown (ast, _, _, _) -> Some ast)
-      envs_n_asts
-  in
-  (*FIXME: dangerous thing below. I add ast behind all underapproxed ones*)
-  if List.length simplified > 1 then simplified @ [ ast ] else simplified
+  List.filter_map
+    (fun (env, ast) ->
+       match basic_simplify [ 0 ] env ast with
+       | `Unsat -> None
+       | `Sat env -> raise_notrace (Underapprox_fired env)
+       | `Unknown (ast, _, _, _) -> Some ast)
+    envs_n_asts
 ;;
 
 (* `Underapprox asts *)
