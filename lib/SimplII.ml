@@ -2111,9 +2111,14 @@ let get_strings_range nfa length num =
    else NfaS.any_n_paths nfa ~len:length num)
   |> List.map (fun c -> List.to_seq c |> String.of_seq)
   |> List.map (fun c ->
+    if String.length c = 1 then Format.printf "STR: %s\n%!" c;
     if String.length c > 0
     then String.sub c 0 (String.length c - 1)
     else c (* Format.printf ">>>>> %s\n%!" c; *))
+  |> fun x ->
+  if length <= 0 && NfaS.re_accepts (String.to_seq "" |> List.of_seq) nfa
+  then "" :: x
+  else x
 ;;
 
 let subst env ast =
@@ -2192,9 +2197,9 @@ let try_under_concats env alpha ast =
          let (module Symantics) = make_main_symantics e in
          (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
          log "@[%a@]" (Env.pp ~title:"env = ") e; *)
-         apply_symantics (module Symantics) ast)
+         e, apply_symantics (module Symantics) ast)
       envs)
-  else [ ast ]
+  else [ env, ast ]
 ;;
 
 let try_under2_heuristics env ast =
@@ -2350,20 +2355,19 @@ let run_under2 env ast =
 ;;
 
 let under_concats env alpha ast =
-  let asts = try_under_concats env alpha ast in
-  (*FIXME: dangerous thing below. I add ast behind all underapproxed ones*)
-  let asts = if List.length asts > 1 then asts @ [ ast ] else asts in
+  let envs_n_asts = try_under_concats env alpha ast in
   (* log "Simplifications for underapproximated concats:\n%!"; *)
-  let asts =
+  let simplified =
     List.filter_map
-      (fun ast ->
-         match basic_simplify [ 1 ] env ast with
+      (fun (env, ast) ->
+         match basic_simplify [ 0 ] env ast with
          | `Unsat -> None
          | `Sat env -> raise_notrace (Underapprox_fired env)
          | `Unknown (ast, _, _, _) -> Some ast)
-      asts
+      envs_n_asts
   in
-  asts
+  (*FIXME: dangerous thing below. I add ast behind all underapproxed ones*)
+  if List.length simplified > 1 then simplified @ [ ast ] else simplified
 ;;
 
 (* `Underapprox asts *)
