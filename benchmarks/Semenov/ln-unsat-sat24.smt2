@@ -16,7 +16,7 @@ https://doi.org/10.4230/LIPIcs.SAT.2024.14
 (set-info :status unsat)
 
 (declare-fun x () String)
-(declare-fun z () String)
+(declare-fun z () Int)
 
 (assert (<= (str.len x) 3))
 (assert (<= 1000 z))

@@ -1300,10 +1300,8 @@ let find_vars_for_under2s ast =
          function
          | Eia (Eq (l, r, S)) ->
            (match l, r with
-            | Str_const c, _ | _, Str_const c -> acc
+            | Str_const _, _ | _, Str_const _ -> acc
             | _, _ -> fold_term fz fs (fold_term fz fs acc r) l)
-         | Eia (Eq (l, r, I)) -> fold_term fz fs (fold_term fz fs acc r) l
-         | Eia (Leq (l, r)) -> fold_term fz fs (fold_term fz fs acc r) l
          | _ -> acc)
       S.empty
       ast
@@ -1693,6 +1691,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
                S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ]))
         | _ -> None
         (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
+        (* MS: I am going to add try / catch for the Occurs exceeption *)
         (* Note: presence of key means we already simplified this variable in another equality *)
       with
       | Env.Occurs -> None
@@ -1714,9 +1713,11 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Sofi (Atom (Var _)) as rhs), _))
       when var_can_subst vn -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, S)) when var_can_subst vn ->
-      Some (extend_exn env v rhs)
+      (try Some (extend_exn env v rhs) with
+       | Env.Occurs -> None)
     | Eia (Eia.Eq (lhs, Atom (Var (vn, _) as v), S)) when var_can_subst vn ->
-      Some (extend_exn env v lhs)
+      (try Some (extend_exn env v lhs) with
+       | Env.Occurs -> None)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Iofs (Atom (Var _)) as rhs), _))
       when var_can_subst vn -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len (Atom (Var _)) as rhs), _))
@@ -2205,7 +2206,7 @@ let try_under_concats env alpha ast =
         (fun e ->
            let (module Symantics) = make_main_symantics e in
            (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
-         log "@[%a@]" (Env.pp ~title:"env = ") e; *)
+           log "@[%a@]" (Env.pp ~title:"env = ") e; *)
            e, apply_symantics (module Symantics) ast)
         envs)
   in
