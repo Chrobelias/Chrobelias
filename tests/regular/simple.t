@@ -1,13 +1,11 @@
   $ CHRO_DEBUG=1 Chro simple.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
-             (str.in_re a (re.++ (re.++ (str.to.re "c") (re.++ (str.to.re "b") (str.to.re "a"))) (re.* (str.to.re ""))))
+             (= a "abc")
              (= a "abc"))
   Something ready to substitute
         a -> "abc";
   
-  iter(2)= (and
-             (str.in_re a (re.++ (re.++ (str.to.re "c") (re.++ (str.to.re "b") (str.to.re "a"))) (re.* (str.to.re "")))))
-  iter(3)= True
+  iter(2)= True
   fixed-point
   
   sat (presimpl)
