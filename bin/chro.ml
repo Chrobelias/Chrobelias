@@ -234,6 +234,18 @@ let model_from_parts_regexes_env tys model regexes env =
         | _ -> true)
       real_model
   in
+  let real_model =
+    Map.fold
+      ~f:(fun ~key ~data acc ->
+        if Map.mem acc key
+        then acc
+        else (
+          match data with
+          | `Int -> Map.add_exn acc ~key ~data:(`Int Z.zero)
+          | `Str -> Map.add_exn acc ~key ~data:(`Str "")))
+      ~init:real_model
+      tys
+  in
   real_model
 ;;
 
