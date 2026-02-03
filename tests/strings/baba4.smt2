@@ -2,7 +2,6 @@
 
 (declare-const a String)
 (declare-const b String)
-(declare-const q Int)
 
 (push 1)
   (assert (str.in.re a (str.to.re "Ba")))
