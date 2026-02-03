@@ -14,8 +14,12 @@
   fixed-point
   
   Alphapbet with extra char: # 9
-  Vars_for_under for strings: x
+  Vars for underapporx (rigth): x
   Strings for x:
+    # ## ### ##9 ##99 #9 #9# #9#9 #99 #999 9 9# 9## 9#9 9#99 99 99# 99#9 999 9999
+  
+  Vars for underapporx (left): y
+  Strings for y:
     # ## ### ##9 ##99 #9 #9# #9#9 #99 #999 9 9# 9## 9#9 9#99 99 99# 99#9 999 9999
   
   sat (under I)

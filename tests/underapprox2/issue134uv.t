@@ -51,12 +51,12 @@ $ export CHRO_DEBUG=1
   Into Z3 goes: (bool.eq (int.mul x (int.pow 2 z)) 3076)
   
   sat (nia)
-  ()
+  ((define-fun x () (_ Int) 0) (define-fun z () (_ Int) 0))
 The test below should be SAT but there is an issue #143
 which is needed to be fixed first
   $ timeout 2 $RUN -amin 1 -amax 1 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
-  ()
+  ((define-fun x () (_ Int) 0) (define-fun z () (_ Int) 0))
 
   $ echo '(2^12-2^10+1)* 2^0' | bc
   3073
@@ -72,7 +72,7 @@ which is needed to be fixed first
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 3.smt2'
   $ timeout 2 $RUN -amin 1 -amax 1 -lsb 3.smt2 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
-  ()
+  ((define-fun x () (_ Int) 0) (define-fun z () (_ Int) 0))
 
   $ echo '(2^13-2^7+2^5)*2^0' | bc
   8096
@@ -102,7 +102,7 @@ which is needed to be fixed first
   Into Z3 goes: (bool.eq (int.mul x (int.pow 2 z)) 8096)
   
   sat (nia)
-  ()
+  ((define-fun x () (_ Int) 0) (define-fun z () (_ Int) 0))
   $ timeout 2 $RUN -flat 2 | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
-  ()
+  ((define-fun x () (_ Int) 0) (define-fun z () (_ Int) 0))
