@@ -47,6 +47,199 @@ let lift ?(unsat_info = "") ast = function
   | `Sat (s, e) -> Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
 ;;
 
+let logBaseZ n =
+  let base = Lib.Config.base () in
+  let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base) in
+  helper Z.minus_one n
+;;
+
+let join_int_model _tys prefix m =
+  let open Lib in
+  (* Format.printf
+    "prefix.length = %d, n.length = %d\n%!"
+    (Env.length prefix)
+    (Base.Map.Poly.length m); *)
+  (*Format.printf "PREFIX %a\n%!" (Env.pp ~title:"prefix") prefix;
+  Format.printf "MODEL %a\n%!" Ir.pp_model_smtlib2 m;*)
+  let prefix =
+    let shrink_ir_model =
+      Base.Map.Poly.map_keys_exn m ~f:(function
+        | Ir.Var s -> Ast.Any_atom (Ast.var s Ast.I)
+        | Ir.Pow2 _ -> assert false)
+    in
+    Env.enrich prefix shrink_ir_model
+  in
+  (* log "prefix.length = %d" (Env.length prefix); *)
+  let rec seek prefix key =
+    match Env.lookup_int key prefix with
+    | Some eia -> begin
+      match SimplII.subst_term prefix eia with
+      | Ast.Eia.Const c -> Option.some (`Int c)
+      | Ast.Eia.Str_const s -> Option.some (`Str s)
+      | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
+      | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
+    end
+    (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
+    (* | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term) *)
+    | None -> begin
+      match Env.lookup_string key prefix with
+      | Some str -> begin
+        match SimplII.subst_term prefix str with
+        | Ast.Eia.Const c -> Option.some (`Int c)
+        | Ast.Eia.Str_const s -> Option.some (`Str s)
+        | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
+        | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
+      end
+      | None when Solver.is_internal key -> None
+      | None -> None
+    end
+  in
+  let rec saturate env =
+    let env' : Env.t =
+      Env.fold
+        env
+        ~f:(fun ~key ~data acc ->
+          begin match data with
+          | Ast.TT (Ast.I, term) ->
+            Env.extend_int_exn acc key (SimplII.subst_term env term)
+          | Ast.TT (Ast.S, term) ->
+            Env.extend_string_exn acc key (SimplII.subst_term env term)
+          end)
+        ~init:Env.empty
+    in
+    if Env.equal env' env then env' else saturate env'
+  in
+  let prefix = saturate prefix in
+  let module Set = Base.Set.Poly in
+  let unknown_vars =
+    Env.fold
+      ~init:Set.empty
+      ~f:(fun ~key:_ ~data:tt acc ->
+        match tt with
+        | Ast.TT (Ast.I, eia) ->
+          Set.union
+            acc
+            (Ast.get_all_vars (Ast.Eia (Ast.Eia.eq (Ast.Eia.const Z.zero) eia Ast.I))
+             |> Set.of_list)
+        | Ast.TT (Ast.S, _) -> acc)
+      prefix
+  in
+  let prefix =
+    Set.fold unknown_vars ~init:prefix ~f:(fun acc var ->
+      Env.extend_int_exn acc var (Ast.Eia.const Z.zero))
+  in
+  Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
+    match seek prefix key with
+    | Some value -> Map.set acc ~key:(Ir.var key) ~data:value
+    | None ->
+      if Solver.is_internal key |> not
+      then Format.eprintf "; Can't join models. Something may be missing\n%!";
+      acc)
+;;
+
+exception Too_long_model
+
+let model_from_parts_regexes_env tys model regexes env =
+  let model =
+    model
+    |> Map.mapi ~f:(fun ~key ~data ->
+      match data with
+      | `Str str -> `Str str
+      | `Int eia -> begin
+        match key with
+        | Lib.Ir.Var _ -> data
+        | Pow2 _ -> `Int (logBaseZ eia)
+      end)
+    |> Map.map_keys_exn ~f:(function
+      | Lib.Ir.Var _ as v -> v
+      | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
+  in
+  let model = join_int_model tys env model in
+  (*New code goes here *)
+  let var = Lib.Ir.var in
+  let raw_model = model in
+  let prefix = "strlen" in
+  let prefix_len = String.length prefix in
+  let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
+  let module NfaC = Lib.NfaCollection in
+  let real_model =
+    Map.to_alist raw_model
+    |> List.filter_map (fun (key, data) ->
+      match key with
+      | Lib.Ir.Var key when String.starts_with ~prefix key ->
+        let real_var = String.sub key prefix_len (String.length key - prefix_len) in
+        let data =
+          match data with
+          | `Int c ->
+            if c > Z.of_int Lib.Config.max_longest_path
+            then raise Too_long_model
+            else Z.to_int c
+          | _ -> assert false
+        in
+        begin if not (Map.mem raw_model (var real_var))
+        then
+          if Map.mem regexes real_var
+          then (
+            let regexes = Map.find_exn regexes real_var in
+            let nfa = regexes in
+            let path =
+              NfaS.path_of_len2 ~var:0 ~len:data nfa
+              |> Option.value ~default:(List.init data (fun _ -> '0'))
+            in
+            Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
+          else Some (var real_var, `Str (String.init data (fun _ -> '0')))
+        else None
+        end
+      | Lib.Ir.Var key ->
+        let data' =
+          match data with
+          | `Str c -> `Str c
+          | `Int d ->
+            (match Map.find tys (Lib.Ir.Var key) with
+             | Some `Str -> `Str (Z.to_string d)
+             | Some `Int | None -> `Int d)
+        in
+        let result =
+          match data' with
+          | `Str str ->
+            let len_var = String.concat "" [ prefix; key ] in
+            let len =
+              match Map.find raw_model (var len_var) with
+              | Some (`Int len) -> Z.to_int len
+              | _ -> String.length str
+            in
+            let str =
+              if len = 0
+              then ""
+              else
+                String.concat
+                  ""
+                  [ String.init (len - String.length str) (fun _ -> '0'); str ]
+            in
+            `Str str
+          | `Int d -> `Int d
+        in
+        Some (var key, result)
+      | _ -> Some (key, data))
+    |> Map.of_alist_exn
+  in
+  (* New code ends here *)
+  let real_model =
+    Map.filteri
+      ~f:(fun ~key ~data:_ ->
+        match key with
+        | Var v when String.starts_with ~prefix:"%" v -> false
+        | _ -> true)
+      real_model
+  in
+  real_model
+;;
+
+let print_model tys model regexes env =
+  let real_model = model_from_parts_regexes_env tys model regexes env in
+  Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
+;;
+
 let check_sat ?(verbose = false) tys ast : rez =
   let __ () =
     if config.stop_after = `Pre_simplify
@@ -275,7 +468,7 @@ let check_sat ?(verbose = false) tys ast : rez =
         let asts_n_regexes = asts_n_regexes |> List.to_seq in
         let asts_n_regexes = Seq.map f asts_n_regexes in
         let asts_n_regexes =
-          Seq.map
+          (*Seq.map
             (function
               | Some (_, _, _, _, [], _) as rez -> rez
               | Some (_, _, _, get_model, post, _) as rez ->
@@ -294,6 +487,29 @@ let check_sat ?(verbose = false) tys ast : rez =
                 end
                 | _ -> rez
                 end
+              | None -> Option.none)
+            asts_n_regexes*)
+          Seq.map
+            (function
+              | Some (_, _, _, _, [], _) as rez -> rez
+              | Some (_, _, e, get_model, post, regexes) as rez -> begin
+                match get_model tys with
+                | Result.Ok model ->
+                  let model = model_from_parts_regexes_env tys model regexes e in
+                  begin if
+                    List.for_all
+                      (fun post ->
+                         match post model with
+                         | `Sat -> true
+                         | `Unknown ->
+                           can_be_unk := true;
+                           false)
+                      post
+                  then rez
+                  else Option.none
+                  end
+                | Result.Error _ -> rez
+              end
               | None -> Option.none)
             asts_n_regexes
         in
@@ -327,194 +543,6 @@ let check_sat ?(verbose = false) tys ast : rez =
       report_result2 (`Unknown "");
       unknown ast Lib.Env.empty)
     else raise s
-;;
-
-let logBaseZ n =
-  let base = Lib.Config.base () in
-  let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base) in
-  helper Z.minus_one n
-;;
-
-let join_int_model _tys prefix m =
-  let open Lib in
-  (* Format.printf
-    "prefix.length = %d, n.length = %d\n%!"
-    (Env.length prefix)
-    (Base.Map.Poly.length m); *)
-  (*Format.printf "PREFIX %a\n%!" (Env.pp ~title:"prefix") prefix;
-  Format.printf "MODEL %a\n%!" Ir.pp_model_smtlib2 m;*)
-  let prefix =
-    let shrink_ir_model =
-      Base.Map.Poly.map_keys_exn m ~f:(function
-        | Ir.Var s -> Ast.Any_atom (Ast.var s Ast.I)
-        | Ir.Pow2 _ -> assert false)
-    in
-    Env.enrich prefix shrink_ir_model
-  in
-  (* log "prefix.length = %d" (Env.length prefix); *)
-  let rec seek prefix key =
-    match Env.lookup_int key prefix with
-    | Some eia -> begin
-      match SimplII.subst_term prefix eia with
-      | Ast.Eia.Const c -> Option.some (`Int c)
-      | Ast.Eia.Str_const s -> Option.some (`Str s)
-      | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
-      | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
-    end
-    (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
-    (* | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term) *)
-    | None -> begin
-      match Env.lookup_string key prefix with
-      | Some str -> begin
-        match SimplII.subst_term prefix str with
-        | Ast.Eia.Const c -> Option.some (`Int c)
-        | Ast.Eia.Str_const s -> Option.some (`Str s)
-        | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
-        | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
-      end
-      | None when Solver.is_internal key -> None
-      | None -> None
-    end
-  in
-  let rec saturate env =
-    let env' : Env.t =
-      Env.fold
-        env
-        ~f:(fun ~key ~data acc ->
-          begin match data with
-          | Ast.TT (Ast.I, term) ->
-            Env.extend_int_exn acc key (SimplII.subst_term env term)
-          | Ast.TT (Ast.S, term) ->
-            Env.extend_string_exn acc key (SimplII.subst_term env term)
-          end)
-        ~init:Env.empty
-    in
-    if Env.equal env' env then env' else saturate env'
-  in
-  let prefix = saturate prefix in
-  let module Set = Base.Set.Poly in
-  let unknown_vars =
-    Env.fold
-      ~init:Set.empty
-      ~f:(fun ~key:_ ~data:tt acc ->
-        match tt with
-        | Ast.TT (Ast.I, eia) ->
-          Set.union
-            acc
-            (Ast.get_all_vars (Ast.Eia (Ast.Eia.eq (Ast.Eia.const Z.zero) eia Ast.I))
-             |> Set.of_list)
-        | Ast.TT (Ast.S, _) -> acc)
-      prefix
-  in
-  let prefix =
-    Set.fold unknown_vars ~init:prefix ~f:(fun acc var ->
-      Env.extend_int_exn acc var (Ast.Eia.const Z.zero))
-  in
-  Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
-    match seek prefix key with
-    | Some value -> Map.set acc ~key:(Ir.var key) ~data:value
-    | None ->
-      if Solver.is_internal key |> not
-      then Format.eprintf "; Can't join models. Something may be missing\n%!";
-      acc)
-;;
-
-exception Too_long_model
-
-let print_model tys model regexes env =
-  let model =
-    model
-    |> Map.mapi ~f:(fun ~key ~data ->
-      match data with
-      | `Str str -> `Str str
-      | `Int eia -> begin
-        match key with
-        | Lib.Ir.Var _ -> data
-        | Pow2 _ -> `Int (logBaseZ eia)
-      end)
-    |> Map.map_keys_exn ~f:(function
-      | Lib.Ir.Var _ as v -> v
-      | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
-  in
-  let model = join_int_model tys env model in
-  (*New code goes here *)
-  let var = Lib.Ir.var in
-  let raw_model = model in
-  let prefix = "strlen" in
-  let prefix_len = String.length prefix in
-  let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
-  let module NfaC = Lib.NfaCollection in
-  let real_model =
-    Map.to_alist raw_model
-    |> List.filter_map (fun (key, data) ->
-      match key with
-      | Lib.Ir.Var key when String.starts_with ~prefix key ->
-        let real_var = String.sub key prefix_len (String.length key - prefix_len) in
-        let data =
-          match data with
-          | `Int c ->
-            if c > Z.of_int Lib.Config.max_longest_path
-            then raise Too_long_model
-            else Z.to_int c
-          | _ -> assert false
-        in
-        begin if not (Map.mem raw_model (var real_var))
-        then
-          if Map.mem regexes real_var
-          then (
-            let regexes = Map.find_exn regexes real_var in
-            let nfa = regexes in
-            let path =
-              NfaS.path_of_len2 ~var:0 ~len:data nfa
-              |> Option.value ~default:(List.init data (fun _ -> '0'))
-            in
-            Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
-          else Some (var real_var, `Str (String.init data (fun _ -> '0')))
-        else None
-        end
-      | Lib.Ir.Var key ->
-        let data' =
-          match data with
-          | `Str c -> `Str c
-          | `Int d ->
-            (match Map.find tys (Lib.Ir.Var key) with
-             | Some `Str -> `Str (Z.to_string d)
-             | Some `Int | None -> `Int d)
-        in
-        let result =
-          match data' with
-          | `Str str ->
-            let len_var = String.concat "" [ prefix; key ] in
-            let len =
-              match Map.find raw_model (var len_var) with
-              | Some (`Int len) -> Z.to_int len
-              | _ -> String.length str
-            in
-            let str =
-              if len = 0
-              then ""
-              else
-                String.concat
-                  ""
-                  [ String.init (len - String.length str) (fun _ -> '0'); str ]
-            in
-            `Str str
-          | `Int d -> `Int d
-        in
-        Some (var key, result)
-      | _ -> Some (key, data))
-    |> Map.of_alist_exn
-  in
-  (* New code ends here *)
-  let real_model =
-    Map.filteri
-      ~f:(fun ~key ~data:_ ->
-        match key with
-        | Var v when String.starts_with ~prefix:"%" v -> false
-        | _ -> true)
-      real_model
-  in
-  Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
 ;;
 
 type state =

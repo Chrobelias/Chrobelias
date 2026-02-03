@@ -3069,16 +3069,39 @@ let arithmetize ast =
             posts
             := Map.add_exn !posts ~key:constr ~data:(fun (model : Ir.model) ->
                  let len =
-                   Map.find model (Ir.var constr)
+                   Map.find model (Ir.var (strlens lhs))
                    |> function
                    | Some (`Int v) -> v
                    | Some (`Str v) -> assert false
-                   | None -> failwith "no length found in model: need to improve"
+                   | None -> begin
+                     Map.find model (Ir.var lhs)
+                     |> function
+                     | Some (`Int v) -> assert false
+                     | Some (`Str v) -> Z.of_int (String.length v)
+                     | None ->
+                       Format.printf "%a\n%!" Ir.pp_model_smtlib2 model;
+                       failwith "no length found in model: need to improve"
+                   end
                  in
+                 (* Format.printf "LENGTH %a\n%!" Z.pp_print len; *)
                  let len = Z.to_int len in
-                 let w1 = NfaS.path_of_len2 ~var:0 ~len lhs_re |> Option.get in
-                 let w2 = NfaS.path_of_len2 ~var:0 ~len rhs_re |> Option.get in
-                 if w1 <> w2 then `Sat else `Unknown);
+                 let w1 = NfaS.all_paths_of_len lhs_re len in
+                 let w2 = NfaS.all_paths_of_len rhs_re len in
+                 (*List.iter
+                   (fun c ->
+                      c |> List.to_seq |> String.of_seq |> Format.printf "> LHS > %s\n%!")
+                   w1;
+                 List.iter
+                   (fun c ->
+                      c |> List.to_seq |> String.of_seq |> Format.printf "> RHS > %s\n%!")
+                   w2;*)
+                 if
+                   List.length w1 + List.length w2 > 2
+                   || (List.length w1 = 1
+                       && List.length w2 = 1
+                       && List.nth w1 0 <> List.nth w2 0)
+                 then `Sat
+                 else `Unknown);
             Ast.land_
               [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
               ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
