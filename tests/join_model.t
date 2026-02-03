@@ -47,4 +47,4 @@ TODO: fix this later
   > EOF
   $ Chro -no-over -bound 0 --dsimpl --stop-after simpl 2.smt2 | sed 's/[[:space:]]*$//'
   sat (presimpl)
-  ()
+  ((define-fun x () (_ Int) 0))
