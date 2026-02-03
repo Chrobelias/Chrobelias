@@ -284,7 +284,7 @@ struct
       then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
       level := !level + 1;
       (match ir with
-       | Ir.Unsupp s -> raise Exit
+       | Ir.Unsupp s -> NfaCollection.n ()
        | Ir.True -> NfaCollection.n ()
        | Ir.Lnot ir -> eval ir |> Nfa.invert
        (*
@@ -1093,6 +1093,14 @@ struct
       | `Unknown
       ]
     =
+    let had_unsupp =
+      Ir.for_some
+        (function
+          | Ir.Unsupp _ -> true
+          | _ -> false)
+        ir
+    in
+    let sat_if_no_unsupp arg = if had_unsupp then `Unknown else `Sat arg in
     let run_semenov = Ir.collect_vars ir |> Map.keys |> List.exists is_exp in
     if run_semenov
     then
@@ -1103,7 +1111,7 @@ struct
              (fun _ _ nfa _ -> if NfaNat.run nfa then Some () else None)
              (fun var nfa -> NfaNat.project [ var ] nfa)
         |> function
-        | Some _ -> `Sat (fun () -> Result.error `No_model)
+        | Some _ -> sat_if_no_unsupp (fun () -> Result.error `No_model)
         | None -> `Unsat
       else (
         let res =
@@ -1122,7 +1130,7 @@ struct
         begin match res with
         | None -> if !Config.bounded_unsat then `Unknown else `Unsat
         | Some (s, order, (model, len), models) ->
-          `Sat (get_model_semenov ir s order (model, len) models)
+          sat_if_no_unsupp (get_model_semenov ir s order (model, len) models)
         (* (match get_model_semenov ir s order (model, len) models with
              | `Cant_get_model -> `Sat (Result.Error `Too_long)
              | `Ok x -> `Sat (Result.Ok x)) *)
@@ -1132,7 +1140,7 @@ struct
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
       Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
       if ir' |> eval |> fst |> Nfa.run
-      then `Sat (fun () -> Result.Ok (get_model_normal ir ()))
+      then sat_if_no_unsupp (fun () -> Result.Ok (get_model_normal ir ()))
       else `Unsat)
   ;;
 end
