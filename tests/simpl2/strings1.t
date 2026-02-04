@@ -24,4 +24,8 @@
     # ## ### ##9 ##99 #9 #9# #9#9 #99 #999 9 9# 9## 9#9 9#99 99 99# 99#9 999 9999
   
   sat (under I)
-  ((define-fun x () (_ String) "") (define-fun y () (_ String) "999"))
+  (
+     (define-fun x () String
+      "")   (define-fun y () String
+      "999")
+  )
