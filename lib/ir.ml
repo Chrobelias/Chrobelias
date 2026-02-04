@@ -322,16 +322,16 @@ type model = (atom, [ `Int of Z.t | `Str of string ]) Map.t
 
 let pp_model_smtlib2 ppf m =
   let open Format in
-  fprintf ppf "@[<hv 1>@[(@]";
+  fprintf ppf "@[<hv 1>@[(@]\n ";
   let i = ref 0 in
   (* Mutability only for pretty-printing *)
   Map.iteri m ~f:(fun ~key ~data ->
     if !i <> 0 then fprintf ppf "@ " else incr i;
     match key, data with
-    | Var v, `Int z -> fprintf ppf "@[(define-fun %s () (_ Int) %a)@]" v Z.pp_print z
-    | Var v, `Str s -> fprintf ppf "@[(define-fun %s () (_ String) \"%s\")@]" v s
+    | Var v, `Int z -> fprintf ppf "  @[(define-fun %s () Int\n    %a)@]" v Z.pp_print z
+    | Var v, `Str s -> fprintf ppf "  @[(define-fun %s () String\n    \"%s\")@]" v s
     | Pow2 _, _ -> failwith "Unsupported. Exponenetials in the model");
-  fprintf ppf ")@]"
+  fprintf ppf "\n)@]"
 ;;
 
 let model_to_str m = Format.asprintf "%a" pp_model_smtlib2 m

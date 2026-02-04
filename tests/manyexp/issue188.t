@@ -8,19 +8,31 @@ QF_EIA tests with x, exp x and exp exp x using underapproximations
 
   $ timeout 5 Chro -bres 2 -bstates 10 ../manyexp/issue188.smt2 
   sat (nfa)
-  ((define-fun t () (_ Int) 0)
-   (define-fun x () (_ Int) 3)
-   (define-fun y () (_ Int) 8)
-   (define-fun z () (_ Int) 256))
+  (
+     (define-fun t () Int
+      0)
+     (define-fun x () Int
+      3)
+     (define-fun y () Int
+      8)
+     (define-fun z () Int
+      256)
+  )
 
 The same tests with three exponentiated vars in the LSB mode
 
   $ Chro -lsb -bres 2 -bstates 10 ../manyexp/issue188.smt2
   sat (nfa)
-  ((define-fun t () (_ Int) 0)
-   (define-fun x () (_ Int) 3)
-   (define-fun y () (_ Int) 8)
-   (define-fun z () (_ Int) 256))
+  (
+     (define-fun t () Int
+      0)
+     (define-fun x () Int
+      3)
+     (define-fun y () Int
+      8)
+     (define-fun z () Int
+      256)
+  )
 
   $ cat > test1.smt2 <<-EOF
   > (set-logic ALL)

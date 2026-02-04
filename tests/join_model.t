@@ -32,10 +32,16 @@
   
   lib/Underapprox.ml gives early Sat.
   sat (under I)
-  ((define-fun u () (_ Int) 0)
-   (define-fun x () (_ Int) -1)
-   (define-fun y () (_ Int) -5)
-   (define-fun z () (_ Int) 100))
+  (
+     (define-fun u () Int
+      0)
+     (define-fun x () Int
+      -1)
+     (define-fun y () Int
+      -5)
+     (define-fun z () Int
+      100)
+  )
 
 TODO: fix this later
   $ cat > 2.smt2 <<-EOF
@@ -47,4 +53,7 @@ TODO: fix this later
   > EOF
   $ Chro -no-over -bound 0 --dsimpl --stop-after simpl 2.smt2 | sed 's/[[:space:]]*$//'
   sat (presimpl)
-  ((define-fun x () (_ Int) 0))
+  (
+     (define-fun x () Int
+      0)
+  )

@@ -9,7 +9,12 @@ $ cat baba2.smt2
     (str.in_re.raw b)
     (chrob.len b (exp 10 %flat_pow4)))
   sat (nfa)
-  ((define-fun a () (_ String) "Ba")
-   (define-fun b () (_ String) "01")
-   (define-fun q () (_ Int) 0))
+  (
+     (define-fun a () String
+      "Ba")
+     (define-fun b () String
+      "01")
+     (define-fun q () Int
+      0)
+  )
 
