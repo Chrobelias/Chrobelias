@@ -659,6 +659,8 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let iofs = function
+      | Ast.Eia.Concat (lhs, rhs) ->
+        Id_symantics.add [Ast.Eia.mul [Id_symantics.iofs lhs; Ast.Eia.pow (Id_symantics.constz (Config.base ())) (Id_symantics.str_len lhs)]; Id_symantics.iofs rhs]
       | Ast.Eia.Str_const s -> begin
         match s with
         | "" -> Id_symantics.constz Z.minus_one
