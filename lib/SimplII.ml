@@ -660,7 +660,15 @@ let make_main_symantics ?alpha ?agressive env =
 
     let iofs = function
       | Ast.Eia.Concat (lhs, rhs) ->
-        Id_symantics.add [Ast.Eia.mul [Id_symantics.iofs lhs; Ast.Eia.pow (Id_symantics.constz (Config.base ())) (Id_symantics.str_len lhs)]; Id_symantics.iofs rhs]
+        Id_symantics.add
+          [ Ast.Eia.mul
+              [ Id_symantics.iofs lhs
+              ; Ast.Eia.pow
+                  (Id_symantics.constz (Config.base ()))
+                  (Id_symantics.str_len lhs)
+              ]
+          ; Id_symantics.iofs rhs
+          ]
       | Ast.Eia.Str_const s -> begin
         match s with
         | "" -> Id_symantics.constz Z.minus_one
@@ -2165,27 +2173,16 @@ let try_under_concats env alpha ast =
         let all_as name =
           let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
           let max_cnt = Config.under_str_config.max_cnt in
-          let str_len =
-            Ast.fold
-              (fun acc -> function
-                 | Ast.Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name ->
-                   Z.max c acc
-                 | Ast.Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name ->
-                   Z.max c acc
-                 | _ -> acc)
-              Z.minus_one
-              ast
-            |> Z.to_int
-          in
+          let length = Ast.get_len name ast in
           let size =
-            if str_len >= 0
-            then min max_cnt (Utils.pow ~base:(List.length alpha) str_len)
+            if length >= 0
+            then min max_cnt (Utils.pow ~base:(List.length alpha) length)
             else max_cnt
           in
           let list =
             get_strings_range
               (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
-              str_len
+              length
               size
           in
           log
@@ -3034,7 +3031,18 @@ let arithmetize ast =
         ast)
   in
   let unfold_neq var_info regexes ast =
-    let strleni s = Ast.Eia.Atom (Ast.Var (String.concat "" [ "strlen"; s ], Ast.I)) in
+    let strlen_var s = String.concat "" [ "strlen"; s ] in
+    let strleni s = Ast.Eia.Atom (Ast.Var (strlen_var s, Ast.I)) in
+    let get_len v =
+      Ast.fold
+        (fun acc -> function
+           | Eia (Eq (Atom (Var (s, _)), Const c, I)) when s = strlen_var v -> Z.max c acc
+           | Eia (Eq (Const c, Atom (Var (s, _)), I)) when s = strlen_var v -> Z.max c acc
+           | _ -> acc)
+        Z.minus_one
+        ast
+      |> Z.to_int
+    in
     let ast_if cond ast = if cond then ast else Ast.false_ in
     let aux (f : string -> string -> Ast.t) =
       Ast.map (function
@@ -3071,6 +3079,7 @@ let arithmetize ast =
           in
           ast_if (can_be_both_digit lhs rhs) ast
         in
+        (* The third case: they are both non-digit strings of the same length; to_int is -1*)
         let ast3 =
           let lhs_re =
             Map.find regexes lhs
@@ -3082,7 +3091,20 @@ let arithmetize ast =
             |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
             |> Option.value ~default:(NfaCL.n ())
           in
-          if lhs_re |> NfaS.run && rhs_re |> NfaS.run
+          let trivial_check =
+            let length = max (get_len lhs) (get_len rhs) in
+            if length > 0
+            then (
+              let list_left = get_strings_range lhs_re length 10 in
+              let list_right = get_strings_range rhs_re length 10 in
+              List.length list_left > 1
+              || List.length list_right > 1
+              || (List.length list_left = 1
+                  && List.length list_right = 1
+                  && List.hd list_left <> List.hd list_right))
+            else true
+          in
+          if trivial_check && lhs_re |> NfaS.run && rhs_re |> NfaS.run
           then (
             let constr = gensym ~prefix:"%under_distinct_3" () in
             posts
