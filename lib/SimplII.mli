@@ -25,7 +25,8 @@ val arithmetize
      | `Unsat
      | `Unknown of
          (Ast.t
-         * (Ir.model -> [ `Sat | `Unknown ]) list
+         * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ])
+             list
          * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
            list
      ]

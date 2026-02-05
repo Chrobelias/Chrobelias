@@ -3102,36 +3102,63 @@ let arithmetize ast =
                   && List.nth w1 0 <> List.nth w2 0))
             else lhs_re |> NfaS.run && rhs_re |> NfaS.run
           in
-          if length_check (max (get_len lhs) (get_len rhs))
-          then (
-            let constr = gensym ~prefix:"%under_distinct_3" () in
-            posts
-            := Map.add_exn !posts ~key:constr ~data:(fun (model : Ir.model) ->
-                 let len =
-                   Map.find model (Ir.var (strlens lhs))
-                   |> function
-                   | Some (`Int v) -> v
-                   | Some (`Str v) -> assert false
-                   | None -> begin
-                     Map.find model (Ir.var lhs)
-                     |> function
-                     | Some (`Int v) -> assert false
-                     | Some (`Str v) -> Z.of_int (String.length v)
-                     | None ->
-                       Debug.printf "%a\n%!" Ir.pp_model_smtlib2 model;
-                       failwith "no length found in model: need to improve"
-                   end
-                 in
-                 (*Format.printf "LENGTH %a\n%!" Z.pp_print len;*)
-                 if length_check (Z.to_int len) then `Sat else `Unknown);
-            Ast.land_
-              [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-              ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
-              ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
-              ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
-              ; Ast.Unsupp constr
-              ])
-          else Ast.false_
+          let constr = gensym ~prefix:"%under_distinct_3" () in
+          let post
+                (model : Ir.model)
+                (orig_ast : Ast.t)
+                (check_sat : Ast.t -> [ `Sat | `Unknown ])
+            =
+            if length_check (max (get_len lhs) (get_len rhs))
+            then `Sat
+            else begin
+              let model_ast =
+                Map.fold
+                  ~f:(fun ~key ~data acc ->
+                    let key =
+                      match key with
+                      | Ir.Var key -> key
+                      | _ -> assert false
+                    in
+                    match data with
+                    | `Int d ->
+                      Ast.Eia.eq
+                        (Ast.Eia.atom (Ast.var key Ast.I))
+                        (Ast.Eia.const d)
+                        Ast.I
+                      :: acc
+                    | `Str s ->
+                      Ast.Eia.eq
+                        (Ast.Eia.atom (Ast.var key Ast.S))
+                        (Ast.Eia.str_const s)
+                        Ast.S
+                      :: acc)
+                  ~init:[]
+                  model
+                |> List.map Ast.eia
+                |> Ast.land_
+              in
+              let ast =
+                Ast.land_
+                  [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+                  ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
+                  ; Ast.eia
+                      (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+                  ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
+                  ; Ast.lnot model_ast
+                  ; orig_ast
+                  ]
+              in
+              check_sat ast
+            end
+          in
+          posts := Map.add_exn !posts ~key:constr ~data:post;
+          Ast.land_
+            [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+            ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
+            ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+            ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
+            ; Ast.Unsupp constr
+            ]
         in
         Ast.lor_ [ ast1; ast2; ast3 ])
     in
