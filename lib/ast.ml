@@ -833,6 +833,17 @@ let in_stoi2 v ast =
   in_eia_term in_stoi_eia v ast'
 ;;
 
+let get_len name ast =
+  fold
+    (fun acc -> function
+       | Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name -> Z.max c acc
+       | Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name -> Z.max c acc
+       | _ -> acc)
+    Z.minus_one
+    ast
+  |> Z.to_int
+;;
+
 let rec equal ast ast' =
   match ast, ast' with
   | True, True -> true
