@@ -3091,20 +3091,18 @@ let arithmetize ast =
             |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
             |> Option.value ~default:(NfaCL.n ())
           in
-          let trivial_check =
-            let length = max (get_len lhs) (get_len rhs) in
+          let length_check length =
             if length > 0
             then (
-              let list_left = get_strings_range lhs_re length 10 in
-              let list_right = get_strings_range rhs_re length 10 in
-              List.length list_left > 1
-              || List.length list_right > 1
-              || (List.length list_left = 1
-                  && List.length list_right = 1
-                  && List.hd list_left <> List.hd list_right))
-            else true
+              let w1 = NfaS.all_paths_of_len lhs_re length in
+              let w2 = NfaS.all_paths_of_len rhs_re length in
+              List.length w1 + List.length w2 > 2
+              || (List.length w1 = 1
+                  && List.length w2 = 1
+                  && List.nth w1 0 <> List.nth w2 0))
+            else lhs_re |> NfaS.run && rhs_re |> NfaS.run
           in
-          if trivial_check && lhs_re |> NfaS.run && rhs_re |> NfaS.run
+          if length_check (max (get_len lhs) (get_len rhs))
           then (
             let constr = gensym ~prefix:"%under_distinct_3" () in
             posts
@@ -3120,29 +3118,12 @@ let arithmetize ast =
                      | Some (`Int v) -> assert false
                      | Some (`Str v) -> Z.of_int (String.length v)
                      | None ->
-                       Format.printf "%a\n%!" Ir.pp_model_smtlib2 model;
+                       Debug.printf "%a\n%!" Ir.pp_model_smtlib2 model;
                        failwith "no length found in model: need to improve"
                    end
                  in
                  (*Format.printf "LENGTH %a\n%!" Z.pp_print len;*)
-                 let len = Z.to_int len in
-                 let w1 = NfaS.all_paths_of_len lhs_re len in
-                 let w2 = NfaS.all_paths_of_len rhs_re len in
-                 (*List.iter
-                   (fun c ->
-                      c |> List.to_seq |> String.of_seq |> Format.printf "> LHS > %s\n%!")
-                   w1;
-                 List.iter
-                   (fun c ->
-                      c |> List.to_seq |> String.of_seq |> Format.printf "> RHS > %s\n%!")
-                   w2;*)
-                 if
-                   List.length w1 + List.length w2 > 2
-                   || (List.length w1 = 1
-                       && List.length w2 = 1
-                       && List.nth w1 0 <> List.nth w2 0)
-                 then `Sat
-                 else `Unknown);
+                 if length_check (Z.to_int len) then `Sat else `Unknown);
             Ast.land_
               [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
               ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
