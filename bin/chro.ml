@@ -227,14 +227,6 @@ let model_from_parts_regexes_env tys model regexes env =
   in
   (* New code ends here *)
   let real_model =
-    Map.filteri
-      ~f:(fun ~key ~data:_ ->
-        match key with
-        | Var v when String.starts_with ~prefix:"%" v -> false
-        | _ -> true)
-      real_model
-  in
-  let real_model =
     Map.fold
       ~f:(fun ~key ~data acc ->
         if Map.mem acc key
@@ -251,10 +243,18 @@ let model_from_parts_regexes_env tys model regexes env =
 
 let print_model tys model regexes env =
   let real_model = model_from_parts_regexes_env tys model regexes env in
+  let real_model =
+    Map.filteri
+      ~f:(fun ~key ~data:_ ->
+        match key with
+        | Var v when String.starts_with ~prefix:"%" v -> false
+        | _ -> true)
+      real_model
+  in
   Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
 ;;
 
-let check_sat ?(verbose = false) tys ast : rez =
+let rec check_sat ?(verbose = false) tys ast : rez =
   let __ () =
     if config.stop_after = `Pre_simplify
     then (
@@ -506,14 +506,19 @@ let check_sat ?(verbose = false) tys ast : rez =
           Seq.map
             (function
               | Some (_, _, _, _, [], _) as rez -> rez
-              | Some (_, _, e, get_model, post, regexes) as rez -> begin
+              | Some (_, ast, e, get_model, post, regexes) as rez -> begin
                 match get_model tys with
                 | Result.Ok model ->
                   let model = model_from_parts_regexes_env tys model regexes e in
                   begin if
                     List.for_all
                       (fun post ->
-                         match post model with
+                         match
+                           post model ast (fun ast ->
+                             match (check_sat tys) ast with
+                             | Sat _ -> `Sat
+                             | _ -> `Unknown)
+                         with
                          | `Sat -> true
                          | `Unknown ->
                            can_be_unk := true;
