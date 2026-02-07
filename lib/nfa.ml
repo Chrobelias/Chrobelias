@@ -107,11 +107,15 @@ module type L = sig
   val alpha : t -> u Set.t
 end
 
-module Bv = struct
+module type Base_ = sig
+  val base : int
+end
+
+module Bv (M : Base_) = struct
   type t = Z.t * Z.t
   type u = bool
 
-  let base = Z.of_int 2
+  let base = Z.of_int M.base
 
   (* ----------------- Auxiliary functions ----------------- *)
   let bv_get v i = Z.logand v (Z.shift_left Z.one i) |> Z.equal Z.zero |> not
@@ -271,11 +275,11 @@ module Bv = struct
   let is_any_at i (_, mask) = bv_get mask i = false
 end
 
-module StrBv = struct
+module StrBv (M : Base_) = struct
   type t = Z.t * Z.t
   type u = Z.t
 
-  let base = Z.of_int 10
+  let base = Z.of_int M.base
   let basei = Z.to_int base
 
   let u_zero, u_one, u_null, u_eos =
@@ -497,12 +501,12 @@ module StrBv = struct
   ;;
 end
 
-module Str = struct
+module Str (M : Base_) = struct
   type t = char array
   type u = char
 
   (* TODO: use me here! *)
-  let base = Z.of_int 10
+  let base = Z.of_int M.base
   let basei = Z.to_int base
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
@@ -867,6 +871,11 @@ module Graph (Label : L) = struct
 end
 
 let%expect_test "Reachable in range smoke test" =
+  let module Bv =
+    Bv (struct
+      let base = 2
+    end)
+  in
   let module Graph = Graph (Bv) in
   let reachable_in_range = Graph.reachable_in_range in
   let print x =
@@ -894,6 +903,11 @@ let%expect_test "Reachable in range smoke test" =
 ;;
 
 let%expect_test "Important verticies smoke test" =
+  let module Bv =
+    Bv (struct
+      let base = 2
+    end)
+  in
   let module Graph = Graph (Bv) in
   let find_important_verticies = Graph.find_important_verticies in
   let print =
@@ -2409,6 +2423,11 @@ module MsbNat (Label : L) = struct
 end
 
 let%expect_test "find_c_d smoke test" =
+  let module Bv =
+    Bv (struct
+      let base = 2
+    end)
+  in
   let module MsbNat = MsbNat (Bv) in
   let find_c_d = MsbNat.find_c_d in
   let print =
@@ -2556,37 +2575,52 @@ module Msb (Label : L) = struct
   ;;
 end
 
-let strbv_of_str (str : Str.t) =
-  ( StrBv.bv_init (Array.length str) (fun i ->
-      match Str.get str i with
-      | c when c = Str.u_eos -> StrBv.u_eos
-      | c when c = Str.u_null -> StrBv.u_null
-      | '0' .. '9' as c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0')
-      | _ -> StrBv.u_null)
-  , StrBv.bv_init (Array.length str) (fun i ->
-      match Str.get str i with
-      | c when c = Str.u_null -> StrBv.u_null
-      | c -> StrBv.u_eos) )
+let strbv_of_str (module M : Base_) =
+  let module Str = Str (M) in
+  let module StrBv = StrBv (M) in
+  fun (str : Str.t) ->
+    ( StrBv.bv_init (Array.length str) (fun i ->
+        match Str.get str i with
+        | c when c = Str.u_eos -> StrBv.u_eos
+        | c when c = Str.u_null -> StrBv.u_null
+        | '0' .. '9' as c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0')
+        | _ -> StrBv.u_null)
+    , StrBv.bv_init (Array.length str) (fun i ->
+        match Str.get str i with
+        | c when c = Str.u_null -> StrBv.u_null
+        | c -> StrBv.u_eos) )
 ;;
 
-let convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t =
-  fun nfa ->
-  { start = nfa.start
-  ; is_dfa = nfa.is_dfa
-  ; deg = nfa.deg
-  ; final = nfa.final
-  ; transitions =
-      Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
-  }
+let convert_nfa_lsb (module M : Base_) =
+  let module Str = Str (M) in
+  let module StrBv = StrBv (M) in
+  let f : Lsb(Str).t -> Lsb(StrBv).t =
+    fun nfa ->
+    { start = nfa.start
+    ; is_dfa = nfa.is_dfa
+    ; deg = nfa.deg
+    ; final = nfa.final
+    ; transitions =
+        (* I do not know why it is wrong... And how to fix it... *)
+        Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
+    }
+  in
+  f
 ;;
 
-let convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t =
-  fun nfa ->
-  { start = nfa.start
-  ; is_dfa = nfa.is_dfa
-  ; deg = nfa.deg
-  ; final = nfa.final
-  ; transitions =
-      Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
-  }
+let convert_nfa_msb (module M : Base_) =
+  let module Str = Str (M) in
+  let module StrBv = StrBv (M) in
+  let f : Msb(Str).t -> Msb(StrBv).t =
+    fun nfa ->
+    { start = nfa.start
+    ; is_dfa = nfa.is_dfa
+    ; deg = nfa.deg
+    ; final = nfa.final
+    ; transitions =
+        (* I do not know why it is wrong... And how to fix it... *)
+        Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
+    }
+  in
+  f
 ;;

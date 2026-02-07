@@ -35,11 +35,15 @@ module type L = sig
   val alpha : t -> u Set.t
 end
 
-module Bv : sig
+module type Base_ = sig
+  val base : int
+end
+
+module Bv (_ : Base_) : sig
   include L with type u = bool
 end
 
-module Str : sig
+module Str (_ : Base_) : sig
   include L with type u = char and type t = char array
 
   val u_null : u
@@ -154,5 +158,6 @@ module Msb (Label : L) : sig
   val of_lsb : Lsb(Label).t -> t
 end
 
+(* I do not know how to annotate modules here... *)
 val convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t
 val convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t

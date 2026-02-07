@@ -4,6 +4,8 @@
 module Map = Nfa.Map
 module Set = Base.Set.Poly
 
+module type Base_ = Nfa.Base_
+
 type varpos = int
 
 module type Type = sig
@@ -39,14 +41,14 @@ let ( -- ) i j =
 (* ------------------------- MSB types ------------------------- *)
 (* ------------------------------------------------------------- *)
 
-module Msb = struct
-  module Bv = Nfa.Bv
+module Msb (M : Base_) = struct
+  module Bv = Nfa.Bv (M)
   module Nfa = Nfa.Msb (Bv)
 
   type t = Nfa.t
   type v = bool
 
-  let base = Bv.base
+  let base = M.base
   let o = false
   let i = true
 
@@ -203,8 +205,8 @@ module Msb = struct
   ;;
 end
 
-module MsbStr = struct
-  module Str = Nfa.Str
+module MsbStr (M : Base_) = struct
+  module Str = Nfa.Str (M)
   module Nfa = Nfa.Msb (Nfa.Str)
 
   type t = Nfa.t
@@ -378,8 +380,8 @@ module MsbStr = struct
   ;;
 end
 
-module MsbStrBv = struct
-  module Str = Nfa.StrBv
+module MsbStrBv (M : Base_) = struct
+  module Str = Nfa.StrBv (M)
   module Nfa = Nfa.Msb (Nfa.StrBv)
 
   type t = Nfa.t
@@ -559,8 +561,8 @@ end
 (* ----------------------- MSB(IN) types ----------------------- *)
 (* ------------------------------------------------------------- *)
 
-module MsbNat = struct
-  module Bv = Nfa.Bv
+module MsbNat (M : Base_) = struct
+  module Bv = Nfa.Bv (M)
   module NfaMsb = Nfa.Msb (Bv)
   module NfaMsbNat = Nfa.MsbNat (Bv)
 
@@ -635,8 +637,8 @@ module MsbNat = struct
   ;;
 end
 
-module MsbNatStr = struct
-  module Str = Nfa.Str
+module MsbNatStr (M : Base_) = struct
+  module Str = Nfa.Str (M)
   module NfaMsb = Nfa.Msb (Str)
   module NfaMsbNat = Nfa.MsbNat (Str)
 
@@ -732,8 +734,8 @@ module MsbNatStr = struct
   ;;
 end
 
-module MsbNatStrBv = struct
-  module Str = Nfa.StrBv
+module MsbNatStrBv (M : Base_) = struct
+  module Str = Nfa.StrBv (M)
   module NfaMsb = Nfa.Msb (Str)
   module NfaMsbNat = Nfa.MsbNat (Str)
 
@@ -831,8 +833,8 @@ end
 (* ------------------------- LSB types ------------------------- *)
 (* ------------------------------------------------------------- *)
 
-module Lsb = struct
-  module Bv = Nfa.Bv
+module Lsb (M : Base_) = struct
+  module Bv = Nfa.Bv (M)
   module Nfa = Nfa.Lsb (Bv)
 
   type t = Nfa.t
@@ -1012,8 +1014,8 @@ module Lsb = struct
   ;;
 end
 
-module LsbStr = struct
-  module Str = Nfa.Str
+module LsbStr (M : Base_) = struct
+  module Str = Nfa.Str (M)
   module Nfa = Nfa.Lsb (Nfa.Str)
 
   type t = Nfa.t
@@ -1221,8 +1223,8 @@ module LsbStr = struct
   ;;
 end
 
-module LsbStrBv = struct
-  module Str = Nfa.StrBv
+module LsbStrbv (M : Base_) = struct
+  module Str = Nfa.StrBv (M)
   module Nfa = Nfa.Lsb (Nfa.StrBv)
 
   type t = Nfa.t
