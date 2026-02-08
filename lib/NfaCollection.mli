@@ -16,7 +16,7 @@ module type Type = sig
   val neq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
-  val base : Z.t
+  val base : int
 end
 
 module type NatType = sig
@@ -30,34 +30,34 @@ module Msb : sig
   include Type with type t = Nfa.Msb(Nfa.Bv).t and type v = bool
 end
 
-module MsbStr : sig
-  include Type with type t = Nfa.Msb(Nfa.Str).t and type v = Nfa.Str.u
+module MsbStr (Enc : Nfa.Encoding) : sig
+  include Type with type t = Nfa.Msb(Nfa.Str(Enc)).t and type v = Nfa.Str(Enc).u
 end
 
-module MsbStrBv : sig
-  include Type with type t = Nfa.Msb(Nfa.StrBv).t and type v = Nfa.StrBv.u
+module MsbStrBv (Enc : Nfa.Encoding) : sig
+  include Type with type t = Nfa.Msb(Nfa.StrBv(Enc)).t and type v = Nfa.StrBv(Enc).u
 end
 
 module MsbNat : sig
   include NatType with type t = Nfa.MsbNat(Nfa.Bv).t and type v = bool
 end
 
-module MsbNatStr : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.Str).t and type v = Nfa.Str.u
+module MsbNatStr (Enc : Nfa.Encoding) : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.Str(Enc)).t and type v = Nfa.Str(Enc).u
 end
 
-module MsbNatStrBv : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.StrBv).t and type v = Nfa.StrBv.u
+module MsbNatStrBv (Enc : Nfa.Encoding) : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.StrBv(Enc)).t and type v = Nfa.StrBv(Enc).u
 end
 
 module Lsb : sig
   include NatType with type t = Nfa.Lsb(Nfa.Bv).t and type v = bool
 end
 
-module LsbStr : sig
-  include NatType with type t = Nfa.Lsb(Nfa.Str).t and type v = Nfa.Str.u
+module LsbStr (Enc : Nfa.Encoding) : sig
+  include NatType with type t = Nfa.Lsb(Nfa.Str(Enc)).t and type v = Nfa.Str(Enc).u
 end
 
-module LsbStrBv : sig
-  include NatType with type t = Nfa.Lsb(Nfa.StrBv).t and type v = Nfa.StrBv.u
+module LsbStrBv (Enc : Nfa.Encoding) : sig
+  include NatType with type t = Nfa.Lsb(Nfa.StrBv(Enc)).t and type v = Nfa.StrBv(Enc).u
 end

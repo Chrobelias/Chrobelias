@@ -17,7 +17,7 @@ module type Type = sig
   val neq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
-  val base : Z.t
+  val base : int
 end
 
 module type NatType = sig
@@ -46,7 +46,8 @@ module Msb = struct
   type t = Nfa.t
   type v = bool
 
-  let base = Z.of_int 2
+  let base = 2
+  let baseZ = Z.of_int base
   let o = false
   let i = true
 
@@ -105,8 +106,8 @@ module Msb = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
-              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (baseZ * gcd_) = zero))
+              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) baseZ), bits, hd)
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -161,7 +162,7 @@ module Msb = struct
              let t =
                thing
                |> List.map (fun (bits, sum) ->
-                 Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
+                 Z.(gcd_ * div_ (hd - sum) (baseZ * gcd_)), bits, hd)
              in
              states := Set.add !states hd;
              transitions := t @ !transitions;
@@ -205,7 +206,7 @@ end
 
 module MsbStr (Enc : Nfa.Encoding) = struct
   module Str = Nfa.Str (Enc)
-  module Nfa = Nfa.Msb (Nfa.Str (Nfa.Enc))
+  module Nfa = Nfa.Msb (Nfa.Str (Enc))
 
   type t = Nfa.t
   type v = Str.u
@@ -380,7 +381,7 @@ end
 
 module MsbStrBv (Enc : Nfa.Encoding) = struct
   module Str = Nfa.StrBv (Enc)
-  module Nfa = Nfa.Msb (Str)
+  module Nfa = Nfa.Msb (Nfa.StrBv (Enc))
 
   type t = Nfa.t
   type v = Str.u
@@ -637,8 +638,9 @@ end
 
 module MsbNatStr (Enc : Nfa.Encoding) = struct
   module Str = Nfa.Str (Enc)
-  module NfaMsb = Nfa.Msb (Str)
-  module NfaMsbNat = Nfa.MsbNat (Str)
+  module MsbStr = MsbStr (Enc)
+  module NfaMsb = Nfa.Msb (Nfa.Str (Enc))
+  module NfaMsbNat = Nfa.MsbNat (Nfa.Str (Enc))
 
   type t = NfaMsbNat.t
   type v = Str.u
@@ -646,7 +648,6 @@ module MsbNatStr (Enc : Nfa.Encoding) = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base = Str.base
-  let baseZ = Z.of_int Str.base
   let alphabet = Str.alphabet |> List.to_seq |> Seq.take base |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
@@ -716,9 +717,9 @@ module MsbNatStr (Enc : Nfa.Encoding) = struct
       ~deg:(exp + 1)
   ;;
 
-  let eq vars term c = MsbStr.eq vars term c |> NfaMsb.to_nat
-  let neq vars term c = MsbStr.neq vars term c |> NfaMsb.to_nat
-  let leq vars term c = MsbStr.leq vars term c |> NfaMsb.to_nat
+  let eq vars term c = MsbStr.eq vars term c |> MsbStr.Nfa.to_nat
+  let neq vars term c = MsbStr.neq vars term c |> MsbStr.Nfa.to_nat
+  let leq vars term c = MsbStr.leq vars term c |> MsbStr.Nfa.to_nat
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
@@ -730,10 +731,11 @@ module MsbNatStr (Enc : Nfa.Encoding) = struct
   ;;
 end
 
-module MsbNatStrBv (M : Base_) = struct
-  module Str = Nfa.StrBv (M)
-  module NfaMsb = Nfa.Msb (Str)
-  module NfaMsbNat = Nfa.MsbNat (Str)
+module MsbNatStrBv (Enc : Nfa.Encoding) = struct
+  module Str = Nfa.StrBv (Enc)
+  module MsbStrBv = MsbStrBv (Enc)
+  module NfaMsb = Nfa.Msb (Nfa.StrBv (Enc))
+  module NfaMsbNat = Nfa.MsbNat (Nfa.StrBv (Enc))
 
   type t = NfaMsbNat.t
   type v = Str.u
@@ -741,8 +743,7 @@ module MsbNatStrBv (M : Base_) = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base = Str.base
-  let basei = Z.to_int Str.base
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
+  let alphabet = Str.alphabet |> List.to_seq |> Seq.take base |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
@@ -793,8 +794,8 @@ module MsbNatStrBv (M : Base_) = struct
   let pow_of_log_var var exp =
     NfaMsbNat.create_nfa
       ~transitions:
-        ((0 -- (basei - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
-         @ (1 -- (basei - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
+        ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
+         @ (1 -- (base - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
          @ [ 1, [ Str.u_eos; Str.u_eos ], 1; 1, [ o; Str.u_eos ], 1; 1, [ o; o ], 1 ])
       ~start:[ 1 ]
       ~final:[ 0 ]
@@ -811,9 +812,9 @@ module MsbNatStrBv (M : Base_) = struct
       ~deg:(exp + 1)
   ;;
 
-  let eq vars term c = MsbStrBv.eq vars term c |> NfaMsb.to_nat
-  let neq vars term c = MsbStrBv.neq vars term c |> NfaMsb.to_nat
-  let leq vars term c = MsbStrBv.leq vars term c |> NfaMsb.to_nat
+  let eq vars term c = MsbStrBv.eq vars term c |> MsbStrBv.Nfa.to_nat
+  let neq vars term c = MsbStrBv.neq vars term c |> MsbStrBv.Nfa.to_nat
+  let leq vars term c = MsbStrBv.leq vars term c |> MsbStrBv.Nfa.to_nat
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     let alpha = Option.value ~default:alphabet alpha in
@@ -829,14 +830,15 @@ end
 (* ------------------------- LSB types ------------------------- *)
 (* ------------------------------------------------------------- *)
 
-module Lsb (M : Base_) = struct
-  module Bv = Nfa.Bv (M)
+module Lsb = struct
+  module Bv = Nfa.Bv
   module Nfa = Nfa.Lsb (Bv)
 
   type t = Nfa.t
   type v = bool
 
   let base = Bv.base
+  let baseZ = Z.of_int base
   let o = false
   let i = true
 
@@ -923,8 +925,8 @@ module Lsb (M : Base_) = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod base = zero))
-              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base))
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod baseZ = zero))
+              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / baseZ))
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -976,9 +978,9 @@ module Lsb (M : Base_) = struct
               |> List.map (fun (bits, sum) ->
                 ( hd
                 , bits
-                , match Z.((hd - sum) mod base) with
-                  | x when x = Z.one || x = Z.zero -> Z.((hd - sum) / base)
-                  | x when x = Z.minus_one -> Z.(((hd - sum) / base) - one)
+                , match Z.((hd - sum) mod baseZ) with
+                  | x when x = Z.one || x = Z.zero -> Z.((hd - sum) / baseZ)
+                  | x when x = Z.minus_one -> Z.(((hd - sum) / baseZ) - one)
                   | _ -> failwith "Should be unreachable" ))
             in
             states := Set.add !states hd;
@@ -1010,9 +1012,9 @@ module Lsb (M : Base_) = struct
   ;;
 end
 
-module LsbStr (M : Base_) = struct
-  module Str = Nfa.Str (M)
-  module Nfa = Nfa.Lsb (Nfa.Str)
+module LsbStr (Enc : Nfa.Encoding) = struct
+  module Str = Nfa.Str (Enc)
+  module Nfa = Nfa.Lsb (Nfa.Str (Enc))
 
   type t = Nfa.t
   type v = Str.u
@@ -1020,8 +1022,8 @@ module LsbStr (M : Base_) = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base = Str.base
-  let basei = Z.to_int base
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
+  let baseZ = Z.of_int base
+  let alphabet = Str.alphabet |> List.to_seq |> Seq.take base |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
@@ -1059,7 +1061,6 @@ module LsbStr (M : Base_) = struct
   ;;
 
   let pow_of_log_var var exp =
-    let base = basei in
     Nfa.create_nfa
       ~transitions:
         ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
@@ -1081,7 +1082,6 @@ module LsbStr (M : Base_) = struct
   ;;
 
   let powerset term =
-    let base = basei in
     let rec helper = function
       | [] -> []
       | [ x ] ->
@@ -1124,8 +1124,8 @@ module LsbStr (M : Base_) = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod base = zero))
-              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base))
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod baseZ = zero))
+              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / baseZ))
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -1180,9 +1180,9 @@ module LsbStr (M : Base_) = struct
               |> List.map (fun (bits, sum) ->
                 ( hd
                 , bits
-                , match Z.((hd - sum) mod base) with
-                  | i when Z.(zero <= i) && i < base -> Z.((hd - sum) / base)
-                  | i when Z.(-base < i && i < zero) -> Z.(((hd - sum) / base) - one)
+                , match Z.((hd - sum) mod baseZ) with
+                  | i when Z.(zero <= i) && i < baseZ -> Z.((hd - sum) / baseZ)
+                  | i when Z.(-baseZ < i && i < zero) -> Z.(((hd - sum) / baseZ) - one)
                   | _ -> failwith "Should be unreachable" ))
             in
             states := Set.add !states hd;
@@ -1219,9 +1219,9 @@ module LsbStr (M : Base_) = struct
   ;;
 end
 
-module LsbStrbv (M : Base_) = struct
-  module Str = Nfa.StrBv (M)
-  module Nfa = Nfa.Lsb (Nfa.StrBv)
+module LsbStrBv (Enc : Nfa.Encoding) = struct
+  module Str = Nfa.StrBv (Enc)
+  module Nfa = Nfa.Lsb (Nfa.StrBv (Enc))
 
   type t = Nfa.t
   type v = Str.u
@@ -1229,8 +1229,8 @@ module LsbStrbv (M : Base_) = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base = Str.base
-  let basei = Z.to_int base
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
+  let baseZ = Z.of_int base
+  let alphabet = Str.alphabet |> List.to_seq |> Seq.take base |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
@@ -1268,7 +1268,6 @@ module LsbStrbv (M : Base_) = struct
   ;;
 
   let pow_of_log_var var exp =
-    let base = basei in
     Nfa.create_nfa
       ~transitions:
         ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
@@ -1290,7 +1289,6 @@ module LsbStrbv (M : Base_) = struct
   ;;
 
   let powerset term =
-    let base = basei in
     let rec helper = function
       | [] -> []
       | [ (var, x) ] ->
@@ -1333,8 +1331,8 @@ module LsbStrbv (M : Base_) = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod base = zero))
-              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base))
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod baseZ = zero))
+              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / baseZ))
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -1390,9 +1388,9 @@ module LsbStrbv (M : Base_) = struct
               |> List.map (fun (bits, sum) ->
                 ( hd
                 , bits
-                , match Z.((hd - sum) mod base) with
-                  | i when Z.(zero <= i) && i < base -> Z.((hd - sum) / base)
-                  | i when Z.(-base < i && i < zero) -> Z.(((hd - sum) / base) - one)
+                , match Z.((hd - sum) mod baseZ) with
+                  | i when Z.(zero <= i) && i < baseZ -> Z.((hd - sum) / baseZ)
+                  | i when Z.(-baseZ < i && i < zero) -> Z.(((hd - sum) / baseZ) - one)
                   | _ -> failwith "Should be unreachable" ))
             in
             states := Set.add !states hd;
