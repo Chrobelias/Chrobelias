@@ -20,7 +20,7 @@ let internal_name () =
 
 let name = function
   | Var name -> name
-  | Pow2 name -> Format.asprintf "%a" Z.pp_print (Config.base ()) ^ name
+  | Pow2 name -> Format.asprintf "%d" (Config.base ()) ^ name
 ;;
 
 let internal () = var (internal_name ())
@@ -73,7 +73,13 @@ let pp_polynom ppf poly =
   fprintf ppf "@[(%a)@]@ " pp_map poly
 ;;
 
-module NfaS = Nfa.Lsb (Nfa.Str)
+module Enc = struct
+  include Nfa.Enc
+
+  let base = Config.base ()
+end
+
+module NfaS = Nfa.Lsb (Nfa.Str (Enc))
 
 type t =
   | True

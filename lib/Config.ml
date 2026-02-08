@@ -1,6 +1,7 @@
 type config =
   { mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
   ; mutable mode : [ `Msb | `Lsb ]
+  ; mutable base : int option
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
@@ -29,6 +30,7 @@ type config =
 let config =
   { stop_after = `Solving
   ; mode = `Msb
+  ; base = None
   ; dump_simpl = false
   ; dump_pre_simpl = false
   ; dump_ir = false
@@ -86,7 +88,9 @@ let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
 
 let base () =
-  if config.logic = `Str || config.logic = `StrBv then Z.of_int 10 else Z.of_int 2
+  match config.base with
+  | Some base -> base
+  | None -> if config.logic = `Str || config.logic = `StrBv then 10 else 2
 ;;
 
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
@@ -134,6 +138,7 @@ Basic options:
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , "  \tUse least-significant-bit first representation" )
+    ; "-base", Arg.Int (fun n -> config.base <- Some n), "\tBase for (S)EIA formulas\t"
     ; ( "-bres"
       , Arg.Int (fun n -> config.bound_res <- n)
       , "  \tMaximal residue used in NFA Solver" )
@@ -160,7 +165,6 @@ Basic options:
     ; ( "-q"
       , Arg.Unit (fun () -> config.quiet <- true)
       , "   \tPrint 'unknown' instead of Exceptions\t" )
-    ; "-base10", Arg.Unit (fun () -> config.logic <- `StrBv), "\tBase 10 EIA\t"
     ; ( "--stop-after"
       , Arg.String
           (function

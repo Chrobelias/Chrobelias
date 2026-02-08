@@ -83,7 +83,7 @@ module type L = sig
   type t
   type u
 
-  val base : Z.t
+  val base : int
   val alphabet : u List.t
   val u_zero : u
   val is_any_at : int -> t -> bool
@@ -107,15 +107,15 @@ module type L = sig
   val alpha : t -> u Set.t
 end
 
-module type Base_ = sig
+module type Encoding = sig
   val base : int
 end
 
-module Bv (M : Base_) = struct
+module Bv = struct
   type t = Z.t * Z.t
   type u = bool
 
-  let base = Z.of_int M.base
+  let base = 2
 
   (* ----------------- Auxiliary functions ----------------- *)
   let bv_get v i = Z.logand v (Z.shift_left Z.one i) |> Z.equal Z.zero |> not
@@ -210,7 +210,7 @@ module Bv (M : Base_) = struct
   let eos_with_mask mask = Z.zero, bv_of_list mask
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    (* assert (base = Config.base ()); *)
     Z.shift_left Z.one c, bv_of_list mask
   ;;
 
@@ -275,30 +275,29 @@ module Bv (M : Base_) = struct
   let is_any_at i (_, mask) = bv_get mask i = false
 end
 
-module StrBv (M : Base_) = struct
+module StrBv (Enc : Encoding) = struct
   type t = Z.t * Z.t
   type u = Z.t
 
-  let base = Z.of_int M.base
-  let basei = Z.to_int base
+  let base = Enc.base
+  let baseZ = Z.of_int base
 
   let u_zero, u_one, u_null, u_eos =
-    Z.one, Z.of_int 2, Z.zero, Z.(pow (of_int 2) basei - one)
+    Z.one, Z.of_int 2, Z.zero, Z.(pow (of_int 2) base - one)
   ;;
 
   let is_end_char c = c = u_eos || c = u_null
-  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / basei
+  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / base
 
   let rec compose = function
     | [] -> u_null
-    | x :: xs -> Z.(x + Z.shift_left (compose xs) basei)
+    | x :: xs -> Z.(x + Z.shift_left (compose xs) base)
   ;;
 
   let rec decompose s = function
     | _ when s = 0 -> []
     | x ->
-      Z.(x mod Z.shift_left Z.one basei)
-      :: decompose (s - 1) (Z.shift_right_trunc x basei)
+      Z.(x mod Z.shift_left Z.one base) :: decompose (s - 1) (Z.shift_right_trunc x base)
   ;;
 
   (* FIXME: GB: I think we should shift right then.or something like this. *)
@@ -307,8 +306,8 @@ module StrBv (M : Base_) = struct
     Z.shift_right
       (Z.logand
          v
-         (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i))))
-      (basei * i)
+         (Z.sub (Z.shift_left Z.one (base * (i + 1))) (Z.shift_left Z.one (base * i))))
+      (base * i)
   ;;
 
   let get (vec, mask) i =
@@ -327,13 +326,13 @@ module StrBv (M : Base_) = struct
 
   let bv_init deg f =
     List.fold_left
-      (fun acc v -> Z.logor acc (Z.shift_left (f v) (v * basei)))
+      (fun acc v -> Z.logor acc (Z.shift_left (f v) (v * base)))
       Z.zero
       (0 -- (deg - 1))
   ;;
 
   let bv_of_list =
-    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_eos (v * basei))) Z.zero
+    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_eos (v * base))) Z.zero
   ;;
 
   let equal (vec1, mask1) (vec2, mask2) =
@@ -387,7 +386,7 @@ module StrBv (M : Base_) = struct
   ;;
 
   let variations ?alpha:_ (_, mask) =
-    let full_alpha = 0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x) in
+    let full_alpha = 0 -- (base - 1) |> List.map (fun x -> Z.shift_left Z.one x) in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
       | 0 -> []
@@ -448,7 +447,7 @@ module StrBv (M : Base_) = struct
   ;;
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    (* assert (base = Config.base ()); *)
     let len = max (List.fold_left max 0 mask) c + 1 in
     ( bv_init len (fun i ->
         if not (List.mem i mask) then u_null else if i = c then u_one else u_zero)
@@ -492,22 +491,21 @@ module StrBv (M : Base_) = struct
   ;;
 
   let alpha _ =
-    (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
+    (0 -- (base - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
     |> Set.of_list
   ;;
 
   let alphabet =
-    (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
+    (0 -- (base - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
   ;;
 end
 
-module Str (M : Base_) = struct
+module Str (Enc : Encoding) = struct
   type t = char array
   type u = char
 
-  (* TODO: use me here! *)
-  let base = Z.of_int M.base
-  let basei = Z.to_int base
+  let base = Enc.base
+  let baseZ = Z.of_int base
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let is_end_char c = c = u_eos || c = u_null
@@ -582,17 +580,13 @@ module Str (M : Base_) = struct
   ;;
 
   let alphabet =
-    (Char.code '0' -- (Char.code '0' + basei - 1) |> List.map Char.chr)
-    @ [ u_eos; u_null ]
+    (Char.code '0' -- (Char.code '0' + base - 1) |> List.map Char.chr) @ [ u_eos; u_null ]
   ;;
 
   (* FIXME: this should support different bases and symbols. *)
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
-    let full_alpha =
-      Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1)
-      |> List.map Char.chr
-    in
+    let full_alpha = Char.code '0' -- (Char.code '0' + base - 1) |> List.map Char.chr in
     let full_alpha = Option.value ~default:full_alpha alpha in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
@@ -634,7 +628,7 @@ module Str (M : Base_) = struct
   ;;
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    (* assert (base = Config.base ()); *)
     let len = max (List.fold_left max 0 mask) c + 1 in
     Array.init len (fun i ->
       if not (List.mem i mask) then u_null else if i = c then '1' else '0')
@@ -871,11 +865,6 @@ module Graph (Label : L) = struct
 end
 
 let%expect_test "Reachable in range smoke test" =
-  let module Bv =
-    Bv (struct
-      let base = 2
-    end)
-  in
   let module Graph = Graph (Bv) in
   let reachable_in_range = Graph.reachable_in_range in
   let print x =
@@ -903,11 +892,6 @@ let%expect_test "Reachable in range smoke test" =
 ;;
 
 let%expect_test "Important verticies smoke test" =
-  let module Bv =
-    Bv (struct
-      let base = 2
-    end)
-  in
   let module Graph = Graph (Bv) in
   let find_important_verticies = Graph.find_important_verticies in
   let print =
@@ -1230,7 +1214,7 @@ struct
                     if
                       !flag
                       || Label.alphabet
-                         |> List.take (Z.to_int (Config.base ()))
+                         |> List.take Label.base
                          |> List.for_all (fun c -> Set.mem symbols c)
                     then label1'
                     else label1)
@@ -2423,11 +2407,6 @@ module MsbNat (Label : L) = struct
 end
 
 let%expect_test "find_c_d smoke test" =
-  let module Bv =
-    Bv (struct
-      let base = 2
-    end)
-  in
   let module MsbNat = MsbNat (Bv) in
   let find_c_d = MsbNat.find_c_d in
   let print =
@@ -2575,9 +2554,13 @@ module Msb (Label : L) = struct
   ;;
 end
 
-let strbv_of_str (module M : Base_) =
-  let module Str = Str (M) in
-  let module StrBv = StrBv (M) in
+module Enc = struct
+  let base = Config.base ()
+end
+
+let strbv_of_str (module Enc : Encoding) =
+  let module Str = Str (Enc) in
+  let module StrBv = StrBv (Enc) in
   fun (str : Str.t) ->
     ( StrBv.bv_init (Array.length str) (fun i ->
         match Str.get str i with
@@ -2591,9 +2574,9 @@ let strbv_of_str (module M : Base_) =
         | c -> StrBv.u_eos) )
 ;;
 
-let convert_nfa_lsb (module M : Base_) =
-  let module Str = Str (M) in
-  let module StrBv = StrBv (M) in
+let convert_nfa_lsb (module Enc : Encoding) =
+  let module Str = Str (Enc) in
+  let module StrBv = StrBv (Enc) in
   let f : Lsb(Str).t -> Lsb(StrBv).t =
     fun nfa ->
     { start = nfa.start
@@ -2601,16 +2584,17 @@ let convert_nfa_lsb (module M : Base_) =
     ; deg = nfa.deg
     ; final = nfa.final
     ; transitions =
-        (* I do not know why it is wrong... And how to fix it... *)
-        Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
+        Array.map
+          (List.map (fun (label, q') -> strbv_of_str (module Enc) label, q'))
+          nfa.transitions
     }
   in
   f
 ;;
 
-let convert_nfa_msb (module M : Base_) =
-  let module Str = Str (M) in
-  let module StrBv = StrBv (M) in
+let convert_nfa_msb (module Enc : Encoding) =
+  let module Str = Str (Enc) in
+  let module StrBv = StrBv (Enc) in
   let f : Msb(Str).t -> Msb(StrBv).t =
     fun nfa ->
     { start = nfa.start
@@ -2618,8 +2602,9 @@ let convert_nfa_msb (module M : Base_) =
     ; deg = nfa.deg
     ; final = nfa.final
     ; transitions =
-        (* I do not know why it is wrong... And how to fix it... *)
-        Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
+        Array.map
+          (List.map (fun (label, q') -> strbv_of_str (module Enc) label, q'))
+          nfa.transitions
     }
   in
   f

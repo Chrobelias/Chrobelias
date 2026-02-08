@@ -2384,8 +2384,6 @@ let under_concats env alpha ast =
     envs_n_asts
 ;;
 
-(* `Underapprox asts *)
-
 let split_concats { Info.all; _ } =
   let module Map = Base.Map.Poly in
   let var_or_const x =

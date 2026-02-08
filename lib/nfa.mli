@@ -7,11 +7,15 @@ module Sequence = Base.Sequence
 type state = int
 type deg = int
 
+module type Encoding = sig
+  val base : int
+end
+
 module type L = sig
   type t
   type u
 
-  val base : Z.t
+  val base : int
   val alphabet : u List.t
   val u_zero : u
   val is_any_at : int -> t -> bool
@@ -35,15 +39,11 @@ module type L = sig
   val alpha : t -> u Set.t
 end
 
-module type Base_ = sig
-  val base : int
-end
-
-module Bv (_ : Base_) : sig
+module Bv : sig
   include L with type u = bool
 end
 
-module Str (_ : Base_) : sig
+module Str (_ : Encoding) : sig
   include L with type u = char and type t = char array
 
   val u_null : u
@@ -56,7 +56,7 @@ module Str (_ : Base_) : sig
   val is_one_at : int -> t -> bool
 end
 
-module StrBv : sig
+module StrBv (_ : Encoding) : sig
   include L with type u = Z.t and type t = Z.t * Z.t
 
   val u_null : u
@@ -158,6 +158,9 @@ module Msb (Label : L) : sig
   val of_lsb : Lsb(Label).t -> t
 end
 
-(* I do not know how to annotate modules here... *)
-val convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t
-val convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t
+module Enc : sig
+  include Encoding
+end
+
+val convert_nfa_lsb : Lsb(Str(Enc)).t -> Lsb(StrBv(Enc)).t
+val convert_nfa_msb : Msb(Str(Enc)).t -> Msb(StrBv(Enc)).t

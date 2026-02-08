@@ -47,7 +47,13 @@ module Eq = struct
   ;;
 end
 
-module NfaS = Nfa.Lsb (Nfa.Str)
+module Enc = struct
+  include Nfa.Enc
+
+  let base = Config.base ()
+end
+
+module NfaS = Nfa.Lsb (Nfa.Str (Enc))
 
 module Eia = struct
   (** Exponential integer arithmetic, i.e. LIA with exponents.*)
