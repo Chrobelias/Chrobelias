@@ -15,6 +15,6 @@ $ cat baba2.smt2
      (define-fun b () String
       "01")
      (define-fun q () Int
-      0)
+      2)
   )
 

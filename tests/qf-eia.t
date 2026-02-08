@@ -111,7 +111,7 @@ Test EXP-solver simplified problems
      (define-fun u () Int
       1)
      (define-fun v () Int
-      0)
+      3)
      (define-fun w () Int
       20576111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112)
      (define-fun x () String
