@@ -2081,13 +2081,13 @@ let basic_simplify step ?multiple (env : Env.t) ast =
   | Sat (_, env) -> `Sat env
 ;;
 
-let run_basic_simplify ast =
+let run_basic_simplify ?(env = Env.empty) ast =
   log "Basic simplifications:\n%!";
   let ast = lower_mod ast in
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
   then (
-    match basic_simplify [ 1 ] Env.empty ast with
+    match basic_simplify [ 1 ] env ast with
     | `Sat env -> `Sat ("presimpl", env)
     | `Unsat -> `Unsat
     | `Unknown (ast, e, _, _) ->
@@ -2098,15 +2098,21 @@ let run_basic_simplify ast =
 let collect_regexes ast =
   let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module Map = Base.Map.Poly in
-  Ast.fold
+  let open Ast in
+  fold
     (fun acc -> function
        (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
-       | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const str, S)) ->
+       | Eia (Eq (Eia.Atom (Ast.Var (s, S)), Eia.Str_const str, S)) ->
          (s, Regex.str_to_re str |> NfaL.of_regex) :: acc
-       | Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re)) ->
-         (s, re |> NfaL.of_regex) :: acc
-       | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa)) -> (s, nfa) :: acc
-       | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, nfa)) -> (s, nfa) :: acc
+       | Eia (Eq (Eia.Str_const str, Eia.Atom (Var (s, S)), S)) ->
+         (s, Regex.str_to_re str |> NfaL.of_regex) :: acc
+       (* | Eia (Eq (Eia.Iofs (Eia.Atom (Var (s, S))), Eia.Const n, I)) ->
+         (s, Regex.int_to_re (Z.to_string n) |> NfaL.of_regex) :: acc
+       | Eia (Eq (Eia.Const n, Eia.Iofs (Eia.Atom (Var (s, S))), I)) ->
+         (s, Regex.int_to_re (Z.to_string n) |> NfaL.of_regex) :: acc *)
+       | Eia (InRe (Eia.Atom (Var (s, S)), S, re)) -> (s, re |> NfaL.of_regex) :: acc
+       | Eia (InReRaw (Eia.Atom (Var (s, S)), S, nfa)) -> (s, nfa) :: acc
+       | Eia (InReRaw (Eia.Atom (Var (s, I)), I, nfa)) -> (s, nfa) :: acc
        | _ -> acc)
     []
     ast
@@ -3214,7 +3220,7 @@ let arithmetize ast =
                  (ast |> flatten |> arithmetize var_info))
             asts_n_regexes
           |> List.concat_map (fun (a, b) ->
-            unfold_neq var_info b a |> List.map (fun (a, a') -> a, a', b)))
+            unfold_neq var_info b a |> List.map (fun (a, a') -> a, e, a', b)))
      with
      | Underapprox_fired env -> `Sat ("under I", env))
 ;;

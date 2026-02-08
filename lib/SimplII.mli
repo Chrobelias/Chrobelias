@@ -25,6 +25,7 @@ val arithmetize
      | `Unsat
      | `Unknown of
          (Ast.t
+         * Env.t
          * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ])
              list
          * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
@@ -32,7 +33,8 @@ val arithmetize
      ]
 
 val run_basic_simplify
-  :  Ast.t
+  :  ?env:Env.t
+  -> Ast.t
   -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t * Env.t ]
 
 val run_under2 : Env.t -> Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
