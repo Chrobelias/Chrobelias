@@ -47,10 +47,9 @@ module Eq = struct
   ;;
 end
 
-module NfaS = Nfa.Lsb (Nfa.Str (Nfa.Enc))
-
-module Eia = struct
+module Eia (Enc : Nfa.Encoding) = struct
   (** Exponential integer arithmetic, i.e. LIA with exponents.*)
+  module NfaS = Nfa.Lsb (Nfa.Str (Enc))
 
   type 'a term =
     | Const : Z.t -> Z.t term
@@ -425,126 +424,98 @@ module Eia = struct
   let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
 end
 
-type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
+module M (Enc : Nfa.Encoding) = struct
+  module NfaS = Nfa.Lsb (Nfa.Str (Enc))
+  module Eia = Eia (Enc)
 
-module Map = Base.Map.Poly
+  type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
 
-type post =
-  [ `Sat of (string, [ `Int of Z.t | `Str of string ]) Map.t | `Unsat | `Unkown ]
-  -> [ `Sat of (string, [ `Int of Z.t | `Str of string ]) Map.t | `Unsat | `Unkown ]
+  module Map = Base.Map.Poly
 
-let compare_post _ _ = 0
+  type post =
+    [ `Sat of (string, [ `Int of Z.t | `Str of string ]) Map.t | `Unsat | `Unkown ]
+    -> [ `Sat of (string, [ `Int of Z.t | `Str of string ]) Map.t | `Unsat | `Unkown ]
 
-type t =
-  | True
-  | Eia of Eia.t
-  | Lnot of t
-  | Land of t list
-  | Lor of t list
-  | Exists of any_atom list * t
-  | Pred of string
-  | Unsupp of string
-[@@deriving compare]
+  let compare_post _ _ = 0
 
-let true_ = True
+  type t =
+    | True
+    | Eia of Eia.t
+    | Lnot of t
+    | Land of t list
+    | Lor of t list
+    | Exists of any_atom list * t
+    | Pred of string
+    | Unsupp of string
+  [@@deriving compare]
 
-let land_ = function
-  | [] -> true_
-  | [ ast ] -> ast
-  | asts when List.exists (( = ) (Lnot True)) asts -> Lnot True
-  | asts ->
-    let asts =
-      List.concat_map
-        (function
-          | Land asts' -> asts'
-          | ast -> [ ast ])
-        asts
-    in
-    Land asts
-;;
+  let true_ = True
 
-let false_ = Lnot true_
+  let land_ = function
+    | [] -> true_
+    | [ ast ] -> ast
+    | asts when List.exists (( = ) (Lnot True)) asts -> Lnot True
+    | asts ->
+      let asts =
+        List.concat_map
+          (function
+            | Land asts' -> asts'
+            | ast -> [ ast ])
+          asts
+      in
+      Land asts
+  ;;
 
-let lor_ = function
-  | [] -> false_
-  | [ ast ] -> ast
-  | asts when List.exists (( = ) True) asts -> True
-  | asts ->
-    let asts =
-      List.map
-        (function
-          | Lor asts' -> asts'
-          | ast -> [ ast ])
-        asts
-      |> List.concat
-    in
-    Lor asts
-;;
+  let false_ = Lnot true_
 
-let eia eia = Eia eia
-let pred s = Pred s
+  let lor_ = function
+    | [] -> false_
+    | [ ast ] -> ast
+    | asts when List.exists (( = ) True) asts -> True
+    | asts ->
+      let asts =
+        List.map
+          (function
+            | Lor asts' -> asts'
+            | ast -> [ ast ])
+          asts
+        |> List.concat
+      in
+      Lor asts
+  ;;
 
-let rec lnot = function
-  | Lnot ast -> ast
-  | Land asts -> lor_ (List.map lnot asts)
-  | Lor asts -> land_ (List.map lnot asts)
-  | ast -> Lnot ast
-;;
+  let eia eia = Eia eia
+  let pred s = Pred s
 
-let rec exists = function
-  | [] -> Fun.id
-  | atoms -> begin
-    function
-    | Exists (atoms', ast) -> exists (atoms @ atoms') ast
-    | ast -> Exists (atoms, ast)
-  end
-;;
+  let rec lnot = function
+    | Lnot ast -> ast
+    | Land asts -> lor_ (List.map lnot asts)
+    | Lor asts -> land_ (List.map lnot asts)
+    | ast -> Lnot ast
+  ;;
 
-let limpl a b = lor_ [ lnot a; b ]
-let any atoms ast = lnot (exists atoms (lnot ast))
+  let rec exists = function
+    | [] -> Fun.id
+    | atoms -> begin
+      function
+      | Exists (atoms', ast) -> exists (atoms @ atoms') ast
+      | ast -> Exists (atoms, ast)
+    end
+  ;;
 
-let rec pp ppf = function
-  | True -> Format.fprintf ppf "True"
-  | Pred a -> Format.fprintf ppf "(P %s)" a
-  | Lnot a -> Format.fprintf ppf "(~ %a)" pp a
-  | Land irs ->
-    Format.fprintf
-      ppf
-      "(%a)"
-      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " & ") pp)
-      irs
-  | Lor irs ->
-    Format.fprintf
-      ppf
-      "(%a)"
-      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " | ") pp)
-      irs
-  | Exists (a, b) ->
-    Format.fprintf
-      ppf
-      "(E%a %a)"
-      (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") pp_any_atom)
-      a
-      pp
-      b
-  | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
-  | Unsupp s -> Format.fprintf ppf "%s" s
-;;
+  let limpl a b = lor_ [ lnot a; b ]
+  let any atoms ast = lnot (exists atoms (lnot ast))
 
-let pp_smtlib2 =
-  let open Format in
   let rec pp ppf = function
     | True -> Format.fprintf ppf "True"
     | Pred a -> Format.fprintf ppf "(P %s)" a
-    | Lnot a -> Format.fprintf ppf "(not %a)" pp a
+    | Lnot a -> Format.fprintf ppf "(~ %a)" pp a
     | Land irs ->
-      Format.fprintf ppf "@[<v 2>(and@,";
-      List.iteri
-        (fun i ->
-           if i <> 0 then fprintf ppf "@,";
-           fprintf ppf "@[%a@]" pp)
-        irs;
-      fprintf ppf ")@]"
+      Format.fprintf
+        ppf
+        "(%a)"
+        (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " & ") pp)
+        irs
     | Lor irs ->
       Format.fprintf
         ppf
@@ -554,378 +525,413 @@ let pp_smtlib2 =
     | Exists (a, b) ->
       Format.fprintf
         ppf
-        "(exists (%a) %a)"
+        "(E%a %a)"
         (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") pp_any_atom)
         a
         pp
         b
-    | Eia eia -> fprintf ppf "%a" Eia.pp eia
-    | Unsupp s -> fprintf ppf "%s" s
-  in
-  pp
-;;
+    | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
+    | Unsupp s -> Format.fprintf ppf "%s" s
+  ;;
 
-let pp_term_smtlib2 =
-  let open Format in
-  let rec pp_eia : 'a. _ -> 'a Eia.term -> unit =
-    fun ppf (type a) : (a Eia.term -> unit) -> function
-      | Eia.(Const c) when Z.lt c Z.zero -> fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
-      | Atom a -> fprintf ppf "%a" pp_atom a
-      | Add xs ->
-        fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
-      | Mul [ Const c; (Atom (Var _) as v) ] when Z.(equal c minus_one) ->
-        fprintf ppf "@[(- %a)@]" pp_eia v
-      | Mul xs ->
-        fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
-      | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
-      | x -> Eia.pp_term ppf x
-  in
-  pp_eia
-;;
+  let pp_smtlib2 =
+    let open Format in
+    let rec pp ppf = function
+      | True -> Format.fprintf ppf "True"
+      | Pred a -> Format.fprintf ppf "(P %s)" a
+      | Lnot a -> Format.fprintf ppf "(not %a)" pp a
+      | Land irs ->
+        Format.fprintf ppf "@[<v 2>(and@,";
+        List.iteri
+          (fun i ->
+             if i <> 0 then fprintf ppf "@,";
+             fprintf ppf "@[%a@]" pp)
+          irs;
+        fprintf ppf ")@]"
+      | Lor irs ->
+        Format.fprintf
+          ppf
+          "(%a)"
+          (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " | ") pp)
+          irs
+      | Exists (a, b) ->
+        Format.fprintf
+          ppf
+          "(exists (%a) %a)"
+          (Format.pp_print_list
+             ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+             pp_any_atom)
+          a
+          pp
+          b
+      | Eia eia -> fprintf ppf "%a" Eia.pp eia
+      | Unsupp s -> fprintf ppf "%s" s
+    in
+    pp
+  ;;
 
-(*
-   let tfold ft acc t =
-  let rec foldt acc = function
-    | (Const _ | Var _) as f -> ft acc f
-    | (Pow (_, t1) | Mul (_, t1)) as t -> ft (foldt acc t1) t
-    | (Add (t1, t2) | Bvand (t1, t2) | Bvor (t1, t2) | Bvxor (t1, t2)) as t ->
-      ft (foldt (foldt acc t1) t2) t
-  in
-  foldt acc t
-;;
+  let pp_term_smtlib2 =
+    let open Format in
+    let rec pp_eia : 'a. _ -> 'a Eia.term -> unit =
+      fun ppf (type a) : (a Eia.term -> unit) -> function
+        | Eia.(Const c) when Z.lt c Z.zero -> fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
+        | Atom a -> fprintf ppf "%a" pp_atom a
+        | Add xs ->
+          fprintf ppf "@[(+ %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+        | Mul [ Const c; (Atom (Var _) as v) ] when Z.(equal c minus_one) ->
+          fprintf ppf "@[(- %a)@]" pp_eia v
+        | Mul xs ->
+          fprintf ppf "@[(* %a)@]" (pp_print_list pp_eia ~pp_sep:pp_print_space) xs
+        | Pow (base, p) -> fprintf ppf "(exp %a %a)" pp_eia base pp_eia p
+        | x -> Eia.pp_term ppf x
+    in
+    pp_eia
+  ;;
 
-let fold ff ft acc f =
-  let rec foldt acc = function
-    | (Const _ | Var _) as f -> ft acc f
-    | (Pow (_, t1) | Mul (_, t1)) as t -> ft (foldt acc t1) t
-    | (Add (t1, t2) | Bvand (t1, t2) | Bvor (t1, t2) | Bvxor (t1, t2)) as t ->
-      ft (foldt (foldt acc t1) t2) t
-  in
-  let rec foldf acc = function
-    | (True | False) as f -> ff acc f
-    | ( Eq (t1, t2)
-      | Lt (t1, t2)
-      | Gt (t1, t2)
-      | Leq (t1, t2)
-      | Geq (t1, t2)
-      | Neq (t1, t2) ) as f -> ff (foldt (foldt acc t1) t2) f
-    | (Mor (f1, f2) | Mand (f1, f2) | Miff (f1, f2) | Mimpl (f1, f2)) as f ->
-      ff (foldf (foldf acc f1) f2) f
-    | Mnot f1 as f -> ff (foldf acc f1) f
-    | (Exists (_, f1) | Any (_, f1)) as f -> ff (foldf acc f1) f
-    | Pred (_, args) as f -> ff (List.fold_left foldt acc args) f
-  in
-  foldf acc f
-;;
+  (*
+     let tfold ft acc t =
+    let rec foldt acc = function
+      | (Const _ | Var _) as f -> ft acc f
+      | (Pow (_, t1) | Mul (_, t1)) as t -> ft (foldt acc t1) t
+      | (Add (t1, t2) | Bvand (t1, t2) | Bvor (t1, t2) | Bvxor (t1, t2)) as t ->
+        ft (foldt (foldt acc t1) t2) t
+    in
+    foldt acc t
+  ;;
 
-let for_some ff ft f =
-  fold (fun acc f -> ff f |> ( || ) acc) (fun acc t -> ft t |> ( || ) acc) false f
-;;
+  let fold ff ft acc f =
+    let rec foldt acc = function
+      | (Const _ | Var _) as f -> ft acc f
+      | (Pow (_, t1) | Mul (_, t1)) as t -> ft (foldt acc t1) t
+      | (Add (t1, t2) | Bvand (t1, t2) | Bvor (t1, t2) | Bvxor (t1, t2)) as t ->
+        ft (foldt (foldt acc t1) t2) t
+    in
+    let rec foldf acc = function
+      | (True | False) as f -> ff acc f
+      | ( Eq (t1, t2)
+        | Lt (t1, t2)
+        | Gt (t1, t2)
+        | Leq (t1, t2)
+        | Geq (t1, t2)
+        | Neq (t1, t2) ) as f -> ff (foldt (foldt acc t1) t2) f
+      | (Mor (f1, f2) | Mand (f1, f2) | Miff (f1, f2) | Mimpl (f1, f2)) as f ->
+        ff (foldf (foldf acc f1) f2) f
+      | Mnot f1 as f -> ff (foldf acc f1) f
+      | (Exists (_, f1) | Any (_, f1)) as f -> ff (foldf acc f1) f
+      | Pred (_, args) as f -> ff (List.fold_left foldt acc args) f
+    in
+    foldf acc f
+  ;;
+
+  let for_some ff ft f =
+    fold (fun acc f -> ff f |> ( || ) acc) (fun acc t -> ft t |> ( || ) acc) false f
+  ;;
 
 
-let for_all ff ft f =
-  fold (fun acc f -> ff f |> ( && ) acc) (fun acc t -> ft t |> ( && ) acc) true f
-;;
+  let for_all ff ft f =
+    fold (fun acc f -> ff f |> ( && ) acc) (fun acc t -> ft t |> ( && ) acc) true f
+  ;;
 
 
-let map ff ft f =
-  let rec mapt = function
-    | (Const _ | Var _) as f -> ft f
-    | Mul (a, t1) -> Mul (a, mapt t1) |> ft
-    | Add (t1, t2) -> Add (mapt t1, mapt t2) |> ft
-    | Bvand (t1, t2) -> Bvand (mapt t1, mapt t2) |> ft
-    | Bvor (t1, t2) -> Bvor (mapt t1, mapt t2) |> ft
-    | Bvxor (t1, t2) -> Bvxor (mapt t1, mapt t2) |> ft
-    | Pow (a, t1) -> Pow (a, mapt t1) |> ft
-  in
-  mapf f
-;;
-*)
+  let map ff ft f =
+    let rec mapt = function
+      | (Const _ | Var _) as f -> ft f
+      | Mul (a, t1) -> Mul (a, mapt t1) |> ft
+      | Add (t1, t2) -> Add (mapt t1, mapt t2) |> ft
+      | Bvand (t1, t2) -> Bvand (mapt t1, mapt t2) |> ft
+      | Bvor (t1, t2) -> Bvor (mapt t1, mapt t2) |> ft
+      | Bvxor (t1, t2) -> Bvxor (mapt t1, mapt t2) |> ft
+      | Pow (a, t1) -> Pow (a, mapt t1) |> ft
+    in
+    mapf f
+  ;;
+  *)
 
-let rec fold f acc ast =
-  match ast with
-  | True -> f acc ast
-  | Eia _ -> f acc ast
-  | Lnot ast' -> f (fold f acc ast') ast
-  | Land asts -> f (List.fold_left (fold f) acc asts) ast
-  | Lor asts -> f (List.fold_left (fold f) acc asts) ast
-  | Exists (_, ast') -> f (fold f acc ast') ast
-  | Pred _ -> f acc ast
-  | Unsupp _ -> f acc ast
-;;
-
-let forall f = fold (fun acc ast -> acc && f ast) true
-let forsome f = fold (fun acc ast -> acc || f ast) false
-
-let is_conjunct ast =
-  let rec helper acc ast =
+  let rec fold f acc ast =
     match ast with
-    | True | Eia _ | Pred _ | Unsupp _
-    | Lnot True
-    | Lnot (Eia _)
-    | Lnot (Pred _)
-    | Lnot (Unsupp _) -> true
-    | Exists (_, ast') -> helper acc ast'
-    | Land asts -> List.fold_left (fun acc ast -> acc && helper acc ast) acc asts
-    | _ -> false
-  in
-  helper true ast
-;;
+    | True -> f acc ast
+    | Eia _ -> f acc ast
+    | Lnot ast' -> f (fold f acc ast') ast
+    | Land asts -> f (List.fold_left (fold f) acc asts) ast
+    | Lor asts -> f (List.fold_left (fold f) acc asts) ast
+    | Exists (_, ast') -> f (fold f acc ast') ast
+    | Pred _ -> f acc ast
+    | Unsupp _ -> f acc ast
+  ;;
 
-let rec to_dnf ast =
-  let cartesian l1 l2 =
-    List.concat (List.map (fun e1 -> List.map (fun e2 -> land_ [ e1; e2 ]) l2) l1)
-  in
-  if is_conjunct ast
-  then [ ast ]
-  else (
+  let forall f = fold (fun acc ast -> acc && f ast) true
+  let forsome f = fold (fun acc ast -> acc || f ast) false
+
+  let is_conjunct ast =
+    let rec helper acc ast =
+      match ast with
+      | True | Eia _ | Pred _ | Unsupp _
+      | Lnot True
+      | Lnot (Eia _)
+      | Lnot (Pred _)
+      | Lnot (Unsupp _) -> true
+      | Exists (_, ast') -> helper acc ast'
+      | Land asts -> List.fold_left (fun acc ast -> acc && helper acc ast) acc asts
+      | _ -> false
+    in
+    helper true ast
+  ;;
+
+  let rec to_dnf ast =
+    let cartesian l1 l2 =
+      List.concat (List.map (fun e1 -> List.map (fun e2 -> land_ [ e1; e2 ]) l2) l1)
+    in
+    if is_conjunct ast
+    then [ ast ]
+    else (
+      match ast with
+      | Land [ x ] -> to_dnf x
+      | Land (x :: xs) -> List.fold_left cartesian (to_dnf x) (List.map to_dnf xs)
+      | Lor xs -> List.concat (List.map to_dnf xs)
+      | other -> [ other ])
+  ;;
+
+  let rec in_eia_term f v ast =
     match ast with
-    | Land [ x ] -> to_dnf x
-    | Land (x :: xs) -> List.fold_left cartesian (to_dnf x) (List.map to_dnf xs)
-    | Lor xs -> List.concat (List.map to_dnf xs)
-    | other -> [ other ])
-;;
+    | True | Pred _ -> false
+    | Eia eia -> f v eia
+    | Lnot ast' | Exists (_, ast') -> in_eia_term f v ast'
+    | Land asts | Lor asts ->
+      List.fold_left (fun acc ast -> acc || in_eia_term f v ast) false asts
+    | Unsupp _ -> false
+  ;;
 
-let rec in_eia_term f v ast =
-  match ast with
-  | True | Pred _ -> false
-  | Eia eia -> f v eia
-  | Lnot ast' | Exists (_, ast') -> in_eia_term f v ast'
-  | Land asts | Lor asts ->
-    List.fold_left (fun acc ast -> acc || in_eia_term f v ast) false asts
-  | Unsupp _ -> false
-;;
-
-let in_concat v ast =
-  in_eia_term
-    (fun v eia ->
-       Eia.fold2
-         (fun acc _ -> acc)
-         (fun acc el ->
-            match el with
-            | Eia.Concat (_, Eia.Atom (Var (s, S))) when s = v -> true
-            | Eia.Concat (Eia.Atom (Var (s, S)), _) when s = v -> true
-            | _ -> acc)
-         false
-         eia)
-    v
-    ast
-;;
-
-let collect_lin_exp ast =
-  let module Set = Base.Set.Poly in
-  fold
-    (fun (lin, exp) ast ->
-       let open Eia in
-       match ast with
-       | Eia eia ->
-         (match eia with
-          | Eq (Atom (Var (x, I)), Const _, I) -> Set.add lin x, exp
-          | Eq (Const _, Atom (Var (x, I)), I) -> Set.add lin x, exp
-          | Eq (Add [ Const _; Atom (Var (x, I)) ], Atom (Var (_, I)), I) ->
-            Set.add lin x, exp
-          | Eq (Pow (_, Atom (Var (x, I))), Const _, I) -> lin, Set.add exp x
-          | Eq (Mul [ Const _; Pow (_, Atom (Var (x, I))) ], Const _, I) ->
-            lin, Set.add exp x
-          | Leq (Atom (Var (x, I)), Const _) -> Set.add lin x, exp
-          | Leq (Const _, Atom (Var (x, I))) -> Set.add lin x, exp
-          | Leq (Add [ Const _; Atom (Var (x, I)) ], Atom (Var (_, I))) ->
-            Set.add lin x, exp
-          | Leq (Pow (_, Atom (Var (x, I))), Const _) -> lin, Set.add exp x
-          | Leq (Const _, Pow (_, Atom (Var (x, I)))) -> lin, Set.add exp x
-          | Leq (Mul [ Const _; Pow (_, Atom (Var (x, I))) ], Const _) ->
-            lin, Set.add exp x
-          | _ -> lin, exp)
-       | _ -> lin, exp)
-    (Set.empty, Set.empty)
-    ast
-;;
-
-(* MS: the same thing as the fashionable Who_in_exponents from SimplII.ml*)
-let collect_all ast =
-  let module Set = Base.Set.Poly in
-  fold
-    (fun acc ast ->
-       match ast with
-       | Eia eia ->
+  let in_concat v ast =
+    in_eia_term
+      (fun v eia ->
          Eia.fold2
-           (fun acc -> function
-              | Atom (Var (x, I)) -> x :: fst acc, snd acc
-              | Pow (_, Atom (Var (x, I))) -> fst acc, x :: snd acc
-              | _ -> acc)
            (fun acc _ -> acc)
-           acc
-           eia
-       | _ -> acc)
-    ([], [])
-    ast
-;;
-
-let get_all_vars ast = ast |> collect_all |> fst
-let get_exp_vars ast = ast |> collect_all |> snd
-
-let get_lin_vars ast =
-  let module Set = Base.Set.Poly in
-  fold
-    (fun acc ast ->
-       match ast with
-       | Eia eia ->
-         Eia.fold2_skip_pow
-           (fun acc -> function
-              | Atom (Var (x, I)) -> Set.add acc x
+           (fun acc el ->
+              match el with
+              | Eia.Concat (_, Eia.Atom (Var (s, S))) when s = v -> true
+              | Eia.Concat (Eia.Atom (Var (s, S)), _) when s = v -> true
               | _ -> acc)
-           acc
-           eia
-       | _ -> acc)
-    Set.empty
-    ast
-;;
-
-(* failwith "unable to fold; unsupported constraint" *)
-
-let rec map f = function
-  | True as ast -> f ast
-  | Eia _ as ast -> f ast
-  | Lnot ast -> f (lnot (map f ast))
-  | Land asts -> f (land_ (List.map (map f) asts))
-  | Lor asts -> f (lor_ (List.map (map f) asts))
-  | Exists (atoms, ast) -> f (exists atoms (map f ast))
-  | Pred _ as ast -> f ast
-  | Unsupp _ as ast -> f ast
-;;
-
-(* failwith "unable to map; unsupported constraint" *)
-
-let in_stoi v ast =
-  let in_stoi_eia v eia =
-    Eia.fold2
-      (fun acc el ->
-         match el with
-         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
-         | _ -> acc)
-      (fun acc _ -> acc)
-      false
-      eia
-  in
-  in_eia_term in_stoi_eia v ast
-;;
-
-let in_stoi2 v ast =
-  (* MS: Here, we can add any cases when we do not want to treat to_int as something special*)
-  (* Here, we omit (0 <= str.to_int x) *)
-  let ast' =
-    map
-      (function
-        | Eia (Leq (Const c, Iofs (Atom (Var (_, S))))) when Z.(c = zero) -> True
-        | ph -> ph)
+           false
+           eia)
+      v
       ast
-  in
-  let in_stoi_eia v eia =
-    Eia.fold2
-      (fun acc el ->
-         match el with
-         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
-         | _ -> acc)
-      (fun acc _ -> acc)
-      false
-      eia
-  in
-  in_eia_term in_stoi_eia v ast'
-;;
+  ;;
 
-let rec equal ast ast' =
-  match ast, ast' with
-  | True, True -> true
-  | Lnot ast, Lnot ast' -> equal ast ast'
-  | Land asts, Land asts' -> List.for_all2 equal asts asts'
-  | Lor asts, Lor asts' -> List.for_all2 equal asts asts'
-  | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
-  | Pred name, Pred name' -> name = name'
-  | Eia eia, Eia eia' -> Eia.equal eia eia'
-  | _, _ -> false
-;;
-
-let safe_eq ast ast' =
-  match ast, ast' with
-  | Eia (Eia.InReRaw (atom, S, lhs)), Eia (Eia.InReRaw (atom', S, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
-  | Eia (Eia.InReRaw (atom, I, lhs)), Eia (Eia.InReRaw (atom', I, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
-  | smth ->
-    (match Stdlib.(ast = ast') with
-     | exception _ -> true
-     | smth -> smth)
-;;
-
-let to_nat ast =
-  let module Set = Base.Set.Poly in
-  let nat_prefixes =
-    [ "%r"
-    ; "%under2"
-    ; "%subst"
-    ; "%concat"
-    ; "%arith_flat"
-    ; "%arith_re"
-    ; "%arith_re_raw"
-    ; "%re_len"
-    ; "strlen"
-    ; "string"
-    ]
-  in
-  let is_nat v =
-    List.fold_left
-      (fun acc pref -> acc || String.starts_with ~prefix:pref v)
-      false
-      nat_prefixes
-  in
-  let collect =
+  let collect_lin_exp ast =
+    let module Set = Base.Set.Poly in
     fold
-      (fun (acc_plus, acc_minus) -> function
-         | Eia (RLen (Eia.Atom (Var (v, I)), _)) -> acc_plus, Set.add acc_minus v
-         | Eia (InReRaw (Eia.Atom (Var (v, I)), _, _)) -> acc_plus, Set.add acc_minus v
-         | Eia eia' ->
-           Eia.fold2
-             (fun (acc_plus, acc_minus) -> function
-                | Eia.Atom (Var (v, I)) when not (is_nat v) ->
-                  Set.add acc_plus v, acc_minus
-                | eia' -> acc_plus, acc_minus)
-             (fun acc _ -> acc)
-             (acc_plus, acc_minus)
-             eia'
-         | Lor _ -> failwith "to_nat expected conjunct"
-         | ast -> acc_plus, acc_minus)
+      (fun (lin, exp) ast ->
+         let open Eia in
+         match ast with
+         | Eia eia ->
+           (match eia with
+            | Eq (Atom (Var (x, I)), Const _, I) -> Set.add lin x, exp
+            | Eq (Const _, Atom (Var (x, I)), I) -> Set.add lin x, exp
+            | Eq (Add [ Const _; Atom (Var (x, I)) ], Atom (Var (_, I)), I) ->
+              Set.add lin x, exp
+            | Eq (Pow (_, Atom (Var (x, I))), Const _, I) -> lin, Set.add exp x
+            | Eq (Mul [ Const _; Pow (_, Atom (Var (x, I))) ], Const _, I) ->
+              lin, Set.add exp x
+            | Leq (Atom (Var (x, I)), Const _) -> Set.add lin x, exp
+            | Leq (Const _, Atom (Var (x, I))) -> Set.add lin x, exp
+            | Leq (Add [ Const _; Atom (Var (x, I)) ], Atom (Var (_, I))) ->
+              Set.add lin x, exp
+            | Leq (Pow (_, Atom (Var (x, I))), Const _) -> lin, Set.add exp x
+            | Leq (Const _, Pow (_, Atom (Var (x, I)))) -> lin, Set.add exp x
+            | Leq (Mul [ Const _; Pow (_, Atom (Var (x, I))) ], Const _) ->
+              lin, Set.add exp x
+            | _ -> lin, exp)
+         | _ -> lin, exp)
       (Set.empty, Set.empty)
-  in
-  let vary var ast =
-    [ ast
-    ; map
+      ast
+  ;;
+
+  (* MS: the same thing as the fashionable Who_in_exponents from SimplII.ml*)
+  let collect_all ast =
+    let module Set = Base.Set.Poly in
+    fold
+      (fun acc ast ->
+         match ast with
+         | Eia eia ->
+           Eia.fold2
+             (fun acc -> function
+                | Atom (Var (x, I)) -> x :: fst acc, snd acc
+                | Pow (_, Atom (Var (x, I))) -> fst acc, x :: snd acc
+                | _ -> acc)
+             (fun acc _ -> acc)
+             acc
+             eia
+         | _ -> acc)
+      ([], [])
+      ast
+  ;;
+
+  let get_all_vars ast = ast |> collect_all |> fst
+  let get_exp_vars ast = ast |> collect_all |> snd
+
+  let get_lin_vars ast =
+    let module Set = Base.Set.Poly in
+    fold
+      (fun acc ast ->
+         match ast with
+         | Eia eia ->
+           Eia.fold2_skip_pow
+             (fun acc -> function
+                | Atom (Var (x, I)) -> Set.add acc x
+                | _ -> acc)
+             acc
+             eia
+         | _ -> acc)
+      Set.empty
+      ast
+  ;;
+
+  (* failwith "unable to fold; unsupported constraint" *)
+
+  let rec map f = function
+    | True as ast -> f ast
+    | Eia _ as ast -> f ast
+    | Lnot ast -> f (lnot (map f ast))
+    | Land asts -> f (land_ (List.map (map f) asts))
+    | Lor asts -> f (lor_ (List.map (map f) asts))
+    | Exists (atoms, ast) -> f (exists atoms (map f ast))
+    | Pred _ as ast -> f ast
+    | Unsupp _ as ast -> f ast
+  ;;
+
+  (* failwith "unable to map; unsupported constraint" *)
+
+  let in_stoi v ast =
+    let in_stoi_eia v eia =
+      Eia.fold2
+        (fun acc el ->
+           match el with
+           | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
+           | _ -> acc)
+        (fun acc _ -> acc)
+        false
+        eia
+    in
+    in_eia_term in_stoi_eia v ast
+  ;;
+
+  let in_stoi2 v ast =
+    (* MS: Here, we can add any cases when we do not want to treat to_int as something special*)
+    (* Here, we omit (0 <= str.to_int x) *)
+    let ast' =
+      map
         (function
-          | Eia eia' ->
-            eia
-              (Eia.map2
-                 Fun.id
-                 (function
-                   | Eia.Pow (Eia.Const base, Eia.Atom (Var (v, I))) when v = var ->
-                     Eia.const Z.zero
-                   | Eia.Atom (Var (v, I)) as v' when v = var ->
-                     Eia.Add
-                       [ Eia.Mul [ v'; Eia.const Z.minus_one ]; Eia.const Z.minus_one ]
-                   | eia' -> eia')
-                 Fun.id
-                 eia')
-          | Lor _ -> failwith "to_nat expected conjunct"
-          | ast -> ast)
+          | Eia (Leq (Const c, Iofs (Atom (Var (_, S))))) when Z.(c = zero) -> True
+          | ph -> ph)
         ast
-    ]
-  in
-  let vars = collect ast |> (fun x -> Set.diff (fst x) (snd x)) |> Set.to_list in
-  let open Base.List.Let_syntax in
-  let ( let* ) = Base.List.Let_syntax.( >>= ) in
-  List.fold_left
-    (fun acc var ->
-       let* acc = acc in
-       let* ast = vary var acc in
-       return ast)
-    (return ast)
-    vars
-;;
+    in
+    let in_stoi_eia v eia =
+      Eia.fold2
+        (fun acc el ->
+           match el with
+           | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
+           | _ -> acc)
+        (fun acc _ -> acc)
+        false
+        eia
+    in
+    in_eia_term in_stoi_eia v ast'
+  ;;
+
+  let rec equal ast ast' =
+    match ast, ast' with
+    | True, True -> true
+    | Lnot ast, Lnot ast' -> equal ast ast'
+    | Land asts, Land asts' -> List.for_all2 equal asts asts'
+    | Lor asts, Lor asts' -> List.for_all2 equal asts asts'
+    | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
+    | Pred name, Pred name' -> name = name'
+    | Eia eia, Eia eia' -> Eia.equal eia eia'
+    | _, _ -> false
+  ;;
+
+  let safe_eq ast ast' =
+    match ast, ast' with
+    | Eia (Eia.InReRaw (atom, S, lhs)), Eia (Eia.InReRaw (atom', S, rhs)) ->
+      NfaS.equal_start_and_final lhs rhs && atom = atom'
+    | Eia (Eia.InReRaw (atom, I, lhs)), Eia (Eia.InReRaw (atom', I, rhs)) ->
+      NfaS.equal_start_and_final lhs rhs && atom = atom'
+    | smth ->
+      (match Stdlib.(ast = ast') with
+       | exception _ -> true
+       | smth -> smth)
+  ;;
+
+  let to_nat ast =
+    let module Set = Base.Set.Poly in
+    let nat_prefixes =
+      [ "%r"
+      ; "%under2"
+      ; "%subst"
+      ; "%concat"
+      ; "%arith_flat"
+      ; "%arith_re"
+      ; "%arith_re_raw"
+      ; "%re_len"
+      ; "strlen"
+      ; "string"
+      ]
+    in
+    let is_nat v =
+      List.fold_left
+        (fun acc pref -> acc || String.starts_with ~prefix:pref v)
+        false
+        nat_prefixes
+    in
+    let collect =
+      fold
+        (fun (acc_plus, acc_minus) -> function
+           | Eia (RLen (Eia.Atom (Var (v, I)), _)) -> acc_plus, Set.add acc_minus v
+           | Eia (InReRaw (Eia.Atom (Var (v, I)), _, _)) -> acc_plus, Set.add acc_minus v
+           | Eia eia' ->
+             Eia.fold2
+               (fun (acc_plus, acc_minus) -> function
+                  | Eia.Atom (Var (v, I)) when not (is_nat v) ->
+                    Set.add acc_plus v, acc_minus
+                  | eia' -> acc_plus, acc_minus)
+               (fun acc _ -> acc)
+               (acc_plus, acc_minus)
+               eia'
+           | Lor _ -> failwith "to_nat expected conjunct"
+           | ast -> acc_plus, acc_minus)
+        (Set.empty, Set.empty)
+    in
+    let vary var ast =
+      [ ast
+      ; map
+          (function
+            | Eia eia' ->
+              eia
+                (Eia.map2
+                   Fun.id
+                   (function
+                     | Eia.Pow (Eia.Const base, Eia.Atom (Var (v, I))) when v = var ->
+                       Eia.const Z.zero
+                     | Eia.Atom (Var (v, I)) as v' when v = var ->
+                       Eia.Add
+                         [ Eia.Mul [ v'; Eia.const Z.minus_one ]; Eia.const Z.minus_one ]
+                     | eia' -> eia')
+                   Fun.id
+                   eia')
+            | Lor _ -> failwith "to_nat expected conjunct"
+            | ast -> ast)
+          ast
+      ]
+    in
+    let vars = collect ast |> (fun x -> Set.diff (fst x) (snd x)) |> Set.to_list in
+    let open Base.List.Let_syntax in
+    let ( let* ) = Base.List.Let_syntax.( >>= ) in
+    List.fold_left
+      (fun acc var ->
+         let* acc = acc in
+         let* ast = vary var acc in
+         return ast)
+      (return ast)
+      vars
+  ;;
+end

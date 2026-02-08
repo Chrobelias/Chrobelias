@@ -1,42 +1,47 @@
-type relop =
-  | Leq
-  | Eq
+module M (Enc : Nfa.Encoding) : sig
+  type relop =
+    | Leq
+    | Eq
 
-type error
+  type error
 
-val has_unsupported_nonlinearity : Ast.t -> (unit, Z.t Ast.Eia.term list) Result.t
-val subst : Env.t -> Ast.t -> Ast.t
-val subst_term : Env.t -> 'a Ast.Eia.term -> 'a Ast.Eia.term
+  val has_unsupported_nonlinearity
+    :  Ast.M(Enc).t
+    -> (unit, Z.t Ast.M(Enc).Eia.term list) Result.t
 
-(** Independent pre-simplifications. Not necessary for the solver. **)
-val simpl
-  :  int
-  -> Ast.t
-  -> [> `Unknown of Ast.t
-     | `Sat of string * Env.t
-     | `Unsat
-     | `Error of Ast.t * error list
-     | `Underapprox of Ast.t list
-     ]
+  val subst : Env.t -> Ast.M(Enc).t -> Ast.M(Enc).t
+  val subst_term : Env.t -> 'a Ast.M(Enc).Eia.term -> 'a Ast.M(Enc).Eia.term
 
-val arithmetize
-  :  Ast.t
-  -> [ `Sat of string * Env.t
-     | `Unsat
-     | `Unknown of
-         (Ast.t
-         * (Ir.model -> [ `Sat | `Unknown ]) list
-         * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
-           list
-     ]
+  (** Independent pre-simplifications. Not necessary for the solver. **)
+  val simpl
+    :  int
+    -> Ast.M(Enc).t
+    -> [> `Unknown of Ast.M(Enc).t
+       | `Sat of string * Env.t
+       | `Unsat
+       | `Error of Ast.M(Enc).t * error list
+       | `Underapprox of Ast.M(Enc).t list
+       ]
 
-val run_basic_simplify
-  :  Ast.t
-  -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t * Env.t ]
+  val arithmetize
+    :  Ast.M(Enc).t
+    -> [ `Sat of string * Env.t
+       | `Unsat
+       | `Unknown of
+           (Ast.M(Enc).t
+           * (Ir.model -> [ `Sat | `Unknown ]) list
+           * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
+             list
+       ]
 
-val run_under2 : Env.t -> Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
-val check_nia : Ast.t -> [ `Sat | `Unsat | `Unknown ]
-val pp_error : Format.formatter -> error -> unit
+  val run_basic_simplify
+    :  Ast.M(Enc).t
+    -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.M(Enc).t * Env.t ]
+
+  val run_under2 : Env.t -> Ast.M(Enc).t -> [ `Sat | `Underapprox of Ast.M(Enc).t list ]
+  val check_nia : Ast.M(Enc).t -> [ `Sat | `Unsat | `Unknown ]
+  val pp_error : Format.formatter -> error -> unit
+end
 
 (* val rewrite_len : Ast.t -> Ast.t *)
 
