@@ -3127,16 +3127,17 @@ let arithmetize ast =
                     in
                     match data with
                     | `Int d ->
-                      Ast.Eia.eq
+                      (*Ast.Eia.eq
                         (Ast.Eia.atom (Ast.var key Ast.I))
                         (Ast.Eia.const d)
                         Ast.I
-                      :: acc
+                      :: *)
+                      acc
                     | `Str s ->
                       Ast.Eia.eq
-                        (Ast.Eia.atom (Ast.var key Ast.S))
-                        (Ast.Eia.str_const s)
-                        Ast.S
+                        (strleni key)
+                        (Ast.Eia.const (String.length s |> Z.of_int))
+                        Ast.I
                       :: acc)
                   ~init:[]
                   model
@@ -3153,8 +3154,9 @@ let arithmetize ast =
                   ; Ast.lnot model_ast
                   ; orig_ast
                   ]
+                |> Ast.to_dnf
               in
-              check_sat ast
+              if List.exists (fun ast -> check_sat ast = `Sat) ast then `Sat else `Unknown
             end
           in
           posts := Map.add_exn !posts ~key:constr ~data:post;
