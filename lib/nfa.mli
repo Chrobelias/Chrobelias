@@ -158,9 +158,11 @@ module Msb (Label : L) : sig
   val of_lsb : Lsb(Label).t -> t
 end
 
-module Enc : sig
+(*module Enc : sig
   include Encoding
-end
+end*)
 
-val convert_nfa_lsb : Lsb(Str(Enc)).t -> Lsb(StrBv(Enc)).t
-val convert_nfa_msb : Msb(Str(Enc)).t -> Msb(StrBv(Enc)).t
+module Utils (Enc : Encoding) : sig
+  val convert_nfa_lsb : Lsb(Str(Enc)).t -> Lsb(StrBv(Enc)).t
+  val convert_nfa_msb : Msb(Str(Enc)).t -> Msb(StrBv(Enc)).t
+end

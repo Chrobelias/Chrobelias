@@ -2574,38 +2574,40 @@ let strbv_of_str (module Enc : Encoding) =
         | c -> StrBv.u_eos) )
 ;;
 
-let convert_nfa_lsb (module Enc : Encoding) =
-  let module Str = Str (Enc) in
-  let module StrBv = StrBv (Enc) in
-  let f : Lsb(Str).t -> Lsb(StrBv).t =
-    fun nfa ->
-    { start = nfa.start
-    ; is_dfa = nfa.is_dfa
-    ; deg = nfa.deg
-    ; final = nfa.final
-    ; transitions =
-        Array.map
-          (List.map (fun (label, q') -> strbv_of_str (module Enc) label, q'))
-          nfa.transitions
-    }
-  in
-  f
-;;
+module Utils (Enc : Encoding) = struct
+  let convert_nfa_lsb =
+    let module Str = Str (Enc) in
+    let module StrBv = StrBv (Enc) in
+    let f : Lsb(Str).t -> Lsb(StrBv).t =
+      fun nfa ->
+      { start = nfa.start
+      ; is_dfa = nfa.is_dfa
+      ; deg = nfa.deg
+      ; final = nfa.final
+      ; transitions =
+          Array.map
+            (List.map (fun (label, q') -> strbv_of_str (module Enc) label, q'))
+            nfa.transitions
+      }
+    in
+    f
+  ;;
 
-let convert_nfa_msb (module Enc : Encoding) =
-  let module Str = Str (Enc) in
-  let module StrBv = StrBv (Enc) in
-  let f : Msb(Str).t -> Msb(StrBv).t =
-    fun nfa ->
-    { start = nfa.start
-    ; is_dfa = nfa.is_dfa
-    ; deg = nfa.deg
-    ; final = nfa.final
-    ; transitions =
-        Array.map
-          (List.map (fun (label, q') -> strbv_of_str (module Enc) label, q'))
-          nfa.transitions
-    }
-  in
-  f
-;;
+  let convert_nfa_msb =
+    let module Str = Str (Enc) in
+    let module StrBv = StrBv (Enc) in
+    let f : Msb(Str).t -> Msb(StrBv).t =
+      fun nfa ->
+      { start = nfa.start
+      ; is_dfa = nfa.is_dfa
+      ; deg = nfa.deg
+      ; final = nfa.final
+      ; transitions =
+          Array.map
+            (List.map (fun (label, q') -> strbv_of_str (module Enc) label, q'))
+            nfa.transitions
+      }
+    in
+    f
+  ;;
+end
