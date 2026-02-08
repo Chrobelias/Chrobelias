@@ -43,7 +43,7 @@ Basic QF_S tests
      (define-fun q () Int
       0)
      (define-fun x () Int
-      0)
+      23)
   )
   (
      (define-fun a () String
@@ -61,7 +61,7 @@ Basic QF_S tests
      (define-fun b () String
       "01")
      (define-fun q () Int
-      0)
+      2)
      (define-fun x () Int
       0)
   )
@@ -71,7 +71,7 @@ Basic QF_S tests
      (define-fun b () String
       "2")
      (define-fun q () Int
-      0)
+      24)
      (define-fun x () Int
       0)
   )
