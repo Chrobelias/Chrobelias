@@ -40,7 +40,7 @@ let extend vk vv = cache := Base.Map.add_exn !cache ~key:vk ~data:vv
 let formulas_of_cache () =
   Base.Map.to_sequence !cache
   |> Base.Sequence.map ~f:(fun (x, fv) ->
-    Symantics.(mul [ constz Z.(Config.base () - one); var x ] < var fv))
+    Symantics.(mul [ constz Z.(Z.of_int (Config.base ()) - one); var x ] < var fv))
   |> Base.Sequence.to_list
 ;;
 

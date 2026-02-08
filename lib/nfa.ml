@@ -79,6 +79,10 @@ let rec pow a = function
     b * b * if n mod 2 = 0 then 1 else a
 ;;
 
+module type Encoding = sig
+  val base : int
+end
+
 module type L = sig
   type t
   type u
@@ -107,8 +111,8 @@ module type L = sig
   val alpha : t -> u Set.t
 end
 
-module type Encoding = sig
-  val base : int
+module Enc = struct
+  let base = Config.base ()
 end
 
 module Bv = struct
@@ -280,7 +284,6 @@ module StrBv (Enc : Encoding) = struct
   type u = Z.t
 
   let base = Enc.base
-  let baseZ = Z.of_int base
 
   let u_zero, u_one, u_null, u_eos =
     Z.one, Z.of_int 2, Z.zero, Z.(pow (of_int 2) base - one)
@@ -505,7 +508,6 @@ module Str (Enc : Encoding) = struct
   type u = char
 
   let base = Enc.base
-  let baseZ = Z.of_int base
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let is_end_char c = c = u_eos || c = u_null
@@ -2552,10 +2554,6 @@ module Msb (Label : L) = struct
     ; deg = nfa.deg
     }
   ;;
-end
-
-module Enc = struct
-  let base = Config.base ()
 end
 
 let strbv_of_str (module Enc : Encoding) =

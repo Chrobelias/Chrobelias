@@ -73,13 +73,7 @@ let pp_polynom ppf poly =
   fprintf ppf "@[(%a)@]@ " pp_map poly
 ;;
 
-module Enc = struct
-  include Nfa.Enc
-
-  let base = Config.base ()
-end
-
-module NfaS = Nfa.Lsb (Nfa.Str (Enc))
+module NfaS = Nfa.Lsb (Nfa.Str (Nfa.Enc))
 
 type t =
   | True

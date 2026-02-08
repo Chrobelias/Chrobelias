@@ -4,8 +4,6 @@
 module Map = Nfa.Map
 module Set = Base.Set.Poly
 
-module type Base_ = Nfa.Base_
-
 type varpos = int
 
 module type Type = sig
@@ -41,14 +39,14 @@ let ( -- ) i j =
 (* ------------------------- MSB types ------------------------- *)
 (* ------------------------------------------------------------- *)
 
-module Msb (M : Base_) = struct
-  module Bv = Nfa.Bv (M)
+module Msb = struct
+  module Bv = Nfa.Bv
   module Nfa = Nfa.Msb (Bv)
 
   type t = Nfa.t
   type v = bool
 
-  let base = M.base
+  let base = Z.of_int 2
   let o = false
   let i = true
 
@@ -205,9 +203,9 @@ module Msb (M : Base_) = struct
   ;;
 end
 
-module MsbStr (M : Base_) = struct
-  module Str = Nfa.Str (M)
-  module Nfa = Nfa.Msb (Nfa.Str)
+module MsbStr (Enc : Nfa.Encoding) = struct
+  module Str = Nfa.Str (Enc)
+  module Nfa = Nfa.Msb (Nfa.Str (Nfa.Enc))
 
   type t = Nfa.t
   type v = Str.u
@@ -215,8 +213,8 @@ module MsbStr (M : Base_) = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base = Str.base
-  let basei = Z.to_int base
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
+  let baseZ = Z.of_int Str.base
+  let alphabet = Str.alphabet |> List.to_seq |> Seq.take base |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
@@ -269,7 +267,7 @@ module MsbStr (M : Base_) = struct
     else (
       let states = ref Set.empty in
       let transitions = ref [] in
-      let thing = powerset (0 -- (basei - 1)) term in
+      let thing = powerset (0 -- (base - 1)) term in
       let rec lp front =
         match front with
         | s when Set.is_empty s -> ()
@@ -281,8 +279,8 @@ module MsbStr (M : Base_) = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
-              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (baseZ * gcd_) = zero))
+              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) baseZ), bits, hd)
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -296,9 +294,9 @@ module MsbStr (M : Base_) = struct
       let idx c = Map.find states c |> Option.get in
       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
       let transitions =
-        (powerset [ 0; basei - 1 ] term
+        (powerset [ 0; base - 1 ] term
          |> List.filter_map (fun (d, sum) ->
-           match Map.find states Z.(sum / (one - base)) with
+           match Map.find states Z.(sum / (one - baseZ)) with
            | None -> None
            | Some v -> Some (start, d, v)))
         @ transitions
@@ -326,7 +324,7 @@ module MsbStr (M : Base_) = struct
     else
       (let states = ref Set.empty in
        let transitions = ref [] in
-       let thing = powerset (0 -- (basei - 1)) term in
+       let thing = powerset (0 -- (base - 1)) term in
        let rec lp front =
          match front with
          | s when Set.is_empty s -> ()
@@ -339,7 +337,7 @@ module MsbStr (M : Base_) = struct
              let t =
                thing
                |> List.map (fun (bits, sum) ->
-                 Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
+                 Z.(gcd_ * div_ (hd - sum) (baseZ * gcd_)), bits, hd)
              in
              states := Set.add !states hd;
              transitions := t @ !transitions;
@@ -353,11 +351,11 @@ module MsbStr (M : Base_) = struct
        let idx c = Map.find states c |> Option.get in
        let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
        let transitions =
-         (powerset [ 0; basei - 1 ] term
+         (powerset [ 0; base - 1 ] term
           |> List.concat_map (fun (d, sum) ->
             Map.to_alist states
             |> List.filter_map (fun (v, idv) ->
-              if Z.(sum / (one - base) <= v) then Some (start, d, idv) else None)))
+              if Z.(sum / (one - baseZ) <= v) then Some (start, d, idv) else None)))
          @ transitions
        in
        Nfa.create_nfa
@@ -380,9 +378,9 @@ module MsbStr (M : Base_) = struct
   ;;
 end
 
-module MsbStrBv (M : Base_) = struct
-  module Str = Nfa.StrBv (M)
-  module Nfa = Nfa.Msb (Nfa.StrBv)
+module MsbStrBv (Enc : Nfa.Encoding) = struct
+  module Str = Nfa.StrBv (Enc)
+  module Nfa = Nfa.Msb (Str)
 
   type t = Nfa.t
   type v = Str.u
@@ -390,8 +388,8 @@ module MsbStrBv (M : Base_) = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base = Str.base
-  let basei = Z.to_int base
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
+  let baseZ = Z.of_int base
+  let alphabet = Str.alphabet |> List.to_seq |> Seq.take base |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
@@ -444,7 +442,7 @@ module MsbStrBv (M : Base_) = struct
     else (
       let states = ref Set.empty in
       let transitions = ref [] in
-      let thing = powerset (0 -- (basei - 1)) term in
+      let thing = powerset (0 -- (base - 1)) term in
       let rec lp front =
         match front with
         | s when Set.is_empty s -> ()
@@ -456,8 +454,8 @@ module MsbStrBv (M : Base_) = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
-              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (baseZ * gcd_) = zero))
+              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) baseZ), bits, hd)
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -471,9 +469,9 @@ module MsbStrBv (M : Base_) = struct
       let idx c = Map.find states c |> Option.get in
       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
       let transitions =
-        (powerset [ 0; basei - 1 ] term
+        (powerset [ 0; base - 1 ] term
          |> List.filter_map (fun (d, sum) ->
-           match Map.find states Z.(sum / (one - base)) with
+           match Map.find states Z.(sum / (one - baseZ)) with
            | None -> None
            | Some v -> Some (start, d, v)))
         @ transitions
@@ -501,7 +499,7 @@ module MsbStrBv (M : Base_) = struct
     else
       (let states = ref Set.empty in
        let transitions = ref [] in
-       let thing = powerset (0 -- (basei - 1)) term in
+       let thing = powerset (0 -- (base - 1)) term in
        let rec lp front =
          match front with
          | s when Set.is_empty s -> ()
@@ -514,7 +512,7 @@ module MsbStrBv (M : Base_) = struct
              let t =
                thing
                |> List.map (fun (bits, sum) ->
-                 Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
+                 Z.(gcd_ * div_ (hd - sum) (baseZ * gcd_)), bits, hd)
              in
              states := Set.add !states hd;
              transitions := t @ !transitions;
@@ -528,11 +526,11 @@ module MsbStrBv (M : Base_) = struct
        let idx c = Map.find states c |> Option.get in
        let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
        let transitions =
-         (powerset [ 0; basei - 1 ] term
+         (powerset [ 0; base - 1 ] term
           |> List.concat_map (fun (d, sum) ->
             Map.to_alist states
             |> List.filter_map (fun (v, idv) ->
-              if Z.(sum / (one - base) <= v) then Some (start, d, idv) else None)))
+              if Z.(sum / (one - baseZ) <= v) then Some (start, d, idv) else None)))
          @ transitions
        in
        Nfa.create_nfa
@@ -561,8 +559,8 @@ end
 (* ----------------------- MSB(IN) types ----------------------- *)
 (* ------------------------------------------------------------- *)
 
-module MsbNat (M : Base_) = struct
-  module Bv = Nfa.Bv (M)
+module MsbNat = struct
+  module Bv = Nfa.Bv
   module NfaMsb = Nfa.Msb (Bv)
   module NfaMsbNat = Nfa.MsbNat (Bv)
 
@@ -637,8 +635,8 @@ module MsbNat (M : Base_) = struct
   ;;
 end
 
-module MsbNatStr (M : Base_) = struct
-  module Str = Nfa.Str (M)
+module MsbNatStr (Enc : Nfa.Encoding) = struct
+  module Str = Nfa.Str (Enc)
   module NfaMsb = Nfa.Msb (Str)
   module NfaMsbNat = Nfa.MsbNat (Str)
 
@@ -648,12 +646,10 @@ module MsbNatStr (M : Base_) = struct
   let o = Str.u_zero
   let i = Str.u_one
   let base = Str.base
-  let basei = Z.to_int Str.base
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
+  let baseZ = Z.of_int Str.base
+  let alphabet = Str.alphabet |> List.to_seq |> Seq.take base |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
-  let () = assert (List.nth alphabet 0 = Str.u_zero)
 
   let n () =
     NfaMsbNat.create_nfa
@@ -702,8 +698,8 @@ module MsbNatStr (M : Base_) = struct
   let pow_of_log_var var exp =
     NfaMsbNat.create_nfa
       ~transitions:
-        ((0 -- (basei - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
-         @ (1 -- (basei - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
+        ((0 -- (base - 1) |> List.map (fun c -> 0, [ itoc c; o ], 0))
+         @ (1 -- (base - 1) |> List.map (fun c -> 1, [ itoc c; i ], 0))
          @ [ 1, [ Str.u_eos; Str.u_eos ], 1; 1, [ o; Str.u_eos ], 1; 1, [ o; o ], 1 ])
       ~start:[ 1 ]
       ~final:[ 0 ]

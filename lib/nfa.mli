@@ -11,6 +11,10 @@ module type Encoding = sig
   val base : int
 end
 
+module Enc : sig
+  include Encoding
+end
+
 module type L = sig
   type t
   type u
@@ -157,10 +161,6 @@ module Msb (Label : L) : sig
   val filter_map : t -> (Label.t * int -> (Label.t * int) option) -> t
   val of_lsb : Lsb(Label).t -> t
 end
-
-(*module Enc : sig
-  include Encoding
-end*)
 
 module Utils (Enc : Encoding) : sig
   val convert_nfa_lsb : Lsb(Str(Enc)).t -> Lsb(StrBv(Enc)).t

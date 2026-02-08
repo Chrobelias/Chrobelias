@@ -2,6 +2,7 @@ module Expr = Smtml.Expr
 module Symbol = Smtml.Symbol
 module Ty = Smtml.Ty
 module Binder = Smtml.Binder
+module NfaStr = Nfa.Str (Nfa.Enc)
 
 exception UnsupportedException of string
 
@@ -65,7 +66,7 @@ and to_regex orig_expr =
   | Expr.Symbol s when Symbol.to_string s = "re.none" -> Regex.empty
   | Expr.Symbol s when Symbol.to_string s = "re.nostr" -> Regex.empty
   | Expr.Symbol s when Symbol.to_string s = "re.allchar" ->
-    Regex.kleene (Regex.symbol [ Nfa.Str.u_null ])
+    Regex.kleene (Regex.symbol [ NfaStr.u_null ])
   | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
     let str =
@@ -237,7 +238,7 @@ and _to_ir tys orig_expr =
       Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const "") Ast.S)
     | _ ->
       let re = to_regex re in
-      let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
+      let re = Regex.concat re (Regex.kleene (Regex.symbol [ NfaStr.u_eos ])) in
       Ast.Eia (Ast.Eia.inre term Ast.S re)
   in
   let expr = Expr.view orig_expr in

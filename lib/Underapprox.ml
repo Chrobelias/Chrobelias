@@ -14,6 +14,7 @@ end
 
 module type SYM = sig
   include SYM0
+  include Nfa.Encoding
 
   type repr
 
@@ -50,7 +51,8 @@ let make_sym (env : env) onvar bound =
       | Some c -> constz (Z.of_int c)
     ;;
 
-    let pow2var s = pow (constz (Config.base ())) (var s)
+    let base = Config.base ()
+    let pow2var s = pow (constz (Z.of_int base)) (var s)
     let prj = Fun.id
 
     let exists vars x =
@@ -87,6 +89,7 @@ let make_collector () =
     type ph = term
     type repr = term
 
+    let base = Config.base ()
     let ( ++ ) = List.append
     let empty = []
 
@@ -157,7 +160,7 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Mod (l, r) -> S.mod_ (helperT l) r
-    | Pow (Const base, Atom (Var (x, _))) when base = Config.base () -> S.pow2var x
+    | Pow (Const b, Atom (Var (x, _))) when b = Z.of_int S.base -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
     | Len _ | Iofs _ | Sofi _ | Concat _ | At _ | Substr _ | Str_const _ | Len2 _ ->
