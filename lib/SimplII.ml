@@ -2,7 +2,7 @@
 
 let log = Utils.log
 
-module NfaS = Nfa.Lsb (Nfa.Str)
+module NfaS = Nfa.Lsb (Nfa.Str (Nfa.Enc))
 
 (* module Term_map = Map.Make (struct
     type t =
@@ -142,6 +142,7 @@ end
 
 module type SYM = sig
   include SYM0
+  include Nfa.Encoding
 
   type repr
 
@@ -176,6 +177,7 @@ module Id_symantics :
   type str = string Ast.Eia.term
 
   let pp_str = Ast.Eia.pp_term
+  let base = Config.base ()
 
   type ph = Ast.t
   type repr = Ast.t
@@ -242,11 +244,7 @@ module Id_symantics :
   let false_ = Ast.false_
   let prj = Fun.id
   let pow_minus_one t = pow (const (-1)) t
-
-  let pow2var c =
-    Ast.Eia.pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var c I))
-  ;;
-
+  let pow2var c = Ast.Eia.pow (Ast.Eia.const (Z.of_int base)) (Ast.Eia.atom (Ast.var c I))
   let unsupp s = Ast.Unsupp s
 end
 
@@ -261,8 +259,8 @@ let apply_term_symantics
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Const base, p) when base = Z.minus_one -> S.pow_minus_one (helperT p)
-    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Config.base () ->
-      S.pow (S.constz base) (S.var x)
+    | Pow (Const b, Atom (Ast.Var (x, I))) when b = Z.of_int S.base ->
+      S.pow (S.constz (Z.of_int S.base)) (S.var x)
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
@@ -453,6 +451,7 @@ module Who_in_exponents_ = struct
   type str = term
   type repr = ph
 
+  let base = Config.base ()
   let in_re _ _ = empty
   let in_rei _ _ = empty
   let in_re_raw _ _ = empty
@@ -606,6 +605,7 @@ let make_main_symantics ?alpha ?agressive env =
     let compare_term = Eia.compare_term
     let constz c = Ast.Eia.Const c
     let const c = constz (Z.of_int c)
+    let baseZ = Z.of_int base
 
     let var s : term =
       match Env.lookup_int s env with
@@ -653,8 +653,7 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let str_len2 = function
-      | Ast.Eia.Str_const s ->
-        Id_symantics.constz Z.(pow (Config.base ()) (String.length s) - one)
+      | Ast.Eia.Str_const s -> Id_symantics.constz Z.(pow baseZ (String.length s) - one)
       | s -> Id_symantics.str_len2 s
     ;;
 
@@ -747,8 +746,7 @@ let make_main_symantics ?alpha ?agressive env =
       | c, [ h ] when Z.equal c Z.one -> h
       | c, xs when Z.equal c Z.one -> Ast.Eia.mul (List.sort compare_term xs)
       | c, [ Pow ((Const base_ as base), Add [ Const v1; v ]) ]
-        when Z.(equal c (Config.base ())) && base_ = Config.base () && v1 = Z.minus_one ->
-        pow base v
+        when Z.(equal c baseZ) && base_ = baseZ && v1 = Z.minus_one -> pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
       | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)
 
@@ -1012,7 +1010,8 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let from_eia_nfa c =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      let module Str = Nfa.Str (Id_symantics) in
+      let module NfaStr = Nfa.Lsb (Nfa.Str (Id_symantics)) in
       let re =
         List.fold_left
           Regex.concat
@@ -1024,12 +1023,12 @@ let make_main_symantics ?alpha ?agressive env =
            |> List.of_seq
            |> List.rev)
       in
-      let re = Regex.concat re (Regex.kleene (Regex.Symbol [ Nfa.Str.u_zero ])) in
+      let re = Regex.concat re (Regex.kleene (Regex.Symbol [ Str.u_zero ])) in
       NfaStr.of_regex re
     ;;
 
     let in_re s re =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      let module NfaStr = Nfa.Lsb (Nfa.Str (Id_symantics)) in
       match s with
       | Ast.Eia.Atom (Ast.Var (s, S)) -> begin
         match Env.lookup_string s env with
@@ -1068,7 +1067,7 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let in_rei s re =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      let module NfaStr = Nfa.Lsb (Nfa.Str (Id_symantics)) in
       match s with
       | Ast.Eia.(Const c) -> begin
         match NfaStr.of_regex re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run with
@@ -1079,7 +1078,7 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let in_re_raw s re =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      let module NfaStr = Nfa.Lsb (Nfa.Str (Id_symantics)) in
       match s with
       | Ast.Eia.(Str_const str) -> begin
         match
