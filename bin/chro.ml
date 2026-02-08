@@ -77,6 +77,7 @@ let join_int_model _tys prefix m =
       | Ast.Eia.Const c -> Option.some (`Int c)
       | Ast.Eia.Str_const s -> Option.some (`Str s)
       | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
+      | Ast.Eia.Len (Ast.Eia.Atom (Var (v, _))) -> seek prefix ("strlen" ^ v)
       | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
     end
     (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
@@ -322,14 +323,14 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       if !used_under2 |> not then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
       (* Unknown (ast, e) *) exit 0
   in
-  let check_eia_sat ast =
+  let check_eia_sat ast e =
     let can_be_unk = ref false in
     let apporx_rez =
-      unknown ast Lib.Env.empty
+      unknown ast e
       <+> (fun ast e ->
       if not config.pre_simpl
       then unknown ast e
-      else lift ~unsat_info:"presimpl" ast (Lib.SimplII.run_basic_simplify ast))
+      else lift ~unsat_info:"presimpl" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
       <+> (fun ast e ->
       if config.under_approx >= 0
       then (
@@ -468,9 +469,9 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       | `Unknown asts_n_regexes ->
         log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
         let f ast_n_regex =
-          let ast, post, regex = ast_n_regex in
+          let ast, e, post, regex = ast_n_regex in
           log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-          match check_eia_sat ast with
+          match check_eia_sat ast e with
           | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, post, regex)
           | Unknown _ ->
             can_be_unk := true;
@@ -545,7 +546,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
              report_result2 (`Unsat !unsat_reason);
              Unsat !unsat_reason)))
     else (
-      match check_eia_sat ast with
+      match check_eia_sat ast Lib.Env.empty with
       | Sat (s, ast, env, get_model, _) ->
         report_result2 (`Sat s);
         Sat (s, ast, env, get_model, Map.empty)
