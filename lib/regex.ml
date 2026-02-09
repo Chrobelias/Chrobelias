@@ -351,6 +351,15 @@ let nondigit =
        (kleene (symbol [ Config.string_config.null ])))
 ;;
 
+let allchar =
+  concat
+    (List.fold_left
+       mor
+       (symbol [ Char.chr 32 ])
+       (33 -- 127 |> List.map Char.chr |> List.map (fun c -> symbol [ c ])))
+    (kleene (symbol [ Config.string_config.eos ]))
+;;
+
 let int_to_re s =
   concat
     (concat
