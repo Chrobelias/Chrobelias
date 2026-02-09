@@ -64,8 +64,7 @@ and to_regex orig_expr =
   match expr with
   | Expr.Symbol s when Symbol.to_string s = "re.none" -> Regex.empty
   | Expr.Symbol s when Symbol.to_string s = "re.nostr" -> Regex.empty
-  | Expr.Symbol s when Symbol.to_string s = "re.allchar" ->
-    Regex.kleene (Regex.symbol [ Nfa.Str.u_null ])
+  | Expr.Symbol s when Symbol.to_string s = "re.allchar" -> Regex.allchar
   | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
     let str =
