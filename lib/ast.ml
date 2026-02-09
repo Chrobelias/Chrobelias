@@ -801,7 +801,7 @@ let in_stoi v ast =
     Eia.fold2
       (fun acc el ->
          match el with
-         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
+         | Eia.Iofs (Eia.Atom (Var (s, _))) when s = v -> true
          | _ -> acc)
       (fun acc _ -> acc)
       false
@@ -824,7 +824,7 @@ let in_stoi2 v ast =
     Eia.fold2
       (fun acc el ->
          match el with
-         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> true
+         | Eia.Iofs (Eia.Atom (Var (s, _))) when s = v -> true
          | _ -> acc)
       (fun acc _ -> acc)
       false

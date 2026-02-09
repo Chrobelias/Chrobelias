@@ -659,6 +659,9 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let iofs = function
+      (* 
+      MS: False start of arithmetization. 
+      Add cases of digit/non-digits strings under iofs to arithmetize_concats 
       | Ast.Eia.Concat (lhs, rhs) ->
         Id_symantics.add
           [ Ast.Eia.mul
@@ -668,7 +671,7 @@ let make_main_symantics ?alpha ?agressive env =
                   (Id_symantics.str_len rhs)
               ]
           ; Id_symantics.iofs rhs
-          ]
+          ] *)
       | Ast.Eia.Str_const s -> begin
         match s with
         | "" -> Id_symantics.constz Z.minus_one
@@ -2689,7 +2692,7 @@ let arithmetize ast =
   let module Set = Base.Set.Poly in
   let strlens s = String.concat "" [ "strlen"; s ] in
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
-  let in_stoi2 v = Ast.in_stoi2 v ast in
+  (* let in_stoi2 v = Ast.in_stoi2 v ast in *)
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module NfaCL = NfaCollection.LsbStr in
@@ -2815,16 +2818,21 @@ let arithmetize ast =
     apply_symantics_unsugared (module M_) ast
   in
   let arithmetize var_info ast =
-    let in_stoi v = Ast.in_stoi v ast in
     let in_concat v = Ast.in_concat v ast in
     let ast = arithmetize_concats var_info ast in
     (* We only want to substitute consts. *)
     let (module M) = make_main_symantics Env.empty in
     let ast = apply_symantics_unsugared (module M) ast in
+    let in_stoi v = Ast.in_stoi v ast in
     let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
       fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function
         | Ast.Eia.Sofi s -> s, []
         | Iofs s -> arithmetize_term s
+        (*
+        MS: More safe version... 
+        | Iofs s ->
+          let v, phs = arithmetize_term s in
+          v, Ast.Eia.leq (Ast.Eia.const Z.minus_one) v :: phs *)
         | Len s ->
           let var, lenvar, phs =
             match s with
@@ -2846,7 +2854,7 @@ let arithmetize ast =
           let phs = phs @ phs' in
           let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
           let phs =
-            match in_stoi2 var, Map.mem (collect_regexes ast) var with
+            match in_stoi var, Map.mem (collect_regexes ast) var with
             | true, true -> Ast.Eia.rlen s (pow_base v) :: phs
             | true, false -> Ast.Eia.lt s (pow_base v) :: phs
             | false, other -> phs
