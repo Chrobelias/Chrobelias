@@ -665,7 +665,7 @@ let make_main_symantics ?alpha ?agressive env =
               [ Id_symantics.iofs lhs
               ; Ast.Eia.pow
                   (Id_symantics.constz (Config.base ()))
-                  (Id_symantics.str_len lhs)
+                  (Id_symantics.str_len rhs)
               ]
           ; Id_symantics.iofs rhs
           ]
