@@ -527,16 +527,25 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         report_result2 (`Unsat "presimpl");
         Unsat "presimpl"
       | `Unknown seq_of_variants ->
-        failwith "FIXME"
-        (*seq_of_variants
-         |> Seq.iter (fun variants ->
+        seq_of_variants
+        |> Seq.find_map (fun variants ->
           List.find_map
-                (fun (ast, env) ->
-                   match check_string_sat ast env with
-                   | `Unsat -> None
-                   | `Sat env -> raise_notrace (Underapprox_fired env)
-                   | `Unknown (ast, _, _, _) -> Some ast)
-          List.fil (fun (ast, env) -> check_string_sat ast env) variants)) *))
+            (fun (ast, env) ->
+               match check_string_sat ast env with
+               | Unsat _ -> None
+               | Sat _ as s -> Option.some s
+               | Unknown _ ->
+                 can_be_unk := true;
+                 None)
+            variants
+          (*List.fil (fun (ast, env) -> check_string_sat ast env) variants))*))
+        |> fun v ->
+        (match v with
+         | Some v -> v
+         | None ->
+           let s = "nfa" in
+           report_result2 (`Unsat s);
+           Unsat s))
     else (
       match check_eia_sat ast Lib.Env.empty with
       | Sat (s, ast, env, get_model, _) ->
