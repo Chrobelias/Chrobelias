@@ -3,14 +3,16 @@
 
 module Map = Base.Map.Poly
 
-val check_sat
-  :  Ir.t
-  -> [ `Sat of
-         (Ir.atom, [ `Str | `Int ]) Map.t
-         -> (Ir.model, [ `Too_long | `No_model ]) Result.t
-     | `Unsat
-     | `Unknown of Ir.t
-     ]
+module M(Enc : Nfa.Encoding) : sig
+  val check_sat
+    :  Ir.M(Enc).t
+    -> [ `Sat of
+           (Ir.M(Enc).atom, [ `Str | `Int ]) Map.t
+           -> (Ir.M(Enc).model, [ `Too_long | `No_model ]) Result.t
+       | `Unsat
+       | `Unknown of Ir.M(Enc).t
+       ]
 
-(* TODO(Kakadu): Move somewhere else... *)
-val is_internal : string -> bool
+  (* TODO(Kakadu): Move somewhere else... *)
+  val is_internal : string -> bool
+end

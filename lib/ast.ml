@@ -1,432 +1,431 @@
-(* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
-let compare_string = String.compare
-let compare_int = Int.compare
-let compare_list f = Base.List.compare f
-let compare_char = Char.compare
-
-type 'a kind =
-  | I : Z.t kind
-  | S : string kind
-
-type 'a atom = Var : string * 'a kind -> 'a atom [@@deriving variants]
-
-let failf fmt = Format.kasprintf failwith fmt
-let str_var name = Var (name, S)
-let int_var name = Var (name, I)
-
-type any_atom = Any_atom : 'a atom -> any_atom
-
-let compare_any_atom l r =
-  match l, r with
-  | Any_atom (Var (v1, _)), Any_atom (Var (v2, _)) -> String.compare v1 v2
-;;
-
-let pp_atom ppf = function
-  | Var (n, _) -> Format.fprintf ppf "%s" n
-;;
-
-let pp_any_atom ppf = function
-  | Any_atom a -> Format.fprintf ppf "%a" pp_atom a
-;;
-
-module Eq = struct
-  type (_, _) t = Eq : ('a, 'a) t
-
-  let refl : ('a, 'a) t = Eq
-
-  let sym (type a b) : (a, b) t -> (b, a) t =
-    fun p ->
-    match p with
-    | Eq -> Eq
-  ;;
-
-  let cast (type a b) (proof : (a, b) t) (x : a) : b =
-    match proof with
-    | Eq -> x
-  ;;
-end
-
-module Eia (Enc : Nfa.Encoding) = struct
-  (** Exponential integer arithmetic, i.e. LIA with exponents.*)
-  module NfaS = Nfa.Lsb (Nfa.Str (Enc))
-
-  type 'a term =
-    | Const : Z.t -> Z.t term
-    | Str_const : string -> string term
-    | Atom : 'a atom -> 'a term
-    | Len : string term -> Z.t term
-    | Add : Z.t term list -> Z.t term
-    | Mul : Z.t term list -> Z.t term
-    | Mod : Z.t term * Z.t -> Z.t term
-    | Bwand : Z.t term * Z.t term -> Z.t term
-    | Bwor : Z.t term * Z.t term -> Z.t term
-    | Bwxor : Z.t term * Z.t term -> Z.t term
-    | Pow : Z.t term * Z.t term -> Z.t term
-    (* String stuff *)
-    | Sofi : Z.t term -> string term
-    | Iofs : string term -> Z.t term
-    | Len2 : string term -> Z.t term
-    | Concat : string term * string term -> string term
-    | At : string term * Z.t term -> string term
-    | Substr : string term * Z.t term * Z.t term -> string term
-  [@@deriving variants]
-
-  let rec pp_term : 'a. Format.formatter -> 'a term -> unit =
-    fun (type a) ppf : (a term -> unit) -> function
-    | Const c when Z.lt c Z.zero -> Format.fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
-    | Const c -> Z.pp_print ppf c
-    | Str_const s -> Format.fprintf ppf "\"%s\"" s
-    | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
-    | Len s -> Format.fprintf ppf "(str.len %a)" pp_term s
-    | Iofs s -> Format.fprintf ppf "(str.to.int %a)" pp_term s
-    | Sofi eia -> Format.fprintf ppf "(str.from_int %a)" pp_term eia
-    | Add xs ->
-      Format.fprintf
-        ppf
-        "@[(+ %a)@]"
-        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
-        xs
-    | Mul xs ->
-      Format.fprintf
-        ppf
-        "@[(* %a)@]"
-        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
-        xs
-    | Bwor (a, b) -> Format.fprintf ppf "(%a | %a)" pp_term a pp_term b
-    | Bwxor (a, b) -> Format.fprintf ppf "(%a ^ %a)" pp_term a pp_term b
-    | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
-    | Pow (a, b) -> Format.fprintf ppf "(exp %a %a)" pp_term a pp_term b
-    | Len2 a -> Format.fprintf ppf "@[(chrob.len %a)@]" pp_term a
-    | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
-    (* Strings  *)
-    | Concat (s1, s2) -> Format.fprintf ppf "@[(str.++ %a %a)@]" pp_term s1 pp_term s2
-    | Substr (term', a, b) ->
-      Format.fprintf ppf "(str.substr %a %a %a)" pp_term term' pp_term a pp_term b
-    | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_term a
-  ;;
-
-  let proof_for_eq (type a b) : (a, b) Eq.t -> (a term, b term) Eq.t =
-    fun proof ->
-    match proof with
-    | Eq -> Eq
-  ;;
-
-  let typeof : 'a. 'a term -> 'a kind =
-    fun (type ty) (e : ty term) : ty kind ->
-    match e with
-    | Atom (Var (_, I)) -> I
-    | Add _ -> I
-    | Const _ -> I
-    | Len _ -> I
-    | Len2 _ -> I
-    | Mul _ -> I
-    | Mod _ -> I
-    | Bwand _ -> I
-    | Bwor _ -> I
-    | Bwxor _ -> I
-    | Pow _ -> I
-    | Iofs _ -> I
-    | Str_const _ -> S
-    | Sofi _ -> S
-    | Atom (Var (_, S)) -> S
-    | Concat _ -> S
-    | At _ -> S
-    | Substr _ -> S
-  ;;
-
-  let cast_to_zterm =
-    fun (type ty) (e : ty term) : (ty, Z.t) Eq.t option ->
-    match typeof e with
-    | I -> Some Eq.Eq
-    | S -> None
-  ;;
-
-  let cast_to_sterm =
-    fun (type ty) (e : ty term) : (ty, string) Eq.t option ->
-    match typeof e with
-    | S -> Some Eq.Eq
-    | I -> None
-  [@@ocaml.warnerror "-8"]
-  ;;
-
-  let disambiguate =
-    fun (type ty) (e : ty term) fs fz ->
-    match e with
-    | Atom (Var (n, S)) as v -> fs v
-    | Str_const _ as v -> fs v
-    | Sofi _ as v -> fs v
-    | Concat _ as v -> fs v
-    | At _ as v -> fs v
-    | Substr _ as v -> fs v
-    | Atom (Var (n, I)) as v -> fz v
-    | Const _ as v -> fz v
-    | Iofs _ as v -> fz v
-    | Len _ as v -> fz v
-    | Len2 _ as v -> fz v
-    | Add _ as v -> fz v
-    | Mul _ as v -> fz v
-    | Mod _ as v -> fz v
-    | Pow _ as v -> fz v
-    | Bwand _ as v -> fz v
-    | Bwor _ as v -> fz v
-    | Bwxor _ as v -> fz v
-  ;;
-
-  let match_typ fs fz (type a) : a term -> _ = function
-    | ( Const _ | Len _
-      | Atom (Var (_, I))
-      | Add _ | Mul _ | Mod _ | Bwand _ | Bwor _ | Bwxor _ | Pow _ | Iofs _ | Len2 _ ) as
-      ast -> fz ast
-    | (Str_const _ | Atom (Var (_, S)) | Sofi _ | Concat _ | At _ | Substr _) as ast ->
-      fs ast
-  ;;
-
-  let is_constant_term =
-    let exception Early of Z.t in
-    let rec helper = function
-      | Atom (Var _) -> None
-      | Const n -> Some n
-      | Add ts ->
-        (try
-           List.fold_left
-             (fun acc x ->
-                match helper x with
-                | None -> None
-                | Some m -> Option.map (Z.( + ) m) acc)
-             (Some Z.zero)
-             ts
-         with
-         | Early n -> Some n)
-      | Mul ts ->
-        (try
-           List.fold_left
-             (fun acc x ->
-                match helper x with
-                | None -> None
-                | Some m when Z.(m = zero) -> raise (Early Z.zero)
-                | Some m -> Option.map (Z.( * ) m) acc)
-             (Some Z.one)
-             ts
-         with
-         | Early n -> Some n)
-      | _ -> None
-    in
-    helper
-  ;;
-
-  (* let%test _ = is_constant_term (atom (const (Z.of_int 4))) = Some (Z.of_int 4)
-  let%test _ = is_constant_term (atom (var "s")) = None
-
-  let%test _ =
-    is_constant_term (mul [ atom (const (Z.of_int 4)); atom (const Z.one) ])
-    = Some (Z.of_int 4)
-  ;;
-
-  let%test _ =
-    is_constant_term (add [ atom (const (Z.of_int 4)); atom (const Z.one) ])
-    = Some (Z.of_int 5)
-  ;; *)
-
-  let rec map_term
-    : 'a 'b. (Z.t term -> Z.t term) -> (string term -> string term) -> 'a term -> 'a term
-    =
-    fun (type a)
-      (fz : Z.t term -> Z.t term)
-      (fs : string term -> string term)
-      : (a term -> a term) ->
-      function
-    | Len x -> fz (Len x)
-    | Const c -> fz (Const c)
-    | Str_const s -> fs (Str_const s)
-    | Atom (Var (name, S)) -> fs (Atom (Var (name, S)))
-    | Atom (Var (name, I)) -> fz (Atom (Var (name, I)))
-    | Add xs -> fz (Add (List.map (map_term fz fs) xs))
-    | Mul xs -> fz (Mul (List.map (map_term fz fs) xs))
-    | Mod (xs, d) -> fz (Mod (map_term fz fs xs, d))
-    | Bwand (l, r) -> fz (Bwand (map_term fz fs l, map_term fz fs r))
-    | Bwor (l, r) -> fz (Bwor (map_term fz fs l, map_term fz fs r))
-    | Bwxor (l, r) -> fz (Bwxor (map_term fz fs l, map_term fz fs r))
-    | Pow (l, r) -> fz (Pow (map_term fz fs l, map_term fz fs r))
-    | Sofi s -> fs (Sofi (map_term fz fs s))
-    | Iofs s -> fz (Iofs (map_term fz fs s))
-    | Len2 s -> fz (Len2 (map_term fz fs s))
-    | Concat (l, r) -> fs (Concat (map_term fz fs l, map_term fz fs r))
-    | At (l, r) -> fs (At (map_term fz fs l, map_term fz fs r))
-    | Substr (l, r, k) ->
-      fs (Substr (map_term fz fs l, map_term fz fs r, map_term fz fs k))
-  ;;
-
-  (* | (Len _ | Iofs _ | Len2 _) as term -> f term *)
-  (* | _ -> assert false *)
-
-  (* | Atom _ | Len _ | Sofi _ | Iofs _ | Len2 _ -> f term
-    | Add terms -> f (add (List.map (map_term f) terms))
-    | Mul terms -> f (mul (List.map (map_term f) terms))
-    | Bwand (term, term') -> f (bwand (map_term f term) (map_term f term'))
-    | Bwor (term, term') -> f (bwor (map_term f term) (map_term f term'))
-    | Bwxor (term, term') -> f (bwxor (map_term f term) (map_term f term'))
-    | Pow (term, term') -> f (pow (map_term f term) (map_term f term'))
-    | Mod (t, c) -> f (mod_ (map_term f t) c)
-    | Concat (lhs, rhs) -> f (concat (map_term f lhs) (map_term f rhs))
-    | Substr (term', a, b) -> f (substr (map_term f term') a b)
-    | At (term', a) -> f (at (map_term f term') a) *)
-
-  let rec fold_term
-    :  'acc 'a.
-       ('acc -> Z.t term -> 'acc)
-    -> ('acc -> string term -> 'acc)
-    -> 'acc
-    -> 'a term
-    -> 'acc
-    =
-    (* TODO(Kakadu): A toplevel mapper f was here that was applied to the whole term after folding.
-    It is removed, I don't know was it really neeeded *)
-    fun fz fs acc (type a) (term : a term) ->
-    match term with
-    | (Const _ | Atom (Var (_, I))) as term -> fz acc term
-    | (Str_const _ | Atom (Var (_, S))) as term -> fs acc term
-    | (Iofs ts | Len ts | Len2 ts) as term -> fz (fold_term fz fs acc ts) term
-    | Sofi t as term -> fs (fold_term fz fs acc t) term
-    | Concat (lhs, rhs) as term -> fs (fold_term fz fs (fold_term fz fs acc lhs) rhs) term
-    | Substr (term', tz1, tz2) as term ->
-      fs (fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2) term
-    | At (term', tidx) as term ->
-      fs (fold_term fz fs (fold_term fz fs acc term') tidx) term
-    | (Add terms | Mul terms) as term ->
-      fz (List.fold_left (fold_term fz fs) acc terms) term
-    | ( Bwand (term', term'')
-      | Bwor (term', term'')
-      | Bwxor (term', term'')
-      | Pow (term', term'') ) as term ->
-      fz (fold_term fz fs (fold_term fz fs acc term') term'') term
-    | Mod (t, _) as term -> fz (fold_term fz fs acc t) term
-  ;;
-
-  let rec fold_term_skip_pow =
-    fun fz acc (type a) (term : a term) ->
-    match term with
-    | (Const _ | Atom (Var (_, I))) as term -> fz acc term
-    | (Add terms | Mul terms) as term ->
-      fz (List.fold_left (fold_term_skip_pow fz) acc terms) term
-    | (Bwand (term', term'') | Bwor (term', term'') | Bwxor (term', term'')) as term ->
-      fz (fold_term_skip_pow fz (fold_term_skip_pow fz acc term') term'') term
-    | Mod (t, _) as term -> fz (fold_term_skip_pow fz acc t) term
-    | Pow (_, _) -> acc
-    | term -> acc
-  ;;
-
-  let compare_term (type a) : a term -> a term -> int = fun l r -> Stdlib.compare l r
-  (*match l, r with
-    | _ -> failwith "tbd"*)
-
-  type t =
-    | Eq : 'a term * 'a term * 'a kind -> t
-    | Neq : 'a term * 'a term * 'a kind -> t
-    | Leq : Z.t term * Z.t term -> t
-    | InRe : 'a term * 'a kind * char list Regex.t -> t
-    | InReRaw : 'a term * 'a kind * NfaS.t -> t
-    | RLen : Z.t term * Z.t term -> t
-    | PrefixOf of string term * string term
-    | Contains of string term * string term
-    | SuffixOf of string term * string term
-  [@@deriving variants]
-
-  let compare l r = Stdlib.compare l r
-  let geq a b = leq b a
-  let lt a b = leq (add [ a; const Z.one ]) b
-  let gt a b = lt b a
-
-  let map f = function
-    | Eq _ as eia -> f eia
-    | Neq _ as eia -> f eia
-    | Leq _ as eia -> f eia
-    | InRe _ as eia -> f eia
-    | InReRaw _ as eia -> f eia
-    | RLen _ as eia -> f eia
-    | PrefixOf _ as eia -> f eia
-    | SuffixOf _ as eia -> f eia
-    | Contains _ as eia -> f eia
-  ;;
-
-  let map2 f fint fstring = function
-    | Eq (term, term', I) ->
-      f (Eq (map_term fint fstring term, map_term fint fstring term', I))
-    | Eq (l, r, S) -> f (Eq (map_term fint fstring l, map_term fint fstring r, S))
-    | Neq (term, term', I) ->
-      f (Neq (map_term fint fstring term, map_term fint fstring term', I))
-    | Neq (l, r, S) -> f (Neq (map_term fint fstring l, map_term fint fstring r, S))
-    | Leq (term, term') ->
-      f (leq (map_term fint fstring term) (map_term fint fstring term'))
-    | RLen (v, pow) -> f (rlen (map_term fint fstring v) (map_term fint fstring pow))
-    | InRe (term, kind, re) -> f (inre (map_term fint fstring term) kind re)
-    | InReRaw (term, kind, re) -> f (inreraw (map_term fint fstring term) kind re)
-    | PrefixOf (term, term') ->
-      f (prefixof (map_term fint fstring term) (map_term fint fstring term'))
-    | SuffixOf (term, term') ->
-      f (suffixof (map_term fint fstring term) (map_term fint fstring term'))
-    | Contains (term, term') ->
-      f (contains (map_term fint fstring term) (map_term fint fstring term'))
-  ;;
-
-  let fold2 fz fs acc : t -> _ =
-    let _ : 'acc -> Z.t term -> 'acc = fz in
-    let _ : 'acc -> string term -> 'acc = fs in
-    function
-    | Eq (l, r, I) -> fold_term fz fs (fold_term fz fs acc l) r
-    | Eq (l, r, S) -> fold_term fz fs (fold_term fz fs acc l) r
-    | Neq (l, r, I) -> fold_term fz fs (fold_term fz fs acc l) r
-    | Neq (l, r, S) -> fold_term fz fs (fold_term fz fs acc l) r
-    | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
-    | RLen (v, pow) -> fold_term fz fs (fold_term fz fs acc v) pow
-    | InRe (term, _, re) -> fold_term fz fs acc term
-    | InReRaw (term, _, re) -> fold_term fz fs acc term
-    | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
-      fold_term fz fs (fold_term fz fs acc term) term'
-  ;;
-
-  let fold2_skip_pow fz acc : t -> _ =
-    let _ : 'acc -> Z.t term -> 'acc = fz in
-    function
-    | Eq (l, r, I) -> fold_term_skip_pow fz (fold_term_skip_pow fz acc l) r
-    | Leq (term, term') -> fold_term_skip_pow fz (fold_term_skip_pow fz acc term) term'
-    | RLen (v, pow) -> fold_term_skip_pow fz (fold_term_skip_pow fz acc v) pow
-    | InRe (term, I, re) -> fold_term_skip_pow fz acc term
-    | InReRaw (term, I, re) -> fold_term_skip_pow fz acc term
-    | _ -> acc
-  ;;
-
-  let pp fmt = function
-    | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
-    | Neq (term, term', _) ->
-      Format.fprintf fmt "@[(distinct %a %a)@]" pp_term term pp_term term'
-    | Leq (term, term') -> Format.fprintf fmt "@[(<= %a %a)@]" pp_term term pp_term term'
-    | InRe (str, _, re) ->
-      Format.fprintf
-        fmt
-        "(str.in_re %a %a)"
-        pp_term
-        str
-        (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
-        re
-    | InReRaw (str, _, _) -> Format.fprintf fmt "(str.in_re.raw %a)" pp_term str
-    | RLen (v, pow) -> Format.fprintf fmt "(chrob.len %a %a)" pp_term v pp_term pow
-    (* | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re' *)
-    | PrefixOf (term, term') ->
-      Format.fprintf fmt "(str.prefixof %a %a)" pp_term term pp_term term'
-    | Contains (term, term') ->
-      Format.fprintf fmt "(str.contains %a %a)" pp_term term pp_term term'
-    | SuffixOf (term, term') ->
-      Format.fprintf fmt "(str.suffixof %a %a)" pp_term term pp_term term'
-  ;;
-
-  let equal = Stdlib.( = )
-  let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
-end
-
 module M (Enc : Nfa.Encoding) = struct
+  (* SPDX-License-Identifier: MIT *)
+  (* Copyright 2024-2025, Chrobelias. *)
+  let compare_string = String.compare
+  let compare_int = Int.compare
+  let compare_list f = Base.List.compare f
+  let compare_char = Char.compare
+
+  type 'a kind =
+    | I : Z.t kind
+    | S : string kind
+
+  type 'a atom = Var : string * 'a kind -> 'a atom [@@deriving variants]
+
+  let failf fmt = Format.kasprintf failwith fmt
+  let str_var name = Var (name, S)
+  let int_var name = Var (name, I)
+
+  type any_atom = Any_atom : 'a atom -> any_atom
+
+  let compare_any_atom l r =
+    match l, r with
+    | Any_atom (Var (v1, _)), Any_atom (Var (v2, _)) -> String.compare v1 v2
+  ;;
+
+  let pp_atom ppf = function
+    | Var (n, _) -> Format.fprintf ppf "%s" n
+  ;;
+
+  let pp_any_atom ppf = function
+    | Any_atom a -> Format.fprintf ppf "%a" pp_atom a
+  ;;
+
+  module Eq = struct
+    type (_, _) t = Eq : ('a, 'a) t
+
+    let refl : ('a, 'a) t = Eq
+
+    let sym (type a b) : (a, b) t -> (b, a) t =
+      fun p ->
+      match p with
+      | Eq -> Eq
+    ;;
+
+    let cast (type a b) (proof : (a, b) t) (x : a) : b =
+      match proof with
+      | Eq -> x
+    ;;
+  end
+
+  module Eia = struct
+    (** Exponential integer arithmetic, i.e. LIA with exponents.*)
+    module NfaS = Nfa.Lsb (Nfa.Str (Enc))
+
+    type 'a term =
+      | Const : Z.t -> Z.t term
+      | Str_const : string -> string term
+      | Atom : 'a atom -> 'a term
+      | Len : string term -> Z.t term
+      | Add : Z.t term list -> Z.t term
+      | Mul : Z.t term list -> Z.t term
+      | Mod : Z.t term * Z.t -> Z.t term
+      | Bwand : Z.t term * Z.t term -> Z.t term
+      | Bwor : Z.t term * Z.t term -> Z.t term
+      | Bwxor : Z.t term * Z.t term -> Z.t term
+      | Pow : Z.t term * Z.t term -> Z.t term
+      (* String stuff *)
+      | Sofi : Z.t term -> string term
+      | Iofs : string term -> Z.t term
+      | Len2 : string term -> Z.t term
+      | Concat : string term * string term -> string term
+      | At : string term * Z.t term -> string term
+      | Substr : string term * Z.t term * Z.t term -> string term
+    [@@deriving variants]
+
+    let rec pp_term : 'a. Format.formatter -> 'a term -> unit =
+      fun (type a) ppf : (a term -> unit) -> function
+      | Const c when Z.lt c Z.zero -> Format.fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
+      | Const c -> Z.pp_print ppf c
+      | Str_const s -> Format.fprintf ppf "\"%s\"" s
+      | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
+      | Len s -> Format.fprintf ppf "(str.len %a)" pp_term s
+      | Iofs s -> Format.fprintf ppf "(str.to.int %a)" pp_term s
+      | Sofi eia -> Format.fprintf ppf "(str.from_int %a)" pp_term eia
+      | Add xs ->
+        Format.fprintf
+          ppf
+          "@[(+ %a)@]"
+          (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
+          xs
+      | Mul xs ->
+        Format.fprintf
+          ppf
+          "@[(* %a)@]"
+          (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
+          xs
+      | Bwor (a, b) -> Format.fprintf ppf "(%a | %a)" pp_term a pp_term b
+      | Bwxor (a, b) -> Format.fprintf ppf "(%a ^ %a)" pp_term a pp_term b
+      | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
+      | Pow (a, b) -> Format.fprintf ppf "(exp %a %a)" pp_term a pp_term b
+      | Len2 a -> Format.fprintf ppf "@[(chrob.len %a)@]" pp_term a
+      | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
+      (* Strings  *)
+      | Concat (s1, s2) -> Format.fprintf ppf "@[(str.++ %a %a)@]" pp_term s1 pp_term s2
+      | Substr (term', a, b) ->
+        Format.fprintf ppf "(str.substr %a %a %a)" pp_term term' pp_term a pp_term b
+      | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_term a
+    ;;
+
+    let proof_for_eq (type a b) : (a, b) Eq.t -> (a term, b term) Eq.t =
+      fun proof ->
+      match proof with
+      | Eq -> Eq
+    ;;
+
+    let typeof : 'a. 'a term -> 'a kind =
+      fun (type ty) (e : ty term) : ty kind ->
+      match e with
+      | Atom (Var (_, I)) -> I
+      | Add _ -> I
+      | Const _ -> I
+      | Len _ -> I
+      | Len2 _ -> I
+      | Mul _ -> I
+      | Mod _ -> I
+      | Bwand _ -> I
+      | Bwor _ -> I
+      | Bwxor _ -> I
+      | Pow _ -> I
+      | Iofs _ -> I
+      | Str_const _ -> S
+      | Sofi _ -> S
+      | Atom (Var (_, S)) -> S
+      | Concat _ -> S
+      | At _ -> S
+      | Substr _ -> S
+    ;;
+
+    let cast_to_zterm =
+      fun (type ty) (e : ty term) : (ty, Z.t) Eq.t option ->
+      match typeof e with
+      | I -> Some Eq.Eq
+      | S -> None
+    ;;
+
+    let cast_to_sterm =
+      fun (type ty) (e : ty term) : (ty, string) Eq.t option ->
+      match typeof e with
+      | S -> Some Eq.Eq
+      | I -> None
+    [@@ocaml.warnerror "-8"]
+    ;;
+
+    let disambiguate =
+      fun (type ty) (e : ty term) fs fz ->
+      match e with
+      | Atom (Var (n, S)) as v -> fs v
+      | Str_const _ as v -> fs v
+      | Sofi _ as v -> fs v
+      | Concat _ as v -> fs v
+      | At _ as v -> fs v
+      | Substr _ as v -> fs v
+      | Atom (Var (n, I)) as v -> fz v
+      | Const _ as v -> fz v
+      | Iofs _ as v -> fz v
+      | Len _ as v -> fz v
+      | Len2 _ as v -> fz v
+      | Add _ as v -> fz v
+      | Mul _ as v -> fz v
+      | Mod _ as v -> fz v
+      | Pow _ as v -> fz v
+      | Bwand _ as v -> fz v
+      | Bwor _ as v -> fz v
+      | Bwxor _ as v -> fz v
+    ;;
+
+    let match_typ fs fz (type a) : a term -> _ = function
+      | ( Const _ | Len _
+        | Atom (Var (_, I))
+        | Add _ | Mul _ | Mod _ | Bwand _ | Bwor _ | Bwxor _ | Pow _ | Iofs _ | Len2 _ ) as
+        ast -> fz ast
+      | (Str_const _ | Atom (Var (_, S)) | Sofi _ | Concat _ | At _ | Substr _) as ast ->
+        fs ast
+    ;;
+
+    let is_constant_term =
+      let exception Early of Z.t in
+      let rec helper = function
+        | Atom (Var _) -> None
+        | Const n -> Some n
+        | Add ts ->
+          (try
+             List.fold_left
+               (fun acc x ->
+                  match helper x with
+                  | None -> None
+                  | Some m -> Option.map (Z.( + ) m) acc)
+               (Some Z.zero)
+               ts
+           with
+           | Early n -> Some n)
+        | Mul ts ->
+          (try
+             List.fold_left
+               (fun acc x ->
+                  match helper x with
+                  | None -> None
+                  | Some m when Z.(m = zero) -> raise (Early Z.zero)
+                  | Some m -> Option.map (Z.( * ) m) acc)
+               (Some Z.one)
+               ts
+           with
+           | Early n -> Some n)
+        | _ -> None
+      in
+      helper
+    ;;
+
+    (* let%test _ = is_constant_term (atom (const (Z.of_int 4))) = Some (Z.of_int 4)
+    let%test _ = is_constant_term (atom (var "s")) = None
+
+    let%test _ =
+      is_constant_term (mul [ atom (const (Z.of_int 4)); atom (const Z.one) ])
+      = Some (Z.of_int 4)
+    ;;
+
+    let%test _ =
+      is_constant_term (add [ atom (const (Z.of_int 4)); atom (const Z.one) ])
+      = Some (Z.of_int 5)
+    ;; *)
+
+    let rec map_term
+      : 'a 'b. (Z.t term -> Z.t term) -> (string term -> string term) -> 'a term -> 'a term
+      =
+      fun (type a)
+        (fz : Z.t term -> Z.t term)
+        (fs : string term -> string term)
+        : (a term -> a term) ->
+        function
+      | Len x -> fz (Len x)
+      | Const c -> fz (Const c)
+      | Str_const s -> fs (Str_const s)
+      | Atom (Var (name, S)) -> fs (Atom (Var (name, S)))
+      | Atom (Var (name, I)) -> fz (Atom (Var (name, I)))
+      | Add xs -> fz (Add (List.map (map_term fz fs) xs))
+      | Mul xs -> fz (Mul (List.map (map_term fz fs) xs))
+      | Mod (xs, d) -> fz (Mod (map_term fz fs xs, d))
+      | Bwand (l, r) -> fz (Bwand (map_term fz fs l, map_term fz fs r))
+      | Bwor (l, r) -> fz (Bwor (map_term fz fs l, map_term fz fs r))
+      | Bwxor (l, r) -> fz (Bwxor (map_term fz fs l, map_term fz fs r))
+      | Pow (l, r) -> fz (Pow (map_term fz fs l, map_term fz fs r))
+      | Sofi s -> fs (Sofi (map_term fz fs s))
+      | Iofs s -> fz (Iofs (map_term fz fs s))
+      | Len2 s -> fz (Len2 (map_term fz fs s))
+      | Concat (l, r) -> fs (Concat (map_term fz fs l, map_term fz fs r))
+      | At (l, r) -> fs (At (map_term fz fs l, map_term fz fs r))
+      | Substr (l, r, k) ->
+        fs (Substr (map_term fz fs l, map_term fz fs r, map_term fz fs k))
+    ;;
+
+    (* | (Len _ | Iofs _ | Len2 _) as term -> f term *)
+    (* | _ -> assert false *)
+
+    (* | Atom _ | Len _ | Sofi _ | Iofs _ | Len2 _ -> f term
+      | Add terms -> f (add (List.map (map_term f) terms))
+      | Mul terms -> f (mul (List.map (map_term f) terms))
+      | Bwand (term, term') -> f (bwand (map_term f term) (map_term f term'))
+      | Bwor (term, term') -> f (bwor (map_term f term) (map_term f term'))
+      | Bwxor (term, term') -> f (bwxor (map_term f term) (map_term f term'))
+      | Pow (term, term') -> f (pow (map_term f term) (map_term f term'))
+      | Mod (t, c) -> f (mod_ (map_term f t) c)
+      | Concat (lhs, rhs) -> f (concat (map_term f lhs) (map_term f rhs))
+      | Substr (term', a, b) -> f (substr (map_term f term') a b)
+      | At (term', a) -> f (at (map_term f term') a) *)
+
+    let rec fold_term
+      :  'acc 'a.
+         ('acc -> Z.t term -> 'acc)
+      -> ('acc -> string term -> 'acc)
+      -> 'acc
+      -> 'a term
+      -> 'acc
+      =
+      (* TODO(Kakadu): A toplevel mapper f was here that was applied to the whole term after folding.
+      It is removed, I don't know was it really neeeded *)
+      fun fz fs acc (type a) (term : a term) ->
+      match term with
+      | (Const _ | Atom (Var (_, I))) as term -> fz acc term
+      | (Str_const _ | Atom (Var (_, S))) as term -> fs acc term
+      | (Iofs ts | Len ts | Len2 ts) as term -> fz (fold_term fz fs acc ts) term
+      | Sofi t as term -> fs (fold_term fz fs acc t) term
+      | Concat (lhs, rhs) as term -> fs (fold_term fz fs (fold_term fz fs acc lhs) rhs) term
+      | Substr (term', tz1, tz2) as term ->
+        fs (fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2) term
+      | At (term', tidx) as term ->
+        fs (fold_term fz fs (fold_term fz fs acc term') tidx) term
+      | (Add terms | Mul terms) as term ->
+        fz (List.fold_left (fold_term fz fs) acc terms) term
+      | ( Bwand (term', term'')
+        | Bwor (term', term'')
+        | Bwxor (term', term'')
+        | Pow (term', term'') ) as term ->
+        fz (fold_term fz fs (fold_term fz fs acc term') term'') term
+      | Mod (t, _) as term -> fz (fold_term fz fs acc t) term
+    ;;
+
+    let rec fold_term_skip_pow =
+      fun fz acc (type a) (term : a term) ->
+      match term with
+      | (Const _ | Atom (Var (_, I))) as term -> fz acc term
+      | (Add terms | Mul terms) as term ->
+        fz (List.fold_left (fold_term_skip_pow fz) acc terms) term
+      | (Bwand (term', term'') | Bwor (term', term'') | Bwxor (term', term'')) as term ->
+        fz (fold_term_skip_pow fz (fold_term_skip_pow fz acc term') term'') term
+      | Mod (t, _) as term -> fz (fold_term_skip_pow fz acc t) term
+      | Pow (_, _) -> acc
+      | term -> acc
+    ;;
+
+    let compare_term (type a) : a term -> a term -> int = fun l r -> Stdlib.compare l r
+    (*match l, r with
+      | _ -> failwith "tbd"*)
+
+    type t =
+      | Eq : 'a term * 'a term * 'a kind -> t
+      | Neq : 'a term * 'a term * 'a kind -> t
+      | Leq : Z.t term * Z.t term -> t
+      | InRe : 'a term * 'a kind * char list Regex.t -> t
+      | InReRaw : 'a term * 'a kind * NfaS.t -> t
+      | RLen : Z.t term * Z.t term -> t
+      | PrefixOf of string term * string term
+      | Contains of string term * string term
+      | SuffixOf of string term * string term
+    [@@deriving variants]
+
+    let compare l r = Stdlib.compare l r
+    let geq a b = leq b a
+    let lt a b = leq (add [ a; const Z.one ]) b
+    let gt a b = lt b a
+
+    let map f = function
+      | Eq _ as eia -> f eia
+      | Neq _ as eia -> f eia
+      | Leq _ as eia -> f eia
+      | InRe _ as eia -> f eia
+      | InReRaw _ as eia -> f eia
+      | RLen _ as eia -> f eia
+      | PrefixOf _ as eia -> f eia
+      | SuffixOf _ as eia -> f eia
+      | Contains _ as eia -> f eia
+    ;;
+
+    let map2 f fint fstring = function
+      | Eq (term, term', I) ->
+        f (Eq (map_term fint fstring term, map_term fint fstring term', I))
+      | Eq (l, r, S) -> f (Eq (map_term fint fstring l, map_term fint fstring r, S))
+      | Neq (term, term', I) ->
+        f (Neq (map_term fint fstring term, map_term fint fstring term', I))
+      | Neq (l, r, S) -> f (Neq (map_term fint fstring l, map_term fint fstring r, S))
+      | Leq (term, term') ->
+        f (leq (map_term fint fstring term) (map_term fint fstring term'))
+      | RLen (v, pow) -> f (rlen (map_term fint fstring v) (map_term fint fstring pow))
+      | InRe (term, kind, re) -> f (inre (map_term fint fstring term) kind re)
+      | InReRaw (term, kind, re) -> f (inreraw (map_term fint fstring term) kind re)
+      | PrefixOf (term, term') ->
+        f (prefixof (map_term fint fstring term) (map_term fint fstring term'))
+      | SuffixOf (term, term') ->
+        f (suffixof (map_term fint fstring term) (map_term fint fstring term'))
+      | Contains (term, term') ->
+        f (contains (map_term fint fstring term) (map_term fint fstring term'))
+    ;;
+
+    let fold2 fz fs acc : t -> _ =
+      let _ : 'acc -> Z.t term -> 'acc = fz in
+      let _ : 'acc -> string term -> 'acc = fs in
+      function
+      | Eq (l, r, I) -> fold_term fz fs (fold_term fz fs acc l) r
+      | Eq (l, r, S) -> fold_term fz fs (fold_term fz fs acc l) r
+      | Neq (l, r, I) -> fold_term fz fs (fold_term fz fs acc l) r
+      | Neq (l, r, S) -> fold_term fz fs (fold_term fz fs acc l) r
+      | Leq (term, term') -> fold_term fz fs (fold_term fz fs acc term) term'
+      | RLen (v, pow) -> fold_term fz fs (fold_term fz fs acc v) pow
+      | InRe (term, _, re) -> fold_term fz fs acc term
+      | InReRaw (term, _, re) -> fold_term fz fs acc term
+      | PrefixOf (term, term') | Contains (term, term') | SuffixOf (term, term') ->
+        fold_term fz fs (fold_term fz fs acc term) term'
+    ;;
+
+    let fold2_skip_pow fz acc : t -> _ =
+      let _ : 'acc -> Z.t term -> 'acc = fz in
+      function
+      | Eq (l, r, I) -> fold_term_skip_pow fz (fold_term_skip_pow fz acc l) r
+      | Leq (term, term') -> fold_term_skip_pow fz (fold_term_skip_pow fz acc term) term'
+      | RLen (v, pow) -> fold_term_skip_pow fz (fold_term_skip_pow fz acc v) pow
+      | InRe (term, I, re) -> fold_term_skip_pow fz acc term
+      | InReRaw (term, I, re) -> fold_term_skip_pow fz acc term
+      | _ -> acc
+    ;;
+
+    let pp fmt = function
+      | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
+      | Neq (term, term', _) ->
+        Format.fprintf fmt "@[(distinct %a %a)@]" pp_term term pp_term term'
+      | Leq (term, term') -> Format.fprintf fmt "@[(<= %a %a)@]" pp_term term pp_term term'
+      | InRe (str, _, re) ->
+        Format.fprintf
+          fmt
+          "(str.in_re %a %a)"
+          pp_term
+          str
+          (Regex.pp (fun ppf a -> Format.fprintf fmt "%s" (List.to_seq a |> String.of_seq)))
+          re
+      | InReRaw (str, _, _) -> Format.fprintf fmt "(str.in_re.raw %a)" pp_term str
+      | RLen (v, pow) -> Format.fprintf fmt "(chrob.len %a %a)" pp_term v pp_term pow
+      (* | Eq (re, re') -> Format.fprintf fmt "(= %a %a)" pp_term re pp_term re' *)
+      | PrefixOf (term, term') ->
+        Format.fprintf fmt "(str.prefixof %a %a)" pp_term term pp_term term'
+      | Contains (term, term') ->
+        Format.fprintf fmt "(str.contains %a %a)" pp_term term pp_term term'
+      | SuffixOf (term, term') ->
+        Format.fprintf fmt "(str.suffixof %a %a)" pp_term term pp_term term'
+    ;;
+
+    let equal = Stdlib.( = )
+    let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
+  end
+
   module NfaS = Nfa.Lsb (Nfa.Str (Enc))
-  module Eia = Eia (Enc)
 
   type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
 

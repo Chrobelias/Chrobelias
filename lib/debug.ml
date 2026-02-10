@@ -49,7 +49,8 @@ let dump_nfa ?msg ?vars format_nfa nfa =
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
            (fun fmt (a, b) ->
               (*Format.fprintf fmt "%d -> %a" b Ir.pp_poly_atom (a :> Ir.poly_atom))*)
-              Format.fprintf fmt "%d -> %a" b Ir.pp_atom a))
+              (* FIXME *)
+              Format.fprintf fmt "%d -> " b (*Ir.pp_atom a*)))
         vars
     | None -> ())
 ;;

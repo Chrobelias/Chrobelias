@@ -1,3 +1,5 @@
 (** Simplification based on alpha-equivalence *)
 
-val simplify : Ir.t -> Ir.t
+module M (Enc : Nfa.Encoding) : sig
+  val simplify : Ir.M(Enc).t -> Ir.M(Enc).t
+end

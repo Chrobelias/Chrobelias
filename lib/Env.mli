@@ -40,14 +40,14 @@ module M(Enc : Nfa.Encoding) : sig
 
   (* TODO: remove this  *)
   val is_absent_key : string -> t -> bool
-  val extend_exn : t -> 'a Ast.atom -> 'a Ast.M(Enc).Eia.term -> t
+  val extend_exn : t -> 'a Ast.M(Enc).atom -> 'a Ast.M(Enc).Eia.term -> t
   val set_int_exn : t -> string -> Z.t Ast.M(Enc).Eia.term -> t
   val extend_int_exn : t -> string -> Z.t Ast.M(Enc).Eia.term -> t
   val extend_string_exn : t -> string -> string Ast.M(Enc).Eia.term -> t
-  val extend_cstrt_exn : t -> key:'a Ast.atom -> 'a Ast.M(Enc).Eia.term -> t
+  val extend_cstrt_exn : t -> key:'a Ast.M(Enc).atom -> 'a Ast.M(Enc).Eia.term -> t
   val pp : ?title:string -> Format.formatter -> t -> unit
   val to_eqs : t -> Ast.M(Enc).t list
-  val enrich : t -> (Ast.any_atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
+  val enrich : t -> (Ast.M(Enc).any_atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
   val occurs_var : t -> string -> 'a Ast.M(Enc).Eia.term -> bool
   val walk : t -> 'a Ast.M(Enc).Eia.term -> 'a Ast.M(Enc).Eia.term
 end
