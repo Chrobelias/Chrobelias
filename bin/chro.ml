@@ -303,6 +303,16 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         Format.printf "unknown %s\n%!" (if s <> "" then "(" ^ s ^ ")" else ""))
     else ()
   in
+  let reason lhs rhs =
+    let ord = [ "nfa"; "nia"; "over"; "simpl"; "presimpl"; "?" ] in
+    let lhs' =
+      List.find_index (( = ) lhs) ord |> Option.value ~default:(List.length ord)
+    in
+    let rhs' =
+      List.find_index (( = ) rhs) ord |> Option.value ~default:(List.length ord)
+    in
+    if lhs' <= rhs' then lhs else rhs
+  in
   let used_under2 = ref false in
   let check_nfa_sat ast e =
     log "Starting NFA Solver ...\n%!";
@@ -444,19 +454,9 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat "nfa")
     | _ -> apporx_rez
   in
-  let can_be_unk = ref false in
-  let unsat_reason = ref "presimpl" in
-  let reason lhs rhs =
-    let ord = [ "nfa"; "nia"; "over"; "simpl"; "presimpl"; "?" ] in
-    let lhs' =
-      List.find_index (( = ) lhs) ord |> Option.value ~default:(List.length ord)
-    in
-    let rhs' =
-      List.find_index (( = ) rhs) ord |> Option.value ~default:(List.length ord)
-    in
-    if lhs' <= rhs' then lhs else rhs
-  in
   let check_string_sat ast env =
+    let unsat_reason = ref "presimpl" in
+    let can_be_unk = ref false in
     let asts_n_regexes = Lib.SimplII.arithmetize ast env in
     log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
     let f ast_n_regex =
@@ -519,6 +519,8 @@ let rec check_sat ?(verbose = false) tys ast : rez =
   try
     if config.logic = `Str || config.logic = `StrBv
     then (
+      let unsat_reason = ref "presimpl" in
+      let can_be_unk = ref false in
       match Lib.SimplII.run_string_simplify ast with
       | `Sat (s, e) ->
         report_result2 (`Sat s);
@@ -532,22 +534,25 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           List.find_map
             (fun (ast, env) ->
                match check_string_sat ast env with
-               | Unsat _ -> None
+               | Unsat s ->
+                 unsat_reason := reason s !unsat_reason;
+                 None
                | Sat (reason, _, _, _, _) as s ->
                  report_result2 (`Sat reason);
-                 Option.some s
+                 Some s
                | Unknown _ ->
                  can_be_unk := true;
                  None)
-            variants
-          (*List.fil (fun (ast, env) -> check_string_sat ast env) variants))*))
+            variants)
         |> fun v ->
-        (match v with
-         | Some v -> v
-         | None ->
-           let s = "nfa" in
-           report_result2 (`Unsat s);
-           Unsat s))
+        (match v, !can_be_unk with
+         | Some v, _ -> v
+         | None, true ->
+           report_result2 (`Unknown "");
+           unknown ast Lib.Env.empty
+         | None, false ->
+           report_result2 (`Unsat !unsat_reason);
+           Unsat !unsat_reason))
     else (
       match check_eia_sat ast Lib.Env.empty with
       | Sat (s, ast, env, get_model, _) ->
