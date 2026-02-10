@@ -533,7 +533,9 @@ let rec check_sat ?(verbose = false) tys ast : rez =
             (fun (ast, env) ->
                match check_string_sat ast env with
                | Unsat _ -> None
-               | Sat _ as s -> Option.some s
+               | Sat (reason, _, _, _, _) as s ->
+                 report_result2 (`Sat reason);
+                 Option.some s
                | Unknown _ ->
                  can_be_unk := true;
                  None)
