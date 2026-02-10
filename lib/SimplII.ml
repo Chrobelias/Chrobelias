@@ -2161,7 +2161,7 @@ let subst env ast =
   apply_symantics_unsugared (module S) ast
 ;;
 
-let try_under_concats env alpha ast =
+let try_under_concats env alpha len ast =
   let module Map = Base.Map.Poly in
   let module Set = Base.Set.Poly in
   let approxed_env_n_ast vars from =
@@ -2201,11 +2201,12 @@ let try_under_concats env alpha ast =
           let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
           let max_cnt = Config.under_str_config.max_cnt in
           let length = Ast.get_len name ast in
-          let count =
+          let length, count =
             match length >= 0, Map.mem regexes name with
-            | true, other -> min max_cnt (Utils.pow ~base:(List.length alpha) length)
-            | other, true -> max_cnt
-            | _ -> max max_cnt (List.length alpha * List.length alpha)
+            | true, other ->
+              length, min max_cnt (Utils.pow ~base:(List.length alpha) length)
+            | _, true -> length, max_cnt
+            | _ -> len, max_cnt
           in
           let list =
             get_strings_range
@@ -2237,14 +2238,9 @@ let try_under_concats env alpha ast =
            e, apply_symantics (module Symantics) ast)
         envs)
   in
-  if Config.under_str_config.max_cnt < 0
-  then [ env, ast ]
-  else (
-    let vars_left, vars_right = find_vars_for_under2s ast in
-    (*FIXME: dangerous thing above. I add (env, ast) _behind_ all underapproxed ones*)
-    approxed_env_n_ast vars_left "left"
-    @ approxed_env_n_ast vars_right "rigth"
-    @ [ env, ast ])
+  log "Length %d attempt...%!\n" len;
+  let vars_left, vars_right = find_vars_for_under2s ast in
+  approxed_env_n_ast vars_left "left" @ approxed_env_n_ast vars_right "rigth"
 ;;
 
 let try_under2_heuristics env ast =
@@ -2400,18 +2396,26 @@ let run_under2 env ast =
 ;;
 
 let under_concats env alpha ast =
-  let envs_n_asts = try_under_concats env alpha ast in
-  (* log "Simplifications for underapproximated concats:\n%!"; *)
-  List.filter_map
-    (fun (env, ast) ->
-       match basic_simplify [ 0 ] env ast with
-       | `Unsat -> None
-       | `Sat env -> raise_notrace (Underapprox_fired env)
-       | `Unknown (ast, _, _, _) -> Some ast)
-    envs_n_asts
+  if Config.under_str_config.max_cnt < 0
+  then [ ast ]
+  else
+    Seq.init (Config.under_str_config.max_len + 2) Fun.id
+    |> Seq.map (fun length ->
+      if length <= Config.under_str_config.max_len
+      then try_under_concats env alpha length ast
+      else [ env, ast ])
+    |> Seq.fold_left
+         (fun acc envs_n_asts ->
+            acc
+            @ List.filter_map
+                (fun (env, ast) ->
+                   match basic_simplify [ 0 ] env ast with
+                   | `Unsat -> None
+                   | `Sat env -> raise_notrace (Underapprox_fired env)
+                   | `Unknown (ast, _, _, _) -> Some ast)
+                envs_n_asts)
+         []
 ;;
-
-(* `Underapprox asts *)
 
 let split_concats { Info.all; _ } =
   let module Map = Base.Map.Poly in
