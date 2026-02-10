@@ -456,95 +456,87 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     in
     if lhs' <= rhs' then lhs else rhs
   in
+  let check_string_sat ast env =
+    let asts_n_regexes = Lib.SimplII.arithmetize ast env in
+    log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
+    let f ast_n_regex =
+      let ast, e, post, regex = ast_n_regex in
+      log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+      match check_eia_sat ast e with
+      | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, post, regex)
+      | Unknown _ ->
+        can_be_unk := true;
+        None
+      | Unsat s ->
+        unsat_reason := reason s !unsat_reason;
+        None
+    in
+    let asts_n_regexes = asts_n_regexes |> List.to_seq in
+    let asts_n_regexes = Seq.map f asts_n_regexes in
+    let asts_n_regexes =
+      Seq.map
+        (function
+          | Some (_, _, _, _, [], _) as rez -> rez
+          | Some (_, ast, e, get_model, post, regexes) as rez -> begin
+            match get_model tys with
+            | Result.Ok model ->
+              let model = model_from_parts_regexes_env tys model regexes e in
+              begin if
+                List.for_all
+                  (fun post ->
+                     match
+                       post model ast (fun ast ->
+                         match (check_sat tys) ast with
+                         | Sat _ -> `Sat
+                         | _ -> `Unknown)
+                     with
+                     | `Sat -> true
+                     | `Unknown ->
+                       can_be_unk := true;
+                       false)
+                  post
+              then rez
+              else Option.none
+              end
+            | Result.Error _ -> rez
+          end
+          | None -> Option.none)
+        asts_n_regexes
+    in
+    match Seq.find_map Fun.id asts_n_regexes with
+    | Some (s, ast, env, get_model, _, regexes) ->
+      report_result2 (`Sat s);
+      Sat (s, ast, env, get_model, regexes)
+    | None ->
+      if !can_be_unk || !Lib.Config.bounded_unsat
+      then (
+        report_result2 (`Unknown "");
+        unknown ast Lib.Env.empty)
+      else (
+        report_result2 (`Unsat !unsat_reason);
+        Unsat !unsat_reason)
+  in
   try
     if config.logic = `Str || config.logic = `StrBv
     then (
-      match Lib.SimplII.arithmetize ast with
+      match Lib.SimplII.run_string_simplify ast with
       | `Sat (s, e) ->
         report_result2 (`Sat s);
         Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
       | `Unsat ->
         report_result2 (`Unsat "presimpl");
         Unsat "presimpl"
-      | `Unknown asts_n_regexes ->
-        log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
-        let f ast_n_regex =
-          let ast, e, post, regex = ast_n_regex in
-          log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-          match check_eia_sat ast e with
-          | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, post, regex)
-          | Unknown _ ->
-            can_be_unk := true;
-            None
-          | Unsat s ->
-            unsat_reason := reason s !unsat_reason;
-            None
-        in
-        let asts_n_regexes = asts_n_regexes |> List.to_seq in
-        let asts_n_regexes = Seq.map f asts_n_regexes in
-        let asts_n_regexes =
-          (*Seq.map
-            (function
-              | Some (_, _, _, _, [], _) as rez -> rez
-              | Some (_, _, _, get_model, post, _) as rez ->
-                let model = get_model tys in
-                begin match model with
-                | Result.Ok model -> begin
-                  if
-                    List.for_all
-                      (fun post ->
-                         match post model with
-                         | `Sat -> true
-                         | `Unknown -> false)
-                      post
-                  then rez
-                  else Option.none
-                end
-                | _ -> rez
-                end
-              | None -> Option.none)
-            asts_n_regexes*)
-          Seq.map
-            (function
-              | Some (_, _, _, _, [], _) as rez -> rez
-              | Some (_, ast, e, get_model, post, regexes) as rez -> begin
-                match get_model tys with
-                | Result.Ok model ->
-                  let model = model_from_parts_regexes_env tys model regexes e in
-                  begin if
-                    List.for_all
-                      (fun post ->
-                         match
-                           post model ast (fun ast ->
-                             match (check_sat tys) ast with
-                             | Sat _ -> `Sat
-                             | _ -> `Unknown)
-                         with
-                         | `Sat -> true
-                         | `Unknown ->
-                           can_be_unk := true;
-                           false)
-                      post
-                  then rez
-                  else Option.none
-                  end
-                | Result.Error _ -> rez
-              end
-              | None -> Option.none)
-            asts_n_regexes
-        in
-        (match Seq.find_map Fun.id asts_n_regexes with
-         | Some (s, ast, env, get_model, _, regexes) ->
-           report_result2 (`Sat s);
-           Sat (s, ast, env, get_model, regexes)
-         | None ->
-           if !can_be_unk || !Lib.Config.bounded_unsat
-           then (
-             report_result2 (`Unknown "");
-             unknown ast Lib.Env.empty)
-           else (
-             report_result2 (`Unsat !unsat_reason);
-             Unsat !unsat_reason)))
+      | `Unknown seq_of_variants ->
+        failwith "FIXME"
+        (*seq_of_variants
+         |> Seq.iter (fun variants ->
+          List.find_map
+                (fun (ast, env) ->
+                   match check_string_sat ast env with
+                   | `Unsat -> None
+                   | `Sat env -> raise_notrace (Underapprox_fired env)
+                   | `Unknown (ast, _, _, _) -> Some ast)
+          List.fil (fun (ast, env) -> check_string_sat ast env) variants)) *))
     else (
       match check_eia_sat ast Lib.Env.empty with
       | Sat (s, ast, env, get_model, _) ->

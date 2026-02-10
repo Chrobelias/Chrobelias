@@ -295,85 +295,6 @@ let apply_term_symantics
   (fun x -> helperT x), fun y -> helperS y
 ;;
 
-(*let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
-  let helperT, helperS = apply_term_symantics (module S) in
-  let rec helper = function
-    | Ast.Land xs -> S.land_ (List.map helper xs)
-    | Lor xs -> S.lor_ (List.map helper xs)
-    | Lnot x -> S.not (helper x)
-    | True -> S.true_
-    | Eia e -> helper_eia e
-    | Pred s -> assert false
-    | Exists (vs, ph) ->
-      (*let vs =
-        List.filter_map
-          (function
-            (* These repeats very often  *)
-            | Ast.Any_atom (Var (_, _)) as s -> Some s)
-          vs
-      in*)
-      S.exists vs (helper ph)
-  and helper_str : Ast.Str.term -> S.str = function
-    | Ast.Str.Const s -> S.str_const s
-    | Ast.Str.Atom (Ast.Var s) -> S.str_var s
-    | Atom (Const _) -> failwith "should not happen"
-    | FromEia (Var eia) -> S.str_from_eia eia
-    | FromEia (Const c) -> S.str_from_eia_const c
-    | Concat (s1, s2) -> S.str_concat (helper_str s1) (helper_str s2)
-    | Substr (s1, Var a, Var b) -> S.str_substr (helper_str s1) a b
-    | Substr (s1, _, _) -> failwith "unimplemented"
-    | At (s1, Var a) -> S.str_at (helper_str s1) a
-    | At (s1, _) -> failwith "unimplemented"
-  and helperT = function
-    | Ast.Eia.Atom (Ast.Const n) -> S.const (Z.to_int n)
-    | Atom (Ast.Var s) -> S.var s
-    | Add terms -> S.add (List.map helperT terms)
-    | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (Atom (Ast.Const base), Atom (Ast.Var x)) when base = Config.base () ->
-      S.pow2var x
-    | Pow (base, Atom (Ast.Const p)) when p = Z.zero -> S.const 1
-    | Pow (base, Atom (Ast.Const p)) when p = Z.one -> helperT base
-    | Pow (base, Atom (Ast.Const p)) when p < Z.of_int 10 ->
-      S.mul [ helperT base; helperT (Pow (base, Atom (Ast.Const Z.(p - Z.one)))) ]
-    | Pow (base, p) -> S.pow (helperT base) (helperT p)
-    | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
-    | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
-    | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
-    | Mod (t, z) -> S.mod_ (helperT t) z
-    | Len (Ast.Str.Atom (Var s)) ->
-      let l = S.str_var s in
-      (* Format.printf "%s %d: l = %a\n%!" __FUNCTION__ __LINE__ S.pp_str l; *)
-      S.str_len l
-    | Len (Ast.Str.Const s) -> S.const (String.length s)
-    | Stoi (Ast.Str.Atom (Var s)) -> S.str_atoi (S.str_var s)
-    | Stoi (Ast.Str.Const s) ->
-      (match int_of_string_opt s with
-       | Some n -> S.const n
-       | None -> S.str_atoi (S.str_const s))
-    | Stoi2 (Var s) -> S.stoi2 s
-    | Stoi2 (Const _) -> failwith "TBD"
-    | Len2 (Var s) -> S.str_len2 s
-    | Len2 (Const _) -> failwith "TBD"
-    | (Stoi (Ast.Str.Atom (Const _)) | Len (Ast.Str.Atom (Const _))) as t ->
-      Format.eprintf "%a\n%!" Ast.Eia.pp_term t;
-      failwith "Strlen/Stoi should not be called from int constants. Types are bad"
-    | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
-      S.str_equal l r
-  and helper_eia eia =
-    match eia with
-    | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
-    | Eq (l, r, S) -> S.eq_str (helperS l) (helperS r)
-    | Leq (l, r) -> S.(helperT l <= helperT r)
-    | PrefixOf (term, term') -> S.str_prefixof (helperS term) (helperS term')
-    | Contains (term, term') -> S.str_contains (helperS term) (helperS term')
-    | SuffixOf (term, term') -> S.str_suffixof (helperS term) (helperS term')
-    | InRe (term, Ast.S, regex) -> S.in_re (helperS term) regex
-    | InRe (term, Ast.I, regex) -> S.in_rei (helperT term) regex
-    | InReRaw (term, regex) -> S.in_re_raw (helperS term) regex
-  in
-  helper
-;;*)
-
 module Info = struct
   type names = string Base.Set.Poly.t
 
@@ -1129,52 +1050,6 @@ let make_main_symantics ?alpha ?agressive env =
      and type str = string Ast.Eia.term
      and type term = Z.t Ast.Eia.term)
 ;;
-
-(* let apply_term_symantics
-  : (module SYM with type term = Ast.Eia.term) -> Ast.Eia.term -> Ast.Eia.term
-  =
-  fun (module S : SYM with type term = Ast.Eia.term) ->
-  let rec helperT = function
-    | Ast.Eia.Atom (Ast.Const n) as c -> c
-    | Atom (Ast.Var s) -> S.var s
-    | Atom (Ast.Str_const c) -> S.str_const c
-    | Add terms -> S.add (List.map helperT terms)
-    | Mul terms -> S.mul (List.map helperT terms)
-    | Pow (base, p) -> S.pow (helperT base) (helperT p)
-    | Bwand (l, r) -> S.bw Bwand (helperT l) (helperT r)
-    | Bwor (l, r) -> S.bw Bwor (helperT l) (helperT r)
-    | Bwxor (l, r) -> S.bw Bwxor (helperT l) (helperT r)
-    | Mod (t, z) -> S.mod_ (helperT t) z
-    | Len (Ast.Eia.Atom (Str_const s)) -> S.const (String.length s)
-    | Len s -> S.str_len (helperT s)
-    | Iofs (Ast.Eia.Atom (Str_const s)) ->
-      (match int_of_string_opt s with
-       | Some n -> S.const n
-       | None -> S.iofs (S.str_const s))
-    | Iofs s -> S.iofs (helperT s)
-    | Sofi s -> S.sofi (helperT s)
-    | Len2 (Var s) -> S.str_len2 s
-    | Len2 (Const _) -> failwith "TBD"
-    | Len2 (Str_const _) -> failwith "TBD"
-    (* | Ast.Eia.Atom (Var s) -> S.str_var s *)
-    (* |   (Const s) as ast ->
-      Format.eprintf "%a\n%!" Ast.Str.pp_term ast;
-      failwith "tbd"
-    | Atom (Str_const c) -> S.str_const c *)
-    | Ast.Eia.Concat (lhs, rhs) -> S.str_concat (helperT lhs) (helperT rhs)
-    (* | Ast.Eia.FromEia (Var s) -> S.str_from_eia s *)
-    (* | Ast.Eia.FromEia (Const c) -> S.str_from_eia_const c *)
-    | Substr (lhs, Var s1, Var s2) -> S.str_substr (helperT lhs) s1 s2
-    | Substr (lhs, _, _) as ast ->
-      Format.eprintf "%a\n%!" Ast.Eia.pp_term ast;
-      failwith "tbd"
-    | At (lhs, Var s1) -> S.str_at (helperT lhs) s1
-    | At (lhs, _) as ast ->
-      Format.eprintf "%a\n%!" Ast.Eia.pp_term ast;
-      failwith "tbd"
-  in
-  helperT
-;; *)
 
 let subst_term (type a) env (term : a Ast.Eia.term) =
   let (module S : SYM_SUGAR_AST) = make_main_symantics ~agressive:true env in
@@ -2161,88 +2036,6 @@ let subst env ast =
   apply_symantics_unsugared (module S) ast
 ;;
 
-let try_under_concats env alpha len ast =
-  let module Map = Base.Map.Poly in
-  let module Set = Base.Set.Poly in
-  let approxed_env_n_ast vars from =
-    log
-      "Vars for underapporx (%s): %a %!"
-      from
-      Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
-      (Base.Set.to_list vars);
-    if Base.Set.length vars = 0
-    then []
-    else (
-      let ( let* ) xs f = List.concat_map f xs in
-      let envs =
-        let regexes =
-          Map.map
-            ~f:(fun data ->
-              List.fold_left
-                (fun acc nfa -> NfaS.intersect nfa acc)
-                (NfaCollection.LsbStr.n ())
-                data)
-            (collect_regexes ast)
-        in
-        let all_as name =
-          let alpha =
-            if Ast.in_stoi name ast
-            then
-              alpha
-              |> Set.of_list
-              |> (fun x ->
-              Seq.fold_left
-                (fun acc digit -> Set.add acc digit)
-                x
-                (Regex.dec |> String.to_seq))
-              |> Set.to_list
-            else alpha
-          in
-          let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
-          let max_cnt = Config.under_str_config.max_cnt in
-          let length = Ast.get_len name ast in
-          let length, count =
-            match length >= 0, Map.mem regexes name with
-            | true, other ->
-              length, min max_cnt (Utils.pow ~base:(List.length alpha) length)
-            | _, true -> length, max_cnt
-            | _ -> len, max_cnt
-          in
-          let list =
-            get_strings_range
-              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
-              length
-              count
-          in
-          log
-            "Strings for %s:\n %a\n%!"
-            name
-            Format.(
-              pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
-            list;
-          list
-        in
-        Base.Set.Poly.fold
-          ~f:(fun acc name ->
-            let* s = all_as name in
-            let* acc = acc in
-            [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
-          ~init:[ env ]
-          vars
-      in
-      List.map
-        (fun e ->
-           let (module Symantics) = make_main_symantics e in
-           (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
-           log "@[%a@]" (Env.pp ~title:"env = ") e; *)
-           e, apply_symantics (module Symantics) ast)
-        envs)
-  in
-  log "Length %d attempt...%!\n" len;
-  let vars_left, vars_right = find_vars_for_under2s ast in
-  approxed_env_n_ast vars_left "left" @ approxed_env_n_ast vars_right "rigth"
-;;
-
 let try_under2_heuristics env ast =
   let temp_env = ref env in
   let module Rewrite = struct
@@ -2395,26 +2188,99 @@ let run_under2 env ast =
   `Underapprox asts
 ;;
 
+let try_under_concats vars alpha len env ast =
+  let module Map = Base.Map.Poly in
+  let module Set = Base.Set.Poly in
+  if Base.Set.length vars = 0
+  then []
+  else (
+    let ( let* ) xs f = List.concat_map f xs in
+    let envs =
+      let regexes =
+        Map.map
+          ~f:(fun data ->
+            List.fold_left
+              (fun acc nfa -> NfaS.intersect nfa acc)
+              (NfaCollection.LsbStr.n ())
+              data)
+          (collect_regexes ast)
+      in
+      let all_as name =
+        let alpha =
+          if Ast.in_stoi name ast
+          then
+            alpha
+            |> Set.of_list
+            |> (fun x ->
+            Seq.fold_left
+              (fun acc digit -> Set.add acc digit)
+              x
+              (Regex.dec |> String.to_seq))
+            |> Set.to_list
+          else alpha
+        in
+        let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
+        let max_cnt = Config.under_str_config.max_cnt in
+        let length = Ast.get_len name ast in
+        let length, count =
+          match length >= 0, Map.mem regexes name with
+          | true, other ->
+            length, min max_cnt (Utils.pow ~base:(List.length alpha) length)
+          | _, true -> length, max_cnt
+          | _ -> len, max_cnt
+        in
+        let list =
+          get_strings_range
+            (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+            length
+            count
+        in
+        log
+          "Strings for %s:\n %a\n%!"
+          name
+          Format.(
+            pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
+          list;
+        list
+      in
+      Base.Set.Poly.fold
+        ~f:(fun acc name ->
+          let* s = all_as name in
+          let* acc = acc in
+          [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
+        ~init:[ env ]
+        vars
+    in
+    List.map
+      (fun e ->
+         let (module Symantics) = make_main_symantics e in
+         (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
+           log "@[%a@]" (Env.pp ~title:"env = ") e; *)
+         e, apply_symantics (module Symantics) ast)
+      envs)
+;;
+
 let under_concats env alpha ast =
   if Config.under_str_config.max_cnt < 0
-  then [ ast ]
-  else
-    Seq.init (Config.under_str_config.max_len + 2) Fun.id
-    |> Seq.map (fun length ->
+  then List.to_seq [ [ ast, env ] ]
+  else (
+    let vars_left, vars_right = find_vars_for_under2s ast in
+    let filter_asts =
+      List.filter_map (fun (env, ast) ->
+        match basic_simplify [ 0 ] env ast with
+        | `Unsat -> None
+        | `Sat env -> raise_notrace (Underapprox_fired env)
+        | `Unknown (ast, env, _, _) -> Some (ast, env))
+    in
+    Seq.init ((2 * Config.under_str_config.max_len) + 2) (fun x -> x / 2, x mod 2)
+    |> Seq.map (fun (length, side) ->
       if length <= Config.under_str_config.max_len
-      then try_under_concats env alpha length ast
-      else [ env, ast ])
-    |> Seq.fold_left
-         (fun acc envs_n_asts ->
-            acc
-            @ List.filter_map
-                (fun (env, ast) ->
-                   match basic_simplify [ 0 ] env ast with
-                   | `Unsat -> None
-                   | `Sat env -> raise_notrace (Underapprox_fired env)
-                   | `Unknown (ast, _, _, _) -> Some ast)
-                envs_n_asts)
-         []
+      then (
+        match side with
+        | 0 -> filter_asts (try_under_concats vars_left alpha length env ast)
+        | 1 -> filter_asts (try_under_concats vars_right alpha length env ast)
+        | other -> failwith "Unreachable: remainder mod 2 is negative")
+      else [ ast, env ]))
 ;;
 
 let split_concats { Info.all; _ } =
@@ -2491,60 +2357,6 @@ let split_concats { Info.all; _ } =
   end
   in
   apply_symantics_unsugared (module Pre)
-;;
-
-let arithmetize_concats { Info.all; _ } =
-  let module Map = Base.Map.Poly in
-  let gensym1 = gensym in
-  let rec gensym () =
-    let ans = gensym1 ~prefix:"%concat" () in
-    if Base.Set.Poly.mem all ans then gensym () else ans
-  in
-  let extra_ph = ref [] in
-  let extend v other =
-    extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
-  in
-  let module M_ = struct
-    include Id_symantics
-
-    let rec str_concat (lhs : str) (rhs : str) =
-      let handle_concat (lhs : str) (rhs : str) =
-        let u = gensym () in
-        let v = gensym () in
-        let lhs' = gensym () in
-        let rhs' = gensym () in
-        extend lhs' (Ast.Eia.Iofs lhs);
-        extend rhs' (Ast.Eia.Iofs rhs);
-        extend
-          u
-          (Ast.Eia.add
-             [ Ast.Eia.mul [ Ast.Eia.Atom (Ast.var lhs' I); pow2var v ]
-             ; Ast.Eia.atom (Ast.var rhs' I)
-             ]);
-        extend v (Ast.Eia.len rhs);
-        Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
-      in
-      let do_concat lhs rhs = str_concat lhs rhs in
-      match lhs, rhs with
-      | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
-        do_concat (do_concat lhs1 rhs1) (do_concat lhs1 rhs1)
-      | Ast.Eia.Concat (lhs1, rhs1), rhs2 -> handle_concat (do_concat lhs1 rhs1) rhs2
-      | lhs1, Ast.Eia.Concat (lhs2, rhs2) -> handle_concat lhs1 (do_concat lhs2 rhs2)
-      | lhs1, rhs1 -> handle_concat lhs1 rhs1
-    ;;
-
-    let prj = function
-      | Ast.Land xs -> land_ (!extra_ph @ xs)
-      | ph -> land_ (!extra_ph @ [ ph ])
-    ;;
-  end
-  in
-  let module Sym = struct
-    include M_
-    include FT_SIG.Sugar (M_)
-  end
-  in
-  fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
 ;;
 
 let rewrite_via_concat { Info.all; _ } =
@@ -2711,7 +2523,27 @@ end
 
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 
-let arithmetize ast =
+let run_string_simplify ast =
+  let module Set = Base.Set.Poly in
+  let var_info = apply_symantics (module Who_in_exponents) ast in
+  match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
+  | `Sat env -> `Sat ("presimpl", env)
+  | `Unsat -> `Unsat
+  | `Unknown (ast', e, _, _) ->
+    let alpha = collect_alpha ast' in
+    let (module Symantics) = make_main_symantics ~alpha e in
+    (try
+       let result =
+         ast'
+         |> over_concat
+         |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list)
+       in
+       `Unknown result
+     with
+     | Underapprox_fired env -> `Sat ("under 0", env))
+;;
+
+let arithmetize ast env =
   let module Set = Base.Set.Poly in
   let strlens s = String.concat "" [ "strlen"; s ] in
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
@@ -2839,6 +2671,59 @@ let arithmetize ast =
     end
     in
     apply_symantics_unsugared (module M_) ast
+  in
+  let arithmetize_concats { Info.all; _ } =
+    let module Map = Base.Map.Poly in
+    let gensym1 = gensym in
+    let rec gensym () =
+      let ans = gensym1 ~prefix:"%concat" () in
+      if Base.Set.Poly.mem all ans then gensym () else ans
+    in
+    let extra_ph = ref [] in
+    let extend v other =
+      extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
+    in
+    let module M_ = struct
+      include Id_symantics
+
+      let rec str_concat (lhs : str) (rhs : str) =
+        let handle_concat (lhs : str) (rhs : str) =
+          let u = gensym () in
+          let v = gensym () in
+          let lhs' = gensym () in
+          let rhs' = gensym () in
+          extend lhs' (Ast.Eia.Iofs lhs);
+          extend rhs' (Ast.Eia.Iofs rhs);
+          extend
+            u
+            (Ast.Eia.add
+               [ Ast.Eia.mul [ Ast.Eia.Atom (Ast.var lhs' I); pow2var v ]
+               ; Ast.Eia.atom (Ast.var rhs' I)
+               ]);
+          extend v (Ast.Eia.len rhs);
+          Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
+        in
+        let do_concat lhs rhs = str_concat lhs rhs in
+        match lhs, rhs with
+        | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
+          do_concat (do_concat lhs1 rhs1) (do_concat lhs1 rhs1)
+        | Ast.Eia.Concat (lhs1, rhs1), rhs2 -> handle_concat (do_concat lhs1 rhs1) rhs2
+        | lhs1, Ast.Eia.Concat (lhs2, rhs2) -> handle_concat lhs1 (do_concat lhs2 rhs2)
+        | lhs1, rhs1 -> handle_concat lhs1 rhs1
+      ;;
+
+      let prj = function
+        | Ast.Land xs -> land_ (!extra_ph @ xs)
+        | ph -> land_ (!extra_ph @ [ ph ])
+      ;;
+    end
+    in
+    let module Sym = struct
+      include M_
+      include FT_SIG.Sugar (M_)
+    end
+    in
+    fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
   in
   let arithmetize var_info ast =
     let in_concat v = Ast.in_concat v ast in
@@ -3217,45 +3102,34 @@ let arithmetize ast =
       ast, !posts')
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
-  match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
-  | `Sat env -> `Sat ("presimpl", env)
-  | `Unsat -> `Unsat
-  | `Unknown (ast', e, _, _) ->
-    let var_info = apply_symantics (module Who_in_exponents) ast' in
-    let alpha = collect_alpha ast' in
-    let (module Symantics) = make_main_symantics ~alpha e in
-    (try
-       let asts_n_regexes =
-         ast'
-         |> over_concat
-         |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list)
-         |> List.map (split_concats var_info)
-         |> List.concat_map Ast.to_dnf
-         |> List.map (apply_symantics (module Symantics))
-         |> List.map fold_regexes
-       in
-       `Unknown
-         (List.concat_map
-            (fun (ast, regexes) ->
-               List.map
-                 (fun ast' ->
-                    let ast', regexes' = fold_regexes_i ast' in
-                    let regexes =
-                      Map.merge
-                        ~f:(fun ~key -> function
-                           | `Left v -> Some v
-                           | `Right v -> Some v
-                           | `Both (v, v') -> Some (NfaS.intersect v v'))
-                        regexes
-                        regexes'
-                    in
-                    ast', regexes)
-                 (ast |> flatten |> arithmetize var_info))
-            asts_n_regexes
-          |> List.concat_map (fun (a, b) ->
-            unfold_neq var_info b a |> List.map (fun (a, a') -> a, e, a', b)))
-     with
-     | Underapprox_fired env -> `Sat ("under I", env))
+  let alpha = collect_alpha ast in
+  let (module Symantics) = make_main_symantics ~alpha env in
+  let asts_n_regexes =
+    ast
+    |> split_concats var_info
+    |> Ast.to_dnf
+    |> List.map (apply_symantics (module Symantics))
+    |> List.map fold_regexes
+  in
+  List.concat_map
+    (fun (ast, regexes) ->
+       List.map
+         (fun ast' ->
+            let ast', regexes' = fold_regexes_i ast' in
+            let regexes =
+              Map.merge
+                ~f:(fun ~key -> function
+                   | `Left v -> Some v
+                   | `Right v -> Some v
+                   | `Both (v, v') -> Some (NfaS.intersect v v'))
+                regexes
+                regexes'
+            in
+            ast', regexes)
+         (ast |> flatten |> arithmetize var_info))
+    asts_n_regexes
+  |> List.concat_map (fun (a, b) ->
+    unfold_neq var_info b a |> List.map (fun (a, a') -> a, env, a', b))
 ;;
 
 (* let distribute xs =
