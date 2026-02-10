@@ -2146,6 +2146,10 @@ let get_strings_range nfa length num =
     if String.length c > 0
     then String.sub c 0 (String.length c - 1)
     else c (* Format.printf ">>>>> %s\n%!" c; *))
+  |> List.fast_sort (fun x y ->
+    match String.length x - String.length y with
+    | 0 -> String.compare x y
+    | diff -> diff)
   |> fun x ->
   if length <= 0 && NfaS.re_accepts (String.to_seq "" |> List.of_seq) nfa
   then "" :: x
@@ -2180,7 +2184,10 @@ let try_under_concats env alpha ast =
             (collect_regexes ast)
         in
         let all_as name =
-          let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
+          let nfa_alpha name =
+            (if Ast.in_stoi name ast then Regex.all_with_digits alpha else Regex.all alpha)
+            |> NfaS.of_regex
+          in
           let max_cnt = Config.under_str_config.max_cnt in
           let length = Ast.get_len name ast in
           let size =
@@ -2190,7 +2197,7 @@ let try_under_concats env alpha ast =
           in
           let list =
             get_strings_range
-              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha name)
               length
               size
           in
