@@ -430,6 +430,17 @@ struct
     nfa, vars
   ;;
 
+  let cache = ref Map.empty
+
+  let eval ir =
+    match Map.find !cache ir with
+    | Some v -> v
+    | None ->
+      let v = eval ir in
+      cache := Map.add_exn !cache ~key:ir ~data:v;
+      v
+  ;;
+
   let logBase n =
     let rec helper acc = function
       | 0 -> acc
