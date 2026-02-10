@@ -313,22 +313,6 @@ let all alpha =
      |> List.fold_left (fun acc a -> mor a acc) epsilon)
 ;;
 
-let all_with_digits alpha =
-  let module Set = Base.Set.Poly in
-  let alpha_with_digits =
-    alpha
-    |> Set.of_list
-    |> (fun x ->
-    Seq.fold_left (fun acc digit -> Set.add acc digit) x (dec |> String.to_seq))
-    |> Set.to_list
-  in
-  (* Format.printf
-    "Digits:%a\n%!"
-    Format.(pp_print_list pp_print_char ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
-    alpha_with_digits; *)
-  all alpha_with_digits
-;;
-
 let digit =
   concat
     (plus

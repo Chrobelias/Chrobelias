@@ -2163,6 +2163,7 @@ let subst env ast =
 
 let try_under_concats env alpha ast =
   let module Map = Base.Map.Poly in
+  let module Set = Base.Set.Poly in
   let approxed_env_n_ast vars from =
     log
       "Vars for underapporx (%s): %a %!"
@@ -2184,22 +2185,33 @@ let try_under_concats env alpha ast =
             (collect_regexes ast)
         in
         let all_as name =
-          let nfa_alpha name =
-            (if Ast.in_stoi name ast then Regex.all_with_digits alpha else Regex.all alpha)
-            |> NfaS.of_regex
+          let alpha =
+            if Ast.in_stoi name ast
+            then
+              alpha
+              |> Set.of_list
+              |> (fun x ->
+              Seq.fold_left
+                (fun acc digit -> Set.add acc digit)
+                x
+                (Regex.dec |> String.to_seq))
+              |> Set.to_list
+            else alpha
           in
+          let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
           let max_cnt = Config.under_str_config.max_cnt in
           let length = Ast.get_len name ast in
-          let size =
-            if length >= 0
-            then min max_cnt (Utils.pow ~base:(List.length alpha) length)
-            else max_cnt
+          let count =
+            match length >= 0, Map.mem regexes name with
+            | true, other -> min max_cnt (Utils.pow ~base:(List.length alpha) length)
+            | other, true -> max_cnt
+            | _ -> max max_cnt (List.length alpha * List.length alpha)
           in
           let list =
             get_strings_range
-              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha name)
+              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
               length
-              size
+              count
           in
           log
             "Strings for %s:\n %a\n%!"
