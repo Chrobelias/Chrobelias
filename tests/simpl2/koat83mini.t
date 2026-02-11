@@ -22,4 +22,4 @@ This test doesn't simplify (not True)
   iter(2)= (not True)
   fixed-point
   
-  unsat (presimpl)
+  unsat (presimpl int)

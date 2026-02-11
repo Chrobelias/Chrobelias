@@ -10,7 +10,7 @@
   iter(2)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)
 
   $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -138,4 +138,4 @@
   iter(4)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)

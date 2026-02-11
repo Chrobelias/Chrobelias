@@ -1,7 +1,7 @@
 Basic QF_S tests
 
   $ Chro ./qf-s.smt2
-  sat (presimpl)
+  sat (presimpl str)
   (
      (define-fun a () String
       "abc")
@@ -12,19 +12,19 @@ Basic QF_S tests
      (define-fun x () Int
       0)
   )
-  sat (presimpl)
-  sat (presimpl)
-  unsat (presimpl)
-  sat (presimpl)
-  unsat (presimpl)
-  unsat (presimpl)
+  sat (presimpl str)
+  sat (presimpl str)
+  unsat (presimpl str)
+  sat (presimpl str)
+  unsat (presimpl str)
+  unsat (presimpl str)
   sat (under int)
-  sat (presimpl)
-  sat (presimpl)
-  unsat (presimpl)
+  sat (presimpl str)
+  sat (presimpl str)
+  unsat (presimpl str)
   sat (nfa)
   unsat (nia)
-  sat (presimpl)
+  sat (presimpl int)
   (
      (define-fun a () String
       "100100100100")

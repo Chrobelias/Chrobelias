@@ -1,10 +1,10 @@
 Basic LIA tests
 
   $ CHRO_OMIT_Z3_MODEL=1 OCAMLRUNPARAM='b=0' Chro -bound 0 -no-over ./lia.smt2
-  sat (presimpl)
-  unsat (presimpl)
-  sat (presimpl)
-  sat (presimpl)
+  sat (presimpl int)
+  unsat (presimpl int)
+  sat (presimpl int)
+  sat (presimpl int)
   sat (under int)
   sat (under int)
   sat (under int)
@@ -14,8 +14,8 @@ Basic LIA tests
   sat (under int)
   unsat (nia)
   sat (under int)
-  unsat (presimpl)
-  unsat (presimpl)
+  unsat (presimpl int)
+  unsat (presimpl int)
   sat (under int)
   unsat (nia)
   sat (under int)

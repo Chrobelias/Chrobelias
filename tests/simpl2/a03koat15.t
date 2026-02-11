@@ -1614,4 +1614,4 @@ $ cat input.smt2
   iter(27)= (not True)
   fixed-point
   
-  unsat (presimpl)
+  unsat (presimpl int)

@@ -17,7 +17,7 @@
   iter(2)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)
 
   $ cat > 2.smt2 <<-EOF
   > (set-logic QF_S)
@@ -27,4 +27,4 @@
   > EOF
 
   $ OCAMLRUNPARAM='b=0' Chro --dpresimpl ./2.smt2
-  sat (presimpl)
+  sat (presimpl str)

@@ -21,7 +21,7 @@
   iter(4)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)
   $ cat > 2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun n () Int)
