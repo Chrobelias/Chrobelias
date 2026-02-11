@@ -504,17 +504,11 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         asts_n_regexes
     in
     match Seq.find_map Fun.id asts_n_regexes with
-    | Some (s, ast, env, get_model, _, regexes) ->
-      report_result2 (`Sat s);
-      Sat (s, ast, env, get_model, regexes)
+    | Some (s, ast, env, get_model, _, regexes) -> Sat (s, ast, env, get_model, regexes)
     | None ->
       if !can_be_unk || !Lib.Config.bounded_unsat
-      then (
-        report_result2 (`Unknown "");
-        unknown ast Lib.Env.empty)
-      else (
-        report_result2 (`Unsat !unsat_reason);
-        Unsat !unsat_reason)
+      then unknown ast Lib.Env.empty
+      else Unsat !unsat_reason
   in
   try
     if config.logic = `Str || config.logic = `StrBv

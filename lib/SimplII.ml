@@ -2272,7 +2272,7 @@ let under_concats env alpha ast =
         | `Sat env -> raise_notrace (Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast, env))
     in
-    Seq.init ((2 * Config.under_str_config.max_len) + 2) (fun x -> x / 2, x mod 2)
+    Seq.init ((2 * (Config.under_str_config.max_len + 1)) + 1) (fun x -> x / 2, x mod 2)
     |> Seq.map (fun (length, side) ->
       if length <= Config.under_str_config.max_len
       then (
