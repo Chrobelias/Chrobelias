@@ -582,9 +582,9 @@ let make_main_symantics ?alpha ?agressive env =
     let iofs = function
       (* 
       MS: False start of arithmetization. 
-      Add cases of digit/non-digits strings under iofs to arithmetize_concats 
-      | Ast.Eia.Concat (lhs, rhs) ->
-        Id_symantics.add
+      Add cases of digit/non-digits strings under iofs to arithmetize_concats *)
+
+      (* Id_symantics.add
           [ Ast.Eia.mul
               [ Id_symantics.iofs lhs
               ; Ast.Eia.pow
@@ -593,6 +593,21 @@ let make_main_symantics ?alpha ?agressive env =
               ]
           ; Id_symantics.iofs rhs
           ] *)
+      | Ast.Eia.Concat (lhs, Ast.Eia.Str_const s) when String.for_all Base.Char.is_digit s
+        ->
+        Id_symantics.add
+          [ Ast.Eia.mul
+              [ Id_symantics.iofs lhs
+              ; Ast.Eia.pow
+                  (Id_symantics.constz (Config.base ()))
+                  (Id_symantics.constz (Z.of_int (String.length s)))
+              ]
+          ; Id_symantics.constz (Z.of_string s)
+          ]
+      | Ast.Eia.Concat (lhs, Ast.Eia.Str_const s) -> Id_symantics.constz Z.minus_one
+      | Ast.Eia.Concat (Ast.Eia.Str_const s, rhs) as term
+        when String.for_all Base.Char.is_digit s -> Id_symantics.iofs term
+      | Ast.Eia.Concat (Ast.Eia.Str_const s, rhs) -> Id_symantics.constz Z.minus_one
       | Ast.Eia.Str_const s -> begin
         match s with
         | "" -> Id_symantics.constz Z.minus_one
@@ -2013,13 +2028,12 @@ let get_range () =
 ;;
 
 let get_strings_range nfa length num =
-  let max_len = Config.under_str_config.max_len in
-  (if length < 0
-   then NfaS.any_n_paths_range nfa ~len:max_len num
-   else NfaS.any_n_paths nfa ~len:length num)
+  NfaS.any_n_paths_range
+    nfa
+    ~len:(if length < 0 then Config.under_str_config.max_len else length)
+    num
   |> List.map (fun c -> List.to_seq c |> String.of_seq)
   |> List.map (fun c ->
-    if String.length c = 1 then Format.printf "STR: %s\n%!" c;
     if String.length c > 0
     then String.sub c 0 (String.length c - 1)
     else c (* Format.printf ">>>>> %s\n%!" c; *))
@@ -2229,7 +2243,7 @@ let try_under_concats vars alpha len env ast =
           | true, other ->
             length, min max_cnt (Utils.pow ~base:(List.length alpha) length)
           | _, true -> length, max_cnt
-          | _ -> len, max_cnt
+          | _ -> len, max max_cnt (List.length alpha * List.length alpha)
         in
         let list =
           get_strings_range
@@ -2237,7 +2251,7 @@ let try_under_concats vars alpha len env ast =
             length
             count
         in
-        log
+        Format.printf
           "Strings for %s:\n %a\n%!"
           name
           Format.(
@@ -2269,7 +2283,7 @@ let under_concats env alpha ast =
     let vars_left, vars_right = find_vars_for_under2s ast in
     let filter_asts =
       List.filter_map (fun (env, ast) ->
-        match basic_simplify [ 0 ] env ast with
+        match basic_simplify [ 1 ] env ast with
         | `Unsat -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast, env))
