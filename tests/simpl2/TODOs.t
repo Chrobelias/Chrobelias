@@ -20,7 +20,7 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 Should be (<= x 2)
   $ cat > TODO2.smt2 <<-EOF
   > (set-logic ALL)
@@ -43,7 +43,7 @@ Should be (<= x 2)
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -99,7 +99,7 @@ Fold exps
   Expecting 2 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
   $ cat > i4.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x1 () Int)
@@ -122,7 +122,7 @@ Fold exps
   Expecting 2 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
   $ cat > i3.smt2 <<-EOF
   > (set-logic ALL)
@@ -146,7 +146,7 @@ Fold exps
   Expecting 2 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
 
 $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's/[[:space:]]*$//'
@@ -176,7 +176,7 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)

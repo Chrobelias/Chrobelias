@@ -1033,15 +1033,15 @@ $ cat input2.smt2
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 5 Chro --pre-simpl input2.smt2 || echo "timeout"
-  sat (under I)
+  sat (under int)
 
 $ CHRO_DEBUG=1
 $ /usr/bin/time -f "TIME: %U"
   $ Chro --no-pre-simpl input2.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 

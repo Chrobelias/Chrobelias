@@ -47,11 +47,11 @@
   Expecting 100 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG
   $ Chro -no-over -bound 3  smoke1.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)

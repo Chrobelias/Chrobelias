@@ -14,15 +14,108 @@
   fixed-point
   
   Alphapbet with extra char: # 9
-  Vars for underapporx (rigth): x
-  Strings for x:
-    # ## ### ##9 ##99 #9 #9# #9#9 #99 #999 9 9# 9## 9#9 9#99 99 99# 99#9 999 9999
-  
-  Vars for underapporx (left): y
   Strings for y:
-    # ## ### ##9 ##99 #9 #9# #9#9 #99 #999 9 9# 9## 9#9 9#99 99 99# 99#9 999 9999
   
-  sat (under I)
+  
+  Alphapbet with extra char: # 9
+  Arithmetization gives 1 asts...
+  Arithmetized: (and
+                  (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))
+                  (= %concat2 strlenx)
+                  (<= (+ x 1) (exp 10 strlenx))
+                  (<= 0 strlenx)
+                  (= %concat3 999)
+                  (= %concat4 x)
+                  (= (+ 3 strlenx) strlenx)
+                  (<= (+ x 1) (exp 10 strlenx))
+                  (<= 0 strlenx)
+                  (<= (+ x 1) (exp 10 strlenx))
+                  (<= 0 strlenx)
+                  (= %concat1 x))
+  
+  Basic simplifications:
+  
+  iter(1)= (and
+             (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))
+             (= %concat2 strlenx)
+             (<= (+ x 1) (exp 10 strlenx))
+             (<= 0 strlenx)
+             (= %concat3 999)
+             (= %concat4 x)
+             (= (+ 3 strlenx) strlenx)
+             (<= (+ x 1) (exp 10 strlenx))
+             (<= 0 strlenx)
+             (<= (+ x 1) (exp 10 strlenx))
+             (<= 0 strlenx)
+             (= %concat1 x))
+  Something ready to substitute
+        %concat1 -> x;
+        y -> "";
+  
+  iter(2)= (and
+             (= %concat1 (+ %concat4 (* %concat3 (exp 10 %concat2))))
+             (= %concat2 strlenx)
+             (= %concat3 999)
+             (= %concat4 x)
+             (= (+ 3 strlenx) strlenx)
+             (<= 0 strlenx)
+             (<= (+ 1 x) (exp 10 strlenx)))
+  Something ready to substitute
+        %concat1 -> x;
+        %concat2 -> strlenx;
+        y -> "";
+  
+  iter(3)= (and
+             (= %concat3 999)
+             (= %concat4 x)
+             (= x (+ %concat4 (* %concat3 (exp 10 %concat2))))
+             (= (+ 3 strlenx) strlenx)
+             (<= 0 strlenx)
+             (<= (+ 1 x) (exp 10 strlenx)))
+  Something ready to substitute
+        %concat1 -> x;
+        %concat2 -> strlenx;
+        %concat3 -> 999;
+        y -> "";
+  
+  iter(4)= (and
+             (= %concat4 x)
+             (= x (+ %concat4 (* %concat3 (exp 10 strlenx))))
+             (= (+ 3 strlenx) strlenx)
+             (<= 0 strlenx)
+             (<= (+ 1 x) (exp 10 strlenx)))
+  Something ready to substitute
+        %concat1 -> x;
+        %concat2 -> strlenx;
+        %concat3 -> 999;
+        %concat4 -> x;
+        y -> "";
+  
+  iter(5)= (and
+             (= x (+ %concat4 (* 999 (exp 10 strlenx))))
+             (= (+ 3 strlenx) strlenx)
+             (<= 0 strlenx)
+             (<= (+ 1 x) (exp 10 strlenx)))
+  iter(6)= (and
+             (= x (+ x (* 999 (exp 10 strlenx))))
+             (= (+ 3 strlenx) strlenx)
+             (<= 0 strlenx)
+             (<= (+ 1 x) (exp 10 strlenx)))
+  fixed-point
+  
+  Bound for underapproximation: 9
+  
+  Interesting: strlenx
+  
+  Expecting 9 choices ...
+  
+  Can't decide in lib/Underapprox.ml
+  Starting NFA Solver ...
+  
+  Strings for x:
+  
+  
+  sat (under str)
   (
      (define-fun x () String
       "")   (define-fun y () String
@@ -30,7 +123,15 @@
   )
   $ unset CHRO_DEBUG
   $ timeout 8 Chro -flat 0 -amin 0 -amax 1 --dsimpl strings3.smt2
-  sat (under I)
+  (assert (exists (x)
+          (and
+            (= (+ (* (- 0) x) (* (- 999) pow2(strlenx)) )  0) 
+            (= (* (- 0) strlenx)  -3) 
+            (<= (* (- 1) strlenx)  0) 
+            (<= (+ x (* (- 1) pow2(strlenx)) )  -1) 
+            )
+  )
+  sat (under str)
   (
      (define-fun x () String
       "")   (define-fun y () String

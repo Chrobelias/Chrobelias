@@ -122,9 +122,9 @@ $ cat input4.smt2
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
   $ timeout 5 Chro --pre-simpl input4.smt2 || echo "timeout"
-  sat (under I)
+  sat (under int)
 
   $ export CHRO_DEBUG=1

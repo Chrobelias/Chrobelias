@@ -23,8 +23,7 @@ $ cat len1.smt2
   fixed-point
   
   Alphapbet with extra char: #
-  Vars for underapporx (rigth):
-  Vars for underapporx (left):
+  Alphapbet with extra char: #
   Arithmetization gives 1 asts...
   Arithmetized: (and
                   (<= 2 strlenx)
