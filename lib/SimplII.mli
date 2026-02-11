@@ -32,7 +32,10 @@ val arithmetize
 
 val run_string_simplify
   :  Ast.t
-  -> [ `Sat of string * Env.t | `Unsat | `Unknown of (Ast.t * Env.t) list Seq.t ]
+  -> [ `Sat of string * Env.t
+     | `Unsat
+     | `Unknown of Ast.t * Env.t * (Ast.t * Env.t) list Seq.t
+     ]
 
 val run_basic_simplify
   :  ?env:Env.t
