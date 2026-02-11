@@ -2032,11 +2032,14 @@ let get_range () =
   ans
 ;;
 
-let get_strings_range nfa length num =
+let get_strings_range nfa length ?(exact = false) num =
   let max_len = Config.under_str_config.max_len in
   (if length < 0
    then NfaS.any_n_paths_range nfa ~len:max_len num
-   else 0 -- length |> List.concat_map (fun x -> NfaS.any_n_paths nfa ~len:x num))
+   else (
+     match exact with
+     | true -> NfaS.any_n_paths nfa ~len:length num
+     | _ -> 0 -- length |> List.concat_map (fun x -> NfaS.any_n_paths nfa ~len:x num)))
   |> List.map (fun c -> List.to_seq c |> String.of_seq)
   |> List.map (fun c ->
     if String.length c > 0
@@ -2228,32 +2231,27 @@ let try_under_concats vars alpha len env ast =
       in
       let all_as name =
         let alpha =
-          if Ast.in_stoi name ast
-          then
-            alpha
-            |> Set.of_list
-            |> (fun x ->
-            Seq.fold_left
-              (fun acc digit -> Set.add acc digit)
-              x
-              (Regex.dec |> String.to_seq))
-            |> Set.to_list
-          else alpha
+          alpha
+          |> Set.of_list
+          |> (fun x ->
+          Seq.fold_left (fun acc digit -> Set.add acc digit) x (Regex.dec |> String.to_seq))
+          |> Set.to_list
         in
         let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
         let max_cnt = Config.under_str_config.max_cnt in
         let length = Ast.get_len name ast in
-        let length, count =
+        let length, exact, count =
           match length >= 0, Map.mem regexes name with
           | true, other ->
-            length, min max_cnt (Utils.pow ~base:(List.length alpha) length)
-          | _, true -> length, max_cnt
-          | _ -> len, max max_cnt (List.length alpha * List.length alpha)
+            length, true, min max_cnt (Utils.pow ~base:(List.length alpha) length)
+          | false, true -> length, false, max_cnt
+          | _ -> len, false, max_cnt
         in
         let list =
           get_strings_range
             (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
             length
+            ~exact
             count
         in
         log

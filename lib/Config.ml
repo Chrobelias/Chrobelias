@@ -80,7 +80,7 @@ type string_config =
 let huge_const_config = { const = 20 }
 let huge_const () = huge_const_config.const
 let under2_config = { amin = 5; amax = 11; flat = -1 }
-let under_str_config = { max_len = 512; max_cnt = 20 }
+let under_str_config = { max_len = 32; max_cnt = 16 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
