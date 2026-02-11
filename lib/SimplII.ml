@@ -19,6 +19,11 @@ type error =
 
 let compare_error : error -> _ = Stdlib.compare
 
+let ( -- ) i j =
+  let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+  aux j []
+;;
+
 let pp_error ppf = function
   | Non_linear_arith ts ->
     Format.fprintf ppf "@[<v 2>";
@@ -2028,10 +2033,10 @@ let get_range () =
 ;;
 
 let get_strings_range nfa length num =
-  NfaS.any_n_paths_range
-    nfa
-    ~len:(if length < 0 then Config.under_str_config.max_len else length)
-    num
+  let max_len = Config.under_str_config.max_len in
+  (if length < 0
+   then NfaS.any_n_paths_range nfa ~len:max_len num
+   else 0 -- length |> List.concat_map (fun x -> NfaS.any_n_paths nfa ~len:x num))
   |> List.map (fun c -> List.to_seq c |> String.of_seq)
   |> List.map (fun c ->
     if String.length c > 0
@@ -2251,7 +2256,7 @@ let try_under_concats vars alpha len env ast =
             length
             count
         in
-        Format.printf
+        log
           "Strings for %s:\n %a\n%!"
           name
           Format.(
@@ -2283,7 +2288,7 @@ let under_concats env alpha ast =
     let vars_left, vars_right = find_vars_for_under2s ast in
     let filter_asts =
       List.filter_map (fun (env, ast) ->
-        match basic_simplify [ 1 ] env ast with
+        match basic_simplify [ 0 ] env ast with
         | `Unsat -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast, env))
