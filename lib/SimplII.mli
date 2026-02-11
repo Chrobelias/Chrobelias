@@ -4,6 +4,8 @@ type relop =
 
 type error
 
+exception Str_Underapprox_fired of Env.t
+
 val has_unsupported_nonlinearity : Ast.t -> (unit, Z.t Ast.Eia.term list) Result.t
 val subst : Env.t -> Ast.t -> Ast.t
 val subst_term : Env.t -> 'a Ast.Eia.term -> 'a Ast.Eia.term

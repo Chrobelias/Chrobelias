@@ -1830,6 +1830,7 @@ let%expect_test _ =
 ;;
 
 exception Underapprox_fired of Env.t
+exception Str_Underapprox_fired of Env.t
 exception Error of Ast.t * error list [@@ocaml.warnerror "-38"]
 
 (* type step = int list *)
@@ -2270,7 +2271,7 @@ let under_concats env alpha ast =
       List.filter_map (fun (env, ast) ->
         match basic_simplify [ 0 ] env ast with
         | `Unsat -> None
-        | `Sat env -> raise_notrace (Underapprox_fired env)
+        | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast, env))
     in
     Seq.init ((2 * (Config.under_str_config.max_len + 1)) + 1) (fun x -> x / 2, x mod 2)
@@ -2533,15 +2534,10 @@ let run_string_simplify ast =
   | `Unknown (ast', e, _, _) ->
     let alpha = collect_alpha ast' in
     let (module Symantics) = make_main_symantics ~alpha e in
-    (try
-       let result =
-         ast'
-         |> over_concat
-         |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list)
-       in
-       `Unknown result
-     with
-     | Underapprox_fired env -> `Sat ("under 0", env))
+    `Unknown
+      (ast'
+       |> over_concat
+       |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list))
 ;;
 
 let arithmetize ast env =
