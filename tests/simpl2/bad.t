@@ -8,7 +8,7 @@ $ export CHRO_DEBUG=1
   > (check-sat)
   > EOF
   $ Chro -bound 0 --pre-simpl --dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 
 $ export OCAMLRUNPARAM='b=0'
@@ -20,7 +20,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ Chro -bound 0 --pre-simpl --dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 
 
@@ -67,6 +67,6 @@ The single exponent is not bad
   > (check-sat)
   > EOF
   $ Chro -bound 2 --pre-simpl --dsimpl TODO3.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 

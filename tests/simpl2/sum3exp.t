@@ -34,6 +34,6 @@ $ cat  sum3exp.smt2
   Expecting 64 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
 

@@ -35,21 +35,21 @@ $ export CHRO_DEBUG=1
 $ export CHRO_DEBUG=1
   $ unset CHRO_EIA
   $ Chro -bound 0 --dsimpl --stop-after simpl test.smt2 || echo TIMEOUT | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 $ export CHRO_DEBUG=1
   $ Chro -bound 0  --no-pre-simpl --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
   $ unset CHRO_DEBUG
   $ export CHRO_EIA=old
   $ Chro -bound 0 --no-pre-simpl --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
-  sat (under I)
+  sat (under int)
 
 Run solver
   $ unset CHRO_EIA
   $ timeout 2  Chro  --no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
-  sat (under I)
+  sat (under int)
 
   $ Chro --dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_617.smt2
   sat (presimpl)

@@ -12,7 +12,7 @@ $ export CHRO_DEBUG=1
     (chrob.len x (exp 10 strlenx)))
 
   $ unset CHRO_TRACE_OPT
-  $ timeout 20 Chro ../examples/exp-test27.smt2 -huge 100
+  $ timeout 15 Chro ../examples/exp-test27.smt2 -huge 100
   sat (nfa)
   (
      (define-fun x () String

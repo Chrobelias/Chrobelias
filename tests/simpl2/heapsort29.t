@@ -4599,12 +4599,12 @@
   Expecting 16 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
 
   $ unset CHRO_DEBUG
 $ Chro -no-pre-simpl input.smt2
 sat (underapprox2)
   $ Chro input.smt2
-  sat (under I)
+  sat (under int)
 

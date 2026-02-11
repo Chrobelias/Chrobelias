@@ -1,7 +1,7 @@
 
 $ cat baba3.smt2
   $ Chro --dsimpl --stop-after simpl ./baba3.smt2
-  sat (under I)
+  sat (under int)
   (
      (define-fun a () String
       "BabBabBabBabBabBabBabBab")
@@ -11,7 +11,7 @@ $ cat baba3.smt2
       24)
   )
   $ Chro ./baba3.smt2
-  sat (under I)
+  sat (under int)
   (
      (define-fun a () String
       "BabBabBabBabBabBabBabBab")

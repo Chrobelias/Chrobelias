@@ -1,18 +1,18 @@
 Basic QF_EIA tests
 
   $ Chro ./qf-eia.smt2
-  sat (under I)
+  sat (under int)
   unsat (nfa)
   unsat (nfa)
   sat (presimpl)
   unsat (nfa)
-  sat (under I)
+  sat (under int)
   unsat (nfa)
   unsat (presimpl)
   unsat (presimpl)
   sat (presimpl)
   unsat (nfa)
-  sat (under I)
+  sat (under int)
   unsat (nfa)
   sat (presimpl)
 

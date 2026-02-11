@@ -27,7 +27,7 @@
   Expecting 8 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
@@ -68,7 +68,7 @@
   Expecting 8 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
   $ cat > sum_join1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)

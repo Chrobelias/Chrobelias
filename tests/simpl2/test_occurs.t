@@ -94,7 +94,7 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
   $ cat > 5.smt2 <<-EOF
   > (set-logic ALL)

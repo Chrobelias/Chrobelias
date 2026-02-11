@@ -2796,8 +2796,8 @@
   Expecting 125 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
   $ timeout 2 Chro --pre-simpl input.smt2 || echo "timeout"
-  sat (under I)
+  sat (under int)
 
 $ CHRO_DEBUG=1 Chro -dsimpl -no-pre-simpl -stop-after simpl input.smt2 | sed 's/[[:space:]]*$//'
