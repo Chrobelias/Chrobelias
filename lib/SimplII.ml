@@ -2281,7 +2281,7 @@ let try_under_concats vars alpha len env ast =
 
 let under_concats env alpha ast =
   if Config.under_str_config.max_cnt < 0
-  then List.to_seq [ [ ast, env ] ]
+  then Seq.return [ ast, env ]
   else (
     let vars_left, vars_right = find_vars_for_under2s ast in
     let filter_asts =
@@ -2552,9 +2552,11 @@ let run_string_simplify ast =
     let alpha = collect_alpha ast' in
     let (module Symantics) = make_main_symantics ~alpha e in
     `Unknown
-      (ast'
-       |> over_concat
-       |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list))
+      ( ast
+      , e
+      , ast'
+        |> over_concat
+        |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list) )
 ;;
 
 let arithmetize ast env =

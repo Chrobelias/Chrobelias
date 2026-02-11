@@ -314,7 +314,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     if lhs' <= rhs' then lhs else rhs
   in
   let used_under2 = ref false in
-  let check_nfa_sat ast e =
+  let check_nfa_sat ?(light = false) ast e =
     log "Starting NFA Solver ...\n%!";
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
@@ -325,15 +325,18 @@ let rec check_sat ?(verbose = false) tys ast : rez =
        | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
        | Lnot True -> Unsat "simpl"
        | _ ->
-         (match Lib.Solver.check_sat ir with
-          | `Sat get_model -> sat "nfa" ast e get_model Map.empty
-          | `Unsat -> Unsat "nfa"
-          | `Unknown _ir -> Unknown (ast, e)))
+         if light
+         then Unknown (ast, e)
+         else (
+           match Lib.Solver.check_sat ir with
+           | `Sat get_model -> sat "nfa" ast e get_model Map.empty
+           | `Unsat -> Unsat "nfa"
+           | `Unknown _ir -> Unknown (ast, e)))
     | Error s ->
       if !used_under2 |> not then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
       (* Unknown (ast, e) *) exit 0
   in
-  let check_eia_sat ast e =
+  let check_eia_sat ?(light = false) ast e =
     let can_be_unk = ref false in
     let apporx_rez =
       unknown ast e
@@ -436,13 +439,13 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     match apporx_rez with
     | Unknown (ast, e) ->
       if config.mode = `Msb
-      then check_nfa_sat ast e
+      then check_nfa_sat ~light ast e
       else (
         let asts_nat = Lib.Ast.to_nat ast in
         log "To IN gives %d asts..." (List.length asts_nat);
         let check ast =
           log "Over IN: %a\n" Lib.Ast.pp_smtlib2 ast;
-          match check_nfa_sat ast e with
+          match check_nfa_sat ~light ast e with
           | Sat (s, ast, env, get_model, regexes) -> Some (s, ast, env, get_model, regexes)
           | Unknown _ ->
             can_be_unk := true;
@@ -454,7 +457,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat "nfa")
     | _ -> apporx_rez
   in
-  let check_string_sat ast env =
+  let check_string_sat ?(light = false) ast env =
     let unsat_reason = ref "presimpl" in
     let can_be_unk = ref false in
     let asts_n_regexes = Lib.SimplII.arithmetize ast env in
@@ -462,7 +465,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     let f ast_n_regex =
       let ast, e, post, regex = ast_n_regex in
       log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-      match check_eia_sat ast e with
+      match check_eia_sat ~light ast e with
       | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, post, regex)
       | Unknown _ ->
         can_be_unk := true;
@@ -523,31 +526,39 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         | `Unsat ->
           report_result2 (`Unsat "presimpl str");
           Unsat "presimpl str"
-        | `Unknown seq_of_variants ->
-          seq_of_variants
-          |> Seq.find_map (fun variants ->
-            List.find_map
-              (fun (ast, env) ->
-                 match check_string_sat ast env with
-                 | Unsat s ->
-                   unsat_reason := reason s !unsat_reason;
-                   None
-                 | Sat (reason, _, _, _, _) as s ->
-                   report_result2 (`Sat reason);
-                   Some s
-                 | Unknown _ ->
-                   can_be_unk := true;
-                   None)
-              variants)
-          |> fun v ->
-          (match v, !can_be_unk with
-           | Some v, _ -> v
-           | None, true ->
-             report_result2 (`Unknown "");
-             unknown ast Lib.Env.empty
-           | None, false ->
-             report_result2 (`Unsat !unsat_reason);
-             Unsat !unsat_reason)
+        | `Unknown (ast, e, seq_of_variants) ->
+          (match check_string_sat ~light:true ast e with
+           | Unsat s ->
+             report_result2 (`Unsat s);
+             Unsat s
+           | Sat (s, ast, env, get_model, _) ->
+             report_result2 (`Sat s);
+             Sat (s, ast, env, get_model, Map.empty)
+           | Unknown _ ->
+             seq_of_variants
+             |> Seq.find_map (fun variants ->
+               List.find_map
+                 (fun (ast, env) ->
+                    match check_string_sat ast env with
+                    | Unsat s ->
+                      unsat_reason := reason s !unsat_reason;
+                      None
+                    | Sat (reason, _, _, _, _) as s ->
+                      report_result2 (`Sat reason);
+                      Some s
+                    | Unknown _ ->
+                      can_be_unk := true;
+                      None)
+                 variants)
+             |> fun v ->
+             (match v, !can_be_unk with
+              | Some v, _ -> v
+              | None, true ->
+                report_result2 (`Unknown "");
+                unknown ast Lib.Env.empty
+              | None, false ->
+                report_result2 (`Unsat !unsat_reason);
+                Unsat !unsat_reason))
       with
       | Lib.SimplII.Str_Underapprox_fired env ->
         let s = "under str" in
