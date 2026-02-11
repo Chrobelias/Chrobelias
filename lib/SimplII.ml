@@ -220,8 +220,8 @@ module Id_symantics :
   let pow = Ast.Eia.pow
   let mul = Ast.Eia.mul
   let add = Ast.Eia.add
-  let land_ xs = Ast.Land xs
-  let lor_ xs = Ast.Lor xs
+  let land_ xs = Ast.land_ xs
+  let lor_ xs = Ast.lor_ xs
   let not = Ast.lnot
   let str_var s : str = Atom (Ast.Var (s, S))
   let str_const s : str = Ast.Eia.Str_const s
@@ -811,8 +811,8 @@ let make_main_symantics ?alpha ?agressive env =
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, I)) -> Id_symantics.neqz lhs rhs
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, S)) -> Id_symantics.neq_str lhs rhs
       | Ast.Lnot x -> x
-      | Land xs -> Ast.Lor (List.map not xs)
-      | Lor xs -> Ast.Land (List.map not xs)
+      | Land xs -> Ast.lor_ (List.map not xs)
+      | Lor xs -> Ast.land_ (List.map not xs)
       | x -> Ast.lnot x
     ;;
 
@@ -841,7 +841,7 @@ let make_main_symantics ?alpha ?agressive env =
       | _ ->
         (match List.drop_while (( = ) Ast.True) flat with
          | [] -> true_
-         | xs -> Ast.Land xs)
+         | xs -> Ast.land_ xs)
     ;;
 
     let lor_ x = Ast.Lor x
@@ -1824,7 +1824,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     match ast with
     | Land xs ->
       let env', ys = fold_and_filter multiple (helper info ast) env xs in
-      let ans_ph = if ys = [] && xs <> [] then True else Land ys in
+      let ans_ph = if ys = [] && xs <> [] then True else Ast.land_ ys in
       env', ans_ph
     | Eia _ ->
       (match helper info ast env ast with
@@ -2556,6 +2556,7 @@ let run_string_simplify ast =
       , e
       , ast'
         |> over_concat
+        |> apply_symantics (module Symantics)
         |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list) )
 ;;
 
