@@ -1483,6 +1483,10 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     (* log "extend %a --> %a" Ast.pp_atom v Ast.pp_term_smtlib2 rhs; *)
     Env.extend_exn env v rhs
   in
+  let safe_extend_exn env v rhs =
+    try Some (extend_exn env v rhs) with
+    | Env.Occurs -> None
+  in
   (*let extend_str_exn env v rhs = Env.extend_string_exn env v (trivial_simplify rhs) in*)
   let fold_and_filter multiple f acc xs =
     let acc = ref acc in
@@ -1599,15 +1603,13 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            <var 1>. Then the answer would be different since the connection
            between <var 1> and <var 2> is lost. *)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Sofi (Atom (Var _)) as rhs), _))
-      when var_can_subst vn -> Some (extend_exn env v rhs)
+      when var_can_subst vn -> safe_extend_exn env v rhs
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, S)) when var_can_subst vn ->
-      (try Some (extend_exn env v rhs) with
-       | Env.Occurs -> None)
+      safe_extend_exn env v rhs
     | Eia (Eia.Eq (lhs, Atom (Var (vn, _) as v), S)) when var_can_subst vn ->
-      (try Some (extend_exn env v lhs) with
-       | Env.Occurs -> None)
+      safe_extend_exn env v lhs
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Iofs (Atom (Var _)) as rhs), _))
-      when var_can_subst vn -> Some (extend_exn env v rhs)
+      when var_can_subst vn -> safe_extend_exn env v rhs
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len (Atom (Var _)) as rhs), _))
       when var_can_subst vn -> Some (extend_exn env v rhs)
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), (Eia.Len2 (Atom (Var _)) as rhs), _))
@@ -1735,9 +1737,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
         | Eia.Atom (Var (vn, _) as v) :: xs
           when var_can_subst_complex vn && not (is_bad vn) ->
           let data = S.(mul [ constz Z.minus_one; add (acc @ xs) ]) in
-          if not (Env.occurs_var env vn data)
-          then extend_exn env v data
-          else loop (Eia.Atom v :: acc) xs
+          maybe_extend env vn v data ~fk:(fun () -> loop (Eia.Atom v :: acc) xs)
         | (Mul [ Const c; Eia.Atom (Var (vn, _) as v) ] as leftmost) :: xs
           when var_can_subst_complex vn
                && (not (is_bad vn))
@@ -1756,7 +1756,8 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            | Bwand _ | Bwor _ | Bwxor _ -> true
            | _ -> false -> None
     | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, _) as eia')
-      when var_can_subst_complex vn
+      when (not (Env.occurs_var env vn rhs))
+           && var_can_subst_complex vn
            && Ast.forsome
                 (function
                   | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
