@@ -20,7 +20,7 @@ $ export CHRO_DEBUG=1
   iter(3)= (not True)
   fixed-point
   
-  unsat (presimpl)
+  unsat (presimpl str)
 
   $ Chro 1.smt2 | sed 's/[[:space:]]*$//'
-  unsat (presimpl)
+  unsat (presimpl str)

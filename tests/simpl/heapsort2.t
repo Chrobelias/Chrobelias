@@ -15,11 +15,11 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  sat (presimpl)
+  sat (presimpl int)
 
   $ export CHRO_EIA=old
   $ timeout 2 Chro --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  sat (presimpl)
+  sat (presimpl int)
 
   $ cat > test.smt2 <<-EOF
   > (set-logic ALL)
@@ -52,4 +52,4 @@ Run solver
   sat (under int)
 
   $ Chro --dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_617.smt2
-  sat (presimpl)
+  sat (presimpl int)

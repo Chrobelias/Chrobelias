@@ -52,7 +52,7 @@ TODO: fix this later
   > (get-model)
   > EOF
   $ Chro -no-over -bound 0 --dsimpl --stop-after simpl 2.smt2 | sed 's/[[:space:]]*$//'
-  sat (presimpl)
+  sat (presimpl int)
   (
      (define-fun x () Int
       0)

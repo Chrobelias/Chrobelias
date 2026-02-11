@@ -304,7 +304,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     else ()
   in
   let reason lhs rhs =
-    let ord = [ "nfa"; "nia"; "over"; "simpl"; "presimpl"; "?" ] in
+    let ord = [ "nfa"; "nia"; "over"; "simpl"; "presimpl int"; "presimpl str"; "?" ] in
     let lhs' =
       List.find_index (( = ) lhs) ord |> Option.value ~default:(List.length ord)
     in
@@ -340,7 +340,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       <+> (fun ast e ->
       if not config.pre_simpl
       then unknown ast e
-      else lift ~unsat_info:"presimpl" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
+      else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
       <+> (fun ast e ->
       if config.under_approx >= 0
       then (
@@ -513,7 +513,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
   try
     if config.logic = `Str || config.logic = `StrBv
     then (
-      let unsat_reason = ref "presimpl" in
+      let unsat_reason = ref "presimpl str" in
       let can_be_unk = ref false in
       try
         match Lib.SimplII.run_string_simplify ast with
@@ -521,8 +521,8 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           report_result2 (`Sat s);
           Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
         | `Unsat ->
-          report_result2 (`Unsat "presimpl");
-          Unsat "presimpl"
+          report_result2 (`Unsat "presimpl str");
+          Unsat "presimpl str"
         | `Unknown seq_of_variants ->
           seq_of_variants
           |> Seq.find_map (fun variants ->

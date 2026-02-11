@@ -58,7 +58,7 @@ Should be (<= x 2)
   iter(2)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -74,7 +74,7 @@ Should be (<= x 2)
   iter(2)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)
 
 Fold exps
   $ cat > i3.smt2 <<-EOF
@@ -239,4 +239,4 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   iter(2)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)

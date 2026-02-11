@@ -85,7 +85,7 @@
   iter(2)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)
   $ cat > sum_join2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun n () Int)
@@ -99,4 +99,4 @@
   iter(2)= (not True)
   fixed-point
   
-  unsat (presimpl)
+  unsat (presimpl int)

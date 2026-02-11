@@ -1988,7 +1988,7 @@ let run_basic_simplify ?(env = Env.empty) ast =
   if Ast.is_conjunct ast
   then (
     match basic_simplify [ 1 ] env ast with
-    | `Sat env -> `Sat ("presimpl", env)
+    | `Sat env -> `Sat ("presimpl int", env)
     | `Unsat -> `Unsat
     | `Unknown (ast, e, _, _) ->
       `Unknown (ast |> shrink_variables |> flatten Info.empty, e))
@@ -2546,7 +2546,7 @@ let run_string_simplify ast =
   let module Set = Base.Set.Poly in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
-  | `Sat env -> `Sat ("presimpl", env)
+  | `Sat env -> `Sat ("presimpl str", env)
   | `Unsat -> `Unsat
   | `Unknown (ast', e, _, _) ->
     let alpha = collect_alpha ast' in

@@ -25,4 +25,4 @@
   iter(3)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)

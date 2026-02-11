@@ -1,7 +1,7 @@
 
 $ cat baba4.smt2
   $ Chro --dsimpl --stop-after simpl ./baba4.smt2
-  sat (presimpl)
+  sat (presimpl str)
   (
      (define-fun a () String
       "Ba")   (define-fun b () String
@@ -9,7 +9,7 @@ $ cat baba4.smt2
   )
 $ export CHRO_DEBUG=1
   $ Chro ./baba4.smt2
-  sat (presimpl)
+  sat (presimpl str)
   (
      (define-fun a () String
       "Ba")   (define-fun b () String
