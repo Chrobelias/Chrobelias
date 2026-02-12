@@ -531,7 +531,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         | `Unknown (ast, e, seq_of_variants) ->
           if Seq.is_empty seq_of_variants
           then (
-            match check_string_sat ~light:true ast e with
+            match check_string_sat ast e with
             | Sat (s, _, _, _, _) as rez ->
               report_result2 (`Sat s);
               rez
@@ -539,7 +539,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
               report_result2 (`Unsat s);
               Unsat s
             | Unknown _ ->
-              report_result2 (`Unknown "");
+              report_result2 (`Unknown "nfa");
               unknown ast Lib.Env.empty)
           else (
             match check_string_sat ~light:true ast e with
@@ -551,7 +551,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
               Unsat s
             | Unknown _ ->
               seq_of_variants
-              |> Seq.append (Seq.return [ ast, e ])
+              |> (fun x -> Seq.append x (Seq.return [ ast, e ]))
               |> Seq.find_map (fun variants ->
                 List.find_map
                   (fun (ast, env) ->
