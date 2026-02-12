@@ -32,6 +32,7 @@ val filter_mapi
   -> t
 
 val length : t -> int
+val definite_length : t -> int
 val lookup_int : string -> t -> Z.t Ast.Eia.term option
 val lookup_int_exn : string -> t -> Z.t Ast.Eia.term
 val lookup_string : string -> t -> string Ast.Eia.term option
@@ -41,12 +42,14 @@ val lookup_string_exn : string -> t -> string Ast.Eia.term
 val is_absent_key : string -> t -> bool
 val extend_exn : t -> 'a Ast.atom -> 'a Ast.Eia.term -> t
 val set_int_exn : t -> string -> Z.t Ast.Eia.term -> t
+val set_string_exn : t -> string -> string Ast.Eia.term -> t
 val extend_int_exn : t -> string -> Z.t Ast.Eia.term -> t
 val extend_string_exn : t -> string -> string Ast.Eia.term -> t
 val extend_cstrt_exn : t -> key:'a Ast.atom -> 'a Ast.Eia.term -> t
 val pp : ?title:string -> Format.formatter -> t -> unit
 val to_eqs : t -> Ast.t list
 val enrich : t -> (Ast.any_atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
+val enrich2 : t -> (Ir.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
 val occurs_var : t -> string -> 'a Ast.Eia.term -> bool
 val walk : t -> 'a Ast.Eia.term -> 'a Ast.Eia.term
 
