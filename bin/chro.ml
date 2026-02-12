@@ -132,15 +132,12 @@ let join_int_model _tys prefix m =
   Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek prefix key with
     | Some value -> Map.set acc ~key:(Ir.var key) ~data:value
-    | None ->
-      if Solver.is_internal key |> not
-      then Format.eprintf "; Can't join models. Something may be missing\n%!";
-      acc)
+    | None -> acc)
 ;;
 
 exception Too_long_model
 
-let model_from_parts_regexes_env tys model regexes env =
+let rec model_from_parts_regexes_env tys model regexes env' =
   let model =
     model
     |> Map.mapi ~f:(fun ~key ~data ->
@@ -155,7 +152,7 @@ let model_from_parts_regexes_env tys model regexes env =
       | Lib.Ir.Var _ as v -> v
       | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
   in
-  let model = join_int_model tys env model in
+  let model = join_int_model tys env' model in
   (*New code goes here *)
   let var = Lib.Ir.var in
   let raw_model = model in
@@ -163,7 +160,7 @@ let model_from_parts_regexes_env tys model regexes env =
   let prefix_len = String.length prefix in
   let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
   let module NfaC = Lib.NfaCollection in
-  let real_model =
+  let aux raw_model =
     Map.to_alist raw_model
     |> List.filter_map (fun (key, data) ->
       match key with
@@ -226,6 +223,8 @@ let model_from_parts_regexes_env tys model regexes env =
       | _ -> Some (key, data))
     |> Map.of_alist_exn
   in
+  let real_model = aux raw_model in
+  let env = Lib.Env.enrich2 env' real_model in
   (* New code ends here *)
   let real_model =
     Map.fold
@@ -239,7 +238,9 @@ let model_from_parts_regexes_env tys model regexes env =
       ~init:real_model
       tys
   in
-  real_model
+  if Lib.Env.definite_length env' <> Lib.Env.definite_length env
+  then model_from_parts_regexes_env tys model regexes env
+  else real_model
 ;;
 
 let print_model tys model regexes env =

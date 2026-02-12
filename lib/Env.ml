@@ -169,10 +169,7 @@ let extend_int_exn e vname data =
 
 let set_int_exn e vname data =
   match SM.find e.env vname with
-  | Some old_data ->
-    Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 old_data;
-    Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
-    { e with env = SM.add_exn (SM.remove vname e.env) ~key:vname ~data }
+  | Some old_data -> { e with env = SM.add_exn (SM.remove vname e.env) ~key:vname ~data }
   | None ->
     let data = walk e data in
     if occurs_var e vname data then raise Occurs;
@@ -180,6 +177,19 @@ let set_int_exn e vname data =
     | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
     | _ -> *)
     { e with env = SM.add_exn e.env ~key:vname ~data }
+;;
+
+let set_string_exn e vname data =
+  match SM.find e.str_env vname with
+  | Some old_data ->
+    { e with str_env = SM.add_exn (SM.remove vname e.str_env) ~key:vname ~data }
+  | None ->
+    let data = walk e data in
+    if occurs_var e vname data then raise Occurs;
+    (*match data with
+    | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
+    | _ -> *)
+    { e with str_env = SM.add_exn e.str_env ~key:vname ~data }
 ;;
 
 let extend_string_exn e vname data =
@@ -213,6 +223,25 @@ let empty : t = { env = SM.empty; str_env = SM.empty; cstrts = [] }
 
 (* let is_empty { env } = SM.is_empty env *)
 let length { env; str_env; cstrts } =
+  SM.cardinal env + SM.cardinal str_env + List.length cstrts
+[@@warning "-32"]
+;;
+
+let definite_length { env; str_env; cstrts } =
+  let env =
+    SM.filter
+      (fun _ -> function
+         | Ast.Eia.Const _ -> true
+         | _ -> false)
+      env
+  in
+  let str_env =
+    SM.filter
+      (fun _ -> function
+         | Ast.Eia.Str_const _ -> true
+         | _ -> false)
+      str_env
+  in
   SM.cardinal env + SM.cardinal str_env + List.length cstrts
 [@@warning "-32"]
 ;;
@@ -327,6 +356,24 @@ let enrich m other =
         failf "tried to enrich with a model having integer %s a string value %s" s z*))
   in
   { env = new_env; cstrts = m.cstrts; str_env = new_str_env }
+;;
+
+let enrich2 m other =
+  let _ : t = m in
+  let _ : (Ir.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t = other in
+  let m =
+    Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
+      match key, data with
+      | Ir.Var s, `Int z -> set_int_exn acc s (Const z)
+      | _, _ -> acc)
+  in
+  let m =
+    Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
+      match key, data with
+      | Ir.Var s, `Str z -> set_string_exn acc s (Str_const z)
+      | _, _ -> acc)
+  in
+  m
 ;;
 
 let lookup_int name { env; _ } = SM.find_opt name env
