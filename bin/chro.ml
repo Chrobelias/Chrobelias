@@ -515,6 +515,17 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       then unknown ast Lib.Env.empty
       else Unsat !unsat_reason
   in
+  let handle =
+    fun result f ->
+    match result with
+    | Sat (s, _, _, _, _) as rez ->
+      report_result2 (`Sat s);
+      rez
+    | Unsat s as rez ->
+      report_result2 (`Unsat s);
+      rez
+    | Unknown _ -> f ()
+  in
   try
     if config.logic = `Str || config.logic = `StrBv
     then (
@@ -530,26 +541,12 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           Unsat "presimpl str"
         | `Unknown (ast, e, seq_of_variants) ->
           if Seq.is_empty seq_of_variants
-          then (
-            match check_string_sat ast e with
-            | Sat (s, _, _, _, _) as rez ->
-              report_result2 (`Sat s);
-              rez
-            | Unsat s ->
-              report_result2 (`Unsat s);
-              Unsat s
-            | Unknown _ ->
+          then
+            handle (check_string_sat ast e) (fun () ->
               report_result2 (`Unknown "nfa");
               unknown ast Lib.Env.empty)
-          else (
-            match check_string_sat ~light:true ast e with
-            | Sat (s, _, _, _, _) as rez ->
-              report_result2 (`Sat s);
-              rez
-            | Unsat s ->
-              report_result2 (`Unsat s);
-              Unsat s
-            | Unknown _ ->
+          else
+            handle (check_string_sat ~light:true ast e) (fun () ->
               seq_of_variants
               |> (fun x -> Seq.append x (Seq.return [ ast, e ]))
               |> Seq.find_map (fun variants ->
@@ -567,28 +564,21 @@ let rec check_sat ?(verbose = false) tys ast : rez =
                        None)
                   variants)
               |> fun v ->
-              (match v, !can_be_unk with
-               | Some v, _ -> v
-               | None, true ->
-                 report_result2 (`Unknown "");
-                 unknown ast Lib.Env.empty
-               | None, false ->
-                 report_result2 (`Unsat !unsat_reason);
-                 Unsat !unsat_reason))
+              match v, !can_be_unk with
+              | Some v, _ -> v
+              | None, true ->
+                report_result2 (`Unknown "");
+                unknown ast Lib.Env.empty
+              | None, false ->
+                report_result2 (`Unsat !unsat_reason);
+                Unsat !unsat_reason)
       with
       | Lib.SimplII.Str_Underapprox_fired env ->
         let s = "under str" in
         report_result2 (`Sat s);
         Sat (s, ast, env, (fun _ -> Result.Ok Map.empty), Map.empty))
-    else (
-      match check_eia_sat ast Lib.Env.empty with
-      | Sat (s, ast, env, get_model, _) ->
-        report_result2 (`Sat s);
-        Sat (s, ast, env, get_model, Map.empty)
-      | Unsat s ->
-        report_result2 (`Unsat s);
-        Unsat s
-      | Unknown _ ->
+    else
+      handle (check_eia_sat ast Lib.Env.empty) (fun () ->
         report_result2 (`Unknown "nfa");
         unknown ast Lib.Env.empty)
   with
