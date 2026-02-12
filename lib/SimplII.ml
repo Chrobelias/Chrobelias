@@ -1663,6 +1663,14 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
       when Z.(cr mod cl = zero) && var_can_subst_complex vn ->
       let rhs = Eia.(Const Z.(cr / cl)) in
       Some (extend_exn env v rhs)
+    | Eia (Eia.Eq (Mul [ Const cl; Len (Atom (Var (vn, _) as v)) ], Const cr, I))
+    | Eia (Eia.Eq (Const cr, Mul [ Const cl; Len (Atom (Var (vn, _) as v)) ], I))
+      when Z.(cr = zero) && Z.(cl <> zero) && var_can_subst vn ->
+      Some (extend_exn env v (Id_symantics.str_const ""))
+    | Eia (Eia.Eq (Len (Atom (Var (vn, _) as v)), Const cr, I))
+    | Eia (Eia.Eq (Const cr, Len (Atom (Var (vn, _) as v)), I))
+      when Z.(cr = zero) && var_can_subst vn ->
+      Some (extend_exn env v (Id_symantics.str_const ""))
     | Eia (Eia.Eq (Atom (Var (vn, I) as vr), Mul [ Const cl; Atom (Var (vn2, I)) ], I))
     | Eia (Eia.Eq (Mul [ Const cl; Atom (Var (vn, I)) ], Atom (Var (vn2, I) as vr), I))
       when vn == vn2 && var_can_subst vn ->
