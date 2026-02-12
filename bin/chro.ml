@@ -392,8 +392,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         match Lib.SimplII.run_under2 e ast with
         | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty) Map.empty
         | `Underapprox asts ->
-          if config.dump_pre_simpl && not light
-          then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+          if config.dump_pre_simpl then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
           if config.stop_after = `Pre_simplify then exit 0;
           log "Looking for SAT in %d asts..." (List.length asts);
           let exception
@@ -418,8 +417,9 @@ let rec check_sat ?(verbose = false) tys ast : rez =
            | Sat_found model -> sat "under II" ast e model Map.empty))
       else unknown ast e)
       <+> (fun ast e ->
-      if config.dump_pre_simpl && not light
-      then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
+      let light_str = if light then "Light run:\n" else "" in
+      if config.dump_pre_simpl
+      then Format.printf "@[%s%a@]\n%!" light_str Lib.Ast.pp_smtlib2 ast;
       unknown ast e)
       <+> (fun ast e ->
       if config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
