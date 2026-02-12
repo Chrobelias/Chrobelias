@@ -2705,33 +2705,24 @@ let arithmetize ast env =
     let extend_digit v =
       extra_ph := Id_symantics.in_rei (Id_symantics.var v) Regex.digit :: !extra_ph
     in
-    (*let module M_ = struct
+    let extend_non_digit v =
+      extra_ph
+      := Id_symantics.lor_
+           (List.map (fun v -> Id_symantics.in_rei (Id_symantics.var v) Regex.nondigit) v)
+         :: !extra_ph
+    in
+    let module M_1 = struct
       include Id_symantics
 
-      let rec str_concat (lhs : str) (rhs : str) =
-        let handle_concat (lhs : str) (rhs : str) =
-          let u = gensym () in
-          let v = gensym () in
-          let lhs' = gensym () in
-          let rhs' = gensym () in
-          extend lhs' (Ast.Eia.Iofs lhs);
-          extend rhs' (Ast.Eia.Iofs rhs);
-          extend
-            u
-            (Ast.Eia.add
-               [ Ast.Eia.mul [ Ast.Eia.Atom (Ast.var lhs' I); pow2var v ]
-               ; Ast.Eia.atom (Ast.var rhs' I)
-               ]);
-          extend v (Ast.Eia.len rhs);
-          Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
+      let str_concat (lhs : str) (rhs : str) =
+        let vars =
+          Set.union
+            (Set.of_list (Ast.Eia.collect_all lhs))
+            (Set.of_list (Ast.Eia.collect_all rhs))
+          |> Set.to_list
         in
-        let do_concat lhs rhs = str_concat lhs rhs in
-        match lhs, rhs with
-        | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
-          do_concat (do_concat lhs1 rhs1) (do_concat lhs1 rhs1)
-        | Ast.Eia.Concat (lhs1, rhs1), rhs2 -> handle_concat (do_concat lhs1 rhs1) rhs2
-        | lhs1, Ast.Eia.Concat (lhs2, rhs2) -> handle_concat lhs1 (do_concat lhs2 rhs2)
-        | lhs1, rhs1 -> handle_concat lhs1 rhs1
+        extend_non_digit vars;
+        Id_symantics.str_var (gensym ())
       ;;
 
       let prj = function
@@ -2740,12 +2731,12 @@ let arithmetize ast env =
       ;;
     end
     in
-    let module Sym = struct
-      include M_
-      include FT_SIG.Sugar (M_)
+    let module Sym1 = struct
+      include M_1
+      include FT_SIG.Sugar (M_1)
     end
-    in*)
-    let module M_ = struct
+    in
+    let module M_2 = struct
       include Id_symantics
 
       let rec str_concat (lhs : str) (rhs : str) =
@@ -2771,9 +2762,9 @@ let arithmetize ast env =
                ; Ast.Eia.atom (Ast.var rhs' I)
                ]);
           extend v (Ast.Eia.len rhs);
-          List.iter (fun var -> extend_digit var) vars;
           Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
         in
+        List.iter (fun var -> extend_digit var) vars;
         let do_concat lhs rhs = str_concat lhs rhs in
         match lhs, rhs with
         | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
@@ -2789,21 +2780,21 @@ let arithmetize ast env =
       ;;
     end
     in
-    let module Sym = struct
-      include M_
-      include FT_SIG.Sugar (M_)
+    let module Sym2 = struct
+      include M_2
+      include FT_SIG.Sugar (M_2)
     end
     in
-    fun ph -> (*Set.of_list [ *) Sym.prj (ph |> apply_symantics (module Sym))
-    (*Sym.prj (ph |> apply_symantics (module Sym2)) ]
-        |> Set.to_list*)
+    fun ph ->
+      let ast_non_digits = Sym1.prj (ph |> apply_symantics (module Sym1)) in
+      extra_ph := [];
+      let ast_digits = Sym2.prj (ph |> apply_symantics (module Sym2)) in
+      [ ast_digits; ast_non_digits ] |> List.concat_map Ast.to_dnf
   in
-  let arithmetize var_info ast =
-    let in_concat v = Ast.in_concat v ast in
-    let ast = arithmetize_concats var_info ast in
+  let arithmetize in_concat var_info ast =
     (* We only want to substitute consts. *)
     let (module M) = make_main_symantics Env.empty in
-    let ast = apply_symantics_unsugared (module M) ast in
+    let ast = (apply_symantics_unsugared (module M)) ast in
     let in_stoi v = Ast.in_stoi v ast in
     let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
       fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function
@@ -3199,7 +3190,14 @@ let arithmetize ast env =
                 regexes'
             in
             ast', regexes)
-         (ast |> flatten |> arithmetize var_info))
+         (ast
+          |> flatten
+          |> (fun ast ->
+          let in_concat v = Ast.in_concat v ast in
+          let asts = arithmetize_concats var_info ast in
+          List.map (fun ast -> ast, in_concat) asts)
+          |> List.concat_map (fun (ast, in_concat) -> arithmetize in_concat var_info ast)
+         ))
     asts_n_regexes
   |> List.concat_map (fun (a, b) ->
     unfold_neq var_info b a |> List.map (fun (a, a') -> a, env, a', b))
