@@ -38,7 +38,7 @@ jobs:
           START_TIME=$(date +%s)
           for i in ./benchmarks/chrobelias/QF_SLIA/stringfuzzregex/*.smt2; do
             echo $i;
-            timeout 30s _build/default/bin/chro.exe ${{ matrix.flags }} $i;
+            timeout 10s _build/default/bin/chro.exe ${{ matrix.flags }} $i;
             if [[ $exit_status -eq 124 ]]; then
               echo "timeout";
             fi;

@@ -2281,7 +2281,7 @@ let try_under_concats vars alpha len env ast =
 
 let under_concats env alpha ast =
   if Config.under_str_config.max_cnt < 0
-  then Seq.return [ ast, env ]
+  then Seq.empty
   else (
     let vars_left, vars_right = find_vars_for_under2s ast in
     let filter_asts =
@@ -2291,15 +2291,12 @@ let under_concats env alpha ast =
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast, env))
     in
-    Seq.init ((2 * (Config.under_str_config.max_len + 1)) + 1) (fun x -> x / 2, x mod 2)
+    Seq.init (2 * (Config.under_str_config.max_len + 1)) (fun x -> x / 2, x mod 2)
     |> Seq.map (fun (length, side) ->
-      if length <= Config.under_str_config.max_len
-      then (
-        match side with
-        | 0 -> filter_asts (try_under_concats vars_left alpha length env ast)
-        | 1 -> filter_asts (try_under_concats vars_right alpha length env ast)
-        | other -> failwith "Unreachable: remainder mod 2 is negative")
-      else [ ast, env ]))
+      match side with
+      | 0 -> filter_asts (try_under_concats vars_left alpha length env ast)
+      | 1 -> filter_asts (try_under_concats vars_right alpha length env ast)
+      | other -> failwith "Unreachable: remainder mod 2 is negative"))
 ;;
 
 let split_concats { Info.all; _ } =
@@ -2551,13 +2548,9 @@ let run_string_simplify ast =
   | `Unknown (ast', e, _, _) ->
     let alpha = collect_alpha ast' in
     let (module Symantics) = make_main_symantics ~alpha e in
+    let ast = ast' |> over_concat |> apply_symantics (module Symantics) in
     `Unknown
-      ( ast
-      , e
-      , ast'
-        |> over_concat
-        |> apply_symantics (module Symantics)
-        |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list) )
+      (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list))
 ;;
 
 let arithmetize ast env =
