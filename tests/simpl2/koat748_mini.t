@@ -2,7 +2,7 @@
 
 $ export CHRO_DEBUG=1
   $ Chro --dsimpl --pre-simpl --stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 
   $ unset CHRO_DEBUG
@@ -10,6 +10,6 @@ $ export CHRO_DEBUG=1
   unknown (nia)
 
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
-  sat (under I)
+  sat (under int)
 
 

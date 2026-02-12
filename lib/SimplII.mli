@@ -4,6 +4,8 @@ type relop =
 
 type error
 
+exception Str_Underapprox_fired of Env.t
+
 val has_unsupported_nonlinearity : Ast.t -> (unit, Z.t Ast.Eia.term list) Result.t
 val subst : Env.t -> Ast.t -> Ast.t
 val subst_term : Env.t -> 'a Ast.Eia.term -> 'a Ast.Eia.term
@@ -21,15 +23,18 @@ val simpl
 
 val arithmetize
   :  Ast.t
+  -> Env.t
+  -> (Ast.t
+     * Env.t
+     * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ]) list
+     * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
+       list
+
+val run_string_simplify
+  :  Ast.t
   -> [ `Sat of string * Env.t
      | `Unsat
-     | `Unknown of
-         (Ast.t
-         * Env.t
-         * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ])
-             list
-         * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
-           list
+     | `Unknown of Ast.t * Env.t * (Ast.t * Env.t) list Seq.t
      ]
 
 val run_basic_simplify

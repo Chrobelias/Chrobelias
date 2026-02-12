@@ -2,17 +2,26 @@
 $ export CHRO_DEBUG=1
 
   $ Chro -huge 100 --dpresimpl --stop-after simpl ../examples/exp-test27.smt2
+  Light run:
   (and
-    (= x (+ (* 11 %q4) (* 29 %q2)))
+               (= x (+ (* 11 %q4) (* 29 %q2)))
+               (<= (exp 10 0) (exp 10 strlenx))
+               (<= %q4 2)
+               (<= (exp 10 strlenx) (exp 10 99))
+               (<= (* (- 1) %q4) 0)
+               (str.in_re.raw x)
+               (chrob.len x (exp 10 strlenx)))
+  (and
+    (= x (+ (* 11 %q8) (* 29 %q6)))
     (<= (exp 10 0) (exp 10 strlenx))
-    (<= %q4 2)
+    (<= %q8 2)
     (<= (exp 10 strlenx) (exp 10 99))
-    (<= (* (- 1) %q4) 0)
+    (<= (* (- 1) %q8) 0)
     (str.in_re.raw x)
     (chrob.len x (exp 10 strlenx)))
 
   $ unset CHRO_TRACE_OPT
-  $ timeout 20 Chro ../examples/exp-test27.smt2 -huge 100
+  $ timeout 15 Chro ../examples/exp-test27.smt2 -huge 100
   sat (nfa)
   (
      (define-fun x () String

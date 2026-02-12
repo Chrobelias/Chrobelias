@@ -10,7 +10,7 @@
   iter(2)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)
 
   $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
@@ -29,8 +29,7 @@
         x -> (+ 1 (- y));
         y -> (+ 100 (- z));
   
-  iter(3)= (and
-             (= (+ z (* (- 1) y)) 9999))
+  iter(3)= (= (+ z (* (- 1) y)) 9999)
   iter(4)= (= (+ z (* 100 (- 1)) (* (* (- 1) z) (- 1))) 9999)
   iter(5)= (= (+ z z) 10099)
   fixed-point
@@ -94,7 +93,7 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
 
   $ cat > 5.smt2 <<-EOF
   > (set-logic ALL)
@@ -128,8 +127,7 @@
         it19 -> (+ it200 (- z));
         it232 -> (+ it198 (* (- 3) z) (* 3 it200));
   
-  iter(3)= (and
-             (= (+ it233 (* (- 1) it199)) 0))
+  iter(3)= (= (+ it233 (* (- 1) it199)) 0)
   Something ready to substitute
         it19 -> (+ it200 (- z));
         it232 -> (+ it198 (* (- 3) z) (* 3 it200));
@@ -138,4 +136,4 @@
   iter(4)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)

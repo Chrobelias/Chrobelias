@@ -31,7 +31,7 @@
   Expecting 1 choices ...
   
   lib/Underapprox.ml gives early Sat.
-  sat (under I)
+  sat (under int)
   (
      (define-fun u () Int
       0)
@@ -52,7 +52,7 @@ TODO: fix this later
   > (get-model)
   > EOF
   $ Chro -no-over -bound 0 --dsimpl --stop-after simpl 2.smt2 | sed 's/[[:space:]]*$//'
-  sat (presimpl)
+  sat (presimpl int)
   (
      (define-fun x () Int
       0)

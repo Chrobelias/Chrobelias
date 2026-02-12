@@ -21,7 +21,7 @@
   iter(4)= True
   fixed-point
   
-  sat (presimpl)
+  sat (presimpl int)
   $ cat > 2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun n () Int)
@@ -41,5 +41,4 @@
   iter(3)= (= (+ (exp 2 n) (exp 2 n)) 333)
   fixed-point
   
-  (and
-    (= (+ (exp 2 n) (exp 2 n)) 333))
+  (= (+ (exp 2 n) (exp 2 n)) 333)

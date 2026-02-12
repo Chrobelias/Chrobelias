@@ -8,7 +8,7 @@ $ export CHRO_DEBUG=1
   > (check-sat)
   > EOF
   $ Chro -bound 0 --pre-simpl --dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 
 $ export OCAMLRUNPARAM='b=0'
@@ -20,12 +20,12 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ Chro -bound 0 --pre-simpl --dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 
 
   $ Chro --pre-simpl --dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2 | sed 's/[[:space:]]*$//'
-  unsat (presimpl)
+  unsat (presimpl int)
 
   $ cat > TODO1.smt2 <<-EOF
   > (set-logic ALL)
@@ -38,7 +38,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (check-sat)
   > EOF
   $ Chro -bound 0 --pre-simpl --dsimpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  unsat (presimpl)
+  unsat (presimpl int)
 
 
   $ cat > UnderDoesntHelp1.smt2 <<-EOF
@@ -67,6 +67,6 @@ The single exponent is not bad
   > (check-sat)
   > EOF
   $ Chro -bound 2 --pre-simpl --dsimpl TODO3.smt2 | sed 's/[[:space:]]*$//'
-  sat (under I)
+  sat (under int)
 
 

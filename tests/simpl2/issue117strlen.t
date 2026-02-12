@@ -23,8 +23,7 @@ $ cat len1.smt2
   fixed-point
   
   Alphapbet with extra char: #
-  Vars for underapporx (rigth):
-  Vars for underapporx (left):
+  Alphapbet with extra char: #
   Arithmetization gives 1 asts...
   Arithmetized: (and
                   (<= 2 strlenx)
@@ -53,12 +52,13 @@ $ cat len1.smt2
              (<= (+ 1 strlenx) strleny))
   fixed-point
   
+  Light run:
   (and
-    (<= 0 strlenx)
-    (<= 0 strleny)
-    (<= 2 strlenx)
-    (<= 1001 strleny)
-    (<= (+ 1 strlenx) strleny))
+               (<= 0 strlenx)
+               (<= 0 strleny)
+               (<= 2 strlenx)
+               (<= 1001 strleny)
+               (<= (+ 1 strlenx) strleny))
   $ Chro -no-over -bound -1 len1.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   (

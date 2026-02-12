@@ -304,15 +304,14 @@ let bwxor =
        (symbol (s 0b110)))
 ;;
 
+let dec = "0123456789"
+
 let all alpha =
-  let module Set = Base.Set.Poly in
   kleene
     (alpha
      |> List.map (fun c -> symbol [ c ])
      |> List.fold_left (fun acc a -> mor a acc) epsilon)
 ;;
-
-let dec = "123456789"
 
 let digit =
   concat
@@ -349,6 +348,15 @@ let nondigit =
               |> Seq.map (fun c -> symbol [ c ])
               |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ]))))
        (kleene (symbol [ Config.string_config.null ])))
+;;
+
+let allchar =
+  concat
+    (List.fold_left
+       mor
+       (symbol [ Char.chr 32 ])
+       (33 -- 127 |> List.map Char.chr |> List.map (fun c -> symbol [ c ])))
+    (kleene (symbol [ Config.string_config.eos ]))
 ;;
 
 let int_to_re s =

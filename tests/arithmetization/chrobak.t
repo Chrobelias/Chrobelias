@@ -1,5 +1,5 @@
   $ Chro --dsimpl chrobak.smt2
-  sat (under I)
+  sat (under int)
   (
      (define-fun u () String
       "")   (define-fun x () String
