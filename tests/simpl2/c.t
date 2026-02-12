@@ -16,8 +16,7 @@
   Something ready to substitute
         it2 -> (+ 2 i2);
   
-  iter(2)= (and
-             (= (* (- 2) z) 0))
+  iter(2)= (= (* (- 2) z) 0)
   Something ready to substitute
         it2 -> (+ 2 i2);
         z -> 0;
