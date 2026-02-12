@@ -2701,7 +2701,11 @@ let arithmetize ast env =
     let extend v other =
       extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
     in
-    let module M_ = struct
+    let extend_leq v other = extra_ph := Id_symantics.leq v other :: !extra_ph in
+    let extend_digit v =
+      extra_ph := Id_symantics.in_rei (Id_symantics.var v) Regex.digit :: !extra_ph
+    in
+    (*let module M_ = struct
       include Id_symantics
 
       let rec str_concat (lhs : str) (rhs : str) =
@@ -2740,8 +2744,59 @@ let arithmetize ast env =
       include M_
       include FT_SIG.Sugar (M_)
     end
+    in*)
+    let module M_ = struct
+      include Id_symantics
+
+      let rec str_concat (lhs : str) (rhs : str) =
+        let vars =
+          Set.union
+            (Set.of_list (Ast.Eia.collect_all lhs))
+            (Set.of_list (Ast.Eia.collect_all rhs))
+          |> Set.to_list
+        in
+        let handle_concat (lhs : str) (rhs : str) =
+          let u = gensym () in
+          let v = gensym () in
+          let lhs' = gensym () in
+          let rhs' = gensym () in
+          extend lhs' (Ast.Eia.Iofs lhs);
+          extend rhs' (Ast.Eia.Iofs rhs);
+          extend_leq (Id_symantics.constz Z.zero) (Ast.Eia.atom (Ast.var lhs' I));
+          extend_leq (Id_symantics.constz Z.zero) (Ast.Eia.atom (Ast.var rhs' I));
+          extend
+            u
+            (Ast.Eia.add
+               [ Ast.Eia.mul [ Ast.Eia.Atom (Ast.var lhs' I); pow2var v ]
+               ; Ast.Eia.atom (Ast.var rhs' I)
+               ]);
+          extend v (Ast.Eia.len rhs);
+          List.iter (fun var -> extend_digit var) vars;
+          Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
+        in
+        let do_concat lhs rhs = str_concat lhs rhs in
+        match lhs, rhs with
+        | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
+          do_concat (do_concat lhs1 rhs1) (do_concat lhs1 rhs1)
+        | Ast.Eia.Concat (lhs1, rhs1), rhs2 -> handle_concat (do_concat lhs1 rhs1) rhs2
+        | lhs1, Ast.Eia.Concat (lhs2, rhs2) -> handle_concat lhs1 (do_concat lhs2 rhs2)
+        | lhs1, rhs1 -> handle_concat lhs1 rhs1
+      ;;
+
+      let prj = function
+        | Ast.Land xs -> land_ (!extra_ph @ xs)
+        | ph -> land_ (!extra_ph @ [ ph ])
+      ;;
+    end
     in
-    fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
+    let module Sym = struct
+      include M_
+      include FT_SIG.Sugar (M_)
+    end
+    in
+    fun ph -> (*Set.of_list [ *) Sym.prj (ph |> apply_symantics (module Sym))
+    (*Sym.prj (ph |> apply_symantics (module Sym2)) ]
+        |> Set.to_list*)
   in
   let arithmetize var_info ast =
     let in_concat v = Ast.in_concat v ast in

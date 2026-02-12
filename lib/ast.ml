@@ -423,6 +423,20 @@ module Eia = struct
 
   let equal = Stdlib.( = )
   let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
+
+  let collect_all eia =
+    let module Set = Base.Set.Poly in
+    fold_term
+      (fun acc -> function
+         | Atom (Var (x, _)) -> Set.add acc x
+         | _ -> acc)
+      (fun acc -> function
+         | Atom (Var (x, _)) -> Set.add acc x
+         | _ -> acc)
+      Set.empty
+      eia
+    |> Set.to_list
+  ;;
 end
 
 type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
