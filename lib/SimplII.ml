@@ -2294,7 +2294,12 @@ let under_concats env alpha ast =
   else (
     let vars_for_under =
       if Config.config.under_str_all
-      then List.map Set.of_list (Utils.powerset (Ast.get_str_vars ast))
+      then
+        ast
+        |> Ast.get_str_vars
+        |> Utils.powerset
+        |> List.fast_sort (fun x y -> List.length x - List.length y)
+        |> List.map Set.of_list
       else ast |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
     in
     let filter_asts =
