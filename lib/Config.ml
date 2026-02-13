@@ -127,9 +127,9 @@ Basic options:
       (*; ( "-over"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , "\tSimple overapprox" )*)
-      (* ; ( "-over-early"
+    ; ( "-over-early"
       , Arg.Unit (fun () -> config.over_approx_early <- true)
-      , "\tSimple overapprox before underapprox II" ) *)
+      , "\tSimple overapprox before underapprox II" )
     ; ( "-no-over"
       , Arg.Unit (fun () -> config.over_approx <- false)
       , "\tDisable simple overapprox" )
@@ -145,15 +145,15 @@ Basic options:
     ; ( "-under-all"
       , Arg.Unit (fun () -> config.under_str_all <- true)
       , "  \tApply string underapproximation for each string variable" )
-      (* ; ( "-flat"
+    ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
-      , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" ) *)
-      (* ; ( "-amin"
+      , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )
+    ; ( "-amin"
       , Arg.Int (fun n -> under2_config.amin <- n)
       , "<n> \tLower bound for the least significant bits in underapprox II. n >= 0" )
     ; ( "-amax"
       , Arg.Int (fun n -> under2_config.amax <- n)
-      , "<n> \tUpper bound for the least significant bits in underapprox II. n >= 0" ) *)
+      , "<n> \tUpper bound for the least significant bits in underapprox II. n >= 0" )
     ; ( "-huge"
       , Arg.Int (fun n -> huge_const_config.const <- n)
       , Printf.sprintf

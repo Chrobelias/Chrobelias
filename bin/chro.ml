@@ -316,7 +316,6 @@ let rec check_sat ?(verbose = false) tys ast : rez =
   in
   let used_under2 = ref false in
   let check_nfa_sat ?(light = false) ast e =
-    log "Starting NFA Solver ...\n%!";
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
       let ir = ir |> Lib.Ir.simpl |> Lib.Ir.simpl_ineq in
@@ -327,8 +326,11 @@ let rec check_sat ?(verbose = false) tys ast : rez =
        | Lnot True -> Unsat "simpl"
        | _ ->
          if light
-         then Unknown (ast, e)
+         then (
+           log "Unknown in Light solving ...\n%!";
+           Unknown (ast, e))
          else (
+           log "Starting NFA Solver ...\n%!";
            match Lib.Solver.check_sat ir with
            | `Sat get_model -> sat "nfa" ast e get_model Map.empty
            | `Unsat -> Unsat "nfa"
