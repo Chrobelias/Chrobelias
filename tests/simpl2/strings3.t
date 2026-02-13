@@ -251,7 +251,7 @@
       "999")
   )
   $ unset CHRO_DEBUG
-  $ timeout 8 Chro -flat 0 -amin 0 -amax 1 --dsimpl strings3.smt2
+  $ timeout 8 Chro --dsimpl strings3.smt2
   sat (under int)
   (
      (define-fun x () String

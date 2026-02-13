@@ -26,8 +26,6 @@
   Expecting 9 choices ...
   
   Can't decide in lib/Underapprox.ml
-  Starting NFA Solver ...
-  
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   
@@ -39,7 +37,21 @@
 
 
 
-  $ Chro -no-over -bound 3 --dsimpl --no-pre-simpl --stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over -bound 3 --dsimpl --stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
+  Basic simplifications:
+  
+  iter(1)= (and
+             (<= (+ (+ (+ (* 77 (exp 2 x1)) (* 42 (exp 2 x2))) (* 575 x2))
+                 (* (* (- 1) 575) x1)) (* (- 1) 80))
+             (<= 0 x2)
+             (<= 0 x1))
+  iter(2)= (and
+             (<= 0 x1)
+             (<= 0 x2)
+             (<= (+ (* (- 575) x1) (* 42 (exp 2 x2)) (* 77 (exp 2 x1))
+                 (* 575 x2)) (- 80)))
+  fixed-point
+  
   Bound for underapproximation: 10
   
   Interesting: x1 x2

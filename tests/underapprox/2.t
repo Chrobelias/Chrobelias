@@ -23,8 +23,6 @@
   Expecting 9 choices ...
   
   Can't decide in lib/Underapprox.ml
-  Starting NFA Solver ...
-  
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   

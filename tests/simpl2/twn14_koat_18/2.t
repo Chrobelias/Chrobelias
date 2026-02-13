@@ -1,5 +1,5 @@
 $ cat input2.smt2
-  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl input2.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --dsimpl --stop-after pre-simpl input2.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -1036,12 +1036,12 @@ $ cat input2.smt2
   sat (under int)
 
 $ /usr/bin/time -f "TIME: %U"
-  $ timeout 5 Chro --pre-simpl input2.smt2 || echo "timeout"
+  $ timeout 5 Chro input2.smt2 || echo "timeout"
   sat (under int)
 
 $ CHRO_DEBUG=1
 $ /usr/bin/time -f "TIME: %U"
-  $ Chro --no-pre-simpl input2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro input2.smt2 | sed 's/[[:space:]]*$//'
   sat (under int)
 
 

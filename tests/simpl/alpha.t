@@ -26,34 +26,27 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro --dsimpl --stop-after simpl testA.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (-1 -2 -3 it152 it154 it155 it157 it158 it159 it160 it2 it4
-          it6)
+  (assert (<= (+ (* (- 1) it160) (* 2 pow2(it147)) )  1) )
+  (assert (<= (+ (* (- 1) it160) pow2(it147) )  1) )
+  (assert (<= (+ (* (- 1) -3) (* (- 1) it160) )  0) )
+  (assert (<= (+ (* (- 1) -1) (* (- 1) it4) )  0) )
+  (assert (<= (+ (* (- 1) -1) (* (- 1) it147) )  0) )
+  (assert (exists (it6 it160)
           (and
-            T
-            (<= (+ (* (- 1) it160) (* 2 pow2(it147)) )  1)
-            (<= (+ (* (- 1) it160) pow2(it147) )  1)
-            (<= (+ (* (- 1) -3) (* (- 1) it160) )  0)
-            (<= (+ (* (- 1) -1) (* (- 1) it4) )  0)
-            (<= (+ (* (- 1) -1) (* (- 1) it147) )  0)
-            (exists (it6)
-            (and
-              T
-              (exists (i2) (= (+ (* (- 1) i2) it6 )  12) )
-              (exists (it152) (= (+ (* (- 14) it147) it152 (* (- 1) it6) )  0)
-              )
-              (exists (it154)
-              (= (+ (* (- 1) -2) it154 (* (- 2) pow2(it147)) )  0) )
-              (exists (it155)
-              (= (+ (* (- 1) -1) it155 (* (- 2) pow2(it147)) )  0) )
-              (exists (it157)
-              (= (+ (* (- 1) -1) it157 (* (- 2) pow2(it147)) )  0) )
-              (exists (it158)
-              (= (+ (* (- 1) -1) it158 (* (- 1) pow2(it147)) )  0) )
-              (exists (it159)
-              (= (+ (* (- 1) -1) it159 (* (- 2) pow2(it147)) )  0) )
-              )
-  
-            (<= it2  0)
+            (exists (i2) (= (+ (* (- 1) i2) it6 )  12) )
+            (exists (it152) (= (+ (* (- 14) it147) it152 (* (- 1) it6) )  0) )
+            (exists (it154)
+            (= (+ (* (- 1) -2) it154 (* (- 2) pow2(it147)) )  0) )
+            (exists (it155)
+            (= (+ (* (- 1) -1) it155 (* (- 2) pow2(it147)) )  0) )
+            (exists (it157)
+            (= (+ (* (- 1) -1) it157 (* (- 2) pow2(it147)) )  0) )
+            (exists (it158)
+            (= (+ (* (- 1) -1) it158 (* (- 1) pow2(it147)) )  0) )
+            (exists (it159)
+            (= (+ (* (- 1) -1) it159 (* (- 2) pow2(it147)) )  0) )
             )
   )
+  (assert (<= it2  0) )
+  
 This is TODO. It is not related to alpha-equivalence simplifications.

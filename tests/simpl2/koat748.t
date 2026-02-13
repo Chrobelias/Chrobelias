@@ -1,7 +1,7 @@
   $ cp ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_748.smt2 input.smt2
 
   $ export CHRO_DEBUG=1 CHRO_OMIT_Z3_MODEL=1
-  $ Chro --dsimpl --pre-simpl --stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --dsimpl --stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -2134,7 +2134,39 @@
 
   $ unset CHRO_DEBUG
   $ OCAMLRUNPARAM='b=0' Chro --no-pre-simpl input.smt2
-  sat (under int)
+  Chro: unknown option '--no-pre-simpl'.
+  Chrobak normal form-based Exponential Linear Integer Arithmetic Solver.
+  Usage: chro [options] <file.smt2>
+  
+  Basic options:
+  
+    -bound 	Upper bound for integer underapproximation (negative disables)
+    -bres <n>	Maximal residue used in NFA Solver
+    -bstates <n>	Maximal number of states in NFAs used in NFA Solver
+    -huge <n> 	Admit integer constants with at most <n> digits (DEFAULT n=20)
+    -lsb   	Use least-significant-bit first representation
+    -no-model 	Disable model generation subroutines
+    -no-over 	Disable simple Z3 overapprox
+    -no-str-under Disable string underapproximations in concats
+    -sbcnt <n>	Underapproximate strings in concats via first <n> words w.r.t. regexes (DEFAULT n=32)
+    -sblen <n>	Underapproximate strings in concats via words of length at most <n> (DEFAULT n=32)
+    -under-all   	Apply string underapproximation for each string variable
+    -help 	Display this list of options
+  
+  Miscellaneous:
+  
+    -q    	Print 'unknown' instead of Exceptions	
+    -base10 	Switch to base 10 EIA	
+    --stop-after 	Stop after step [presimpl; simpl]
+    --info 	Display (un)sat decision step
+    --no-str-bv 	Switch labels encoding in nfa to 'char's
+    --over-nfa 	Overapproximate orderings in NFA Solver
+    --dsimpl 	Dump simplifications
+    --dir   	Dump IR
+    --dlics   	Dump LICS steps
+    --dpresimpl 	Dump AST simplifications
+    --help 	Display this list of options
+  [2]
   $ OCAMLRUNPARAM='b=0' Chro input.smt2
   sat (under int)
 

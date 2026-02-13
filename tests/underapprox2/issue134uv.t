@@ -20,7 +20,7 @@ $ export OCAMLRUNPARAM='b=0'
   > EOF
 
 $ export CHRO_DEBUG=1
-  $ timeout 2 Chro -no-over -bound -1 --dsimpl -flat 0 -amin 5 -amax 5 -lsb  1.smt2 #--stop-after simpl
+  $ timeout 2 Chro -no-over -bound -1 --dsimpl -lsb  1.smt2 #--stop-after simpl
   sat (nia)
 
   $ echo '(2^10-2^8+1)* 2^2' | bc
@@ -35,7 +35,7 @@ $ export CHRO_DEBUG=1
   > EOF
 
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 2.smt2'
-  $ CHRO_DEBUG=1 $RUN -amin 1 -amax 1 -flat 1 --stop-after presimpl
+  $ CHRO_DEBUG=1 $RUN --stop-after presimpl
   Basic simplifications:
   
   iter(1)= (= (* x (exp 2 z)) 3076)
@@ -58,7 +58,7 @@ $ export CHRO_DEBUG=1
   )
 The test below should be SAT but there is an issue #143
 which is needed to be fixed first
-  $ timeout 2 $RUN -amin 1 -amax 1 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
+  $ timeout 2 $RUN | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
   (
      (define-fun x () Int
@@ -78,7 +78,7 @@ which is needed to be fixed first
   > (get-model)
   > EOF
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 3.smt2'
-  $ timeout 2 $RUN -amin 1 -amax 1 -lsb 3.smt2 -flat 1 | grep -v assert | sed -r '/^\s*$/d'
+  $ timeout 2 $RUN -lsb 3.smt2 | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
   (
      (define-fun x () Int
@@ -98,7 +98,7 @@ which is needed to be fixed first
   > (get-model)
   > EOF
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 4.smt2'
-  $ CHRO_DEBUG=1 $RUN -flat 2 --stop-after presimpl
+  $ CHRO_DEBUG=1 $RUN --stop-after presimpl
   Basic simplifications:
   
   iter(1)= (= (* x (exp 2 z)) 8096)
@@ -119,7 +119,7 @@ which is needed to be fixed first
       0)   (define-fun z () Int
       0)
   )
-  $ timeout 2 $RUN -flat 2 | grep -v assert | sed -r '/^\s*$/d'
+  $ timeout 2 $RUN | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
   (
      (define-fun x () Int

@@ -38,17 +38,17 @@ $ export CHRO_DEBUG=1
   sat (under int)
 
 $ export CHRO_DEBUG=1
-  $ Chro -bound 0  --no-pre-simpl --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0  --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
   sat (under int)
 
   $ unset CHRO_DEBUG
   $ export CHRO_EIA=old
-  $ Chro -bound 0 --no-pre-simpl --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
+  $ Chro -bound 0 --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2
   sat (under int)
 
 Run solver
   $ unset CHRO_EIA
-  $ timeout 2  Chro  --no-pre-simpl ../../benchmarks/heapsort.c.koat_2.smt2
+  $ timeout 2  Chro ../../benchmarks/heapsort.c.koat_2.smt2
   sat (under int)
 
   $ Chro --dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_617.smt2

@@ -6,7 +6,7 @@
   > (assert (= (exp x 2) 32))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -bound 1 --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (= (exp x 2) 32)
