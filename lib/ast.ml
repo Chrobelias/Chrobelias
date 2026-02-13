@@ -743,6 +743,7 @@ let collect_lin_exp ast =
 
 (* MS: the same thing as the fashionable Who_in_exponents from SimplII.ml*)
 let collect_all ast =
+  let remove_dups l = l |> Base.Set.Poly.of_list |> Base.Set.Poly.to_list in
   let module Set = Base.Set.Poly in
   fold
     (fun acc ast ->
@@ -761,6 +762,7 @@ let collect_all ast =
        | _ -> acc)
     ([], [], [])
     ast
+  |> fun (a, b, c) -> remove_dups a, remove_dups b, remove_dups c
 ;;
 
 let get_str_vars ast = ast |> collect_all |> fun (x, y, z) -> x
