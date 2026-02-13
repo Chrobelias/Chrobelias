@@ -2298,6 +2298,12 @@ let under_concats env alpha ast =
         List.tl vars |> Base.Set.Poly.of_list, [ List.hd vars ] |> Base.Set.Poly.of_list)
       else find_vars_for_under2s ast
     in
+    Debug.printf
+      "Vars for under strings: [%a] [%a]"
+      (Format.pp_print_list Format.pp_print_string)
+      (vars_left |> Base.Set.Poly.to_list)
+      (Format.pp_print_list Format.pp_print_string)
+      (vars_right |> Base.Set.Poly.to_list);
     let filter_asts =
       List.filter_map (fun (env, ast) ->
         match basic_simplify [ 0 ] env ast with
