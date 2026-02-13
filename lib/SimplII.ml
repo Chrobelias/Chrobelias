@@ -2281,8 +2281,8 @@ let try_under_concats vars alpha len env ast =
     List.map
       (fun e ->
          let (module Symantics) = make_main_symantics e in
-         (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
-           log "@[%a@]" (Env.pp ~title:"env = ") e; *)
+         Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
+         log "@[%a@]" (Env.pp ~title:"env = ") e;
          e, apply_symantics (module Symantics) ast)
       envs)
 ;;
@@ -2291,7 +2291,13 @@ let under_concats env alpha ast =
   if Config.under_str_config.max_cnt < 0
   then Seq.empty
   else (
-    let vars_left, vars_right = find_vars_for_under2s ast in
+    let vars_left, vars_right =
+      if Config.config.under_str_all
+      then (
+        let vars = Ast.get_str_vars ast in
+        List.tl vars |> Base.Set.Poly.of_list, [ List.hd vars ] |> Base.Set.Poly.of_list)
+      else find_vars_for_under2s ast
+    in
     let filter_asts =
       List.filter_map (fun (env, ast) ->
         match basic_simplify [ 0 ] env ast with

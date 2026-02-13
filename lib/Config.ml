@@ -1,57 +1,59 @@
 type config =
-  { mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
-  ; mutable mode : [ `Msb | `Lsb ]
+  { mutable bound_res : int
+  ; mutable bound_states : int
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
   ; mutable dump_lics : bool
-  ; mutable pre_simpl : bool
   ; mutable error_check : bool
-  ; mutable simpl_alpha : bool
-  ; mutable simpl_mono : bool
+  ; mutable good_for_minimize : int
+  ; mutable good_for_shrinking : int
+  ; mutable input_file : string
+  ; mutable logic : [ `Eia | `Str | `StrBv ]
+  ; mutable mode : [ `Msb | `Lsb ]
+  ; mutable no_model : bool
+  ; mutable no_str_bv : bool
   ; mutable over_approx : bool
   ; mutable over_approx_early : bool
   ; mutable over_nfa : bool
+  ; mutable pre_simpl : bool
+  ; mutable quiet : bool
+  ; mutable simpl_alpha : bool
+  ; mutable simpl_mono : bool
+  ; mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
   ; mutable under_approx : int
-  ; mutable input_file : string
-  ; mutable no_model : bool
-  ; mutable logic : [ `Eia | `Str | `StrBv ]
+  ; mutable under_str_all : bool
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
-  ; mutable quiet : bool
-  ; mutable no_str_bv : bool
-  ; mutable good_for_minimize : int
-  ; mutable good_for_shrinking : int
-  ; mutable bound_res : int
-  ; mutable bound_states : int
   }
 
 let config =
-  { stop_after = `Solving
-  ; mode = `Msb
-  ; dump_simpl = false
+  { bound_res = -1
+  ; bound_states = -1
+  ; stop_after = `Solving
+  ; dump_lics = false
   ; dump_pre_simpl = false
+  ; dump_simpl = false
   ; dump_ir = false
-  ; pre_simpl = true
   ; error_check = true
-  ; simpl_alpha = false
-  ; simpl_mono = true
+  ; good_for_minimize = 15
+  ; good_for_shrinking = 20
+  ; pre_simpl = true
   ; over_approx = true
   ; over_approx_early = false
   ; over_nfa = false
-  ; under_approx = 2
   ; input_file = ""
-  ; no_model = false
   ; logic = `Eia
+  ; mode = `Msb
+  ; no_model = false
+  ; no_str_bv = false
+  ; quiet = false
+  ; simpl_alpha = false
+  ; simpl_mono = true
   ; with_check_sat = false
   ; with_info = true
-  ; quiet = false
-  ; no_str_bv = false
-  ; good_for_minimize = 15
-  ; good_for_shrinking = 20
-  ; dump_lics = false
-  ; bound_res = -1
-  ; bound_states = -1
+  ; under_approx = 2
+  ; under_str_all = false
   }
 ;;
 
@@ -125,9 +127,9 @@ Basic options:
       (*; ( "-over"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , "\tSimple overapprox" )*)
-    ; ( "-over-early"
+      (* ; ( "-over-early"
       , Arg.Unit (fun () -> config.over_approx_early <- true)
-      , "\tSimple overapprox before underapprox II" )
+      , "\tSimple overapprox before underapprox II" ) *)
     ; ( "-no-over"
       , Arg.Unit (fun () -> config.over_approx <- false)
       , "\tDisable simple overapprox" )
@@ -140,15 +142,18 @@ Basic options:
     ; ( "-bstates"
       , Arg.Int (fun n -> config.bound_states <- n)
       , "  \tMaximal number of states in NFAs used in NFA Solver" )
-    ; ( "-flat"
+    ; ( "-under-all"
+      , Arg.Unit (fun () -> config.under_str_all <- true)
+      , "  \tApply string underapproximation for each string variable" )
+      (* ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
-      , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )
-    ; ( "-amin"
+      , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" ) *)
+      (* ; ( "-amin"
       , Arg.Int (fun n -> under2_config.amin <- n)
       , "<n> \tLower bound for the least significant bits in underapprox II. n >= 0" )
     ; ( "-amax"
       , Arg.Int (fun n -> under2_config.amax <- n)
-      , "<n> \tUpper bound for the least significant bits in underapprox II. n >= 0" )
+      , "<n> \tUpper bound for the least significant bits in underapprox II. n >= 0" ) *)
     ; ( "-huge"
       , Arg.Int (fun n -> huge_const_config.const <- n)
       , Printf.sprintf

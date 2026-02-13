@@ -120,7 +120,7 @@ let join_int_model _tys prefix m =
         | Ast.TT (Ast.I, eia) ->
           Set.union
             acc
-            (Ast.get_all_vars (Ast.Eia (Ast.Eia.eq (Ast.Eia.const Z.zero) eia Ast.I))
+            (Ast.get_int_vars (Ast.Eia (Ast.Eia.eq (Ast.Eia.const Z.zero) eia Ast.I))
              |> Set.of_list)
         | Ast.TT (Ast.S, _) -> acc)
       prefix
