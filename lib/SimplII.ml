@@ -861,11 +861,10 @@ let make_main_symantics ?alpha ?agressive env =
          | Leq -> false_)
       | Eia.(Add (Atom (Var (v1, _)) :: Mul [ Const c; Atom (Var (v2, _)) ] :: tl)), rhs
         when String.equal v1 v2 && c = Z.minus_one -> ofop (Eia.Add tl) rhs
-      | Eia.Add ls, Eia.Add rs -> ofop (add (ls @ List.map negate rs)) (const 0)
-      | Eia.Add (Const c :: tl), Const n -> ofop (add tl) (const Z.(to_int (n - c)))
-      | Const c, Add (Const n :: tl) ->
-        ofop (add (List.map negate tl)) (const Z.(to_int (n - c)))
-      | Const c, Add xs -> ofop (add (List.map negate xs)) (const Z.(to_int (-c)))
+      | Eia.Add ls, Eia.Add rs -> ofop (add (ls @ List.map negate rs)) (constz Z.zero)
+      | Eia.Add (Const c :: tl), Const n -> ofop (add tl) (constz Z.(n - c))
+      | Const c, Add (Const n :: tl) -> ofop (add (List.map negate tl)) (constz Z.(n - c))
+      | Const c, Add xs -> ofop (add (List.map negate xs)) (constz Z.(-c))
       | Pow (basel, powl), Pow (baser, powr) when basel = baser -> ofop powl powr
       | Eia.Mul [ Const c; (Atom (Var (_, _)) as v) ], Eia.(Const rhs)
         when op = Leq && Z.(abs c <> one) ->
