@@ -749,20 +749,23 @@ let collect_all ast =
        match ast with
        | Eia eia ->
          Eia.fold2
-           (fun acc -> function
-              | Atom (Var (x, I)) -> x :: fst acc, snd acc
-              | Pow (_, Atom (Var (x, I))) -> fst acc, x :: snd acc
-              | _ -> acc)
-           (fun acc _ -> acc)
+           (fun (str, lin, exp) -> function
+              | Atom (Var (x, I)) -> str, x :: lin, exp
+              | Pow (_, Atom (Var (x, I))) -> str, lin, x :: exp
+              | _ -> str, lin, exp)
+           (fun (str, lin, exp) -> function
+              | Atom (Var (x, S)) -> x :: str, lin, exp
+              | _ -> str, lin, exp)
            acc
            eia
        | _ -> acc)
-    ([], [])
+    ([], [], [])
     ast
 ;;
 
-let get_all_vars ast = ast |> collect_all |> fst
-let get_exp_vars ast = ast |> collect_all |> snd
+let get_str_vars ast = ast |> collect_all |> fun (x, y, z) -> x
+let get_int_vars ast = ast |> collect_all |> fun (x, y, z) -> y
+let get_exp_vars ast = ast |> collect_all |> fun (x, y, z) -> z
 
 let get_lin_vars ast =
   let module Set = Base.Set.Poly in
