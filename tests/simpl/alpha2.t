@@ -15,15 +15,11 @@ $ export CHRO_DEBUG=1
 
   $ unset CHRO_EIA=
   $ timeout 2 Chro -bound -1 -no-over --dsimpl --stop-after simpl testA2.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (P x0 x1)
-          (and
-            (exists (Q) (= (+ (* (- 1) P) (* (- 1) Q) )  -101) )
-            (not (exists (x0 x1) (= (+ (* (- 1) P) (* 199 x0) (* 211 x1) )  0)
-                 )
-            )
-            (not (exists (R) (not T)) )
-            (<= (* (- 1) x1)  0)
-            (<= (* (- 1) x0)  0)
-            (<= (* (- 1) P)  0)
-            )
-  )
+  (assert (not (exists (x0 x1) (= (+ (* (- 1) P) (* 199 x0) (* 211 x1) )  0) )
+          ))
+  (assert (not (exists (R) (not T)) ))
+  (assert (= (+ (* (- 1) P) (* (- 1) Q) )  -101) )
+  (assert (<= (* (- 1) x1)  0) )
+  (assert (<= (* (- 1) x0)  0) )
+  (assert (<= (* (- 1) P)  0) )
+  

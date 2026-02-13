@@ -10,7 +10,7 @@
   > ))
   > (check-sat)
   > EOF
-  $ Chro -bound -1 --pre-simpl --dpresimpl --stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound -1 --dpresimpl --stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (= (+ (exp 2 n) (exp 2 n)) (* 2
@@ -33,7 +33,7 @@
   > ))
   > (check-sat)
   > EOF
-  $ Chro -bound -1 --pre-simpl --dpresimpl --stop-after pre-simpl 2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound -1 --dpresimpl --stop-after pre-simpl 2.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (= (* 2 (+ (exp 2 (+ n (* (- 1) 1))) (exp 2 (+ n (* (- 1) 1))))) 333)

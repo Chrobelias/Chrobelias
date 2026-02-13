@@ -10,5 +10,5 @@ $ time -f "%U"
 $ time -f "%U"
 It's luck that Z3 gives an answer. Just try
 (assert (<= 1000 it140))
-  $ timeout 2 Chro -bound 1 --no-pre-simpl --no-alpha --no-mono input.smt2
+  $ timeout 2 Chro -bound 1 input.smt2
   sat (under int)

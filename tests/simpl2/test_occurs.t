@@ -1,4 +1,4 @@
-  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl test3rec.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --dsimpl --stop-after pre-simpl test3rec.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -12,7 +12,7 @@
   
   sat (presimpl int)
 
-  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --dsimpl --stop-after pre-simpl test4rec.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -47,7 +47,7 @@
   > (assert (= (+ y y) (- 9899)) )
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --stop-after pre-simpl xxx.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -bound 1  --stop-after pre-simpl xxx.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (= (+ y y) (* (- 1) 9899))
@@ -75,7 +75,7 @@
   > (check-sat)
   > ;(get-model)
   > EOF
-  $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --stop-after pre-simpl 4.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -bound 1  --stop-after pre-simpl 4.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -110,7 +110,7 @@
   > 
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -bound 1 --pre-simpl --stop-after pre-simpl 5.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -bound 1  --stop-after pre-simpl 5.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and

@@ -1,3 +1,3 @@
 
-  $ Chro -bound 0 --pre-simpl --dpresimpl bad.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound 0 --dpresimpl bad.smt2 | sed 's/[[:space:]]*$//'
   sat (under int)

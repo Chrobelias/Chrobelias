@@ -11,7 +11,7 @@
   > EOF
 $ ls
 $ cat len1.smt2
-  $ CHRO_DEBUG=1 Chro -no-over -bound -1 --pre-simpl --dpresimpl --stop-after presimpl len1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound -1 --dpresimpl --stop-after presimpl len1.smt2 | sed 's/[[:space:]]*$//'
   iter(1)= (and
              (<= (+ 1 1) (str.len x))
              (<= (+ (str.len x) 1) (str.len y))

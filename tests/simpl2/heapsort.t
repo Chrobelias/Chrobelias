@@ -1,5 +1,5 @@
   $ export CHRO_DEBUG=1
-  $ Chro -bound -1 --dsimpl --pre-simpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -bound -1 --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -694,21 +694,16 @@
          (int.lt_s (int.mul 1 %flat_pow1) exp_2_%flat_pow1)
          (int.lt_s (int.mul 1 it147) exp_2_it147)
   
-  Starting NFA Solver ...
+  (assert (<= (+ (* (- 1) i10) (* 2 pow2(it147)) )  1) )
+  (assert (<= (+ (* (- 1) i10) (* 2 pow2(%flat_pow1)) )  1) )
+  (assert (= (+ %flat_pow1 (* (- 1) it147) )  -1) )
+  (assert (= (+ it154 (* (- 2) pow2(it147)) )  -2) )
+  (assert (= (+ it155 (* (- 2) pow2(it147)) )  -1) )
+  (assert (= (+ it157 (* (- 2) pow2(it147)) )  -1) )
+  (assert (= (+ it158 (* (- 1) pow2(it147)) )  -1) )
+  (assert (= (+ it159 (* (- 2) pow2(it147)) )  -1) )
+  (assert (<= (* (- 1) it4)  -1) )
+  (assert (<= it2  0) )
+  (assert (<= (* (- 1) it147)  -1) )
+  (assert (<= (* (- 1) i10)  -3) )
   
-  (assert (exists (i10 it155 it157 it158 it159 it2 it4)
-          (and
-            (exists (it154) (= (+ it154 (* (- 2) pow2(it147)) )  -2) )
-            (<= (+ (* (- 1) i10) (* 2 pow2(it147)) )  1)
-            (<= (+ (* (- 1) i10) (* 2 pow2(%flat_pow1)) )  1)
-            (= (+ %flat_pow1 (* (- 1) it147) )  -1)
-            (= (+ it155 (* (- 2) pow2(it147)) )  -1)
-            (= (+ it157 (* (- 2) pow2(it147)) )  -1)
-            (= (+ it158 (* (- 1) pow2(it147)) )  -1)
-            (= (+ it159 (* (- 2) pow2(it147)) )  -1)
-            (<= (* (- 1) it4)  -1)
-            (<= it2  0)
-            (<= (* (- 1) it147)  -1)
-            (<= (* (- 1) i10)  -3)
-            )
-  )

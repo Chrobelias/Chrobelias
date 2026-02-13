@@ -1,4 +1,4 @@
-  $ CHRO_DEBUG=1 Chro --pre-simpl --dsimpl --stop-after pre-simpl test1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro --dsimpl --stop-after pre-simpl test1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -39,7 +39,7 @@
   > (assert (> (+ (* x 5) (* (pow2 y) 8) (* z 7) ) 13))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over -bound 0 --pre-simpl --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound 0  --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (and
@@ -78,7 +78,7 @@
   >            0))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over -bound 0 --pre-simpl --dsimpl --stop-after pre-simpl sum_join1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound 0  --dsimpl --stop-after pre-simpl sum_join1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (= (+ (* n (exp 2 n)) (* (* (- 1) 1) n (exp 2 n))) 0)
@@ -92,7 +92,7 @@
   > (assert (not (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)) )
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over -bound 0 --pre-simpl --dsimpl --stop-after pre-simpl sum_join2.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=1 Chro -no-over -bound 0  --dsimpl --stop-after pre-simpl sum_join2.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
   iter(1)= (not (= (+ (* (* (- 1) 1) (exp 2 n)) (exp 2 n)) 0))

@@ -21,12 +21,9 @@ $ export CHRO_DEBUG=1
 $ export CHRO_DEBUG=1
   $ export CHRO_TRACE_OPT=1
   $ Chro -bound 0 -no-over --dsimpl --stop-after simpl testO2.smt2 | sed 's/[[:space:]]*$//'
-  (assert (exists (%0 x1)
-          (and
-            (= (+ (* (- 1) %0) x1 )  0)
-            ((re.* (re.union (re.union (re.union (str.to.re "1") (str.to.re "2")) (str.to.re "0")) (str.to.re "7"))))
-            )
-  )
+  (assert (= (+ (* (- 1) %0) x1 )  0) )
+  (assert ((re.* (re.union (re.union (re.union (str.to.re "1") (str.to.re "2")) (str.to.re "0")) (str.to.re "7")))))
+  
 
 $ cat > test.smt2 <<-EOF
 > (set-logic ALL)
