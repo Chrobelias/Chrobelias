@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flags: ["-q", "-q -lsb"]
+        flags: ["-q", "-q -under-all", "-q -lsb"]
     steps:
       - uses: actions/checkout@v4
         with:
