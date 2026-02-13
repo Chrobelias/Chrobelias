@@ -2281,29 +2281,22 @@ let try_under_concats vars alpha len env ast =
     List.map
       (fun e ->
          let (module Symantics) = make_main_symantics e in
-         Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
-         log "@[%a@]" (Env.pp ~title:"env = ") e;
+         (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
+         log "@[%a@]" (Env.pp ~title:"env = ") e; *)
          e, apply_symantics (module Symantics) ast)
       envs)
 ;;
 
 let under_concats env alpha ast =
+  let module Set = Base.Set.Poly in
   if Config.under_str_config.max_cnt < 0
   then Seq.empty
   else (
-    let vars_left, vars_right =
+    let vars_for_under =
       if Config.config.under_str_all
-      then (
-        let vars = Ast.get_str_vars ast in
-        List.tl vars |> Base.Set.Poly.of_list, [ List.hd vars ] |> Base.Set.Poly.of_list)
-      else find_vars_for_under2s ast
+      then List.map Set.of_list (Utils.powerset (Ast.get_str_vars ast))
+      else ast |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
     in
-    Debug.printf
-      "Vars for under strings: [%a] [%a]"
-      (Format.pp_print_list Format.pp_print_string)
-      (vars_left |> Base.Set.Poly.to_list)
-      (Format.pp_print_list Format.pp_print_string)
-      (vars_right |> Base.Set.Poly.to_list);
     let filter_asts =
       List.filter_map (fun (env, ast) ->
         match basic_simplify [ 0 ] env ast with
@@ -2311,12 +2304,13 @@ let under_concats env alpha ast =
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast, env))
     in
-    Seq.init (2 * (Config.under_str_config.max_len + 1)) (fun x -> x / 2, x mod 2)
+    let m = List.length vars_for_under in
+    Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
     |> Seq.map (fun (length, side) ->
       match side with
-      | 0 -> filter_asts (try_under_concats vars_left alpha length env ast)
-      | 1 -> filter_asts (try_under_concats vars_right alpha length env ast)
-      | other -> failwith "Unreachable: remainder mod 2 is negative"))
+      | n when n >= 0 && n < m ->
+        filter_asts (try_under_concats (List.nth vars_for_under n) alpha length env ast)
+      | other -> failwith "Unreachable: remainder is negative"))
 ;;
 
 let split_concats { Info.all; _ } =

@@ -38,6 +38,14 @@ let log ppf =
   | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
 ;;
 
+let rec powerset = function
+  | [] -> [ [] ]
+  | x :: xs ->
+    let ps = powerset xs in
+    let with_x = List.map (fun subset -> x :: subset) ps in
+    ps @ with_x
+;;
+
 let rec strings_of_len n alpha =
   match n with
   | 0 -> [ "" ]
