@@ -305,7 +305,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     else ()
   in
   let reason lhs rhs =
-    let ord = [ "nfa"; "nia"; "over"; "simpl"; "presimpl int"; "presimpl str"; "?" ] in
+    let ord = [ "nfa"; "simpl"; "over"; "nia"; "presimpl int"; "presimpl str"; "?" ] in
     let lhs' =
       List.find_index (( = ) lhs) ord |> Option.value ~default:(List.length ord)
     in
@@ -330,6 +330,8 @@ let rec check_sat ?(verbose = false) tys ast : rez =
            log "Unknown in Light solving ...\n%!";
            Unknown (ast, e))
          else (
+           if config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
+           if config.stop_after = `Simpl then exit 0;
            log "Starting NFA Solver ...\n%!";
            match Lib.Solver.check_sat ir with
            | `Sat get_model -> sat "nfa" ast e get_model Map.empty
@@ -463,7 +465,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     | _ -> apporx_rez
   in
   let check_string_sat ?(light = false) ast env =
-    let unsat_reason = ref "presimpl" in
+    let unsat_reason = ref "presimpl str" in
     let can_be_unk = ref false in
     let asts_n_regexes = Lib.SimplII.arithmetize ast env in
     log "Arithmetization gives %d asts..." (List.length asts_n_regexes);

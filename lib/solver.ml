@@ -277,8 +277,6 @@ struct
     (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
-    if Config.config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
-    if Config.config.stop_after = `Simpl then exit 0;
     let rec eval ir =
       if Config.config.dump_ir
       then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;

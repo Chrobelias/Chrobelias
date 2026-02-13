@@ -112,40 +112,53 @@ Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "-no-model"
-      , Arg.Unit (fun () -> config.no_model <- true)
-      , "\tDisable model generation subroutines" )
-    ; ( "-bound"
+    [ ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
-      , "\tUpper bound for underapprox I (negative disables)" )
-    ; ( "-sbound-cnt"
-      , Arg.Int (fun n -> under_str_config.max_cnt <- n)
-      , "\tUnderapproximate strings in concats (via first <n> words w.r.t. regexes)" )
-    ; ( "-sbound-len"
-      , Arg.Int (fun n -> under_str_config.max_len <- n)
-      , "\tUnderapproximate strings in concats (via words of length at most <n>)" )
-      (*; ( "-over"
-      , Arg.Unit (fun () -> config.over_approx <- true)
-      , "\tSimple overapprox" )*)
-    ; ( "-over-early"
-      , Arg.Unit (fun () -> config.over_approx_early <- true)
-      , "\tSimple overapprox before underapprox II" )
-    ; ( "-no-over"
-      , Arg.Unit (fun () -> config.over_approx <- false)
-      , "\tDisable simple overapprox" )
+      , "\tUpper bound for integer underapproximation (negative disables)" )
+    ; ( "-bres"
+      , Arg.Int (fun n -> config.bound_res <- n)
+      , "<n>\tMaximal residue used in NFA Solver" )
+    ; ( "-bstates"
+      , Arg.Int (fun n -> config.bound_states <- n)
+      , "<n>\tMaximal number of states in NFAs used in NFA Solver" )
+    ; ( "-huge"
+      , Arg.Int (fun n -> huge_const_config.const <- n)
+      , Printf.sprintf
+          "<n> \tAdmit integer constants with at most <n> digits (DEFAULT n=%d)"
+          (huge_const ()) )
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , "  \tUse least-significant-bit first representation" )
-    ; ( "-bres"
-      , Arg.Int (fun n -> config.bound_res <- n)
-      , "  \tMaximal residue used in NFA Solver" )
-    ; ( "-bstates"
-      , Arg.Int (fun n -> config.bound_states <- n)
-      , "  \tMaximal number of states in NFAs used in NFA Solver" )
+    ; ( "-no-model"
+      , Arg.Unit (fun () -> config.no_model <- true)
+      , "\tDisable model generation subroutines" )
+    ; ( "-no-over"
+      , Arg.Unit (fun () -> config.over_approx <- false)
+      , "\tDisable simple Z3 overapprox" )
+    ; ( "-no-str-under"
+      , Arg.Unit
+          (fun () ->
+            under_str_config.max_cnt <- -1;
+            under_str_config.max_len <- -1)
+      , "Disable string underapproximations in concats" )
+    ; ( "-sbcnt"
+      , Arg.Int (fun n -> under_str_config.max_cnt <- n)
+      , "<n>\tUnderapproximate strings in concats via first <n> words w.r.t. regexes \
+         (DEFAULT n=32)" )
+    ; ( "-sblen"
+      , Arg.Int (fun n -> under_str_config.max_len <- n)
+      , "<n>\tUnderapproximate strings in concats via words of length at most <n> \
+         (DEFAULT n=32)" )
+      (*; ( "-over"
+      , Arg.Unit (fun () -> config.over_approx <- true)
+      , "\tSimple overapprox" )*)
+      (* ; ( "-over-early"
+      , Arg.Unit (fun () -> config.over_approx_early <- true)
+      , "\tSimple overapprox before underapprox II" ) *)
     ; ( "-under-all"
       , Arg.Unit (fun () -> config.under_str_all <- true)
       , "  \tApply string underapproximation for each string variable" )
-    ; ( "-flat"
+      (* ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
       , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )
     ; ( "-amin"
@@ -153,19 +166,14 @@ Basic options:
       , "<n> \tLower bound for the least significant bits in underapprox II. n >= 0" )
     ; ( "-amax"
       , Arg.Int (fun n -> under2_config.amax <- n)
-      , "<n> \tUpper bound for the least significant bits in underapprox II. n >= 0" )
-    ; ( "-huge"
-      , Arg.Int (fun n -> huge_const_config.const <- n)
-      , Printf.sprintf
-          "<n> \tAdmit constants with at most n digits (DEFAULT n=%d)"
-          (huge_const ()) )
+      , "<n> \tUpper bound for the least significant bits in underapprox II. n >= 0" ) *)
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
     ; ( "-q"
       , Arg.Unit (fun () -> config.quiet <- true)
       , "   \tPrint 'unknown' instead of Exceptions\t" )
-    ; "-base10", Arg.Unit (fun () -> config.logic <- `StrBv), "\tBase 10 EIA\t"
+    ; "-base10", Arg.Unit (fun () -> config.logic <- `StrBv), "\tSwitch to base 10 EIA\t"
     ; ( "--stop-after"
       , Arg.String
           (function
@@ -173,29 +181,27 @@ Basic options:
             | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
               config.stop_after <- `Pre_simplify
             | s -> failwith ("Bad argument: " ^ s))
-      , "\tStop after step" )
-    ; "--err-check", Arg.Unit (fun () -> config.error_check <- true), "\t"
-    ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t"
-    ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
-    ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t"
-    ; "--info", Arg.Unit (fun () -> config.with_info <- true), "\t"
-    ; "--no-str-bv", Arg.Unit (fun () -> config.no_str_bv <- true), "\t"
-    ; ( "--no-str-under"
-      , Arg.Unit
-          (fun () ->
-            under_str_config.max_cnt <- -1;
-            under_str_config.max_len <- -1)
-      , "\tDisable string underapproximations" )
-    ; ( "--no-alpha"
+      , "\tStop after step [presimpl; simpl]" )
+      (* ; "--err-check", Arg.Unit (fun () -> config.error_check <- true), "\t"
+    ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t" *)
+      (* ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
+    ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t" *)
+    ; ( "--info"
+      , Arg.Unit (fun () -> config.with_info <- true)
+      , "\tDisplay (un)sat decision step" )
+    ; ( "--no-str-bv"
+      , Arg.Unit (fun () -> config.no_str_bv <- true)
+      , "\tSwitch labels encoding in nfa to 'char's" )
+      (* ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , "\tDon't try simplifications based on alpha-equivalence" )
     ; ( "--alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- true)
-      , "\tDO simplifications based on alpha-equivalence" )
+      , "\tDO simplifications based on alpha-equivalence" ) *)
     ; ( "--over-nfa"
       , Arg.Unit (fun () -> config.over_nfa <- true)
       , "\tOverapproximate orderings in NFA Solver" )
-    ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t"
+      (* ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t" *)
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
     ; "--dlics", Arg.Unit (fun () -> config.dump_lics <- true), "  \tDump LICS steps"
