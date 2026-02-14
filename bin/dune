@@ -56,7 +56,7 @@
    )))
 
 (rule
- (targets ostrich2)
+ (targets ostrich2 target ostrich-client)
  (action
   (progn
    (run
