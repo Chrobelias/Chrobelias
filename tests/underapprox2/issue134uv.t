@@ -53,7 +53,7 @@ $ export CHRO_DEBUG=1
   sat (nia)
   (
      (define-fun x () Int
-      0)   (define-fun z () Int
+      3076)   (define-fun z () Int
       0)
   )
 The test below should be SAT but there is an issue #143
@@ -62,7 +62,7 @@ which is needed to be fixed first
   sat (nia)
   (
      (define-fun x () Int
-      0)   (define-fun z () Int
+      3076)   (define-fun z () Int
       0)
   )
 
@@ -82,7 +82,7 @@ which is needed to be fixed first
   sat (nia)
   (
      (define-fun x () Int
-      0)   (define-fun z () Int
+      3073)   (define-fun z () Int
       0)
   )
 
@@ -116,13 +116,13 @@ which is needed to be fixed first
   sat (nia)
   (
      (define-fun x () Int
-      0)   (define-fun z () Int
+      8096)   (define-fun z () Int
       0)
   )
   $ timeout 2 $RUN | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
   (
      (define-fun x () Int
-      0)   (define-fun z () Int
+      8096)   (define-fun z () Int
       0)
   )
