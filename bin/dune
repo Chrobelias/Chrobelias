@@ -41,3 +41,33 @@
    (run chmod +x ./cvc5)
    ;
    )))
+
+(rule
+ (targets z3-noodler)
+ (action
+  (progn
+   (run
+    wget
+    https://github.com/VeriFIT/z3-noodler/releases/download/v1.5.1/z3-noodler-ubuntu-24.04-x86_64-static-libz3
+    -O
+    z3-noodler)
+   (run chmod +x ./z3-noodler)
+   ;
+   )))
+
+(rule
+ (targets ostrich2)
+ (action
+  (progn
+   (run
+    wget
+    https://github.com/uuverifiers/ostrich/releases/download/v2.0.1/ostrich-2.0.1.zip
+    -O
+    ostrich.zip)
+   (run unzip ostrich.zip)
+   (run cp -i -r ./ostrich-2.0.1/ostrich ./ostrich2)
+   (run cp -i -r ./ostrich-2.0.1/ostrich-client ./ostrich-client)
+   (run cp -i -r ./ostrich-2.0.1/target ./target)
+   (run chmod +x ./ostrich2)
+   ;
+   )))
