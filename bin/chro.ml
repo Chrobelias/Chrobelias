@@ -383,8 +383,8 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         log "@]@,";
         if config.logic = `Eia
         then (
-          match Lib.SimplII.check_nia ast with
-          | `Sat -> sat "nia" ast e (fun _ -> Result.Ok Map.empty) Map.empty
+          match Lib.SimplII.check_nia e ast with
+          | `Sat env -> sat "nia" ast env (fun _ -> Result.Ok Map.empty) Map.empty
           | `Unsat -> Unsat "nia"
           | `Unknown ->
             report_result2 (`Unknown "nia");
