@@ -51,7 +51,9 @@ let rec mor r' s' =
   | Mnot Empty, _ | _, Mnot Empty -> all
   | Mor (r, s), t -> mor r (mor s t)
   | r, s when r = s -> r
-  | r, s -> Mor (r, s)
+  | r, s ->
+    let c = compare Stdlib.compare r s in
+    if c = 0 then r else if c > 0 then Mor (s, r) else Mor (r, s)
 ;;
 
 let rec mand r' s' =
