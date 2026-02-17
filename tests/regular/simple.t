@@ -11,22 +11,22 @@
   sat (presimpl str)
   iter(1)= (and
              (= a "-1099")
-             (str.in_re a (re.++ (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (str.to.re "-")) (re.* (str.to.re "")))))
+             (str.in_re a (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (re.++ (str.to.re "-") (re.* (str.to.re ""))))))
   Something ready to substitute
         a -> "-1099";
   
-  iter(2)= (str.in_re a (re.++ (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (str.to.re "-")) (re.* (str.to.re ""))))
+  iter(2)= (str.in_re a (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (re.++ (str.to.re "-") (re.* (str.to.re "")))))
   iter(3)= True
   fixed-point
   
   sat (presimpl str)
   iter(1)= (and
              (= a "-1090")
-             (str.in_re a (re.++ (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (str.to.re "-")) (re.* (str.to.re "")))))
+             (str.in_re a (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (re.++ (str.to.re "-") (re.* (str.to.re ""))))))
   Something ready to substitute
         a -> "-1090";
   
-  iter(2)= (str.in_re a (re.++ (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (str.to.re "-")) (re.* (str.to.re ""))))
+  iter(2)= (str.in_re a (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (re.++ (str.to.re "-") (re.* (str.to.re "")))))
   iter(3)= (not True)
   fixed-point
   
