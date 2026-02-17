@@ -1602,18 +1602,26 @@ struct
 
   let of_regex (r : Label.u list Regex.t) =
     let rec traverse visited = function
-      | [] -> []
-      | r :: tl ->
-        if List.exists (fun r' -> r' = r) visited
+      | s when Set.is_empty s -> []
+      | s ->
+        let r = Set.nth s 0 |> Option.get in
+        let tl = Set.remove_index s 0 in
+        if Set.mem visited r
         then traverse visited tl
         else (
-          let visited = r :: visited in
+          let visited = Set.add visited r in
           let symbols = Regex.symbols r in
           let delta = List.map (fun symbol -> symbol, Regex.deriv symbol r) symbols in
-          let tl = List.append (List.map snd delta) tl in
+          let tl =
+            Set.union
+              (List.map snd delta
+               |> List.filter (fun r' -> not (Set.mem visited r'))
+               |> Set.of_list)
+              tl
+          in
           (r, delta) :: traverse visited tl)
     in
-    let transitions = traverse [] [ r ] in
+    let transitions = traverse Set.empty (Set.singleton r) in
     let regex_to_state =
       transitions |> List.map fst |> List.mapi (fun i r -> r, i) |> Map.of_alist_exn
     in

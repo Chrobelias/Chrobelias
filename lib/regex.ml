@@ -28,31 +28,33 @@ let rec pp pp_sym ppf = function
 
 let all = mnot empty
 
-let kleene = function
+let rec kleene = function
   | Kleene r -> kleene r
   | Epsilon -> Epsilon
   | Empty -> Epsilon
-  | r -> kleene r
+  | r -> Kleene r
 ;;
 
-let concat r' s' =
+let rec concat r' s' =
   match r', s' with
   | Empty, _ | _, Empty -> Empty
   | Epsilon, r | r, Epsilon -> r
-  | r, s -> concat r s
+  | Concat (r, s), t -> concat r (concat s t)
+  | r, s -> Concat (r, s)
 ;;
 
-let mor r' s' =
+let rec mor r' s' =
   match r', s' with
   | Empty, r | r, Empty -> r
   | Mor (r, s), t when t = s || t = r -> mor r s
   | t, Mor (r, s) when t = s || t = r -> mor r s
   | Mnot Empty, _ | _, Mnot Empty -> all
+  | Mor (r, s), t -> mor r (mor s t)
   | r, s when r = s -> r
-  | r, s -> mor r s
+  | r, s -> Mor (r, s)
 ;;
 
-let mand r' s' =
+let rec mand r' s' =
   match r', s' with
   | Empty, _ | _, Empty -> Empty
   | Epsilon, _ | _, Epsilon -> Epsilon
@@ -60,12 +62,12 @@ let mand r' s' =
   | Mand (r, s), t when t = s || t = r -> mand r s
   | t, Mand (r, s) when t = s || t = r -> mand r s
   | r, s when r = s -> r
-  | r, s -> mand r s
+  | r, s -> Mand (r, s)
 ;;
 
 let mnot = function
   | Mnot (Mnot r) -> r
-  | r -> mnot r
+  | r -> Mnot r
 ;;
 
 let plus r = concat r (kleene r)
