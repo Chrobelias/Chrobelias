@@ -1567,7 +1567,7 @@ struct
   let split (nfa : t) =
     let length = length nfa in
     let states =
-      Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
+      Graph.reachable_in_range nfa.transitions 0 (length * length) nfa.start
       |> List.fold_left (fun acc x -> Set.union acc x) Set.empty
     in
     states
