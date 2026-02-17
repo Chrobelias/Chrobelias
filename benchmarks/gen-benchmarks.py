@@ -10,6 +10,7 @@ Optionally adds regex membership constraints; generated regexes always contain r
 import argparse
 import os
 import random
+import string
 import subprocess
 import tempfile
 import time
@@ -26,11 +27,13 @@ CONST_MIN = 0
 CONST_MAX = 100
 
 DEFAULT_TIMEOUT_MS = 5000
-DEFAULT_QUICK_TIMEOUT_MS = 100
+DEFAULT_QUICK_TIMEOUT_MS = 10
 DEFAULT_REGEX_VERIFY_TIMEOUT_MS = 5000
 
 REGEX_DEFAULT_MAX_DEPTH = 4
 SUBPROCESS_TIMEOUT_BUFFER_SEC = 5.0
+
+WE_COUNT = 0
 
 
 def get_variable_names(num_vars: int) -> List[str]:
@@ -194,7 +197,6 @@ def generate_str_to_int_constraint(num_vars: int) -> str:
     left_side = terms[0] if len(terms) == 1 else "(+ " + " ".join(terms) + ")"
     return f"(assert ({op} {left_side} {constant}))"
 
-
 def generate_mixed_constraint(num_vars: int) -> str:
     """Generate a single linear constraint mixing both str.len and str.to_int."""
     var_names = get_variable_names(num_vars)
@@ -225,6 +227,44 @@ def generate_mixed_constraint(num_vars: int) -> str:
     left_side = terms[0] if len(terms) == 1 else "(+ " + " ".join(terms) + ")"
     return f"(assert ({op} {left_side} {constant}))"
 
+def generate_word_term(vars: List[str], num_consts: int) -> List[str]:
+    """
+    Generate string term (str.++ ...) with variables {vars} and {num_consts} string constants from {0..9}*.
+    The variables and constants occur in the term a random order.
+    """
+    consts: List[str] = []
+    num_consts = 1 if len(vars) + num_consts == 0 else num_consts
+    for _ in range(num_consts): 
+        const = str(random.randint(100, 999)) if random.randint(0, 1) == 0 else str(random.randint(10, 99))
+        consts.append(f'"{const}"')
+    vars.extend(consts) 
+    random.shuffle(vars)
+    term = f"{vars[0]}" if len(vars) == 1 else "(str.++"
+    if len(vars) > 1 : 
+        for s in vars: 
+            term += f' {s}'
+        term += ")" 
+    return term
+
+
+def generate_concat_constraints(num_vars: int, num_we: int, vars_in_lhs: int) -> List[str]:
+    """
+    Generate {num_we} word equations (assert (= lhs rhs)) with {num_vars} variables and digital constants.
+    Each lhs has {vars_in_lhs} variables.
+    """
+    constraints = []
+    var_names = get_variable_names(num_vars)
+    vars_in_lhs = min(vars_in_lhs, num_vars - 1)
+
+    for _ in range(num_we): 
+        lhs_vars = random.sample(var_names, num_vars)
+        rhs_vars = [var for var in var_names if var not in lhs_vars] 
+        lhs = generate_word_term(lhs_vars, random.randint(0,vars_in_lhs + 1))
+        rhs = generate_word_term(rhs_vars, random.randint(0,len(rhs_vars) + 1))
+        constraint = f"(assert (= {lhs} {rhs}))"
+        constraints.append(constraint)
+
+    return constraints
 
 def generate_constraints_by_weight(num_vars: int, target_weight: int) -> List[str]:
     """
@@ -250,7 +290,7 @@ def generate_constraints_by_weight(num_vars: int, target_weight: int) -> List[st
             constraints.append(generate_str_to_int_constraint(num_vars))
             remaining_weight -= 1
 
-    if not any("str.len" in c for c in constraints) or not any("str.to_int" in c for c in constraints):
+    if not (any("str.len" in c for c in constraints) and any("str.to_int" in c for c in constraints)):
         return generate_constraints_by_weight(num_vars, target_weight)
 
     return constraints
@@ -284,7 +324,8 @@ def verify_regex_constraints_satisfiable(
 def generate_benchmark(
     num_vars: int,
     weight: int,
-    no_regex: bool = False,
+    num_we: int,
+    regex: bool = True,
     solver: str = DEFAULT_SOLVER,
     regex_verify_timeout_ms: int = DEFAULT_REGEX_VERIFY_TIMEOUT_MS,
     regex_max_depth: int = REGEX_DEFAULT_MAX_DEPTH,
@@ -305,10 +346,14 @@ def generate_benchmark(
         lines.append(f"(assert (>= (str.to_int {var}) 0))")
     lines.append("")
 
+    word_eq = generate_concat_constraints(num_vars, num_we, random.randint(1,2))
+    lines.extend(word_eq)
+    lines.append("")
+
     regex_count = num_vars
     regex_satisfiable = True
 
-    if not no_regex:
+    if regex:
         regex_constraints = generate_regex_constraints(num_vars, regex_count, regex_max_depth=regex_max_depth)
         if regex_constraints:
             regex_satisfiable = verify_regex_constraints_satisfiable(
@@ -401,7 +446,8 @@ def try_generate_nontrivial_benchmark(
     weight: int,
     max_attempts: int = 100,
     quick_timeout_ms: int = DEFAULT_QUICK_TIMEOUT_MS,
-    no_regex: bool = False,
+    num_we: int = WE_COUNT,
+    regex: bool = True,
     solver: str = DEFAULT_SOLVER,
     regex_verify_timeout_ms: int = DEFAULT_REGEX_VERIFY_TIMEOUT_MS,
     regex_max_depth: int = REGEX_DEFAULT_MAX_DEPTH,
@@ -419,7 +465,8 @@ def try_generate_nontrivial_benchmark(
         benchmark_content, regex_satisfiable = generate_benchmark(
             num_vars,
             weight,
-            no_regex=no_regex,
+            num_we=num_we,
+            regex=regex,
             solver=solver,
             regex_verify_timeout_ms=regex_verify_timeout_ms,
             regex_max_depth=regex_max_depth,
@@ -430,7 +477,7 @@ def try_generate_nontrivial_benchmark(
             continue
 
         last_benchmark = benchmark_content
-
+        
         if not is_trivial_benchmark(benchmark_content, quick_timeout_ms=quick_timeout_ms, solver=solver):
             return benchmark_content, True, attempt, regex_unsat_count
 
@@ -438,7 +485,8 @@ def try_generate_nontrivial_benchmark(
         benchmark_content, _ = generate_benchmark(
             num_vars,
             weight,
-            no_regex=no_regex,
+            num_we=num_we,
+            regex=regex,
             solver=solver,
             regex_verify_timeout_ms=regex_verify_timeout_ms,
             regex_max_depth=regex_max_depth,
@@ -478,6 +526,13 @@ def main():
         help=f"Timeout for regex satisfiability pre-check (ms). Only used when regex generation is enabled (default: {DEFAULT_REGEX_VERIFY_TIMEOUT_MS}).",
     )
 
+    parser.add_argument(
+        "--we",
+        type=int,
+        default=WE_COUNT,
+        help=f"Number of word equation constraints (default: {WE_COUNT}).",
+    )
+
     regex_group = parser.add_mutually_exclusive_group()
     regex_group.add_argument(
         "--regex",
@@ -502,8 +557,8 @@ def main():
 
     args = parser.parse_args()
 
-    num_vars_options = [2, 3, 4, 5]
-    weight_options = range(2, 7)
+    num_vars_options = [1,2]
+    weight_options = range(2, 6)
     benchmarks_per_config = 5
 
     max_attempts_per_benchmark = 100
@@ -520,6 +575,7 @@ def main():
     print(f"Solver: {args.solver} (invoked as: {args.solver} <file.smt2>)")
     print(f"Probe timeout: {args.timeout_ms}ms")
     print(f"Triviality timeout: {args.quick_timeout_ms}ms")
+    print(f"Wor equations count: {args.we}")
     print(f"Regex enabled: {args.enable_regex}")
     if args.enable_regex:
         print(f"Regex verify timeout: {args.regex_verify_timeout_ms}ms")
@@ -548,7 +604,8 @@ def main():
                 weight,
                 max_attempts=max_attempts_per_benchmark,
                 quick_timeout_ms=args.quick_timeout_ms,
-                no_regex=not args.enable_regex,
+                regex=args.enable_regex,
+                num_we=args.we,
                 solver=args.solver,
                 regex_verify_timeout_ms=args.regex_verify_timeout_ms,
                 regex_max_depth=max(0, args.regex_max_depth),
@@ -592,6 +649,7 @@ def main():
     print(f"  - Constant range: [{CONST_MIN}, {CONST_MAX}]")
     print(f"  - Probe timeout: {args.timeout_ms}ms")
     print(f"  - Triviality timeout: {args.quick_timeout_ms}ms")
+    print(f"  - Word equation count: {args.we}")
     print(f"  - Regex enabled: {args.enable_regex}")
     if args.enable_regex:
         print(f"  - Regex max depth: {max(0, args.regex_max_depth)}")
