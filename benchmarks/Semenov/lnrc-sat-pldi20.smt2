@@ -19,7 +19,7 @@ ACM, 943–957. https://doi.org/10.1145/3385412.3386034
 (declare-fun y () String)
 
 (assert (= (str.++ "0" x)  (str.++ x "0")))
-(assert (= (str.to.int x) (str.to.int y)))
+(assert (= (str.to_int x) (str.to_int y)))
 (assert (< 1 (str.len x)))
 (assert (< (str.len x) (str.len y)))
 (assert (< 1000 (str.len y)))
