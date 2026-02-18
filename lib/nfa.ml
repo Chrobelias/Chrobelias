@@ -1605,6 +1605,7 @@ struct
       | s when Set.is_empty s -> []
       | s ->
         let r = Set.nth s 0 |> Option.get in
+        (*Format.printf "<< %a\n%!" (Regex.pp (Format.pp_print_list Label.pp_u)) r;*)
         let tl = Set.remove_index s 0 in
         if Set.mem visited r
         then traverse visited tl

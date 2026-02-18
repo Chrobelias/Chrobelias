@@ -48,12 +48,15 @@ let rec mor r' s' =
   | Empty, r | r, Empty -> r
   | Mor (r, s), t when t = s || t = r -> mor r s
   | t, Mor (r, s) when t = s || t = r -> mor r s
-  | Mnot Empty, _ | _, Mnot Empty -> all
   | Mor (r, s), t -> mor r (mor s t)
+  | t, Mor (r, s) when compare Stdlib.compare t r > 0 -> mor r (mor t s)
+  | t, Mor (r, s) -> Mor (r', s')
+  | Mnot Empty, _ | _, Mnot Empty -> all
+  (*| t, Mor (r, s) when t > r -> mor r (mor t s)*)
   | r, s when r = s -> r
   | r, s ->
     let c = compare Stdlib.compare r s in
-    if c = 0 then r else if c > 0 then Mor (s, r) else Mor (r, s)
+    if c = 0 then r else if c > 0 then mor s r else Mor (r, s)
 ;;
 
 let rec mand r' s' =
