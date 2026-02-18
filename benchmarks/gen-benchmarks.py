@@ -257,7 +257,7 @@ def generate_concat_constraints(num_vars: int, num_we: int, vars_in_lhs: int) ->
     vars_in_lhs = min(vars_in_lhs, num_vars - 1)
 
     for _ in range(num_we): 
-        lhs_vars = random.sample(var_names, num_vars)
+        lhs_vars = random.sample(var_names, vars_in_lhs)
         rhs_vars = [var for var in var_names if var not in lhs_vars] 
         lhs = generate_word_term(lhs_vars, random.randint(0,vars_in_lhs + 1))
         rhs = generate_word_term(rhs_vars, random.randint(0,len(rhs_vars) + 1))
@@ -557,7 +557,7 @@ def main():
 
     args = parser.parse_args()
 
-    num_vars_options = [1,2]
+    num_vars_options = [2]
     weight_options = range(2, 6)
     benchmarks_per_config = 5
 
@@ -575,7 +575,7 @@ def main():
     print(f"Solver: {args.solver} (invoked as: {args.solver} <file.smt2>)")
     print(f"Probe timeout: {args.timeout_ms}ms")
     print(f"Triviality timeout: {args.quick_timeout_ms}ms")
-    print(f"Wor equations count: {args.we}")
+    print(f"Word equations count: {args.we}")
     print(f"Regex enabled: {args.enable_regex}")
     if args.enable_regex:
         print(f"Regex verify timeout: {args.regex_verify_timeout_ms}ms")
