@@ -10,16 +10,21 @@ Optionally adds regex membership constraints; generated regexes always contain r
 import argparse
 import os
 import random
-import string
 import subprocess
 import tempfile
 import time
 from itertools import product
 from typing import List, Tuple, Optional
+import enum
 
+class MODE(enum.Enum):
+    RANDOM = "random"
+    LONG = "long"
+    HARD = "hard"
 
 LOGIC = "QF_SLIA"
 DEFAULT_SOLVER = "z3"
+DEFAULT_MODE = MODE.RANDOM
 
 COEFF_MIN = -10
 COEFF_MAX = 10
@@ -34,6 +39,12 @@ REGEX_DEFAULT_MAX_DEPTH = 4
 SUBPROCESS_TIMEOUT_BUFFER_SEC = 5.0
 
 WE_COUNT = 0
+
+def mode_type(s: str) -> MODE:
+    try:
+        return MODE[s.upper()]
+    except KeyError:
+        raise argparse.ArgumentTypeError(f"Invalid mode: {s}. Choose from {[m.name.lower() for m in MODE]}")
 
 
 def get_variable_names(num_vars: int) -> List[str]:
@@ -259,7 +270,7 @@ def generate_concat_constraints(num_vars: int, num_we: int, vars_in_lhs: int) ->
     for _ in range(num_we): 
         lhs_vars = random.sample(var_names, vars_in_lhs)
         rhs_vars = [var for var in var_names if var not in lhs_vars] 
-        lhs = generate_word_term(lhs_vars, random.randint(0,vars_in_lhs + 1))
+        lhs = generate_word_term(lhs_vars, random.randint(0,1))
         rhs = generate_word_term(rhs_vars, random.randint(0,len(rhs_vars) + 1))
         constraint = f"(assert (= {lhs} {rhs}))"
         constraints.append(constraint)
@@ -328,6 +339,7 @@ def generate_benchmark(
     regex: bool = True,
     solver: str = DEFAULT_SOLVER,
     regex_verify_timeout_ms: int = DEFAULT_REGEX_VERIFY_TIMEOUT_MS,
+    mode: MODE = DEFAULT_MODE,
     regex_max_depth: int = REGEX_DEFAULT_MAX_DEPTH,
 ) -> Tuple[str, bool]:
     """
@@ -346,9 +358,16 @@ def generate_benchmark(
         lines.append(f"(assert (>= (str.to_int {var}) 0))")
     lines.append("")
 
-    word_eq = generate_concat_constraints(num_vars, num_we, random.randint(1,2))
-    lines.extend(word_eq)
-    lines.append("")
+    if mode == MODE.LONG:
+        long_vars = random.sample(get_variable_names(num_vars), random.randint(1,num_vars)) 
+        for var in long_vars:
+            lines.append(f"(assert (>= (str.len {var}) 1000))")
+        lines.append("") 
+
+    if num_we >= 1:
+        word_eq = generate_concat_constraints(num_vars, num_we, random.randint(1,2))
+        lines.extend(word_eq)
+        lines.append("")
 
     regex_count = num_vars
     regex_satisfiable = True
@@ -450,6 +469,7 @@ def try_generate_nontrivial_benchmark(
     regex: bool = True,
     solver: str = DEFAULT_SOLVER,
     regex_verify_timeout_ms: int = DEFAULT_REGEX_VERIFY_TIMEOUT_MS,
+    mode: MODE = DEFAULT_MODE,
     regex_max_depth: int = REGEX_DEFAULT_MAX_DEPTH,
 ) -> Tuple[str, bool, int, int]:
     """
@@ -469,6 +489,7 @@ def try_generate_nontrivial_benchmark(
             regex=regex,
             solver=solver,
             regex_verify_timeout_ms=regex_verify_timeout_ms,
+            mode=mode,
             regex_max_depth=regex_max_depth,
         )
 
@@ -477,9 +498,9 @@ def try_generate_nontrivial_benchmark(
             continue
 
         last_benchmark = benchmark_content
-        
-        if not is_trivial_benchmark(benchmark_content, quick_timeout_ms=quick_timeout_ms, solver=solver):
-            return benchmark_content, True, attempt, regex_unsat_count
+        if not (mode == MODE.HARD and 
+                is_trivial_benchmark(benchmark_content, quick_timeout_ms=quick_timeout_ms, solver=solver)):
+                return benchmark_content, True, attempt, regex_unsat_count
 
     if last_benchmark is None:
         benchmark_content, _ = generate_benchmark(
@@ -489,6 +510,7 @@ def try_generate_nontrivial_benchmark(
             regex=regex,
             solver=solver,
             regex_verify_timeout_ms=regex_verify_timeout_ms,
+            mode=mode,
             regex_max_depth=regex_max_depth,
         )
         last_benchmark = benchmark_content
@@ -520,12 +542,17 @@ def main():
         help=f"Timeout for triviality filtering (ms). Benchmarks solved within this are discarded as trivial (default: {DEFAULT_QUICK_TIMEOUT_MS}).",
     )
     parser.add_argument(
+        "--mode",
+        type=mode_type,
+        default=MODE.RANDOM,
+        help="Modes: [random; long; hard (modulo <solver> and <quick-timeout-ms>)] (default: random).",
+    )
+    parser.add_argument(
         "--regex-verify-timeout-ms",
         type=int,
         default=DEFAULT_REGEX_VERIFY_TIMEOUT_MS,
         help=f"Timeout for regex satisfiability pre-check (ms). Only used when regex generation is enabled (default: {DEFAULT_REGEX_VERIFY_TIMEOUT_MS}).",
     )
-
     parser.add_argument(
         "--we",
         type=int,
@@ -557,9 +584,9 @@ def main():
 
     args = parser.parse_args()
 
-    num_vars_options = [2]
-    weight_options = range(2, 6)
-    benchmarks_per_config = 5
+    num_vars_options = [1]
+    weight_options = range(2, 10)
+    benchmarks_per_config = 50
 
     max_attempts_per_benchmark = 100
     output_dir = "smt_benchmarks"
@@ -575,6 +602,7 @@ def main():
     print(f"Solver: {args.solver} (invoked as: {args.solver} <file.smt2>)")
     print(f"Probe timeout: {args.timeout_ms}ms")
     print(f"Triviality timeout: {args.quick_timeout_ms}ms")
+    print(f"Mode: {args.mode.name.lower()}")
     print(f"Word equations count: {args.we}")
     print(f"Regex enabled: {args.enable_regex}")
     if args.enable_regex:
@@ -608,6 +636,7 @@ def main():
                 num_we=args.we,
                 solver=args.solver,
                 regex_verify_timeout_ms=args.regex_verify_timeout_ms,
+                mode=args.mode,
                 regex_max_depth=max(0, args.regex_max_depth),
             )
 
@@ -649,6 +678,7 @@ def main():
     print(f"  - Constant range: [{CONST_MIN}, {CONST_MAX}]")
     print(f"  - Probe timeout: {args.timeout_ms}ms")
     print(f"  - Triviality timeout: {args.quick_timeout_ms}ms")
+    print(f"  - Mode: {args.mode.name.lower()}")
     print(f"  - Word equation count: {args.we}")
     print(f"  - Regex enabled: {args.enable_regex}")
     if args.enable_regex:
