@@ -1938,14 +1938,32 @@ let over_concat ast =
     | Unsupp _ -> false
   in
   let strlen_vars term = List.for_all (fun v -> in_strlen_only v ast) (atoms term) in *)
+
+  (* FIXME: simple over for concats. If there is string constant in word equation, then 
+    add a regular constraint for the other side: suffixof, prefixof, or contains
+  
+  let over_reg =
+    let open Ast.Eia in 
+    Ast.fold
+      (fun acc -> function
+         | Ast.Eia (Eq (lhs, rhs, S)) ->
+          match lhs, rhs with 
+          | Concat(Str_const s, lhs'), rhs -> Ast.Eia.InReRaw(rhs, S, NfaCollection.prefixof)  
+           Ast.Eia (Eq (Ast.Eia.len lhs, Ast.Eia.len rhs, I)) :: acc
+         | ast -> acc)
+      []
+      ast
+  in *)
   let over_ast =
-    Ast.map
-      (function
-        | Ast.Eia (Eq (lhs, rhs, S)) -> Ast.Eia (Eq (Ast.Eia.len lhs, Ast.Eia.len rhs, I))
-        | ast -> ast)
+    Ast.fold
+      (fun acc -> function
+         | Ast.Eia (Eq (lhs, rhs, S)) ->
+           Ast.Eia (Eq (Ast.Eia.len lhs, Ast.Eia.len rhs, I)) :: acc
+         | ast -> acc)
+      []
       ast
   in
-  Ast.land_ [ ast; over_ast ]
+  Ast.land_ (over_ast @ [ ast ])
 ;;
 
 let basic_simplify step ?multiple (env : Env.t) ast =

@@ -376,6 +376,46 @@ module MsbStr = struct
     in
     Nfa.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
   ;;
+
+  let _prefixof pref x =
+    let length = String.length pref in
+    let pref_list =
+      pref |> String.to_seq |> Seq.mapi (fun i x -> i, [ x ], i + 1) |> List.of_seq
+    in
+    Nfa.create_nfa
+      ~transitions:(pref_list @ [ 0, [ Str.u_eos ], 0; length, [ Str.u_null ], length ])
+      ~start:[ 0 ]
+      ~final:[ length ]
+      ~vars:[ x ]
+      ~deg:(x + 1)
+  ;;
+
+  let _suffixof suff x =
+    let length = String.length suff in
+    let suff_list =
+      suff |> String.to_seq |> Seq.mapi (fun i x -> i, [ x ], i + 1) |> List.of_seq
+    in
+    Nfa.create_nfa
+      ~transitions:(suff_list @ [ 0, [ Str.u_null ], 0 ])
+      ~start:[ 0 ]
+      ~final:[ length ]
+      ~vars:[ x ]
+      ~deg:(x + 1)
+  ;;
+
+  let _contains pattern x =
+    let length = String.length pattern in
+    let pattern_list =
+      pattern |> String.to_seq |> Seq.mapi (fun i x -> i, [ x ], i + 1) |> List.of_seq
+    in
+    Nfa.create_nfa
+      ~transitions:
+        (pattern_list @ [ 0, [ Str.u_null ], 0; length, [ Str.u_null ], length ])
+      ~start:[ 0 ]
+      ~final:[ length ]
+      ~vars:[ x ]
+      ~deg:(x + 1)
+  ;;
 end
 
 module MsbStrBv = struct
@@ -1218,6 +1258,46 @@ module LsbStr = struct
       alpha_transitions @ [ 0, [ Str.u_eos; i ], 1 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
     in
     Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 1 ] ~vars:[ src; dest ] ~deg:2
+  ;;
+
+  let _prefixof pref x =
+    let length = String.length pref in
+    let pref_list =
+      pref |> String.to_seq |> Seq.mapi (fun i x -> i, [ x ], i + 1) |> List.of_seq
+    in
+    Nfa.create_nfa
+      ~transitions:(pref_list @ [ length, [ Str.u_eos ], length; 0, [ Str.u_null ], 0 ])
+      ~start:[ length ]
+      ~final:[ 0 ]
+      ~vars:[ x ]
+      ~deg:(x + 1)
+  ;;
+
+  let _suffixof suff x =
+    let length = String.length suff in
+    let suff_list =
+      suff |> String.to_seq |> Seq.mapi (fun i x -> i, [ x ], i + 1) |> List.of_seq
+    in
+    Nfa.create_nfa
+      ~transitions:(suff_list @ [ length, [ Str.u_null ], length ])
+      ~start:[ length ]
+      ~final:[ 0 ]
+      ~vars:[ x ]
+      ~deg:(x + 1)
+  ;;
+
+  let _contains pattern x =
+    let length = String.length pattern in
+    let pattern_list =
+      pattern |> String.to_seq |> Seq.mapi (fun i x -> i, [ x ], i + 1) |> List.of_seq
+    in
+    Nfa.create_nfa
+      ~transitions:
+        (pattern_list @ [ 0, [ Str.u_null ], 0; length, [ Str.u_null ], length ])
+      ~start:[ length ]
+      ~final:[ 0 ]
+      ~vars:[ x ]
+      ~deg:(x + 1)
   ;;
 end
 
