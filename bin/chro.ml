@@ -171,7 +171,9 @@ let rec model_from_parts_regexes_env tys model regexes env' =
           | `Int c ->
             if c > Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ()))
             then raise Too_long_model
-            else Z.to_int c
+            else (
+              try Z.to_int c with
+              | Z.Overflow -> raise Too_long_model)
           | _ -> assert false
         in
         begin if not (Map.mem raw_model (var real_var))
@@ -690,7 +692,6 @@ let () =
             let shrink_model () =
               log "model is TOO big after 1st attempt\n%!";
               let shrinked_ast =
-                let aux_var_name = "%bound" in
                 Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
                   match key, data with
                   | Lib.Ir.Var v, `Str ->
@@ -702,18 +703,10 @@ let () =
                     :: acc
                   | Lib.Ir.Var v, `Int ->
                     Lib.Ast.(
-                      land_
-                        [ eia
-                            (Eia.leq
-                               (Atom (Var (aux_var_name, I)))
-                               (Const (Z.of_int Lib.Config.max_longest_path)))
-                        ; eia
-                            (Eia.leq
-                               (Atom (Var (v, I)))
-                               (Pow
-                                  ( Const (Lib.Config.base ())
-                                  , Atom (Var (aux_var_name, I)) )))
-                        ])
+                      eia
+                        (Eia.leq
+                           (Atom (Var (v, I)))
+                           (Const Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ())))))
                     :: acc
                   | _ -> acc)
                 |> Lib.Ast.land_
