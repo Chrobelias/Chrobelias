@@ -283,5 +283,5 @@ let check bound ast =
       `Sat ("under int", to_normal_env env)
     | Early_Unsat -> `Unsat "nia"
   with
-  | String_op | Bitwise_op -> `Unknown ast
+  | String_op | Bitwise_op | Z.Overflow -> `Unknown ast
 ;;
