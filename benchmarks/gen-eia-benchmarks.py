@@ -154,7 +154,8 @@ def main():
         for benchmark_idx in range(benchmarks_per_config):
             total_benchmarks += 1
 
-            filename = f"sier_{max_mod1}_{dstr}_n{benchmark_idx + 1:02d}.smt2"
+            suffix = "_big" if args.mode == MODE.BIG else ""
+            filename = f"sier_{max_mod1}_{dstr}_n{benchmark_idx + 1:02d}{suffix}.smt2"
             filepath = os.path.join(output_dir, filename)
 
             print(f"[{total_benchmarks:4d}] {filename}...", end="\n", flush=True)
