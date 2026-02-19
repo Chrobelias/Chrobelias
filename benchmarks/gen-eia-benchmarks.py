@@ -56,7 +56,7 @@ def generate_eia_mod_constraint(var: str, min_mod: int, max_mod: int, with_doubl
     """Generate a divisibility constraint with (exp 2 _) and if <with_double>, then with exp (2 exp (_)).
     Modulus is at most <max_mod>."""
 
-    lin_coeffs = [(random.randint(COEFF_MIN, COEFF_MAX) if random.randint(1, 6) <= 2 else 0) for _ in range(3)]
+    lin_coeffs = [(random.randint(COEFF_MIN, COEFF_MAX)) for _ in range(3)]
     exp_coeffs = [(random.randint(0, COEFF_MAX) if random.randint(1, 6) <= 2 else 0) for _ in range(2)]
     dexp_coeffs = [(random.randint(0, COEFF_MAX) if random.randint(1, 6) <= 2 else 0) for _ in range(2)]
 
@@ -68,9 +68,10 @@ def generate_eia_mod_constraint(var: str, min_mod: int, max_mod: int, with_doubl
 
     dexp_term = f"(exp 2 (exp 2 (+ {dexp_coeffs[0]} (* {dexp_coeffs[1]} {var}))))"
     exp_term = f"(exp 2 (+ {exp_coeffs[0]} (* {exp_coeffs[1]} {var})))"
-    terms = [var, exp_term, dexp_term] if with_double else [var, exp_term]
-
-    for coeff, var in zip(exp_coeffs, terms):
+    trivial_terms = [var, exp_term, dexp_term] if with_double else [var, exp_term, var]
+    
+    terms: List[str] = []
+    for coeff, var in zip(lin_coeffs, trivial_terms):
         t = format_coefficient_term(coeff, f"{var}")
         if t:
             terms.append(t)
