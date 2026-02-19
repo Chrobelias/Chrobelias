@@ -84,6 +84,7 @@ def generate_benchmark(
     max_mod: int,
     with_dexp: bool,
     mode: MODE = DEFAULT_MODE,
+    get_model: bool = False
 ) -> str:
     """
     Generate a complete EIA benchmark.
@@ -95,13 +96,13 @@ def generate_benchmark(
     lines.extend(generate_variable_declarations({var}))
     lines.append("")
 
-    if mode == MODE.BIG: 
-        lines.append(f"(assert (>= {var} 1000))")
-        lines.append("") 
+    lower_bound = 1000 if mode == MODE.BIG else 0 
+    lines.append(f"(assert (>= {var} {lower_bound}))")
 
     lines.append(generate_eia_mod_constraint(var, min_mod, max_mod, with_dexp))
 
     lines.append("(check-sat)")
+    if get_model: lines.append("(get-model)")
     return "\n".join(lines)
 
 def main():
@@ -114,6 +115,13 @@ def main():
         type=mode_type,
         default=MODE.STANDARD,
         help="Modes: [standard; big] (default: standard).",
+    )
+
+    parser.add_argument(
+        "--get-model",
+        action="store_true",
+        default=False,
+        help="Produce model (default: disabled).",
     )
 
     args = parser.parse_args()
@@ -134,6 +142,7 @@ def main():
     print(f"Benchmarks per configuration: {benchmarks_per_config} and {benchmarks_per_config} with double exp")
     print(f"Coefficient range: [{COEFF_MIN}, {COEFF_MAX}]")
     print(f"Constant range: [{CONST_MIN}, {CONST_MAX}]")
+    print(f"With (get-model): {args.get_model}")
 
     print("=" * 80)
 
@@ -154,6 +163,7 @@ def main():
                 max_mod1,
                 with_dexp,
                 mode=args.mode,
+                get_model=args.get_model
             )
             with open(filepath, "w") as f:
                 f.write(benchmark)
@@ -171,6 +181,7 @@ def main():
     print(f"  - Coefficient range: [{COEFF_MIN}, {COEFF_MAX}]")
     print(f"  - Constant range: [{CONST_MIN}, {CONST_MAX}]")
     print(f"  - Mode: {args.mode.name.lower()}")
+    print(f"  - With (get-model): {args.get_model}")
 
 if __name__ == "__main__":
     main()
