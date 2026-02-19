@@ -8,7 +8,7 @@
 
 __ChrobELIAS__ is an smt-solver for the existential **E**xponential-**L**inear **I**nteger **A**rithmetic with regular constraints $\langle\mathbb{N}; 0, 1, +, x\mapsto 2^x, \mathscr{R}, =,\leq\rangle$.
 The solver implements the decision procedure for [existential generalised Semёnov arithmetic](https://arxiv.org/abs/2306.14593)
-from [Quantifier Elimination for Regular Integer Linear-Exponential Programming](https://www.ti.inf.uni-due.de/misc/lics2025/preprints/Starchak.pdf),
+from [Quantifier Elimination for Regular Integer Linear-Exponential Programming](https://ieeexplore.ieee.org/abstract/document/11186186),
 where Chrobak Normal Form of sub-NFAs is used to linearise exponential occurrences of the variables.
 
 ## Building
