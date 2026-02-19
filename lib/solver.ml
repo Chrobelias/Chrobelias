@@ -973,7 +973,7 @@ struct
               if path_len > Config.max_longest_path
               then
                 (* let () = Format.eprintf "Calculated path_len = %d\n%!" path_len in *)
-                Result.Error `Too_long
+                Result.Error (mapVals |> Map.map_keys_exn ~f:Ir.var)
               else (
                 let model2 = part path_len |> Option.get in
                 let new_model, new_len =
@@ -984,7 +984,7 @@ struct
                 let mapVals = new_model |> Base.List.zip_exn vars |> Map.of_alist_exn in
                 helper mapVals new_len tl (exp :: past_order) parts)
             with
-            | _ -> Result.Error `Too_long))
+            | _ -> Result.Error (mapVals |> Map.map_keys_exn ~f:Ir.var)))
     in
     let mapVals = Base.List.zip_exn vars model |> Map.of_alist_exn in
     helper mapVals len order [] models |> Result.map (Map.map_keys_exn ~f:Ir.var)
@@ -1006,10 +1006,20 @@ struct
 
   let get_model_semenov_exn f s order (model, len) models () =
     match combine_model_pieces s (List.rev order) (model, len) models with
-    | Result.Error `Too_long -> raise Too_long_model
+    | Result.Error map ->
+      let model_vars = Ir.collect_model_vars f |> Map.keys |> List.map Ir.name in
+      let map_true_model_vars =
+        map
+        |> Map.keys
+        |> List.filter (fun x -> not (Base.String.is_prefix (Ir.name x) ~prefix:"%"))
+        |> List.map Ir.name
+      in
+      if Base.List.equal String.equal model_vars map_true_model_vars
+      then map
+      else raise Too_long_model
     | Result.Ok map ->
-      Debug.printfln "Formula before substituting exponents: %a" Ir.pp f;
-      Debug.printfln
+      Debug.printf "Formula before substituting exponents: %a\n" Ir.pp f;
+      Debug.printf
         "Variable map: %a"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")

@@ -517,6 +517,13 @@ let collect_vars ir =
   |> Map.of_alist_exn
 ;;
 
+let collect_model_vars ir =
+  ir
+  |> collect_vars
+  |> Map.filter_keys ~f:(fun x -> not (Base.String.is_prefix (name x) ~prefix:"%"))
+  |> Map.filter_keys ~f:(fun x -> not (Base.String.is_prefix (name x) ~prefix:"2"))
+;;
+
 let collect_atoms ir =
   fold
     (fun acc -> function
