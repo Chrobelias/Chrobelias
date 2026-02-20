@@ -1030,8 +1030,6 @@ struct
                   (Extra.nat_model_to_int b)))
           (Map.to_alist map);
         map |> Map.map ~f:(fun x -> Extra.char_to_v '0' :: x))
-      (* HERE: in map -- add a sign digit u_zero to every list of symbols *)
-      (* map) *)
       else raise Too_long_model
     | Result.Ok map ->
       Debug.printf "Formula before substituting exponents: %a\n" Ir.pp f;
@@ -1442,7 +1440,13 @@ module Lsb =
 
       let model_to_int c = z_of_list_lsb c
       let nat_model_to_int = model_to_int
-      let char_to_v _ = failwith "string constraints are not supported in EIA mode"
+
+      let char_to_v c =
+        match c with
+        | '0' -> false
+        | '1' -> true
+        | _ -> failwith "string constraints are not supported in EIA mode"
+      ;;
     end)
 
 let z_of_list_msb p =
@@ -1499,7 +1503,13 @@ module Msb =
 
       let model_to_int c = z_of_list_msb c
       let nat_model_to_int = z_of_list_msb_nat
-      let char_to_v _ = failwith "string constraints are not supported in EIA mode"
+
+      let char_to_v c =
+        match c with
+        | '0' -> false
+        | '1' -> true
+        | _ -> failwith "string constraints are not supported in EIA mode"
+      ;;
     end)
 
 let is_internal = String.starts_with ~prefix:"%"
