@@ -953,6 +953,7 @@ module type Type = sig
   val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
+  val of_nat : u -> t
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
   val find_c_d' : t -> (int * int) Seq.t
@@ -2053,6 +2054,7 @@ module Lsb (Label : L) = struct
   ;;
 
   let to_nat (nfa : t) : u = nfa
+  let of_nat (nfa : u) : t = nfa
 
   let combine_model_pieces (model, len1) (model2, len2) =
     (*let len = max len1 len2 in
@@ -2400,6 +2402,7 @@ module MsbNat (Label : L) = struct
     { nfa with start }
   ;;*)
   let to_nat (nfa : t) : u = nfa
+  let of_nat (nfa : u) : t = nfa
 
   let combine_model_pieces (model, len1) (model2, len2) : v list list * int =
     let len = max (List.length model) (List.length model2) in
@@ -2538,6 +2541,23 @@ module Msb (Label : L) = struct
     |> fun nfa ->
     Debug.dump_nfa ~msg:"after to_nat nfa %s" MsbNat.format_nfa nfa;
     nfa
+  ;;
+
+  let of_nat (nfa : u) : t =
+    let start = length nfa in
+    let transitions' =
+      Array.append
+        nfa.transitions
+        (Set.map ~f:(fun start' -> Label.eos_with_mask [ 0 ], start') nfa.start
+         |> Set.to_list
+         |> fun x -> [ Label.eos_with_mask [ 0 ], start ] @ x |> fun x -> [| x |])
+    in
+    { start = Set.singleton start
+    ; is_dfa = false
+    ; final = nfa.final
+    ; transitions = transitions'
+    ; deg = nfa.deg
+    }
   ;;
 
   let filter_map (nfa : t) (f : Label.t * int -> (Label.t * int) option) =
