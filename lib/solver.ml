@@ -1015,7 +1015,23 @@ struct
         |> List.map Ir.name
       in
       if Base.List.equal String.equal model_vars map_true_model_vars
-      then map
+      then (
+        Debug.printf
+          "Variable map: %a"
+          (Format.pp_print_list
+             ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
+             (fun fmt (a, b) ->
+                Format.fprintf
+                  fmt
+                  "%a -> %a"
+                  Ir.pp_atom
+                  a
+                  Z.pp_print
+                  (Extra.nat_model_to_int b)))
+          (Map.to_alist map);
+        (* map |> Map.map ~f:(fun x -> (v.zero :: x))) *)
+        (* HERE: in map -- add a sign digit u_zero to every list of symbols *)
+        map)
       else raise Too_long_model
     | Result.Ok map ->
       Debug.printf "Formula before substituting exponents: %a\n" Ir.pp f;
@@ -1024,7 +1040,13 @@ struct
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
            (fun fmt (a, b) ->
-              Format.fprintf fmt "%a -> %a" Ir.pp_atom a Z.pp_print (Extra.model_to_int b)))
+              Format.fprintf
+                fmt
+                "%a -> %a"
+                Ir.pp_atom
+                a
+                Z.pp_print
+                (Extra.nat_model_to_int b)))
         (Map.to_alist map);
       let filter =
         fun k ->
