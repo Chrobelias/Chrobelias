@@ -108,6 +108,7 @@ module type Type = sig
   val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
+  val of_nat : u -> t
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
   val find_c_d' : t -> (int * int) Seq.t
