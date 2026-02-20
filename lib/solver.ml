@@ -1006,7 +1006,8 @@ struct
   ;;
 
   let get_model_semenov f s order (model, len) models () =
-    let apply map ir =
+    let get_val map atom = Extra.model_to_int (Map.find_exn map atom) in
+    let apply ?(light = false) map ir =
       Debug.printf "Formula before substitutions: %a\n" Ir.pp f;
       Debug.printf
         "Variable map: %a"
@@ -1021,18 +1022,27 @@ struct
                 Z.pp_print
                 (Extra.nat_model_to_int b)))
         (Map.to_alist map);
-      let get_val map atom = Extra.model_to_int (Map.find_exn map atom) in
       let filter =
+        let decide cond atom =
+          if Map.mem map atom
+          then (
+            match cond atom with
+            | true -> true
+            | false -> if light then false else raise Too_long_model)
+          else false
+        in
+        let good v =
+          if String.starts_with (Ir.name v) ~prefix:"strlen"
+          then Z.(get_val map v < of_int Config.max_longest_path)
+          else
+            Z.fits_int (get_val map v) && Z.to_int (get_val map v) < Config.huge_const ()
+        in
+        let free_atoms = Ir.collect_free_atoms ir in
         fun k ->
-        match k with
-        | Ir.Pow2 kv when String.starts_with kv ~prefix:"strlen" ->
-          Map.mem map (get_exp k)
-          && Z.(get_val map (get_exp k) < of_int Config.max_longest_path)
-        | Ir.Pow2 _ ->
-          Map.mem map (get_exp k)
-          && Z.fits_int (get_val map (get_exp k))
-          && Z.to_int (get_val map (get_exp k)) < Config.huge_const ()
-        | Ir.Var _ -> Map.mem map k
+          match k with
+          | Ir.Pow2 _ -> decide good (get_exp k)
+          | Ir.Var _ ->
+            decide (fun x -> (not (Set.mem free_atoms (to_exp x))) || good x) k
       in
       let f =
         f
@@ -1086,7 +1096,7 @@ struct
       if List.equal Ir.eq_atom model_vars map_true_model_vars
       then Result.Ok signed_map
       else (
-        let f1 = apply signed_map f in
+        let f1 = apply ~light:true signed_map f in
         let partial_model = Ir.get_partial_model f1 in
         match List.equal Ir.eq_atom model_vars (partial_model |> List.map fst) with
         | true ->
@@ -1096,22 +1106,25 @@ struct
              |> Map.of_alist_exn)
         | false -> Result.Error `Too_long)
     | Result.Ok map ->
-      let f = apply map f in
-      let model = get_model_normal f () in
-      Result.Ok
-        (Map.merge map model ~f:(fun ~key -> function
-           | `Left x -> Some x
-           | `Right x -> Some x
-           | `Both (x, y) ->
-             failwith
-               (Format.asprintf
-                  "Should be unreachable, two models for %a: %a %a"
-                  Ir.pp_atom
-                  key
-                  Z.pp_print
-                  (Extra.nat_model_to_int x)
-                  Z.pp_print
-                  (Extra.nat_model_to_int y))))
+      (try
+         let f = apply map f in
+         let model = get_model_normal f () in
+         Result.Ok
+           (Map.merge map model ~f:(fun ~key -> function
+              | `Left x -> Some x
+              | `Right x -> Some x
+              | `Both (x, y) ->
+                failwith
+                  (Format.asprintf
+                     "Should be unreachable, two models for %a: %a %a"
+                     Ir.pp_atom
+                     key
+                     Z.pp_print
+                     (Extra.nat_model_to_int x)
+                     Z.pp_print
+                     (Extra.nat_model_to_int y))))
+       with
+       | Too_long_model -> Result.Error `Too_long)
   ;;
 
   let check_sat ir
@@ -1596,7 +1609,7 @@ let check_sat ir
                   in
                   `Int v
                 | Some `Str ->
-                  failwith "it is something strange: there is string variable in EIA")
+                  failwith "there is something strange: there is string variable in EIA")
               |> Map.map_keys_exn ~f:(function
                 | Ir.Pow2 k as atom -> get_exp atom
                 | atom -> atom) (*|> filter_internal*))
