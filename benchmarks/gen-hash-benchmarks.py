@@ -7,126 +7,183 @@ Generates benchmarks with a string variable constrained by a regex and modular a
 import argparse
 import random
 import subprocess
-import sys
 import tempfile
 import os
 from pathlib import Path
 
 
-# ---------------------------------------------------------------------------
-# Regex building blocks
-# ---------------------------------------------------------------------------
-
-DIGIT_RANGE = '(re.range "0" "9")'
-
-# Only digit subranges — keeps str.to_int valid
-DIGIT_SUBRANGES = [
-    '(re.range "0" "4")',
-    '(re.range "5" "9")',
-    '(re.range "1" "9")',  # no leading zero range
-    '(re.range "0" "9")',
-]
-
-# Digit-only literal prefixes
-PREFIXES = [
-    '"1"', '"12"', '"99"', '"100"', '"42"', '"7"', '"555"',
-    '"1234"', '"9"', '"11"', '"200"', '"37"', '"8"', '"999"',
-]
-
-
-def rand_digit_literal() -> str:
-    """Return a random all-digit literal for str.to_re."""
-    length = random.randint(1, 4)
-    # Avoid leading zeros in the overall number by not generating "000..." prefixes;
-    # the prefix is prepended so a "0" prefix is fine as an interior segment.
-    val = "".join(random.choices("0123456789", k=length))
-    return f'(str.to_re "{val}")'
+def rand_digit_range() -> str:
+    """
+    Random digit range (re.range "a" "b") with a < b.
+    Deliberately avoids always picking 0-9: generates interesting subranges.
+    """
+    lo = random.randint(0, 7)
+    hi = random.randint(lo + 1, 9)
+    return f'(re.range "{lo}" "{hi}")'
 
 
 def rand_digit_class(complexity: int) -> str:
-    """Return a digit-only character class."""
-    if complexity >= 2 and random.random() < 0.4:
-        # union of two digit subranges for variety
-        a, b = random.sample(DIGIT_SUBRANGES, 2)
-        return f"(re.union {a} {b})"
-    return random.choice(DIGIT_SUBRANGES)
+    """
+    Digit character class: a single range, or a union of 2-3 independently
+    chosen ranges. Higher complexity allows larger unions.
+    """
+    max_ranges = {1: 1, 2: 2, 3: 3}[complexity]
+    n = random.choices(range(1, max_ranges + 1), weights=range(max_ranges, 0, -1))[0]
+    ranges = [rand_digit_range() for _ in range(n)]
+    if len(ranges) == 1:
+        return ranges[0]
+    return f"(re.union {' '.join(ranges)})"
+
+
+def rand_digit_literal() -> str:
+    """
+    Digit-only literal strings with varied internal structure:
+    plain integers, repeated digits, alternating patterns, random digit strings.
+    """
+    kind = random.random()
+    if kind < 0.25:
+        val = str(random.randint(1, 999999))
+    elif kind < 0.45:
+        # repeated single digit: 333, 7777, 00
+        d = random.randint(0, 9)
+        val = str(d) * random.randint(2, 5)
+    elif kind < 0.65:
+        # alternating two distinct digits: 1212, 5959, 0303
+        a, b = random.sample("0123456789", 2)
+        val = (a + b) * random.randint(1, 3)
+    elif kind < 0.8:
+        # ascending run: 123, 456789
+        start = random.randint(0, 6)
+        length = random.randint(2, 4)
+        val = "".join(str((start + i) % 10) for i in range(length))
+    else:
+        # fully random digit string
+        val = "".join(random.choices("0123456789", k=random.randint(2, 6)))
+    return f'(str.to_re "{val}")'
 
 
 def rand_quantifier(inner: str, complexity: int) -> str:
-    """Wrap inner regex in a quantifier."""
+    """Wrap inner in a quantifier, with complexity gating loop and opt."""
     if complexity >= 3 and random.random() < 0.4:
-        n = random.randint(1, 4)
-        m = n + random.randint(1, 5)
+        n = random.randint(1, 5)
+        m = n + random.randint(1, 6)
         return f"((_ re.loop {n} {m}) {inner})"
-    ops = ["re.*", "re.+"]
-    if complexity >= 2:
-        ops += ["re.opt"]
-    op = random.choices(ops, weights=[3, 3, 1][:len(ops)])[0]
+    if complexity >= 2 and random.random() < 0.12:
+        return f"(re.opt {inner})"
+    op = "re.*" if random.random() < 0.45 else "re.+"
     return f"({op} {inner})"
+
+
+def rand_infinite_atom(complexity: int) -> str:
+    """
+    One regex atom describing an infinite digit language.
+    Three structural shapes:
+      - quantified class  e.g.  (re.+ (re.range "2" "7"))
+      - quantified union of class and literal
+      - quantified concatenation of literal + class  (nested structure)
+    """
+    r = random.random()
+    if r < 0.45:
+        return rand_quantifier(rand_digit_class(complexity), complexity)
+    elif r < 0.72:
+        cls = rand_digit_class(complexity)
+        lit = rand_digit_literal()
+        union = f"(re.union {cls} {lit})"
+        return rand_quantifier(union, complexity)
+    else:
+        # (re.* (re.++ "42" (re.range "0" "5")))  — infinite via outer loop
+        cls = rand_digit_class(complexity)
+        lit = rand_digit_literal()
+        concat = f"(re.++ {lit} {rand_quantifier(cls, complexity)})"
+        return rand_quantifier(concat, complexity)
+
+
+def rand_prefix() -> str:
+    """
+    Random digit-only prefix with no fixed list.
+    Structurally varied: random int, repeated, alternating, patterned.
+    """
+    kind = random.random()
+    if kind < 0.35:
+        val = str(random.randint(1, 9999999))
+    elif kind < 0.55:
+        d = random.randint(1, 9)
+        val = str(d) * random.randint(1, 4)
+    elif kind < 0.72:
+        a, b = random.sample("123456789", 2)
+        val = (a + b) * random.randint(1, 2)
+    elif kind < 0.85:
+        start = random.randint(1, 5)
+        val = "".join(str(start + i) for i in range(random.randint(2, 4)))
+    else:
+        val = "".join(random.choices("123456789", k=1)) + \
+              "".join(random.choices("0123456789", k=random.randint(1, 5)))
+    return f'(str.to_re "{val}")'
 
 
 def build_regex(complexity: int) -> str:
     """
     Build a digit-only regex describing an infinite language.
-    All strings it matches are valid inputs to str.to_int.
-    complexity: 1=simple, 2=moderate, 3=complex.
+
+    Structure:
+      [optional prefix]
+      <one or more infinite atoms>          ← guarantees infinite language
+      [optional interleaved digit literals]
+      [optional bounded suffix]
+
+    complexity: 1=simple, 2=moderate, 3=complex
     """
     parts = []
 
-    # Fixed digit prefix — anchors the value range and avoids trivial empty matches
-    parts.append(f"(str.to_re {random.choice(PREFIXES)})")
+    # Optional prefix — 50% chance, fully random (not from a fixed list)
+    if random.random() < 0.5:
+        parts.append(rand_prefix())
 
-    # One or more quantified digit groups — this is where infinity comes from
-    mid_count = random.randint(1, complexity + 1)
-    for _ in range(mid_count):
-        cls = rand_digit_class(complexity)
-        quantified = rand_quantifier(cls, complexity)
-        parts.append(quantified)
-
-        # Optionally splice in a fixed digit segment for structural variety
-        if complexity >= 2 and random.random() < 0.3:
+    # Core: one or more infinite atoms
+    n_atoms = random.randint(1, complexity + 1)
+    for i in range(n_atoms):
+        parts.append(rand_infinite_atom(complexity))
+        # Optionally interleave a digit literal between atoms
+        if complexity >= 2 and i < n_atoms - 1 and random.random() < 0.35:
             parts.append(rand_digit_literal())
 
-    # At complexity 3, sometimes add a bounded suffix block
-    if complexity == 3 and random.random() < 0.5:
-        cls = rand_digit_class(complexity)
-        n = random.randint(1, 3)
-        m = n + random.randint(1, 3)
-        parts.append(f"((_ re.loop {n} {m}) {cls})")
+    # Optional suffix
+    if complexity >= 2 and random.random() < 0.4:
+        r = random.random()
+        if r < 0.4:
+            parts.append(rand_digit_literal())
+        elif r < 0.7:
+            cls = rand_digit_class(complexity)
+            n = random.randint(1, 4)
+            m = n + random.randint(0, 4)
+            parts.append(f"((_ re.loop {n} {m}) {cls})")
+        else:
+            parts.append(f"(re.opt {rand_digit_literal()})")
 
+    if len(parts) == 1:
+        return parts[0]
     return "(re.++ " + " ".join(parts) + ")"
 
 
 # ---------------------------------------------------------------------------
-# Modular arithmetic constraint builder
+# Modular arithmetic constraint
 # ---------------------------------------------------------------------------
 
-def build_mod_chain(chain_len: int, mod_range: tuple[int, int]) -> str:
-    """
-    Build a chained mod expression of `chain_len` levels.
-    e.g. chain_len=2 -> (mod (mod (str.to_int x) M1) M2)
-    """
+def build_mod_chain(chain_len: int, mod_range: tuple) -> str:
     lo, hi = mod_range
     expr = "(str.to_int x)"
-    moduli = [random.randint(lo, hi) for _ in range(chain_len)]
-    for m in moduli:
+    for m in [random.randint(lo, hi) for _ in range(chain_len)]:
         expr = f"(mod {expr} {m})"
     return expr
 
 
 # ---------------------------------------------------------------------------
-# Benchmark generator
+# Benchmark assembly
 # ---------------------------------------------------------------------------
 
-def generate_benchmark(
-    chain_len: int,
-    mod_range: tuple[int, int],
-    complexity: int,
-    max_len: int | None,
-) -> str:
+def generate_benchmark(chain_len: int, mod_range: tuple, complexity: int, max_len) -> str:
     regex = build_regex(complexity)
     mod_expr = build_mod_chain(chain_len, mod_range)
-
     lines = [
         "(set-logic QF_SLIA)",
         "(set-option :produce-models true)",
@@ -151,13 +208,13 @@ def run_z3(smt2: str, timeout_ms: int) -> str:
         fname = f.name
     try:
         result = subprocess.run(
-            ["z3", f"-T:{timeout_ms}", fname],
-            capture_output=True, text=True, timeout=timeout_ms / 1000
+            ["z3", f"-T:{max(1, timeout_ms // 1000)}", fname],
+            capture_output=True, text=True, timeout=timeout_ms / 1000 + 2
         )
-        output = result.stdout.strip()
-        if output.startswith("unsat"):
+        out = result.stdout.strip()
+        if out.startswith("unsat"):
             return "unsat"
-        elif output.startswith("sat"):
+        elif out.startswith("sat"):
             return "sat"
         else:
             return "unknown"
@@ -169,17 +226,14 @@ def run_z3(smt2: str, timeout_ms: int) -> str:
         os.unlink(fname)
 
 
-def is_non_trivial(smt2: str, timeout_ms: int) -> tuple[bool, str]:
+def is_non_trivial(smt2: str, timeout_ms: int) -> tuple:
     """
-    A benchmark is non-trivial if Z3 cannot decide it quickly.
-    - 'unsat' quickly -> trivially unsatisfiable, reject.
-    - 'sat'   quickly -> trivially satisfiable, reject.
-    - 'unknown'/'timeout' -> genuinely hard, keep it.
+    Non-trivial = Z3 cannot decide within timeout.
+    Both quick 'sat' and quick 'unsat' count as trivial.
     """
     verdict = run_z3(smt2, timeout_ms)
-    if verdict in ("unsat", "sat"):
-        return False, verdict
-    return True, verdict
+    trivial = verdict in ("sat", "unsat")
+    return (not trivial), verdict
 
 
 # ---------------------------------------------------------------------------
@@ -190,65 +244,38 @@ def parse_args():
     p = argparse.ArgumentParser(
         description="Generate QF_SLIA SMT2 benchmarks with regex + modular arithmetic constraints."
     )
-    p.add_argument(
-        "-n", "--count", type=int, default=100,
-        help="Number of benchmarks to generate (default: 100)"
-    )
-    p.add_argument(
-        "--mod-min", type=int, default=2,
-        help="Minimum modulus value (default: 2)"
-    )
-    p.add_argument(
-        "--mod-max", type=int, default=1000,
-        help="Maximum modulus value (default: 1000)"
-    )
-    p.add_argument(
-        "--chain-min", type=int, default=1,
-        help="Minimum mod chain length (default: 1)"
-    )
-    p.add_argument(
-        "--chain-max", type=int, default=3,
-        help="Maximum mod chain length (default: 3)"
-    )
-    p.add_argument(
-        "--complexity", type=int, default=2, choices=[1, 2, 3],
-        help="Regex complexity: 1=simple, 2=moderate, 3=complex (default: 2)"
-    )
-    p.add_argument(
-        "--max-len", type=int, default=100,
-        help="Max string length constraint; 0 = no constraint (default: 100)"
-    )
-    p.add_argument(
-        "--output-dir", type=str, default="benchmarks",
-        help="Directory to write .smt2 files (default: benchmarks/)"
-    )
-    p.add_argument(
-        "--no-verify", action="store_true",
-        help="Disable Z3 non-triviality verification (verification is ON by default)"
-    )
-    p.add_argument(
-        "--verify-timeout", type=int, default=300,
-        help="Z3 timeout in milliseconds per candidate (default: 300). "
-             "Benchmarks decided within this timeout (sat or unsat) are considered trivial and retried."
-    )
-    p.add_argument(
-        "--max-retries", type=int, default=100,
-        help="Max regeneration attempts per benchmark slot before giving up and keeping the last candidate (default: 100)"
-    )
-    p.add_argument(
-        "--seed", type=int, default=None,
-        help="Random seed for reproducibility"
-    )
-    p.add_argument(
-        "--print", action="store_true", dest="print_stdout",
-        help="Also print benchmarks to stdout"
-    )
+    p.add_argument("-n", "--count", type=int, default=100,
+                   help="Number of benchmarks to generate (default: 100)")
+    p.add_argument("--mod-min", type=int, default=2,
+                   help="Minimum modulus value (default: 2)")
+    p.add_argument("--mod-max", type=int, default=300,
+                   help="Maximum modulus value (default: 300)")
+    p.add_argument("--chain-min", type=int, default=1,
+                   help="Minimum mod chain length (default: 1)")
+    p.add_argument("--chain-max", type=int, default=3,
+                   help="Maximum mod chain length (default: 3)")
+    p.add_argument("--complexity", type=int, default=2, choices=[1, 2, 3],
+                   help="Regex complexity: 1=simple, 2=moderate, 3=complex (default: 2)")
+    p.add_argument("--max-len", type=int, default=100,
+                   help="Max string length constraint; 0 = no constraint (default: 100)")
+    p.add_argument("--output-dir", type=str, default="benchmarks",
+                   help="Directory to write .smt2 files (default: benchmarks/)")
+    p.add_argument("--no-verify", action="store_true",
+                   help="Disable Z3 non-triviality verification (ON by default)")
+    p.add_argument("--verify-timeout", type=int, default=300,
+                   help="Z3 timeout in milliseconds per candidate (default: 300). "
+                        "Benchmarks decided within this timeout are considered trivial.")
+    p.add_argument("--max-retries", type=int, default=100,
+                   help="Max regeneration attempts per slot before keeping last candidate (default: 100)")
+    p.add_argument("--seed", type=int, default=None,
+                   help="Random seed for reproducibility")
+    p.add_argument("--print", action="store_true", dest="print_stdout",
+                   help="Also print benchmarks to stdout")
     return p.parse_args()
 
 
 def main():
     args = parse_args()
-
     if args.seed is not None:
         random.seed(args.seed)
 
@@ -263,11 +290,13 @@ def main():
     print(f"  chain length:      [{args.chain_min}, {args.chain_max}]")
     print(f"  regex complexity:  {args.complexity}")
     print(f"  max string length: {max_len if max_len else 'unconstrained'}")
-    print(f"  verify (Z3):       {'yes — timeout=' + str(args.verify_timeout) + 's, max_retries=' + str(args.max_retries) if verify else 'no'}")
+    if verify:
+        print(f"  verify (Z3):       yes — timeout={args.verify_timeout}ms, max_retries={args.max_retries}")
+    else:
+        print(f"  verify (Z3):       no")
     print()
 
     for idx in range(args.count):
-        # Gradually increase chain length across the suite
         progress = idx / max(args.count - 1, 1)
         chain_len = args.chain_min + round(progress * (args.chain_max - args.chain_min))
         chain_len = max(args.chain_min, min(args.chain_max, chain_len))
@@ -283,11 +312,11 @@ def main():
                 ok, verdict = is_non_trivial(candidate, args.verify_timeout)
                 if ok:
                     smt2 = candidate
-                    status_tag = verdict  # 'unknown' or 'timeout'
+                    status_tag = verdict
                     break
                 else:
                     print(f"  [retry {attempt}/{args.max_retries}] bench {idx+1}: trivial ({verdict}), regenerating...")
-                    smt2 = candidate     # keep last candidate as fallback
+                    smt2 = candidate
                     status_tag = f"trivial({verdict})-forced"
 
         fname = out_dir / f"bench_{idx:04d}_chain{chain_len}.smt2"
@@ -305,3 +334,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
