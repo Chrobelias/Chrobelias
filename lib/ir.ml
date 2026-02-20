@@ -967,3 +967,15 @@ let simpl_monotonicty ir =
     fixpoint 0 vars [] rhs
   | _ -> ir
 ;;
+
+let get_partial_model ir =
+  fold
+    (fun list -> function
+       | Rel (Eq, term, c) when Map.length term = 1 ->
+         let var, coeff = Map.min_elt_exn term in
+         let value = Z.(c / coeff) in
+         (var, value) :: list
+       | _ -> list)
+    []
+    ir
+;;
