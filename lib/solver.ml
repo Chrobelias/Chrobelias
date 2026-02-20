@@ -1025,7 +1025,13 @@ struct
       let filter =
         fun k ->
         match k with
-        | Ir.Pow2 _ -> Map.mem map (get_exp k) && Z.fits_int (get_val map (get_exp k))
+        | Ir.Pow2 kv when String.starts_with kv ~prefix:"strlen" ->
+          Map.mem map (get_exp k)
+          && Z.(get_val map (get_exp k) < of_int Config.max_longest_path)
+        | Ir.Pow2 _ ->
+          Map.mem map (get_exp k)
+          && Z.fits_int (get_val map (get_exp k))
+          && Z.to_int (get_val map (get_exp k)) < Config.huge_const ()
         | Ir.Var _ -> Map.mem map k
       in
       let f =
@@ -1446,7 +1452,7 @@ module Lsb =
         | _ -> failwith "string constraints are not supported in EIA mode"
       ;;
 
-      let int_to_model n = n |> Utils.to_bits |> List.map char_to_v
+      let int_to_model n = n |> Utils.to_bits
     end)
 
 let z_of_list_msb p =
@@ -1511,9 +1517,7 @@ module Msb =
         | _ -> failwith "string constraints are not supported in EIA mode"
       ;;
 
-      let int_to_model n =
-        n |> Utils.to_bits |> Base.List.rev |> (fun x -> '0' :: x) |> List.map char_to_v
-      ;;
+      let int_to_model n = n |> Utils.to_bits |> Base.List.rev |> fun x -> false :: x
     end)
 
 let is_internal = String.starts_with ~prefix:"%"

@@ -35,13 +35,13 @@ let rec powz ~base:a = function
 let to_bits n =
   let last_bit n =
     match Z.(n mod of_int 2) with
-    | n when n = Z.zero -> '0'
-    | _ -> '1'
+    | n when n = Z.zero -> false
+    | _ -> true
   in
   let n = if Z.(n < zero) then Z.(-n) else n in
   let rec helper acc = function
-    | x when x = Z.zero -> '0' :: acc
-    | x when x = Z.one -> '1' :: acc
+    | x when x = Z.zero -> false :: acc
+    | x when x = Z.one -> true :: acc
     | x -> last_bit x :: helper acc (Z.shift_right x 1)
   in
   helper [] n
