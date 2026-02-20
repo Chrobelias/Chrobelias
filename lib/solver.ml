@@ -223,7 +223,7 @@ module Make
     (NfaNat : Nfa.NatType)
     (NfaCollectionNat : NfaCollection.NatType with type t = NfaNat.t)
     (Nfa : Nfa.Type with type u = NfaNat.t and type v = NfaNat.v)
-    (NfaCollection : NfaCollection.Type with type t = Nfa.t)
+    (NfaCollection : NfaCollection.Type with type t = Nfa.t and type v = Nfa.v)
     (Extra : sig
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
        val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
@@ -1029,9 +1029,9 @@ struct
                   Z.pp_print
                   (Extra.nat_model_to_int b)))
           (Map.to_alist map);
-        (* map |> Map.map ~f:(fun x -> (v.zero :: x))) *)
-        (* HERE: in map -- add a sign digit u_zero to every list of symbols *)
-        map)
+        map |> Map.map ~f:(fun x -> Extra.char_to_v '0' :: x))
+      (* HERE: in map -- add a sign digit u_zero to every list of symbols *)
+      (* map) *)
       else raise Too_long_model
     | Result.Ok map ->
       Debug.printf "Formula before substituting exponents: %a\n" Ir.pp f;
