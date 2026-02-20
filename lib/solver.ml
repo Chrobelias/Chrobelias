@@ -1004,7 +1004,7 @@ struct
     model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn
   ;;
 
-  let get_model_semenov_exn f s order (model, len) models () =
+  let get_model_semenov f s order (model, len) models () =
     match combine_model_pieces s (List.rev order) (model, len) models with
     | Result.Error map ->
       let model_vars = Ir.collect_model_vars f |> Map.keys |> List.map Ir.name in
@@ -1015,22 +1015,8 @@ struct
         |> List.map Ir.name
       in
       if Base.List.equal String.equal model_vars map_true_model_vars
-      then (
-        Debug.printf
-          "Variable map: %a"
-          (Format.pp_print_list
-             ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
-             (fun fmt (a, b) ->
-                Format.fprintf
-                  fmt
-                  "%a -> %a"
-                  Ir.pp_atom
-                  a
-                  Z.pp_print
-                  (Extra.nat_model_to_int b)))
-          (Map.to_alist map);
-        map |> Map.map ~f:(fun x -> Extra.char_to_v '0' :: x))
-      else raise Too_long_model
+      then Result.Ok (map |> Map.map ~f:(fun x -> Extra.char_to_v '0' :: x))
+      else Result.Error `Too_long
     | Result.Ok map ->
       Debug.printf "Formula before substituting exponents: %a\n" Ir.pp f;
       Debug.printf
@@ -1040,7 +1026,7 @@ struct
            (fun fmt (a, b) ->
               Format.fprintf
                 fmt
-                "%a -> %a"
+                "%a -> %a\n"
                 Ir.pp_atom
                 a
                 Z.pp_print
@@ -1100,30 +1086,20 @@ struct
       let f = f |> Ir.simpl |> Ir.simpl_ineq in
       (* Debug.printfln "Formula after simplifications: %a" Ir.pp f; *)
       let model = get_model_normal f () in
-      Map.merge map model ~f:(fun ~key -> function
-        | `Left x -> Some x
-        | `Right x -> Some x
-        | `Both (x, y) ->
-          failwith
-            (Format.asprintf
-               "Should be unreachable, two models for %a: %a %a"
-               Ir.pp_atom
-               key
-               Z.pp_print
-               (Extra.nat_model_to_int x)
-               Z.pp_print
-               (Extra.nat_model_to_int y)))
-  ;;
-
-  let get_model_semenov f s order (model, len) models =
-    fun () ->
-    match get_model_semenov_exn f s order (model, len) models () with
-    | m -> Result.Ok m
-    | exception Too_long_model ->
-      let ir = Ir.shrink_strings f in
-      (match get_model_semenov_exn ir s order (model, len) models () with
-       | m -> Result.Ok m
-       | exception Too_long_model -> Result.Error `Too_long)
+      Result.Ok
+        (Map.merge map model ~f:(fun ~key -> function
+           | `Left x -> Some x
+           | `Right x -> Some x
+           | `Both (x, y) ->
+             failwith
+               (Format.asprintf
+                  "Should be unreachable, two models for %a: %a %a"
+                  Ir.pp_atom
+                  key
+                  Z.pp_print
+                  (Extra.nat_model_to_int x)
+                  Z.pp_print
+                  (Extra.nat_model_to_int y))))
   ;;
 
   let check_sat ir
