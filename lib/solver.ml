@@ -231,6 +231,7 @@ module Make
        val model_to_int : Nfa.v list -> Z.t
        val nat_model_to_int : NfaNat.v list -> Z.t
        val char_to_v : char -> NfaCollection.v
+       val int_to_model : Z.t -> Nfa.v list
      end) =
 struct
   let is_exp = Ir.is_exp
@@ -1005,20 +1006,8 @@ struct
   ;;
 
   let get_model_semenov f s order (model, len) models () =
-    match combine_model_pieces s (List.rev order) (model, len) models with
-    | Result.Error map ->
-      let model_vars = Ir.collect_model_vars f |> Map.keys |> List.map Ir.name in
-      let map_true_model_vars =
-        map
-        |> Map.keys
-        |> List.filter (fun x -> not (Base.String.is_prefix (Ir.name x) ~prefix:"%"))
-        |> List.map Ir.name
-      in
-      if Base.List.equal String.equal model_vars map_true_model_vars
-      then Result.Ok (map |> Map.map ~f:(fun x -> Extra.char_to_v '0' :: x))
-      else Result.Error `Too_long
-    | Result.Ok map ->
-      Debug.printf "Formula before substituting exponents: %a\n" Ir.pp f;
+    let apply map ir =
+      Debug.printf "Formula before substitutions: %a\n" Ir.pp f;
       Debug.printf
         "Variable map: %a"
         (Format.pp_print_list
@@ -1032,10 +1021,11 @@ struct
                 Z.pp_print
                 (Extra.nat_model_to_int b)))
         (Map.to_alist map);
+      let get_val map atom = Extra.model_to_int (Map.find_exn map atom) in
       let filter =
         fun k ->
         match k with
-        | Ir.Pow2 _ -> Map.mem map (get_exp k)
+        | Ir.Pow2 _ -> Map.mem map (get_exp k) && Z.fits_int (get_val map (get_exp k))
         | Ir.Var _ -> Map.mem map k
       in
       let f =
@@ -1050,8 +1040,8 @@ struct
                 Z.mul
                   v
                   (match k with
-                   | Ir.Pow2 x -> pow2z (Extra.model_to_int (Map.find_exn map (Var x)))
-                   | Ir.Var _ -> Extra.model_to_int (Map.find_exn map k)))
+                   | Ir.Pow2 x -> pow2z (get_val map (Var x))
+                   | Ir.Var _ -> get_val map k))
               |> Base.Sequence.fold ~init:c ~f:Z.( - )
             in
             let term = term |> Map.filter_keys ~f:(Fun.negate filter) in
@@ -1060,31 +1050,47 @@ struct
           | SRegRaw (atom, re) when Map.mem map atom -> Ir.true_
           | SLen (atom, atom') when is_exp atom' && Map.mem map (get_exp atom') ->
             let new_atom = Ir.internal () in
-            let v = Extra.model_to_int (Map.find_exn map (get_exp atom')) in
+            let v = get_val map (get_exp atom') in
             Ir.land_
               [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) (pow2z v) ]
           | SLen (atom, atom') when (not (is_exp atom)) && Map.mem map atom ->
             let new_atom = Ir.internal () in
-            let v = Extra.model_to_int (Map.find_exn map atom) in
+            let v = get_val map atom in
             Ir.land_ [ Ir.slen new_atom atom'; Ir.eq (Map.singleton new_atom Z.one) v ]
           | SLen (atom, atom') when (not (is_exp atom')) && Map.mem map atom' ->
             let new_atom = Ir.internal () in
-            let v = Extra.model_to_int (Map.find_exn map atom') in
+            let v = get_val map atom' in
             Ir.land_ [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) v ]
-          (*| SLen (atom, atom') when mem_var_or_pow atom ->
-          | SLen (atom, atom') when mem_var_or_pow atom' ->
-            let new_atom' = Ir.internal () in
-            let v = Extra.model_to_int (Map.find_exn map (get_exp atom')) in
-            Ir.land_ [ Ir.slen atom new_atom'; Ir.eq (Map.singleton new_atom' Z.one) v ]*)
-          (*| Ast.Var x -> *)
-          (*  Base.Option.value ~default:(Ast.Var x) (Map.find map x |> Option.map Ast.const) *)
-          (*| Ast.Pow (2, Ast.Const c) -> Ast.Const (pow2 c) *)
-          (*| Ast.Pow _ as t -> failwith (Format.asprintf "unimplemented: %a" Ast.pp_term t) *)
           | x -> x)
       in
       Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
-      let f = f |> Ir.simpl |> Ir.simpl_ineq in
-      (* Debug.printfln "Formula after simplifications: %a" Ir.pp f; *)
+      let result = f |> Ir.simpl |> Ir.simpl_ineq in
+      Debug.printf "Formula after simplifications: %a\n" Ir.pp f;
+      result
+    in
+    match combine_model_pieces s (List.rev order) (model, len) models with
+    | Result.Error map ->
+      let model_vars = Ir.collect_model_vars f |> Map.keys in
+      let map_true_model_vars =
+        map
+        |> Map.keys
+        |> List.filter (fun x -> not (Base.String.is_prefix (Ir.name x) ~prefix:"%"))
+      in
+      let signed_map = Map.map ~f:(fun x -> Extra.char_to_v '0' :: x) map in
+      if List.equal Ir.eq_atom model_vars map_true_model_vars
+      then Result.Ok signed_map
+      else (
+        let f1 = apply signed_map f in
+        let partial_model = Ir.get_partial_model f1 in
+        match List.equal Ir.eq_atom model_vars (partial_model |> List.map fst) with
+        | true ->
+          Result.Ok
+            (partial_model
+             |> List.map (fun (var, n) -> var, Extra.int_to_model n)
+             |> Map.of_alist_exn)
+        | false -> Result.Error `Too_long)
+    | Result.Ok map ->
+      let f = apply map f in
       let model = get_model_normal f () in
       Result.Ok
         (Map.merge map model ~f:(fun ~key -> function
@@ -1198,6 +1204,10 @@ module LsbStr =
 
       let nat_model_to_int = model_to_int
       let char_to_v c = c
+
+      let int_to_model n =
+        n |> Z.to_string |> String.to_seq |> List.of_seq |> List.rev |> List.map char_to_v
+      ;;
     end)
 
 let strbv_to_char =
@@ -1259,6 +1269,10 @@ module LsbStrBv =
 
       let nat_model_to_int = model_to_int
       let char_to_v = char_to_strbv
+
+      let int_to_model n =
+        n |> Z.to_string |> String.to_seq |> List.of_seq |> List.rev |> List.map char_to_v
+      ;;
     end)
 
 module MsbStr =
@@ -1320,6 +1334,10 @@ module MsbStr =
       let model_to_int = z_of_list_msb_str
       let nat_model_to_int = z_of_list_msb_nat_str
       let char_to_v c = c
+
+      let int_to_model n =
+        n |> Z.to_string |> String.to_seq |> List.of_seq |> List.map char_to_v
+      ;;
     end)
 
 module MsbStrBv =
@@ -1378,6 +1396,10 @@ module MsbStrBv =
       let model_to_int = z_of_list_msb_str
       let nat_model_to_int = z_of_list_msb_nat_str
       let char_to_v = char_to_strbv
+
+      let int_to_model n =
+        n |> Z.to_string |> String.to_seq |> List.of_seq |> List.map char_to_v
+      ;;
     end)
 
 let z_of_list_lsb p =
@@ -1423,6 +1445,8 @@ module Lsb =
         | '1' -> true
         | _ -> failwith "string constraints are not supported in EIA mode"
       ;;
+
+      let int_to_model n = n |> Utils.to_bits |> List.map char_to_v
     end)
 
 let z_of_list_msb p =
@@ -1485,6 +1509,10 @@ module Msb =
         | '0' -> false
         | '1' -> true
         | _ -> failwith "string constraints are not supported in EIA mode"
+      ;;
+
+      let int_to_model n =
+        n |> Utils.to_bits |> Base.List.rev |> (fun x -> '0' :: x) |> List.map char_to_v
       ;;
     end)
 
