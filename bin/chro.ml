@@ -136,6 +136,7 @@ let join_int_model _tys prefix m =
 ;;
 
 exception Too_long_model
+exception Lics_Underapprox_unsuccessful
 
 let rec model_from_parts_regexes_env tys model regexes env' =
   let model =
@@ -517,10 +518,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     in
     match Seq.find_map Fun.id asts_n_regexes with
     | Some (s, ast, env, get_model, _, regexes) -> Sat (s, ast, env, get_model, regexes)
-    | None ->
-      if !can_be_unk || !Lib.Config.bounded_unsat
-      then unknown ast Lib.Env.empty
-      else Unsat !unsat_reason
+    | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat !unsat_reason
   in
   let handle =
     fun result f ->
@@ -574,8 +572,16 @@ let rec check_sat ?(verbose = false) tys ast : rez =
               match v, !can_be_unk with
               | Some v, _ -> v
               | None, true ->
-                report_result2 (`Unknown "");
-                unknown ast Lib.Env.empty
+                if !Lib.Config.bounded_unsat
+                then (
+                  log
+                    "Can't decide with bres=%d and bstates=%d\n%!"
+                    config.bound_res
+                    config.bound_states;
+                  raise Lics_Underapprox_unsuccessful)
+                else (
+                  report_result2 (`Unknown "");
+                  unknown ast Lib.Env.empty)
               | None, false ->
                 report_result2 (`Unsat !unsat_reason);
                 Unsat !unsat_reason)
@@ -589,6 +595,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         report_result2 (`Unknown "nfa");
         unknown ast Lib.Env.empty)
   with
+  | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful
   | s ->
     if config.quiet == true
     then (
@@ -653,8 +660,17 @@ let () =
         Lib.Ast.land_
           (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
       in
-      let rez = check_sat ~verbose:true state.tys ast in
-      { state with last_result = Some rez }
+      (try
+         let rez = check_sat ~verbose:true state.tys ast in
+         { state with last_result = Some rez }
+       with
+       | Lics_Underapprox_unsuccessful ->
+         config.bound_res <- -1;
+         config.bound_states <- -1;
+         Lib.Config.bounded_unsat := false;
+         let rez = check_sat ~verbose:true state.tys ast in
+         { state with last_result = Some rez }
+       | _ -> state)
     | Smtml.Ast.Get_model ->
       if config.no_model = true
       then (
@@ -746,7 +762,8 @@ let () =
           | Expr.Symbol { name = Smtml.Symbol.Simple "sat"; _ } -> set_guess `Sat
           | Expr.Symbol { name = Smtml.Symbol.Simple "unsat"; _ } -> set_guess `Unsat
           | Expr.Symbol { name = Smtml.Symbol.Simple "unknown"; _ } -> set_guess `Unknown
-          | _ -> Format.eprintf "%d\n%!" __LINE__)
+          | Expr.Symbol { name = Smtml.Symbol.Simple "timeout"; _ } -> set_guess `Unknown
+          | _ -> Format.eprintf "(warning: invalid ':status' attribute)\n%!")
        | _ -> ());
       state
     | _ast ->
