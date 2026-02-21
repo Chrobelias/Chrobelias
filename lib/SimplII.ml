@@ -674,7 +674,22 @@ let make_main_symantics ?alpha ?agressive env =
       | s1, s2 -> Ast.eia (Ast.Eia.prefixof s1 s2)
     ;;
 
-    let str_contains s1 s2 = Ast.eia (Ast.Eia.contains s1 s2)
+    let str_contains s1 s2 =
+      match s1, s2 with
+      | Ast.Eia.Str_const s1, Ast.Eia.Str_const s2 ->
+        if Base.String.is_substring ~substring:s1 s2
+        then Id_symantics.true_
+        else Id_symantics.false_
+      | Ast.Eia.Str_const s1, s2 ->
+        Id_symantics.in_re
+          s2
+          (Regex.concat
+             (Regex.concat
+                (Regex.kleene (Regex.symbol [ Nfa.Str.u_null ]))
+                (Regex.str_to_re s1))
+             (Regex.kleene (Regex.symbol [ Nfa.Str.u_null ])))
+      | s1, s2 -> Ast.eia (Ast.Eia.contains s1 s2)
+    ;;
 
     let str_suffixof s1 s2 =
       match s1, s2 with
@@ -1925,67 +1940,41 @@ let lower_mod ast =
 
 let over_concat ast =
   let open Ast in
-  (* let module Set = Base.Set.Poly in
-  let atoms term =
-    term
-    |> Ast.Eia.fold_term
-         (fun acc -> function
-            | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
-            | _ -> acc)
-         (fun acc -> function
-            | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
-            | _ -> acc)
-         Set.empty
-    |> Set.to_list
-  in
-  let in_strlen_only_eia v eia =
-    Eia.fold2
-      (fun acc el ->
-         match el with
-         | Eia.Iofs (Eia.Atom (Var (s, S))) when s = v -> false
-         | _ -> acc)
-      (fun acc _ -> acc)
-      true
-      eia
-  in
-  let rec in_strlen_only v ast =
-    match ast with
-    | True | Pred _ -> true
-    | Eia eia -> begin
-      match eia with
-      | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> false
-      | Eia.InRe (Eia.Atom (Var (s, _)), S, _) when s = v -> false
-      | Eia.InReRaw (Eia.Atom (Var (s, _)), S, _) when s = v -> false
-      | _ -> in_strlen_only_eia v eia
-    end
-    | Lnot ast' | Exists (_, ast') -> in_strlen_only v ast'
-    | Land asts | Lor asts ->
-      List.fold_left (fun acc ast -> acc && in_strlen_only v ast) true asts
-    | Unsupp _ -> false
-  in
-  let strlen_vars term = List.for_all (fun v -> in_strlen_only v ast) (atoms term) in *)
-
-  (* FIXME: simple over for concats. If there is string constant in word equation, then 
-    add a regular constraint for the other side: suffixof, prefixof, or contains*)
-  let _over_reg =
+  let over_reg =
     let open Ast.Eia in
+    let collect_consts term =
+      Ast.Eia.fold_term
+        (fun acc x -> acc)
+        (fun acc term ->
+           match term with
+           | Str_const s -> s :: acc
+           | _ -> acc)
+        []
+        term
+    in
     Ast.fold
       (fun acc -> function
          | Ast.Eia (Eq (lhs, rhs, S)) -> begin
            match lhs, rhs with
-           | Concat ((Str_const s as s'), lhs'), rhs
-           | rhs, Concat ((Str_const s as s'), lhs') ->
-             Id_symantics.str_prefixof s' rhs :: acc
-           | Concat (lhs', (Str_const s as s')), rhs
-           | rhs, Concat (lhs', (Str_const s as s')) ->
-             Id_symantics.str_suffixof s' rhs :: acc
+           | Concat ((Str_const s as s'), rhs'), term
+           | term, Concat ((Str_const s as s'), rhs') ->
+             collect_consts rhs'
+             |> List.map (fun s -> Id_symantics.str_contains (Str_const s) term)
+             |> (fun constr -> Id_symantics.str_prefixof s' term :: constr)
+             |> List.fold_left (fun acc' constr -> constr :: acc') acc
+           | Concat (lhs', (Str_const s as s')), term
+           | term, Concat (lhs', (Str_const s as s')) ->
+             collect_consts lhs'
+             |> List.map (fun s -> Id_symantics.str_contains (Str_const s) term)
+             |> (fun constr -> Id_symantics.str_suffixof s' term :: constr)
+             |> List.fold_left (fun acc' constr -> constr :: acc') acc
            | _ -> acc
          end
          | ast -> acc)
       []
       ast
   in
-  let over_ast =
+  let over_length =
     Ast.fold
       (fun acc -> function
          | Ast.Eia (Eq (lhs, rhs, S)) ->
@@ -1994,7 +1983,7 @@ let over_concat ast =
       []
       ast
   in
-  Ast.land_ (over_ast @ [ ast ])
+  Ast.land_ (over_reg @ over_length @ [ ast ])
 ;;
 
 let basic_simplify step ?multiple (env : Env.t) ast =
