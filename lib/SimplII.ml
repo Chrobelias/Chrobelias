@@ -665,12 +665,7 @@ let make_main_symantics ?alpha ?agressive env =
         if String.starts_with ~prefix:s1 s2
         then Id_symantics.true_
         else Id_symantics.false_
-      | Ast.Eia.Str_const s1, s2 ->
-        Id_symantics.in_re
-          s2
-          (Regex.concat
-             (Regex.str_to_re s1)
-             (Regex.kleene (Regex.symbol [ Nfa.Str.u_null ])))
+      | Ast.Eia.Str_const s1, s2 -> Id_symantics.in_re s2 (Regex.prefix s1)
       | s1, s2 -> Ast.eia (Ast.Eia.prefixof s1 s2)
     ;;
 
@@ -680,14 +675,7 @@ let make_main_symantics ?alpha ?agressive env =
         if Base.String.is_substring ~substring:s1 s2
         then Id_symantics.true_
         else Id_symantics.false_
-      | Ast.Eia.Str_const s1, s2 ->
-        Id_symantics.in_re
-          s2
-          (Regex.concat
-             (Regex.concat
-                (Regex.kleene (Regex.symbol [ Nfa.Str.u_null ]))
-                (Regex.str_to_re s1))
-             (Regex.kleene (Regex.symbol [ Nfa.Str.u_null ])))
+      | Ast.Eia.Str_const s1, s2 -> Id_symantics.in_re s2 (Regex.contains s1)
       | s1, s2 -> Ast.eia (Ast.Eia.contains s1 s2)
     ;;
 
@@ -695,12 +683,7 @@ let make_main_symantics ?alpha ?agressive env =
       match s1, s2 with
       | Ast.Eia.Str_const s1, Ast.Eia.Str_const s2 ->
         if String.ends_with ~suffix:s1 s2 then Id_symantics.true_ else Id_symantics.false_
-      | Ast.Eia.Str_const s1, s2 ->
-        Id_symantics.in_re
-          s2
-          (Regex.concat
-             (Regex.kleene (Regex.symbol [ Nfa.Str.u_null ]))
-             (Regex.str_to_re s1))
+      | Ast.Eia.Str_const s1, s2 -> Id_symantics.in_re s2 (Regex.suffix s1)
       | s1, s2 -> Ast.eia (Ast.Eia.suffixof s1 s2)
     ;;
 
@@ -1940,7 +1923,8 @@ let lower_mod ast =
 
 let over_concat ast =
   let open Ast in
-  let over_reg =
+  (* To be added shortly *)
+  let _over_reg =
     let open Ast.Eia in
     let collect_consts term =
       Ast.Eia.fold_term
@@ -1956,17 +1940,15 @@ let over_concat ast =
       (fun acc -> function
          | Ast.Eia (Eq (lhs, rhs, S)) -> begin
            match lhs, rhs with
-           | Concat ((Str_const s as s'), rhs'), term
-           | term, Concat ((Str_const s as s'), rhs') ->
+           | Concat (Str_const s, rhs'), term | term, Concat (Str_const s, rhs') ->
              collect_consts rhs'
-             |> List.map (fun s -> Id_symantics.str_contains (Str_const s) term)
-             |> (fun constr -> Id_symantics.str_prefixof s' term :: constr)
+             |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
+             |> (fun constr -> Id_symantics.in_re term (Regex.prefix s) :: constr)
              |> List.fold_left (fun acc' constr -> constr :: acc') acc
-           | Concat (lhs', (Str_const s as s')), term
-           | term, Concat (lhs', (Str_const s as s')) ->
+           | Concat (lhs', Str_const s), term | term, Concat (lhs', Str_const s) ->
              collect_consts lhs'
-             |> List.map (fun s -> Id_symantics.str_contains (Str_const s) term)
-             |> (fun constr -> Id_symantics.str_suffixof s' term :: constr)
+             |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
+             |> (fun constr -> Id_symantics.in_re term (Regex.suffix s) :: constr)
              |> List.fold_left (fun acc' constr -> constr :: acc') acc
            | _ -> acc
          end
@@ -1983,7 +1965,7 @@ let over_concat ast =
       []
       ast
   in
-  Ast.land_ (over_reg @ over_length @ [ ast ])
+  Ast.land_ (over_length @ [ ast ])
 ;;
 
 let basic_simplify step ?multiple (env : Env.t) ast =
@@ -2778,10 +2760,14 @@ let arithmetize ast env =
     let extend v other =
       extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
     in
+    let extend_unsupp s =
+      extra_ph := Id_symantics.unsupp (s ^ " in unsupported concat") :: !extra_ph
+    in
+    let exception Unsupp_concat of string in
     let module M_ = struct
       include Id_symantics
 
-      let rec str_concat (lhs : str) (rhs : str) =
+      let str_concat (lhs : str) (rhs : str) =
         let handle_concat (lhs : str) (rhs : str) =
           let u = gensym () in
           let v = gensym () in
@@ -2798,13 +2784,27 @@ let arithmetize ast env =
           extend v (Ast.Eia.len rhs);
           Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
         in
-        let do_concat lhs rhs = str_concat lhs rhs in
-        match lhs, rhs with
-        | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
-          do_concat (do_concat lhs1 rhs1) (do_concat lhs1 rhs1)
-        | Ast.Eia.Concat (lhs1, rhs1), rhs2 -> handle_concat (do_concat lhs1 rhs1) rhs2
-        | lhs1, Ast.Eia.Concat (lhs2, rhs2) -> handle_concat lhs1 (do_concat lhs2 rhs2)
-        | lhs1, rhs1 -> handle_concat lhs1 rhs1
+        let rec do_concat lhs rhs =
+          match lhs, rhs with
+          | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
+            do_concat (do_concat lhs1 rhs1) (do_concat lhs1 rhs1)
+          | Ast.Eia.Concat (lhs1, rhs1), rhs2 -> handle_concat (do_concat lhs1 rhs1) rhs2
+          | lhs1, Ast.Eia.Concat (lhs2, rhs2) -> handle_concat lhs1 (do_concat lhs2 rhs2)
+          | lhs1, rhs1 ->
+            (match lhs1, rhs1 with
+             | Ast.Eia.Str_const s, _
+               when String.for_all Base.Char.is_digit s |> Stdlib.not ->
+               raise (Unsupp_concat s)
+             | _, Ast.Eia.Str_const s
+               when String.for_all Base.Char.is_digit s |> Stdlib.not ->
+               raise (Unsupp_concat s)
+             | lhs1, rhs1 -> handle_concat lhs1 rhs1)
+        in
+        try do_concat lhs rhs with
+        | Unsupp_concat s ->
+          extend_unsupp s;
+          let unsupp = gensym () in
+          Ast.Eia.sofi (Ast.Eia.Atom (Ast.var unsupp I))
       ;;
 
       let prj = function

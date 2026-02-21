@@ -393,3 +393,13 @@ let str_to_re s =
           epsilon)
     (kleene (symbol [ Config.string_config.eos ]))
 ;;
+
+let prefix s = concat (str_to_re s) (kleene (symbol [ Config.string_config.null ]))
+
+let contains s =
+  concat
+    (concat (kleene (symbol [ Config.string_config.null ])) (str_to_re s))
+    (kleene (symbol [ Config.string_config.null ]))
+;;
+
+let suffix s = concat (kleene (symbol [ Config.string_config.null ])) (str_to_re s)
