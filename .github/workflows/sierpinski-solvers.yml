@@ -1,4 +1,4 @@
-name: Perf different solvers on StrREln
+name: Perf different solvers on Sierpinski
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
