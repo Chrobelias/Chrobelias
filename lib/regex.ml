@@ -76,7 +76,7 @@ let mnot = function
 ;;
 
 let plus r = concat r (kleene r)
-let opt r = mor r empty
+let opt r = mor r epsilon
 let ( <|> ) = mor
 let ( <&> ) = mand
 let ( <*> ) = concat
