@@ -54,6 +54,12 @@ let logBaseZ n =
 ;;
 
 let join_int_model _tys prefix m =
+  Lib.Debug.printfln
+    "> join_int_model(prefix = %a, m = %a)"
+    (Lib.Env.pp ~title:"join_int_model")
+    prefix
+    Lib.Ir.pp_model_smtlib2
+    m;
   let open Lib in
   (* Format.printf
     "prefix.length = %d, n.length = %d\n%!"
@@ -78,7 +84,7 @@ let join_int_model _tys prefix m =
       | Ast.Eia.Str_const s -> Option.some (`Str s)
       | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
       | Ast.Eia.Len (Ast.Eia.Atom (Var (v, _))) -> seek prefix ("strlen" ^ v)
-      | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
+      | _ -> None
     end
     (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
     (* | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term) *)
@@ -89,7 +95,7 @@ let join_int_model _tys prefix m =
         | Ast.Eia.Const c -> Option.some (`Int c)
         | Ast.Eia.Str_const s -> Option.some (`Str s)
         | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
-        | t -> Format.kasprintf failwith "tbd: %a" Ast.pp_term_smtlib2 t
+        | _ -> None
       end
       | None when Solver.is_internal key -> None
       | None -> None
@@ -318,6 +324,11 @@ let rec check_sat ?(verbose = false) tys ast : rez =
   in
   let used_under2 = ref false in
   let check_nfa_sat ?(light = false) ast e =
+    Lib.Debug.printfln
+      "> check_nfa_sat(light = %b, ast = %a)"
+      light
+      Lib.Ast.pp_smtlib2
+      ast;
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
       let ir = ir |> Lib.Ir.simpl |> Lib.Ir.simpl_ineq in
@@ -344,6 +355,11 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       (* Unknown (ast, e) *) exit 0
   in
   let check_eia_sat ?(light = false) ast e =
+    Lib.Debug.printfln
+      "> check_eia_sat(light = %b, ast = %a)"
+      light
+      Lib.Ast.pp_smtlib2
+      ast;
     let can_be_unk = ref false in
     let apporx_rez =
       unknown ast e
@@ -467,6 +483,11 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     | _ -> apporx_rez
   in
   let check_string_sat ?(light = false) ast env =
+    Lib.Debug.printfln
+      "> check_string_sat(light = %b, ast = %a)"
+      light
+      Lib.Ast.pp_smtlib2
+      ast;
     let unsat_reason = ref "presimpl str" in
     let can_be_unk = ref false in
     let asts_n_regexes = Lib.SimplII.arithmetize ast env in

@@ -2329,6 +2329,7 @@ let try_under_concats vars alpha len env ast =
 ;;
 
 let under_concats env alpha ast =
+  Debug.printfln "> under_concats(ast = %a)" Ast.pp_smtlib2 ast;
   let module Set = Base.Set.Poly in
   if Config.under_str_config.max_cnt < 0
   then Seq.empty
@@ -2356,6 +2357,19 @@ let under_concats env alpha ast =
       match side with
       | n when n >= 0 && n < m ->
         filter_asts (try_under_concats (List.nth vars_for_under n) alpha length env ast)
+        |> fun asts ->
+        Debug.printf
+          "> under_concats [%a]\n%!"
+          (Format.pp_print_list (fun ppf (ast, env) ->
+             Format.fprintf
+               ppf
+               "@[<v 2>(ast = @[<v 2>%a@],@ env = @[<v 2>%a@])@]"
+               Ast.pp_smtlib2
+               ast
+               (Env.pp ~title:"under_concats")
+               env))
+          asts;
+        asts
       | other -> failwith "Unreachable: remainder is negative"))
 ;;
 
