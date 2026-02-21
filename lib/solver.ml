@@ -230,6 +230,7 @@ module Make
        val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
        val model_to_int : Nfa.v list -> Z.t
        val nat_model_to_int : NfaNat.v list -> Z.t
+       val nat_model_to_model : NfaNat.v list -> Nfa.v list
        val char_to_v : char -> NfaCollection.v
        val int_to_model : Z.t -> Nfa.v list
      end) =
@@ -993,7 +994,7 @@ struct
 
   exception Too_long_model
 
-  let get_model_normal ir () =
+  let get_model_nfa ir () =
     let nfa, vars = ir |> eval in
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
     let model, _ =
@@ -1086,47 +1087,55 @@ struct
       Debug.printf "Formula after simplifications: %a\n" Ir.pp f;
       result
     in
-    match combine_model_pieces s (List.rev order) (model, len) models with
-    | Result.Error map ->
-      let model_vars = Ir.collect_model_vars f |> Map.keys in
+    let get_model_simpl map ir =
+      let model_vars = Ir.collect_model_vars ir |> Map.keys in
       let map_true_model_vars =
         map
         |> Map.keys
         |> List.filter (fun x -> not (Base.String.is_prefix (Ir.name x) ~prefix:"%"))
       in
-      let signed_map = Map.map ~f:(fun x -> Extra.char_to_v '0' :: x) map in
+      let signed_map = Map.map ~f:Extra.nat_model_to_model map in
       if List.equal Ir.eq_atom model_vars map_true_model_vars
-      then Result.Ok signed_map
+      then Some signed_map
       else (
-        let f1 = apply ~light:true signed_map f in
-        let partial_model = Ir.get_partial_model f1 in
+        let ir_map = apply ~light:true signed_map ir in
+        let partial_model = Ir.get_partial_model ir_map in
         match List.equal Ir.eq_atom model_vars (partial_model |> List.map fst) with
         | true ->
-          Result.Ok
+          Some
             (partial_model
              |> List.map (fun (var, n) -> var, Extra.int_to_model n)
              |> Map.of_alist_exn)
-        | false -> Result.Error `Too_long)
+        | false -> None)
+    in
+    match combine_model_pieces s (List.rev order) (model, len) models with
+    | Result.Error map ->
+      (match get_model_simpl map f with
+       | Some m -> Result.Ok m
+       | None -> Result.Error `Too_long)
     | Result.Ok map ->
-      (try
-         let f = apply map f in
-         let model = get_model_normal f () in
-         Result.Ok
-           (Map.merge map model ~f:(fun ~key -> function
-              | `Left x -> Some x
-              | `Right x -> Some x
-              | `Both (x, y) ->
-                failwith
-                  (Format.asprintf
-                     "Should be unreachable, two models for %a: %a %a"
-                     Ir.pp_atom
-                     key
-                     Z.pp_print
-                     (Extra.nat_model_to_int x)
-                     Z.pp_print
-                     (Extra.nat_model_to_int y))))
-       with
-       | Too_long_model -> Result.Error `Too_long)
+      (match get_model_simpl map f with
+       | Some m -> Result.Ok m
+       | None ->
+         (try
+            let f = apply map f in
+            let model = get_model_nfa f () in
+            Result.Ok
+              (Map.merge map model ~f:(fun ~key -> function
+                 | `Left x -> Some x
+                 | `Right x -> Some x
+                 | `Both (x, y) ->
+                   failwith
+                     (Format.asprintf
+                        "Should be unreachable, two models for %a: %a %a"
+                        Ir.pp_atom
+                        key
+                        Z.pp_print
+                        (Extra.nat_model_to_int x)
+                        Z.pp_print
+                        (Extra.nat_model_to_int y))))
+          with
+          | Too_long_model -> Result.Error `Too_long))
   ;;
 
   let check_sat ir
@@ -1182,7 +1191,7 @@ struct
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
       Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
       if ir' |> eval |> fst |> Nfa.run
-      then sat_if_no_unsupp (fun () -> Result.Ok (get_model_normal ir ()))
+      then sat_if_no_unsupp (fun () -> Result.Ok (get_model_nfa ir ()))
       else `Unsat)
   ;;
 end
@@ -1224,6 +1233,7 @@ module LsbStr =
       ;;
 
       let nat_model_to_int = model_to_int
+      let nat_model_to_model = Fun.id
       let char_to_v c = c
 
       let int_to_model n =
@@ -1290,6 +1300,7 @@ module LsbStrBv =
 
       let nat_model_to_int = model_to_int
       let char_to_v = char_to_strbv
+      let nat_model_to_model = Fun.id
 
       let int_to_model n =
         n |> Z.to_string |> String.to_seq |> List.of_seq |> List.rev |> List.map char_to_v
@@ -1355,6 +1366,7 @@ module MsbStr =
       let model_to_int = z_of_list_msb_str
       let nat_model_to_int = z_of_list_msb_nat_str
       let char_to_v c = c
+      let nat_model_to_model model = char_to_v '0' :: model
 
       let int_to_model n =
         n |> Z.to_string |> String.to_seq |> List.of_seq |> List.map char_to_v
@@ -1417,6 +1429,7 @@ module MsbStrBv =
       let model_to_int = z_of_list_msb_str
       let nat_model_to_int = z_of_list_msb_nat_str
       let char_to_v = char_to_strbv
+      let nat_model_to_model model = char_to_v '0' :: model
 
       let int_to_model n =
         n |> Z.to_string |> String.to_seq |> List.of_seq |> List.map char_to_v
@@ -1459,6 +1472,7 @@ module Lsb =
 
       let model_to_int c = z_of_list_lsb c
       let nat_model_to_int = model_to_int
+      let nat_model_to_model = Fun.id
 
       let char_to_v c =
         match c with
@@ -1532,6 +1546,7 @@ module Msb =
         | _ -> failwith "string constraints are not supported in EIA mode"
       ;;
 
+      let nat_model_to_model model = char_to_v '0' :: model
       let int_to_model n = n |> Utils.to_bits |> Base.List.rev |> fun x -> false :: x
     end)
 
