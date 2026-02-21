@@ -11,7 +11,7 @@ on:
   pull_request:
 
 jobs:
-  build-linux:
+  strreln:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

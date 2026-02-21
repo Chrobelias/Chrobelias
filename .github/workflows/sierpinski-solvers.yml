@@ -14,8 +14,8 @@ env:
   TIMEOUT: 30s
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  sierpinski:
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
