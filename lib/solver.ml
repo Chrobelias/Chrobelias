@@ -1042,7 +1042,9 @@ struct
           match k with
           | Ir.Pow2 _ -> decide good (get_exp k)
           | Ir.Var _ ->
-            decide (fun x -> (not (Set.mem free_atoms (to_exp x))) || good x) k
+            if light
+            then Map.mem map k
+            else decide (fun x -> (not (Set.mem free_atoms (to_exp x))) || good x) k
       in
       let f =
         f
