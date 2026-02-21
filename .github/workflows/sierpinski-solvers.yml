@@ -1,0 +1,90 @@
+name: Perf different solvers on StrREln
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  TIMEOUT: 30s
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.3
+          dune-cache: true
+
+      - name: Install Smtml depedencies
+        working-directory: ./vendor/smtml
+        run: opam install . --deps-only --with-test --with-dev-setup
+
+      - name: Install depedencies
+        run: opam install . --deps-only --with-test
+
+      - name: Build
+        run: opam exec -- dune build @all
+
+      - name: Run Chrobelias on sierpinski benchmarks
+        run: |
+          set +e +o pipefail;
+          for problem in big standard 250; do
+            START_TIME=$(date +%s)
+            for i in "./benchmarks/chrobelias/QF_EIA/SIERPINSKI/$problem/"*.smt2; do
+              echo $i;
+              timeout $TIMEOUT time opam exec -- dune exec Chro --no-build -- $i;
+              if [[ $exit_status -eq 124 ]]; then
+                echo "timeout";
+              fi;
+            done 2>&1 | tee res_chro_$problem.txt;
+            END_TIME=$(date +%s)
+            DURATION=$(($END_TIME - $START_TIME))
+            echo "Benchmarks $problem completed by chrobelias in: $DURATION seconds with ${{ matrix.flags }}"
+          done
+
+      - name: Run Swine on sierpinski benchmarks
+        run: |
+          set +e +o pipefail;
+          for problem in big standard 250; do
+            START_TIME=$(date +%s)
+            for i in "./benchmarks/chrobelias/QF_EIA/SIERPINSKI/$problem/"*.smt2; do
+              echo $i;
+              timeout $TIMEOUT time opam exec -- dune exec bin/swine --no-build -- $i;
+              if [[ $exit_status -eq 124 ]]; then
+                echo "timeout";
+              fi;
+            done 2>&1 | tee res_swine_$problem.txt;
+            END_TIME=$(date +%s)
+            DURATION=$(($END_TIME - $START_TIME))
+            echo "Benchmarks $problem completed by swine in: $DURATION seconds with ${{ matrix.flags }}"
+          done
+
+      - name: Get stats
+        run: |
+          for problem in big standard 250; do
+            echo "Chro results for $problem:";
+            unsat_c=$(grep unsat res_chro_$problem.txt | wc -l); 
+            sat_c=$(grep sat res_chro_$problem.txt | wc -l); 
+            echo "sat     : $((sat_c - unsat_c))"; 
+            echo "unsat   : $unsat_c";
+            echo "timeout : $(grep timeout res_chro_$problem.txt | wc -l)";
+            echo "total   : $(grep smt2 res_chro_$problem.txt | wc -l)";
+
+            echo "Swine results for $problem:";
+            unsat_c=$(grep unsat res_swine_$problem.txt | wc -l); 
+            sat_c=$(grep sat res_swine_$problem.txt | wc -l); 
+            echo "sat     : $((sat_c - unsat_c))"; 
+            echo "unsat   : $unsat_c";
+            echo "timeout : $(grep timeout res_swine_$problem.txt | wc -l)";
+            echo "total   : $(grep smt2 res_swine_$problem.txt | wc -l)";
+          done
