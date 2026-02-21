@@ -659,9 +659,35 @@ let make_main_symantics ?alpha ?agressive env =
           else Ast.false_
         | _ -> *)Id_symantics.str_eq l r)*)
 
-    let str_prefixof s1 s2 = Ast.eia (Ast.Eia.prefixof s1 s2)
+    let str_prefixof s1 s2 =
+      match s1, s2 with
+      | Ast.Eia.Str_const s1, Ast.Eia.Str_const s2 ->
+        if String.starts_with ~prefix:s1 s2
+        then Id_symantics.true_
+        else Id_symantics.false_
+      | Ast.Eia.Str_const s1, s2 ->
+        Id_symantics.in_re
+          s2
+          (Regex.concat
+             (Regex.str_to_re s1)
+             (Regex.kleene (Regex.symbol [ Nfa.Str.u_null ])))
+      | s1, s2 -> Ast.eia (Ast.Eia.prefixof s1 s2)
+    ;;
+
     let str_contains s1 s2 = Ast.eia (Ast.Eia.contains s1 s2)
-    let str_suffixof s1 s2 = Ast.eia (Ast.Eia.suffixof s1 s2)
+
+    let str_suffixof s1 s2 =
+      match s1, s2 with
+      | Ast.Eia.Str_const s1, Ast.Eia.Str_const s2 ->
+        if String.ends_with ~suffix:s1 s2 then Id_symantics.true_ else Id_symantics.false_
+      | Ast.Eia.Str_const s1, s2 ->
+        Id_symantics.in_re
+          s2
+          (Regex.concat
+             (Regex.kleene (Regex.symbol [ Nfa.Str.u_null ]))
+             (Regex.str_to_re s1))
+      | s1, s2 -> Ast.eia (Ast.Eia.suffixof s1 s2)
+    ;;
 
     let collect_inside_mul xs =
       List.fold_right
@@ -1940,20 +1966,25 @@ let over_concat ast =
   let strlen_vars term = List.for_all (fun v -> in_strlen_only v ast) (atoms term) in *)
 
   (* FIXME: simple over for concats. If there is string constant in word equation, then 
-    add a regular constraint for the other side: suffixof, prefixof, or contains
-  
-  let over_reg =
-    let open Ast.Eia in 
+    add a regular constraint for the other side: suffixof, prefixof, or contains*)
+  let _over_reg =
+    let open Ast.Eia in
     Ast.fold
       (fun acc -> function
-         | Ast.Eia (Eq (lhs, rhs, S)) ->
-          match lhs, rhs with 
-          | Concat(Str_const s, lhs'), rhs -> Ast.Eia.InReRaw(rhs, S, NfaCollection.prefixof)  
-           Ast.Eia (Eq (Ast.Eia.len lhs, Ast.Eia.len rhs, I)) :: acc
+         | Ast.Eia (Eq (lhs, rhs, S)) -> begin
+           match lhs, rhs with
+           | Concat ((Str_const s as s'), lhs'), rhs
+           | rhs, Concat ((Str_const s as s'), lhs') ->
+             Id_symantics.str_prefixof s' rhs :: acc
+           | Concat (lhs', (Str_const s as s')), rhs
+           | rhs, Concat (lhs', (Str_const s as s')) ->
+             Id_symantics.str_suffixof s' rhs :: acc
+           | _ -> acc
+         end
          | ast -> acc)
       []
       ast
-  in *)
+  in
   let over_ast =
     Ast.fold
       (fun acc -> function
