@@ -42,8 +42,8 @@ jobs:
 
       - name: Run ${{ matrix.solver }} on strreln benchmarks
         run: |
-          ./.github/workflows/run-benchmarks.sh ${{ matrix.solver }} ./benchmarks/chrobelias/QF_SLIA/StrRElnc/REln $TIMEOUT
+          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" ./benchmarks/chrobelias/QF_SLIA/StrRElnc/REln $TIMEOUT
 
       - name: Get stats
         run: |
-          ./.github/workflows/stat-benchmarks.sh ${{ matrix.solver }} ./benchmarks/chrobelias/QF_SLIA/StrRElnc/REln
+          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" ./benchmarks/chrobelias/QF_SLIA/StrRElnc/REln

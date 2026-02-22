@@ -1,0 +1,53 @@
+name: Perf different solvers on stringfuzzregex
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  TIMEOUT: 10s
+  OPAMROOT: /home/user/.opam
+
+jobs:
+  stringfuzzregex-solvers:
+    runs-on: ubuntu-22.04
+    container:
+      image: we1ine/chrobelias:latest
+      options: --user user
+    strategy:
+      fail-fast: false
+      matrix:
+        solver: ["Chro", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler", "bin/z3 -memory:6144", "bin/z3str3re -memory:6144"]
+    steps:
+      - run: opam --version
+      - run: opam exec -- ocamlopt --version
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      #- uses: ocaml/setup-ocaml@v3
+      #  with:
+      #    ocaml-compiler: 5.3
+      #    dune-cache: true
+      - name: Install extra packages
+        run: sudo apt-get install wget --yes
+
+      - name: List opam packages
+        run: opam list
+
+      - name: Build
+        run: opam exec -- dune build @all
+
+      - name: Run ${{ matrix.solver }} on stringfuzzregex benchmarks
+        run: |
+          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex $TIMEOUT
+
+      - name: Get stats
+        run: |
+          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex
