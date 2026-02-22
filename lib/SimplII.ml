@@ -1924,7 +1924,7 @@ let lower_mod ast =
 let over_concat ast =
   let open Ast in
   (* To be added shortly *)
-  let _over_reg =
+  let over_reg =
     let open Ast.Eia in
     let collect_consts term =
       Ast.Eia.fold_term
@@ -1965,7 +1965,7 @@ let over_concat ast =
       []
       ast
   in
-  Ast.land_ (over_length @ [ ast ])
+  Ast.land_ (over_reg @ over_length @ [ ast ])
 ;;
 
 let basic_simplify step ?multiple (env : Env.t) ast =
@@ -2329,7 +2329,7 @@ let try_under_concats vars alpha len env ast =
 ;;
 
 let under_concats env alpha ast =
-  Debug.printfln "> under_concats(ast = %a)" Ast.pp_smtlib2 ast;
+  (* Debug.printfln "> under_concats(ast = %a)" Ast.pp_smtlib2 ast; *)
   let module Set = Base.Set.Poly in
   if Config.under_str_config.max_cnt < 0
   then Seq.empty
@@ -2357,19 +2357,6 @@ let under_concats env alpha ast =
       match side with
       | n when n >= 0 && n < m ->
         filter_asts (try_under_concats (List.nth vars_for_under n) alpha length env ast)
-        |> fun asts ->
-        Debug.printf
-          "> under_concats [%a]\n%!"
-          (Format.pp_print_list (fun ppf (ast, env) ->
-             Format.fprintf
-               ppf
-               "@[<v 2>(ast = @[<v 2>%a@],@ env = @[<v 2>%a@])@]"
-               Ast.pp_smtlib2
-               ast
-               (Env.pp ~title:"under_concats")
-               env))
-          asts;
-        asts
       | other -> failwith "Unreachable: remainder is negative"))
 ;;
 
@@ -2396,12 +2383,12 @@ let split_concats { Info.all; _ } =
         match lhs, rhs with
         | x, Ast.Eia.Str_const y ->
           Debug.dump_nfa ~msg:"Before splitting derivative %s" NfaS.format_nfa nfa;
-          let nfa = NfaS.deriv nfa (String.to_seq y |> List.of_seq |> List.rev) in
+          let nfa = NfaS.deriv_final nfa (String.to_seq y |> List.of_seq) in
           Debug.dump_nfa ~msg:"Splitting derivative %s" NfaS.format_nfa nfa;
           simplify_in_re_raw x nfa
         | Ast.Eia.Str_const x, y ->
           Debug.dump_nfa ~msg:"Before splitting derivative %s" NfaS.format_nfa nfa;
-          let nfa = NfaS.deriv_final nfa (String.to_seq x |> List.of_seq) in
+          let nfa = NfaS.deriv nfa (String.to_seq x |> List.of_seq |> List.rev) in
           Debug.dump_nfa ~msg:"Splitting derivative %s" NfaS.format_nfa nfa;
           simplify_in_re_raw y nfa
         | x, y when var_or_const x && var_or_const y ->
@@ -2908,8 +2895,13 @@ let arithmetize ast env =
     let arithmetize_in_re s nfa =
       let strlens = strlens s in
       let csds =
+        let is_eos vec =
+          match Array.length vec with
+          | 1 -> Char.equal (Array.get vec 0) Nfa.Str.u_eos
+          | _ -> failwith "unexpected nfa in arithmetize_in_re"
+        in
         NfaL.filter_map nfa (fun (label, q') ->
-          if Nfa.Str.is_zero label then Option.none else Option.some (label, q'))
+          if is_eos label then Option.none else Option.some (label, q'))
         |> NfaL.to_nat
         |> NfaL.chrobak
       in
