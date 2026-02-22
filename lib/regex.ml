@@ -394,7 +394,7 @@ let str_to_re s =
     (kleene (symbol [ Config.string_config.eos ]))
 ;;
 
-let prefix s = concat (str_to_re s) (kleene (symbol [ Config.string_config.null ]))
+let prefix s = concat (kleene (symbol [ Config.string_config.null ])) (str_to_re s)
 
 let contains s =
   concat
@@ -402,4 +402,4 @@ let contains s =
     (kleene (symbol [ Config.string_config.null ]))
 ;;
 
-let suffix s = concat (kleene (symbol [ Config.string_config.null ])) (str_to_re s)
+let suffix s = concat (str_to_re s) (kleene (symbol [ Config.string_config.null ]))
