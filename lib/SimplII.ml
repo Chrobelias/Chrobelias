@@ -1923,7 +1923,6 @@ let lower_mod ast =
 
 let over_concat ast =
   let open Ast in
-  (* To be added shortly *)
   let over_reg =
     let open Ast.Eia in
     let collect_consts term =
