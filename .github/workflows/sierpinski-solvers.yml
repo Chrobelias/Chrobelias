@@ -11,7 +11,7 @@ on:
   pull_request:
 
 env:
-  TIMEOUT: 30s
+  TIMEOUT: 10s
 
 jobs:
   sierpinski:
