@@ -70,7 +70,10 @@ type under_str_config =
   ; mutable max_cnt : int
   }
 
-type huge_const_config = { mutable const : int }
+type huge_const_config =
+  { mutable const : int
+  ; mutable const_model : int
+  }
 
 type string_config =
   { zero : char
@@ -79,8 +82,9 @@ type string_config =
   ; eos : char
   }
 
-let huge_const_config = { const = 20 }
+let huge_const_config = { const = 20; const_model = 120 }
 let huge_const () = huge_const_config.const
+let huge_const_for_model () = huge_const_config.const_model
 let under2_config = { amin = 5; amax = 11; flat = -1 }
 let under_str_config = { max_len = 32; max_cnt = 32 }
 let get_flat () = under2_config.flat
@@ -104,7 +108,7 @@ let max_longest_path =
 
 let max_nfa_size =
   match Sys.getenv_opt "CHRO_NFA_SIZE" with
-  | None -> 1000000
+  | None -> 1500000
   | Some s ->
     (match int_of_string_opt s with
      | Some n -> n
@@ -135,6 +139,11 @@ Basic options:
       , Printf.sprintf
           "<n> \tAdmit integer constants with at most <n> digits (DEFAULT n=%d)"
           (huge_const ()) )
+    ; ( "-huge-model"
+      , Arg.Int (fun n -> huge_const_config.const_model <- n)
+      , Printf.sprintf
+          "<n> \tSearch a model with at most <n> digits (DEFAULT n=%d)"
+          (huge_const_for_model ()) )
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , "  \tUse least-significant-bit first representation" )
