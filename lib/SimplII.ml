@@ -2961,7 +2961,7 @@ let arithmetize ast env =
                  :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
                  :: (phs |> List.map Ast.eia))
             ; Ast.land_
-                (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I (Regex.digit |> Regex.mnot))
+                (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I Regex.nondigit)
                  :: Ast.Eia (Ast.Eia.eq (atomi s) (Ast.Eia.const Z.minus_one) Ast.I)
                  :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
                  :: (phs |> List.map Ast.eia))
