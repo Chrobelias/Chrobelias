@@ -738,32 +738,38 @@ let () =
               in
               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
               Lib.Config.config.under_approx <- -1;
-              match check_sat tys shrinked_ast with
-              | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
-              | Sat (_, _, env, get_model, _regexes) ->
-                (try
-                   (* let tys = merge_tys state in *)
-                     match get_model tys with
+              try
+                match check_sat tys shrinked_ast with
+                | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
+                | Sat (_, _, env, get_model, _regexes) ->
+                  (* let tys = merge_tys state in *)
+                    (match get_model tys with
                      | Result.Ok model ->
                        let model = join_int_model tys env model in
                        print_model tys model regexes env
                      | Result.Error `Too_long -> Format.printf "no short model\n%!"
-                     | Result.Error `No_model -> assert false
-                 with
-                 | Lib.Nfa.Too_big_nfa ->
-                   if attempt == 1
-                   then shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
-                   else Format.printf "no short model found (nfa)\n%!")
+                     | Result.Error `No_model -> assert false)
+              with
+              | Lics_Underapprox_unsuccessful ->
+                config.bound_res <- -1;
+                config.bound_states <- -1;
+                shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
+              | Lib.Nfa.Too_big_nfa ->
+                if attempt == 1
+                then shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
+                else Format.printf "no short model found (nfa)\n%!"
             in
-            (match get_model tys with
-             | Result.Ok model -> begin
-               try print_model tys model regexes env with
-               | Lib.Nfa.Too_big_nfa ->
-                 shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
-               | Too_long_model -> shrink_model ()
-             end
-             | Result.Error `Too_long -> shrink_model ()
-             | Result.Error `No_model -> Format.printf "no model mode\n%!")
+            (try
+               match get_model tys with
+               | Result.Ok model -> begin
+                 try print_model tys model regexes env with
+                 | Too_long_model -> shrink_model ()
+               end
+               | Result.Error `Too_long -> shrink_model ()
+               | Result.Error `No_model -> Format.printf "no model mode\n%!"
+             with
+             | Lib.Nfa.Too_big_nfa ->
+               shrink_model ~len:(Lib.Config.huge_const_for_model ()) ())
         in
         state)
     | Smtml.Ast.Assert expr -> begin
