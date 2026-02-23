@@ -9,6 +9,8 @@ module Sequence = Base.Sequence
 
 let config = Config.config
 
+exception Too_big_nfa
+
 module Debug = struct
   let nfa_cnt = ref 0
   let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
@@ -1259,7 +1261,8 @@ struct
       if is_visited (q1, q2) |> not
       then (
         visited.(q1).(q2) <- !counter;
-        counter := !counter + 1)
+        counter
+        := if !counter >= Config.max_nfa_size then raise Too_big_nfa else !counter + 1)
     in
     let rec aux transitions queue =
       if Queue.is_empty queue
@@ -1410,7 +1413,8 @@ struct
         if is_visited qs |> not
         then (
           let q = !counter in
-          counter := !counter + 1;
+          counter
+          := if !counter >= Config.max_nfa_size then raise Too_big_nfa else !counter + 1;
           Hashtbl.replace visited qs q)
         else ()
       in

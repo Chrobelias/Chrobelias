@@ -596,6 +596,9 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         unknown ast Lib.Env.empty)
   with
   | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful
+  | Lib.Nfa.Too_big_nfa ->
+    report_result2 (`Unknown "too big nfa during the computations");
+    unknown ast Lib.Env.empty
   | s ->
     if config.quiet == true
     then (
@@ -732,18 +735,21 @@ let () =
               match check_sat tys shrinked_ast with
               | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
               | Sat (_, _, env, get_model, _regexes) ->
-                (* let tys = merge_tys state in *)
-                  (match get_model tys with
-                   | Result.Ok model ->
-                     let model = join_int_model tys env model in
-                     print_model tys model regexes env
-                   | Result.Error `Too_long -> Format.printf "no short model\n%!"
-                   | Result.Error `No_model -> assert false)
+                (try
+                   (* let tys = merge_tys state in *)
+                     match get_model tys with
+                     | Result.Ok model ->
+                       let model = join_int_model tys env model in
+                       print_model tys model regexes env
+                     | Result.Error `Too_long -> Format.printf "no short model\n%!"
+                     | Result.Error `No_model -> assert false
+                 with
+                 | Lib.Nfa.Too_big_nfa -> Format.printf "no short model found (nfa)\n%!")
             in
             (match get_model tys with
              | Result.Ok model -> begin
                try print_model tys model regexes env with
-               | Too_long_model -> shrink_model ()
+               | Lib.Nfa.Too_big_nfa | Too_long_model -> shrink_model ()
              end
              | Result.Error `Too_long -> shrink_model ()
              | Result.Error `No_model -> Format.printf "no model mode\n%!")

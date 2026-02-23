@@ -4,6 +4,8 @@ module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 module Sequence = Base.Sequence
 
+exception Too_big_nfa
+
 type state = int
 type deg = int
 
