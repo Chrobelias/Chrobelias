@@ -8,6 +8,7 @@ module Map = Base.Map.Poly
 let () = Lib.Config.parse_args ()
 let log = Lib.Debug.printfln
 let answer_guess = ref None
+let sat_found = ref false
 let set_guess v = answer_guess := Some v
 let config = Lib.Config.config
 
@@ -16,7 +17,9 @@ let () =
     Sys.sigterm
     (Sys.Signal_handle
        (fun _ ->
-         print_endline "timeout";
+         if !sat_found
+         then print_endline "no short model found (timeout)"
+         else print_endline "timeout";
          exit 1))
 ;;
 
@@ -707,18 +710,21 @@ let () =
           match rez with
           | Unknown _ | Unsat _ -> print_endline "no model"
           | Sat (_, _, env, get_model, regexes) ->
+            sat_found := true;
             let tys = merge_tys state in
-            let shrink_model () =
-              log "model is TOO big after 1st attempt\n%!";
+            let rec shrink_model ?len () =
+              let attempt, len =
+                if Option.is_some len
+                then 2, Option.get len
+                else 1, Lib.Config.max_longest_path
+              in
+              log "model is TOO big after %d attempt\n%!" attempt;
               let shrinked_ast =
                 Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
                   match key, data with
                   | Lib.Ir.Var v, `Str ->
                     Lib.Ast.(
-                      eia
-                        (Eia.leq
-                           (Len (Atom (Var (v, S))))
-                           (Const (Z.of_int Lib.Config.max_longest_path))))
+                      eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int len))))
                     :: acc
                   | Lib.Ir.Var v, `Int ->
                     Lib.Ast.(
@@ -744,12 +750,17 @@ let () =
                      | Result.Error `Too_long -> Format.printf "no short model\n%!"
                      | Result.Error `No_model -> assert false
                  with
-                 | Lib.Nfa.Too_big_nfa -> Format.printf "no short model found (nfa)\n%!")
+                 | Lib.Nfa.Too_big_nfa ->
+                   if attempt == 1
+                   then shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
+                   else Format.printf "no short model found (nfa)\n%!")
             in
             (match get_model tys with
              | Result.Ok model -> begin
                try print_model tys model regexes env with
-               | Lib.Nfa.Too_big_nfa | Too_long_model -> shrink_model ()
+               | Lib.Nfa.Too_big_nfa ->
+                 shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
+               | Too_long_model -> shrink_model ()
              end
              | Result.Error `Too_long -> shrink_model ()
              | Result.Error `No_model -> Format.printf "no model mode\n%!")
