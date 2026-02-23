@@ -171,28 +171,32 @@ def build_regex(complexity: int) -> str:
 
 def build_mod_chain(chain_len: int, mod_range: tuple) -> str:
     lo, hi = mod_range
+    mods = []
     expr = "(str.to_int x)"
     for m in [random.randint(lo, hi) for _ in range(chain_len)]:
         expr = f"(mod {expr} {m})"
-    return expr
+        mods.append(m)
+    return expr, mods[chain_len - 1]
 
 
 # ---------------------------------------------------------------------------
 # Benchmark assembly
 # ---------------------------------------------------------------------------
 
-def generate_benchmark(chain_len: int, mod_range: tuple, complexity: int, max_len) -> str:
+def generate_benchmark(chain_len: int, mod_range: tuple, complexity: int, max_len, is_long: bool) -> str:
     regex = build_regex(complexity)
-    mod_expr = build_mod_chain(chain_len, mod_range)
+    mod_expr, mod = build_mod_chain(chain_len, mod_range)
+    mod_res = random.randint(0,mod)
     lines = [
         "(set-logic QF_SLIA)",
         "(set-option :produce-models true)",
         "(declare-fun x () String)",
         f"(assert (str.in_re x {regex}))",
-        f"(assert (= {mod_expr} 0))",
+        f"(assert (= {mod_expr} {mod_res}))",
     ]
+    sign = '>' if is_long else '<'
     if max_len is not None:
-        lines.append(f"(assert (< (str.len x) {max_len}))")
+        lines.append(f"(assert ({sign} (str.len x) {max_len}))")
     lines += ["(check-sat)", "(get-model)"]
     return "\n".join(lines)
 
@@ -244,16 +248,18 @@ def parse_args():
     p = argparse.ArgumentParser(
         description="Generate QF_SLIA SMT2 benchmarks with regex + modular arithmetic constraints."
     )
-    p.add_argument("-n", "--count", type=int, default=100,
-                   help="Number of benchmarks to generate (default: 100)")
-    p.add_argument("--mod-min", type=int, default=2,
+    p.add_argument("--mod-min", type=int, default=5,
                    help="Minimum modulus value (default: 2)")
-    p.add_argument("--mod-max", type=int, default=300,
-                   help="Maximum modulus value (default: 300)")
-    p.add_argument("--chain-min", type=int, default=1,
-                   help="Minimum mod chain length (default: 1)")
-    p.add_argument("--chain-max", type=int, default=3,
-                   help="Maximum mod chain length (default: 3)")
+    p.add_argument("--mod-step", type=int, default=30,
+                   help="Modulus increment (default: 30)")
+    p.add_argument("-n", "--count", type=int, default=10,
+                   help="Number of benchmarks to generate per step (default: 10)")
+    p.add_argument("--num-steps", type=int, default=10,
+                   help="Modulus increment (default: 10)")
+    # p.add_argument("--chain-min", type=int, default=2,
+    #                help="Minimum mod chain length (default: 2)")
+    # p.add_argument("--chain-max", type=int, default=2,
+    #                help="Maximum mod chain length (default: 2)")
     p.add_argument("--complexity", type=int, default=2, choices=[1, 2, 3],
                    help="Regex complexity: 1=simple, 2=moderate, 3=complex (default: 2)")
     p.add_argument("--max-len", type=int, default=100,
@@ -271,6 +277,8 @@ def parse_args():
                    help="Random seed for reproducibility")
     p.add_argument("--print", action="store_true", dest="print_stdout",
                    help="Also print benchmarks to stdout")
+    p.add_argument("--long", action="store_true", dest="long", default=False,
+                   help="Require (assert (> (str.len x) 100))")
     return p.parse_args()
 
 
@@ -279,15 +287,15 @@ def main():
     if args.seed is not None:
         random.seed(args.seed)
 
-    mod_range = (args.mod_min, args.mod_max)
+    mod_step = args.mod_step
     max_len = args.max_len if args.max_len > 0 else None
     verify = not args.no_verify
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Generating {args.count} benchmarks → {out_dir}/")
-    print(f"  mod range:         [{mod_range[0]}, {mod_range[1]}]")
-    print(f"  chain length:      [{args.chain_min}, {args.chain_max}]")
+    print(f"  mod step: {args.mod_step}")
+    # print(f"  chain length:      [{args.chain_min}, {args.chain_max}]")
     print(f"  regex complexity:  {args.complexity}")
     print(f"  max string length: {max_len if max_len else 'unconstrained'}")
     if verify:
@@ -296,40 +304,46 @@ def main():
         print(f"  verify (Z3):       no")
     print()
 
-    for idx in range(args.count):
-        progress = idx / max(args.count - 1, 1)
-        chain_len = args.chain_min + round(progress * (args.chain_max - args.chain_min))
-        chain_len = max(args.chain_min, min(args.chain_max, chain_len))
+    for idx in range(args.num_steps):
+        chain_len = 2
+        # progress = idx / max(args.count - 1, 1)
+        # chain_len = args.chain_min + round(progress * (args.chain_max - args.chain_min))
+        # chain_len = max(args.chain_min, min(args.chain_max, chain_len))
 
         smt2 = None
-        status_tag = "unverified"
+        # status_tag = "unverified"
+        mod_range = (args.mod_min + mod_step * idx, args.mod_min + mod_step * (idx + 1))
+        print(f"Generating {args.count} benchmarks with mod range = [{mod_range[0]}, {mod_range[1]}]")
+        for num in range(args.count):
+            print(f"Benchmark # {num}:")
+            if not verify:
+                smt2 = generate_benchmark(chain_len, mod_range, args.complexity, max_len, args.long)
+            else:
+                for attempt in range(1, args.max_retries + 1):
+                    candidate = generate_benchmark(chain_len, mod_range, args.complexity, max_len, args.long)
+                    ok, verdict = is_non_trivial(candidate, args.verify_timeout)
+                    if ok:
+                        smt2 = candidate
+                        # status_tag = verdict
+                        break
+                    else:
+                        print(f"  [retry {attempt}/{args.max_retries}] : trivial ({verdict}), regenerating...")
+                        smt2 = candidate
+                        # status_tag = f"trivial({verdict})-forced"
+            name = f"hashmod_{mod_range[0]}_{mod_range[1]}_{num:02d}.smt2"
+            print(f"Done: {name}")
+            fname = out_dir / name
+            fname.write_text(smt2)
+        print("")
 
-        if not verify:
-            smt2 = generate_benchmark(chain_len, mod_range, args.complexity, max_len)
-        else:
-            for attempt in range(1, args.max_retries + 1):
-                candidate = generate_benchmark(chain_len, mod_range, args.complexity, max_len)
-                ok, verdict = is_non_trivial(candidate, args.verify_timeout)
-                if ok:
-                    smt2 = candidate
-                    status_tag = verdict
-                    break
-                else:
-                    print(f"  [retry {attempt}/{args.max_retries}] bench {idx+1}: trivial ({verdict}), regenerating...")
-                    smt2 = candidate
-                    status_tag = f"trivial({verdict})-forced"
-
-        fname = out_dir / f"bench_{idx:04d}_chain{chain_len}.smt2"
-        fname.write_text(smt2)
-
-        if args.print_stdout:
-            print(f"--- {fname} [{status_tag}] ---")
-            print(smt2)
-            print()
-        else:
-            print(f"  [{idx+1:4d}/{args.count}] {fname.name}  ({status_tag})")
-
-    print(f"\nDone. {args.count} benchmarks written to {out_dir}/")
+        # if args.print_stdout:
+        #     print(f"--- {fname} [{status_tag}] ---")
+        #     print(smt2)
+        #     print()
+        # else:
+        #     print(f"  [{idx+1:4d}/{args.count}] {fname.name}  ({status_tag})")
+    print('=' * 80)
+    print(f"\nDone. {args.num_steps * args.count} benchmarks written to {out_dir}/")
 
 
 if __name__ == "__main__":
