@@ -599,10 +599,11 @@ def main():
     total_regex_unsat = 0
 
     print("Starting benchmark generation...")
-    print(f"Solver: {args.solver} (invoked as: {args.solver} <file.smt2>)")
-    print(f"Probe timeout: {args.timeout_ms}ms")
-    print(f"Triviality timeout: {args.quick_timeout_ms}ms")
     print(f"Mode: {args.mode.name.lower()}")
+    if args.mode == MODE.HARD: 
+        print(f"Solver: {args.solver} (invoked as: {args.solver} <file.smt2>)")
+        print(f"Probe timeout: {args.timeout_ms}ms")
+        print(f"Triviality timeout: {args.quick_timeout_ms}ms")
     print(f"Word equations count: {args.we}")
     print(f"Regex enabled: {args.enable_regex}")
     if args.enable_regex:

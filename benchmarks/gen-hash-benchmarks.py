@@ -10,7 +10,22 @@ import subprocess
 import tempfile
 import os
 from pathlib import Path
+import enum
 
+class MODE(enum.Enum):
+    RANDOM = "random"
+    LONG = "long"
+    HARD = "hard"
+
+DEFAULT_SOLVER = "z3"
+DEFAULT_QUICK_TIMEOUT_MS = 10
+DEFAULT_MODE = MODE.RANDOM
+
+def mode_type(s: str) -> MODE:
+    try:
+        return MODE[s.upper()]
+    except KeyError:
+        raise argparse.ArgumentTypeError(f"Invalid mode: {s}. Choose from {[m.name.lower() for m in MODE]}")
 
 def rand_digit_range() -> str:
     """
@@ -171,19 +186,19 @@ def build_regex(complexity: int) -> str:
 
 def build_mod_chain(chain_len: int, mod_range: tuple) -> str:
     lo, hi = mod_range
-    mods = []
     expr = "(str.to_int x)"
-    for m in [random.randint(lo, hi) for _ in range(chain_len)]:
+    for _ in range(chain_len):
+        m = random.randint(lo, hi)
         expr = f"(mod {expr} {m})"
-        mods.append(m)
-    return expr, mods[chain_len - 1]
+        lo, hi = 5, m        
+    return expr, hi
 
 
 # ---------------------------------------------------------------------------
 # Benchmark assembly
 # ---------------------------------------------------------------------------
 
-def generate_benchmark(chain_len: int, mod_range: tuple, complexity: int, max_len, is_long: bool) -> str:
+def generate_benchmark(chain_len: int, mod_range: tuple, complexity: int, max_len, mode: MODE = DEFAULT_MODE) -> str:
     regex = build_regex(complexity)
     mod_expr, mod = build_mod_chain(chain_len, mod_range)
     mod_res = random.randint(0,mod)
@@ -194,7 +209,7 @@ def generate_benchmark(chain_len: int, mod_range: tuple, complexity: int, max_le
         f"(assert (str.in_re x {regex}))",
         f"(assert (= {mod_expr} {mod_res}))",
     ]
-    sign = '>' if is_long else '<'
+    sign = '>' if mode == MODE.LONG else '<'
     if max_len is not None:
         lines.append(f"(assert ({sign} (str.len x) {max_len}))")
     lines += ["(check-sat)", "(get-model)"]
@@ -248,37 +263,45 @@ def parse_args():
     p = argparse.ArgumentParser(
         description="Generate QF_SLIA SMT2 benchmarks with regex + modular arithmetic constraints."
     )
-    p.add_argument("--mod-min", type=int, default=5,
-                   help="Minimum modulus value (default: 2)")
-    p.add_argument("--mod-step", type=int, default=30,
-                   help="Modulus increment (default: 30)")
-    p.add_argument("-n", "--count", type=int, default=10,
-                   help="Number of benchmarks to generate per step (default: 10)")
-    p.add_argument("--num-steps", type=int, default=10,
-                   help="Modulus increment (default: 10)")
+    p.add_argument(
+        "--mode",
+        type=mode_type,
+        default=MODE.RANDOM,
+        help="Modes: [random; long; hard (modulo <solver> and <quick-timeout-ms>)] (default: random).",
+    )
+    p.add_argument(
+        "--solver",
+        default=DEFAULT_SOLVER,
+        help="Solver executable to run as: <solver> <file.smt2> (default: z3).",
+    )
+    p.add_argument("--max-retries", type=int, default=100,
+                   help="Max regeneration attempts per slot before keeping last candidate (default: 100)")
+    p.add_argument(
+        "--quick-timeout-ms",
+        type=int,
+        default=DEFAULT_QUICK_TIMEOUT_MS,
+        help=f"Timeout for triviality filtering (ms). Benchmarks solved within this are discarded as trivial (default: {DEFAULT_QUICK_TIMEOUT_MS}).",
+    )
     # p.add_argument("--chain-min", type=int, default=2,
     #                help="Minimum mod chain length (default: 2)")
     # p.add_argument("--chain-max", type=int, default=2,
     #                help="Maximum mod chain length (default: 2)")
+    p.add_argument("--mod-min", type=int, default=5,
+                   help="Minimum modulus value (default: 5)")
+    p.add_argument("--mod-step", type=int, default=30,
+                   help="Modulus increment (default: 30)")
+    p.add_argument("--count", type=int, default=10,
+                   help="Number of benchmarks to generate per step (default: 10)")
+    p.add_argument("--num-steps", type=int, default=10,
+                   help="Modulus increment (default: 10)")
     p.add_argument("--complexity", type=int, default=2, choices=[1, 2, 3],
                    help="Regex complexity: 1=simple, 2=moderate, 3=complex (default: 2)")
     p.add_argument("--max-len", type=int, default=100,
                    help="Max string length constraint; 0 = no constraint (default: 100)")
     p.add_argument("--output-dir", type=str, default="benchmarks",
                    help="Directory to write .smt2 files (default: benchmarks/)")
-    p.add_argument("--no-verify", action="store_true",
-                   help="Disable Z3 non-triviality verification (ON by default)")
-    p.add_argument("--verify-timeout", type=int, default=300,
-                   help="Z3 timeout in milliseconds per candidate (default: 300). "
-                        "Benchmarks decided within this timeout are considered trivial.")
-    p.add_argument("--max-retries", type=int, default=100,
-                   help="Max regeneration attempts per slot before keeping last candidate (default: 100)")
     p.add_argument("--seed", type=int, default=None,
                    help="Random seed for reproducibility")
-    p.add_argument("--print", action="store_true", dest="print_stdout",
-                   help="Also print benchmarks to stdout")
-    p.add_argument("--long", action="store_true", dest="long", default=False,
-                   help="Require (assert (> (str.len x) 100))")
     return p.parse_args()
 
 
@@ -289,19 +312,18 @@ def main():
 
     mod_step = args.mod_step
     max_len = args.max_len if args.max_len > 0 else None
-    verify = not args.no_verify
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Generating {args.count} benchmarks → {out_dir}/")
+    print(f"Mode: {args.mode.name.lower()}")
+    if args.mode == MODE.HARD: 
+        print(f"Solver: {args.solver} (invoked as: {args.solver} <file.smt2>)")
+        print(f"Triviality timeout: {args.quick_timeout_ms}ms")
     print(f"  mod step: {args.mod_step}")
     # print(f"  chain length:      [{args.chain_min}, {args.chain_max}]")
     print(f"  regex complexity:  {args.complexity}")
     print(f"  max string length: {max_len if max_len else 'unconstrained'}")
-    if verify:
-        print(f"  verify (Z3):       yes — timeout={args.verify_timeout}ms, max_retries={args.max_retries}")
-    else:
-        print(f"  verify (Z3):       no")
     print()
 
     for idx in range(args.num_steps):
@@ -316,33 +338,24 @@ def main():
         print(f"Generating {args.count} benchmarks with mod range = [{mod_range[0]}, {mod_range[1]}]")
         for num in range(args.count):
             print(f"Benchmark # {num}:")
-            if not verify:
-                smt2 = generate_benchmark(chain_len, mod_range, args.complexity, max_len, args.long)
-            else:
+            if args.mode == MODE.HARD:
                 for attempt in range(1, args.max_retries + 1):
-                    candidate = generate_benchmark(chain_len, mod_range, args.complexity, max_len, args.long)
-                    ok, verdict = is_non_trivial(candidate, args.verify_timeout)
+                    candidate = generate_benchmark(chain_len, mod_range, args.complexity, max_len, MODE.RANDOM)
+                    ok, verdict = is_non_trivial(candidate, args.quick_timeout_ms)
                     if ok:
                         smt2 = candidate
-                        # status_tag = verdict
                         break
                     else:
                         print(f"  [retry {attempt}/{args.max_retries}] : trivial ({verdict}), regenerating...")
                         smt2 = candidate
-                        # status_tag = f"trivial({verdict})-forced"
+            else: 
+                smt2 = generate_benchmark(chain_len, mod_range, args.complexity, max_len, args.mode)
             name = f"hashmod_{mod_range[0]}_{mod_range[1]}_{num:02d}.smt2"
             print(f"Done: {name}")
             fname = out_dir / name
             fname.write_text(smt2)
         print("")
-
-        # if args.print_stdout:
-        #     print(f"--- {fname} [{status_tag}] ---")
-        #     print(smt2)
-        #     print()
-        # else:
-        #     print(f"  [{idx+1:4d}/{args.count}] {fname.name}  ({status_tag})")
-    print('=' * 80)
+    print('=' * 60)
     print(f"\nDone. {args.num_steps * args.count} benchmarks written to {out_dir}/")
 
 
