@@ -9,14 +9,6 @@
                (<= u 2)
                (str.in_re.raw x)
                (chrob.len x (exp 10 strlenx)))
-  Light run:
-  (and
-               (= (* 1171 w) (+ (- 1) (* 444 u)))
-               (<= 0 %re_len1)
-               (<= 0 (* 444 u))
-               (<= %re_len1 89)
-               (<= u 2)
-               (<= (* (- 1) %re_len1) 10))
   (and
     (= (* 1171 w) (+ x (* 444 u)))
     (<= 0 strlenx)
