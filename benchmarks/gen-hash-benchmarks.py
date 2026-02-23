@@ -350,7 +350,7 @@ def main():
                         smt2 = candidate
             else: 
                 smt2 = generate_benchmark(chain_len, mod_range, args.complexity, max_len, args.mode)
-            name = f"hashmod_{mod_range[0]}_{mod_range[1]}_{num:02d}.smt2"
+            name = f"hashmod_{mod_range[0]:03d}_{mod_range[1]:03d}_{num:02d}.smt2"
             print(f"Done: {name}")
             fname = out_dir / name
             fname.write_text(smt2)
