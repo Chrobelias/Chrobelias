@@ -1034,7 +1034,7 @@ struct
         in
         let good v =
           if String.starts_with (Ir.name v) ~prefix:"strlen"
-          then Z.(get_val map v < of_int Config.max_longest_path)
+          then Z.(get_val map v <= of_int Config.max_longest_path)
           else
             Z.fits_int (get_val map v) && Z.to_int (get_val map v) < Config.huge_const ()
         in
@@ -1067,22 +1067,22 @@ struct
             Ir.rel rel term c
           | SReg (atom, re) when Map.mem map atom -> Ir.true_
           | SRegRaw (atom, re) when Map.mem map atom -> Ir.true_
-          | SLen (atom, atom') when is_exp atom' && Map.mem map (get_exp atom') ->
+          | SLen (atom, atom') when is_exp atom' && filter atom' ->
             let new_atom = Ir.internal () in
             let v = get_val map (get_exp atom') in
             Ir.land_
               [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) (pow2z v) ]
-          | SLen (atom, atom') when (not (is_exp atom)) && Map.mem map atom ->
+          | SLen (atom, atom') when (not (is_exp atom)) && filter atom ->
             let new_atom = Ir.internal () in
             let v = get_val map atom in
             Ir.land_ [ Ir.slen new_atom atom'; Ir.eq (Map.singleton new_atom Z.one) v ]
-          | SLen (atom, atom') when (not (is_exp atom')) && Map.mem map atom' ->
+          | SLen (atom, atom') when (not (is_exp atom')) && filter atom' ->
             let new_atom = Ir.internal () in
             let v = get_val map atom' in
             Ir.land_ [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) v ]
           | x -> x)
       in
-      Debug.printfln "Formula after substituting exponents: %a" Ir.pp f;
+      Debug.printfln "Formula after substituting exponents: %a\n" Ir.pp f;
       let result = f |> Ir.simpl |> Ir.simpl_ineq in
       Debug.printf "Formula after simplifications: %a\n" Ir.pp f;
       result
