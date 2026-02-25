@@ -1806,7 +1806,9 @@ struct
                  let delta = nfa.transitions.(q) in
                  List.filter_map
                    (fun (label, q') ->
-                      if Label.get label 0 = v then Option.some q' else Option.none)
+                      if Label.get label 0 = v || Label.is_any_at 0 label
+                      then Option.some q'
+                      else Option.none)
                    delta
                  |> Set.of_list)
                acc
