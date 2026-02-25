@@ -9,6 +9,7 @@ Optionally adds regex membership constraints; generated regexes always contain r
 
 import argparse
 import os
+from pathlib import Path
 import random
 import subprocess
 import tempfile
@@ -246,7 +247,7 @@ def generate_word_term(vars: List[str], num_consts: int) -> List[str]:
     consts: List[str] = []
     num_consts = 1 if len(vars) + num_consts == 0 else num_consts
     for _ in range(num_consts): 
-        const = str(random.randint(100, 999)) if random.randint(0, 1) == 0 else str(random.randint(10, 99))
+        const = str(random.randint(10, 99))
         consts.append(f'"{const}"')
     vars.extend(consts) 
     random.shuffle(vars)
@@ -271,7 +272,7 @@ def generate_concat_constraints(num_vars: int, num_we: int, vars_in_lhs: int) ->
         lhs_vars = random.sample(var_names, vars_in_lhs)
         rhs_vars = [var for var in var_names if var not in lhs_vars] 
         lhs = generate_word_term(lhs_vars, random.randint(0,1))
-        rhs = generate_word_term(rhs_vars, random.randint(0,len(rhs_vars) + 1))
+        rhs = generate_word_term(rhs_vars, random.randint(1,len(rhs_vars)))
         constraint = f"(assert (= {lhs} {rhs}))"
         constraints.append(constraint)
 
@@ -310,6 +311,7 @@ def generate_constraints_by_weight(num_vars: int, target_weight: int) -> List[st
 def verify_regex_constraints_satisfiable(
     num_vars: int,
     regex_constraints: List[str],
+    we_constraints: str,
     timeout_ms: int = DEFAULT_REGEX_VERIFY_TIMEOUT_MS,
     solver: str = DEFAULT_SOLVER,
 ) -> bool:
@@ -325,6 +327,7 @@ def verify_regex_constraints_satisfiable(
     lines.append("")
 
     lines.extend(regex_constraints)
+    lines.extend(we_constraints)
     lines.append("")
     lines.append("(check-sat)")
 
@@ -364,9 +367,10 @@ def generate_benchmark(
             lines.append(f"(assert (>= (str.len {var}) 1000))")
         lines.append("") 
 
+    we_constraints = f"(assert (= x x))"
     if num_we >= 1:
-        word_eq = generate_concat_constraints(num_vars, num_we, random.randint(1,2))
-        lines.extend(word_eq)
+        we_constraints = generate_concat_constraints(num_vars, num_we, random.randint(1,2))
+        lines.extend(we_constraints)
         lines.append("")
 
     regex_count = num_vars
@@ -378,6 +382,7 @@ def generate_benchmark(
             regex_satisfiable = verify_regex_constraints_satisfiable(
                 num_vars,
                 regex_constraints,
+                we_constraints,
                 timeout_ms=regex_verify_timeout_ms,
                 solver=solver,
             )
@@ -463,7 +468,7 @@ def is_trivial_benchmark(
 def try_generate_nontrivial_benchmark(
     num_vars: int,
     weight: int,
-    max_attempts: int = 100,
+    max_attempts: int = 1000,
     quick_timeout_ms: int = DEFAULT_QUICK_TIMEOUT_MS,
     num_we: int = WE_COUNT,
     regex: bool = True,
@@ -581,16 +586,18 @@ def main():
         default=REGEX_DEFAULT_MAX_DEPTH,
         help=f"Maximum depth of generated regex AST. Higher values yield larger regexes (default: {REGEX_DEFAULT_MAX_DEPTH}).",
     )
+    parser.add_argument("--output-dir", type=str, default="benchmarks",
+        help="Directory to write .smt2 files (default: benchmarks/)")
 
     args = parser.parse_args()
 
-    num_vars_options = [1]
-    weight_options = range(2, 10)
-    benchmarks_per_config = 50
+    num_vars_options = [2]
+    weight_options = range(2, 5)
+    benchmarks_per_config = 30
 
-    max_attempts_per_benchmark = 100
-    output_dir = "smt_benchmarks"
-    os.makedirs(output_dir, exist_ok=True)
+    max_attempts_per_benchmark = 1000
+    out_dir = Path(args.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     total_benchmarks = 0
     total_nontrivial = 0
@@ -598,7 +605,7 @@ def main():
     total_attempts = 0
     total_regex_unsat = 0
 
-    print("Starting benchmark generation...")
+    print(f"Generating benchmarks → {out_dir}/")
     print(f"Mode: {args.mode.name.lower()}")
     if args.mode == MODE.HARD: 
         print(f"Solver: {args.solver} (invoked as: {args.solver} <file.smt2>)")
@@ -623,8 +630,8 @@ def main():
         for benchmark_idx in range(benchmarks_per_config):
             total_benchmarks += 1
 
-            filename = f"benchmark_v{num_vars}_w{weight:02d}_n{benchmark_idx + 1:02d}.smt2"
-            filepath = os.path.join(output_dir, filename)
+            filename = f"benchmark_{args.mode.name.lower()}_v{num_vars}_w{weight:02d}_n{benchmark_idx + 1:02d}.smt2"
+            filepath = os.path.join(out_dir, filename)
 
             print(f"[{total_benchmarks:4d}] {filename}...", end=" ", flush=True)
 
@@ -668,7 +675,7 @@ def main():
     print(f"Total attempts made:          {total_attempts}")
     print(f"Regex unsat attempts skipped: {total_regex_unsat}")
     print(f"Average attempts/benchmark:   {total_attempts / total_benchmarks:.1f}")
-    print(f"\nAll benchmarks saved to:      '{output_dir}/'")
+    print(f"\nAll benchmarks saved to:      '{out_dir}/'")
     print("\nParameters:")
     print(f"  - Logic: {LOGIC}")
     print(f"  - Solver: {args.solver}")
