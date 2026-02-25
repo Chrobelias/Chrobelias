@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        solver: ["Chro", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler"]
+        solver: ["Chro", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler", "bin/z3 -memory:6144", "bin/z3str3re -memory:6144"]
     steps:
       - uses: actions/checkout@v4
         with:
