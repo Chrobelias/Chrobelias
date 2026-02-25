@@ -1795,7 +1795,7 @@ struct
     |> Set.of_sequence
   ;;
 
-  let deriv : t -> v list -> t =
+  let deriv_helper : t -> v list -> t =
     fun nfa vs ->
     let start =
       List.fold_left
@@ -1817,13 +1817,15 @@ struct
         nfa.start
         vs
     in
-    { nfa with start } |> to_dfa
+    { nfa with start }
   ;;
+
+  let deriv nfa vs = deriv_helper nfa vs |> to_dfa
 
   let deriv_final : t -> v list -> t =
     fun nfa vs ->
     let nfa = reverse nfa in
-    deriv nfa vs |> reverse
+    deriv_helper nfa vs |> reverse |> to_dfa
   ;;
 end
 
