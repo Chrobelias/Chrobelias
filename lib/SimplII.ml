@@ -2897,6 +2897,8 @@ let arithmetize ast env =
         | Len2 _ -> failwith "unexpected len2"
     in
     let arithmetize_in_re s nfa =
+      log "Arithmetizing regex ...";
+      Debug.dump_nfa ~msg:"for NFA %s" NfaS.format_nfa nfa;
       let strlens = strlens s in
       let csds =
         let is_eos vec =

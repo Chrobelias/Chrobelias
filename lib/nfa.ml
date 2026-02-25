@@ -1817,7 +1817,7 @@ struct
         nfa.start
         vs
     in
-    { nfa with start }
+    { nfa with start } |> to_dfa
   ;;
 
   let deriv_final : t -> v list -> t =
