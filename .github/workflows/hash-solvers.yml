@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        solver: ["Chro -bres 2 -bstates 20", "Chro -bres 1 -bstates 10", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler"]
+        solver: ["Chro -bres 2 -bstates 20", "Chro -bres 1 -bstates 10", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler", "bin/z3", "bin/z3str3re"]
     steps:
       - uses: actions/checkout@v4
         with:
