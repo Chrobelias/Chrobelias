@@ -1820,12 +1820,30 @@ struct
     { nfa with start }
   ;;
 
-  let deriv nfa vs = deriv_helper nfa vs |> to_dfa
+  let deriv nfa vs =
+    deriv_helper nfa vs
+    |> to_dfa ~alpha:(nfa |> alpha |> Set.to_list)
+    |> remove_unreachable_from_final
+  ;;
 
   let deriv_final : t -> v list -> t =
     fun nfa vs ->
     let nfa = reverse nfa in
-    deriv_helper nfa vs |> reverse |> to_dfa
+    let result =
+      deriv_helper nfa vs
+      |> reverse
+      |> to_dfa ~alpha:(nfa |> alpha |> Set.to_list)
+      |> remove_unreachable_from_final
+    in
+    let transitions =
+      Array.mapi
+        (fun state x ->
+           if Set.mem result.final state
+           then (Label.eos_with_mask [ 0 ], state) :: x
+           else x)
+        result.transitions
+    in
+    { result with transitions }
   ;;
 end
 
