@@ -1212,7 +1212,7 @@ let find_vars_for_under2s ast =
     fun acc ->
     fun c ->
     match c with
-    | Concat (Atom (Var (s, S)), Str_const _) -> acc
+    (* | Concat (Atom (Var (s, S)), Str_const _) -> acc *)
     | Concat (Atom (Var (s, S)), _) -> S.add acc s
     | t -> acc
   in
@@ -1220,7 +1220,7 @@ let find_vars_for_under2s ast =
     fun acc ->
     fun c ->
     match c with
-    | Concat (Str_const _, Atom (Var (s, S))) -> acc
+    (* | Concat (Str_const _, Atom (Var (s, S))) -> acc *)
     | Concat (_, Atom (Var (s, S))) -> S.add acc s
     | t -> acc
   in
@@ -2760,6 +2760,9 @@ let arithmetize ast env =
     let extend v other =
       extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
     in
+    let extend_geq v other =
+      extra_ph := Id_symantics.leq other (Id_symantics.var v) :: !extra_ph
+    in
     let extend_unsupp s =
       extra_ph := Id_symantics.unsupp (s ^ " in unsupported concat") :: !extra_ph
     in
@@ -2775,6 +2778,8 @@ let arithmetize ast env =
           let rhs' = gensym () in
           extend lhs' (Ast.Eia.Iofs lhs);
           extend rhs' (Ast.Eia.Iofs rhs);
+          extend_geq lhs' (Ast.Eia.Const Z.zero);
+          extend_geq rhs' (Ast.Eia.Const Z.zero);
           extend
             u
             (Ast.Eia.add
