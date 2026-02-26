@@ -2752,6 +2752,7 @@ let arithmetize ast env =
   in
   let arithmetize_concats { Info.all; _ } str_vars =
     let module Map = Base.Map.Poly in
+    let exception Unsupp_concat of string in
     let gensym1 = gensym in
     let rec gensym () =
       let ans = gensym1 ~prefix:"%concat" () in
@@ -2761,16 +2762,19 @@ let arithmetize ast env =
     let extend v other =
       extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
     in
-    let extend_geq v other =
+    let extend2 v strv =
       extra_ph
-      := if List.mem v str_vars
-         then Id_symantics.unsupp ("str var " ^ v ^ " in unsupported concat") :: !extra_ph
-         else Id_symantics.leq other (Id_symantics.var v) :: !extra_ph
+      := match strv with
+           | Ast.Eia.Atom (Ast.Var (s, S)) when List.mem s str_vars ->
+             raise (Unsupp_concat ("str var " ^ v))
+           | _ ->
+             Id_symantics.eqz (Id_symantics.var v) (Ast.Eia.Iofs strv)
+             :: Id_symantics.leq (Ast.Eia.Const Z.zero) (Ast.Eia.Iofs strv)
+             :: !extra_ph
     in
     let extend_unsupp s =
       extra_ph := Id_symantics.unsupp (s ^ " in unsupported concat") :: !extra_ph
     in
-    let exception Unsupp_concat of string in
     let module M_ = struct
       include Id_symantics
 
@@ -2780,10 +2784,8 @@ let arithmetize ast env =
           let v = gensym () in
           let lhs' = gensym () in
           let rhs' = gensym () in
-          extend lhs' (Ast.Eia.Iofs lhs);
-          extend rhs' (Ast.Eia.Iofs rhs);
-          extend_geq lhs' (Ast.Eia.Const Z.zero);
-          extend_geq rhs' (Ast.Eia.Const Z.zero);
+          extend2 lhs' lhs;
+          extend2 rhs' rhs;
           extend
             u
             (Ast.Eia.add

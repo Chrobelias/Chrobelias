@@ -11,6 +11,6 @@
   sat (under int)
   (
      (define-fun x () String
-      "")   (define-fun y () String
+      "0")   (define-fun y () String
       "999")
   )
