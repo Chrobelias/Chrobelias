@@ -2830,7 +2830,7 @@ let arithmetize ast env =
     fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
   in
   let arithmetize var_info ast =
-    (* let in_concat v = Ast.in_concat v ast in *)
+    let in_concat v = Ast.in_concat v ast in
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
     let rec arithmetize_term
@@ -2999,6 +2999,13 @@ let arithmetize ast env =
                 :: (phs |> List.map Ast.eia))
            ]
          | false, other ->
+           let nfa =
+             if (not (in_stoi s)) && not (in_concat s)
+             then nfa
+             else if other
+             then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
+             else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
+           in
            let csds = arithmetize_in_re s nfa in
            List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds)
       | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
@@ -3029,7 +3036,8 @@ let arithmetize ast env =
        | Unsupp _ -> false)
       |> fun res -> res
     in
-    Utils.powerset (Ast.get_str_vars ast |> List.filter (fun s -> Ast.in_stoi s ast))
+    Utils.powerset
+      (Ast.get_str_vars ast |> List.filter (fun s -> in_stoi s || in_concat s))
     |> List.concat_map (fun str_vars ->
       arithmetize_concats var_info str_vars ast
       |> apply_symantics_unsugared (module M)
