@@ -10,7 +10,7 @@
   sat (under int)
   (
      (define-fun x () String
-      "")   (define-fun y () String
+      "0")   (define-fun y () String
       "999")
   )
   $ unset CHRO_DEBUG
@@ -18,6 +18,6 @@
   sat (under int)
   (
      (define-fun x () String
-      "")   (define-fun y () String
+      "0")   (define-fun y () String
       "999")
   )
