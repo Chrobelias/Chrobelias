@@ -2845,26 +2845,22 @@ let arithmetize ast env =
             | Iofs (Atom (Var (v, S))) when List.mem v str_vars ->
               Ast.Eia.const Z.minus_one, []
             | Iofs s -> arithmetize_term str_vars s
-            | Len s ->
-              let var, lenvar, phs =
-                match s with
-                | Ast.Eia.Atom (Ast.Var (var, _)) ->
-                  var, String.concat "" [ "strlen"; var ], []
-                | non_var -> assert false
-              in
+            | Len (Atom (Var (var, S))) ->
+              let lenvar, phs = String.concat "" [ "strlen"; var ], [] in
               let v = atomi lenvar in
-              let s, phs' = arithmetize_term str_vars s in
-              let phs = phs @ phs' in
               let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
               let phs =
-                match in_stoi var, Map.mem (collect_regexes ast) var with
-                | true, true -> Ast.Eia.rlen s (pow_base v) :: phs
-                | true, false -> Ast.Eia.lt s (pow_base v) :: phs
-                | false, other -> phs
+                if List.mem var str_vars
+                then phs
+                else (
+                  match in_stoi var, Map.mem (collect_regexes ast) var with
+                  | true, true -> Ast.Eia.rlen (atomi var) (pow_base v) :: phs
+                  | true, false -> Ast.Eia.lt (atomi var) (pow_base v) :: phs
+                  | false, other -> phs)
               in
               v, phs
+            | Len _ -> failwith "Unsupported constraint in arithmetize_term"
             | Str_const s -> Ast.Eia.const (Z.of_string s), []
-            | Atom (Var (v, S)) when List.mem v str_vars -> raise StrVar_In_Arithmetize
             | Atom (Var (v, S)) -> atomi v, []
             | Concat (_, _) | At (_, _) | Substr (_, _, _) ->
               failwith "Unexpected function in arithmetize_term"
@@ -2895,9 +2891,7 @@ let arithmetize ast env =
               let lhs, lhs_phs = arithmetize_term str_vars lhs in
               let rhs, rhs_phs = arithmetize_term str_vars rhs in
               build lhs rhs, lhs_phs @ rhs_phs
-            | term ->
-              Format.printf "TERM: %a " Ast.pp_term_smtlib2 term;
-              failwith "Unexpected in arithmetize_term")
+            | term -> failwith "Unexpected in arithmetize_term")
     in
     let arithmetize_in_re s nfa =
       log "Arithmetizing regex ...";
