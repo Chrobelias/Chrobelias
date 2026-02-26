@@ -2830,9 +2830,9 @@ let arithmetize ast env =
     fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
   in
   let arithmetize var_info ast =
-    let in_concat v = Ast.in_concat v ast in
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
+    let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in
     let rec arithmetize_term
       : 'a. string list -> 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list
       =
@@ -2947,35 +2947,7 @@ let arithmetize ast env =
         let rhs', rhs_phs = arithmetize_term str_vars rhs in
         [ Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
         ]
-      | Ast.Eia (InRe (s, Ast.S, re)) ->
-        (* Solve later: if var and has non-digits -> -1 or intersect with NFA for digits*)
-        (* let digits = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; Nfa.Str.u_eos ] in *)
-        (* if Regex.symbols re |> List.exists (fun c -> List.mem (List.nth c 0) digits |> not) *)
-        (* let s, phs = arithmetize_term str_vars s in
-        let s, phs =
-          match s with
-          | Ast.Eia.Atom (Var (s, I)) -> s, phs
-          | non_var ->
-            let v = gensym ~prefix:"%arith_re" () in
-            v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
-        in
-        (match in_stoi s, List.mem s str_vars with
-         | true, true ->
-           [ Ast.land_
-               (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I Regex.nondigit)
-                :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
-                :: (phs |> List.map Ast.eia))
-           ]
-         | true, false ->
-           [ Ast.land_
-               (Ast.Eia (Ast.Eia.inre (atomi s) Ast.I Regex.digit)
-                :: Ast.Eia (Ast.Eia.inre (atomi s) Ast.I re)
-                :: (phs |> List.map Ast.eia))
-           ]
-         | false, other ->
-           let csds = arithmetize_in_re s (re |> NfaL.of_regex) in
-           List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds) *)
-        failwith "Unexpected InRe in arithmetize_conj"
+      | Ast.Eia (InRe (s, Ast.S, re)) -> failwith "Unexpected InRe in arithmetize_conj"
       | Ast.Eia (InReRaw (s, S, nfa)) ->
         let s, phs = arithmetize_term str_vars s in
         let s, phs =
@@ -2985,30 +2957,20 @@ let arithmetize ast env =
             let v = gensym ~prefix:"%arith_re_raw" () in
             v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
         in
+        let nfa =
+          if not (in_stoi_or_concat s)
+          then nfa
+          else if List.mem s str_vars
+          then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
+          else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
+        in
         (match in_stoi s, List.mem s str_vars with
-         | true, true ->
-           arithmetize_in_re s (Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa)
-           |> List.map (fun ast' -> Ast.land_ (ast' :: (phs |> List.map Ast.eia)))
          | true, false ->
-           [ Ast.land_
-               (Ast.Eia
-                  (Ast.Eia.inreraw
-                     (atomi s)
-                     Ast.I
-                     (Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa))
-                :: (phs |> List.map Ast.eia))
-           ]
-         | false, other ->
-           let nfa =
-             if (not (in_stoi s)) && not (in_concat s)
-             then nfa
-             else if other
-             then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
-             else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
-           in
-           let csds = arithmetize_in_re s nfa in
-           List.map (fun x -> Ast.land_ (x :: (phs |> List.map Ast.eia))) csds)
-      | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "tbd"
+           Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia)
+         | _ ->
+           arithmetize_in_re s nfa
+           |> List.map (fun ast' -> Ast.land_ (ast' :: (phs |> List.map Ast.eia))))
+      | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "Unexpected constraint"
       | Ast.Unsupp s -> [ Ast.Unsupp s ]
       | _ as non_eia -> [ non_eia ]
     in
@@ -3036,8 +2998,7 @@ let arithmetize ast env =
        | Unsupp _ -> false)
       |> fun res -> res
     in
-    Utils.powerset
-      (Ast.get_str_vars ast |> List.filter (fun s -> in_stoi s || in_concat s))
+    Utils.powerset (Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
     |> List.concat_map (fun str_vars ->
       arithmetize_concats var_info str_vars ast
       |> apply_symantics_unsugared (module M)
