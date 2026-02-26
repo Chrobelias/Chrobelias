@@ -2622,7 +2622,7 @@ let run_string_simplify ast =
 
 let arithmetize ast env =
   let module Set = Base.Set.Poly in
-  let exception StrVar_In_Arithmetize in
+  (*let exception StrVar_In_Arithmetize in*)
   let strlens s = String.concat "" [ "strlen"; s ] in
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
   (* let in_stoi2 v = Ast.in_stoi2 v ast in *)
@@ -3029,7 +3029,7 @@ let arithmetize ast env =
        | Unsupp _ -> false)
       |> fun res -> res
     in
-    Utils.powerset (Ast.get_str_vars ast)
+    Utils.powerset (Ast.get_str_vars ast |> List.filter (fun s -> Ast.in_stoi s ast))
     |> List.concat_map (fun str_vars ->
       arithmetize_concats var_info str_vars ast
       |> apply_symantics_unsugared (module M)
