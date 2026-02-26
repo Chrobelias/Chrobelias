@@ -2832,69 +2832,62 @@ let arithmetize ast env =
     (* let in_concat v = Ast.in_concat v ast in *)
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
-    let rec arithmetize_term : 'a. 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list =
-      fun (type a) : (a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) -> function
-        | Ast.Eia.Sofi s -> s, []
-        | Iofs s -> arithmetize_term s
-        (*
-        MS: More safe version... 
-        | Iofs s ->
-          let v, phs = arithmetize_term s in
-          v, Ast.Eia.leq (Ast.Eia.const Z.minus_one) v :: phs *)
-        | Len s ->
-          let var, lenvar, phs =
-            match s with
-            | Ast.Eia.Atom (Ast.Var (var, _)) ->
-              var, String.concat "" [ "strlen"; var ], []
-            | non_var -> assert false
-            (*let v = gensym ~prefix:"%arith_len" () in
+    let rec arithmetize_term str_vars = function
+      | Ast.Eia.Sofi s -> s, []
+      | Iofs s when List.mem s str_vars -> Ast.Eia.const Z.minus_one, []
+      | Iofs s -> arithmetize_term str_vars s
+      | Len s ->
+        let var, lenvar, phs =
+          match s with
+          | Ast.Eia.Atom (Ast.Var (var, _)) -> var, String.concat "" [ "strlen"; var ], []
+          | non_var -> assert false
+          (*let v = gensym ~prefix:"%arith_len" () in
               let sv = String.concat "" [ "strlen"; v ] in
               let non_var, phs = arithmetize_term non_var in
               v, sv, Ast.Eia.eq (atomi v) non_var Ast.I :: phs*)
-            (*let var = gensym ~prefix:"%arith_len" () in
+          (*let var = gensym ~prefix:"%arith_len" () in
             let non_var, phs = arithmetize_term non_var in
             ( var
             , String.concat "" [ "strlen"; var ]
             , Ast.Eia.eq (atomi var) non_var Ast.I :: phs )*)
-          in
-          let v = atomi lenvar in
-          let s, phs' = arithmetize_term s in
-          let phs = phs @ phs' in
-          let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
-          let phs =
-            match in_stoi var, Map.mem (collect_regexes ast) var with
-            | true, true -> Ast.Eia.rlen s (pow_base v) :: phs
-            | true, false -> Ast.Eia.lt s (pow_base v) :: phs
-            | false, other -> phs
-          in
-          v, phs
-        | Str_const s -> Ast.Eia.const (Z.of_string s), []
-        | Atom (Var (v, S)) -> atomi v, []
-        | Concat (_, _) | At (_, _) | Substr (_, _, _) -> failwith "tbd"
-        | (Const _ | Atom (Var (_, I))) as eia -> eia, []
-        | Add ls ->
-          let ls, phs = List.map arithmetize_term ls |> List.split in
-          Ast.Eia.add ls, List.concat phs
-        | Mul ls ->
-          let ls, phs = List.map arithmetize_term ls |> List.split in
-          Ast.Eia.mul ls, List.concat phs
-        | Mod (lhs, rhs) ->
-          let lhs, lhs_phs = arithmetize_term lhs in
-          Ast.Eia.mod_ lhs rhs, lhs_phs
-        | (Pow (lhs, rhs) | Bwand (lhs, rhs) | Bwor (lhs, rhs) | Bwxor (lhs, rhs)) as eia
-          ->
-          let build =
-            match eia with
-            | Pow _ -> Ast.Eia.pow
-            | Bwand _ -> Ast.Eia.bwand
-            | Bwor _ -> Ast.Eia.bwor
-            | Bwxor _ -> Ast.Eia.bwxor
-            | _ -> assert false
-          in
-          let lhs, lhs_phs = arithmetize_term lhs in
-          let rhs, rhs_phs = arithmetize_term rhs in
-          build lhs rhs, lhs_phs @ rhs_phs
-        | Len2 _ -> failwith "unexpected len2"
+        in
+        let v = atomi lenvar in
+        let s, phs' = arithmetize_term str_vars s in
+        let phs = phs @ phs' in
+        let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
+        let phs =
+          match in_stoi var, Map.mem (collect_regexes ast) var with
+          | true, true -> Ast.Eia.rlen s (pow_base v) :: phs
+          | true, false -> Ast.Eia.lt s (pow_base v) :: phs
+          | false, other -> phs
+        in
+        v, phs
+      | Str_const s -> Ast.Eia.const (Z.of_string s), []
+      | Atom (Var (v, S)) -> atomi v, []
+      | Concat (_, _) | At (_, _) | Substr (_, _, _) -> failwith "tbd"
+      | (Const _ | Atom (Var (_, I))) as eia -> eia, []
+      | Add ls ->
+        let ls, phs = List.map (fun x -> arithmetize_term str_vars x) ls |> List.split in
+        Ast.Eia.add ls, List.concat phs
+      | Mul ls ->
+        let ls, phs = List.map (fun x -> arithmetize_term str_vars x) ls |> List.split in
+        Ast.Eia.mul ls, List.concat phs
+      | Mod (lhs, rhs) ->
+        let lhs, lhs_phs = arithmetize_term str_vars lhs in
+        Ast.Eia.mod_ lhs rhs, lhs_phs
+      | (Pow (lhs, rhs) | Bwand (lhs, rhs) | Bwor (lhs, rhs) | Bwxor (lhs, rhs)) as eia ->
+        let build =
+          match eia with
+          | Pow _ -> Ast.Eia.pow
+          | Bwand _ -> Ast.Eia.bwand
+          | Bwor _ -> Ast.Eia.bwor
+          | Bwxor _ -> Ast.Eia.bwxor
+          | _ -> assert false
+        in
+        let lhs, lhs_phs = arithmetize_term str_vars lhs in
+        let rhs, rhs_phs = arithmetize_term str_vars rhs in
+        build lhs rhs, lhs_phs @ rhs_phs
+      | Len2 _ -> failwith "unexpected len2"
     in
     let arithmetize_in_re s nfa =
       log "Arithmetizing regex ...";
@@ -2929,22 +2922,25 @@ let arithmetize ast env =
     let cartesian l1 l2 =
       List.concat (List.map (fun e1 -> List.map (fun e2 -> Ast.land_ [ e1; e2 ]) l2) l1)
     in
-    let rec arithmetize_conj = function
-      | Ast.Land [ x ] -> arithmetize_conj x
+    let rec arithmetize_conj str_vars = function
+      | Ast.Land [ x ] -> arithmetize_conj str_vars x
       | Ast.Land (x :: xs) ->
-        List.fold_left cartesian (arithmetize_conj x) (List.map arithmetize_conj xs)
+        List.fold_left
+          cartesian
+          (arithmetize_conj str_vars x)
+          (List.map (fun x -> arithmetize_conj str_vars x) xs)
       | Ast.Eia (Leq (lhs, rhs)) ->
-        let lhs', lhs_phs = arithmetize_term lhs in
-        let rhs', rhs_phs = arithmetize_term rhs in
+        let lhs', lhs_phs = arithmetize_term str_vars lhs in
+        let rhs', rhs_phs = arithmetize_term str_vars rhs in
         [ Ast.land_ (Ast.Eia.leq lhs' rhs' :: (lhs_phs @ rhs_phs) |> List.map Ast.eia) ]
       | Ast.Eia (Eq (lhs, rhs, I)) ->
-        let lhs', lhs_phs = arithmetize_term lhs in
-        let rhs', rhs_phs = arithmetize_term rhs in
+        let lhs', lhs_phs = arithmetize_term str_vars lhs in
+        let rhs', rhs_phs = arithmetize_term str_vars rhs in
         [ Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
         ]
       | Ast.Eia (Eq (lhs, rhs, S)) ->
-        let lhs', lhs_phs = arithmetize_term lhs in
-        let rhs', rhs_phs = arithmetize_term rhs in
+        let lhs', lhs_phs = arithmetize_term str_vars lhs in
+        let rhs', rhs_phs = arithmetize_term str_vars rhs in
         [ Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
         ]
       | Ast.Eia (InRe (s, Ast.S, re)) ->
@@ -3046,21 +3042,22 @@ let arithmetize ast env =
        | Unsupp _ -> false)
       |> fun res -> res
     in
-    Utils.powerset (Ast.get_str_vars ast |> List.filter (fun x -> Ast.in_concat x ast))
-    |> List.map (fun str_vars -> arithmetize_concats var_info str_vars ast)
-    |> List.map (apply_symantics_unsugared (module M))
-    |> List.concat_map arithmetize_conj
-    |> List.map (fun ast ->
-      Ast.map
-        (function
-          | Ast.Eia (Ast.Eia.RLen (Ast.Eia.Atom (Ast.Var (s, _)), rhs))
-            when var_appears_as_string s ast ->
-            Ast.eia
-              (Ast.Eia.rlen
-                 (Ast.Eia.atom (Ast.Var (String.concat "" [ "string"; s ], Ast.I)))
-                 rhs)
-          | ast -> ast)
-        ast)
+    Utils.powerset (Ast.get_str_vars ast)
+    |> List.concat_map (fun str_vars ->
+      arithmetize_concats var_info str_vars ast
+      |> apply_symantics_unsugared (module M)
+      |> arithmetize_conj str_vars
+      |> List.map (fun ast ->
+        Ast.map
+          (function
+            | Ast.Eia (Ast.Eia.RLen (Ast.Eia.Atom (Ast.Var (s, _)), rhs))
+              when var_appears_as_string s ast ->
+              Ast.eia
+                (Ast.Eia.rlen
+                   (Ast.Eia.atom (Ast.Var (String.concat "" [ "string"; s ], Ast.I)))
+                   rhs)
+            | ast -> ast)
+          ast))
   in
   let unfold_neq var_info regexes ast =
     let strlen_var s = String.concat "" [ "strlen"; s ] in
