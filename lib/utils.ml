@@ -32,6 +32,13 @@ let rec powz ~base:a = function
     Z.(b * b * if n mod of_int 2 = zero then one else a)
 ;;
 
+let div_rem a b =
+  match Z.sign a, Z.sign b with
+  | -1, 1 -> Z.div_rem a b |> fun (x, y) -> Z.(x - one), Z.(y + b)
+  | -1, -1 -> Z.div_rem a b |> fun (x, y) -> Z.(x + one), Z.(y - b)
+  | _ -> Z.div_rem a b
+;;
+
 let to_bits n =
   let last_bit n =
     match Z.(n mod of_int 2) with

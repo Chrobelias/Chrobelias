@@ -758,7 +758,7 @@ let simpl_ineq ir =
              (var, (Some value, Some value)) :: list
            | Rel (Leq, term, c) when Map.length term = 1 ->
              let var, coeff = Map.min_elt_exn term in
-             let q, r = Z.(div_rem c coeff) in
+             let q, r = Utils.div_rem c coeff in
              (* let value = if Z.(coeff < zero) then Z.(q + one) else q in *)
              if Z.(coeff > zero)
              then (var, (None, Some q)) :: list
