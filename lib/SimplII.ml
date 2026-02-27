@@ -2783,46 +2783,33 @@ let arithmetize ast env =
       include Id_symantics
 
       let iofs =
-        Format.printf "AST: %a%!\n" Ast.pp_smtlib2 ast;
         let contains_var vars =
           Ast.Eia.fold_term
             (fun acc el ->
-               Format.printf "AST: %a%!\n" Ast.pp_term_smtlib2 el;
                match el with
+               | Ast.Eia.Atom (Var (s, S)) when List.mem s vars -> true
                | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) when List.mem s vars ->
-                 Format.printf "TRUE";
                  true
                | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) when List.mem s vars ->
-                 Format.printf "TRUE";
                  true
-               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) ->
-                 Format.printf "VAR: %s" s;
-                 true
-               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) ->
-                 Format.printf "VAR: %s" s;
-                 true
+               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) -> true
+               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) -> true
                | _ -> acc)
             (fun acc el ->
-               Format.printf "AST-STR: %a%!\n" Ast.pp_term_smtlib2 el;
                match el with
+               | Ast.Eia.Atom (Var (s, S)) when List.mem s vars -> true
                | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) when List.mem s vars ->
-                 Format.printf "TRUE";
                  true
                | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) when List.mem s vars ->
-                 Format.printf "TRUE";
                  true
-               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) ->
-                 Format.printf "VAR: %s" s;
-                 true
-               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) ->
-                 Format.printf "VAR: %s" s;
-                 true
+               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) -> true
+               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) -> true
                | _ -> acc)
             false
         in
         function
         | Ast.Eia.Concat (lhs, rhs)
-          when contains_var str_vars lhs || contains_var str_vars lhs ->
+          when contains_var str_vars lhs || contains_var str_vars rhs ->
           Id_symantics.constz Z.minus_one
         | s -> Id_symantics.iofs s
       ;;
