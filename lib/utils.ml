@@ -34,8 +34,10 @@ let rec powz ~base:a = function
 
 let div_rem a b =
   match Z.sign a, Z.sign b with
-  | -1, 1 -> Z.div_rem a b |> fun (x, y) -> Z.(x - one), Z.(y + b)
-  | -1, -1 -> Z.div_rem a b |> fun (x, y) -> Z.(x + one), Z.(y - b)
+  | -1, 1 ->
+    Z.div_rem a b |> fun (x, y) -> if Z.(y = zero) then x, y else Z.(x - one), Z.(y + b)
+  | -1, -1 ->
+    Z.div_rem a b |> fun (x, y) -> if Z.(y = zero) then x, y else Z.(x + one), Z.(y - b)
   | _ -> Z.div_rem a b
 ;;
 
