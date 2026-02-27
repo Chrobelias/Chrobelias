@@ -2751,6 +2751,10 @@ let arithmetize ast env =
     apply_symantics_unsugared (module M_) ast
   in
   let arithmetize_concats { Info.all; _ } str_vars =
+    Format.printf
+      "@[%a@]\n%!"
+      Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
+      str_vars;
     let module Map = Base.Map.Poly in
     let exception Unsupp_concat of string in
     let gensym1 = gensym in
@@ -2766,7 +2770,7 @@ let arithmetize ast env =
       extra_ph
       := match strv with
            | Ast.Eia.Atom (Ast.Var (s, S)) when List.mem s str_vars ->
-             raise (Unsupp_concat ("str var " ^ v))
+             raise (Unsupp_concat ("str var " ^ s))
            | _ ->
              Id_symantics.eqz (Id_symantics.var v) (Ast.Eia.Iofs strv)
              :: Id_symantics.leq (Ast.Eia.Const Z.zero) (Ast.Eia.Iofs strv)
@@ -2775,7 +2779,56 @@ let arithmetize ast env =
     let extend_unsupp s =
       extra_ph := Id_symantics.unsupp (s ^ " in unsupported concat") :: !extra_ph
     in
-    let module M_ = struct
+    let module ArConcIofs = struct
+      include Id_symantics
+
+      let iofs =
+        Format.printf "AST: %a%!\n" Ast.pp_smtlib2 ast;
+        let contains_var vars =
+          Ast.Eia.fold_term
+            (fun acc el ->
+               Format.printf "AST: %a%!\n" Ast.pp_term_smtlib2 el;
+               match el with
+               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) when List.mem s vars ->
+                 Format.printf "TRUE";
+                 true
+               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) when List.mem s vars ->
+                 Format.printf "TRUE";
+                 true
+               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) ->
+                 Format.printf "VAR: %s" s;
+                 true
+               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) ->
+                 Format.printf "VAR: %s" s;
+                 true
+               | _ -> acc)
+            (fun acc el ->
+               Format.printf "AST-STR: %a%!\n" Ast.pp_term_smtlib2 el;
+               match el with
+               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) when List.mem s vars ->
+                 Format.printf "TRUE";
+                 true
+               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) when List.mem s vars ->
+                 Format.printf "TRUE";
+                 true
+               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) ->
+                 Format.printf "VAR: %s" s;
+                 true
+               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) ->
+                 Format.printf "VAR: %s" s;
+                 true
+               | _ -> acc)
+            false
+        in
+        function
+        | Ast.Eia.Concat (lhs, rhs)
+          when contains_var str_vars lhs || contains_var str_vars lhs ->
+          Id_symantics.constz Z.minus_one
+        | s -> Id_symantics.iofs s
+      ;;
+    end
+    in
+    let module ArConc = struct
       include Id_symantics
 
       let str_concat (lhs : str) (rhs : str) =
@@ -2824,12 +2877,21 @@ let arithmetize ast env =
       ;;
     end
     in
-    let module Sym = struct
-      include M_
-      include FT_SIG.Sugar (M_)
+    let module SymArConcIofs = struct
+      include ArConcIofs
+      include FT_SIG.Sugar (ArConcIofs)
     end
     in
-    fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
+    let module SymArConc = struct
+      include ArConc
+      include FT_SIG.Sugar (ArConc)
+    end
+    in
+    fun ph ->
+      SymArConc.prj
+        (ph
+         |> apply_symantics (module SymArConcIofs)
+         |> apply_symantics (module SymArConc))
   in
   let arithmetize var_info ast =
     let (module M) = make_main_symantics Env.empty in
