@@ -2751,10 +2751,6 @@ let arithmetize ast env =
     apply_symantics_unsugared (module M_) ast
   in
   let arithmetize_concats { Info.all; _ } str_vars =
-    Format.printf
-      "@[%a@]\n%!"
-      Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
-      str_vars;
     let module Map = Base.Map.Poly in
     let exception Unsupp_concat of string in
     let gensym1 = gensym in
@@ -2785,6 +2781,7 @@ let arithmetize ast env =
       let iofs =
         let contains_var vars =
           Ast.Eia.fold_term
+            (fun acc el -> acc)
             (fun acc el ->
                match el with
                | Ast.Eia.Atom (Var (s, S)) when List.mem s vars -> true
@@ -2792,25 +2789,11 @@ let arithmetize ast env =
                  true
                | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) when List.mem s vars ->
                  true
-               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) -> true
-               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) -> true
-               | _ -> acc)
-            (fun acc el ->
-               match el with
-               | Ast.Eia.Atom (Var (s, S)) when List.mem s vars -> true
-               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) when List.mem s vars ->
-                 true
-               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) when List.mem s vars ->
-                 true
-               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) -> true
-               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) -> true
                | _ -> acc)
             false
         in
         function
-        | Ast.Eia.Concat (lhs, rhs)
-          when contains_var str_vars lhs || contains_var str_vars rhs ->
-          Id_symantics.constz Z.minus_one
+        | s when contains_var str_vars s -> Id_symantics.constz Z.minus_one
         | s -> Id_symantics.iofs s
       ;;
     end
