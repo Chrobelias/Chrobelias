@@ -1,4 +1,4 @@
-name: Perf different solvers on Sierpinski
+name: Perf different solvers on StrRElnc
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,15 +11,15 @@ on:
   workflow_dispatch:
 
 env:
-  TIMEOUT: 10s
+  TIMEOUT: 30s
 
 jobs:
-  sierpinski:
+  strrelnc-solvers:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        solver: ["Chro", "bin/swine"]
+        solver: ["Chro", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler"]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,13 +39,13 @@ jobs:
       - name: Build
         run: opam exec -- dune build @all
 
-      - name: Run ${{ matrix.solver }} on sierpinski benchmarks
+      - name: Run ${{ matrix.solver }} on strrelnc benchmarks
         run: |
           set +e +o pipefail;
           execut=$(echo ${{ matrix.solver }} | tr ' ' '\n' | head -n 1);
           solver=$(basename $execut);
           readarray -t flags < <(echo ${{ matrix.solver }} | tr ' ' '\n' | tail -n +2);
-          base=./benchmarks/chrobelias/QF_EIA/SIERPINSKI;
+          base=./benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc;
           for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {last=$0} END {print last}'); do
             suitename=$(sed 's/\.//g' <<< ${suite:${#base} + 1} | sed 's/\///g');
             START_TIME=$(date +%s)
@@ -66,7 +66,7 @@ jobs:
           execut=$(echo ${{ matrix.solver }} | tr ' ' '\n' | head -n 1);
           solver=$(basename $execut);
           flags=$(echo ${{ matrix.solver }} | tr ' ' '\n' | tail -n +2 | xargs);
-          base=./benchmarks/chrobelias/QF_EIA/SIERPINSKI;
+          base=./benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc;
           for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {last=$0} END {print last}'); do
             echo "$solver results for $suitename:";
             unsat_c=$(grep unsat res_$solver_$suitename.txt | wc -l); 
