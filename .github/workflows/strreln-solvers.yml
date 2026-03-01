@@ -12,30 +12,41 @@ on:
   pull_request:
 
 env:
-  TIMEOUT: 30s
+  TIMEOUT: 60s
+  OPAMROOT: /home/user/.opam
 
 jobs:
   strreln-solvers:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container:
+      image: we1ine/chrobelias:latest
+      options: --user user
     strategy:
       fail-fast: false
       matrix:
-        solver: ["Chro", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler", "bin/z3 -memory:6144", "bin/z3str3re -memory:6144"]
+        solver: ["Chro", "Chro -bres 1 -bstates 10", "Chro -bres 2 -bstates 20", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler", "bin/z3 -memory:6144", "bin/z3str3re -memory:6144"]
     steps:
+      - run: opam --version
+      - run: opam exec -- ocamlopt --version
+
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: 5.3
-          dune-cache: true
 
-      - name: Install Smtml depedencies
-        working-directory: ./vendor/smtml
-        run: opam install . --deps-only --with-test --with-dev-setup
+      #- uses: ocaml/setup-ocaml@v3
+      #  with:
+      #    ocaml-compiler: 5.3
+      #    dune-cache: true
 
-      - name: Install depedencies
-        run: opam install . --deps-only --with-test
+      #- name: Install Smtml depedencies
+      #  working-directory: ./vendor/smtml
+      #  run: opam install . --deps-only --with-test --with-dev-setup
+
+      #- name: Install depedencies
+      #  run: opam install . --deps-only --with-test
+
+      - name: List opam packages
+        run: opam list
 
       - name: Build
         run: opam exec -- dune build @all

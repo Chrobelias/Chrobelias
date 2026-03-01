@@ -65,16 +65,14 @@
     -O
     z3.zip)
    (run unzip z3.zip)
-   (run mv ./z3-4.16.0-x64-glibc-2.39/bin/z3 ./z3)
-   )))
+   (run mv ./z3-4.16.0-x64-glibc-2.39/bin/z3 ./z3))))
 
 (rule
  (targets z3str3re)
  (deps z3str3re_amd64_glibc)
  (action
   (progn
-   (copy %{deps} %{targets})
-   )))
+   (copy %{deps} %{targets}))))
 
 (rule
  (targets ostrich2 target ostrich-client)
