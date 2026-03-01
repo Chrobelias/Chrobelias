@@ -10,23 +10,38 @@ on:
       - main
   pull_request:
 
+env:
+  OPAMROOT: /home/user/.opam
+
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container:
+      image: we1ine/chrobelias:latest
+      options: --user user
     steps:
+      - run: opam --version
+      - run: opam exec -- ocamlopt --version
+
+      - run: sudo apt-get install bc --yes
+
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: 5.3
 
-      - name: Install Smtml depedencies
-        working-directory: ./vendor/smtml
-        run: opam install . --deps-only --with-test --with-dev-setup
+      #- uses: ocaml/setup-ocaml@v3
+      #  with:
+      #    ocaml-compiler: 5.3
 
-      - name: Install depedencies
-        run: opam install . --deps-only --with-test
+      #- name: Install Smtml depedencies
+      #  working-directory: ./vendor/smtml
+      #  run: opam install . --deps-only --with-test --with-dev-setup
+
+      #- name: Install depedencies
+      #  run: opam install . --deps-only --with-test
+
+      - name: List opam packages
+        run: opam list
 
       - name: Format
         run: opam exec -- dune fmt
