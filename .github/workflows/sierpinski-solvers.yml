@@ -13,36 +13,47 @@ on:
 
 env:
   TIMEOUT: 10s
+  OPAMROOT: /home/user/.opam
 
 jobs:
   sierpinski:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container:
+      image: we1ine/chrobelias:latest
+      options: --user user
     strategy:
       fail-fast: false
       matrix:
         solver: ["Chro", "bin/swine"]
     steps:
+      - run: opam --version
+      - run: opam exec -- ocamlopt --version
+
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: 5.3
-          dune-cache: true
 
-      - name: Install Smtml depedencies
-        working-directory: ./vendor/smtml
-        run: opam install . --deps-only --with-test --with-dev-setup
+      #- uses: ocaml/setup-ocaml@v3
+      #  with:
+      #    ocaml-compiler: 5.3
+      #    dune-cache: true
 
-      - name: Install depedencies
-        run: opam install . --deps-only --with-test
+      #- name: Install Smtml depedencies
+      #  working-directory: ./vendor/smtml
+      #  run: opam install . --deps-only --with-test --with-dev-setup
+
+      #- name: Install depedencies
+      #  run: opam install . --deps-only --with-test
+
+      - name: List opam packages
+        run: opam list
 
       - name: Build
         run: opam exec -- dune build @all
 
       - name: Run ${{ matrix.solver }} on sierpinski benchmarks
         run: |
-          set +e +o pipefail;
+          set +e;
           execut=$(echo ${{ matrix.solver }} | tr ' ' '\n' | head -n 1);
           solver=$(basename $execut);
           readarray -t flags < <(echo ${{ matrix.solver }} | tr ' ' '\n' | tail -n +2);
