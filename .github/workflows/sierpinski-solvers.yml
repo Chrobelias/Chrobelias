@@ -12,19 +12,19 @@ on:
   pull_request:
 
 env:
-  TIMEOUT: 10s
+  TIMEOUT: 60s
   OPAMROOT: /home/user/.opam
 
 jobs:
   sierpinski:
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
-      options: --user user
+      options: --user root --memory=8192m --cpus="1.0"
     strategy:
       fail-fast: false
       matrix:
-        solver: ["Chro", "bin/swine"]
+        solver: ["bin/chro.exe", "bin/swine"]
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
@@ -53,38 +53,8 @@ jobs:
 
       - name: Run ${{ matrix.solver }} on sierpinski benchmarks
         run: |
-          set +e;
-          execut=$(echo ${{ matrix.solver }} | tr ' ' '\n' | head -n 1);
-          solver=$(basename $execut);
-          readarray -t flags < <(echo ${{ matrix.solver }} | tr ' ' '\n' | tail -n +2);
-          base=./benchmarks/chrobelias/QF_EIA/SIERPINSKI;
-          for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {last=$0} END {print last}'); do
-            suitename=$(sed 's/\.//g' <<< ${suite:${#base} + 1} | sed 's/\///g');
-            START_TIME=$(date +%s)
-            for i in $suite"/"*.smt2; do
-              echo $i;
-              timeout $TIMEOUT time opam exec -- dune exec $execut --no-build -- "${flags[@]}" $i;
-              if [[ $exit_status -eq 124 ]]; then
-                echo "timeout";
-              fi;
-            done 2>&1 | tee "res_$solver_"$suitename".txt";
-            END_TIME=$(date +%s)
-            DURATION=$(($END_TIME - $START_TIME))
-            echo "Benchmarks $suitename completed by $solver in: $DURATION seconds with $execute"
-          done
+          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_EIA/SIERPINSKI $TIMEOUT
 
       - name: Get stats
         run: |
-          execut=$(echo ${{ matrix.solver }} | tr ' ' '\n' | head -n 1);
-          solver=$(basename $execut);
-          flags=$(echo ${{ matrix.solver }} | tr ' ' '\n' | tail -n +2 | xargs);
-          base=./benchmarks/chrobelias/QF_EIA/SIERPINSKI;
-          for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {last=$0} END {print last}'); do
-            echo "$solver results for $suitename:";
-            unsat_c=$(grep unsat res_$solver_$suitename.txt | wc -l); 
-            sat_c=$(grep sat res_$solver_$suitename.txt | wc -l); 
-            echo "sat     : $((sat_c - unsat_c))"; 
-            echo "unsat   : $unsat_c";
-            echo "timeout : $(grep timeout res_$solver_$suitename.txt | wc -l)";
-            echo "total   : $(grep smt2 res_$solver_$suitename.txt | wc -l)";
-          done
+          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_EIA/SIERPINSKI
