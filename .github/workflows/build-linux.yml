@@ -15,19 +15,20 @@ env:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
-      options: --user user
+      options: --user root --memory=8192m --cpus="1.0"
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
 
-      - run: sudo apt-get install bc --yes
-
       - uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Install extra dependencies
+        run: apt-get install bc --yes
 
       #- uses: ocaml/setup-ocaml@v3
       #  with:

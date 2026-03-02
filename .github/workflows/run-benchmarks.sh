@@ -15,7 +15,7 @@ for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {las
   START_TIME=$(date +%s)
   for i in $suite"/"*.smt2; do
     echo $i;
-    timeout $timeout time opam exec -- dune exec $execut --no-build -- "${flags[@]}" $i;
+    timeout $timeout time ./_build/default/$execut "${flags[@]}" $i;
   done 2>&1 | tee $suitefile;
   END_TIME=$(date +%s)
   DURATION=$(($END_TIME - $START_TIME))
