@@ -16,6 +16,7 @@ env:
 
 jobs:
   stringfuzzregex-solvers:
+    timeout-minutes: 1440
     runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
@@ -52,8 +53,16 @@ jobs:
 
       - name: Run ${{ matrix.solver }} on stringfuzzregex benchmarks
         run: |
-          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex $TIMEOUT
+          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex/generated $TIMEOUT
 
       - name: Get stats
         run: |
-          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex
+          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex/generated
+
+      - name: Run ${{ matrix.solver }} on stringfuzzregex benchmarks
+        run: |
+          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex/transformed $TIMEOUT
+
+      - name: Get stats
+        run: |
+          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex/transformed
