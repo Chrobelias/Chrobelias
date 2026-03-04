@@ -16,7 +16,7 @@ env:
 
 jobs:
   stringfuzzregex-solvers:
-    timeout-minutes: 1440
+    timeout-minutes: 2880
     runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
@@ -24,7 +24,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        solver: ["bin/chro.exe", "bin/ostrich2", "bin/cvc5", "bin/z3-noodler", "bin/z3 -memory:6144", "bin/z3str3re -memory:6144"]
+        solver:
+          #- "bin/chro.exe"
+          #- "bin/ostrich2"
+          #- "bin/cvc5"
+          #- "bin/z3-noodler"
+          - "bin/z3 -memory:6144"
+          #"bin/z3str3re -memory:6144"
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
