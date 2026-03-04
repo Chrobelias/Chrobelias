@@ -1,4 +1,4 @@
-name: Perf different solvers on StrREln
+name: Perf different solvers on PURRS
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,8 +16,7 @@ env:
   OPAMROOT: /home/user/.opam
 
 jobs:
-  strreln-solvers:
-    timeout-minutes: 1440
+  purrs:
     runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
@@ -25,16 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        solver:
-          #- "bin/chro.exe"
-          #- "bin/chro.exe -bres 2 -bstates 20"
-          #- "bin/chro.exe -bres 1 -bstates 10"
-          - "bin/chro.exe -under-all -sbcnt 10 -sblen 5"
-          #- "bin/ostrich2"
-          - "bin/cvc5"
-          #- "bin/z3-noodler -memory:6144"
-          #- "bin/z3 -memory:6144"
-          #- "bin/z3str3re -memory:6144"
+        solver: ["bin/chro.exe", "bin/swine"]
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
@@ -61,10 +51,10 @@ jobs:
       - name: Build
         run: opam exec -- dune build @all
 
-      - name: Run ${{ matrix.solver }} on strreln benchmarks
+      - name: Run ${{ matrix.solver }} on purrs benchmarks
         run: |
-          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" ./benchmarks/chrobelias/QF_SLIA/StrRElnc/REln $TIMEOUT
+          ./.github/workflows/run-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/PURRS $TIMEOUT
 
       - name: Get stats
         run: |
-          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" ./benchmarks/chrobelias/QF_SLIA/StrRElnc/REln
+          ./.github/workflows/stat-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/PURRS
