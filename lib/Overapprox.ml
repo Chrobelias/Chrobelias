@@ -129,7 +129,9 @@ let check ast =
   log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
   let module Z3 = Smtml.Z3_mappings.Solver in
   (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
-  let solver = Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000)) () in
+  let solver =
+    Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
+  in
   Z3.reset solver;
   match Z3.check solver ~assumptions:whole with
   | `Unsat ->
