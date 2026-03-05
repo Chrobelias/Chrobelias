@@ -242,7 +242,9 @@ let check bound ast =
            let module Z3 = Smtml.Z3_mappings.Solver in
            (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
            let solver =
-             Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000)) ()
+             Z3.make
+               ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42))
+               ()
            in
            Z3.reset solver;
            let __ _ = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
