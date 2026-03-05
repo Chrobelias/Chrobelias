@@ -1597,7 +1597,24 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
         List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
       | Unsupp _ -> false
     in
-    let var_can_subst v = Env.is_absent_key v env in
+    let var_can_subst v =
+      Env.is_absent_key v env
+      && not
+           (String.starts_with ~prefix:"strlen" v
+            && Ast.forsome
+                 (function
+                   | Ast.Eia eia ->
+                     Ast.Eia.fold2
+                       (fun acc -> function
+                          | Ast.Eia.Pow (_, Ast.Eia.Atom (Ast.Var (v', Ast.I)))
+                            when v = v' -> true
+                          | _ -> acc)
+                       (fun acc _ -> acc)
+                       false
+                       eia
+                   | _ -> false)
+                 orig_ast)
+    in
     let var_can_subst_complex v = var_can_subst v && not (in_strlen v orig_ast) in
     let single =
       fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
