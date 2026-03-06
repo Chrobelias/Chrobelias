@@ -1434,10 +1434,31 @@ let gensym =
 ;;
 
 let flatten { Info.all; _ } =
+  let open Ast.Eia in
+  let rec get_exp_max_height : 'a. 'a term -> int =
+    fun (type a) (term : a term) ->
+    match term with
+    | Const _ | Atom (Var (_, I)) -> 0
+    | Str_const _ | Atom (Var (_, S)) -> 0
+    | Iofs ts | Len ts | Len2 ts -> get_exp_max_height ts
+    | Sofi t -> get_exp_max_height t
+    | Concat (term', term'') -> max (get_exp_max_height term') (get_exp_max_height term'')
+    | Substr (term', term'', term''') ->
+      max
+        (max (get_exp_max_height term') (get_exp_max_height term''))
+        (get_exp_max_height term''')
+    | At (term', term'') -> max (get_exp_max_height term') (get_exp_max_height term'')
+    | Add terms | Mul terms ->
+      List.fold_left (fun acc term -> max acc (get_exp_max_height term)) 0 terms
+    | Bwand (term', term'') | Bwor (term', term'') | Bwxor (term', term'') ->
+      max (get_exp_max_height term') (get_exp_max_height term'')
+    | Pow (term', term'') -> max (get_exp_max_height term') (get_exp_max_height term'' + 1)
+    | Mod (t, _) -> get_exp_max_height t
+  in
   let gensym1 = gensym in
-  let rec gensym () =
-    let ans = gensym1 ~prefix:"%flat_pow" () in
-    if Base.Set.Poly.mem all ans then gensym () else ans
+  let rec gensym height =
+    let ans = gensym1 ~prefix:("%" ^ Format.asprintf "%d" height ^ "flat_pow") () in
+    if Base.Set.Poly.mem all ans then gensym height else ans
   in
   let extra_ph = ref [] in
   let mapping = ref ZTM.empty in
@@ -1454,7 +1475,7 @@ let flatten { Info.all; _ } =
       | _ ->
         (match ZTM.find e !mapping with
          | exception Not_found ->
-           let newv = gensym () in
+           let newv = gensym (get_exp_max_height e) in
            extend newv e;
            Id_symantics.pow base (Id_symantics.var newv)
          | newv -> Id_symantics.pow base (Id_symantics.var newv))

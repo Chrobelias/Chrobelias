@@ -73,6 +73,7 @@ type under_str_config =
 type huge_const_config =
   { mutable const : int
   ; mutable const_model : int
+  ; mutable path : int
   }
 
 type string_config =
@@ -82,8 +83,9 @@ type string_config =
   ; eos : char
   }
 
-let huge_const_config = { const = 20; const_model = 120 }
+let huge_const_config = { const = 20; const_model = 120; path = 10000 }
 let huge_const () = huge_const_config.const
+let huge_path () = huge_const_config.path
 let huge_const_for_model () = huge_const_config.const_model
 let under2_config = { amin = 5; amax = 11; flat = -1 }
 let under_str_config = { max_len = 32; max_cnt = 32 }
@@ -99,7 +101,7 @@ let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3
 
 let max_longest_path =
   match Sys.getenv_opt "CHRO_LONGEST_PATH" with
-  | None -> 10000
+  | None -> huge_path ()
   | Some s ->
     (match int_of_string_opt s with
      | Some n -> n
@@ -133,17 +135,17 @@ Basic options:
       , "<n>\tMaximal residue used in NFA Solver" )
     ; ( "-bstates"
       , Arg.Int (fun n -> config.bound_states <- n)
-      , "<n>\tMaximal number of states in NFAs used in NFA Solver" )
-    ; ( "-huge"
+      , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
+    ; ( "-huge-c"
       , Arg.Int (fun n -> huge_const_config.const <- n)
       , Printf.sprintf
           "<n> \tAdmit integer constants with at most <n> digits (DEFAULT n=%d)"
           (huge_const ()) )
-    ; ( "-huge-model"
-      , Arg.Int (fun n -> huge_const_config.const_model <- n)
+    ; ( "-huge"
+      , Arg.Int (fun n -> huge_const_config.path <- n)
       , Printf.sprintf
-          "<n> \tSearch a model with at most <n> digits (DEFAULT n=%d)"
-          (huge_const_for_model ()) )
+          "<n> \tSearch a model with at most <n> symbols (DEFAULT n=%d)"
+          (huge_path ()) )
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , "  \tUse least-significant-bit first representation" )

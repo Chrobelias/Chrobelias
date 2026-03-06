@@ -716,7 +716,7 @@ let () =
               let attempt, len =
                 if Option.is_some len
                 then 2, Option.get len
-                else 1, Lib.Config.max_longest_path
+                else 1, Lib.Config.huge_path ()
               in
               log "model is TOO big after %d attempt\n%!" attempt;
               let shrinked_ast =

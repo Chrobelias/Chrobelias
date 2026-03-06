@@ -972,7 +972,7 @@ struct
              prev_var;
            (try
               let path_len = len_of_var exp - len_of_var prev_var in
-              if path_len > Config.max_longest_path
+              if path_len > Config.huge_path ()
               then
                 (* let () = Format.eprintf "Calculated path_len = %d\n%!" path_len in *)
                 Result.Error (mapVals |> Map.map_keys_exn ~f:Ir.var)
@@ -1033,10 +1033,7 @@ struct
           else false
         in
         let good v =
-          if String.starts_with (Ir.name v) ~prefix:"strlen"
-          then Z.(get_val map v <= of_int Config.max_longest_path)
-          else
-            Z.fits_int (get_val map v) && Z.to_int (get_val map v) < Config.huge_const ()
+          Z.fits_int (get_val map v) && Z.(get_val map v <= of_int (Config.huge_path ()))
         in
         let free_atoms = Ir.collect_free_atoms ir in
         fun k ->
