@@ -94,7 +94,7 @@ Fold exps
   
   Bound for underapproximation: 2
   
-  Interesting: %flat_pow1
+  Interesting: %0flat_pow1
   
   Expecting 2 choices ...
   
@@ -141,7 +141,7 @@ Fold exps
   
   Bound for underapproximation: 2
   
-  Interesting: %flat_pow1
+  Interesting: %0flat_pow1
   
   Expecting 2 choices ...
   

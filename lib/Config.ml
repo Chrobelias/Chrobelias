@@ -132,7 +132,7 @@ Basic options:
       , "\tUpper bound for integer underapproximation (negative disables)" )
     ; ( "-bres"
       , Arg.Int (fun n -> config.bound_res <- n)
-      , "<n>\tMaximal residue used in NFA Solver" )
+      , "<n>\tMaximal residue used in the NFA Solver" )
     ; ( "-bstates"
       , Arg.Int (fun n -> config.bound_states <- n)
       , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
@@ -220,7 +220,7 @@ Basic options:
       , "\tDO simplifications based on alpha-equivalence" ) *)
     ; ( "--over-nfa"
       , Arg.Unit (fun () -> config.over_nfa <- true)
-      , "\tOverapproximate orderings in NFA Solver" )
+      , "\tOverapproximate orderings within the NFA Solver" )
       (* ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t" *)
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
