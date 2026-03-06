@@ -34,11 +34,11 @@
   sat (under int)
   (
      (define-fun u () Int
-      0)
+      3)
      (define-fun x () Int
-      -1)
+      6)
      (define-fun y () Int
-      -5)
+      16)
      (define-fun z () Int
       100)
   )

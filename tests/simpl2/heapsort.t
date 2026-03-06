@@ -673,7 +673,7 @@
                     (bool.and
                      (bool.and
                       (bool.and
-                       (bool.and (bool.eq %flat_pow1 (int.add -1 it147))
+                       (bool.and (bool.eq %0flat_pow1 (int.add -1 it147))
                         (bool.eq (int.add it154 (int.mul -2 exp_2_it147)) -2))
                        (bool.eq (int.add it155 (int.mul -2 exp_2_it147)) -1))
                       (bool.eq (int.add it157 (int.mul -2 exp_2_it147)) -1))
@@ -687,16 +687,16 @@
                (int.le_s
                 (int.add (int.add (int.mul -1 i10) exp_2_it147) exp_2_it147) 2))
               (int.le_s
-               (int.add (int.add (int.mul -1 i10) exp_2_%flat_pow1)
-                exp_2_%flat_pow1) 1)) (int.le_s (int.mul -1 i10) -3))
+               (int.add (int.add (int.mul -1 i10) exp_2_%0flat_pow1)
+                exp_2_%0flat_pow1) 1)) (int.le_s (int.mul -1 i10) -3))
             (int.le_s (int.mul -1 i10) -2)) (int.le_s (int.mul -1 i10) -1))
           (int.le_s (int.mul -1 it147) -1))
-         (int.lt_s (int.mul 1 %flat_pow1) exp_2_%flat_pow1)
+         (int.lt_s (int.mul 1 %0flat_pow1) exp_2_%0flat_pow1)
          (int.lt_s (int.mul 1 it147) exp_2_it147)
   
   (assert (<= (+ (* (- 1) i10) (* 2 pow2(it147)) )  1) )
-  (assert (<= (+ (* (- 1) i10) (* 2 pow2(%flat_pow1)) )  1) )
-  (assert (= (+ %flat_pow1 (* (- 1) it147) )  -1) )
+  (assert (<= (+ (* (- 1) i10) (* 2 pow2(%0flat_pow1)) )  1) )
+  (assert (= (+ %0flat_pow1 (* (- 1) it147) )  -1) )
   (assert (= (+ it154 (* (- 2) pow2(it147)) )  -2) )
   (assert (= (+ it155 (* (- 2) pow2(it147)) )  -1) )
   (assert (= (+ it157 (* (- 2) pow2(it147)) )  -1) )

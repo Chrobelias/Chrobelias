@@ -3,27 +3,27 @@ $ cat baba2.smt2
   $ Chro  --dpresimpl ./baba2.smt2
   Light run:
   (and
-               (= %flat_pow5 (+ 1 b))
-               (= (+ b (* (- 2) %re_len1)) 1)
+               (= strlenb (+ 1 b))
+               (= strlenb (+ 2 (* 2 %re_len1)))
                (<= 0 %re_len1)
-               (<= (* (- 1) b) 1)
+               (<= 0 strlenb)
                (str.in_re.raw b)
-               (chrob.len b (exp 10 %flat_pow5)))
+               (chrob.len b (exp 10 strlenb)))
   Light run:
   (and
-               (= %flat_pow6 (+ 1 b))
-               (= (+ b (* (- 2) %re_len2)) 2)
+               (= strlenb (+ 1 b))
+               (= strlenb (+ 3 (* 2 %re_len2)))
                (<= 0 %re_len2)
-               (<= (* (- 1) b) 1)
+               (<= 0 strlenb)
                (str.in_re.raw b)
-               (chrob.len b (exp 10 %flat_pow6)))
+               (chrob.len b (exp 10 strlenb)))
   (and
-    (= %flat_pow11 (+ 1 b))
-    (= (+ b (* (- 2) %re_len7)) 1)
-    (<= 0 %re_len7)
-    (<= (* (- 1) b) 1)
+    (= strlenb (+ 1 b))
+    (= strlenb (+ 2 (* 2 %re_len5)))
+    (<= 0 %re_len5)
+    (<= 0 strlenb)
     (str.in_re.raw b)
-    (chrob.len b (exp 10 %flat_pow11)))
+    (chrob.len b (exp 10 strlenb)))
   sat (nfa)
   (
      (define-fun a () String
