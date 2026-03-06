@@ -1,4 +1,4 @@
-name: Perf different solvers on stringfuzzregex
+name: Perf different solvers on LoAT/PURRS
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
   pull_request:
 
 env:
@@ -15,8 +16,7 @@ env:
   OPAMROOT: /home/user/.opam
 
 jobs:
-  stringfuzzregex-solvers:
-    timeout-minutes: 2880
+  qf-lia:
     runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
@@ -24,13 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        solver:
-          #- "bin/chro.exe"
-          #- "bin/ostrich2"
-          #- "bin/cvc5"
-          #- "bin/z3-noodler"
-          #- "bin/z3 -memory:6144"
-          - "bin/z3str3re -memory:6144"
+        solver: ["bin/chro.exe", "bin/swine"]
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
@@ -57,18 +51,10 @@ jobs:
       - name: Build
         run: opam exec -- dune build @all
 
-      - name: Run ${{ matrix.solver }} on stringfuzzregex benchmarks
+      - name: Run ${{ matrix.solver }} on purrs benchmarks
         run: |
-          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex/generated $TIMEOUT
+          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/QF_LIA $TIMEOUT
 
       - name: Get stats
         run: |
-          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex/generated
-
-      - name: Run ${{ matrix.solver }} on stringfuzzregex benchmarks
-        run: |
-          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex/transformed $TIMEOUT
-
-      - name: Get stats
-        run: |
-          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_SLIA/stringfuzzregex/transformed
+          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/QF_LIA
