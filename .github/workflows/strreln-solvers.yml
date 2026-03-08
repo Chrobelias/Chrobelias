@@ -29,11 +29,11 @@ jobs:
           #- "bin/chro.exe"
           #- "bin/chro.exe -bres 2 -bstates 20"
           #- "bin/chro.exe -bres 1 -bstates 10"
-          - "bin/chro.exe -under-all -sbcnt 10 -sblen 5"
+          #- "bin/chro.exe -under-all -sbcnt 10 -sblen 5"
           #- "bin/ostrich2"
-          - "bin/cvc5"
+          #- "bin/cvc5"
           #- "bin/z3-noodler -memory:6144"
-          #- "bin/z3 -memory:6144"
+          - "bin/z3"
           #- "bin/z3str3re -memory:6144"
     steps:
       - run: opam --version

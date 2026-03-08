@@ -29,8 +29,8 @@ jobs:
           #- "bin/ostrich2"
           #- "bin/cvc5"
           #- "bin/z3-noodler"
-          #- "bin/z3 -memory:6144"
-          - "bin/z3str3re -memory:6144"
+          - "bin/z3"
+          #- "bin/z3str3re"
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version

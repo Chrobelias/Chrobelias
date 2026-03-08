@@ -17,6 +17,7 @@ env:
 
 jobs:
   sierpinski:
+    if: false
     runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
