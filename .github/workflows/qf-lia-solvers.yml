@@ -24,7 +24,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        solver: ["bin/chro.exe", "bin/swine"]
+        solver:
+          - "bin/chro.exe"
+          #- "bin/swine"
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
@@ -53,8 +55,14 @@ jobs:
 
       - name: Run ${{ matrix.solver }} on purrs benchmarks
         run: |
-          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/QF_LIA $TIMEOUT
+          ./.github/workflows/run-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity $TIMEOUT
+          ./.github/workflows/run-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/LoAT/TPDB_ITS_Termination $TIMEOUT
+          ./.github/workflows/run-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/PURRS $TIMEOUT
+          ./.github/workflows/run-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/PURRS_with_axioms $TIMEOUT
 
       - name: Get stats
         run: |
-          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/QF_LIA
+          ./.github/workflows/stat-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity $TIMEOUT
+          ./.github/workflows/stat-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/LoAT/TPDB_ITS_Termination $TIMEOUT
+          ./.github/workflows/stat-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/PURRS $TIMEOUT
+          ./.github/workflows/stat-benchmarks-single.sh "${{ matrix.solver }}" benchmarks/QF_LIA/PURRS_with_axioms $TIMEOUT
