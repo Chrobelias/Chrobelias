@@ -33,7 +33,8 @@ jobs:
           #- "bin/ostrich2"
           #- "bin/cvc5"
           #- "bin/z3-noodler -memory:6144"
-          - "bin/z3"
+          #- "bin/z3"
+          - "bin/z3-old"
           #- "bin/z3str3re -memory:6144"
     steps:
       - run: opam --version
