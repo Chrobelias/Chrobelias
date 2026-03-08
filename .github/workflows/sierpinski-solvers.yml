@@ -24,7 +24,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        solver: ["bin/chro.exe", "bin/swine"]
+        solver:
+          #- "bin/chro.exe"
+          - "bin/chro.exe -bres 1 -bstates 10"
+          - "bin/chro.exe -bres 2 -bstates 20"
+          #- "bin/swine"
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
