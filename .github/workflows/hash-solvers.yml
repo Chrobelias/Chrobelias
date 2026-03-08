@@ -16,6 +16,7 @@ env:
 
 jobs:
   hashfunction-solvers:
+    if: false
     timeout-minutes: 1440
     runs-on: self-hosted
     container:
