@@ -2,7 +2,6 @@
 
 $ export CHRO_DEBUG=1
   $ Chro --dsimpl --stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
-  sat (under int)
 
 
   $ unset CHRO_DEBUG

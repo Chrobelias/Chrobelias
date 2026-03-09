@@ -73,11 +73,3 @@
                  (* 25332 x3) (* 84701 x1)) 96869))
   fixed-point
   
-  Bound for underapproximation: 18
-  
-  Interesting: x1 x2
-  
-  Expecting 324 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)

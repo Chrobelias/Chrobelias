@@ -4592,14 +4592,6 @@
               (<= (* (- 1) it157) (- 1)))
   fixed-point
   
-  Bound for underapproximation: 4
-  
-  Interesting: %0flat_pow1 it147
-  
-  Expecting 16 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
 
   $ unset CHRO_DEBUG

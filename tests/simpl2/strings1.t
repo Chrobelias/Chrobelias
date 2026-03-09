@@ -8,6 +8,14 @@
   > EOF
 
   $ Chro 1.smt2 --dpresimpl | sed 's/[[:space:]]*$//'
+  Light run:
+  (and
+               (= strlenx (+ 1 %re_len9))
+               (= (+ (* (- 1) y (exp 10 strlenx)) (* 999 (exp 10 strlenx))) 0)
+               (<= 0 %re_len9)
+               (<= 0 strlenx)
+               (<= 0 x)
+               (<= 0 y))
   sat (under int)
   (
      (define-fun x () String

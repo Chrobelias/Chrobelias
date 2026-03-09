@@ -115,14 +115,6 @@ $ cat input4.smt2
              (<= (* (- 1) it140) (- 1)))
   fixed-point
   
-  Bound for underapproximation: 4
-  
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
   $ timeout 5 Chro input4.smt2 || echo "timeout"
   sat (under int)
