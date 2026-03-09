@@ -117,6 +117,15 @@ let max_nfa_size =
      | None -> exit 1)
 ;;
 
+let max_under_const =
+  match Sys.getenv_opt "CHRO_MAX_UNDER" with
+  | None -> 5000
+  | Some s ->
+    (match int_of_string_opt s with
+     | Some n -> n
+     | None -> exit 1)
+;;
+
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let usage_msg =

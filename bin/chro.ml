@@ -356,6 +356,15 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       then unknown ast e
       else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
       <+> (fun ast e ->
+      if config.logic = `Eia
+      then (
+        match Lib.Overapprox.check ast with
+        | `Unknown ast -> unknown ast e
+        | `Sat _ -> unknown ast e
+        | `Unsat ->
+          Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
+      else unknown ast e)
+      <+> (fun ast e ->
       if config.under_approx >= 0
       then (
         let merge =
@@ -368,15 +377,6 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           Sat (s, ast, merge e0 e, (fun _ -> Result.Ok Map.empty), Map.empty)
         | `Unsat s -> Unsat s
         | `Unknown _ -> unknown ast e)
-      else unknown ast e)
-      <+> (fun ast e ->
-      if config.over_approx_early
-      then (
-        match Lib.Overapprox.check ast with
-        | `Unknown ast -> unknown ast e
-        | `Sat _ -> unknown ast e
-        | `Unsat ->
-          Unsat "over early" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
       else unknown ast e)
       <+> (fun ast e ->
       match Lib.SimplII.has_unsupported_nonlinearity ast with

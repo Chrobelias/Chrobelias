@@ -205,10 +205,9 @@ let semenov_bound bound ast =
 
 let check bound ast =
   try
-    let bound = if bound < 0 then -1 else semenov_bound bound ast in
-    log "Bound for underapproximation: %d\n" bound;
     let vars = ref (Base.Set.empty (module Base.String)) in
     let interestring_vars =
+      let ( ++ ) = List.append in
       Ast.fold
         (fun acc -> function
            | Eia eia ->
@@ -217,21 +216,29 @@ let check bound ast =
                   | Ast.Eia.Pow (base, p) ->
                     let _, base_vars, base_vars' = Ast.Eia.collect_lin_exp base in
                     let _, p_vars, p_vars' = Ast.Eia.collect_lin_exp p in
-                    let base_vars = List.append base_vars base_vars' in
-                    let p_vars = List.append p_vars p_vars' in
-                    List.append (List.append base_vars p_vars) acc
+                    let base_vars = base_vars ++ base_vars' in
+                    let p_vars = p_vars ++ p_vars' in
+                    base_vars ++ p_vars ++ acc
                   | _ -> acc)
                (fun acc _ -> acc)
                acc
                eia
            | _ -> acc)
         []
-        ast |> Base.Set.Poly.of_list |> Base.Set.Poly.to_list
+        ast
+      |> Base.Set.Poly.of_list
+      |> Base.Set.Poly.to_list
     in
-    (* TODO(Kakadu): collecting of interesting variables could be buggy. For example, what if
-      (exists (x) (...) (exists (x) (= (exp 2 x) 128)))
-    ??
-    *)
+    let bound =
+      if bound < 0
+      then -1
+      else (
+        let n, s_bound = List.length interestring_vars, semenov_bound bound ast in
+        if Z.(pow (of_int s_bound) n < of_int Config.max_under_const)
+        then s_bound
+        else Config.config.under_approx)
+    in
+    log "Bound for underapproximation: %d\n" bound;
     log "Interesting: %s\n" (String.concat " " interestring_vars);
     log
       "Expecting %d choices ...\n%!"
