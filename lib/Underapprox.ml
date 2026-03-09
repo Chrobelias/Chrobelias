@@ -157,7 +157,6 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Mod (l, r) -> S.mod_ (helperT l) r
-    | Pow (Const base, Atom (Var (x, _))) when base = Config.base () -> S.pow2var x
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
     | Len _ | Iofs _ | Sofi _ | Concat _ | At _ | Substr _ | Str_const _ | Len2 _ ->
@@ -209,7 +208,26 @@ let check bound ast =
     let bound = if bound < 0 then -1 else semenov_bound bound ast in
     log "Bound for underapproximation: %d\n" bound;
     let vars = ref (Base.Set.empty (module Base.String)) in
-    let interestring_vars = apply_symantics (make_collector ()) ast in
+    let interestring_vars =
+      Ast.fold
+        (fun acc -> function
+           | Eia eia ->
+             Ast.Eia.fold2
+               (fun acc -> function
+                  | Ast.Eia.Pow (base, p) ->
+                    let _, base_vars, base_vars' = Ast.Eia.collect_lin_exp base in
+                    let _, p_vars, p_vars' = Ast.Eia.collect_lin_exp p in
+                    let base_vars = List.append base_vars base_vars' in
+                    let p_vars = List.append p_vars p_vars' in
+                    List.append (List.append base_vars p_vars) acc
+                  | _ -> acc)
+               (fun acc _ -> acc)
+               acc
+               eia
+           | _ -> acc)
+        []
+        ast |> Base.Set.Poly.of_list |> Base.Set.Poly.to_list
+    in
     (* TODO(Kakadu): collecting of interesting variables could be buggy. For example, what if
       (exists (x) (...) (exists (x) (= (exp 2 x) 128)))
     ??

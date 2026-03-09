@@ -397,6 +397,19 @@ module Eia = struct
     | _ -> acc
   ;;
 
+  let collect_lin_exp (type a) (term : a term) =
+    fold_term
+      (fun (str, lin, exp) -> function
+         | Atom (Var (x, I)) -> str, x :: lin, exp
+         | Pow (_, Atom (Var (x, I))) -> str, lin, x :: exp
+         | _ -> str, lin, exp)
+      (fun (str, lin, exp) -> function
+         | Atom (Var (x, S)) -> x :: str, lin, exp
+         | _ -> str, lin, exp)
+      ([], [], [])
+      term
+  ;;
+
   let pp fmt = function
     | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
     | Neq (term, term', _) ->
