@@ -41,21 +41,6 @@ $ export CHRO_DEBUG=1
   iter(1)= (= (* x (exp 2 z)) 3076)
   fixed-point
   
-  
-  Non linear arithmetic between
-  
-  0) x
-  
-  
-  
-  Into Z3 goes: (bool.eq (int.mul x (int.pow 2 z)) 3076)
-  
-  sat (nia)
-  (
-     (define-fun x () Int
-      3076)   (define-fun z () Int
-      0)
-  )
 The test below should be SAT but there is an issue #143
 which is needed to be fixed first
   $ timeout 2 $RUN | grep -v assert | sed -r '/^\s*$/d'
@@ -104,21 +89,6 @@ which is needed to be fixed first
   iter(1)= (= (* x (exp 2 z)) 8096)
   fixed-point
   
-  
-  Non linear arithmetic between
-  
-  0) x
-  
-  
-  
-  Into Z3 goes: (bool.eq (int.mul x (int.pow 2 z)) 8096)
-  
-  sat (nia)
-  (
-     (define-fun x () Int
-      8096)   (define-fun z () Int
-      0)
-  )
   $ timeout 2 $RUN | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
   (

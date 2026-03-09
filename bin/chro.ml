@@ -356,6 +356,13 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       then unknown ast e
       else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
       <+> (fun ast e ->
+      let light_str = if light then "Light run:\n" else "" in
+      if config.dump_pre_simpl
+      then Format.printf "@[%s%a@]\n%!" light_str Lib.Ast.pp_smtlib2 ast;
+      unknown ast e)
+      <+> (fun ast e ->
+      if config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
+      (* <+> (fun ast e ->
       if config.logic = `Eia
       then (
         match Lib.Overapprox.check ast with
@@ -363,7 +370,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         | `Sat _ -> unknown ast e
         | `Unsat ->
           Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
-      else unknown ast e)
+      else unknown ast e) *)
       <+> (fun ast e ->
       if config.under_approx >= 0
       then (
@@ -379,10 +386,18 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
+      if config.over_approx
+      then (
+        match Lib.Overapprox.check ast with
+        | `Unknown ast -> unknown ast e
+        | `Sat _ -> unknown ast e
+        | `Unsat ->
+          Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
+      else unknown ast e)
+      <+> (fun ast e ->
       match Lib.SimplII.has_unsupported_nonlinearity ast with
       | Result.Ok () -> unknown ast e
       | Error terms ->
-        (* TODO(Kakadu): Print leftover AST too *)
         log "@[<v 2>";
         log "@[Non linear arithmetic between@]@,";
         List.iteri (fun i -> log "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
@@ -396,7 +411,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
             report_result2 (`Unknown "nia");
             exit 0)
         else unknown ast e)
-      <+> (fun ast e ->
+      <+> fun ast e ->
       if Lib.Config.is_under2_enabled ()
       then (
         used_under2 := true;
@@ -426,28 +441,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
              unknown ast e
            with
            | Sat_found model -> sat "under II" ast e model Map.empty))
-      else unknown ast e)
-      <+> (fun ast e ->
-      let light_str = if light then "Light run:\n" else "" in
-      if config.dump_pre_simpl
-      then Format.printf "@[%s%a@]\n%!" light_str Lib.Ast.pp_smtlib2 ast;
-      unknown ast e)
-      <+> (fun ast e ->
-      if config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
-      <+> fun ast e ->
-      if config.stop_after = `Pre_simplify
-      then exit 0
-      else
-        unknown ast e
-        <+> fun ast e ->
-        if config.over_approx
-        then (
-          match Lib.Overapprox.check ast with
-          | `Unknown ast -> unknown ast e
-          | `Sat _ -> unknown ast e
-          | `Unsat ->
-            Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
-        else unknown ast e
+      else unknown ast e
     in
     match apporx_rez with
     | Unknown (ast, e) ->

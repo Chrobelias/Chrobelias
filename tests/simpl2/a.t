@@ -20,14 +20,6 @@
              (<= (* (- 5) x) 13))
   fixed-point
   
-  Bound for underapproximation: 8
-  
-  Interesting: y
-  
-  Expecting 8 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
@@ -61,14 +53,6 @@
              (<= (* (- 5) x) 13))
   fixed-point
   
-  Bound for underapproximation: 8
-  
-  Interesting: y
-  
-  Expecting 8 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
   $ cat > sum_join1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)

@@ -34,13 +34,6 @@
   iter(5)= (= (+ z z) 10099)
   fixed-point
   
-  Bound for underapproximation: 13
-  
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  unsat (nia)
   $ cat > xxx.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun y () Int)
@@ -54,13 +47,6 @@
   iter(2)= (= (+ y y) (- 9899))
   fixed-point
   
-  Bound for underapproximation: 13
-  
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  unsat (nia)
 
   $ cat > 4.smt2 <<-EOF
   > (set-logic ALL)
@@ -86,14 +72,6 @@
              (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0))
   fixed-point
   
-  Bound for underapproximation: 2
-  
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
   $ cat > 5.smt2 <<-EOF
   > (set-logic ALL)

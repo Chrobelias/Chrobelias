@@ -27,13 +27,5 @@ $ cat  sum3exp.smt2
              (<= (exp 2 x1) x2))
   fixed-point
   
-  Bound for underapproximation: 4
-  
-  Interesting: x1 x2 x3
-  
-  Expecting 64 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
 

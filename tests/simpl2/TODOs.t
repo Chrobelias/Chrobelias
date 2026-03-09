@@ -13,14 +13,6 @@
   iter(2)= (<= (+ x2 (* 5 x1)) (* 6 x2))
   fixed-point
   
-  Bound for underapproximation: 3
-  
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 Should be (<= x 2)
   $ cat > TODO2.smt2 <<-EOF
   > (set-logic ALL)
@@ -36,14 +28,6 @@ Should be (<= x 2)
   iter(2)= (<= x1 2)
   fixed-point
   
-  Bound for underapproximation: 2
-  
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -92,14 +76,6 @@ Fold exps
   iter(3)= (<= (exp 2 (+ it134 it135)) 2)
   fixed-point
   
-  Bound for underapproximation: 2
-  
-  Interesting: %0flat_pow1
-  
-  Expecting 2 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
   $ cat > i4.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x1 () Int)
@@ -115,14 +91,6 @@ Fold exps
   iter(2)= (<= (+ (* x1 (exp 2 x3)) (* x2 (exp 2 x3))) 2)
   fixed-point
   
-  Bound for underapproximation: 2
-  
-  Interesting: x3
-  
-  Expecting 2 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
   $ cat > i3.smt2 <<-EOF
   > (set-logic ALL)
@@ -139,14 +107,6 @@ Fold exps
   iter(3)= (<= (exp 2 (+ it134 it134)) 4)
   fixed-point
   
-  Bound for underapproximation: 2
-  
-  Interesting: %0flat_pow1
-  
-  Expecting 2 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
 
 $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's/[[:space:]]*$//'
@@ -169,14 +129,6 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   iter(3)= (<= (+ it646 (* (- 3) it646)) (- 2))
   fixed-point
   
-  Bound for underapproximation: 2
-  
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)
@@ -197,25 +149,6 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   iter(3)= (= (+ (* (- 3) i3 (exp 2 it134)) (* 2 (exp 2 it134))) 0)
   fixed-point
   
-  Bound for underapproximation: 2
-  
-  Interesting: it134
-  
-  Expecting 2 choices ...
-  
-  Can't decide in lib/Underapprox.ml
-  
-  Non linear arithmetic between
-  
-  0) i3
-  
-  
-  
-  Into Z3 goes: (bool.eq
-                 (int.add (int.mul (int.mul -3 i3) (int.pow 2 it134))
-                  (int.mul 2 (int.pow 2 it134))) 0)
-  
-  unsat (nia)
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun i3 () Int)

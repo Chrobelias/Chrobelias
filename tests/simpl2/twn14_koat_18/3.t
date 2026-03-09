@@ -289,14 +289,6 @@ $ cat input3.smt2
               (<= (* (- 1) it140) (- 1)))
   fixed-point
   
-  Bound for underapproximation: 4
-  
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
-  sat (under int)
 
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 5 Chro input3.smt2 || echo "timeout"

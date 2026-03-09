@@ -22,8 +22,6 @@
   iter(3)= (= (str.to.int x) (+ 42 (* 11111 %q2)))
   fixed-point
   
-  Bound for underapproximation: 13
-  
 
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)
@@ -68,8 +66,6 @@ $ cat 1.smt2
              (<= %q4 1)
              (<= (* (- 1) %q4) 0))
   fixed-point
-  
-  Bound for underapproximation: 19
   
   (and
     (= (str.to.int x) (+ (* 417677 %q4) (* 442271 %q2)))
