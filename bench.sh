@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
-
 set +e;
-
 TIMEOUT=60s
+
+matches_filter() {
+  local value="$1"
+  local filter="$2"
+  [[ -z "$filter" ]] && return 0
+  IFS=',' read -ra patterns <<< "$filter"
+  for pattern in "${patterns[@]}"; do
+    [[ "$value" =~ $pattern ]] && return 0
+  done
+  return 1
+}
 
 eia_benchmarks=(
   "benchmarks/QF_LIA"
@@ -10,23 +19,22 @@ eia_benchmarks=(
 )
 eia_solvers=(
   "bin/chro.exe -q"
-  "bin/chro.exe -q -bres 1 -bstates 10"
   "bin/chro.exe -q -bres 2 -bstates 20"
   "bin/swine"
 )
 
-mkdir -p results
-mkdir -p stats
+mkdir -p results stats
 
 for solver in "${eia_solvers[@]}"; do
+  matches_filter "$solver" "$CHRO_SOLVERS" || continue
   echo "Testing EIA $solver..."
   for benchmark in "${eia_benchmarks[@]}"; do
+    matches_filter "$benchmark" "$CHRO_BENCHMARKS" || continue
     echo "Runinng $solver on $benchmark"
     ./.github/workflows/run-benchmarks.sh "$solver" "$benchmark" $TIMEOUT
-    solverescaped=$(echo "$(basename "$solver")" | sed 's/ /-/g' | sed 's/\//-/g');
-    benchmarkescaped=$(echo "$(basename "$benchmark")" | sed 's/ /-/g' | sed 's/\//-/g');
-    stat="stats/$solverescaped-$benchmarkescaped.txt"
-    ./.github/workflows/stat-benchmarks.sh "$solver" "$benchmark" | tee "$stat"
+    solverescaped=$(basename "$solver" | sed 's/[ /]/-/g')
+    benchmarkescaped=$(basename "$benchmark" | sed 's/[ /]/-/g')
+    ./.github/workflows/stat-benchmarks.sh "$solver" "$benchmark" | tee "stats/$solverescaped-$benchmarkescaped.txt"
   done
 done
 
@@ -37,9 +45,8 @@ slia_benchmarks=(
 )
 slia_solvers=(
   "bin/chro.exe -q"
-  "bin/chro.exe -q -bres 1 -bstates 10"
   "bin/chro.exe -q -bres 2 -bstates 20"
-  "bin/chro.exe -under-all -sbcnt 10 -sblen 5"
+  "bin/chro.exe -under-all"
   "bin/ostrich2"
   "bin/cvc5"
   "bin/z3-noodler"
@@ -47,13 +54,14 @@ slia_solvers=(
 )
 
 for solver in "${slia_solvers[@]}"; do
+  matches_filter "$solver" "$CHRO_SOLVERS" || continue
   echo "Testing SLIA $solver..."
   for benchmark in "${slia_benchmarks[@]}"; do
+    matches_filter "$benchmark" "$CHRO_BENCHMARKS" || continue
     echo "Runinng $solver on $benchmark"
     ./.github/workflows/run-benchmarks.sh "$solver" "$benchmark" $TIMEOUT
-    solverescaped=$(echo "$(basename "$solver")" | sed 's/ /-/g' | sed 's/\//-/g');
-    benchmarkescaped=$(echo "$(basename "$benchmark")" | sed 's/ /-/g' | sed 's/\//-/g');
-    stat="stats/$solverescaped-$benchmarkescaped.txt"
-    ./.github/workflows/stat-benchmarks.sh "$solver" "$benchmark" | tee "$stat"
+    solverescaped=$(basename "$solver" | sed 's/[ /]/-/g')
+    benchmarkescaped=$(basename "$benchmark" | sed 's/[ /]/-/g')
+    ./.github/workflows/stat-benchmarks.sh "$solver" "$benchmark" | tee "stats/$solverescaped-$benchmarkescaped.txt"
   done
 done
