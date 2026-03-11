@@ -27,7 +27,7 @@ jobs:
           submodules: true
 
       - name: Install extra dependencies
-        run: apt-get install bc --yes
+        run: sudo apt-get install bc --yes
 
       # Disabled since the docker image is used.
 
