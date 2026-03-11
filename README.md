@@ -18,8 +18,11 @@ To build the project you need the following dependencies to be installed:
 
 The dependencies can be installed using the bash commands
 ```bash
-# Installing OCaml package manager and OCaml 5.3.
+# Installing OCaml package manager
 bash -c "sh <(curl -fsSL https://opam.ocaml.org/install.sh)"
+# Initializing the package manager. It might ask you to install other common dependencies (e.g. unzip)
+opam init
+# Installing OCaml 5.3.
 opam switch create 5.3.0+flambda --packages=ocaml-variants.5.3.0+options,ocaml-option-flambda --yes
 ```
 ChrobELIAS is built as follows:
