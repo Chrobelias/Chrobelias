@@ -15,8 +15,7 @@ env:
 
 jobs:
   build-linux:
-    if: false
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: we1ine/chrobelias:latest
       options: --user root --memory=8192m --cpus="1.0"
@@ -28,8 +27,7 @@ jobs:
         with:
           submodules: true
 
-      - name: Install extra dependencies
-        run: apt-get install bc --yes
+      # Disabled since the docker image is used.
 
       #- uses: ocaml/setup-ocaml@v3
       #  with:
