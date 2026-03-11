@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: we1ine/chrobelias:latest
-      options: --user root --memory=8192m --cpus="1.0"
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
