@@ -68,7 +68,7 @@ Simple `.smt2` files for ChrobELIAS can be found in [benchmarks](https://github.
 - M. R. Starchak. [Quantifier Elimination for Regular Integer Linear-Exponential Programming](https://ieeexplore.ieee.org/document/11186186), In _Proc. of LICS'25_, Singapore, 2025, pp. 44-56.
 ## Benchmarks
 
-We strongly encourage to benchmark ChrobELIAS using its [Docker evaluation image available on DockerHub](https://hub.docker.com/repository/docker/chrobelias/chrobelias-evaluation). For more information refer to [BENCHMARKING.md](BENCHMARKING.md).
+We strongly encourage to benchmark ChrobELIAS using its [Docker evaluation image available on DockerHub](https://hub.docker.com/repository/docker/chrobelias/chrobelias-evaluation). For more information refer to [BENCHES.md](BENCHMARKING.md).
 
 Benchmark suites can be accessed and cloned as Git submodules using the following command:
 

@@ -1,28 +1,104 @@
+# ChrobELIAS benchmarking
 
-### Generate and run LoAT benchmarks
+This README contains information on how to run ChrobELIAS benchmarks.
+ChorbELIAS experiments can be reproduced by accessing its Docker evaluation
+image which is available on [Dockerhub][1].
 
-Timeouts and opponents are hardcoded in Makefile
+*Note:* the image is approximately 7 GB. Make sure there is enough free space.
 
-```
-make make_bench_scripts
+## Prerequisites
 
-bash bench_PURRS.sh | tee PURRS.output
-bash bench_Termination.sh | tee Termination.output
-bash bench_LIA_Lin.sh | tee LIA_Lin.output
-bash bench_Complexity.sh | tee complexity.output
-```
+The only prerequisite is Docker that should be installed on your machine.
+To install it follow the instructions on the official website:
+https://docs.docker.com/engine/install/
 
-### Generate and run chrobelias benchmarks
+## Smoke tests
 
-```
-make gen-chrobelias
+To run smoke tests of ChrobELIAS and other solvers run the following command:
 
-bash bench-chrobelias-str-ln.sh | tee Chro_str_ln.output
-bash bench-chrobelias-str-reln.sh | tee Chro_str_REln.output
-bash bench-chrobelias-str-reln-huge.sh | tee Chro_str_RElnHuge.output
-bash bench-chrobelias-str-reln-very-huge.sh | tee Chro_str_RElnVeryHuge.output
+```bash
+docker run --rm -it -v ./stats:/Chrobelias/stats chrobelias/chrobelias-evaluation:latest /Chrobelias/smoke-test.sh
 ```
 
-Use `killall bash` in separate terminal to interrupt
+This would run smoke tests, which are the first 3 benchmarks from each suite.
 
-Use `grep -e CHRO -e SWINE complexity.output` to see results in LaTeX format
+*Note:* executing the command for the first time may take a while, because the
+        image would be fetched.
+
+To check that each solver has executed smoke tests:
+
+```bash
+$ ls ./stats/ | wc -l
+27
+```
+
+## Benchmarking
+
+To run all benchmarks and collect all results of all solvers use the following
+command:
+
+```bash
+docker run --rm -it -v ./stats:/Chrobelias/stats chrobelias/chrobelias-evaluation:latest /Chrobelias/bench.sh
+```
+
+The results will appear in the `./stats` directory.
+The execution can be long due to the 60s timeout.
+To run only some of the solvers/suites, provide comma-separated
+regexes for the desired solvers/suites as follows:
+
+```bash
+# Run only SwInE and ChrobELIAS with all configurations [ ; -under-all; -bres 2 -bstates 20]:
+docker run --rm -it \
+  -e CHRO_SOLVERS="swine,chro.*"
+  -v ./stats:/Chrobelias/stats \
+  chrobelias/chrobelias-evaluation:latest /Chrobelias/bench.sh
+
+# Run only Sierpinski EIA benchmarks:
+docker run --rm -it \
+  -e CHRO_BENCHMARKS="SIERPINSKI" \
+  -v ./stats:/Chrobelias/stats \
+  chrobelias/chrobelias-evaluation:latest /Chrobelias/bench.sh
+
+# Run only SwInE on LoAT suites:
+docker run --rm -it \
+  -e CHRO_SOLVERS="swine" \
+  -e CHRO_BENCHMARKS="LoAT" \
+  -v ./stats:/Chrobelias/stats \
+  chrobelias/chrobelias-evaluation:latest /Chrobelias/bench.sh
+```
+
+Here is the list of available `QF_EIA` solvers:
+* `chro.exe -q`
+* `chro.exe -q -bres 2 -bstates 20`
+* `swine`
+
+The list of `QF_EIA` benchmark suites:
+* `LoAT`
+* `SIERPINSKI`
+
+The list of `QF_SLIA` solvers:
+* `chro.exe -q`
+* `chro.exe -q -bres 2 -bstates 20`
+* `chro.exe -under-all`
+* `ostrich2`
+* `cvc5`
+* `z3-noodler`
+* `z3`
+
+The list of `QF_SLIA` benchmark suites:
+* `stringfuzz`
+* `Hash2`
+* `StrRElnc`
+
+To run multiple Docker containers in parallel, limit their RAM
+using the `--memory=8192m` parameter, and limit CPU usage with the `--cpus=1.0`
+parameter.
+
+## License & Acknowledgements
+
+The ChrobELIAS evaluation image is licensed under [GPLv3.0][2].
+
+For other licenses refer to the corresponding section in [README.md](README.md).
+
+[1]: https://hub.docker.com/repository/docker/chrobelias/chrobelias
+[2]: https://www.gnu.org/licenses/gpl-3.0.en.html
