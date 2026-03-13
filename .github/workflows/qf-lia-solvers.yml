@@ -17,7 +17,7 @@ env:
 
 jobs:
   qf-lia:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: we1ine/chrobelias:latest
       options: --user root
