@@ -93,12 +93,3 @@ The list of `QF_SLIA` benchmark suites:
 To run multiple Docker containers in parallel, limit their RAM
 using the `--memory=8192m` parameter, and limit CPU usage with the `--cpus=1.0`
 parameter.
-
-## License & Acknowledgements
-
-The ChrobELIAS evaluation image is licensed under [GPLv3.0][2].
-
-For other licenses refer to the corresponding section in [README.md](README.md).
-
-[1]: https://hub.docker.com/repository/docker/chrobelias/chrobelias
-[2]: https://www.gnu.org/licenses/gpl-3.0.en.html

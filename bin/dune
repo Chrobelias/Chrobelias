@@ -61,30 +61,11 @@
   (progn
    (run
     wget
-    https://github.com/Z3Prover/z3/releases/download/z3-4.16.0/z3-4.16.0-x64-glibc-2.39.zip
+    https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/z3-4.15.2-x64-glibc-2.39.zip
     -O
     z3.zip)
    (run unzip z3.zip)
-   (run mv ./z3-4.16.0-x64-glibc-2.39/bin/z3 ./z3))))
-
-(rule
- (targets z3-old)
- (action
-  (progn
-   (run
-    wget
-    https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/z3-4.15.2-x64-glibc-2.39.zip
-    -O
-    z3-old.zip)
-   (run unzip z3-old.zip)
-   (run mv ./z3-4.15.2-x64-glibc-2.39/bin/z3 ./z3-old))))
-
-(rule
- (targets z3str3re)
- (deps z3str3re_amd64_glibc)
- (action
-  (progn
-   (copy %{deps} %{targets}))))
+   (run mv ./z3-4.15.2-x64-glibc-2.39/bin/z3 ./z3))))
 
 (rule
  (targets ostrich2 target ostrich-client)

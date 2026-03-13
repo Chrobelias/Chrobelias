@@ -21,7 +21,7 @@ The dependencies can be installed using the bash commands
 # Installing OCaml package manager
 bash -c "sh <(curl -fsSL https://opam.ocaml.org/install.sh)"
 # Initializing the package manager. It might ask you to install other common dependencies (e.g. unzip)
-opam init
+opam init --bare
 # Installing OCaml 5.3.
 opam switch create 5.3.0+flambda --packages=ocaml-variants.5.3.0+options,ocaml-option-flambda --yes
 ```
@@ -71,7 +71,7 @@ Simple `.smt2` files for ChrobELIAS can be found in [benchmarks](https://github.
 - M. R. Starchak. [Quantifier Elimination for Regular Integer Linear-Exponential Programming](https://ieeexplore.ieee.org/document/11186186), In _Proc. of LICS'25_, Singapore, 2025, pp. 44-56.
 ## Benchmarks
 
-We strongly encourage to benchmark ChrobELIAS using its [Docker evaluation image available on DockerHub](https://hub.docker.com/repository/docker/chrobelias/chrobelias-evaluation). For more information refer to [BENCHES.md](BENCHMARKING.md).
+We strongly encourage to benchmark ChrobELIAS using its [Docker evaluation image available on DockerHub](https://hub.docker.com/repository/docker/chrobelias/chrobelias-evaluation). For more information refer to [BENCHES.md](BENCHES.md).
 
 Benchmark suites can be accessed and cloned as Git submodules using the following command:
 
@@ -80,26 +80,12 @@ Benchmark suites can be accessed and cloned as Git submodules using the followin
 git submodule update --init --recursive
 ```
 
-## License & Acknowledgements
+## Acknowledgements
 
 We use custom SMT-lib v2.6 `exp` syntax and examples from [SwInE][9] by [Florian Frohn](https://ffrohn.github.io/) licensed under [LGPL v2.1][8].
 
-The project is licensed under the MIT license and acknowledges other projects licensed under [Creative Commons 4.0][3]: [StringFuzz benchmarks][4], [LoAT benchmarks][5];
-projects licensed under [GPLv3][6]: [PURRS benchmarks][7];
-[projects under MIT license][10]: [Z3][11], [Z3-noodler][12]; and [ostrich2][13] under [BSD 3-Clause][14].
-
 [1]: https://hub.docker.com/repository/docker/chrobelias/chrobelias
 [2]: https://github.com/Chrobelias/Chrobelias
-[3]: https://creativecommons.org/licenses/by/4.0
-[4]: http://stringfuzz.dmitryblotsky.com/
-[5]: https://github.com/ffrohn/QF_EIA/tree/master/LoAT
-[6]: https://www.gnu.org/licenses/gpl-3.0.en.html
-[7]: https://github.com/ffrohn/QF_EIA/blob/master/PURRS
 [8]: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html
 [9]: https://github.com/ffrohn/swine/
-[10]: https://opensource.org/license/mit
-[11]: https://github.com/Z3Prover/z3/
-[12]: https://github.com/VeriFIT/z3-noodler
-[13]: https://github.com/uuverifiers/ostrich
-[14]: https://opensource.org/license/bsd-3-clause
 
