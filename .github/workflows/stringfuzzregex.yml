@@ -15,10 +15,10 @@ env:
 
 jobs:
   stringfuzzregex:
-    if: false
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: we1ine/chrobelias:latest
+      options: --user root
     strategy:
       fail-fast: false
       matrix:

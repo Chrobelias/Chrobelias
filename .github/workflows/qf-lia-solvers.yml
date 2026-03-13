@@ -20,6 +20,7 @@ jobs:
     runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
+      options: --user root
     strategy:
       fail-fast: false
       matrix:

@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: we1ine/chrobelias:latest
+      options: --user root
     steps:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
