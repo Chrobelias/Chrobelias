@@ -43,7 +43,7 @@ The executable binary is available in the `_build` dir.
 ## Usage
 
 Supports `.smt2` files with 
-- `QF_LIA`  extended with the binary `exp` function exponentiation. Use `(set-logic ALL)` for files with exponentiation.
+- `QF_EIA` with the binary `exp` exponentiation function from [Satisfiability Modulo Exponential Integer Arithmetic](https://arxiv.org/abs/2402.01501). Use `(set-logic ALL)` for files with exponentiation.
 - `QF_SLIA` subclass corresponding to the logic $T_{\mathit{REln}}$ from [Semënov Arithmetic, Affine VASS, and String Constraints](https://arxiv.org/abs/2306.14593).  
 
 ```bash
@@ -71,9 +71,9 @@ Simple `.smt2` files for ChrobELIAS can be found in [benchmarks](https://github.
 - M. R. Starchak. [Quantifier Elimination for Regular Integer Linear-Exponential Programming](https://ieeexplore.ieee.org/document/11186186), In _Proc. of LICS'25_, Singapore, 2025, pp. 44-56.
 ## Benchmarks
 
-We strongly encourage to benchmark ChrobELIAS using its [Docker evaluation image available on DockerHub](https://hub.docker.com/repository/docker/chrobelias/chrobelias-evaluation). For more information refer to [BENCHES.md](BENCHES.md).
+For evaluation of ChrobELIAS on several `QF_EIA` and `QF_SLIA` benchmarks, see [Docker evaluation image available on DockerHub](https://hub.docker.com/repository/docker/chrobelias/chrobelias-evaluation). More information at [BENCHES.md](BENCHES.md).
 
-Benchmark suites can be accessed and cloned as Git submodules using the following command:
+Benchmark sets can be accessed and cloned as Git submodules using the following command:
 
 ```bash
 # Clone benchmarks
@@ -82,10 +82,9 @@ git submodule update --init --recursive
 
 ## Acknowledgements
 
-We use custom SMT-lib v2.6 `exp` syntax and examples from [SwInE][9] by [Florian Frohn](https://ffrohn.github.io/) licensed under [LGPL v2.1][8].
+We use custom SMT-lib v2.6 `exp` syntax and examples from [SwInE][4] by [Florian Frohn](https://ffrohn.github.io/) licensed under [LGPL v2.1][3].
 
 [1]: https://hub.docker.com/repository/docker/chrobelias/chrobelias
 [2]: https://github.com/Chrobelias/Chrobelias
-[8]: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html
-[9]: https://github.com/ffrohn/swine/
-
+[3]: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html
+[4]: https://github.com/ffrohn/swine/
