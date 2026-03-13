@@ -19,7 +19,6 @@ jobs:
     runs-on: self-hosted
     container:
       image: we1ine/chrobelias:latest
-      options: --user root --memory=8192m --cpus="1.0"
     strategy:
       fail-fast: false
       matrix:
