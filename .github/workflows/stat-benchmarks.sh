@@ -10,7 +10,7 @@ solver=$(basename $execut);
 flags=$(echo $solver_with_flags | tr ' ' '\n' | tail -n +2 | xargs);
 for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {last=$0} END {print last}'); do
   suitename=$(sed 's/\.//g' <<< ${suite:${#base} + 1} | sed 's/\///g');
-  suitefile="res_"$solver"_"$suitename".txt";
+  suitefile="res-$solver-$suitename.txt";
   echo "$solver results for $suitename:";
   unsat_c=$(grep unsat $suitefile | wc -l);
   sat_c=$(grep sat $suitefile | wc -l);
