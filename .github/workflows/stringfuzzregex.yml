@@ -50,7 +50,7 @@ jobs:
         run: |
           set +e;
           START_TIME=$(date +%s)
-          for i in ./benchmarks/chrobelias/QF_SLIA/stringfuzzregex/*.smt2; do
+          for i in ./benchmarks/chrobelias/QF_SLIA/stringfuzzregex/transformed/z3str2/*.smt2; do
             echo $i;
             timeout 10s _build/default/bin/chro.exe ${{ matrix.flags }} $i;
           done 2>&1 | tee res.txt;
