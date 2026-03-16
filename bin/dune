@@ -6,7 +6,24 @@
   ;memtrace
   )
  (preprocess
-  (pps ppx_deriving.show)))
+  (pps ppx_deriving.show))
+ (enabled_if
+  (= %{profile} dev)))
+
+(executables
+ (public_names Chro)
+ (names chro)
+ (libraries
+  lib
+  str
+  ;memtrace
+  )
+ (preprocess
+  (pps ppx_deriving.show))
+ (enabled_if
+  (= %{profile} release))
+ (flags
+  (:standard -verbose -cclib -static -cclib -no-pie)))
 
 (rule
  (targets swine)

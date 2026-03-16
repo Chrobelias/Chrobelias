@@ -1,8 +1,9 @@
 QF_EIA tests with x, exp x and exp exp x using only NFAs
 
-  $ timeout 5 Chro ../manyexp/issue188.smt2 
-  timeout
-  [124]
+This works bad on alpine since timeout returns [1].
+$ timeout 5 Chro ../manyexp/issue188.smt2 
+timeout
+[124]
 
 QF_EIA tests with x, exp x and exp exp x using underapproximations
 
