@@ -59,12 +59,10 @@ let rec to_string orig_expr =
     end
   | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ expr ])
   | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ expr ])
-  | Expr.Cvtop (_, Ty.Cvtop.ToString, expr) ->
+  | Expr.Cvtop (_, Ty.Cvtop.ToString, expr)
+  | Expr.Cvtop (_, Ty.Cvtop.String_from_int, expr) ->
     let* str, phs = to_eia_term expr in
-    begin match str with
-    | Ast.Eia.Atom atom -> return (Ast.Eia.Sofi (Atom atom)) phs
-    | _ -> failwith "TBD: from.int now only expects vars inside"
-    end
+    return (Ast.Eia.Sofi str) phs
   | Expr.Triop (_, Ty.Triop.String_extract, str, from, to') ->
     let* str, phs = to_string str in
     let* from, phs' = to_eia_term from in
@@ -74,6 +72,16 @@ let rec to_string orig_expr =
     let* str, phs = to_string str in
     let* sym, phs' = to_eia_term sym in
     return (Ast.Eia.at str sym) (phs @ phs')
+  | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
+    let v = Ast.Eia.atom (internal Ast.S) in
+    (* Fixme *)
+    let* c = _to_ir Base.Map.Poly.empty c in
+    let* t, phs' = to_string t in
+    let* e, phs'' = to_string e in
+    let phs = phs' @ phs'' in
+    let phs_1 = Ast.eia (Ast.Eia.eq v t Ast.S) :: c :: phs in
+    let phs_2 = Ast.eia (Ast.Eia.eq v e Ast.S) :: Ast.lnot c :: phs in
+    [ v, phs_1; v, phs_2 ]
   | _ -> failf (Format.asprintf "unable to handle %a as string" Expr.pp orig_expr)
 
 and to_regex orig_expr =
