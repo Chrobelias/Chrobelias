@@ -649,7 +649,7 @@ let () =
     end
     | Smtml.Ast.Check_sat exprs ->
       config.with_check_sat <- true;
-      let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs in
+      let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs |> List.map Lib.Ast.lor_ in
       let rec get_ast { asserts; prev; _ } =
         match prev with
         | Some state -> asserts @ get_ast state
@@ -767,7 +767,7 @@ let () =
         in
         state)
     | Smtml.Ast.Assert expr -> begin
-      let ast = expr |> Lib.Fe._to_ir state.tys in
+      let ast = expr |> Lib.Fe._to_ir state.tys |> Lib.Ast.lor_ in
       { state with asserts = ast :: state.asserts }
     end
     | Smtml.Ast.Set_info e ->
