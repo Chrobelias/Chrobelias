@@ -129,7 +129,7 @@ module type SYM0 = sig
   val pow2var : string -> term
   *)
   val str_len2 : str -> term
-  val str_at : str -> string -> str
+  val str_at : str -> term -> str
   val str_substr : str -> term -> term -> str
   val str_prefixof : str -> str -> ph
   val str_contains : str -> str -> ph
@@ -227,11 +227,8 @@ module Id_symantics :
   let str_const s : str = Ast.Eia.Str_const s
   let constz s = Ast.Eia.Const s
   let const s : term = constz (Z.of_int s)
-  let str_at s a = Ast.Eia.at s (Ast.Eia.Atom (Ast.Var (a, I)))
+  let str_at s a = Ast.Eia.at s a
   let str_substr s a b = Ast.Eia.substr s a b
-
-  (* Ast.Eia.substr s a b *)
-  (* include Ast *)
 
   (* Formulas *)
 
@@ -284,18 +281,19 @@ let apply_term_symantics
        | None -> S.iofs (S.str_const s))
     | Iofs t -> S.iofs (helperS t)
     | Len2 s -> S.str_len2 (helperS s)
-    | At (s1, _) -> failwith "unimplemented"
-    | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
+    | eia ->
+      failwith (Format.asprintf "Not yet implemented int: %a" Ast.pp_term_smtlib2 eia)
   and helperS : string Ast.Eia.term -> S.str = function
     | Str_const s -> S.str_const s
     | Atom (Ast.Var (s, _)) -> S.str_var s
     | Sofi eia -> S.sofi (helperT eia)
-    | At (s1, Atom (Var (a, I))) -> S.str_at (helperS s1) a
+    | At (s1, a) -> S.str_at (helperS s1) (helperT a)
     | Concat (s1, s2) -> S.str_concat (helperS s1) (helperS s2)
     | Substr (s1, (Atom (Var (a, I)) as l), (Atom (Var (b, I)) as r)) ->
       S.str_substr (helperS s1) (helperT l) (helperT r)
     | Substr (s1, a, b) -> S.str_substr (helperS s1) (helperT a) (helperT b)
-    | eia -> failwith (Format.asprintf "Not yet implement: %a" Ast.pp_term_smtlib2 eia)
+    | eia ->
+      failwith (Format.asprintf "Not yet implemented str: %a" Ast.pp_term_smtlib2 eia)
   in
   (fun x -> helperT x), fun y -> helperS y
 ;;
@@ -2509,6 +2507,23 @@ let rewrite_via_concat { Info.all; _ } =
       extend len_y len;
       extend len_z1 (Ast.Eia.len (svar z1));
       extend len_z1 offset;
+      extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
+      extend_eq u term;
+      svar y
+    ;;
+
+    let str_at (term : str) (pos : term) =
+      let svar v = Ast.Eia.atom (Ast.var v S) in
+      let z1 = gensym () in
+      let z2 = gensym () in
+      let len_z1 = gensym () in
+      let u = gensym () in
+      let y = gensym () in
+      let len_y = gensym () in
+      extend len_y (Ast.Eia.len (svar y));
+      extend len_y (Ast.Eia.const Z.one);
+      extend len_z1 (Ast.Eia.len (svar z1));
+      extend len_z1 pos;
       extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
       extend_eq u term;
       svar y
