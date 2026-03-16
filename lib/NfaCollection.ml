@@ -4,6 +4,8 @@
 module Map = Nfa.Map
 module Set = Base.Set.Poly
 
+let trace_log fmt = Debug.trace "nfa_collection" fmt
+
 type varpos = int
 
 module type Type = sig
@@ -602,7 +604,7 @@ module MsbNat = struct
           ~vars:[ var ]
           ~deg:(var + 1)
       in
-      Debug.printfln "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
+      trace_log "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
       Debug.dump_nfa ~msg:"Nfa: %s" NfaMsbNat.format_nfa nfa;
       nfa)
     else (
@@ -686,7 +688,7 @@ module MsbNatStr (B : Nfa.Base) = struct
           ~vars:[ var ]
           ~deg:(var + 1)
       in
-      Debug.printfln "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
+      trace_log "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
       Debug.dump_nfa ~msg:"Nfa: %s" NfaMsbNat.format_nfa nfa;
       nfa)
     else (
@@ -785,7 +787,7 @@ module MsbNatStrBv (B : Nfa.Base) = struct
           ~vars:[ var ]
           ~deg:(var + 1)
       in
-      Debug.printfln "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
+      trace_log "Building div_in_pow nfa: var=%d, a=%d, c=%d" var a c;
       Debug.dump_nfa ~msg:"Nfa: %s" NfaMsbNat.format_nfa nfa;
       nfa)
     else (
@@ -949,7 +951,7 @@ module Lsb = struct
       in
       lp [ c ];
       let states = Set.to_list !states in
-      Debug.printfln
+      trace_log
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
@@ -1004,7 +1006,7 @@ module Lsb = struct
       in
       lp [ c ];
       let states = Set.to_list !states in
-      Debug.printfln
+      trace_log
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
@@ -1150,7 +1152,7 @@ module LsbStr (B : Nfa.Base) = struct
       in
       lp (Set.singleton c);
       let states = Set.to_list !states in
-      Debug.printfln
+      trace_log
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
@@ -1208,7 +1210,7 @@ module LsbStr (B : Nfa.Base) = struct
       in
       lp (Set.singleton c);
       let states = Set.to_list !states in
-      Debug.printfln
+      trace_log
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
@@ -1359,7 +1361,7 @@ module LsbStrBv (B : Nfa.Base) = struct
       in
       lp (Set.singleton c);
       let states = Set.to_list !states in
-      Debug.printfln
+      trace_log
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
@@ -1418,7 +1420,7 @@ module LsbStrBv (B : Nfa.Base) = struct
       in
       lp (Set.singleton c);
       let states = Set.to_list !states in
-      Debug.printfln
+      trace_log
         "states:[%a]"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")

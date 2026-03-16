@@ -22,12 +22,13 @@ type config =
   ; mutable quiet : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
-  ; mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
+  ; mutable stop_after : [ `Pre_dpll | `Pre_simplify | `Simpl | `Solving ]
   ; mutable under_approx : int
   ; mutable under_str_all : bool
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
   ; mutable check_model : bool
+  ; mutable light_dpll : bool
   }
 
 let config =
@@ -60,6 +61,7 @@ let config =
   ; under_approx = 2
   ; under_str_all = false
   ; check_model = false
+  ; light_dpll = false
   }
 ;;
 
@@ -217,6 +219,7 @@ Basic options:
     ; ( "--stop-after"
       , Arg.String
           (function
+            | "predpll" | "pre_dpll" | "pre-dpll" -> config.stop_after <- `Pre_dpll
             | "simpl" -> config.stop_after <- `Simpl
             | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
               config.stop_after <- `Pre_simplify
@@ -240,6 +243,10 @@ Basic options:
     ; ( "--over-nfa"
       , Arg.Unit (fun () -> config.over_nfa <- true)
       , "\tOverapproximate orderings within the NFA Solver" )
+    ; ( "--inner-dpll"
+      , Arg.Unit (fun () -> config.light_dpll <- true)
+      , "\tEnable the nested inner DPLL procedure for enumerating \
+         empty/number/not-a-number string states" )
       (* ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t" *)
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
@@ -250,6 +257,9 @@ Basic options:
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )
+    ; ( "--no-model-check"
+      , Arg.Unit (fun () -> config.check_model <- false)
+      , "\tSkip running model check after (get-model)" )
     ]
   in
   Arg.parse

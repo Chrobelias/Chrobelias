@@ -1,6 +1,6 @@
 (* SPDX-License-Identifier: MIT *)
 
-(* Copyright 2024-2025, Chrobelias. *)
+(* Copyright 2024-2026, Chrobelias. *)
 
 open Format
 module Set = Base.Set.Poly
@@ -8,53 +8,9 @@ module Map = Base.Map.Poly
 module Sequence = Base.Sequence
 
 let config = Config.config
+let trace_log fmt = Debug.trace "nfa" fmt
 
 exception Too_big_nfa
-
-module Debug = struct
-  let nfa_cnt = ref 0
-  let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
-
-  let fmt =
-    if flag ()
-    then Format.formatter_of_out_channel Stdio.stderr
-    else
-      Format.formatter_of_out_functions
-        { out_string = (fun _ _ _ -> ())
-        ; out_flush = (fun _ -> ())
-        ; out_newline = (fun _ -> ())
-        ; out_spaces = (fun _ -> ())
-        ; out_indent = (fun _ -> ())
-        }
-  ;;
-
-  let _printf str = Format.fprintf fmt (str ^^ "%!")
-  let printfln str = Format.fprintf fmt (str ^^ "\n%!")
-
-  let dump_nfa ?msg ?vars format_nfa nfa =
-    if flag ()
-    then (
-      let ( !< ) a = Format.sprintf a in
-      let name =
-        nfa_cnt := !nfa_cnt + 1;
-        Format.sprintf "%d" !nfa_cnt
-      in
-      let subdir = string_of_int (Unix.getpid ()) in
-      let supdir = "debugs" in
-      Sys.command (!<{|mkdir -p "%s"/"%s"|} supdir subdir) |> ignore;
-      let dir = !<"%s/%s" supdir subdir in
-      let dot_file = !<"%s/n%s.dot" dir name in
-      let svg_file = !<"%s/n%s.svg" dir name in
-      let oc = open_out dot_file in
-      let command = Format.sprintf {|dot -Tsvg "%s" > "%s"|} dot_file svg_file in
-      Format.asprintf "%a" format_nfa nfa |> Printf.fprintf oc "%s";
-      close_out oc;
-      Sys.command command |> ignore;
-      match msg with
-      | Some msg -> printfln msg svg_file
-      | None -> ())
-  ;;
-end
 
 let _pow2 n = List.init n (Fun.const 2) |> List.fold_left ( * ) 1
 
@@ -951,7 +907,7 @@ module type Type = sig
   val any_path : t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
-  val all_paths_of_len : t -> int -> v list list
+  val all_paths_of_len : t -> ?limit:int -> int -> v list list
   val shrink : t -> t
   val intersect : t -> t -> t
   val unite : t -> t -> t
@@ -1322,7 +1278,9 @@ struct
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
     let result =
-      { final; start; transitions; deg; is_dfa } |> remove_unreachable_from_start
+      { final; start; transitions; deg; is_dfa }
+      |> remove_unreachable_from_start
+      |> remove_unreachable_from_final
     in
     result
   ;;
@@ -1730,24 +1688,25 @@ struct
     | None -> None
   ;;
 
-  let any_n_paths_helper (nfa : t) ?len ?n sign =
+  let any_n_paths_helper (nfa : t) ?len ?n ?limit sign =
     let transitions = nfa.transitions in
     let p =
       let frontier = Queue.create () in
-      let visited = Array.init (length nfa) (Fun.const false) in
       let rec bfs cool_paths =
         let cool_paths_cnt = Set.length cool_paths in
+        let exception Too_dense_graph in
         match Queue.take_opt frontier with
+        | _ when Queue.length frontier >= Option.value ~default:Int.max_int limit ->
+          raise Too_dense_graph
         | None -> cool_paths
         | Some _ when Option.is_some n && cool_paths_cnt >= Option.get n -> cool_paths
-        | Some path when Option.is_some len && List.length path = Option.get len + 1 ->
+        | Some path when Option.is_some len && List.length path > Option.get len + 1 ->
           bfs cool_paths
         | Some path
           when Option.is_some n
                && List.length path > Array.length nfa.transitions * Option.get n ->
           bfs cool_paths
         | Some ((_, hd) :: _ as path) ->
-          visited.(hd) <- true;
           let new_paths =
             Array.get transitions hd |> List.map (fun part -> part :: path)
           in
@@ -1756,8 +1715,8 @@ struct
             |> List.map (fun path' ->
               path'
               |> List.map (fun (label, q') -> label)
-              |> List.drop_while Label.is_zero_soft
-              |> List.map (fun label -> Label.get label 0))
+              |> List.map (fun label -> Label.get label 0)
+              |> List.drop_while (( = ) Label.u_eos))
             |> List.filter (fun path' ->
               Option.is_none len || sign (List.length path') (Option.get len + 1))
           in
@@ -1778,7 +1737,9 @@ struct
     any_n_paths_helper nfa ?len ~n (fun x y -> x <= y)
   ;;
 
-  let all_paths_of_len (nfa : t) len = any_n_paths_helper nfa ~len (fun x y -> x = y)
+  let all_paths_of_len (nfa : t) ?limit len =
+    any_n_paths_helper nfa ~len ?limit (fun x y -> x = y)
+  ;;
 
   let re_accepts path nfa =
     let dfa =
@@ -1977,14 +1938,14 @@ module Lsb (Label : L) = struct
       |> List.filter (fun (_, b) -> b <> 0)
       |> Map.of_alist_exn
     in
-    Debug.printfln
+    trace_log
       "important verticies: [%a]"
       (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
     let result = find_c_d nfa important in
-    (* Debug.printf "Chrobak output: "; *)
-    (* Debug.printf *)
+    (* trace_log "Chrobak output: "; *)
+    (* trace_log *)
     (*   "%a\n" *)
     (*   (Format.pp_print_list *)
     (*      ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ") *)
@@ -2008,7 +1969,7 @@ module Lsb (Label : L) = struct
   ;;
 
   let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
-    Debug.printfln "path_of_len entrance: len=%d%!" total_len;
+    trace_log "path_of_len entrance: len=%d%!" total_len;
     Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
     let exp_lbl = Label.singleton_with_mask exp [ exp ] in
     let transitions = nfa.transitions in
@@ -2024,8 +1985,8 @@ module Lsb (Label : L) = struct
       then start
       else Graph.all_paths_of_len zero_transitions start (pred total_len)
     in
-    Debug.printfln "path_of_len intermediate results:";
-    Debug.printfln
+    trace_log "path_of_len intermediate results:";
+    trace_log
       "%a"
       (Format.pp_print_list ~pp_sep:Format.pp_print_newline (fun fmt (a, b) ->
          Format.fprintf
@@ -2052,7 +2013,7 @@ module Lsb (Label : L) = struct
     |> Option.map (fun p ->
       let len = List.length p in
       let p = List.rev p in
-      Debug.printfln
+      trace_log
         "path_of_len: found path of len %d: [%a]"
         len
         (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
@@ -2081,7 +2042,7 @@ module Lsb (Label : L) = struct
                  (List.filter (fun (lbl, fin) -> fin <> mid || Label.equal lbl temp_lbl))
         }
       in
-      Debug.printfln "Calculating chrobak for var %d" res;
+      trace_log "Calculating chrobak for var %d" res;
       Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
       Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
       let model_piece =
@@ -2319,14 +2280,14 @@ module MsbNat (Label : L) = struct
       |> List.filter (fun (_, b) -> b <> 0)
       |> Map.of_alist_exn
     in
-    Debug.printfln
+    trace_log
       "important verticies: [%a]"
       (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
     let result = find_c_d nfa important in
-    Debug.printfln "Chrobak output: ";
-    Debug.printfln
+    trace_log "Chrobak output: ";
+    trace_log
       "%a\n"
       (Format.pp_print_list
          ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
@@ -2336,7 +2297,7 @@ module MsbNat (Label : L) = struct
   ;;
 
   let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
-    Debug.printfln "path_of_len entrance: len=%d" total_len;
+    trace_log "path_of_len entrance: len=%d" total_len;
     Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
     let exp_lbl = Label.singleton_with_mask exp [ exp ] in
     let transitions = nfa.transitions in
@@ -2349,8 +2310,8 @@ module MsbNat (Label : L) = struct
            (transitions
             |> Array.map (List.filter (fun (lbl, dst) -> not (Label.equal exp_lbl lbl))))
     in
-    Debug.printfln "path_of_len intermediate results:";
-    Debug.printfln
+    trace_log "path_of_len intermediate results:";
+    trace_log
       "%a"
       (Format.pp_print_list ~pp_sep:Format.pp_print_newline (fun fmt (a, b) ->
          Format.fprintf
@@ -2378,7 +2339,7 @@ module MsbNat (Label : L) = struct
     |> Option.map (fun p ->
       let p = List.rev p in
       let len = List.length p in
-      Debug.printfln
+      trace_log
         "path_of_len: found path of len %d: [%a]"
         len
         (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
@@ -2409,7 +2370,7 @@ module MsbNat (Label : L) = struct
           { nfa with start = Set.singleton nfa_start; transitions }
           |> remove_unreachable_from_start
         in
-        Debug.printfln "Calculating chrobak for var %d" res;
+        trace_log "Calculating chrobak for var %d" res;
         Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
         Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
         Debug.dump_nfa ~msg:"Corresponding path_nfa: %s" format_nfa path_nfa;
