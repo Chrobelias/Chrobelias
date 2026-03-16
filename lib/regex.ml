@@ -383,12 +383,26 @@ let str_to_re s =
     (kleene (symbol [ Config.string_config.eos ]))
 ;;
 
-let prefix s = concat (kleene (symbol [ Config.string_config.null ])) (str_to_re s)
+let str_to_re2 s =
+  (*concat*)
+  s
+  |> String.to_seq
+  |> Seq.map (fun c -> symbol [ c ])
+  |> Seq.fold_left
+       (fun acc a ->
+          (* String constraints use LSB representation, we intentionally reverse the concat. *)
+          concat a acc)
+       epsilon
+;;
+
+(*(kleene (symbol [ Config.string_config.eos ]))*)
+
+let prefix s = concat (kleene (symbol [ Config.string_config.null ])) (str_to_re2 s)
 
 let contains s =
   concat
-    (concat (kleene (symbol [ Config.string_config.null ])) (str_to_re s))
+    (concat (kleene (symbol [ Config.string_config.null ])) (str_to_re2 s))
     (kleene (symbol [ Config.string_config.null ]))
 ;;
 
-let suffix s = concat (str_to_re s) (kleene (symbol [ Config.string_config.null ]))
+let suffix s = concat (str_to_re2 s) (kleene (symbol [ Config.string_config.null ]))

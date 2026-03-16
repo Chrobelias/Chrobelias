@@ -68,10 +68,101 @@ module Eia = struct
     | Sofi : Z.t term -> string term
     | Iofs : string term -> Z.t term
     | Len2 : string term -> Z.t term
-    | Concat : string term * string term -> string term
+    | Concat : string term list -> string term
     | At : string term * Z.t term -> string term
     | Substr : string term * Z.t term * Z.t term -> string term
   [@@deriving variants]
+
+  let len = function
+    | Str_const c -> Const (String.length c |> Z.of_int)
+    | ast -> Len ast
+  ;;
+
+  let rec mul = function
+    | [ hd ] -> hd
+    | xs ->
+      let c = ref Z.one in
+      let xs =
+        List.concat_map
+          (function
+            | Mul (Const c' :: ys) ->
+              (c := Z.(!c * c'));
+              ys
+            | Mul ys -> ys
+            | Const c' ->
+              (c := Z.(!c * c'));
+              []
+            | smth -> [ smth ])
+          xs
+      in
+      begin match xs with
+      | xs when Z.(!c = zero) -> Const Z.zero
+      | [] -> Const !c
+      | [ hd ] when Z.(!c = one) -> hd
+      | [ Const x ] -> Const Z.(!c * x)
+      | [ Add xs ] -> add (List.map (fun x -> mul [ Const !c; x ]) xs)
+      | xs when Z.(!c = one) -> Mul xs
+      | xs -> Mul (Const !c :: xs)
+      end
+
+  and add = function
+    | [ hd ] -> hd
+    | xs ->
+      let c = ref Z.zero in
+      let xs =
+        List.concat_map
+          (function
+            | Add (Const c' :: ys) ->
+              (c := Z.(!c + c'));
+              ys
+            | Add ys -> ys
+            | Const c' ->
+              (c := Z.(!c + c'));
+              []
+            | smth -> [ smth ])
+          xs
+      in
+      begin match xs with
+      | [] -> Const !c
+      | [ hd ] when Z.(!c = zero) -> hd
+      | xs when Z.(!c = zero) -> Add xs
+      | xs -> Add (Const !c :: xs)
+      end
+  ;;
+
+  let concat = function
+    | [] -> Str_const ""
+    | [ hd ] -> hd
+    | xs ->
+      let xs =
+        List.concat_map
+          (function
+            | Concat ys -> ys
+            | smth -> [ smth ])
+          xs
+      in
+      let rec aux = function
+        | Str_const s1 :: Str_const s2 :: tl ->
+          aux (Str_const (String.concat "" [ s1; s2 ]) :: tl)
+        | hd :: tl -> hd :: aux tl
+        | [] -> []
+      in
+      let xs = aux xs in
+      begin match xs with
+      | [] -> Str_const ""
+      | [ hd ] -> hd
+      | xs -> Concat xs
+      end
+  ;;
+
+  let at s a =
+    match s, a with
+    | Str_const s, Const n ->
+      (try Str_const (String.sub s (Z.to_int n) 1) with
+       | _ -> Str_const "")
+    | Str_const "", _ -> Str_const ""
+    | _ -> at s a
+  ;;
 
   let rec pp_term : 'a. Format.formatter -> 'a term -> unit =
     fun (type a) ppf : (a term -> unit) -> function
@@ -101,7 +192,12 @@ module Eia = struct
     | Len2 a -> Format.fprintf ppf "@[(chrob.len %a)@]" pp_term a
     | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
     (* Strings  *)
-    | Concat (s1, s2) -> Format.fprintf ppf "@[(str.++ %a %a)@]" pp_term s1 pp_term s2
+    | Concat s ->
+      Format.fprintf
+        ppf
+        "@[(str.++ %a)@]"
+        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
+        s
     | Substr (term', a, b) ->
       Format.fprintf ppf "(str.substr %a %a %a)" pp_term term' pp_term a pp_term b
     | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_term a
@@ -112,6 +208,9 @@ module Eia = struct
     match proof with
     | Eq -> Eq
   ;;
+
+  let equal = Stdlib.( = )
+  let _eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
 
   let typeof : 'a. 'a term -> 'a kind =
     fun (type ty) (e : ty term) : ty kind ->
@@ -216,6 +315,16 @@ module Eia = struct
     helper
   ;;
 
+  let is_concat_nontrivial xs =
+    List.filter
+      (function
+        | Str_const _ -> false
+        | _ -> true)
+      xs
+    |> List.length
+    > 1
+  ;;
+
   (* let%test _ = is_constant_term (atom (const (Z.of_int 4))) = Some (Z.of_int 4)
   let%test _ = is_constant_term (atom (var "s")) = None
 
@@ -242,7 +351,7 @@ module Eia = struct
     | Str_const s -> fs (Str_const s)
     | Atom (Var (name, S)) -> fs (Atom (Var (name, S)))
     | Atom (Var (name, I)) -> fz (Atom (Var (name, I)))
-    | Add xs -> fz (Add (List.map (map_term fz fs) xs))
+    | Add xs -> fz (add (List.map (map_term fz fs) xs))
     | Mul xs -> fz (Mul (List.map (map_term fz fs) xs))
     | Mod (xs, d) -> fz (Mod (map_term fz fs xs, d))
     | Bwand (l, r) -> fz (Bwand (map_term fz fs l, map_term fz fs r))
@@ -252,7 +361,7 @@ module Eia = struct
     | Sofi s -> fs (Sofi (map_term fz fs s))
     | Iofs s -> fz (Iofs (map_term fz fs s))
     | Len2 s -> fz (Len2 (map_term fz fs s))
-    | Concat (l, r) -> fs (Concat (map_term fz fs l, map_term fz fs r))
+    | Concat xs -> fs (concat (List.map (map_term fz fs) xs))
     | At (l, r) -> fs (At (map_term fz fs l, map_term fz fs r))
     | Substr (l, r, k) ->
       fs (Substr (map_term fz fs l, map_term fz fs r, map_term fz fs k))
@@ -289,7 +398,7 @@ module Eia = struct
     | (Str_const _ | Atom (Var (_, S))) as term -> fs acc term
     | (Iofs ts | Len ts | Len2 ts) as term -> fz (fold_term fz fs acc ts) term
     | Sofi t as term -> fs (fold_term fz fs acc t) term
-    | Concat (lhs, rhs) as term -> fs (fold_term fz fs (fold_term fz fs acc lhs) rhs) term
+    | Concat terms as term -> fs (List.fold_left (fold_term fz fs) acc terms) term
     | Substr (term', tz1, tz2) as term ->
       fs (fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2) term
     | At (term', tidx) as term ->
@@ -321,6 +430,17 @@ module Eia = struct
   (*match l, r with
     | _ -> failwith "tbd"*)
 
+  let compare_term2 (type a) : a term -> a term -> int =
+    fun l r ->
+    match l, r with
+    | Mul [ Const c1; t1 ], Mul [ Const c2; t2 ] when equal t1 t2 -> Z.compare c1 c2
+    | Mul [ Const c1; t1 ], t2 when equal t1 t2 -> Z.compare c1 Z.one
+    | t1, Mul [ Const c2; t2 ] when equal t1 t2 -> Z.compare c2 Z.one
+    | Mul [ Const _; t1 ], t2 -> compare_term t1 t2
+    | t1, Mul [ Const _; t2 ] -> compare_term t1 t2
+    | l, r -> compare_term l r
+  ;;
+
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
     | Neq : 'a term * 'a term * 'a kind -> t
@@ -332,6 +452,15 @@ module Eia = struct
     | Contains of string term * string term
     | SuffixOf of string term * string term
   [@@deriving variants]
+
+  let leq lhs rhs = leq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero)
+
+  let eq (type a) : a term -> a term -> a kind -> t =
+    fun lhs rhs kind ->
+    match kind with
+    | I -> eq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero) I
+    | S -> eq lhs rhs S
+  ;;
 
   let compare l r = Stdlib.compare l r
   let geq a b = leq b a
@@ -462,8 +591,15 @@ type t =
   | Lor of t list
   | Exists of any_atom list * t
   | Pred of string
-  | Unsupp of string
-[@@deriving compare]
+  | Unsupp of
+      [ `Msg of string
+      | `Check of
+          Model.t
+          -> t
+          -> (string, NfaCollection.LsbStr.t) Map.t
+          -> (t -> [ `Sat | `Unknown ])
+          -> [ `Sat | `Unknown ]
+      ]
 
 let true_ = True
 
@@ -476,15 +612,20 @@ let land_ = function
       List.concat_map
         (function
           | Land asts' -> asts'
+          | True -> []
           | ast -> [ ast ])
         asts
     in
-    Land asts
+    (match asts with
+     | [] -> true_
+     | [ ast ] -> ast
+     | asts -> Land asts)
 ;;
 
 let false_ = Lnot true_
 
-let lor_ = function
+let lor_ xs =
+  match xs with
   | [] -> false_
   | [ ast ] -> ast
   | asts when List.exists (( = ) True) asts -> True
@@ -493,22 +634,45 @@ let lor_ = function
       List.map
         (function
           | Lor asts' -> asts'
+          | Lnot True -> []
           | ast -> [ ast ])
         asts
       |> List.concat
     in
-    Lor asts
+    (match asts with
+     | [] -> false_
+     | [ ast ] -> ast
+     | asts -> Lor asts)
 ;;
 
-let eia eia = Eia eia
-let pred s = Pred s
+let eia = function
+  | Eia.Leq (Const a, Const b) -> if Z.(leq a b) then true_ else false_
+  | Eia.Eq (Const a, Const b, I) -> if Z.(equal a b) then true_ else false_
+  | Eia.Neq (Const a, Const b, I) -> if Z.(equal a b |> not) then true_ else false_
+  | Eia.Eq (Str_const a, Str_const b, S) -> if a = b then true_ else false_
+  | Eia.Neq (Str_const a, Str_const b, S) -> if a <> b then true_ else false_
+  | Eia.PrefixOf (Str_const a, Str_const b) ->
+    if String.starts_with ~prefix:a b then true_ else false_
+  | Eia.SuffixOf (Str_const a, Str_const b) ->
+    if String.ends_with ~suffix:a b then true_ else false_
+  | Eia.Contains (Str_const a, Str_const b) ->
+    if Base.String.is_substring ~substring:a b then true_ else false_
+  | eia -> Eia eia
+;;
 
 let rec lnot = function
   | Lnot ast -> ast
   | Land asts -> lor_ (List.map lnot asts)
   | Lor asts -> land_ (List.map lnot asts)
+  | Eia (Eia.Eq (lhs, rhs, S)) -> eia (Eia.neq lhs rhs S)
+  | Eia (Eia.Neq (lhs, rhs, S)) -> eia (Eia.eq lhs rhs S)
+  | Eia (Eia.Eq (lhs, rhs, I)) -> eia (Eia.neq lhs rhs I)
+  | Eia (Eia.Neq (lhs, rhs, I)) -> eia (Eia.eq lhs rhs I)
+  | Eia (Eia.Leq (lhs, rhs)) -> eia (Eia.gt lhs rhs)
   | ast -> Lnot ast
 ;;
+
+let pred s = Pred s
 
 let rec exists = function
   | [] -> Fun.id
@@ -547,7 +711,8 @@ let rec pp ppf = function
       pp
       b
   | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
-  | Unsupp s -> Format.fprintf ppf "%s" s
+  | Unsupp (`Msg s) -> Format.fprintf ppf "%s" s
+  | Unsupp (`Check _) -> Format.fprintf ppf "post check"
 ;;
 
 let pp_smtlib2 =
@@ -565,11 +730,13 @@ let pp_smtlib2 =
         irs;
       fprintf ppf ")@]"
     | Lor irs ->
-      Format.fprintf
-        ppf
-        "(%a)"
-        (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " | ") pp)
-        irs
+      Format.fprintf ppf "@[<v 2>(or@,";
+      List.iteri
+        (fun i ->
+           if i <> 0 then fprintf ppf "@,";
+           fprintf ppf "@[%a@]" pp)
+        irs;
+      fprintf ppf ")@]"
     | Exists (a, b) ->
       Format.fprintf
         ppf
@@ -579,7 +746,8 @@ let pp_smtlib2 =
         pp
         b
     | Eia eia -> fprintf ppf "%a" Eia.pp eia
-    | Unsupp s -> fprintf ppf "%s" s
+    | Unsupp (`Msg s) -> fprintf ppf "(unsupp: %s)" s
+    | Unsupp (`Check _) -> Format.fprintf ppf "(unsupp: post check)"
   in
   pp
 ;;
@@ -722,13 +890,88 @@ let in_concat v ast =
          (fun acc _ -> acc)
          (fun acc el ->
             match el with
-            | Eia.Concat (_, Eia.Atom (Var (s, S))) when s = v -> true
-            | Eia.Concat (Eia.Atom (Var (s, S)), _) when s = v -> true
+            | Eia.Concat xs when List.exists (( = ) (Eia.atom (var v S))) xs -> true
             | _ -> acc)
          false
          eia)
     v
     ast
+;;
+
+let rec is_simpl = function
+  | True | Pred _ | Unsupp _ -> true
+  | Lnot ast' | Exists (_, ast') -> is_simpl ast'
+  | Land asts | Lor asts -> List.fold_left (fun acc ast -> acc && is_simpl ast) true asts
+  | Eia eia ->
+    let is_simpl eia =
+      Eia.fold2
+        (fun acc el ->
+           match el with
+           | Eia.At _ | Eia.Substr _ -> false
+           | _ -> acc)
+        (fun acc el ->
+           match el with
+           | Eia.At _ | Eia.Substr _ -> false
+           | _ -> acc)
+        true
+        eia
+    in
+    (match eia with
+     | Eia.PrefixOf _ | Eia.SuffixOf _ | Eia.Contains _ -> false
+     | other -> is_simpl other)
+;;
+
+let in_stoi v ast =
+  let in_stoi_eia v eia =
+    Eia.fold2
+      (fun acc el ->
+         match el with
+         | Eia.Iofs (Eia.Atom (Var (s, _))) when s = v -> true
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      eia
+  in
+  in_eia_term in_stoi_eia v ast
+;;
+
+let rec in_strlen v ast =
+  let in_strlen_eia v eia =
+    Eia.fold2
+      (fun acc el ->
+         match el with
+         | Eia.Len (Eia.Atom (Var (s, S))) when s = v -> true
+         (*| Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true*)
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      eia
+  in
+  match ast with
+  | True | Pred _ -> false
+  | Eia eia -> begin
+    match eia with
+    | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
+    | _ -> in_strlen_eia v eia
+  end
+  | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
+  | Land asts | Lor asts ->
+    List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
+  | Unsupp _ -> false
+;;
+
+let rec in_chrob_len v ast =
+  match ast with
+  | True | Pred _ -> false
+  | Eia eia -> begin
+    match eia with
+    | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
+    | _ -> false
+  end
+  | Lnot ast' | Exists (_, ast') -> in_chrob_len v ast'
+  | Land asts | Lor asts ->
+    List.fold_left (fun acc ast -> acc || in_chrob_len v ast) false asts
+  | Unsupp _ -> false
 ;;
 
 let collect_lin_exp ast =
@@ -760,24 +1003,47 @@ let collect_lin_exp ast =
     ast
 ;;
 
-(* MS: the same thing as the fashionable Who_in_exponents from SimplII.ml*)
+let collect_str_vars ast =
+  let module Set = Base.Set.Poly in
+  fold
+    (fun vars ast ->
+       let open Eia in
+       match ast with
+       | Eia eia ->
+         (match eia with
+          | Eq (Iofs (Atom (Var (x, S))), Const c, I) when Z.(c <= minus_one) -> x :: vars
+          | Leq (Add [ Const c'; Iofs (Atom (Var (x, S))) ], Const c)
+            when Z.(c = zero) && Z.(c' = one) -> x :: vars
+          | _ -> vars)
+       | _ -> vars)
+    []
+    ast
+;;
+
+let collect_all acc eia =
+  Eia.fold2
+    (fun (str, lin, exp) -> function
+       | Atom (Var (x, I)) -> str, x :: lin, exp
+       | Pow (_, Atom (Var (x, I))) -> str, lin, x :: exp
+       | _ -> str, lin, exp)
+    (fun (str, lin, exp) -> function
+       | Atom (Var (x, S)) -> x :: str, lin, exp
+       | _ -> str, lin, exp)
+    acc
+    eia
+;;
+
+let get_vars eia =
+  eia |> collect_all ([], [], []) |> fun (x, y, z) -> List.concat [ x; y; z ]
+;;
+
 let collect_all ast =
   let remove_dups l = l |> Base.Set.Poly.of_list |> Base.Set.Poly.to_list in
   let module Set = Base.Set.Poly in
   fold
     (fun acc ast ->
        match ast with
-       | Eia eia ->
-         Eia.fold2
-           (fun (str, lin, exp) -> function
-              | Atom (Var (x, I)) -> str, x :: lin, exp
-              | Pow (_, Atom (Var (x, I))) -> str, lin, x :: exp
-              | _ -> str, lin, exp)
-           (fun (str, lin, exp) -> function
-              | Atom (Var (x, S)) -> x :: str, lin, exp
-              | _ -> str, lin, exp)
-           acc
-           eia
+       | Eia eia -> collect_all acc eia
        | _ -> acc)
     ([], [], [])
     ast
@@ -805,7 +1071,16 @@ let get_lin_vars ast =
     ast
 ;;
 
-(* failwith "unable to fold; unsupported constraint" *)
+let _get_len name ast =
+  fold
+    (fun acc -> function
+       | Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name -> Z.max c acc
+       | Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name -> Z.max c acc
+       | _ -> acc)
+    Z.minus_one
+    ast
+  |> Z.to_int
+;;
 
 let rec map f = function
   | True as ast -> f ast
@@ -816,22 +1091,6 @@ let rec map f = function
   | Exists (atoms, ast) -> f (exists atoms (map f ast))
   | Pred _ as ast -> f ast
   | Unsupp _ as ast -> f ast
-;;
-
-(* failwith "unable to map; unsupported constraint" *)
-
-let in_stoi v ast =
-  let in_stoi_eia v eia =
-    Eia.fold2
-      (fun acc el ->
-         match el with
-         | Eia.Iofs (Eia.Atom (Var (s, _))) when s = v -> true
-         | _ -> acc)
-      (fun acc _ -> acc)
-      false
-      eia
-  in
-  in_eia_term in_stoi_eia v ast
 ;;
 
 let in_stoi2 v ast =
@@ -873,27 +1132,46 @@ let get_len name ast =
 ;;
 
 let rec equal ast ast' =
+  let safe_eq_eia eia eia' =
+    let open Eia in
+    let eq_lin_term term1 term2 =
+      let module Set = Base.Set.Poly in
+      match term1, term2 with
+      | Add terms1, Add terms2 -> Set.equal (Set.of_list terms1) (Set.of_list terms2)
+      | term1, term2 -> Stdlib.(term1 = term2)
+    in
+    match eia, eia' with
+    | Eia (InReRaw (atom, S, lhs)), Eia (InReRaw (atom', S, rhs)) ->
+      NfaS.equal_start_and_final lhs rhs && atom = atom'
+    | Eia (InReRaw (atom, I, lhs)), Eia (InReRaw (atom', I, rhs)) ->
+      NfaS.equal_start_and_final lhs rhs && atom = atom'
+    | Eia (Eq (term, term', I)), Eia (Eq (term1, term1', I)) ->
+      eq_lin_term term term1 && eq_lin_term term' term1'
+    | Eia (Neq (term, term', I)), Eia (Neq (term1, term1', I)) ->
+      eq_lin_term term term1 && eq_lin_term term' term1'
+    | Eia (Leq (term, term')), Eia (Leq (term1, term1')) ->
+      eq_lin_term term term1 && eq_lin_term term' term1'
+    | eia, eia' -> Eia.equal eia eia'
+  in
   match ast, ast' with
   | True, True -> true
   | Lnot ast, Lnot ast' -> equal ast ast'
-  | Land asts, Land asts' -> List.for_all2 equal asts asts'
-  | Lor asts, Lor asts' -> List.for_all2 equal asts asts'
+  | Land asts, Land asts' ->
+    List.length asts = List.length asts' && List.for_all2 equal asts asts'
+  | Lor asts, Lor asts' ->
+    List.length asts = List.length asts' && List.for_all2 equal asts asts'
   | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
   | Pred name, Pred name' -> name = name'
-  | Eia eia, Eia eia' -> Eia.equal eia eia'
+  | Unsupp _, Unsupp _ -> true
+  | Eia eia, Eia eia' -> safe_eq_eia (Eia eia) (Eia eia')
   | _, _ -> false
 ;;
 
-let safe_eq ast ast' =
-  match ast, ast' with
-  | Eia (Eia.InReRaw (atom, S, lhs)), Eia (Eia.InReRaw (atom', S, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
-  | Eia (Eia.InReRaw (atom, I, lhs)), Eia (Eia.InReRaw (atom', I, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
-  | smth ->
-    (match Stdlib.(ast = ast') with
-     | exception _ -> true
-     | smth -> smth)
+let lxor_ xs =
+  lor_
+    (List.map
+       (fun x -> land_ (List.map (fun y -> if equal x y then x else lnot y) xs))
+       xs)
 ;;
 
 let to_nat ast =

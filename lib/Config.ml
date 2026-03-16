@@ -21,7 +21,7 @@ type config =
   ; mutable quiet : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_mono : bool
-  ; mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
+  ; mutable stop_after : [ `Pre_dpll | `Pre_simplify | `Simpl | `Solving ]
   ; mutable under_approx : int
   ; mutable under_str_all : bool
   ; mutable with_check_sat : bool
@@ -218,6 +218,7 @@ Basic options:
     ; ( "--stop-after"
       , Arg.String
           (function
+            | "predpll" | "pre_dpll" | "pre-dpll" -> config.stop_after <- `Pre_dpll
             | "simpl" -> config.stop_after <- `Simpl
             | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
               config.stop_after <- `Pre_simplify
@@ -255,6 +256,9 @@ Basic options:
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )
+    ; ( "--no-model-check"
+      , Arg.Unit (fun () -> config.check_model <- false)
+      , "\tSkip running model check after (get-model)" )
     ]
   in
   Arg.parse

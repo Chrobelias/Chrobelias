@@ -21,27 +21,31 @@ val simpl
      | `Underapprox of Ast.t list
      ]
 
+val split_concats : Ast.t -> Ast.t
+val extract_and_filter_unsupported_atomic_formulas : Ast.t -> Ast.t * Ast.t list
+val unfold_neq : Ast.t -> Ast.t
+
 val arithmetize
-  :  Ast.t
+  :  string list
+  -> Ast.t
   -> Env.t
-  -> (Ast.t
-     * Env.t
-     * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ]) list
-     * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
-       list
+  -> (Ast.t * Env.t * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t) list
+
+val normalize : Ast.Eia.t -> Ast.Eia.t
 
 val run_string_simplify
   :  Ast.t
-  -> [ `Sat of string * Env.t
-     | `Unsat
+  -> [ `Sat of Env.t
+     | `Unsat of Ast.t
      | `Unknown of Ast.t * Env.t * (Ast.t * Env.t) list Seq.t
      ]
 
 val run_basic_simplify
   :  ?env:Env.t
   -> Ast.t
-  -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t * Env.t ]
+  -> [ `Sat of Env.t | `Unsat of Ast.t | `Unknown of Ast.t * Env.t ]
 
+val theory_lemmas : (Ast.t, Ast.t, 'a) Base.Map.t -> Ast.t
 val run_under2 : Env.t -> Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val check_nia : Env.t -> Ast.t -> [> `Sat of Env.t | `Unknown | `Unsat ]
 val pp_error : Format.formatter -> error -> unit

@@ -22,6 +22,7 @@
   FT_SIG
   SimplII
   Me
+  Model
   Utils)
  (libraries base angstrom bitv smtml unix iter zarith)
  (inline_tests)

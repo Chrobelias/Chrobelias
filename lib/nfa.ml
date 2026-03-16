@@ -944,7 +944,7 @@ module type Type = sig
   val any_path : t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
-  val all_paths_of_len : t -> int -> v list list
+  val all_paths_of_len : t -> ?limit:int -> int -> v list list
   val shrink : t -> t
   val intersect : t -> t -> t
   val unite : t -> t -> t
@@ -1315,7 +1315,9 @@ struct
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
     let result =
-      { final; start; transitions; deg; is_dfa } |> remove_unreachable_from_start
+      { final; start; transitions; deg; is_dfa }
+      |> remove_unreachable_from_start
+      |> remove_unreachable_from_final
     in
     result
   ;;
@@ -1723,14 +1725,17 @@ struct
     | None -> None
   ;;
 
-  let any_n_paths_helper (nfa : t) ?len ?n sign =
+  let any_n_paths_helper (nfa : t) ?len ?n ?limit sign =
     let transitions = nfa.transitions in
     let p =
       let frontier = Queue.create () in
       let visited = Array.init (length nfa) (Fun.const false) in
       let rec bfs cool_paths =
         let cool_paths_cnt = Set.length cool_paths in
+        let exception Too_dense_graph in
         match Queue.take_opt frontier with
+        | _ when Queue.length frontier >= Option.value ~default:Int.max_int limit ->
+          raise Too_dense_graph
         | None -> cool_paths
         | Some _ when Option.is_some n && cool_paths_cnt >= Option.get n -> cool_paths
         | Some path when Option.is_some len && List.length path = Option.get len + 1 ->
@@ -1771,7 +1776,9 @@ struct
     any_n_paths_helper nfa ?len ~n (fun x y -> x <= y)
   ;;
 
-  let all_paths_of_len (nfa : t) len = any_n_paths_helper nfa ~len (fun x y -> x = y)
+  let all_paths_of_len (nfa : t) ?limit len =
+    any_n_paths_helper nfa ~len ?limit (fun x y -> x = y)
+  ;;
 
   let re_accepts path nfa =
     let dfa =

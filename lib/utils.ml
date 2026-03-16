@@ -70,6 +70,14 @@ let rec powerset = function
     ps @ with_x
 ;;
 
+let rec powerset_seq = function
+  | [] -> Seq.return []
+  | x :: xs ->
+    let ps = powerset_seq xs in
+    let with_x = Seq.map (fun subset -> x :: subset) ps in
+    Seq.append ps with_x
+;;
+
 let rec strings_of_len n alpha =
   match n with
   | 0 -> [ "" ]

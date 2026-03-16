@@ -318,24 +318,6 @@ let pp_smtlib2 ppf ir =
   | ir -> fprintf ppf "(assert %a)" helper ir
 ;;
 
-type model = (atom, [ `Int of Z.t | `Str of string ]) Map.t
-
-let pp_model_smtlib2 ppf m =
-  let open Format in
-  fprintf ppf "@[<hv 1>@[(@]\n ";
-  let i = ref 0 in
-  (* Mutability only for pretty-printing *)
-  Map.iteri m ~f:(fun ~key ~data ->
-    if !i <> 0 then fprintf ppf "@ " else incr i;
-    match key, data with
-    | Var v, `Int z -> fprintf ppf "  @[(define-fun %s () Int\n    %a)@]" v Z.pp_print z
-    | Var v, `Str s -> fprintf ppf "  @[(define-fun %s () String\n    \"%s\")@]" v s
-    | Pow2 _, _ -> failwith "Unsupported. Exponenetials in the model");
-  fprintf ppf "\n)@]"
-;;
-
-let model_to_str m = Format.asprintf "%a" pp_model_smtlib2 m
-
 let exists vars = function
   | True -> True
   | ph ->
@@ -855,6 +837,83 @@ let simpl_ineq ir =
       | ir -> ir)
     ir
   |> simpl_ineq
+;;
+
+let%expect_test _ =
+  (* 3v <= 3 ~> v <= 1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int 3) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 3v <= 4 ~> v <= 1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int 4) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 3v <= 2 ~> v <= 0 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int 2) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 500v <= 0 ~> v <= 0 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 500)) (Z.of_int 0) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 3v <= -2 ~> v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int (-2)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* wrong *)
+  (* 3v <= -4 ~> v <= -2 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int (-4)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 3v <= -3 ~> v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int (-3)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= -8 ~> -v <= -2 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int (-8)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= -7 ~> -v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int (-7)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= -6 ~> -v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int (-6)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* wrong *)
+  (* -7v <= 8 ~> -v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 8) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= 6 ~> -v <= 0 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 6) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= 7 ~> -v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 7) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -31v <= -35 ~> -v <= -2 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-31))) (Z.of_int (-35)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  [%expect
+    {|
+    (assert (<= (* 3 t)  3) ) (assert (<= t  1) )
+    (assert (<= (* 3 t)  4) ) (assert (<= t  1) )
+    (assert (<= (* 3 t)  2) ) (assert (<= t  0) )
+    (assert (<= (* 500 t)  0) ) (assert (<= t  0) )
+    (assert (<= (* 3 t)  -2) ) (assert (<= t  -1) )
+    (assert (<= (* 3 t)  -4) ) (assert (<= t  -2) )
+    (assert (<= (* 3 t)  -3) ) (assert (<= t  -1) )
+    (assert (<= (* (- 7) t)  -8) ) (assert (<= (* (- 1) t)  -2) )
+    (assert (<= (* (- 7) t)  -7) ) (assert (<= (* (- 1) t)  -1) )
+    (assert (<= (* (- 7) t)  -6) ) (assert (<= (* (- 1) t)  -1) )
+    (assert (<= (* (- 7) t)  8) ) (assert (<= (* (- 1) t)  1) )
+    (assert (<= (* (- 7) t)  6) ) (assert (<= (* (- 1) t)  0) )
+    (assert (<= (* (- 7) t)  7) ) (assert (<= (* (- 1) t)  1) )
+    |}]
 ;;
 
 (** Habermehl's 2024 monotonicity simplification  *)

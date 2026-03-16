@@ -80,6 +80,11 @@ let equal (env : t) (env' : t) =
 
 exception Occurs
 
+let raise_occurs v =
+  Debug.printf "Duplicate var: %s\n%!" v;
+  raise Occurs
+;;
+
 let occurs_var_exn =
   let rec helper : 'a. t -> string -> 'a Ast.Eia.term -> unit =
     fun (type a) env v (term : a Ast.Eia.term) ->
@@ -87,7 +92,7 @@ let occurs_var_exn =
     let rec fz () =
       let open Ast in
       function
-      | Eia.Atom (Var (v2, I)) when String.equal v v2 -> raise Occurs
+      | Eia.Atom (Var (v2, I)) when String.equal v v2 -> raise_occurs v
       | Eia.Atom (Var (v2, I)) ->
         (* TODO: take into account string constriants too *)
           (match SM.find env.env v2 with
@@ -99,7 +104,7 @@ let occurs_var_exn =
         helper env v l;
         helper env v r
       | Iofs x | Len x -> fs () x
-      | Len2 (Atom (Ast.Var (v2, S))) -> if String.equal v v2 then raise Occurs
+      | Len2 (Atom (Ast.Var (v2, S))) -> if String.equal v v2 then raise_occurs v
       | x ->
         Format.kasprintf
           failwith
@@ -109,7 +114,7 @@ let occurs_var_exn =
     and fs () =
       let open Ast in
       function
-      | Eia.Atom (Var (v2, S)) when String.equal v v2 -> raise Occurs
+      | Eia.Atom (Var (v2, S)) when String.equal v v2 -> raise_occurs v
       | Eia.Atom (Var (v2, S)) ->
         (* TODO: take into account string constriants too *)
           (match SM.find env.env v2 with
@@ -117,9 +122,17 @@ let occurs_var_exn =
            | Some t -> helper env v t)
       | Ast.Eia.Str_const _ -> ()
       | Eia.Sofi x -> helper env v x
-      | Eia.Concat (Eia.Atom (Var (v2, _)), _) when String.equal v v2 -> raise Occurs
-      | Eia.Concat (_, Eia.Atom (Var (v2, _))) when String.equal v v2 -> raise Occurs
-      | Eia.Concat (_, _) -> ()
+      | Eia.At (_, _) -> ()
+      | Eia.Concat xs ->
+        if
+          List.exists
+            (function
+              | Eia.Atom (Var (v2, _)) -> v2 = v
+              | _ -> false)
+            xs
+        then raise Occurs
+        else ()
+      | Eia.Substr (_, _, _) -> ()
       | x ->
         Format.kasprintf
           failwith
@@ -160,7 +173,7 @@ let extend_int_exn e vname data =
     failwith (Format.sprintf "key %s aready exists." vname)
   | None ->
     let data = walk e data in
-    if occurs_var e vname data then raise Occurs;
+    if occurs_var e vname data then raise_occurs vname;
     (*match data with
     | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
     | _ -> *)
@@ -172,7 +185,7 @@ let set_int_exn e vname data =
   | Some old_data -> { e with env = SM.add_exn (SM.remove vname e.env) ~key:vname ~data }
   | None ->
     let data = walk e data in
-    if occurs_var e vname data then raise Occurs;
+    if occurs_var e vname data then raise_occurs vname;
     (*match data with
     | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
     | _ -> *)
@@ -185,7 +198,7 @@ let set_string_exn e vname data =
     { e with str_env = SM.add_exn (SM.remove vname e.str_env) ~key:vname ~data }
   | None ->
     let data = walk e data in
-    if occurs_var e vname data then raise Occurs;
+    if occurs_var e vname data then raise_occurs vname;
     (*match data with
     | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
     | _ -> *)
@@ -199,7 +212,7 @@ let extend_string_exn e vname data =
     Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
     failwith (Format.sprintf "key %s aready exists." vname));
   let data = walk e data in
-  if occurs_var e vname data then raise Occurs;
+  if occurs_var e vname data then raise_occurs vname;
   (*match data with
   | Ast.Eia.Sofi _ -> add_cstrt e (Ast.Var (vname, S)) data
   | _ -> *)
@@ -360,18 +373,18 @@ let enrich m other =
 
 let enrich2 m other =
   let _ : t = m in
-  let _ : (Ir.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t = other in
+  let _ : Model.t = other in
   let m =
     Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
-      match key, data with
-      | Ir.Var s, `Int z -> set_int_exn acc s (Const z)
-      | _, _ -> acc)
+      match data with
+      | `Int z -> set_int_exn acc key (Const z)
+      | _ -> acc)
   in
   let m =
     Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
-      match key, data with
-      | Ir.Var s, `Str z -> set_string_exn acc s (Str_const z)
-      | _, _ -> acc)
+      match data with
+      | `Str z -> set_string_exn acc key (Str_const z)
+      | _ -> acc)
   in
   m
 ;;

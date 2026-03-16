@@ -1356,12 +1356,33 @@ let ( let* ) = Result.bind
 let return = Result.ok
 
 let check_sat ir
-  : [ `Sat of
-        (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long | `No_model ]) Result.t
+  : [ `Sat of Model.tys -> (Model.t, [ `Too_long | `No_model ]) Result.t
     | `Unsat
     | `Unknown of Ir.t
     ]
   =
+  let logBaseZ n =
+    let base = Config.base () in
+    let rec helper acc n =
+      if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base)
+    in
+    helper Z.minus_one n
+  in
+  let flatten_pows_in_model model =
+    Map.mapi
+      ~f:(fun ~key ~data ->
+        match data with
+        | `Str str -> `Str str
+        | `Int eia -> begin
+          match key with
+          | Ir.Var _ -> data
+          | Pow2 _ -> `Int (logBaseZ eia)
+        end)
+      model
+    |> Map.map_keys_exn ~f:(function
+      | Ir.Var v -> v
+      | Ir.Pow2 _ -> assert false)
+  in
   let on_no_strings ir =
     let checker =
       match Config.config.mode with
@@ -1382,7 +1403,12 @@ let check_sat ir
            Result.Ok
              (model
               |> Map.mapi ~f:(fun ~key:k ~data:v ->
-                match Map.find tys k with
+                let k' =
+                  match k with
+                  | Ir.Var k -> k
+                  | Pow2 _ -> ""
+                in
+                match Map.find tys k' with
                 | None | Some `Int ->
                   let v = int_of_path (module Nfa.Bv) z_of_bool_list v in
                   let v =
@@ -1400,8 +1426,8 @@ let check_sat ir
                 | Some `Str ->
                   failwith "there is something strange: there is string variable in EIA")
               |> Map.map_keys_exn ~f:(function
-                | Ir.Pow2 k as atom -> get_exp atom
-                | atom -> atom) (*|> filter_internal*))
+                | Ir.Pow2 atom -> atom
+                | Ir.Var atom -> atom) (*|> filter_internal*))
          in
          `Sat f)
     | `Unsat -> `Unsat
@@ -1441,10 +1467,14 @@ let check_sat ir
       `Sat
         (fun tys ->
           let* model = model () in
-          let main_model =
+          let model =
             Map.mapi
               ~f:(fun ~key:k ~data:v ->
-                let ty = Map.find tys k |> Option.value ~default:`Int in
+                let ty =
+                  match k with
+                  | Ir.Var k -> Map.find tys k |> Option.value ~default:`Int
+                  | _ -> `Int
+                in
                 match ty with
                 | `Int -> begin
                   try
@@ -1464,7 +1494,8 @@ let check_sat ir
                 | `Str -> `Str (v |> string_of_path (module Nfa.Str) string_of_char_list))
               model
           in
-          return main_model)
+          let model = flatten_pows_in_model model in
+          return model)
     | `Unsat -> `Unsat
     | `Unknown -> `Unknown ir
   in

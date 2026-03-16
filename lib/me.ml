@@ -590,7 +590,8 @@ let ir_of_ast env ast =
            eia
        with
        | Unsupported_constraint s -> return (Ir.Unsupp s))
-    | Unsupp s -> return (Ir.Unsupp s)
+    | Unsupp (`Msg s) -> return (Ir.Unsupp s)
+    | Unsupp (`Check _) -> return Ir.true_
     | Pred s -> failf "Unexpected %s" s
   in
   (*let ast =
@@ -607,7 +608,10 @@ let ir_of_ast env ast =
   in
   let ast = Ast.land_ ast in*)
   (* let ast = SimplII.rewrite_len ast in *)
-  let* ir = ast |> ir_of_ast in
+  let* ir =
+    try ast |> ir_of_ast with
+    | Failure s -> Result.error s
+  in
   ir |> return
 ;;
 
@@ -660,7 +664,7 @@ let%expect_test _ =
        Eia.(Const Z.one));
   [%expect
     {|
-    (<= (exp 2 (exp 2 z)) 1)
+    (<= (+ (- 1) (exp 2 (exp 2 z))) 0)
     IR2: (assert (<= pow2(%0)  1) )
          (assert (= (+ (* (- 1) %0) pow2(z) )  0) )
     |}]
