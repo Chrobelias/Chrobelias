@@ -1,13 +1,11 @@
 (* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
+(* Copyright 2024-2026, Chrobelias. *)
 
 module Map = Base.Map.Poly
 
 val check_sat
   :  Ir.t
-  -> [ `Sat of
-         (Ir.atom, [ `Str | `Int ]) Map.t
-         -> (Ir.model, [ `Too_long | `No_model ]) Result.t
+  -> [ `Sat of Model.tys -> (Model.t, [ `Too_long | `No_model ]) Result.t
      | `Unsat
      | `Unknown of Ir.t
      ]

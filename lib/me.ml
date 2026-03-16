@@ -3,7 +3,7 @@
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
-let log = Utils.log
+let trace_log fmt = Debug.trace "me" fmt
 let failf fmt = Format.kasprintf Result.error fmt
 
 exception Unsupported_constraint of string
@@ -361,6 +361,8 @@ let cast_to_int (type a) : a Ast.Eia.term -> Z.t Ast.Eia.term option = function
   | _ -> None
 ;;
 
+let orig_ast = ref Ast.true_
+
 [@@@ocaml.warnerror "-8"]
 
 let rec of_str_atom = function
@@ -427,9 +429,11 @@ and helper : 'a. 'a Ast.Eia.term -> _ =
   | Len v as el ->
     failwith
       (Format.asprintf
-         "Lengths should have been rewritten into chrob.len, found %a"
+         "Lengths should have been rewritten into chrob.len, found %a in %a"
          Ast.Eia.pp_term
-         el)
+         el
+         Ast.pp_smtlib2
+         !orig_ast)
   | Len2 v -> return (Symantics.len2 v)
   | other -> raise (Unsupported_constraint (Format.asprintf "%a" Ast.Eia.pp_term other))
 (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
@@ -437,7 +441,7 @@ and helper : 'a. 'a Ast.Eia.term -> _ =
 
 and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
   fun eia ->
-  (* log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
+  (* trace_log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
     match eia with
     | Eq (Ast.Eia.Atom (Ast.Var (v, _)), Ast.Eia.Len2 (Atom (Ast.Var (v', _))), I) ->
       return (Ir.slen (Ir.var v) (Ir.var v'))
@@ -468,14 +472,14 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let* rhs = helper rhs in
       let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in
       let ans = Ir.land_ (Ir.eq poly c :: sups) in
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | Eq (lhs, rhs, S) ->
       (* let* a, sup_a = of_str_atom lhs in
       let* b, sup_b = of_str_atom rhs in
       let sup = sup_a @ sup_b in
       let ans = Ir.land_ (Ir.seq a b :: sup) in *)
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       (* return ans *)
       failwith "unexpected due to Arithmetization"
     | Neq (lhs, rhs, I) ->
@@ -483,17 +487,17 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let* rhs = helper rhs in
       let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in
       let ans = Ir.land_ (Ir.neq poly c :: sups) in
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | Neq (lhs, rhs, S) ->
       failwith "unexpected due to Arithmetization"
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
     | Leq (lhs, rhs) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in
       let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in
       let ans = Ir.land_ (Ir.leq poly c :: sups) in
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | InRe (str, Ast.S, re) ->
       let* str, sup = of_str_atom str in
@@ -588,7 +592,8 @@ let ir_of_ast env ast =
            eia
        with
        | Unsupported_constraint s -> return (Ir.Unsupp s))
-    | Unsupp s -> return (Ir.Unsupp s)
+    | Unsupp (`Msg s) -> return (Ir.Unsupp s)
+    | Unsupp (`Check _) -> return Ir.true_
     | Pred s -> failf "Unexpected %s" s
   in
   (*let ast =
@@ -605,7 +610,11 @@ let ir_of_ast env ast =
   in
   let ast = Ast.land_ ast in*)
   (* let ast = SimplII.rewrite_len ast in *)
-  let* ir = ast |> ir_of_ast in
+  let* ir =
+    orig_ast := ast;
+    try ast |> ir_of_ast with
+    | Failure s -> Result.error s
+  in
   ir |> return
 ;;
 
@@ -664,7 +673,7 @@ let%expect_test _ =
      ast);
   [%expect
     {|
-    (<= (exp 2 (exp 2 z)) 1)
+    (<= (+ (- 1) (exp 2 (exp 2 z))) 0)
     IR2: (assert (<= pow2(%0)  1) )
          (assert (= (+ (* (- 1) %0) pow2(z) )  0) )
     |}]

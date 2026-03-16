@@ -3,6 +3,7 @@
  (names chro)
  (libraries
   lib
+  str
   ;memtrace
   )
  (preprocess

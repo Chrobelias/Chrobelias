@@ -19,7 +19,8 @@
 
 (package
  (name Chrobelias)
- (synopsis "Chrobak normal form in exp-linear integer arithmetic solver")
+ (synopsis
+  "Chrobak normal form for exp-linear integer arithmetic and strings")
  (depends
   ocaml
   dune

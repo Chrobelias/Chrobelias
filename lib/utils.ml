@@ -1,5 +1,5 @@
 (* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
+(* Copyright 2024-2026, Chrobelias. *)
 
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
@@ -69,18 +69,20 @@ let to_bits n =
   helper [] n
 ;;
 
-let log ppf =
-  match Sys.getenv "CHRO_DEBUG" with
-  | exception Not_found -> Format.ifprintf Format.std_formatter ppf
-  | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
-;;
-
 let rec powerset = function
   | [] -> [ [] ]
   | x :: xs ->
     let ps = powerset xs in
     let with_x = List.map (fun subset -> x :: subset) ps in
     ps @ with_x
+;;
+
+let rec powerset_seq = function
+  | [] -> Seq.return []
+  | x :: xs ->
+    let ps = powerset_seq xs in
+    let with_x = Seq.map (fun subset -> x :: subset) ps in
+    Seq.append ps with_x
 ;;
 
 let rec strings_of_len n alpha =

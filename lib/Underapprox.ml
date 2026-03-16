@@ -1,4 +1,4 @@
-let _config = Config.config
+let trace_log fmt = Debug.trace "under" fmt
 
 module type SYM0 = sig
   type term
@@ -168,7 +168,7 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
          S.constz n
        with
        | _ ->
-         let basei = if Option.is_some _config.base then Option.get _config.base else 2 in
+         let basei = !Config.base in
          let base = Z.of_int basei in
          let exp_var = gensym () in
          phs := S.(var exp_var = constz (Z.of_int (Utils.logBaseZ n ~base))) :: !phs;
@@ -193,8 +193,6 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
   in
   fun x -> S.prj (S.land_ (helper x :: !phs))
 ;;
-
-let log = Debug.printfln
 
 (* Needed for tests, because Z3 gives a model "non-deterministically" *)
 let omit_z3_model =
@@ -258,32 +256,32 @@ let check bound ast =
         then s_bound
         else Config.config.under_approx)
     in
-    log "Bound for underapproximation: %d\n" bound;
-    log "Interesting: %s\n" (String.concat " " interestring_vars);
-    log
+    trace_log "Bound for underapproximation: %d\n" bound;
+    trace_log "Interesting: %s\n" (String.concat " " interestring_vars);
+    trace_log
       "Expecting %d choices ...\n%!"
       (Utils.pow ~base:bound (List.length interestring_vars));
     let all_choices =
-      let ( let* ) xs f = List.concat_map f xs in
-      let choice1 = List.init (bound + 1) Fun.id in
+      let ( let* ) xs f = Seq.concat_map f xs in
+      let choice1 = Seq.init (bound + 1) Fun.id in
       List.fold_left
         (fun acc name ->
            let* v = choice1 in
            let* acc = acc in
-           [ Base.Map.Poly.add_exn acc ~key:name ~data:v ])
-        [ Base.Map.Poly.empty ]
+           Seq.return (Base.Map.Poly.add_exn acc ~key:name ~data:v))
+        (Seq.return Base.Map.Poly.empty)
         interestring_vars
     in
     let exception Early of env in
     let exception Early_Unsat in
     try
-      List.iteri
+      Seq.iteri
         (fun i env ->
            let ((module S : SYM with type repr = Smtml.Expr.t) as sym) =
              make_sym env (fun s -> vars := Base.Set.add !vars s) bound
            in
            let ph = apply_symantics sym ast in
-           (* log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph; *)
+           (* trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph; *)
            let module Z3 = Smtml.Z3_mappings.Solver in
            (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
            let solver =
@@ -292,7 +290,7 @@ let check bound ast =
                ()
            in
            Z3.reset solver;
-           let __ _ = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
+           let __ _ = trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
            match Z3.check solver ~assumptions:[ ph ] with
            | `Sat when omit_z3_model -> raise (Early env)
            | `Sat ->
@@ -321,12 +319,12 @@ let check bound ast =
         let extend v = Ast.eia (Ast.Eia.lt b (Ast.Eia.atom (Ast.Var (v, I)))) in
         Ast.land_ (ast :: List.map extend vars)
       in
-      log "Can't decide in %s" __FILE__;
+      trace_log "Can't decide in %s" __FILE__;
       `Unknown newast
     with
     | Early env ->
-      log "%s gives early Sat." __FILE__;
-      (* log "env = %a" pp_env env; *)
+      trace_log "%s gives early Sat on %a." __FILE__ Ast.pp_smtlib2 ast;
+      (* trace_log "env = %a" pp_env env; *)
       `Sat ("under int", to_normal_env env)
     | Early_Unsat -> `Unsat "nia"
   with

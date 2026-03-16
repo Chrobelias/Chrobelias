@@ -1,8 +1,10 @@
 (* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
+(* Copyright 2024-2026, Chrobelias. *)
 
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
+
+let trace_log fmt = Debug.trace "solver" fmt
 
 type t =
   { vars : (Ir.atom, int) Map.t
@@ -184,7 +186,7 @@ struct
            List.map
              (fun ir ->
                 let nfa = eval ir in
-                Debug.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
+                trace_log "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
                 nfa |> do_if_lsb Nfa.reverse, ir)
              irs
            |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
@@ -192,7 +194,7 @@ struct
          let rec eval_and = function
            | (hd, _) :: [] -> hd
            | (hd, ir) :: (hd', ir') :: tl ->
-             Debug.printf
+             trace_log
                "Intersecting\n  [%d (%a)]\n  [%d (%a)]\n%!"
                (Nfa.length hd)
                Ir.pp
@@ -211,7 +213,7 @@ struct
          in
          eval_and nfas
          |> fun nfa ->
-         Debug.printf "Intersect result %d \n%!" (Nfa.length nfa);
+         trace_log "Intersect result %d \n%!" (Nfa.length nfa);
          nfa |> do_if_lsb Nfa.reverse
        | Ir.Lor (hd :: tl) ->
          List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
@@ -286,9 +288,9 @@ struct
        | Ir.SReg (atom, reg) ->
          Extra.eval_sreg vars atom reg
          |> fun nfa ->
-         Debug.printf "(c, d)\n%!";
+         trace_log "(c, d)%!";
          Seq.iter
-           (fun (c, d) -> Debug.printf "(%d, %d)\n%!" c d)
+           (fun (c, d) -> trace_log "(%d, %d)%!" c d)
            (NfaNat.chrobak (nfa |> Nfa.to_nat));
          nfa
        | Ir.SRegRaw (atom, reg) -> Extra.eval_sregraw vars atom reg
@@ -300,7 +302,7 @@ struct
            ()
        | _ -> failwith "unexpected due to Arithmetization")
       |> fun nfa ->
-      Debug.printfln "Done %a\n%!" Ir.pp ir;
+      trace_log "Done %a%!" Ir.pp ir;
       Debug.dump_nfa ~msg:"Evaluated %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
       level := !level - 1;
       nfa
@@ -385,7 +387,8 @@ struct
   let nfa_for_exponent2 s var var2 chrob =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
-    Debug.printflics
+    Debug.trace
+      "LICS"
       "nfa_for_exponent2: internal_counter=%d var=%a var2=%a\n%!"
       s.internal_counter
       Ir.pp_atom
@@ -399,7 +402,8 @@ struct
         let poly = Map.of_alist_exn [ var, Z.one; var2, Z.minus_one ] in
         let nfa = NfaCollection.eq s.vars poly (Z.of_int a) in
         (* var = var2 + a*)
-        Debug.printflics
+        Debug.trace
+          "LICS"
           "nfa_for_exponent2: we have %a = %a + %d\n%!"
           Ir.pp_atom
           var
@@ -420,7 +424,8 @@ struct
           (* |> Nfa.intersect t_non_neg t >= 0 (* We are assuming to work only with non-negative integers*)*)
           |> Nfa.project [ Map.find_exn s.vars t ]
         in
-        Debug.printflics
+        Debug.trace
+          "LICS"
           "nfa_for_exponent2: we have Et : %a = %a + %d + %d * t\n%!"
           Ir.pp_atom
           var
@@ -454,7 +459,8 @@ struct
           let poly = Map.of_alist_exn [ var, Z.one ] in
           let nfa = NfaCollection.eq s.vars poly (Z.of_int a') in
           (*var = a'*)
-          Debug.printflics
+          Debug.trace
+            "LICS"
             "nfa_for_exponent: we have %a = log(%a) + %d ~~> %a = %d\n%!"
             Ir.pp_atom
             var
@@ -486,7 +492,8 @@ struct
             |> List.filter (fun x -> x - logBase x >= a)
             |> List.hd
           in
-          Debug.printflics
+          Debug.trace
+            "LICS"
             "nfa_for_exponent: we have Et : %a = %d + %d + %d*t \n%!"
             Ir.pp_atom
             var
@@ -522,7 +529,7 @@ struct
     let inter, s = internal s in
     let get_deg = Map.find_exn s.vars in
     let x' = get_exp x in
-    Debug.printf
+    trace_log
       "vars: [%a]"
       (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_int)
       vars;
@@ -571,7 +578,9 @@ struct
     let module NfaCollection = NfaCollectionNat in
     let get_deg = Map.find_exn s.vars in
     let rec helper nfa remaining_order model =
-      Debug.printflics "<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>\n%!";
+      Debug.trace
+        "LICS"
+        "<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>\n%!";
       Debug.dump_nfa
         ~msg:"Nfa inside proof_order: %s"
         ~vars:(Map.to_alist s.vars)
@@ -589,7 +598,7 @@ struct
           let x_eq_1_model =
             if num_of_exp == 0
             then (
-              Debug.printflics "We are trying zeros for %a\n%!" Ir.pp_atom x';
+              Debug.trace "LICS" "We are trying zeros for %a\n%!" Ir.pp_atom x';
               let zero_nfa =
                 List.fold_left
                   (fun nfa y' ->
@@ -617,7 +626,8 @@ struct
 
   let prepare_order s ir nfa order =
     let ( let* ) = Option.bind in
-    Debug.printflics
+    Debug.trace
+      "LICS"
       "\n\n\nTrying order %a\n%!"
       (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " <= ") Ir.pp_atom)
       (order |> List.rev);
@@ -650,7 +660,7 @@ struct
         Debug.dump_nfa ~msg:"Nfa order1: %s" Nfa.format_nfa order_nfa;
         order_vars
         |> Map.map_keys_exn ~f:(fun k -> Map.find_exn s.vars k)
-        |> Map.iteri ~f:(fun ~key ~data -> Debug.printfln "   %d -> %d" key data);
+        |> Map.iteri ~f:(fun ~key ~data -> trace_log "   %d -> %d" key data);
         let order_nfa =
           order_nfa
           |> Nfa.to_nat
@@ -810,7 +820,7 @@ struct
 
   let combine_model_pieces s order (model, len) models =
     let vars = Map.keys s.vars |> List.filter_map Ir.var_val in
-    Debug.printfln
+    trace_log
       "vars: [%a]"
       (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_string)
       vars;
@@ -835,7 +845,7 @@ struct
                | Ir.Pow2 _ -> true
                | _ -> false)
            in
-           Debug.printfln
+           trace_log
              "inside combine_model_pieces: exp=%a, prev_var=%a"
              Ir.pp_atom
              exp
@@ -874,8 +884,8 @@ struct
   let get_model_semenov f s order (model, len) models () =
     let get_val map atom = Extra.nat_model_to_int (Map.find_exn map atom) in
     let apply ?(light = false) map ir =
-      Debug.printf "Formula before substitutions: %a\n" Ir.pp f;
-      Debug.printf
+      trace_log "Formula before substitutions: %a" Ir.pp f;
+      trace_log
         "Variable map: %a"
         (Format.pp_print_list
            ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
@@ -944,9 +954,9 @@ struct
             Ir.land_ [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) v ]
           | x -> x)
       in
-      Debug.printfln "Formula after substituting exponents: %a\n" Ir.pp f;
+      trace_log "Formula after substituting exponents: %a\n" Ir.pp f;
       let result = f |> Ir.simpl |> Ir.simpl_ineq in
-      Debug.printf "Formula after simplifications: %a\n" Ir.pp f;
+      trace_log "Formula after simplifications: %a" Ir.pp f;
       result
     in
     let get_model_simpl map ir =
@@ -1051,7 +1061,7 @@ struct
     else (
       let free_vars = Ir.collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
-      Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
+      Debug.trace "LICS" "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
       if Config.config.no_model
       then
         begin if ir' |> eval |> fst |> Nfa.run
@@ -1372,12 +1382,33 @@ let ( let* ) = Result.bind
 let return = Result.ok
 
 let check_sat ir
-  : [ `Sat of
-        (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long | `No_model ]) Result.t
+  : [ `Sat of Model.tys -> (Model.t, [ `Too_long | `No_model ]) Result.t
     | `Unsat
     | `Unknown of Ir.t
     ]
   =
+  let logBaseZ n =
+    let base = !Config.base |> Z.of_int in
+    let rec helper acc n =
+      if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base)
+    in
+    helper Z.minus_one n
+  in
+  let flatten_pows_in_model model =
+    Map.mapi
+      ~f:(fun ~key ~data ->
+        match data with
+        | `Str str -> `Str str
+        | `Int eia ->
+          begin match key with
+          | Ir.Var _ -> data
+          | Pow2 _ -> `Int (logBaseZ eia)
+          end)
+      model
+    |> Map.map_keys_exn ~f:(function
+      | Ir.Var v -> v
+      | Ir.Pow2 _ -> assert false)
+  in
   let on_no_strings ir =
     let checker =
       match Config.config.mode with
@@ -1398,7 +1429,12 @@ let check_sat ir
            Result.Ok
              (model
               |> Map.mapi ~f:(fun ~key:k ~data:v ->
-                match Map.find tys k with
+                let k' =
+                  match k with
+                  | Ir.Var k -> k
+                  | Pow2 _ -> ""
+                in
+                match Map.find tys k' with
                 | None | Some `Int ->
                   let v = int_of_path (module Nfa.Bv) z_of_bool_list v in
                   let v =
@@ -1416,8 +1452,8 @@ let check_sat ir
                 | Some `Str ->
                   failwith "there is something strange: there is string variable in EIA")
               |> Map.map_keys_exn ~f:(function
-                | Ir.Pow2 k as atom -> get_exp atom
-                | atom -> atom) (*|> filter_internal*))
+                | Ir.Pow2 atom -> atom
+                | Ir.Var atom -> atom) (*|> filter_internal*))
          in
          `Sat f)
     | `Unsat -> `Unsat
@@ -1443,22 +1479,20 @@ let check_sat ir
       in
       match Config.config.logic, Config.config.mode with
       | `Str, `Lsb ->
-        (*  Debug.printfln "Running string LSB mode";
-        LsbStr.check_sat*)
+        trace_log "Running string LSB mode";
         failwith "LSB mode is temporarily disabled"
       | `Str, `Msb ->
-        Debug.printfln "Running string MSB mode";
+        trace_log "Running string MSB mode";
         if !Config.base = 10
         then MsbStr10.check_sat
         else
           let module MsbStr = MsbStr (B) in
           MsbStr.check_sat
       | `StrBv, `Lsb ->
-        (*Debug.printfln "Running string-bitvector LSB mode";
-        wrap LsbStrBv.check_sat*)
+        trace_log "Running string-bitvector LSB mode";
         failwith "LSB mode is temporarily disabled"
       | `StrBv, `Msb ->
-        Debug.printfln "Running string-bitvector MSB mode";
+        trace_log "Running string-bitvector MSB mode";
         if !Config.base = 10
         then wrap MsbStrBv10.check_sat
         else
@@ -1475,10 +1509,14 @@ let check_sat ir
           end
           in
           let* model = model () in
-          let main_model =
+          let model =
             Map.mapi
               ~f:(fun ~key:k ~data:v ->
-                let ty = Map.find tys k |> Option.value ~default:`Int in
+                let ty =
+                  match k with
+                  | Ir.Var k -> Map.find tys k |> Option.value ~default:`Int
+                  | _ -> `Int
+                in
                 match ty with
                 | `Int ->
                   begin try
@@ -1499,7 +1537,8 @@ let check_sat ir
                   `Str (v |> string_of_path (module Nfa.Str (B)) string_of_char_list))
               model
           in
-          return main_model)
+          let model = flatten_pows_in_model model in
+          return model)
     | `Unsat -> `Unsat
     | `Unknown -> `Unknown ir
   in

@@ -1,4 +1,4 @@
-let log = Debug.printfln
+let trace_log fmt = Debug.trace "over" fmt
 
 module type Smtml_symantics = sig
   include FT_SIG.z_term with type term := Smtml.Expr.t
@@ -126,7 +126,7 @@ let check ast =
   let _repr = apply_symnatics (module Symantics) ast in
   let whole = _repr :: formulas_of_cache () in
   Format.pp_print_flush Format.std_formatter ();
-  log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
+  trace_log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
   let module Z3 = Smtml.Z3_mappings.Solver in
   (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
   let solver =
@@ -138,7 +138,7 @@ let check ast =
     if tracing_on then Format.printf "Early Unsat in %s\n%!" __FILE__;
     `Unsat
   | `Unknown ->
-    log "Can't decide in %s%!" __FILE__;
+    trace_log "Can't decide in %s%!" __FILE__;
     if tracing_on then Format.printf "`Unknown  in %s\n%!" __FILE__;
     `Unknown ast
   | `Sat when tracing_on ->
@@ -177,4 +177,77 @@ let check ast =
   else (
     try check ast with
     | _ -> `Unknown ast)
+;;
+
+(*Below is something useful about lengths. Will be overapproximation based on string abstractions *)
+let check_length ast =
+  (*`Unknown ast*)
+  let strlens s = String.concat "" [ "strlen"; s ] in
+  let gensym =
+    let n = ref 0 in
+    fun ?(prefix = "eee") () ->
+      incr n;
+      Printf.sprintf "%s%d" prefix !n
+  in
+  let over_concat_len ast =
+    let module Set = Base.Set.Poly in
+    let eqs = ref Set.empty in
+    let open Ast.Eia in
+    let module OverStrLen = struct
+      include SimplII.Id_symantics
+
+      let in_re s re =
+        let module NfaStr = Nfa.String in
+        let open Ast.Eia in
+        match s with
+        | Atom (Var (s, S)) ->
+          let nfa = NfaStr.of_regex re in
+          if Bool.not (NfaStr.run nfa)
+          then false_
+          else (
+            let csds =
+              let is_eos vec =
+                match Array.length vec with
+                | 1 -> Char.equal (Array.get vec 0) Nfa.Str10.u_eos
+                | _ -> failwith "unexpected nfa in arithmetize_in_re"
+              in
+              NfaStr.filter_map nfa (fun (label, q') ->
+                if is_eos label then Option.none else Option.some (label, q'))
+              |> NfaStr.to_nat
+              |> NfaStr.chrobak
+            in
+            csds
+            |> Seq.map (fun (c, d) ->
+              let c, d = Z.of_int c, Z.of_int d in
+              let n = gensym ~prefix:"@@re_len" () in
+              land_
+                [ Ast.eia (leq (const Z.zero) (var n))
+                ; Ast.eia
+                    (eq (var (strlens s)) (add [ const c; mul [ const d; var n ] ]) Ast.I)
+                ])
+            |> List.of_seq
+            |> Ast.lor_)
+        | _ -> Ast.true_
+      ;;
+
+      let rec str_len term =
+        match term with
+        | Str_const s -> const (String.length s)
+        | Concat xs -> add (List.map str_len xs)
+        | Atom (Var (s, S)) ->
+          let v = var (strlens s) in
+          eqs := Set.add !eqs (leq (const 0) v);
+          v
+        | _ -> var (strlens "dummy")
+      ;;
+
+      let eq_str lhs rhs = eqz (str_len lhs) (str_len rhs)
+    end
+    in
+    let ast = SimplII.apply_symantics_unsugared (module OverStrLen) ast in
+    let ast = Ast.land_ (ast :: (!eqs |> Set.to_list)) in
+    trace_log "CHECK OVER  %a %!" Ast.pp_smtlib2 ast;
+    ast
+  in
+  check (over_concat_len ast)
 ;;
