@@ -59,10 +59,12 @@ let rec to_string orig_expr =
     end
   | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ expr ])
   | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ expr ])
-  | Expr.Cvtop (_, Ty.Cvtop.ToString, expr)
   | Expr.Cvtop (_, Ty.Cvtop.String_from_int, expr) ->
     let* str, phs = to_eia_term expr in
-    return (Ast.Eia.Sofi str) phs
+    begin match str with
+    | Ast.Eia.Const n -> return (Ast.Eia.Str_const (Z.to_string n)) phs
+    | _ -> return (Ast.Eia.Sofi str) phs
+    end
   | Expr.Triop (_, Ty.Triop.String_extract, str, from, to') ->
     let* str, phs = to_string str in
     let* from, phs' = to_eia_term from in
