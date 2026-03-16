@@ -685,6 +685,24 @@ let make_main_symantics ?alpha ?agressive env =
       | s1, s2 -> Ast.eia (Ast.Eia.suffixof s1 s2)
     ;;
 
+    let str_at s a =
+      match s, a with
+      | Ast.Eia.Str_const s, Ast.Eia.Const n ->
+        (try Ast.Eia.Str_const (String.sub s (Z.to_int n) 1) with
+         | _ -> Ast.Eia.Str_const "")
+      | Ast.Eia.Str_const "", _ -> Ast.Eia.Str_const ""
+      | _ -> Ast.Eia.at s a
+    ;;
+
+    let str_substr term offset len =
+      match term, offset, len with
+      | Ast.Eia.Str_const s, Ast.Eia.Const n, Ast.Eia.Const len ->
+        (try Ast.Eia.Str_const (String.sub s (Z.to_int n) (Z.to_int len)) with
+         | _ -> Ast.Eia.Str_const "")
+      | Ast.Eia.Str_const "", _, _ -> Ast.Eia.Str_const ""
+      | _ -> Ast.Eia.substr term offset len
+    ;;
+
     let collect_inside_mul xs =
       List.fold_right
         (fun x acc : term list ->
@@ -2662,15 +2680,20 @@ let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 let run_string_simplify ast =
   let module Set = Base.Set.Poly in
   let var_info = apply_symantics (module Who_in_exponents) ast in
-  match basic_simplify [ 1 ] Env.empty (ast |> rewrite_via_concat var_info) with
+  match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat ("presimpl str", env)
   | `Unsat -> `Unsat
   | `Unknown (ast', e, _, _) ->
-    let alpha = collect_alpha ast' in
-    let (module Symantics) = make_main_symantics ~alpha e in
-    let ast = ast' |> over_concat |> apply_symantics (module Symantics) in
-    `Unknown
-      (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list))
+    log "After rewriting via concats:\n%!";
+    (match basic_simplify [ 1 ] e (ast' |> rewrite_via_concat var_info) with
+     | `Sat env -> `Sat ("presimpl str", env)
+     | `Unsat -> `Unsat
+     | `Unknown (ast', e, _, _) ->
+       let alpha = collect_alpha ast' in
+       let (module Symantics) = make_main_symantics ~alpha e in
+       let ast = ast' |> over_concat |> apply_symantics (module Symantics) in
+       `Unknown
+         (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list)))
 ;;
 
 let arithmetize ast env =
@@ -2943,7 +2966,20 @@ let arithmetize ast env =
                   | false, other -> phs)
               in
               v, phs
-            | Len _ -> failwith "Unsupported constraint in arithmetize_term"
+            | Len term ->
+              let term', phs = arithmetize_term str_vars term in
+              let lenvar, phs =
+                Format.asprintf "strlen_%a" Ast.pp_term_smtlib2 term', []
+              in
+              let v = atomi lenvar in
+              let phs = leq (Ast.Eia.const Z.zero) v :: phs in
+              let phs =
+                leq (pow_base v) term'
+                :: lt term' (Mul [ const (Config.base ()); pow_base v ])
+                :: phs
+              in
+              v, phs
+            (* | Len _ -> failwith "Unsupported constraint in arithmetize_term" *)
             | Str_const s -> const (Z.of_string s), []
             | Atom (Var (v, S)) -> atomi v, []
             | Concat (_, _) | At (_, _) | Substr (_, _, _) ->
