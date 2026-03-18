@@ -604,6 +604,23 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     else raise s
 ;;
 
+let check_sat ?verbose tys ast : rez =
+  let res =
+    Lib.DpllT.dpll
+      (fun ast ->
+         let rez = check_sat ?verbose tys ast in
+         match rez with
+         | Sat (a, b, c, d, e) -> `Sat (a, b, c, d, e)
+         | Unsat _ -> `Unsat Option.none
+         | Unknown _ -> `Unknown)
+      ast
+  in
+  match res with
+  | `Sat (a, b, c, d, e) -> Sat (a, b, c, d, e)
+  | `Unsat _ -> Unsat "todo"
+  | `Unknown -> Unknown (Lib.Ast.true_, Lib.Env.empty)
+;;
+
 type state =
   { asserts : Lib.Ast.t list
   ; prev : state option (* TODO: where is the stack? *)
@@ -649,7 +666,7 @@ let () =
     end
     | Smtml.Ast.Check_sat exprs ->
       config.with_check_sat <- true;
-      let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs |> List.map Lib.Ast.lor_ in
+      let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs in
       let rec get_ast { asserts; prev; _ } =
         match prev with
         | Some state -> asserts @ get_ast state
@@ -767,7 +784,7 @@ let () =
         in
         state)
     | Smtml.Ast.Assert expr -> begin
-      let ast = expr |> Lib.Fe._to_ir state.tys |> Lib.Ast.lor_ in
+      let ast = expr |> Lib.Fe._to_ir state.tys in
       { state with asserts = ast :: state.asserts }
     end
     | Smtml.Ast.Set_info e ->

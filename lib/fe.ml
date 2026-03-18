@@ -14,9 +14,10 @@ type r =
   | Int of Z.t Ast.Eia.term
 [@@deriving variants]
 
-open Base.List.Let_syntax
-
-let ( let* ) = Base.List.( >>= )
+let return a b = a, b
+let ( let* ) a f = f a
+let ( @ ) a b = Ast.land_ [ a; b ]
+let empty = Ast.true_
 let internalc = ref 0
 
 let internal_name () =
@@ -27,16 +28,15 @@ let internal_name () =
 
 let internal kind = Ast.var (internal_name ()) kind
 
-let rec to_string orig_expr =
+let rec to_string orig_expr : string Ast.Eia.term * Ast.t =
   let expr = Expr.view orig_expr in
-  let return x exprs = return (x, exprs) in
   match expr with
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
-    return (Ast.Eia.Atom (Ast.str_var var)) []
+    return (Ast.Eia.Atom (Ast.str_var var)) empty
   | Expr.Val v -> begin
     match v with
-    | Str s -> return Ast.Eia.(Str_const s) []
+    | Str s -> return Ast.Eia.(Str_const s) empty
     | _ -> failf (Format.asprintf "unable to handle %a as string" Expr.pp orig_expr)
   end
   | Expr.Naryop (_, Ty.Naryop.Concat, ls) ->
@@ -81,9 +81,9 @@ let rec to_string orig_expr =
     let* t, phs' = to_string t in
     let* e, phs'' = to_string e in
     let phs = phs' @ phs'' in
-    let phs_1 = Ast.eia (Ast.Eia.eq v t Ast.S) :: c :: phs in
-    let phs_2 = Ast.eia (Ast.Eia.eq v e Ast.S) :: Ast.lnot c :: phs in
-    [ v, phs_1; v, phs_2 ]
+    let phs_1 = Ast.land_ [ Ast.eia (Ast.Eia.eq v t Ast.S); c ] @ phs in
+    let phs_2 = Ast.land_ [ Ast.eia (Ast.Eia.eq v e Ast.S); Ast.lnot c ] @ phs in
+    return v (Ast.lor_ [ phs_1; phs_2 ])
   | _ -> failf (Format.asprintf "unable to handle %a as string" Expr.pp orig_expr)
 
 and to_regex orig_expr =
@@ -96,7 +96,7 @@ and to_regex orig_expr =
   | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
     let str =
       match to_string expr with
-      | [ (Ast.Eia.Str_const s, []) ] -> s
+      | Ast.Eia.Str_const s, ast when ast = empty -> s
       | _ ->
         failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp expr)
     in
@@ -115,14 +115,14 @@ and to_regex orig_expr =
     in
     let lhs =
       match to_string lhs with
-      | [ (Ast.Eia.(Str_const s), []) ] -> s
+      | Ast.Eia.(Str_const s), ast -> s
       | _ ->
         failf
           (Format.asprintf "unable to create regex dynamically in %a" Expr.pp orig_expr)
     in
     let rhs =
       match to_string rhs with
-      | [ (Ast.Eia.(Str_const s), []) ] -> s
+      | Ast.Eia.(Str_const s), ast when ast = empty -> s
       | _ ->
         failf
           (Format.asprintf "unable to create regex dynamically in %a" Expr.pp orig_expr)
@@ -157,14 +157,13 @@ and to_regex orig_expr =
     failwith "complements are not implemented yet since they would explode NFAs"
   | _ -> failf (Format.asprintf "unable to handle %a as regex" Expr.pp orig_expr)
 
-and to_eia_term orig_expr : (Z.t Ast.Eia.term * Ast.t list) list =
+and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
   let neg eia_term = Ast.Eia.mul [ Ast.Eia.const Z.minus_one; eia_term ] in
-  let return x exprs = return (x, exprs) in
   let expr = Expr.view orig_expr in
   match expr with
   | Expr.Val v -> begin
     match v with
-    | Int d -> return (Ast.Eia.const (Z.of_int d)) []
+    | Int d -> return (Ast.Eia.const (Z.of_int d)) empty
     | _ -> failf (Format.asprintf "unable to handle %a as integer term" Expr.pp orig_expr)
   end
   | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ expr ])
@@ -173,7 +172,7 @@ and to_eia_term orig_expr : (Z.t Ast.Eia.term * Ast.t list) list =
     return (Ast.Eia.iofs str) phs
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
-    return (Ast.Eia.atom (Ast.int_var var)) []
+    return (Ast.Eia.atom (Ast.int_var var)) empty
   (* Semenov arithmetic, i.e. 2**x operators. *)
   | Expr.App ({ name = Symbol.Simple "pow2"; _ }, [ expr ]) ->
     let* expr, phs = to_eia_term expr in
@@ -257,12 +256,12 @@ and to_eia_term orig_expr : (Z.t Ast.Eia.term * Ast.t list) list =
     let* t, phs' = to_eia_term t in
     let* e, phs'' = to_eia_term e in
     let phs = phs' @ phs'' in
-    let phs_1 = Ast.eia (Ast.Eia.eq v t Ast.I) :: c :: phs in
-    let phs_2 = Ast.eia (Ast.Eia.eq v e Ast.I) :: Ast.lnot c :: phs in
-    [ v, phs_1; v, phs_2 ]
+    let phs_1 = Ast.land_ [ Ast.eia (Ast.Eia.eq v t Ast.I); c ] @ phs in
+    let phs_2 = Ast.land_ [ Ast.eia (Ast.Eia.eq v e Ast.I); Ast.lnot c ] @ phs in
+    return v (Ast.lor_ [ phs_1; phs_2 ])
   | _ -> failf (Format.asprintf "expected term, in %a" Expr.pp orig_expr)
 
-and _to_ir tys orig_expr : Ast.t list =
+and _to_ir tys orig_expr : Ast.t =
   (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
@@ -291,7 +290,7 @@ and _to_ir tys orig_expr : Ast.t list =
   let to_regex_helper term re =
     let term =
       match to_string term with
-      | [ (term, []) ] -> term
+      | term, ast when ast = Ast.true_ -> term
       | _ ->
         failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp term)
     in
@@ -300,7 +299,7 @@ and _to_ir tys orig_expr : Ast.t list =
       | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
       | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
         (match to_string expr with
-         | [ (Ast.Eia.Str_const "", []) ] -> true
+         | Ast.Eia.Str_const "", ast when ast = Ast.true_ -> true
          | _ -> false)
       | _ -> false
     in
@@ -310,7 +309,7 @@ and _to_ir tys orig_expr : Ast.t list =
     | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
       let str =
         match to_string expr with
-        | [ (Ast.Eia.Str_const s, []) ] -> s
+        | Ast.Eia.Str_const s, ast when ast = Ast.true_ -> s
         | _ ->
           failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp expr)
       in
@@ -330,62 +329,62 @@ and _to_ir tys orig_expr : Ast.t list =
     (* Constants. *)
     | Expr.Val v -> begin
       match v with
-      | True -> return Ast.True
-      | False -> return (Ast.lnot Ast.true_)
+      | True -> Ast.True
+      | False -> Ast.lnot Ast.true_
       | _ ->
         failf (Format.asprintf "unable to handle %a as boolean term" Expr.pp orig_expr)
     end
     (* Variables. *)
-    | Expr.Symbol symbol -> return (Ast.pred (Symbol.to_string symbol))
+    | Expr.Symbol symbol -> Ast.pred (Symbol.to_string symbol)
     (* Yes, probably this stuff is kinda over-engineered. *)
     (* Logical operations. *)
     (* Not. *)
     | Expr.Unop (_ty, Ty.Unop.Not, expr) ->
-      let* expr = _to_ir tys expr in
-      return (Ast.lnot expr)
+      let expr = _to_ir tys expr in
+      Ast.lnot expr
     | Expr.Binop (_ty, Ty.Binop.And, lhs, rhs) ->
-      let* lhs = _to_ir tys lhs in
-      let* rhs = _to_ir tys rhs in
-      return (Ast.land_ [ lhs; rhs ])
+      let lhs = _to_ir tys lhs in
+      let rhs = _to_ir tys rhs in
+      Ast.land_ [ lhs; rhs ]
     | Expr.Naryop (_ty, Ty.Naryop.Logand, exprs) ->
-      let a : Ast.t list list =
+      let a : Ast.t list =
         List.fold_left
           (fun acc (expr : Expr.t) ->
-             let* acc = acc in
-             let* (ir : Ast.t) = _to_ir tys expr in
-             return (ir :: acc))
-          (return [])
+             let acc = acc in
+             let (ir : Ast.t) = _to_ir tys expr in
+             ir :: acc)
+          []
           exprs
       in
-      List.map Ast.land_ a
+      Ast.land_ a
     (* Binary and arbitrary or *)
     | Expr.Binop (_ty, Ty.Binop.Or, lhs, rhs) -> begin
-      let* lhs = _to_ir tys lhs in
-      let* rhs = _to_ir tys rhs in
-      [ lhs; rhs ]
+      let lhs = _to_ir tys lhs in
+      let rhs = _to_ir tys rhs in
+      Ast.lor_ [ lhs; rhs ]
     end
     | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) ->
-      let a : Ast.t list list =
+      let a : Ast.t list =
         List.fold_left
           (fun acc (expr : Expr.t) ->
-             let* acc = acc in
-             let* (ir : Ast.t) = _to_ir tys expr in
-             return (ir :: acc))
-          (return [])
+             let acc = acc in
+             let (ir : Ast.t) = _to_ir tys expr in
+             ir :: acc)
+          []
           exprs
       in
-      List.map Ast.lor_ a
+      Ast.lor_ a
     (* Implication *)
     | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) ->
-      let* lhs = _to_ir tys lhs in
-      let* rhs = _to_ir tys rhs in
-      [ Ast.lnot lhs; rhs ]
+      let lhs = _to_ir tys lhs in
+      let rhs = _to_ir tys rhs in
+      Ast.lor_ [ Ast.lnot lhs; rhs ]
     (* Integer comparisons. *)
     | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
       let build t c = Ast.eia (Ast.Eia.eq t c S) in
-      let* lhs, phs = to_string lhs in
-      let* rhs, phs' = to_string rhs in
-      return (Ast.land_ (build lhs rhs :: (phs @ phs')))
+      let lhs, (phs : Ast.t) = to_string lhs in
+      let rhs, (phs' : Ast.t) = to_string rhs in
+      Ast.land_ [ build lhs rhs; phs; phs' ]
     | Expr.Relop (_ty, rel, lhs, rhs) ->
       let build =
         match rel with
@@ -399,10 +398,10 @@ and _to_ir tys orig_expr : Ast.t list =
       in
       let* lhs, phs = to_eia_term lhs in
       let* rhs, phs' = to_eia_term rhs in
-      return (Ast.land_ ((build lhs rhs :: phs) @ phs'))
+      Ast.land_ [ build lhs rhs; phs; phs' ]
     (* Strings. *)
     | Expr.App ({ name = Symbol.Simple "str.in.re"; _ }, [ str; re ])
-    | Expr.Binop (_, Ty.Binop.String_in_re, str, re) -> return (to_regex_helper str re)
+    | Expr.Binop (_, Ty.Binop.String_in_re, str, re) -> to_regex_helper str re
     | Expr.Binop
         ( _
         , ((Ty.Binop.String_prefix | Ty.Binop.String_suffix | Ty.Binop.String_contains) as
@@ -418,13 +417,13 @@ and _to_ir tys orig_expr : Ast.t list =
       in
       let* str, phs = to_string str in
       let* str', phs' = to_string str' in
-      return (Ast.land_ ((build str str' :: phs) @ phs'))
+      Ast.land_ [ build str str'; phs; phs' ]
     (* Quantifiers and binders. *)
     | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
       let* c = _to_ir tys c in
       let* t = _to_ir tys t in
       let* e = _to_ir tys e in
-      [ Ast.land_ [ c; t ]; Ast.land_ [ Ast.lnot c; e ] ]
+      Ast.lor_ [ Ast.land_ [ c; t ]; Ast.land_ [ Ast.lnot c; e ] ]
     | Expr.Binder (((Binder.Forall | Binder.Exists) as q), atoms, formula) ->
       let binder =
         match q with
@@ -447,7 +446,7 @@ and _to_ir tys orig_expr : Ast.t list =
           atoms
       in
       let* formula = _to_ir tys formula in
-      return (binder atoms formula)
+      binder atoms formula
     (*| Expr.Binder (Binder.Let_in, bindings, expr) -> begin
       let ast = _to_ir tys expr in
       List.fold_left
@@ -486,5 +485,5 @@ and _to_ir tys orig_expr : Ast.t list =
     end*)
     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
   with
-  | UnsupportedException m -> return (Ast.Unsupp m)
+  | UnsupportedException m -> Ast.Unsupp m
 ;;

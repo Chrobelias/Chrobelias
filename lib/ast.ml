@@ -470,10 +470,13 @@ let land_ = function
       List.concat_map
         (function
           | Land asts' -> asts'
+          | True -> []
           | ast -> [ ast ])
         asts
     in
-    Land asts
+    (match asts with
+     | [] -> true_
+     | asts -> Land asts)
 ;;
 
 let false_ = Lnot true_
@@ -487,11 +490,14 @@ let lor_ = function
       List.map
         (function
           | Lor asts' -> asts'
+          | Lnot True -> []
           | ast -> [ ast ])
         asts
       |> List.concat
     in
-    Lor asts
+    (match asts with
+     | [] -> false_
+     | asts -> Lor asts)
 ;;
 
 let eia eia = Eia eia
@@ -559,11 +565,13 @@ let pp_smtlib2 =
         irs;
       fprintf ppf ")@]"
     | Lor irs ->
-      Format.fprintf
-        ppf
-        "(%a)"
-        (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " | ") pp)
-        irs
+      Format.fprintf ppf "@[<v 2>(or@,";
+      List.iteri
+        (fun i ->
+           if i <> 0 then fprintf ppf "@,";
+           fprintf ppf "@[%a@]" pp)
+        irs;
+      fprintf ppf ")@]"
     | Exists (a, b) ->
       Format.fprintf
         ppf
