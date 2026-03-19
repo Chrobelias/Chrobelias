@@ -2068,8 +2068,8 @@ let run_basic_simplify ?(env = Env.empty) ast =
   if Ast.is_conjunct ast
   then (
     match basic_simplify [ 1 ] env ast with
-    | `Sat env -> `Sat ("presimpl int", env)
-    | `Unsat -> `Unsat
+    | `Sat env -> `Sat env
+    | `Unsat -> `Unsat ast
     | `Unknown (ast, e, _, _) ->
       `Unknown (ast |> shrink_variables |> flatten Info.empty, e))
   else `Unknown (ast, Env.empty)
@@ -2681,13 +2681,13 @@ let run_string_simplify ast =
   let module Set = Base.Set.Poly in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   match basic_simplify [ 1 ] Env.empty ast with
-  | `Sat env -> `Sat ("presimpl str", env)
-  | `Unsat -> `Unsat
+  | `Sat env -> `Sat env
+  | `Unsat -> `Unsat ast
   | `Unknown (ast', e, _, _) ->
     log "After rewriting via concats:\n%!";
     (match basic_simplify [ 1 ] e (ast' |> rewrite_via_concat var_info) with
-     | `Sat env -> `Sat ("presimpl str", env)
-     | `Unsat -> `Unsat
+     | `Sat env -> `Sat env
+     | `Unsat -> `Unsat ast
      | `Unknown (ast', e, _, _) ->
        let alpha = collect_alpha ast' in
        let (module Symantics) = make_main_symantics ~alpha e in
