@@ -1311,7 +1311,9 @@ struct
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
     let result =
-      { final; start; transitions; deg; is_dfa } |> remove_unreachable_from_start
+      { final; start; transitions; deg; is_dfa }
+      |> remove_unreachable_from_start
+      |> remove_unreachable_from_final
     in
     result
   ;;
