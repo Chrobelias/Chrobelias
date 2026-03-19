@@ -77,7 +77,7 @@ let rec to_string orig_expr : string Ast.Eia.term * Ast.t =
   | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
     let v = Ast.Eia.atom (internal Ast.S) in
     (* Fixme *)
-    let* c = _to_ir Base.Map.Poly.empty c in
+    let* c = to_ast Base.Map.Poly.empty c in
     let* t, phs' = to_string t in
     let* e, phs'' = to_string e in
     let phs = phs' @ phs'' in
@@ -252,7 +252,7 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
   | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
     let v = Ast.Eia.atom (internal Ast.I) in
     (* Fixme *)
-    let* c = _to_ir Base.Map.Poly.empty c in
+    let* c = to_ast Base.Map.Poly.empty c in
     let* t, phs' = to_eia_term t in
     let* e, phs'' = to_eia_term e in
     let phs = phs' @ phs'' in
@@ -261,7 +261,7 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
     return v (Ast.lor_ [ phs_1; phs_2 ])
   | _ -> failf (Format.asprintf "expected term, in %a" Expr.pp orig_expr)
 
-and _to_ir tys orig_expr : Ast.t =
+and to_ast tys orig_expr : Ast.t =
   (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
@@ -340,18 +340,18 @@ and _to_ir tys orig_expr : Ast.t =
     (* Logical operations. *)
     (* Not. *)
     | Expr.Unop (_ty, Ty.Unop.Not, expr) ->
-      let expr = _to_ir tys expr in
+      let expr = to_ast tys expr in
       Ast.lnot expr
     | Expr.Binop (_ty, Ty.Binop.And, lhs, rhs) ->
-      let lhs = _to_ir tys lhs in
-      let rhs = _to_ir tys rhs in
+      let lhs = to_ast tys lhs in
+      let rhs = to_ast tys rhs in
       Ast.land_ [ lhs; rhs ]
     | Expr.Naryop (_ty, Ty.Naryop.Logand, exprs) ->
       let a : Ast.t list =
         List.fold_left
           (fun acc (expr : Expr.t) ->
              let acc = acc in
-             let (ir : Ast.t) = _to_ir tys expr in
+             let (ir : Ast.t) = to_ast tys expr in
              ir :: acc)
           []
           exprs
@@ -359,8 +359,8 @@ and _to_ir tys orig_expr : Ast.t =
       Ast.land_ a
     (* Binary and arbitrary or *)
     | Expr.Binop (_ty, Ty.Binop.Or, lhs, rhs) -> begin
-      let lhs = _to_ir tys lhs in
-      let rhs = _to_ir tys rhs in
+      let lhs = to_ast tys lhs in
+      let rhs = to_ast tys rhs in
       Ast.lor_ [ lhs; rhs ]
     end
     | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) ->
@@ -368,7 +368,7 @@ and _to_ir tys orig_expr : Ast.t =
         List.fold_left
           (fun acc (expr : Expr.t) ->
              let acc = acc in
-             let (ir : Ast.t) = _to_ir tys expr in
+             let (ir : Ast.t) = to_ast tys expr in
              ir :: acc)
           []
           exprs
@@ -376,8 +376,8 @@ and _to_ir tys orig_expr : Ast.t =
       Ast.lor_ a
     (* Implication *)
     | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) ->
-      let lhs = _to_ir tys lhs in
-      let rhs = _to_ir tys rhs in
+      let lhs = to_ast tys lhs in
+      let rhs = to_ast tys rhs in
       Ast.lor_ [ Ast.lnot lhs; rhs ]
     (* Integer comparisons. *)
     | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
@@ -420,9 +420,9 @@ and _to_ir tys orig_expr : Ast.t =
       Ast.land_ [ build str str'; phs; phs' ]
     (* Quantifiers and binders. *)
     | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
-      let* c = _to_ir tys c in
-      let* t = _to_ir tys t in
-      let* e = _to_ir tys e in
+      let* c = to_ast tys c in
+      let* t = to_ast tys t in
+      let* e = to_ast tys e in
       Ast.lor_ [ Ast.land_ [ c; t ]; Ast.land_ [ Ast.lnot c; e ] ]
     | Expr.Binder (((Binder.Forall | Binder.Exists) as q), atoms, formula) ->
       let binder =
@@ -445,16 +445,16 @@ and _to_ir tys orig_expr : Ast.t =
           end
           atoms
       in
-      let* formula = _to_ir tys formula in
+      let* formula = to_ast tys formula in
       binder atoms formula
     (*| Expr.Binder (Binder.Let_in, bindings, expr) -> begin
-      let ast = _to_ir tys expr in
+      let ast = to_ast tys expr in
       List.fold_left
         (fun acc binding ->
            match Expr.view binding with
            | Expr.App (symbol, [ expr ]) ->
              let symbol = Symbol.to_string symbol in
-             (match expr |> _to_ir tys with
+             (match expr |> to_ast tys with
               | (exception _) | Unsupp _ -> begin
                 match to_eia_term expr with
                 | eia' ->
@@ -486,4 +486,31 @@ and _to_ir tys orig_expr : Ast.t =
     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
   with
   | UnsupportedException m -> Ast.Unsupp m
+;;
+
+let pred_to_sym s = Expr.symbol (Symbol.make Ty.Ty_bool s)
+
+let sym_to_pred (s : Symbol.t) =
+  match s with
+  | { ty = Ty.Ty_bool; name = Simple s; _ } -> s
+  | _ -> assert false
+;;
+
+let rec of_ast = function
+  | Ast.True -> Smtml.Expr.Bool.true_
+  | Land [] -> Smtml.Expr.Bool.true_
+  | Land (h :: tl) ->
+    let h = of_ast h in
+    let tl = List.map of_ast tl in
+    List.fold_left Smtml.Expr.Bool.and_ h tl
+  | Lor [] -> Smtml.Expr.Bool.false_
+  | Lor (h :: tl) ->
+    let h = of_ast h in
+    let tl = List.map of_ast tl in
+    List.fold_left Smtml.Expr.Bool.or_ h tl
+  | Lnot el -> Smtml.Expr.Bool.not (of_ast el)
+  | Exists _ -> failwith "??"
+  | Pred s -> pred_to_sym s
+  | Unsupp _ -> failwith "???"
+  | Eia eia -> assert false
 ;;

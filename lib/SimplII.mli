@@ -32,15 +32,15 @@ val arithmetize
 
 val run_string_simplify
   :  Ast.t
-  -> [ `Sat of string * Env.t
-     | `Unsat
+  -> [ `Sat of Env.t
+     | `Unsat of Ast.t
      | `Unknown of Ast.t * Env.t * (Ast.t * Env.t) list Seq.t
      ]
 
 val run_basic_simplify
   :  ?env:Env.t
   -> Ast.t
-  -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t * Env.t ]
+  -> [ `Sat of Env.t | `Unsat of Ast.t | `Unknown of Ast.t * Env.t ]
 
 val run_under2 : Env.t -> Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
 val check_nia : Env.t -> Ast.t -> [> `Sat of Env.t | `Unknown | `Unsat ]
