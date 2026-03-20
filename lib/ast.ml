@@ -503,14 +503,22 @@ let lor_ = function
 let eia eia = Eia eia
 let pred s = Pred s
 
-let rec lnot = function
-  | Lnot ast -> ast
-  | Land asts -> lor_ (List.map lnot asts)
-  | Lor asts -> land_ (List.map lnot asts)
-  (*| Eia (Eia.Eq (lhs, rhs, kind)) -> eia (Eia.neq lhs rhs kind)
-  | Eia (Eia.Neq (lhs, rhs, kind)) -> eia (Eia.eq lhs rhs kind)*)
-  | ast -> Lnot ast
+let normalize (norm_eia : Eia.t -> Eia.t) ast =
+  let rec lnot = function
+    | Lnot ast -> ast
+    | Land asts -> lor_ (List.map lnot asts)
+    | Lor asts -> land_ (List.map lnot asts)
+    | Eia (Eia.Eq (lhs, rhs, S)) -> eia (Eia.neq lhs rhs S)
+    | Eia (Eia.Neq (lhs, rhs, S)) -> eia (Eia.eq lhs rhs S)
+    | Eia (Eia.Eq (lhs, rhs, I)) -> eia (norm_eia (Eia.neq lhs rhs I))
+    | Eia (Eia.Neq (lhs, rhs, I)) -> eia (norm_eia (Eia.eq lhs rhs I))
+    | Eia (Eia.Leq (lhs, rhs)) -> eia (norm_eia (Eia.gt lhs rhs))
+    | ast -> Lnot ast
+  in
+  lnot ast
 ;;
+
+let lnot = normalize Fun.id
 
 let rec exists = function
   | [] -> Fun.id
