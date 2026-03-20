@@ -274,6 +274,42 @@ let print_model tys model regexes env =
   Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
 ;;
 
+let report_result ?(verbose = false) rez =
+  let check_answer () =
+    Format.printf "%!";
+    Format.eprintf "%!";
+    match rez, !answer_guess with
+    | _, None | _, Some `Unknown | `Unsat _, Some `Unsat | `Sat _, Some `Sat -> ()
+    | `Unknown _, Some `Sat ->
+      Printf.eprintf "(warning: check annotation that says 'sat')\n%!"
+    | `Unknown _, Some `Unsat ->
+      Printf.eprintf "(warning:  check annotation that says 'unsat')\n%!"
+    | `Unsat _, Some `Sat ->
+      Printf.eprintf "(error: check annotation that says 'sat')\n%!"
+    | `Sat _, Some `Unsat ->
+      Printf.eprintf "(error: check annotation that says 'unsat')\n%!"
+  in
+  let () = if Lib.Debug.flag () then () else check_answer () in
+  if verbose
+  then (
+    match rez with
+    | `Sat s ->
+      if config.with_info then Format.printf "sat (%s)\n%!" s else Format.printf "sat\n%!"
+    | `Unsat s ->
+      if config.with_info
+      then Format.printf "unsat (%s)\n%!" s
+      else Format.printf "unsat\n%!"
+    | `Unknown s -> Format.printf "unknown %s\n%!" (if s <> "" then "(" ^ s ^ ")" else ""))
+  else ()
+;;
+
+let reason lhs rhs =
+  let ord = [ "nfa"; "simpl"; "over"; "nia"; "presimpl int"; "presimpl str"; "?" ] in
+  let lhs' = List.find_index (( = ) lhs) ord |> Option.value ~default:(List.length ord) in
+  let rhs' = List.find_index (( = ) rhs) ord |> Option.value ~default:(List.length ord) in
+  if lhs' <= rhs' then lhs else rhs
+;;
+
 let rec check_sat ?(verbose = false) tys ast : rez =
   let __ () =
     if config.stop_after = `Pre_simplify
@@ -291,47 +327,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         exit 0
       | _ -> assert false)
   in
-  let report_result2 rez =
-    let check_answer () =
-      Format.printf "%!";
-      Format.eprintf "%!";
-      match rez, !answer_guess with
-      | _, None | _, Some `Unknown | `Unsat _, Some `Unsat | `Sat _, Some `Sat -> ()
-      | `Unknown _, Some `Sat ->
-        Printf.eprintf "(warning: check annotation that says 'sat')\n%!"
-      | `Unknown _, Some `Unsat ->
-        Printf.eprintf "(warning:  check annotation that says 'unsat')\n%!"
-      | `Unsat _, Some `Sat ->
-        Printf.eprintf "(error: check annotation that says 'sat')\n%!"
-      | `Sat _, Some `Unsat ->
-        Printf.eprintf "(error: check annotation that says 'unsat')\n%!"
-    in
-    let () = if Lib.Debug.flag () then () else check_answer () in
-    if verbose
-    then (
-      match rez with
-      | `Sat s ->
-        if config.with_info
-        then Format.printf "sat (%s)\n%!" s
-        else Format.printf "sat\n%!"
-      | `Unsat s ->
-        if config.with_info
-        then Format.printf "unsat (%s)\n%!" s
-        else Format.printf "unsat\n%!"
-      | `Unknown s ->
-        Format.printf "unknown %s\n%!" (if s <> "" then "(" ^ s ^ ")" else ""))
-    else ()
-  in
-  let reason lhs rhs =
-    let ord = [ "nfa"; "simpl"; "over"; "nia"; "presimpl int"; "presimpl str"; "?" ] in
-    let lhs' =
-      List.find_index (( = ) lhs) ord |> Option.value ~default:(List.length ord)
-    in
-    let rhs' =
-      List.find_index (( = ) rhs) ord |> Option.value ~default:(List.length ord)
-    in
-    if lhs' <= rhs' then lhs else rhs
-  in
+  let report_result2 = report_result ~verbose in
   let used_under2 = ref false in
   let check_nfa_sat ?(light = false) ast e =
     match Lib.Me.ir_of_ast e ast with
@@ -535,9 +531,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     | Sat (s, _) as rez ->
       report_result2 (`Sat s);
       rez
-    | Unsat (s, _) as rez ->
-      report_result2 (`Unsat s);
-      rez
+    | Unsat (_, _) as rez -> rez
     | Unknown _ -> f ()
   in
   try
@@ -616,7 +610,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     else raise s
 ;;
 
-let check_dpll_sat ?verbose tys ast : rez =
+let check_dpll_sat ?(verbose = false) tys ast : rez =
   let module Ast = Lib.Ast in
   let module Z3 = Smtml.Z3_mappings.Solver in
   let bool_internalc = ref 0 in
@@ -692,8 +686,9 @@ let check_dpll_sat ?verbose tys ast : rez =
       | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast -> ast
       | Eia eia -> th_to_bool ?allow_new eia)
   in
+  let unsat_reason = ref "bool" in
   let rec dpll new_assumptions solver =
-    log "DPLL: Boolean ast: %a\n%!" Ast.pp_smtlib2 new_assumptions;
+    log "DPLL: into z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
     Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
     log "DPLL: current Z3 statistics: %a\n" Smtml.Statistics.pp (Z3.get_statistics solver);
     match Z3.check solver ~assumptions:[] with
@@ -713,16 +708,18 @@ let check_dpll_sat ?verbose tys ast : rez =
         |> Ast.land_
       in
       log "DPLL: into z3 goes: %a\n%!" Ast.pp_smtlib2 candidate;
-      match check_sat ?verbose tys candidate with
+      match check_sat ~verbose tys candidate with
       | Sat (_, _) as result -> result
-      | Unsat (_, _) ->
+      | Unsat (s, _) ->
+        unsat_reason := reason s !unsat_reason;
         let not_candidate = Ast.lnot ~negate_eia:(fun ph -> Ast.lnot ph) candidate in
         let unsat_core_contra_sat_ast = not_candidate |> bool_skeleton in
-        log "DPLL: into z3 added: %a\n%!" Ast.pp_smtlib2 unsat_core_contra_sat_ast;
         dpll unsat_core_contra_sat_ast solver
       | Unknown _ -> unknown Ast.true_ Lib.Env.empty
     end
-    | `Unsat -> unsat "bool" Ast.true_ (* todo *)
+    | `Unsat ->
+      report_result ~verbose (`Unsat !unsat_reason);
+      unsat !unsat_reason Ast.true_
     | `Unknown -> unknown Ast.true_ Lib.Env.empty
   in
   let ast = (*normalize*) ast in
