@@ -628,31 +628,48 @@ let check_dpll_sat ?verbose tys ast : rez =
   let normalize eia =
     match Lib.Me.ir_of_ast Lib.Env.empty eia with
     | Ok ir ->
-      ir
-      |> Lib.Ir.simpl
-      |> Lib.Me.eia_of_ir
-      |> (function
+      ir |> Lib.Ir.simpl |> Lib.Me.eia_of_ir
+      (*|> (function
        | Ast.Eia _ as ph -> ph
-       | _ -> assert false)
+       | _ -> assert false)*)
     | Error _ -> eia
   in
   let th_to_bool = ref Map.empty in
   let bool_to_th = ref Map.empty in
   let th_to_bool ?allow_new eia =
-    match Map.find !th_to_bool eia with
+    let eia =
+      normalize (Ast.eia eia)
+      |> function
+      | Eia eia -> eia
+      | _ -> assert false
+    in
+    let s =
+      match Map.find !th_to_bool eia with
+      | Some s -> Option.some (Ast.pred s)
+      | None -> begin
+        match Ast.lnot (Ast.eia eia) with
+        | Eia eia -> begin
+          let eia =
+            normalize (Ast.eia eia)
+            |> function
+            | Eia eia -> eia
+            | _ -> assert false
+          in
+          match Map.find !th_to_bool eia with
+          | Some s -> Option.some (Ast.lnot (Ast.pred s))
+          | None -> None
+        end
+        | _ -> None
+      end
+    in
+    match s with
     | Some s -> s
     | None when allow_new |> Option.value ~default:false ->
       let s = bool_internal_name () in
       th_to_bool := Map.add_exn !th_to_bool ~key:eia ~data:s;
       bool_to_th := Map.add_exn !bool_to_th ~key:s ~data:eia;
-      s
+      Ast.pred s
     | None ->
-      log
-        "Unexpected state: unable to find predicate for %a, available keys: %a"
-        Ast.Eia.pp
-        eia
-        (Format.pp_print_list Ast.Eia.pp)
-        (Map.keys !th_to_bool);
       failwith
         (Format.asprintf
            "Unexpected state: unable to find predicate for %a, available keys: %a"
@@ -673,9 +690,7 @@ let check_dpll_sat ?verbose tys ast : rez =
   let bool_skeleton ?allow_new =
     Ast.map (function
       | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast -> ast
-      | Eia (Neq (lhs, rhs, kind)) ->
-        Ast.lnot (Ast.pred (th_to_bool ?allow_new (Ast.Eia.eq lhs rhs kind)))
-      | Eia eia -> Ast.pred (th_to_bool ?allow_new eia))
+      | Eia eia -> th_to_bool ?allow_new eia)
   in
   let rec dpll new_assumptions solver =
     log "DPLL: Boolean ast: %a\n%!" Ast.pp_smtlib2 new_assumptions;
@@ -710,7 +725,7 @@ let check_dpll_sat ?verbose tys ast : rez =
     | `Unsat -> unsat "bool" Ast.true_ (* todo *)
     | `Unknown -> unknown Ast.true_ Lib.Env.empty
   in
-  let ast = normalize ast in
+  let ast = (*normalize*) ast in
   log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
   dpll
     (ast |> bool_skeleton ~allow_new:true)
