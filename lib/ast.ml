@@ -503,22 +503,30 @@ let lor_ = function
 let eia eia = Eia eia
 let pred s = Pred s
 
-let normalize (norm_eia : Eia.t -> Eia.t) ast =
-  let rec lnot = function
+let lnot ?negate_eia ast =
+  let negate =
+    if Option.is_some negate_eia
+    then Option.get negate_eia
+    else
+      function
+      | Eia (Eia.Eq (lhs, rhs, I)) -> eia (Eia.neq lhs rhs I)
+      | Eia (Eia.Neq (lhs, rhs, I)) -> eia (Eia.eq lhs rhs I)
+      | Eia (Eia.Leq (lhs, rhs)) -> eia (Eia.gt lhs rhs)
+      | ast -> ast
+  in
+  let rec helper = function
     | Lnot ast -> ast
-    | Land asts -> lor_ (List.map lnot asts)
-    | Lor asts -> land_ (List.map lnot asts)
+    | Land asts -> lor_ (List.map helper asts)
+    | Lor asts -> land_ (List.map helper asts)
     | Eia (Eia.Eq (lhs, rhs, S)) -> eia (Eia.neq lhs rhs S)
     | Eia (Eia.Neq (lhs, rhs, S)) -> eia (Eia.eq lhs rhs S)
-    | Eia (Eia.Eq (lhs, rhs, I)) -> eia (norm_eia (Eia.neq lhs rhs I))
-    | Eia (Eia.Neq (lhs, rhs, I)) -> eia (norm_eia (Eia.eq lhs rhs I))
-    | Eia (Eia.Leq (lhs, rhs)) -> eia (norm_eia (Eia.gt lhs rhs))
+    | Eia (Eia.Eq (lhs, rhs, I)) as eq -> negate eq
+    | Eia (Eia.Neq (lhs, rhs, I)) as neq -> negate neq
+    | Eia (Eia.Leq (lhs, rhs)) as leq -> negate leq
     | ast -> Lnot ast
   in
-  lnot ast
+  helper ast
 ;;
-
-let lnot = normalize Fun.id
 
 let rec exists = function
   | [] -> Fun.id
