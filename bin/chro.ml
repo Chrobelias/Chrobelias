@@ -625,22 +625,20 @@ let check_dpll_sat ?verbose tys ast : rez =
     bool_internalc := !bool_internalc + 1;
     r
   in
-  let normalize ast =
-    let norm_eia eia =
-      match Lib.Me.ir_of_ast Lib.Env.empty (Lib.Ast.eia eia) with
-      | Ok ir ->
-        ir
-        |> Lib.Me.eia_of_ir
-        |> (function
-         | Ast.Eia eia -> eia
-         | _ -> assert false)
-      | Error _ -> eia
-    in
-    ast |> Ast.normalize norm_eia
+  let normalize eia =
+    match Lib.Me.ir_of_ast Lib.Env.empty eia with
+    | Ok ir ->
+      ir
+      |> Lib.Ir.simpl
+      |> Lib.Me.eia_of_ir
+      |> (function
+       | Ast.Eia _ as ph -> ph
+       | _ -> assert false)
+    | Error _ -> eia
   in
   let th_to_bool = ref Map.empty in
   let bool_to_th = ref Map.empty in
-  let eia_to_pred ?allow_new eia =
+  let th_to_bool ?allow_new eia =
     match Map.find !th_to_bool eia with
     | Some s -> s
     | None when allow_new |> Option.value ~default:false ->
@@ -649,6 +647,12 @@ let check_dpll_sat ?verbose tys ast : rez =
       bool_to_th := Map.add_exn !bool_to_th ~key:s ~data:eia;
       s
     | None ->
+      log
+        "Unexpected state: unable to find predicate for %a, available keys: %a"
+        Ast.Eia.pp
+        eia
+        (Format.pp_print_list Ast.Eia.pp)
+        (Map.keys !th_to_bool);
       failwith
         (Format.asprintf
            "Unexpected state: unable to find predicate for %a, available keys: %a"
@@ -670,11 +674,12 @@ let check_dpll_sat ?verbose tys ast : rez =
     Ast.map (function
       | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast -> ast
       | Eia (Neq (lhs, rhs, kind)) ->
-        Ast.lnot (Ast.pred (eia_to_pred ?allow_new (Ast.Eia.eq lhs rhs kind)))
-      | Eia eia -> Ast.pred (eia_to_pred ?allow_new eia))
+        Ast.lnot (Ast.pred (th_to_bool ?allow_new (Ast.Eia.eq lhs rhs kind)))
+      | Eia eia -> Ast.pred (th_to_bool ?allow_new eia))
   in
   let rec dpll new_assumptions solver =
-    Z3.add solver [ new_assumptions ];
+    log "DPLL: Boolean ast: %a\n%!" Ast.pp_smtlib2 new_assumptions;
+    Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
     log "DPLL: current Z3 statistics: %a\n" Smtml.Statistics.pp (Z3.get_statistics solver);
     match Z3.check solver ~assumptions:[] with
     | `Sat -> begin
@@ -692,22 +697,23 @@ let check_dpll_sat ?verbose tys ast : rez =
           []
         |> Ast.land_
       in
+      log "DPLL: into z3 goes: %a\n%!" Ast.pp_smtlib2 candidate;
       match check_sat ?verbose tys candidate with
       | Sat (_, _) as result -> result
       | Unsat (_, _) ->
-        let unsat_core_contra_sat_ast = Ast.lnot candidate |> bool_skeleton in
+        let not_candidate = Ast.lnot ~negate_eia:(fun ph -> Ast.lnot ph) candidate in
+        let unsat_core_contra_sat_ast = not_candidate |> bool_skeleton in
         log "DPLL: into z3 added: %a\n%!" Ast.pp_smtlib2 unsat_core_contra_sat_ast;
-        dpll (unsat_core_contra_sat_ast |> Lib.Fe.of_ast) solver
+        dpll unsat_core_contra_sat_ast solver
       | Unknown _ -> unknown Ast.true_ Lib.Env.empty
     end
     | `Unsat -> unsat "bool" Ast.true_ (* todo *)
     | `Unknown -> unknown Ast.true_ Lib.Env.empty
   in
-  let bool_ast = bool_skeleton ~allow_new:true ast in
+  let ast = normalize ast in
   log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
-  log "DPLL: Boolean ast: %a\n%!" Ast.pp_smtlib2 bool_ast;
   dpll
-    (ast |> normalize |> bool_skeleton ~allow_new:true |> Lib.Fe.of_ast)
+    (ast |> bool_skeleton ~allow_new:true)
     (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
 ;;
 
