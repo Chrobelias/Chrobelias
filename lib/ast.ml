@@ -507,6 +507,8 @@ let rec lnot = function
   | Lnot ast -> ast
   | Land asts -> lor_ (List.map lnot asts)
   | Lor asts -> land_ (List.map lnot asts)
+  (*| Eia (Eia.Eq (lhs, rhs, kind)) -> eia (Eia.neq lhs rhs kind)
+  | Eia (Eia.Neq (lhs, rhs, kind)) -> eia (Eia.eq lhs rhs kind)*)
   | ast -> Lnot ast
 ;;
 

@@ -625,16 +625,34 @@ let check_dpll_sat ?verbose tys ast : rez =
     bool_internalc := !bool_internalc + 1;
     r
   in
+  let _simpl eia =
+    match Lib.Me.ir_of_ast Lib.Env.empty (Lib.Ast.eia eia) with
+    | Ok ir ->
+      ir
+      |> Lib.Me.eia_of_ir
+      |> (function
+       | Ast.Eia eia -> eia
+       | _ -> assert false)
+    | Error _ -> eia
+  in
   let eia_to_pred = ref Map.empty in
   let pred_to_eia = ref Map.empty in
-  let eia_to_pred eia =
+  let eia_to_pred ?allow_new eia =
     match Map.find !eia_to_pred eia with
     | Some s -> s
-    | None ->
+    | None when allow_new |> Option.value ~default:false ->
       let s = bool_internal_name () in
       eia_to_pred := Map.add_exn !eia_to_pred ~key:eia ~data:s;
       pred_to_eia := Map.add_exn !pred_to_eia ~key:s ~data:eia;
       s
+    | None ->
+      failwith
+        (Format.asprintf
+           "Unexpected state: unable to find predicate for %a, available keys: %a"
+           Ast.Eia.pp
+           eia
+           (Format.pp_print_list Ast.Eia.pp)
+           (Map.keys !eia_to_pred))
   in
   let pred_to_eia s =
     match Map.find !pred_to_eia s with
@@ -645,10 +663,12 @@ let check_dpll_sat ?verbose tys ast : rez =
         "unexpected state: predicate %s is in the original definition"
         s
   in
-  let smt_to_sat =
+  let smt_to_sat ?allow_new =
     Ast.map (function
       | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast -> ast
-      | Eia eia -> Ast.pred (eia_to_pred eia))
+      | Eia (Neq (lhs, rhs, kind)) ->
+        Ast.lnot (Ast.pred (eia_to_pred ?allow_new (Ast.Eia.eq lhs rhs kind)))
+      | Eia eia -> Ast.pred (eia_to_pred ?allow_new eia))
   in
   let solver =
     Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ()
@@ -674,7 +694,7 @@ let check_dpll_sat ?verbose tys ast : rez =
       match check_sat ?verbose tys candidate with
       | Sat (_, _) as result -> result
       | Unsat (_, unsat_core) ->
-        let unsat_core_contra_sat_ast = Ast.lnot unsat_core |> smt_to_sat in
+        let unsat_core_contra_sat_ast = Ast.lnot candidate |> smt_to_sat in
         log "dpll: into z3 added: %a\n%!" Ast.pp_smtlib2 unsat_core_contra_sat_ast;
         Z3.add solver [ unsat_core_contra_sat_ast |> Lib.Fe.of_ast ];
         dpll smt_ast solver
@@ -683,7 +703,7 @@ let check_dpll_sat ?verbose tys ast : rez =
     | `Unsat -> unsat "bool" Ast.true_ (* todo *)
     | `Unknown -> unknown Ast.true_ Lib.Env.empty
   in
-  let sat_ast = smt_to_sat ast in
+  let sat_ast = smt_to_sat ~allow_new:true ast in
   log "dpll: smt ast: %a\n%!" Ast.pp_smtlib2 ast;
   log "dpll: sat ast: %a\n%!" Ast.pp_smtlib2 sat_ast;
   Z3.add solver [ sat_ast |> Lib.Fe.of_ast ];
