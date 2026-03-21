@@ -619,66 +619,55 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
     bool_internalc := !bool_internalc + 1;
     r
   in
-  let normalize eia =
-    match Lib.Me.ir_of_ast Lib.Env.empty eia with
-    | Ok ir ->
-      ir |> Lib.Ir.simpl |> Lib.Me.eia_of_ir
-      (*|> (function
-       | Ast.Eia _ as ph -> ph
-       | _ -> assert false)*)
-    | Error _ -> eia
-  in
-  let th_to_bool = ref Map.empty in
-  let bool_to_th = ref Map.empty in
+  let th_map, bool_map = ref Map.empty, ref Map.empty in
   let th_to_bool ?allow_new eia =
-    let eia =
-      normalize (Ast.eia eia)
-      |> function
-      | Eia eia -> eia
-      | _ -> assert false
+    let normalize eia =
+      let open Ast.Eia in
+      match eia with
+      | Eq (_, _, I) | Neq (_, _, I) | Leq (_, _) ->
+        (match Lib.Me.ir_of_ast Lib.Env.empty (Ast.eia eia) with
+         | Ok ir -> ir |> Lib.Ir.simpl |> Lib.Me.eia_of_ir
+         | Error _ -> Ast.eia eia)
+      | _ -> Ast.eia eia
     in
-    let s =
-      match Map.find !th_to_bool eia with
+    let eia = normalize eia in
+    let bool_var =
+      match Map.find !th_map eia with
       | Some s -> Option.some (Ast.pred s)
       | None -> begin
-        match Ast.lnot (Ast.eia eia) with
+        match Ast.lnot eia with
         | Eia eia -> begin
-          let eia =
-            normalize (Ast.eia eia)
-            |> function
-            | Eia eia -> eia
-            | _ -> assert false
-          in
-          match Map.find !th_to_bool eia with
+          let eia = normalize eia in
+          match Map.find !th_map eia with
           | Some s -> Option.some (Ast.lnot (Ast.pred s))
           | None -> None
         end
         | _ -> None
       end
     in
-    match s with
-    | Some s -> s
+    match bool_var with
+    | Some bool_var -> bool_var
     | None when allow_new |> Option.value ~default:false ->
       let s = bool_internal_name () in
-      th_to_bool := Map.add_exn !th_to_bool ~key:eia ~data:s;
-      bool_to_th := Map.add_exn !bool_to_th ~key:s ~data:eia;
+      th_map := Map.add_exn !th_map ~key:eia ~data:s;
+      bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
       Ast.pred s
     | None ->
       failwith
         (Format.asprintf
            "Unexpected state: unable to find predicate for %a, available keys: %a"
-           Ast.Eia.pp
+           Ast.pp
            eia
-           (Format.pp_print_list Ast.Eia.pp)
-           (Map.keys !th_to_bool))
+           (Format.pp_print_list Ast.pp)
+           (Map.keys !th_map))
   in
-  let pred_to_eia s =
-    match Map.find !bool_to_th s with
+  let bool_to_th s =
+    match Map.find !bool_map s with
     | Some eia -> eia
     | None ->
       Format.kasprintf
         failwith
-        "unexpected state: predicate %s is in the original definition"
+        "Unexpected state: predicate %s is in the original definition"
         s
   in
   let bool_skeleton ?allow_new =
@@ -699,9 +688,8 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
         Hashtbl.fold
           (fun sym value acc ->
              match value with
-             | Smtml.Value.True -> Ast.eia (pred_to_eia (Lib.Fe.sym_to_pred sym)) :: acc
-             | Smtml.Value.False ->
-               Ast.lnot (Ast.eia (pred_to_eia (Lib.Fe.sym_to_pred sym))) :: acc
+             | Smtml.Value.True -> bool_to_th (Lib.Fe.sym_to_pred sym) :: acc
+             | Smtml.Value.False -> Ast.lnot (bool_to_th (Lib.Fe.sym_to_pred sym)) :: acc
              | _ -> assert false)
           z3_model
           []
@@ -712,7 +700,7 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
       | Sat (_, _) as result -> result
       | Unsat (s, _) ->
         unsat_reason := reason s !unsat_reason;
-        let not_candidate = Ast.lnot ~negate_eia:(fun ph -> Ast.lnot ph) candidate in
+        let not_candidate = Ast.lnot candidate in
         let unsat_core_contra_sat_ast = not_candidate |> bool_skeleton in
         dpll unsat_core_contra_sat_ast solver
       | Unknown _ -> unknown Ast.true_ Lib.Env.empty
