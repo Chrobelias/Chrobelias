@@ -222,7 +222,7 @@ module Id_symantics :
   let add = Ast.Eia.add
   let land_ xs = Ast.land_ xs
   let lor_ xs = Ast.lor_ xs
-  let not = Ast.lnot ?negate_eia:Option.none
+  let not = Ast.lnot
   let str_var s : str = Atom (Ast.Var (s, S))
   let str_const s : str = Ast.Eia.Str_const s
   let constz s = Ast.Eia.Const s
