@@ -626,6 +626,10 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
     r
   in
   let th_map, bool_map = ref Map.empty, ref Map.empty in
+  let get_literal var = function
+    | Literal_type.P -> var
+    | Literal_type.N -> Ast.lnot var
+  in
   let th_to_bool ?allow_new eia =
     let normalize eia =
       let open Ast.Eia in
@@ -643,22 +647,22 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
       | _ -> eia
     in
     match Map.find !th_map eia with
-    | Some (bool_var, t) ->
-      (match t with
-       | Literal_type.P -> bool_var
-       | Literal_type.N -> Ast.lnot bool_var)
+    | Some (var, t) -> get_literal var t
     | None when allow_new |> Option.value ~default:false ->
-      let s = bool_internal_name () in
       let eia = normalize eia in
-      let lnot_eia =
-        match Ast.lnot (Ast.eia eia) with
-        | Eia eia -> normalize eia
-        | _ -> failwith "Unexpected non-atomic formula in DPLL(T)"
-      in
-      th_map := Map.add_exn !th_map ~key:eia ~data:(Ast.pred s, Literal_type.P);
-      th_map := Map.add_exn !th_map ~key:lnot_eia ~data:(Ast.pred s, Literal_type.N);
-      bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
-      Ast.pred s
+      (match Map.find !th_map eia with
+       | Some (var, t) -> get_literal var t
+       | None ->
+         let s = bool_internal_name () in
+         let lnot_eia =
+           match Ast.lnot (Ast.eia eia) with
+           | Eia eia -> normalize eia
+           | _ -> failwith "Unexpected non-atomic formula in DPLL(T)"
+         in
+         th_map := Map.add_exn !th_map ~key:eia ~data:(Ast.pred s, Literal_type.P);
+         th_map := Map.add_exn !th_map ~key:lnot_eia ~data:(Ast.pred s, Literal_type.N);
+         bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
+         Ast.pred s)
     | None ->
       failwith
         (Format.asprintf
@@ -677,10 +681,15 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
         "Unexpected state: predicate %s is in the original definition"
         s
   in
-  let bool_skeleton ?allow_new =
-    Ast.map (function
-      | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast -> ast
-      | Eia eia -> th_to_bool ?allow_new eia)
+  let bool_skeleton ?allow_new ast =
+    let result =
+      Ast.map
+        (function
+          | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast -> ast
+          | Eia eia -> th_to_bool ?allow_new eia)
+        ast
+    in
+    result
   in
   let unsat_reason = ref "bool" in
   let rec dpll new_assumptions solver =
