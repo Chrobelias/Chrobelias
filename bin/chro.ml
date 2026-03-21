@@ -635,15 +635,18 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
       let open Ast.Eia in
       match eia with
       | Eq (_, _, I) | Neq (_, _, I) | Leq (_, _) ->
-        (match Lib.Me.ir_of_ast Lib.Env.empty (Ast.eia eia) with
-         | Ok ir ->
-           ir
-           |> Lib.Ir.simpl
-           |> Lib.Me.eia_of_ir
-           |> (function
-            | Eia eia -> eia
-            | _ -> failwith "Unexpected non-atomic formula in DPLL(T)")
-         | Error _ -> eia)
+        (try
+           match Lib.Me.ir_of_ast Lib.Env.empty (Ast.eia eia) with
+           | Ok ir ->
+             ir
+             |> Lib.Ir.simpl
+             |> Lib.Me.eia_of_ir
+             |> (function
+              | Eia eia -> eia
+              | _ -> failwith "Unexpected non-atomic formula in DPLL(T)")
+           | Error _ -> eia
+         with
+         | _ -> eia)
       | _ -> eia
     in
     match Map.find !th_map eia with
@@ -656,11 +659,15 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
          let s = bool_internal_name () in
          let lnot_eia =
            match Ast.lnot (Ast.eia eia) with
-           | Eia eia -> normalize eia
-           | _ -> failwith "Unexpected non-atomic formula in DPLL(T)"
+           | Eia eia -> Option.some (normalize eia)
+           | _ -> Option.none
+           (*failwith (Format.asprintf "Unexpected non-atomic formula in DPLL(T): %a" Lib.Ast.pp_smtlib2 eia) *)
          in
          th_map := Map.add_exn !th_map ~key:eia ~data:(Ast.pred s, Literal_type.P);
-         th_map := Map.add_exn !th_map ~key:lnot_eia ~data:(Ast.pred s, Literal_type.N);
+         (match lnot_eia with
+          | Some lnot_eia ->
+            th_map := Map.add_exn !th_map ~key:lnot_eia ~data:(Ast.pred s, Literal_type.N)
+          | None -> ());
          bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
          Ast.pred s)
     | None ->
