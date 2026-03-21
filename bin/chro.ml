@@ -613,6 +613,12 @@ let rec check_sat ?(verbose = false) tys ast : rez =
 let check_dpll_sat ?(verbose = false) tys ast : rez =
   let module Ast = Lib.Ast in
   let module Z3 = Smtml.Z3_mappings.Solver in
+  let module Literal_type = struct
+    type t =
+      | P
+      | N
+  end
+  in
   let bool_internalc = ref 0 in
   let bool_internal_name () =
     let r = Format.asprintf "$%d" !bool_internalc in
@@ -626,39 +632,40 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
       match eia with
       | Eq (_, _, I) | Neq (_, _, I) | Leq (_, _) ->
         (match Lib.Me.ir_of_ast Lib.Env.empty (Ast.eia eia) with
-         | Ok ir -> ir |> Lib.Ir.simpl |> Lib.Me.eia_of_ir
-         | Error _ -> Ast.eia eia)
-      | _ -> Ast.eia eia
+         | Ok ir ->
+           ir
+           |> Lib.Ir.simpl
+           |> Lib.Me.eia_of_ir
+           |> (function
+            | Eia eia -> eia
+            | _ -> failwith "Unexpected non-atomic formula in DPLL(T)")
+         | Error _ -> eia)
+      | _ -> eia
     in
-    let eia = normalize eia in
-    let bool_var =
-      match Map.find !th_map eia with
-      | Some s -> Option.some (Ast.pred s)
-      | None -> begin
-        match Ast.lnot eia with
-        | Eia eia -> begin
-          let eia = normalize eia in
-          match Map.find !th_map eia with
-          | Some s -> Option.some (Ast.lnot (Ast.pred s))
-          | None -> None
-        end
-        | _ -> None
-      end
-    in
-    match bool_var with
-    | Some bool_var -> bool_var
+    match Map.find !th_map eia with
+    | Some (bool_var, t) ->
+      (match t with
+       | Literal_type.P -> bool_var
+       | Literal_type.N -> Ast.lnot bool_var)
     | None when allow_new |> Option.value ~default:false ->
       let s = bool_internal_name () in
-      th_map := Map.add_exn !th_map ~key:eia ~data:s;
+      let eia = normalize eia in
+      let lnot_eia =
+        match Ast.lnot (Ast.eia eia) with
+        | Eia eia -> normalize eia
+        | _ -> failwith "Unexpected non-atomic formula in DPLL(T)"
+      in
+      th_map := Map.add_exn !th_map ~key:eia ~data:(Ast.pred s, Literal_type.P);
+      th_map := Map.add_exn !th_map ~key:lnot_eia ~data:(Ast.pred s, Literal_type.N);
       bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
       Ast.pred s
     | None ->
       failwith
         (Format.asprintf
            "Unexpected state: unable to find predicate for %a, available keys: %a"
-           Ast.pp
+           Ast.Eia.pp
            eia
-           (Format.pp_print_list Ast.pp)
+           (Format.pp_print_list Ast.Eia.pp)
            (Map.keys !th_map))
   in
   let bool_to_th s =
@@ -688,8 +695,9 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
         Hashtbl.fold
           (fun sym value acc ->
              match value with
-             | Smtml.Value.True -> bool_to_th (Lib.Fe.sym_to_pred sym) :: acc
-             | Smtml.Value.False -> Ast.lnot (bool_to_th (Lib.Fe.sym_to_pred sym)) :: acc
+             | Smtml.Value.True -> Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym)) :: acc
+             | Smtml.Value.False ->
+               Ast.lnot (Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym))) :: acc
              | _ -> assert false)
           z3_model
           []
