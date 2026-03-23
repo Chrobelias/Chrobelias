@@ -2824,7 +2824,7 @@ let arithmetize ast env =
       ;;
     end
     in
-    apply_symantics_unsugared (module M_) ast
+    apply_symantics_unsugared (module M_) ast |> M_.prj
   in
   let arithmetize_concats { Info.all; _ } str_vars =
     let module Map = Base.Map.Poly in
@@ -2948,7 +2948,7 @@ let arithmetize ast env =
       fun (type a) : (string list -> a term -> Z.t term * Ast.Eia.t list) -> function
         | str_vars ->
           (function
-            | Sofi s -> s, []
+            | Sofi s -> arithmetize_term str_vars s
             | Iofs (Atom (Var (v, S))) when List.mem v str_vars -> const Z.minus_one, []
             | Iofs (Atom (Var (v, S))) -> atomi v, [ leq (const Z.zero) (atomi v) ]
             | Iofs s -> arithmetize_term str_vars s
