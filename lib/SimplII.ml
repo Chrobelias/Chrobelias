@@ -3070,6 +3070,18 @@ let arithmetize ast env =
         let rhs', rhs_phs = arithmetize_term str_vars rhs in
         [ Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
         ]
+      | Ast.Eia (Neq (lhs, rhs, I)) ->
+        let lhs', lhs_phs = arithmetize_term str_vars lhs in
+        let rhs', rhs_phs = arithmetize_term str_vars rhs in
+        [ Ast.land_
+            (Ast.Eia.neq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+        ]
+      | Ast.Eia (Neq (lhs, rhs, S)) ->
+        let lhs', lhs_phs = arithmetize_term str_vars lhs in
+        let rhs', rhs_phs = arithmetize_term str_vars rhs in
+        [ Ast.land_
+            (Ast.Eia.neq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
+        ]
       | Ast.Eia (InRe (s, Ast.S, re)) -> failwith "Unexpected InRe in arithmetize_conj"
       | Ast.Eia (InReRaw (s, S, nfa)) ->
         let s, phs = arithmetize_term str_vars s in
