@@ -262,7 +262,10 @@ let rec model_from_parts_regexes_env tys model regexes env' =
 ;;
 
 let print_model tys model regexes env =
-  let real_model = model_from_parts_regexes_env tys model regexes env in
+  let real_model =
+    try model_from_parts_regexes_env tys model regexes env with
+    | _ -> raise Too_long_model
+  in
   let real_model =
     Map.filteri
       ~f:(fun ~key ~data:_ ->
@@ -865,7 +868,7 @@ let () =
               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
               Lib.Config.config.under_approx <- -1;
               try
-                match check_sat tys shrinked_ast with
+                match check_dpll_sat tys shrinked_ast with
                 | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
                 | Sat (_, (_, env, get_model, _regexes)) ->
                   (* let tys = merge_tys state in *)
