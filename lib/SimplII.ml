@@ -2812,10 +2812,11 @@ let arithmetize ast env =
 
       let str_len = function
         | Ast.Eia.Atom _ as v -> Id_symantics.str_len v
-        | non_var ->
-          let v = gensym ~prefix:"%arith_flat" () in
+        | Ast.Eia.Sofi u as non_var ->
+          let v = gensym ~prefix:"%sofi_flat" () in
           extends v non_var;
           Id_symantics.str_len (Ast.Eia.atom (Ast.var v Ast.S))
+        | _ -> failwith "Unexpected term in str.len"
       ;;
 
       let prj = function
@@ -2940,6 +2941,7 @@ let arithmetize ast env =
          |> apply_symantics (module SymArConc))
   in
   let arithmetize var_info ast =
+    log "AST for arith: %a\n%!" Ast.pp_smtlib2 ast;
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
     let open Ast.Eia in
@@ -2952,7 +2954,8 @@ let arithmetize ast env =
             | Iofs (Atom (Var (v, S))) when List.mem v str_vars -> const Z.minus_one, []
             | Iofs (Atom (Var (v, S))) -> atomi v, [ leq (const Z.zero) (atomi v) ]
             | Iofs s -> arithmetize_term str_vars s
-            | Len (Atom (Var (var, S))) ->
+            | Len (Atom (Var (var, S)))
+              when not (String.starts_with ~prefix:"%sofi_flat" var) ->
               let lenvar, phs = String.concat "" [ "strlen"; var ], [] in
               let v = atomi lenvar in
               let phs = leq (Ast.Eia.const Z.zero) v :: phs in
