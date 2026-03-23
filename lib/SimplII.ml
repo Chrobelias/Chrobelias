@@ -2802,31 +2802,6 @@ let arithmetize ast env =
     in
     Ast.land_ (ast_without_regex :: phs), regexes
   in
-  let flatten ast =
-    let extra_ph = ref [] in
-    let extends v other =
-      extra_ph := Id_symantics.eq_str (Id_symantics.str_var v) other :: !extra_ph
-    in
-    let module M_ = struct
-      include Id_symantics
-
-      let str_len = function
-        | Ast.Eia.Atom _ as v -> Id_symantics.str_len v
-        | Ast.Eia.Sofi u as non_var ->
-          let v = gensym ~prefix:"%sofi_flat" () in
-          extends v non_var;
-          Id_symantics.str_len (Ast.Eia.atom (Ast.var v Ast.S))
-        | _ -> failwith "Unexpected term in str.len"
-      ;;
-
-      let prj = function
-        | Ast.Land xs -> land_ (!extra_ph @ xs)
-        | ph -> land_ (!extra_ph @ [ ph ])
-      ;;
-    end
-    in
-    apply_symantics_unsugared (module M_) ast |> M_.prj
-  in
   let arithmetize_concats { Info.all; _ } str_vars =
     let module Map = Base.Map.Poly in
     let exception Unsupp_concat of string in
@@ -2941,7 +2916,6 @@ let arithmetize ast env =
          |> apply_symantics (module SymArConc))
   in
   let arithmetize var_info ast =
-    log "AST for arith: %a\n%!" Ast.pp_smtlib2 ast;
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
     let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in
@@ -2957,8 +2931,7 @@ let arithmetize ast env =
             | Iofs (Atom (Var (v, S))) when List.mem v str_vars ->
               Ast.Eia.const Z.minus_one, []
             | Iofs s -> arithmetize_term str_vars s
-            | Len (Atom (Var (var, S)))
-              when not (String.starts_with ~prefix:"%sofi_flat" var) ->
+            | Len (Atom (Var (var, S))) ->
               let lenvar, phs = String.concat "" [ "strlen"; var ], [] in
               let v = atomi lenvar in
               let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
@@ -3327,7 +3300,7 @@ let arithmetize ast env =
                 regexes'
             in
             ast', regexes)
-         (ast |> flatten |> arithmetize var_info))
+         (arithmetize var_info ast))
     asts_n_regexes
   |> List.concat_map (fun (a, b) ->
     unfold_neq var_info b a |> List.map (fun (a, a') -> a, env, a', b))
