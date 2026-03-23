@@ -657,17 +657,12 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
        | Some (var, t) -> get_literal var t
        | None ->
          let s = bool_internal_name () in
-         let lnot_eia =
-           match Ast.lnot (Ast.eia eia) with
-           | Eia eia -> Option.some (normalize eia)
-           | _ -> Option.none
-           (*failwith (Format.asprintf "Unexpected non-atomic formula in DPLL(T): %a" Lib.Ast.pp_smtlib2 eia) *)
-         in
          th_map := Map.add_exn !th_map ~key:eia ~data:(Ast.pred s, Literal_type.P);
-         (match lnot_eia with
-          | Some lnot_eia ->
-            th_map := Map.add_exn !th_map ~key:lnot_eia ~data:(Ast.pred s, Literal_type.N)
-          | None -> ());
+         (match Ast.lnot (Ast.eia eia) with
+          | Eia eia ->
+            th_map
+            := Map.add_exn !th_map ~key:(normalize eia) ~data:(Ast.pred s, Literal_type.N)
+          | _ -> ());
          bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
          Ast.pred s)
     | None ->
@@ -700,7 +695,7 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
   in
   let unsat_reason = ref "bool" in
   let rec dpll new_assumptions solver =
-    log "DPLL: into z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
+    log "DPLL: into Z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
     Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
     log "DPLL: current Z3 statistics: %a\n" Smtml.Statistics.pp (Z3.get_statistics solver);
     match Z3.check solver ~assumptions:[] with
@@ -719,7 +714,7 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
           []
         |> Ast.land_
       in
-      log "DPLL: into z3 goes: %a\n%!" Ast.pp_smtlib2 candidate;
+      log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
       match check_sat ~verbose tys candidate with
       | Sat (_, _) as result -> result
       | Unsat (s, _) ->
