@@ -607,7 +607,10 @@ let ir_of_ast env ast =
   in
   let ast = Ast.land_ ast in*)
   (* let ast = SimplII.rewrite_len ast in *)
-  let* ir = ast |> ir_of_ast in
+  let* ir =
+    try ast |> ir_of_ast with
+    | Failure s -> Result.error s
+  in
   ir |> return
 ;;
 
