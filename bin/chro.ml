@@ -330,7 +330,10 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         exit 0
       | _ -> assert false)
   in
-  let report_result2 = report_result ~verbose in
+  let report_result2 s =
+    let __ = verbose in
+    report_result ~verbose s
+  in
   let used_under2 = ref false in
   let check_nfa_sat ?(light = false) ast e =
     match Lib.Me.ir_of_ast e ast with
@@ -589,7 +592,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
                   report_result2 (`Unknown "");
                   unknown ast Lib.Env.empty)
               | None, false ->
-                report_result2 (`Unsat !unsat_reason);
+                (*report_result2 (`Unsat !unsat_reason);*)
                 Unsat (!unsat_reason, ast))
       with
       | Lib.SimplII.Str_Underapprox_fired env ->
@@ -713,7 +716,14 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
              | Smtml.Value.True -> Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym)) :: acc
              | Smtml.Value.False ->
                Ast.lnot (Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym))) :: acc
-             | _ -> assert false)
+             | v ->
+               failwith
+                 (Format.asprintf
+                    "expected a boolean value but %a, formula %a"
+                    Smtml.Value.pp
+                    v
+                    Ast.pp
+                    new_assumptions))
           z3_model
           []
         |> Ast.land_
