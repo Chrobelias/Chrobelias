@@ -2993,34 +2993,37 @@ let arithmetize ast env =
             | term -> failwith "Unexpected in arithmetize_term")
     in
     let arithmetize_in_re s nfa =
-      log "Arithmetizing regex ...";
-      Debug.dump_nfa ~msg:"for NFA %s" NfaS.format_nfa nfa;
-      let strlens = strlens s in
-      let csds =
-        let is_eos vec =
-          match Array.length vec with
-          | 1 -> Char.equal (Array.get vec 0) Nfa.Str.u_eos
-          | _ -> failwith "unexpected nfa in arithmetize_in_re"
+      if nfa |> NfaL.run |> not
+      then [ Ast.false_ ]
+      else (
+        log "Arithmetizing regex ... for variable %s" s;
+        Debug.dump_nfa ~msg:"for NFA %s" NfaS.format_nfa nfa;
+        let strlens = strlens s in
+        let csds =
+          let is_eos vec =
+            match Array.length vec with
+            | 1 -> Char.equal (Array.get vec 0) Nfa.Str.u_eos
+            | _ -> failwith "unexpected nfa in arithmetize_in_re"
+          in
+          NfaL.filter_map nfa (fun (label, q') ->
+            if is_eos label then Option.none else Option.some (label, q'))
+          |> NfaL.to_nat
+          |> NfaL.chrobak
         in
-        NfaL.filter_map nfa (fun (label, q') ->
-          if is_eos label then Option.none else Option.some (label, q'))
-        |> NfaL.to_nat
-        |> NfaL.chrobak
-      in
-      let const = Ast.Eia.const in
-      csds
-      |> Seq.map (fun (c, d) ->
-        let c, d = Z.of_int c, Z.of_int d in
-        let n = gensym ~prefix:"%re_len" () in
-        Ast.land_
-          [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
-          ; Ast.eia
-              (Ast.Eia.eq
-                 (atomi strlens)
-                 (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
-                 Ast.I)
-          ])
-      |> List.of_seq
+        let const = Ast.Eia.const in
+        csds
+        |> Seq.map (fun (c, d) ->
+          let c, d = Z.of_int c, Z.of_int d in
+          let n = gensym ~prefix:"%re_len" () in
+          Ast.land_
+            [ Ast.eia (Ast.Eia.leq (const Z.zero) (atomi n))
+            ; Ast.eia
+                (Ast.Eia.eq
+                   (atomi strlens)
+                   (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
+                   Ast.I)
+            ])
+        |> List.of_seq)
     in
     let cartesian l1 l2 =
       List.concat (List.map (fun e1 -> List.map (fun e2 -> Ast.land_ [ e1; e2 ]) l2) l1)
