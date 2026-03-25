@@ -447,7 +447,7 @@ and to_ast tys orig_expr : Ast.t =
       in
       let* formula = to_ast tys formula in
       binder atoms formula
-    (*| Expr.Binder (Binder.Let_in, bindings, expr) -> begin
+    | Expr.Binder (Binder.Let_in, bindings, expr) -> begin
       let ast = to_ast tys expr in
       List.fold_left
         (fun acc binding ->
@@ -457,20 +457,23 @@ and to_ast tys orig_expr : Ast.t =
              (match expr |> to_ast tys with
               | (exception _) | Unsupp _ -> begin
                 match to_eia_term expr with
-                | eia' ->
-                  Ast.map
-                    (function
-                      | Ast.Eia eia ->
-                        Ast.eia
-                          (Ast.Eia.map2
-                             Fun.id
-                             (function
-                               | Ast.Eia.Atom (Ast.Var (v, _)) when v = symbol -> eia'
-                               | term -> term)
-                             Fun.id
-                             eia)
-                      | ast -> ast)
-                    acc
+                | eia', asts ->
+                  let ast =
+                    Ast.map
+                      (function
+                        | Ast.Eia eia ->
+                          Ast.eia
+                            (Ast.Eia.map2
+                               Fun.id
+                               (function
+                                 | Ast.Eia.Atom (Ast.Var (v, _)) when v = symbol -> eia'
+                                 | term -> term)
+                               Fun.id
+                               eia)
+                        | ast -> ast)
+                      acc
+                  in
+                  Ast.land_ [ ast; asts ]
                 | exception _ -> failwith "Unexpected construction in let-in binding"
               end
               | ast' ->
@@ -482,7 +485,7 @@ and to_ast tys orig_expr : Ast.t =
            | _ -> failwith "Unexpected construction in let-in binding")
         ast
         bindings
-    end*)
+    end
     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
   with
   | UnsupportedException m -> Ast.Unsupp m
