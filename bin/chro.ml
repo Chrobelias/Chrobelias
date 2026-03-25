@@ -656,10 +656,10 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
          | _ -> eia)
       | _ -> eia
     in
+    let eia = normalize eia in
     match Map.find !th_map eia with
     | Some (var, t) -> get_literal var t
     | None when allow_new |> Option.value ~default:false ->
-      let eia = normalize eia in
       (match Map.find !th_map eia with
        | Some (var, t) -> get_literal var t
        | None ->
@@ -692,11 +692,19 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
   in
   let bool_skeleton ?allow_new ast =
     let result =
-      Ast.map
-        (function
-          | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast -> ast
-          | Eia eia -> th_to_bool ?allow_new eia)
-        ast
+      try
+        Ast.map
+          (function
+            | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast ->
+              ast
+            | Eia eia -> th_to_bool ?allow_new eia)
+          ast
+      with
+      | expr ->
+        Format.printf
+          "dpll: error while skeletoning the formula %s\n%!"
+          (Printexc.to_string expr);
+        raise_notrace expr
     in
     result
   in
@@ -716,14 +724,7 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
              | Smtml.Value.True -> Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym)) :: acc
              | Smtml.Value.False ->
                Ast.lnot (Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym))) :: acc
-             | v ->
-               failwith
-                 (Format.asprintf
-                    "expected a boolean value but %a, formula %a"
-                    Smtml.Value.pp
-                    v
-                    Ast.pp
-                    new_assumptions))
+             | _ -> acc)
           z3_model
           []
         |> Ast.land_
