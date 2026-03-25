@@ -509,7 +509,16 @@ let rec of_ast = function
     let tl = List.map of_ast tl in
     List.fold_left Smtml.Expr.Bool.or_ h tl
   | Lnot el -> Smtml.Expr.Bool.not (of_ast el)
-  | Exists _ -> failwith "??"
+  | Exists (atoms, body) ->
+    Smtml.Expr.exists
+      (List.map
+         (function
+           | Ast.Any_atom (Ast.Var (s, S)) ->
+             Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_str s)
+           | Ast.Any_atom (Ast.Var (s, I)) ->
+             Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s))
+         atoms)
+      (of_ast body)
   | Pred s -> pred_to_sym s
   | Unsupp _ -> failwith "???"
   | Eia eia -> assert false

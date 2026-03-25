@@ -1081,7 +1081,7 @@ let make_main_symantics ?alpha ?agressive env =
         | true -> Ast.true_
         | false -> Ast.false_
       end
-      | _ -> Id_symantics.in_re_raw s re
+      | _ -> if NfaStr.run re then Id_symantics.in_re_raw s re else Ast.false_
     ;;
 
     let in_re_rawi s re =
@@ -1092,7 +1092,7 @@ let make_main_symantics ?alpha ?agressive env =
         | true -> Ast.true_
         | false -> Ast.false_
       end
-      | _ -> Id_symantics.in_re_rawi s re
+      | _ -> if NfaStr.run re then Id_symantics.in_re_rawi s re else Ast.false_
     ;;
 
     let prj : ph -> repr = Fun.id
