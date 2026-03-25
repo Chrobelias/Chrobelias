@@ -2022,6 +2022,19 @@ let over_concat ast =
 ;;
 
 let basic_simplify step ?multiple (env : Env.t) ast =
+  let () =
+    Ast.fold
+      (fun acc -> function
+         | Ast.Lor xs ->
+           failwith
+             (Format.asprintf
+                "Calling the simplifier on something with or is bad!\n%a"
+                Ast.pp_smtlib2
+                ast)
+         | _ -> acc)
+      ()
+      ast
+  in
   let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
   in
@@ -2696,7 +2709,7 @@ let run_string_simplify ast =
          (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list)))
 ;;
 
-let arithmetize ast env =
+let arithmetize str_vars ast env =
   let module Set = Base.Set.Poly in
   (*let exception StrVar_In_Arithmetize in*)
   let strlens s = String.concat "" [ "strlen"; s ] in
@@ -2714,6 +2727,22 @@ let arithmetize ast env =
     | _ -> false
   in
   let fold_regexes ast =
+    let () =
+      Ast.fold
+        (fun acc -> function
+           | Ast.Lor xs ->
+             if List.exists (fun x -> collect_regexes x |> Map.is_empty |> not) xs
+             then
+               failwith
+                 (Format.asprintf
+                    "Calling fold regexes on something with or is bad!\n%a"
+                    Ast.pp_smtlib2
+                    ast)
+             else acc
+           | _ -> acc)
+        ()
+        ast
+    in
     let ast_with_positive_regex =
       ast
       (*Ast.map
@@ -2915,7 +2944,7 @@ let arithmetize ast env =
          |> apply_symantics (module SymArConcIofs)
          |> apply_symantics (module SymArConc))
   in
-  let arithmetize var_info ast =
+  let arithmetize var_info ast : Ast.t =
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
     let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in
@@ -2992,9 +3021,9 @@ let arithmetize ast env =
               build lhs rhs, lhs_phs @ rhs_phs
             | term -> failwith "Unexpected in arithmetize_term")
     in
-    let arithmetize_in_re s nfa =
+    let arithmetize_in_re s nfa : Ast.t =
       if nfa |> NfaL.run |> not
-      then [ Ast.false_ ]
+      then Ast.false_
       else (
         log "Arithmetizing regex ... for variable %s" s;
         Debug.dump_nfa ~msg:"for NFA %s" NfaS.format_nfa nfa;
@@ -3023,44 +3052,31 @@ let arithmetize ast env =
                    (Ast.Eia.add [ const c; Ast.Eia.mul [ const d; atomi n ] ])
                    Ast.I)
             ])
-        |> List.of_seq)
+        |> List.of_seq
+        |> Ast.lor_)
     in
-    let cartesian l1 l2 =
-      List.concat (List.map (fun e1 -> List.map (fun e2 -> Ast.land_ [ e1; e2 ]) l2) l1)
-    in
-    let rec arithmetize_conj str_vars = function
-      | Ast.Land [ x ] -> arithmetize_conj str_vars x
-      | Ast.Land (x :: xs) ->
-        List.fold_left
-          cartesian
-          (arithmetize_conj str_vars x)
-          (List.map (fun x -> arithmetize_conj str_vars x) xs)
+    let rec arithmetize_conj str_vars : Ast.t -> Ast.t = function
+      | Ast.Land xs -> Ast.land_ (List.map (fun x -> arithmetize_conj str_vars x) xs)
       | Ast.Eia (Leq (lhs, rhs)) ->
         let lhs', lhs_phs = arithmetize_term str_vars lhs in
         let rhs', rhs_phs = arithmetize_term str_vars rhs in
-        [ Ast.land_ (Ast.Eia.leq lhs' rhs' :: (lhs_phs @ rhs_phs) |> List.map Ast.eia) ]
+        Ast.land_ (Ast.Eia.leq lhs' rhs' :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
       | Ast.Eia (Eq (lhs, rhs, I)) ->
         let lhs', lhs_phs = arithmetize_term str_vars lhs in
         let rhs', rhs_phs = arithmetize_term str_vars rhs in
-        [ Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
-        ]
+        Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
       | Ast.Eia (Eq (lhs, rhs, S)) ->
         let lhs', lhs_phs = arithmetize_term str_vars lhs in
         let rhs', rhs_phs = arithmetize_term str_vars rhs in
-        [ Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
-        ]
+        Ast.land_ (Ast.Eia.eq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
       | Ast.Eia (Neq (lhs, rhs, I)) ->
         let lhs', lhs_phs = arithmetize_term str_vars lhs in
         let rhs', rhs_phs = arithmetize_term str_vars rhs in
-        [ Ast.land_
-            (Ast.Eia.neq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
-        ]
+        Ast.land_ (Ast.Eia.neq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
       | Ast.Eia (Neq (lhs, rhs, S)) ->
         let lhs', lhs_phs = arithmetize_term str_vars lhs in
         let rhs', rhs_phs = arithmetize_term str_vars rhs in
-        [ Ast.land_
-            (Ast.Eia.neq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
-        ]
+        Ast.land_ (Ast.Eia.neq lhs' rhs' Ast.I :: (lhs_phs @ rhs_phs) |> List.map Ast.eia)
       | Ast.Eia (InRe (s, Ast.S, re)) -> failwith "Unexpected InRe in arithmetize_conj"
       | Ast.Eia (InReRaw (s, S, nfa)) ->
         let s, phs = arithmetize_term str_vars s in
@@ -3080,13 +3096,14 @@ let arithmetize ast env =
         in
         (match in_stoi s, List.mem s str_vars with
          | true, false ->
-           Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia)
+           Ast.land_
+             (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia))
          | _ ->
            arithmetize_in_re s nfa
-           |> List.map (fun ast' -> Ast.land_ (ast' :: (phs |> List.map Ast.eia))))
+           |> fun ast' -> Ast.land_ (ast' :: (phs |> List.map Ast.eia)))
       | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "Unexpected constraint"
-      | Ast.Unsupp s -> [ Ast.Unsupp s ]
-      | _ as non_eia -> [ non_eia ]
+      | Ast.Unsupp s -> Ast.Unsupp s
+      | _ as non_eia -> non_eia
     in
     let var_appears_as_string_eia v eia =
       Ast.Eia.fold2
@@ -3112,22 +3129,20 @@ let arithmetize ast env =
        | Unsupp _ -> false)
       |> fun res -> res
     in
-    Utils.powerset (Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
-    |> List.concat_map (fun str_vars ->
-      arithmetize_concats var_info str_vars ast
-      |> apply_symantics_unsugared (module M)
-      |> arithmetize_conj str_vars
-      |> List.map (fun ast ->
-        Ast.map
-          (function
-            | Ast.Eia (Ast.Eia.RLen (Ast.Eia.Atom (Ast.Var (s, _)), rhs))
-              when var_appears_as_string s ast ->
-              Ast.eia
-                (Ast.Eia.rlen
-                   (Ast.Eia.atom (Ast.Var (String.concat "" [ "string"; s ], Ast.I)))
-                   rhs)
-            | ast -> ast)
-          ast))
+    arithmetize_concats var_info str_vars ast
+    |> apply_symantics_unsugared (module M)
+    |> arithmetize_conj str_vars
+    |> fun ast ->
+    Ast.map
+      (function
+        | Ast.Eia (Ast.Eia.RLen (Ast.Eia.Atom (Ast.Var (s, _)), rhs))
+          when var_appears_as_string s ast ->
+          Ast.eia
+            (Ast.Eia.rlen
+               (Ast.Eia.atom (Ast.Var (String.concat "" [ "string"; s ], Ast.I)))
+               rhs)
+        | ast -> ast)
+      ast
   in
   let unfold_neq var_info regexes ast =
     let strlen_var s = String.concat "" [ "strlen"; s ] in
@@ -3264,19 +3279,18 @@ let arithmetize ast env =
         Ast.lor_ [ ast1; ast2; ast3 ])
     in
     asts
-    |> (fun asts -> Ast.to_dnf asts)
-    |> List.map (fun ast ->
-      let posts' = ref [] in
-      let ast =
-        Ast.map
-          (function
-            | Unsupp s when Map.mem !posts s ->
-              posts' := Map.find_exn !posts s :: !posts';
-              Ast.true_
-            | ast -> ast)
-          ast
-      in
-      ast, !posts')
+    |> fun ast ->
+    let posts' = ref [] in
+    let ast =
+      Ast.map
+        (function
+          | Unsupp s when Map.mem !posts s ->
+            posts' := Map.find_exn !posts s :: !posts';
+            Ast.true_
+          | ast -> ast)
+        ast
+    in
+    ast, !posts'
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   let alpha = collect_alpha ast in
@@ -3284,29 +3298,33 @@ let arithmetize ast env =
   let asts_n_regexes =
     ast
     |> split_concats var_info
-    |> Ast.to_dnf
-    |> List.map (apply_symantics (module Symantics))
-    |> List.map fold_regexes
+    (*|> Ast.to_dnf*)
+    (*|> List.map *) |> apply_symantics (module Symantics)
+    |> fold_regexes
   in
-  List.concat_map
-    (fun (ast, regexes) ->
-       List.map
-         (fun ast' ->
-            let ast', regexes' = fold_regexes_i ast' in
-            let regexes =
-              Map.merge
-                ~f:(fun ~key -> function
-                   | `Left v -> Some v
-                   | `Right v -> Some v
-                   | `Both (v, v') -> Some (NfaS.intersect v v'))
-                regexes
-                regexes'
-            in
-            ast', regexes)
+  asts_n_regexes
+  |> (fun (ast, regexes) ->
+  arithmetize var_info ast
+  |> fun ast' ->
+  let ast', regexes' = fold_regexes_i ast' in
+  let regexes =
+    Map.merge
+      ~f:(fun ~key -> function
+         | `Left v -> Some v
+         | `Right v -> Some v
+         | `Both (v, v') -> Some (NfaS.intersect v v'))
+      regexes
+      regexes'
+  in
+  ast', regexes
+  (*<<<<<<< Updated upstream
          (arithmetize var_info ast))
     asts_n_regexes
   |> List.concat_map (fun (a, b) ->
-    unfold_neq var_info b a |> List.map (fun (a, a') -> a, env, a', b))
+=======*))
+  |> fun (a, b) ->
+  (*>>>>>>> Stashed changes*)
+  unfold_neq var_info b a |> fun (a, a') -> a, env, a', b
 ;;
 
 (* let distribute xs =

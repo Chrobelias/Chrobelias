@@ -22,13 +22,13 @@ val simpl
      ]
 
 val arithmetize
-  :  Ast.t
+  :  string list
+  -> Ast.t
   -> Env.t
-  -> (Ast.t
+  -> Ast.t
      * Env.t
      * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ]) list
-     * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
-       list
+     * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t
 
 val run_string_simplify
   :  Ast.t
