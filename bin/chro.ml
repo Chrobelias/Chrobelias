@@ -637,7 +637,8 @@ let check_dpll_sat ?(verbose = false) tys ast : rez =
     let normalize eia =
       let open Ast.Eia in
       match eia with
-      | Eq (_, _, I) | Neq (_, _, I) | Leq (_, _) ->
+      | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _))
+        when Ast.get_str_vars (Ast.eia eia) |> List.is_empty ->
         (try
            match Lib.Me.ir_of_ast Lib.Env.empty (Ast.eia eia) with
            | Ok ir ->
