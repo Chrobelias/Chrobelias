@@ -1514,57 +1514,61 @@ struct
   ;;
 
   let find_c_d nfa (imp : (int, int) Map.t) =
-    assert (Set.length nfa.start = 1);
-    let n =
-      if config.bound_states > 2 && config.bound_states < length nfa
-      then (
-        Config.bounded_unsat := true;
-        max 2 config.bound_states)
-      else max 2 (length nfa)
-    in
-    let m = n * n in
-    let t =
-      Graph.reachable_in_range (Graph.reverse nfa.transitions) 0 (m - n - 1) nfa.final
-      |> Array.of_list
-    in
-    let s = Graph.reachable_in_range nfa.transitions 0 m nfa.start in
-    let r1 =
-      s
-      |> List.mapi (fun i set -> if Set.are_disjoint nfa.final set then None else Some i)
-      |> List.filter_map Fun.id
-      |> Set.of_list
-    in
-    let states = List.nth s (n - 1) in
-    let states =
-      states
-      |> Set.to_sequence
-      |> Sequence.filter_map ~f:(fun state ->
-        Map.find imp state |> Option.map (fun d -> state, d))
-    in
-    let r2 =
-      states
-      |> Sequence.filter ~f:(fun (_, d) -> (n * n) - n - d >= 0)
-      |> Sequence.concat_map ~f:(fun (state, d) ->
-        let first = (n * n) - n - d in
-        (* assert (first >= 0); *)
-        let last = (n * n) - n - 1 in
-        first -- last
-        |> List.filter (fun i -> Set.mem t.(i) state)
-        |> List.map (fun c -> c + n - 1, d)
-        |> Sequence.of_list)
-      |> Sequence.map ~f:(fun (c, d) ->
-        let rec helper c = if Set.mem r1 (c - d) then helper (c - d) else c in
-        helper c, d)
-      |> Sequence.to_list
-    in
-    let r1 =
-      r1
-      |> Set.to_list
-      |> List.filter (fun c ->
-        not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
-      |> List.map (fun c -> c, 0)
-    in
-    r2 @ r1 |> Set.of_list |> Set.to_sequence |> Sequence.to_seq
+    if Set.is_empty nfa.start
+    then Seq.empty
+    else (
+      assert (Set.length nfa.start = 1);
+      let n =
+        if config.bound_states > 2 && config.bound_states < length nfa
+        then (
+          Config.bounded_unsat := true;
+          max 2 config.bound_states)
+        else max 2 (length nfa)
+      in
+      let m = n * n in
+      let t =
+        Graph.reachable_in_range (Graph.reverse nfa.transitions) 0 (m - n - 1) nfa.final
+        |> Array.of_list
+      in
+      let s = Graph.reachable_in_range nfa.transitions 0 m nfa.start in
+      let r1 =
+        s
+        |> List.mapi (fun i set ->
+          if Set.are_disjoint nfa.final set then None else Some i)
+        |> List.filter_map Fun.id
+        |> Set.of_list
+      in
+      let states = List.nth s (n - 1) in
+      let states =
+        states
+        |> Set.to_sequence
+        |> Sequence.filter_map ~f:(fun state ->
+          Map.find imp state |> Option.map (fun d -> state, d))
+      in
+      let r2 =
+        states
+        |> Sequence.filter ~f:(fun (_, d) -> (n * n) - n - d >= 0)
+        |> Sequence.concat_map ~f:(fun (state, d) ->
+          let first = (n * n) - n - d in
+          (* assert (first >= 0); *)
+          let last = (n * n) - n - 1 in
+          first -- last
+          |> List.filter (fun i -> Set.mem t.(i) state)
+          |> List.map (fun c -> c + n - 1, d)
+          |> Sequence.of_list)
+        |> Sequence.map ~f:(fun (c, d) ->
+          let rec helper c = if Set.mem r1 (c - d) then helper (c - d) else c in
+          helper c, d)
+        |> Sequence.to_list
+      in
+      let r1 =
+        r1
+        |> Set.to_list
+        |> List.filter (fun c ->
+          not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
+        |> List.map (fun c -> c, 0)
+      in
+      r2 @ r1 |> Set.of_list |> Set.to_sequence |> Sequence.to_seq)
   ;;
 
   let find_c_d' nfa =
