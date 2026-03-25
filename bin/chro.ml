@@ -313,6 +313,153 @@ let reason lhs rhs =
   if lhs' <= rhs' then lhs else rhs
 ;;
 
+let gen_dpll check_sat =
+  let check_dpll_sat tys ast : rez =
+    let module Ast = Lib.Ast in
+    let module Z3 = Smtml.Z3_mappings.Solver in
+    let module Literal_type = struct
+      type t =
+        | P
+        | N
+    end
+    in
+    let bool_internalc = ref 0 in
+    let bool_internal_name () =
+      let r = Format.asprintf "$%d" !bool_internalc in
+      bool_internalc := !bool_internalc + 1;
+      r
+    in
+    let th_map, bool_map = ref Map.empty, ref Map.empty in
+    let get_literal var = function
+      | Literal_type.P -> var
+      | Literal_type.N -> Ast.lnot var
+    in
+    let th_to_bool ?allow_new eia =
+      let normalize eia =
+        let open Ast.Eia in
+        match eia with
+        | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _))
+          when Ast.get_str_vars (Ast.eia eia) |> List.is_empty ->
+          (try
+             match Lib.Me.ir_of_ast Lib.Env.empty (Ast.eia eia) with
+             | Ok ir ->
+               ir
+               |> Lib.Ir.simpl
+               |> Lib.Me.eia_of_ir
+               |> (function
+                | Eia eia -> eia
+                | _ -> failwith "Unexpected non-atomic formula in DPLL(T)")
+             | Error _ -> eia
+           with
+           | _ -> eia)
+        | _ -> eia
+      in
+      let eia = normalize eia in
+      match Map.find !th_map eia with
+      | Some (var, t) -> get_literal var t
+      | None when allow_new |> Option.value ~default:false ->
+        (match Map.find !th_map eia with
+         | Some (var, t) -> get_literal var t
+         | None ->
+           let s = bool_internal_name () in
+           th_map := Map.add_exn !th_map ~key:eia ~data:(Ast.pred s, Literal_type.P);
+           (match Ast.lnot (Ast.eia eia) with
+            | Eia eia ->
+              th_map
+              := Map.add_exn
+                   !th_map
+                   ~key:(normalize eia)
+                   ~data:(Ast.pred s, Literal_type.N)
+            | _ -> ());
+           bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
+           Ast.pred s)
+      | None ->
+        failwith
+          (Format.asprintf
+             "Unexpected state: unable to find predicate for %a, available keys: %a"
+             Ast.Eia.pp
+             eia
+             (Format.pp_print_list Ast.Eia.pp)
+             (Map.keys !th_map))
+    in
+    let bool_to_th s =
+      match Map.find !bool_map s with
+      | Some eia -> eia
+      | None ->
+        Format.kasprintf
+          failwith
+          "Unexpected state: predicate %s is in the original definition"
+          s
+    in
+    let bool_skeleton ?allow_new ast =
+      let result =
+        try
+          Ast.map
+            (function
+              | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast ->
+                ast
+              | Eia eia -> th_to_bool ?allow_new eia)
+            ast
+        with
+        | expr ->
+          Format.printf
+            "dpll: error while skeletoning the formula %s\n%!"
+            (Printexc.to_string expr);
+          raise_notrace expr
+      in
+      result
+    in
+    let unsat_reason = ref "bool" in
+    let rec dpll new_assumptions solver =
+      log "DPLL: into Z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
+      Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
+      log
+        "DPLL: current Z3 statistics: %a\n"
+        Smtml.Statistics.pp
+        (Z3.get_statistics solver);
+      match Z3.check solver ~assumptions:[] with
+      | `Sat -> begin
+        (* TODO: handle no model, however SAT problem w/o model is kind of strange. *)
+        let z3_model =
+          Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model
+        in
+        let candidate =
+          Hashtbl.fold
+            (fun sym value acc ->
+               match value with
+               | Smtml.Value.True -> Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym)) :: acc
+               | Smtml.Value.False ->
+                 Ast.lnot (Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym))) :: acc
+               | _ -> acc)
+            z3_model
+            []
+          |> Ast.land_
+        in
+        log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
+        match check_sat tys candidate with
+        | Sat (_, _) as result -> result
+        | Unsat (s, _) ->
+          unsat_reason := reason s !unsat_reason;
+          let not_candidate = Ast.lnot candidate in
+          let unsat_core_contra_sat_ast = not_candidate |> bool_skeleton in
+          dpll unsat_core_contra_sat_ast solver
+        | Unknown _ -> unknown Ast.true_ Lib.Env.empty
+      end
+      | `Unsat ->
+        (* ?? *)
+        report_result (`Unsat !unsat_reason);
+        unsat !unsat_reason Ast.true_
+      | `Unknown -> unknown Ast.true_ Lib.Env.empty
+    in
+    let ast = (*normalize*) ast in
+    log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
+    dpll
+      (ast |> bool_skeleton ~allow_new:true)
+      (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
+  in
+  check_dpll_sat
+;;
+
 let rec check_sat ?(verbose = false) tys ast : rez =
   let __ () =
     if config.stop_after = `Pre_simplify
@@ -478,56 +625,59 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         | None -> if !can_be_unk then unknown ast Lib.Env.empty else unsat "nfa" ast)
     | _ -> apporx_rez
   in
-  let check_string_sat ?(light = false) ast env =
+  let check_string_sat ?(light = false) env ast =
     let unsat_reason = ref "presimpl str" in
     let can_be_unk = ref false in
-    let asts_n_regexes = Lib.SimplII.arithmetize ast env in
-    log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
-    let f ast_n_regex =
-      let ast, e, post, regex = ast_n_regex in
-      log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-      match check_eia_sat ~light ast e with
-      | Sat (s, (ast, env, get_model, _)) -> Some (s, ast, env, get_model, post, regex)
-      | Unknown _ ->
-        can_be_unk := true;
-        None
-      | Unsat (s, _) ->
-        unsat_reason := reason s !unsat_reason;
-        None
-    in
-    let asts_n_regexes = asts_n_regexes |> List.to_seq in
-    let asts_n_regexes = Seq.map f asts_n_regexes in
-    let asts_n_regexes =
-      Seq.map
-        (function
-          | Some (_, _, _, _, [], _) as rez -> rez
-          | Some (_, ast, e, get_model, post, regexes) as rez -> begin
-            match get_model tys with
-            | Result.Ok model ->
-              let model = model_from_parts_regexes_env tys model regexes e in
-              begin if
-                List.for_all
-                  (fun post ->
-                     match
-                       post model ast (fun ast ->
-                         match (check_sat tys) ast with
-                         | Sat _ -> `Sat
-                         | _ -> `Unknown)
-                     with
-                     | `Sat -> true
-                     | `Unknown ->
-                       can_be_unk := true;
-                       false)
-                  post
-              then rez
-              else Option.none
-              end
-            | Result.Error _ -> rez
-          end
-          | None -> Option.none)
-        asts_n_regexes
-    in
-    match Seq.find_map Fun.id asts_n_regexes with
+    let in_stoi_or_concat v = Lib.Ast.in_stoi v ast || Lib.Ast.in_concat v ast in
+    Lib.Utils.powerset (Lib.Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
+    |> List.to_seq
+    |> Seq.find_map (fun str_vars ->
+      let asts_n_regexes = Lib.SimplII.arithmetize str_vars ast env in
+      (*log "Arithmetization gives %d asts..." (List.length asts_n_regexes);*)
+      log "Arithmetization gives %a..." Lib.Ast.pp_smtlib2 ast;
+      let f ast_n_regex =
+        let ast, e, post, regex = ast_n_regex in
+        log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+        match check_eia_sat ~light ast e with
+        | Sat (s, (ast, env, get_model, _)) -> Some (s, ast, env, get_model, post, regex)
+        | Unknown _ ->
+          can_be_unk := true;
+          None
+        | Unsat (s, _) ->
+          unsat_reason := reason s !unsat_reason;
+          None
+      in
+      let r =
+        match f asts_n_regexes with
+        | Some (_, _, _, _, [], _) as rez -> rez
+        | Some (_, ast, e, get_model, post, regexes) as rez -> begin
+          match get_model tys with
+          | Result.Ok model ->
+            let model = model_from_parts_regexes_env tys model regexes e in
+            begin if
+              List.for_all
+                (fun post ->
+                   match
+                     post model ast (fun ast ->
+                       match (check_sat tys) ast with
+                       | Sat _ -> `Sat
+                       | _ -> `Unknown)
+                   with
+                   | `Sat -> true
+                   | `Unknown ->
+                     can_be_unk := true;
+                     false)
+                post
+            then rez
+            else Option.none
+            end
+          | Result.Error _ -> rez
+        end
+        | None -> Option.none
+      in
+      r)
+    |> fun r ->
+    match r with
     | Some (s, ast, env, get_model, _, regexes) -> Sat (s, (ast, env, get_model, regexes))
     | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat (!unsat_reason, ast)
   in
@@ -555,18 +705,20 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           unsat "presimpl str" core
         | `Unknown (ast, e, seq_of_variants) ->
           if Seq.is_empty seq_of_variants
-          then
-            handle (check_string_sat ast e) (fun () ->
+          then (
+            let check_dpll_string_sat = gen_dpll check_string_sat in
+            handle (check_dpll_string_sat e ast) (fun () ->
               report_result2 (`Unknown "nfa");
-              unknown ast Lib.Env.empty)
-          else
-            handle (check_string_sat ~light:true ast e) (fun () ->
+              unknown ast Lib.Env.empty))
+          else (
+            let check_dpll_string_sat = gen_dpll (check_string_sat ~light:true) in
+            handle (check_dpll_string_sat (*~light:true*) e ast) (fun () ->
               seq_of_variants
               |> (fun x -> Seq.append x (Seq.return [ ast, e ]))
               |> Seq.find_map (fun variants ->
                 List.find_map
                   (fun (ast, env) ->
-                     match check_string_sat ast env with
+                     match check_dpll_string_sat env ast with
                      | Unsat (s, _) ->
                        unsat_reason := reason s !unsat_reason;
                        None
@@ -593,7 +745,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
                   unknown ast Lib.Env.empty)
               | None, false ->
                 (*report_result2 (`Unsat !unsat_reason);*)
-                Unsat (!unsat_reason, ast))
+                Unsat (!unsat_reason, ast)))
       with
       | Lib.SimplII.Str_Underapprox_fired env ->
         let s = "under str" in
@@ -614,141 +766,6 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       report_result2 (`Unknown "");
       unknown ast Lib.Env.empty)
     else raise s
-;;
-
-let check_dpll_sat ?(verbose = false) tys ast : rez =
-  let module Ast = Lib.Ast in
-  let module Z3 = Smtml.Z3_mappings.Solver in
-  let module Literal_type = struct
-    type t =
-      | P
-      | N
-  end
-  in
-  let bool_internalc = ref 0 in
-  let bool_internal_name () =
-    let r = Format.asprintf "$%d" !bool_internalc in
-    bool_internalc := !bool_internalc + 1;
-    r
-  in
-  let th_map, bool_map = ref Map.empty, ref Map.empty in
-  let get_literal var = function
-    | Literal_type.P -> var
-    | Literal_type.N -> Ast.lnot var
-  in
-  let th_to_bool ?allow_new eia =
-    let normalize eia =
-      let open Ast.Eia in
-      match eia with
-      | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _))
-        when Ast.get_str_vars (Ast.eia eia) |> List.is_empty ->
-        (try
-           match Lib.Me.ir_of_ast Lib.Env.empty (Ast.eia eia) with
-           | Ok ir ->
-             ir
-             |> Lib.Ir.simpl
-             |> Lib.Me.eia_of_ir
-             |> (function
-              | Eia eia -> eia
-              | _ -> failwith "Unexpected non-atomic formula in DPLL(T)")
-           | Error _ -> eia
-         with
-         | _ -> eia)
-      | _ -> eia
-    in
-    let eia = normalize eia in
-    match Map.find !th_map eia with
-    | Some (var, t) -> get_literal var t
-    | None when allow_new |> Option.value ~default:false ->
-      (match Map.find !th_map eia with
-       | Some (var, t) -> get_literal var t
-       | None ->
-         let s = bool_internal_name () in
-         th_map := Map.add_exn !th_map ~key:eia ~data:(Ast.pred s, Literal_type.P);
-         (match Ast.lnot (Ast.eia eia) with
-          | Eia eia ->
-            th_map
-            := Map.add_exn !th_map ~key:(normalize eia) ~data:(Ast.pred s, Literal_type.N)
-          | _ -> ());
-         bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
-         Ast.pred s)
-    | None ->
-      failwith
-        (Format.asprintf
-           "Unexpected state: unable to find predicate for %a, available keys: %a"
-           Ast.Eia.pp
-           eia
-           (Format.pp_print_list Ast.Eia.pp)
-           (Map.keys !th_map))
-  in
-  let bool_to_th s =
-    match Map.find !bool_map s with
-    | Some eia -> eia
-    | None ->
-      Format.kasprintf
-        failwith
-        "Unexpected state: predicate %s is in the original definition"
-        s
-  in
-  let bool_skeleton ?allow_new ast =
-    let result =
-      try
-        Ast.map
-          (function
-            | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast ->
-              ast
-            | Eia eia -> th_to_bool ?allow_new eia)
-          ast
-      with
-      | expr ->
-        Format.printf
-          "dpll: error while skeletoning the formula %s\n%!"
-          (Printexc.to_string expr);
-        raise_notrace expr
-    in
-    result
-  in
-  let unsat_reason = ref "bool" in
-  let rec dpll new_assumptions solver =
-    log "DPLL: into Z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
-    Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
-    log "DPLL: current Z3 statistics: %a\n" Smtml.Statistics.pp (Z3.get_statistics solver);
-    match Z3.check solver ~assumptions:[] with
-    | `Sat -> begin
-      (* TODO: handle no model, however SAT problem w/o model is kind of strange. *)
-      let z3_model = Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model in
-      let candidate =
-        Hashtbl.fold
-          (fun sym value acc ->
-             match value with
-             | Smtml.Value.True -> Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym)) :: acc
-             | Smtml.Value.False ->
-               Ast.lnot (Ast.eia (bool_to_th (Lib.Fe.sym_to_pred sym))) :: acc
-             | _ -> acc)
-          z3_model
-          []
-        |> Ast.land_
-      in
-      log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
-      match check_sat ~verbose tys candidate with
-      | Sat (_, _) as result -> result
-      | Unsat (s, _) ->
-        unsat_reason := reason s !unsat_reason;
-        let not_candidate = Ast.lnot candidate in
-        let unsat_core_contra_sat_ast = not_candidate |> bool_skeleton in
-        dpll unsat_core_contra_sat_ast solver
-      | Unknown _ -> unknown Ast.true_ Lib.Env.empty
-    end
-    | `Unsat ->
-      report_result ~verbose (`Unsat !unsat_reason);
-      unsat !unsat_reason Ast.true_
-    | `Unknown -> unknown Ast.true_ Lib.Env.empty
-  in
-  let ast = (*normalize*) ast in
-  log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
-  dpll
-    (ast |> bool_skeleton ~allow_new:true)
-    (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
 ;;
 
 type state =
@@ -808,16 +825,23 @@ let () =
           (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
       in
       (try
-         let rez = check_dpll_sat ~verbose:true state.tys ast in
+         let check_dpll_sat = gen_dpll (check_sat ~verbose:true) in
+         let rez = check_dpll_sat state.tys ast in
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->
          config.bound_res <- -1;
          config.bound_states <- -1;
          Lib.Config.bounded_unsat := false;
-         let rez = check_dpll_sat ~verbose:true state.tys ast in
+         let check_dpll_sat = gen_dpll (check_sat ~verbose:true) in
+         let rez = check_dpll_sat state.tys ast in
          { state with last_result = Some rez }
-       | _ -> state)
+       | ex ->
+         Format.printf
+           "(error: %s)\n%!"
+           (Printexc.to_string_default ex |> Str.global_replace (Str.regexp "\\\\n") "\n");
+         report_result ~verbose:true (`Unknown "exception");
+         { state with last_result = Some (Unknown (ast, Lib.Env.empty)) })
     | Smtml.Ast.Get_model ->
       if config.no_model = true
       then (
@@ -845,7 +869,9 @@ let () =
         let rez =
           match state.last_result with
           | Some r -> r
-          | None -> check_dpll_sat state.tys ast
+          | None ->
+            let check_dpll_sat = gen_dpll check_sat in
+            check_dpll_sat state.tys ast
         in
         let () =
           match rez with
@@ -880,6 +906,7 @@ let () =
               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
               Lib.Config.config.under_approx <- -1;
               try
+                let check_dpll_sat = gen_dpll check_sat in
                 match check_dpll_sat tys shrinked_ast with
                 | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
                 | Sat (_, (_, env, get_model, _regexes)) ->
