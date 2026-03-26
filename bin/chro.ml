@@ -633,8 +633,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     let unsat_reason = ref "presimpl str" in
     let can_be_unk = ref false in
     let in_stoi_or_concat v = Lib.Ast.in_stoi v ast || Lib.Ast.in_concat v ast in
-    Lib.Utils.powerset (Lib.Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
-    |> List.to_seq
+    Lib.Utils.powerset_seq (Lib.Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
     |> Seq.concat_map (fun str_vars ->
       Lib.SimplII.split_concats ast |> List.map (fun ast -> str_vars, ast) |> List.to_seq)
     |> Seq.find_map (fun (str_vars, ast) ->
