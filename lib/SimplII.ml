@@ -2426,7 +2426,7 @@ let under_concats env alpha ast =
       | other -> failwith "Unreachable: remainder is negative"))
 ;;
 
-let split_concats { Info.all; _ } =
+let split_concats ast =
   let module Map = Base.Map.Poly in
   let var_or_const x =
     match x with
@@ -2506,7 +2506,7 @@ let split_concats { Info.all; _ } =
     ;;
   end
   in
-  apply_symantics_unsugared (module Pre)
+  apply_symantics_unsugared (module Pre) ast |> Ast.to_dnf
 ;;
 
 let rewrite_via_concat { Info.all; _ } =
@@ -3294,7 +3294,7 @@ let arithmetize str_vars ast env =
   let (module Symantics) = make_main_symantics ~alpha env in
   let asts_n_regexes =
     ast
-    |> split_concats var_info
+    (*|> split_concats var_info*)
     (*|> Ast.to_dnf*)
     (*|> List.map *) |> apply_symantics (module Symantics)
     |> fold_regexes
