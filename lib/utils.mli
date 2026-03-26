@@ -11,5 +11,6 @@ val div_rem : Z.t -> Z.t -> Z.t * Z.t
 val to_bits : Z.t -> bool list
 val log : ('a, Format.formatter, unit) format -> 'a
 val powerset : 'a list -> 'a list list
+val powerset_seq : 'a list -> 'a list Seq.t
 val strings_of_len : int -> string list -> string list
 val with_extra_char : char Set.t -> char Set.t
