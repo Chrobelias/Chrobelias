@@ -121,6 +121,7 @@ let occurs_var_exn =
       | Eia.Concat (Eia.Atom (Var (v2, _)), _) when String.equal v v2 -> raise Occurs
       | Eia.Concat (_, Eia.Atom (Var (v2, _))) when String.equal v v2 -> raise Occurs
       | Eia.Concat (_, _) -> ()
+      | Eia.Substr (_, _, _) -> ()
       | x ->
         Format.kasprintf
           failwith
