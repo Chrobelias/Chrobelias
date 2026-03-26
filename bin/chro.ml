@@ -419,6 +419,7 @@ let gen_dpll check_sat =
         (Z3.get_statistics solver);
       match Z3.check solver ~assumptions:[] with
       | `Sat -> begin
+        log "DPLL: found satisfying combination\n%!";
         (* TODO: handle no model, however SAT problem w/o model is kind of strange. *)
         let z3_model =
           Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model
@@ -446,10 +447,13 @@ let gen_dpll check_sat =
         | Unknown _ -> unknown Ast.true_ Lib.Env.empty
       end
       | `Unsat ->
+        log "DPLL: unsat found\n%!";
         (* ?? *)
         report_result (`Unsat !unsat_reason);
         unsat !unsat_reason Ast.true_
-      | `Unknown -> unknown Ast.true_ Lib.Env.empty
+      | `Unknown ->
+        log "DPLL: unknown, something is wrong if the SAT-solver gets unknown\n%!";
+        unknown Ast.true_ Lib.Env.empty
     in
     let ast = (*normalize*) ast in
     log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
@@ -706,6 +710,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           report_result2 (`Unsat "presimpl str");
           unsat "presimpl str" core
         | `Unknown (ast, e, seq_of_variants) ->
+          let seq_of_variants = Seq.filter (Fun.negate List.is_empty) seq_of_variants in
           if Seq.is_empty seq_of_variants
           then (
             let check_dpll_string_sat = gen_dpll check_string_sat in
@@ -713,8 +718,8 @@ let rec check_sat ?(verbose = false) tys ast : rez =
               report_result2 (`Unknown "nfa");
               unknown ast Lib.Env.empty))
           else (
-            let check_dpll_string_sat = gen_dpll check_string_sat in
-            handle (check_dpll_string_sat (*~light:true*) e ast) (fun () ->
+            let check_dpll_string_sat = gen_dpll (check_string_sat ~light:true) in
+            handle (check_dpll_string_sat e ast) (fun () ->
               seq_of_variants
               |> (fun x -> Seq.append x (Seq.return [ ast, e ]))
               |> Seq.find_map (fun variants ->
