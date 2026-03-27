@@ -1568,6 +1568,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     | Env.Occurs -> None
   in
   (*let extend_str_exn env v rhs = Env.extend_string_exn env v (trivial_simplify rhs) in*)
+  let not_filter = ref false in
   let fold_and_filter multiple f acc xs =
     let acc = ref acc in
     let changed = ref false in
@@ -1580,7 +1581,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
              | Some acc2 ->
                if acc2 <> !acc then changed := true;
                acc := acc2;
-               None
+               if !not_filter then Some h else None
              | None -> Some h)
            else Some h)
         xs
@@ -1684,6 +1685,10 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
         (* Note: presence of key means we already simplified this variable in another equality *)
       with
       | Env.Occurs -> None
+    in
+    let extend_exn env (Var (v, _) as v') vn =
+      if String.starts_with ~prefix:"strlen" v then not_filter := true;
+      extend_exn env v' vn
     in
     match ast with
     (* **************************** String stuff *********************************** *)
