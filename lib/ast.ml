@@ -113,6 +113,9 @@ module Eia = struct
     | Eq -> Eq
   ;;
 
+  let equal = Stdlib.( = )
+  let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
+
   let typeof : 'a. 'a term -> 'a kind =
     fun (type ty) (e : ty term) : ty kind ->
     match e with
@@ -321,6 +324,17 @@ module Eia = struct
   (*match l, r with
     | _ -> failwith "tbd"*)
 
+  let compare_term2 (type a) : a term -> a term -> int =
+    fun l r ->
+    match l, r with
+    | Mul [ Const c1; t1 ], Mul [ Const c2; t2 ] when equal t1 t2 -> Z.compare c1 c2
+    | Mul [ Const c1; t1 ], t2 when equal t1 t2 -> Z.compare c1 Z.one
+    | t1, Mul [ Const c2; t2 ] when equal t1 t2 -> Z.compare c2 Z.one
+    | Mul [ Const _; t1 ], t2 -> compare_term t1 t2
+    | t1, Mul [ Const _; t2 ] -> compare_term t1 t2
+    | l, r -> compare_term l r
+  ;;
+
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
     | Neq : 'a term * 'a term * 'a kind -> t
@@ -433,9 +447,6 @@ module Eia = struct
     | SuffixOf (term, term') ->
       Format.fprintf fmt "(str.suffixof %a %a)" pp_term term pp_term term'
   ;;
-
-  let equal = Stdlib.( = )
-  let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
 end
 
 type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
