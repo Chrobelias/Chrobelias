@@ -800,6 +800,7 @@ let make_main_symantics ?alpha ?agressive env =
       match fold_and_sort Z.zero Z.( + ) (collect_inside_add xs) with
       | c, [] -> constz c
       | c, terms when Z.(c = zero) -> Ast.Eia.add (fold_add terms)
+      | c, [ term ] when Z.(c = zero) -> term
       | c, terms -> Ast.Eia.add (constz c :: fold_add terms)
     ;;
 
@@ -983,7 +984,7 @@ let make_main_symantics ?alpha ?agressive env =
           let rec gcd acc = function
             | Mul (Const lc :: ltl) :: other -> Z.gcd lc (gcd acc other)
             | Const lc :: other -> Z.gcd lc (gcd acc other)
-            | _ :: other -> gcd acc other
+            | _ :: other -> Z.one
             | [] -> acc
           in
           gcd Z.zero atoms
