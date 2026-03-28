@@ -736,7 +736,7 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
-    let rec add xs =
+    let add xs =
       let collect_inside_add xs =
         let extend h tl =
           let rec loop c1 tl1 = function
@@ -770,7 +770,6 @@ let make_main_symantics ?alpha ?agressive env =
           []
       in
       let fold_and_sort init op xs =
-        (* TODO(Kakadu): Maybe this presorting is not really needed... *)
         let c, xs =
           List.fold_left
             (fun (cacc, phacc) -> function
@@ -781,21 +780,26 @@ let make_main_symantics ?alpha ?agressive env =
         in
         c, List.sort compare_term xs
       in
-      match fold_and_sort Z.zero Z.( + ) (collect_inside_add xs) with
-      | c, [ Eia.Atom (Var (x, I)); Mul [ Eia.(Const x1); Eia.Atom (Var (x2, _)) ] ]
-        when Z.(c = zero) && x = x2 && x1 = Z.minus_one -> const 0
-      | c, Mul [ Eia.(Const c1); t1 ] :: Mul [ Eia.(Const c2); t2 ] :: tl
-        when Stdlib.(t1 = t2) ->
+      let fold_coeff c1 c2 term acc =
         if c1 = Z.(minus_one * c2)
-        then add (constz c :: tl)
-        else add (constz c :: Mul [ Eia.Const Z.(c1 + c2); t1 ] :: tl)
-      | c, [ h ] when Z.(equal c zero) -> h
-      | c, [] when Z.(equal c zero) -> const 0
-      | c, xs when Z.(equal c zero) ->
-        let ans = Ast.Eia.add (List.sort compare_term xs) in
-        ans
+        then acc
+        else Eia.Mul [ Eia.Const Z.(c1 + c2); term ] :: acc
+      in
+      let rec fold_add = function
+        | t1 :: t2 :: tl when Eia.equal t1 t2 ->
+          fold_add (Eia.Mul [ Eia.Const Z.(of_int 2); t1 ] :: tl)
+        | Eia.Mul [ Eia.(Const c1); t1 ] :: t2 :: tl when Eia.equal t1 t2 ->
+          fold_add (fold_coeff c1 Z.one t1 tl)
+        | t1 :: Mul [ Eia.(Const c2); t2 ] :: tl when Eia.equal t1 t2 ->
+          fold_add (fold_coeff Z.one c2 t1 tl)
+        | Mul [ Eia.(Const c1); t1 ] :: Mul [ Eia.(Const c2); t2 ] :: tl
+          when Eia.equal t1 t2 -> fold_add (fold_coeff c1 c2 t1 tl)
+        | t1 :: xs -> t1 :: fold_add xs
+        | one_atom -> one_atom
+      in
+      match fold_and_sort Z.zero Z.( + ) (collect_inside_add xs) with
       | c, [] -> constz c
-      | c, xs -> Ast.Eia.add (constz c :: List.sort compare_term xs)
+      | c, terms -> Ast.Eia.add (constz c :: fold_add terms)
     ;;
 
     let rec negate = function
