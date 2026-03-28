@@ -910,9 +910,6 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> ofop l r
     ;;
 
-    let lt l r = relop Leq (add [ const 1; l ]) r
-    let leq = relop Leq
-
     let eq_str l r =
       match l, r with
       | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
@@ -965,40 +962,42 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> Id_symantics.neq_str l r
     ;;
 
+    let cancel_left op lhs rhs =
+      let open Ast.Eia in
+      let simplify divisor =
+        let divide_by d = function
+          | Mul (Const lc :: ltl) -> Mul (Const Z.(lc / d) :: ltl)
+          | Const lc -> Const Z.(lc / d)
+          | lt when Z.(d = one) -> lt
+          | other -> failwith "Unexpected divison in linear term"
+        in
+        function
+        | [] -> constz Z.zero
+        | [ atom ] -> divide_by divisor atom
+        | atoms -> Add (List.map (divide_by divisor) atoms)
+      in
+      let gcd atoms =
+        let rec gcd acc = function
+          | Mul (Const lc :: ltl) :: other -> Z.gcd lc (gcd acc other)
+          | Const lc :: other -> Z.gcd lc (gcd acc other)
+          | _ :: other -> Z.one
+          | [] -> acc
+        in
+        gcd Z.zero atoms
+      in
+      let lhs' = List.filter (fun x -> Bool.not (List.mem x rhs)) lhs in
+      let rhs' = List.filter (fun x -> Bool.not (List.mem x lhs)) rhs in
+      let d = Z.gcd (gcd lhs') (gcd rhs') in
+      op (simplify d lhs') (simplify d rhs')
+    ;;
+
     let eqz l r =
       let open Ast.Eia in
-      let cancel_left lhs rhs =
-        let simplify divisor =
-          let divide_by d = function
-            | Mul (Const lc :: ltl) -> Mul (Const Z.(lc / d) :: ltl)
-            | Const lc -> Const Z.(lc / d)
-            | lt when Z.(d = one) -> lt
-            | other -> failwith "Unexpected divison in linear term"
-          in
-          function
-          | [] -> constz Z.zero
-          | [ atom ] -> divide_by divisor atom
-          | atoms -> Add (List.map (divide_by divisor) atoms)
-        in
-        let gcd atoms =
-          let rec gcd acc = function
-            | Mul (Const lc :: ltl) :: other -> Z.gcd lc (gcd acc other)
-            | Const lc :: other -> Z.gcd lc (gcd acc other)
-            | _ :: other -> Z.one
-            | [] -> acc
-          in
-          gcd Z.zero atoms
-        in
-        let lhs' = List.filter (fun x -> Bool.not (List.mem x rhs)) lhs in
-        let rhs' = List.filter (fun x -> Bool.not (List.mem x lhs)) rhs in
-        let d = Z.gcd (gcd lhs') (gcd rhs') in
-        relop Eq (simplify d lhs') (simplify d rhs')
-      in
       match l, r with
       | l, r when eq_term l r -> true_
-      | Add lhs, Add rhs -> cancel_left lhs rhs
-      | lhs, Add rhs -> cancel_left [ lhs ] rhs
-      | Add lhs, rhs -> cancel_left lhs [ rhs ]
+      | Add lhs, Add rhs -> cancel_left (relop Eq) lhs rhs
+      | lhs, Add rhs -> cancel_left (relop Eq) [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left (relop Eq) lhs [ rhs ]
       | Mul (Const lc :: ltl), Mul (Const rc :: rtl) ->
         let gcd1 = Z.gcd lc rc in
         if Z.(equal gcd1 one)
@@ -1008,10 +1007,24 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> relop Eq l r
     ;;
 
+    let leq l r =
+      let open Ast.Eia in
+      match l, r with
+      | Add lhs, Add rhs -> cancel_left (relop Leq) lhs rhs
+      | lhs, Add rhs -> cancel_left (relop Leq) [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left (relop Leq) lhs [ rhs ]
+      | _ -> relop Leq l r
+    ;;
+
+    let lt l r = leq (add [ const 1; l ]) r
+
     let neqz l r =
       match l, r with
       | Ast.Eia.Const l, Ast.Eia.Const r -> if l <> r then Ast.true_ else Ast.false_
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
+      | Add lhs, Add rhs -> cancel_left Id_symantics.neqz lhs rhs
+      | lhs, Add rhs -> cancel_left Id_symantics.neqz [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left Id_symantics.neqz lhs [ rhs ]
       | _ -> Id_symantics.neqz l r
     ;;
 
