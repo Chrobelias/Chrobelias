@@ -632,31 +632,6 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> Ast.Eia (Ast.Eia.RLen (term, term'))
     ;;
 
-    (* let str_from_eia s =
-      match Env.lookup s env with
-      | Some (Ast.Eia.Atom (Ast.Const c)) -> Ast.Str.fromeia (Ast.const c)
-      | _ -> Ast.Eia.fromeia (Ast.var s)
-    ;; *)
-
-    (*let str_equal l r =
-    if Eia.eq_term l r
-      then true_
-      else (
-        (*match l, r with
-        (*| Eia.Sofi (Var v1 as l), Str.FromEia (Var v2 as r) ->
-          Str (Str.Eq (Str.Atom l, Str.Atom r))*)
-        | Str.FromEia (Const v1), Str.Const r | Str.Const r, Str.FromEia (Const v1) ->
-          let l = Z.to_string v1 in
-          if
-            String.length l <= String.length r
-            && String.ends_with ~suffix:l r
-            && String.for_all
-                 (Char.equal '0')
-                 (String.sub r (String.length l) (String.length r - String.length l))
-          then Ast.true_
-          else Ast.false_
-        | _ -> *)Id_symantics.str_eq l r)*)
-
     let str_prefixof s1 s2 =
       match s1, s2 with
       | Ast.Eia.Str_const s1, Ast.Eia.Str_const s2 ->
@@ -1590,51 +1565,6 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
   in
   let helper info orig_ast env ast =
     let module Set = Base.Set.Poly in
-    let get_atoms =
-      Ast.Eia.fold2
-        (fun acc -> function
-           | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
-           | _ -> acc)
-        (fun acc -> function
-           | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
-           | _ -> acc)
-        Set.empty
-    in
-    (*let is_simple_eia eia =
-      let on_int_term acc = function
-        | Ast.Eia.Atom (Ast.Var (s, I)) -> Set.add acc s
-        | _ -> acc
-      in
-      let on_str_term acc = function
-        | Ast.Eia.Atom (Ast.Var (s, S)) -> Set.add acc s
-        | _ -> acc
-      in
-      Ast.Eia.fold_term on_int_term on_str_term Set.empty eia |> Set.length <= 1
-    in*)
-    let in_strlen_eia v eia =
-      Eia.fold2
-        (fun acc el ->
-           match el with
-           | Eia.Len (Eia.Atom (Var (s, S))) when s = v -> true
-           (*| Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true*)
-           | _ -> acc)
-        (fun acc _ -> acc)
-        false
-        eia
-    in
-    let rec in_strlen v ast =
-      match ast with
-      | True | Pred _ -> false
-      | Eia eia -> begin
-        match eia with
-        | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
-        | _ -> in_strlen_eia v eia
-      end
-      | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
-      | Land asts | Lor asts ->
-        List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
-      | Unsupp _ -> false
-    in
     let var_can_subst v =
       Env.is_absent_key v env
       && not
@@ -1653,7 +1583,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
                    | _ -> false)
                  orig_ast)
     in
-    let var_can_subst_complex v = var_can_subst v && not (in_strlen v orig_ast) in
+    let var_can_subst_complex v = var_can_subst v && not (Ast.in_strlen v orig_ast) in
     let single =
       fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
       let is_bad v =
@@ -1870,7 +1800,8 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
            && var_can_subst_complex vn
            && Ast.forsome
                 (function
-                  | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
+                  | Eia eia'' when eia' <> eia'' && List.mem vn (Ast.get_vars eia'') ->
+                    true
                   | _ -> false)
                 orig_ast -> Some (extend_exn env v rhs)
     (*| Eia (Eia.Eq (Add terms, rhs, I) as eia')
@@ -1880,7 +1811,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
         | Ast.Eia.Mul ([Atom (Var (vn, _)); Ast.Eia.Const c])
         when c = Z.minus_one -> Ast.forsome
               (function
-                | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
+                | Eia eia'' when eia' <> eia'' && List.mem vn (Ast.get_vars eia'') -> true
                 | _ -> false) orig_ast
         | _ -> false) terms ->
         let aux = function
@@ -1888,7 +1819,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
         | Ast.Eia.Mul ([Atom (Var (vn, _) as v); Ast.Eia.Const c])
         when c = Z.minus_one -> if Ast.forsome
               (function
-                | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
+                | Eia eia'' when eia' <> eia'' && List.mem vn (Ast.get_vars eia'') -> true
                 | _ -> false) orig_ast then Option.some v else None
         | _ -> None in
         let v = List.find_map aux terms |> Option.get in
@@ -1901,7 +1832,7 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     | Eia (Eia.Eq (lhs, Atom (Var (vn, _) as v), _) as eia')
       when var_can_subst_complex vn
            && (function
-                | Eia eia'' when eia' <> eia'' && Set.mem (get_atoms eia'') vn -> true
+                | Eia eia'' when eia' <> eia'' && List.mem vn (Ast.get_vars eia'') -> true
                 | _ -> false)
                 orig_ast -> Some (extend_exn env v lhs)
     | eq ->

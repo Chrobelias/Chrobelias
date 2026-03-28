@@ -345,7 +345,7 @@ let dpll check_sat =
        | _ -> eia)
     | _ -> eia
   in
-  let check_dpll_sat tys ast : rez =
+  fun tys ast ->
     let bool_internalc = ref 0 in
     let bool_internal_name () =
       let r = Format.asprintf "$%d" !bool_internalc in
@@ -429,7 +429,7 @@ let dpll check_sat =
           of_bool_model
             (Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model)
         in
-        Format.printf "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
+        log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
         match check_sat tys candidate with
         | Sat (_, _) as result -> result
         | Unsat (s, _) ->
@@ -451,8 +451,6 @@ let dpll check_sat =
     dpll
       (ast |> to_bool_skeleton ~allow_new:true)
       (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
-  in
-  check_dpll_sat
 ;;
 
 let rec check_sat ?(verbose = false) tys ast : rez =

@@ -738,6 +738,45 @@ let in_concat v ast =
     ast
 ;;
 
+let in_stoi v ast =
+  let in_stoi_eia v eia =
+    Eia.fold2
+      (fun acc el ->
+         match el with
+         | Eia.Iofs (Eia.Atom (Var (s, _))) when s = v -> true
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      eia
+  in
+  in_eia_term in_stoi_eia v ast
+;;
+
+let rec in_strlen v ast =
+  let in_strlen_eia v eia =
+    Eia.fold2
+      (fun acc el ->
+         match el with
+         | Eia.Len (Eia.Atom (Var (s, S))) when s = v -> true
+         (*| Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true*)
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      eia
+  in
+  match ast with
+  | True | Pred _ -> false
+  | Eia eia -> begin
+    match eia with
+    | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
+    | _ -> in_strlen_eia v eia
+  end
+  | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
+  | Land asts | Lor asts ->
+    List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
+  | Unsupp _ -> false
+;;
+
 let collect_lin_exp ast =
   let module Set = Base.Set.Poly in
   fold
@@ -767,24 +806,30 @@ let collect_lin_exp ast =
     ast
 ;;
 
-(* MS: the same thing as the fashionable Who_in_exponents from SimplII.ml*)
+let collect_all acc eia =
+  Eia.fold2
+    (fun (str, lin, exp) -> function
+       | Atom (Var (x, I)) -> str, x :: lin, exp
+       | Pow (_, Atom (Var (x, I))) -> str, lin, x :: exp
+       | _ -> str, lin, exp)
+    (fun (str, lin, exp) -> function
+       | Atom (Var (x, S)) -> x :: str, lin, exp
+       | _ -> str, lin, exp)
+    acc
+    eia
+;;
+
+let get_vars eia =
+  eia |> collect_all ([], [], []) |> fun (x, y, z) -> List.concat [ x; y; z ]
+;;
+
 let collect_all ast =
   let remove_dups l = l |> Base.Set.Poly.of_list |> Base.Set.Poly.to_list in
   let module Set = Base.Set.Poly in
   fold
     (fun acc ast ->
        match ast with
-       | Eia eia ->
-         Eia.fold2
-           (fun (str, lin, exp) -> function
-              | Atom (Var (x, I)) -> str, x :: lin, exp
-              | Pow (_, Atom (Var (x, I))) -> str, lin, x :: exp
-              | _ -> str, lin, exp)
-           (fun (str, lin, exp) -> function
-              | Atom (Var (x, S)) -> x :: str, lin, exp
-              | _ -> str, lin, exp)
-           acc
-           eia
+       | Eia eia -> collect_all acc eia
        | _ -> acc)
     ([], [], [])
     ast
@@ -812,7 +857,16 @@ let get_lin_vars ast =
     ast
 ;;
 
-(* failwith "unable to fold; unsupported constraint" *)
+let get_len name ast =
+  fold
+    (fun acc -> function
+       | Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name -> Z.max c acc
+       | Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name -> Z.max c acc
+       | _ -> acc)
+    Z.minus_one
+    ast
+  |> Z.to_int
+;;
 
 let rec map f = function
   | True as ast -> f ast
@@ -823,22 +877,6 @@ let rec map f = function
   | Exists (atoms, ast) -> f (exists atoms (map f ast))
   | Pred _ as ast -> f ast
   | Unsupp _ as ast -> f ast
-;;
-
-(* failwith "unable to map; unsupported constraint" *)
-
-let in_stoi v ast =
-  let in_stoi_eia v eia =
-    Eia.fold2
-      (fun acc el ->
-         match el with
-         | Eia.Iofs (Eia.Atom (Var (s, _))) when s = v -> true
-         | _ -> acc)
-      (fun acc _ -> acc)
-      false
-      eia
-  in
-  in_eia_term in_stoi_eia v ast
 ;;
 
 let in_stoi2 v ast =
@@ -862,17 +900,6 @@ let in_stoi2 v ast =
       eia
   in
   in_eia_term in_stoi_eia v ast'
-;;
-
-let get_len name ast =
-  fold
-    (fun acc -> function
-       | Eia (Eq (Len (Atom (Var (s, _))), Const c, I)) when s = name -> Z.max c acc
-       | Eia (Eq (Const c, Len (Atom (Var (s, _))), I)) when s = name -> Z.max c acc
-       | _ -> acc)
-    Z.minus_one
-    ast
-  |> Z.to_int
 ;;
 
 let rec equal ast ast' =
