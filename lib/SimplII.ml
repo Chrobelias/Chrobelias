@@ -799,6 +799,7 @@ let make_main_symantics ?alpha ?agressive env =
       in
       match fold_and_sort Z.zero Z.( + ) (collect_inside_add xs) with
       | c, [] -> constz c
+      | c, terms when Z.(c = zero) -> Ast.Eia.add (fold_add terms)
       | c, terms -> Ast.Eia.add (constz c :: fold_add terms)
     ;;
 
