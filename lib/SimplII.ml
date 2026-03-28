@@ -527,7 +527,7 @@ let make_main_symantics ?alpha ?agressive env =
     open Ast
     include Id_symantics
 
-    let compare_term = Eia.compare_term
+    let compare_term = Eia.compare_term2
     let constz c = Ast.Eia.Const c
     let const c = constz (Z.of_int c)
 
@@ -966,6 +966,11 @@ let make_main_symantics ?alpha ?agressive env =
     let eqz l r =
       let open Ast.Eia in
       match l, r with
+      | Add lhs, Add rhs ->
+        relop
+          Eq
+          (add (List.filter (fun x -> List.mem x rhs) lhs))
+          (add (List.filter (fun x -> List.mem x lhs) rhs))
       | Mul (Const lc :: ltl), Mul (Const rc :: rtl) ->
         let gcd1 = Z.gcd lc rc in
         if Z.(equal gcd1 one)
