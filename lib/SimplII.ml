@@ -965,19 +965,44 @@ let make_main_symantics ?alpha ?agressive env =
 
     let eqz l r =
       let open Ast.Eia in
+      let cancel_left lhs rhs =
+        let simplify divisor =
+          let divide_by d = function
+            | Mul (Const lc :: ltl) -> Mul (Const Z.(lc / d) :: ltl)
+            | Const lc -> Const Z.(lc / d)
+            | lt when Z.(d = one) -> lt
+            | other -> failwith "Unexpected divison in linear term"
+          in
+          function
+          | [] -> constz Z.zero
+          | [ atom ] -> divide_by divisor atom
+          | atoms -> Add (List.map (divide_by divisor) atoms)
+        in
+        let gcd atoms =
+          let rec gcd acc = function
+            | Mul (Const lc :: ltl) :: other -> Z.gcd lc (gcd acc other)
+            | Const lc :: other -> Z.gcd lc (gcd acc other)
+            | _ :: other -> gcd acc other
+            | [] -> acc
+          in
+          gcd Z.zero atoms
+        in
+        let lhs' = List.filter (fun x -> Bool.not (List.mem x rhs)) lhs in
+        let rhs' = List.filter (fun x -> Bool.not (List.mem x lhs)) rhs in
+        let d = Z.gcd (gcd lhs') (gcd rhs') in
+        relop Eq (simplify d lhs') (simplify d rhs')
+      in
       match l, r with
-      | Add lhs, Add rhs ->
-        relop
-          Eq
-          (add (List.filter (fun x -> List.mem x rhs) lhs))
-          (add (List.filter (fun x -> List.mem x lhs) rhs))
+      | l, r when eq_term l r -> true_
+      | Add lhs, Add rhs -> cancel_left lhs rhs
+      | lhs, Add rhs -> cancel_left [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left lhs [ rhs ]
       | Mul (Const lc :: ltl), Mul (Const rc :: rtl) ->
         let gcd1 = Z.gcd lc rc in
         if Z.(equal gcd1 one)
         then relop Eq l r
         else
           relop Eq (mul (constz Z.(lc / gcd1) :: ltl)) (mul (constz Z.(rc / gcd1) :: rtl))
-      | l, r when eq_term l r -> true_
       | _ -> relop Eq l r
     ;;
 

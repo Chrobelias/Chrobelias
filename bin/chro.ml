@@ -808,7 +808,9 @@ let () =
         Lib.Ast.land_
           (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
       in
-      if ast |> Lib.Ast.get_str_vars |> List.is_empty |> not then config.logic <- `Str;
+      if ast |> Lib.Ast.get_str_vars |> List.is_empty
+      then config.logic <- `Eia
+      else config.logic <- `Str;
       (try
          let rez = dpll (check_sat ~verbose:true) state.tys ast in
          { state with last_result = Some rez }
