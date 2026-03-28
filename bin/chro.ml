@@ -629,9 +629,10 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       let ast, e, post, regexes = Lib.SimplII.arithmetize str_vars ast env in
       log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
       match check_eia_sat ~light ast e with
-      | Sat (_, (ast, env, get_model, _)) as rez -> begin
+      | Sat (s, (ast, env, get_model, _)) -> begin
+        let result = Sat (s, (ast, env, get_model, regexes)) in
         if List.is_empty post
-        then Some rez
+        then Some result
         else (
           match get_model tys with
           | Result.Ok model ->
@@ -650,10 +651,10 @@ let rec check_sat ?(verbose = false) tys ast : rez =
                      can_be_unk := true;
                      false)
                 post
-            then Some rez
+            then Some result
             else None
             end
-          | Result.Error _ -> Some rez)
+          | Result.Error _ -> Some result)
       end
       | Unsat (s, _) ->
         unsat_reason := reason s !unsat_reason;
