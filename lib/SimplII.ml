@@ -1253,7 +1253,8 @@ let find_vars_for_under2s ast =
     fun c ->
     match c with
     | Concat (Atom (Var (s, S)), Str_const _) -> acc
-    | Concat (Atom (Var (s, S)), _) -> S.add acc s
+    | Concat (Atom (Var (s, S)), _) when not (String.starts_with ~prefix:"%" s) ->
+      S.add acc s
     | t -> acc
   in
   let fs_right : string S.t -> string Ast.Eia.term -> _ =
@@ -1261,7 +1262,8 @@ let find_vars_for_under2s ast =
     fun c ->
     match c with
     | Concat (Str_const _, Atom (Var (s, S))) -> acc
-    | Concat (_, Atom (Var (s, S))) -> S.add acc s
+    | Concat (_, Atom (Var (s, S))) when not (String.starts_with ~prefix:"%" s) ->
+      S.add acc s
     | t -> acc
   in
   let collect fs ast =
@@ -2329,22 +2331,11 @@ let try_under_concats vars alpha len env ast =
       envs)
 ;;
 
-let under_concats env alpha ast =
-  (* Debug.printfln "> under_concats(ast = %a)" Ast.pp_smtlib2 ast; *)
+let under_concats env alpha vars ast =
   let module Set = Base.Set.Poly in
   if Config.under_str_config.max_cnt < 0
   then Seq.empty
   else (
-    let vars_for_under =
-      if Config.config.under_str_all
-      then
-        ast
-        |> Ast.get_str_vars
-        |> Utils.powerset
-        |> List.fast_sort (fun x y -> List.length x - List.length y)
-        |> List.map Set.of_list
-      else ast |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
-    in
     let filter_asts =
       List.filter_map (fun (env, ast) ->
         match basic_simplify [ 0 ] env ast with
@@ -2352,12 +2343,12 @@ let under_concats env alpha ast =
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast, env))
     in
-    let m = List.length vars_for_under in
+    let m = List.length vars in
     Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
     |> Seq.map (fun (length, side) ->
       match side with
       | n when n >= 0 && n < m ->
-        filter_asts (try_under_concats (List.nth vars_for_under n) alpha length env ast)
+        filter_asts (try_under_concats (List.nth vars n) alpha length env ast)
       | other -> failwith "Unreachable: remainder is negative"))
 ;;
 
@@ -2633,15 +2624,23 @@ let run_string_simplify ast =
   | `Unsat -> `Unsat ast
   | `Unknown (ast', e, _, _) ->
     log "After rewriting via concats:\n%!";
-    (match basic_simplify [ 1 ] e (ast' |> rewrite_via_concat var_info) with
-     | `Sat env -> `Sat env
-     | `Unsat -> `Unsat ast
-     | `Unknown (ast', e, _, _) ->
-       let alpha = collect_alpha ast' in
-       let (module Symantics) = make_main_symantics ~alpha e in
-       let ast = ast' |> over_concat |> apply_symantics (module Symantics) in
-       `Unknown
-         (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list)))
+    let ast' = ast' |> rewrite_via_concat var_info in
+    let vars =
+      if Config.config.under_str_all
+      then
+        ast'
+        |> Ast.get_str_vars
+        |> List.filter (fun s -> not (String.starts_with ~prefix:"%" s))
+        |> Utils.powerset
+        |> List.fast_sort (fun x y -> List.length x - List.length y)
+        |> List.map Set.of_list
+      else ast' |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
+    in
+    let alpha = collect_alpha ast' in
+    let (module Symantics) = make_main_symantics ~alpha e in
+    let ast = ast' |> over_concat |> apply_symantics (module Symantics) in
+    `Unknown
+      (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list) vars)
 ;;
 
 let arithmetize str_vars ast env =
