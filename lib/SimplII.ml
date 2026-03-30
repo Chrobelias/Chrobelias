@@ -515,7 +515,7 @@ let make_main_symantics ?alpha ?agressive env =
   let alpha_with_extra_char =
     match alpha with
     | Some alpha ->
-      let alpha = alpha |> Utils.with_extra_char |> Set.to_list in
+      let alpha = Utils.with_extra_char alpha in
       Debug.printf
         "Alphapbet with extra char: %a\n%!"
         Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
@@ -2264,7 +2264,7 @@ let run_under2 env ast =
   `Underapprox asts
 ;;
 
-let try_under_concats vars alpha len env ast =
+let try_under_str vars alpha len env ast =
   let module Map = Base.Map.Poly in
   let module Set = Base.Set.Poly in
   if Base.Set.length vars = 0
@@ -2331,7 +2331,89 @@ let try_under_concats vars alpha len env ast =
       envs)
 ;;
 
-let under_concats env alpha vars ast =
+let rewrite_via_concat { Info.all; _ } =
+  let module Map = Base.Map.Poly in
+  let gensym1 = gensym in
+  let rec gensym () =
+    let ans = gensym1 ~prefix:"%substr" () in
+    if Base.Set.Poly.mem all ans then gensym () else ans
+  in
+  let extra_ph = ref [] in
+  let extend v other =
+    extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
+  in
+  let extend_eq v other =
+    extra_ph := Id_symantics.eq_str (Id_symantics.str_var v) other :: !extra_ph
+  in
+  let module M_ = struct
+    include Id_symantics
+
+    let str_substr (term : str) (offset : term) (len : term) =
+      let svar v = Ast.Eia.atom (Ast.var v S) in
+      let z1 = gensym () in
+      let z2 = gensym () in
+      let len_z1 = gensym () in
+      let u = gensym () in
+      let y = gensym () in
+      let len_y = gensym () in
+      extend len_y (Ast.Eia.len (svar y));
+      extend len_y len;
+      extend len_z1 (Ast.Eia.len (svar z1));
+      extend len_z1 offset;
+      extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
+      extend_eq u term;
+      svar y
+    ;;
+
+    let str_at (term : str) (pos : term) =
+      let svar v = Ast.Eia.atom (Ast.var v S) in
+      let z1 = gensym () in
+      let z2 = gensym () in
+      let len_z1 = gensym () in
+      let u = gensym () in
+      let y = gensym () in
+      let len_y = gensym () in
+      extend len_y (Ast.Eia.len (svar y));
+      extend len_y (Ast.Eia.const Z.one);
+      extend len_z1 (Ast.Eia.len (svar z1));
+      extend len_z1 pos;
+      extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
+      extend_eq u term;
+      svar y
+    ;;
+
+    let str_prefixof (s1 : str) (s2 : str) =
+      let z1 = gensym () in
+      Id_symantics.eq_str (Ast.Eia.Concat (s1, Ast.Eia.atom (Ast.var z1 S))) s2
+    ;;
+
+    let str_contains (s1 : str) (s2 : str) =
+      let svar v = Ast.Eia.atom (Ast.var v S) in
+      let z1 = gensym () in
+      let z2 = gensym () in
+      Id_symantics.eq_str (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (s2, svar z2))) s1
+    ;;
+
+    let str_suffixof (s1 : str) (s2 : str) =
+      let z1 = gensym () in
+      Id_symantics.eq_str (Ast.Eia.Concat (Ast.Eia.atom (Ast.var z1 S), s1)) s2
+    ;;
+
+    let prj = function
+      | Ast.Land xs -> land_ (!extra_ph @ xs)
+      | ph -> land_ (!extra_ph @ [ ph ])
+    ;;
+  end
+  in
+  let module Sym = struct
+    include M_
+    include FT_SIG.Sugar (M_)
+  end
+  in
+  fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
+;;
+
+let under_str env alpha vars ast =
   let module Set = Base.Set.Poly in
   if Config.under_str_config.max_cnt < 0
   then Seq.empty
@@ -2341,14 +2423,17 @@ let under_concats env alpha vars ast =
         match basic_simplify [ 0 ] env ast with
         | `Unsat -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
-        | `Unknown (ast, env, _, _) -> Some (ast, env))
+        | `Unknown (ast, env, _, _) ->
+          log "After rewriting via concats:\n%!";
+          let var_info = apply_symantics (module Who_in_exponents) ast in
+          Some (ast |> rewrite_via_concat var_info, env))
     in
     let m = List.length vars in
     Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
     |> Seq.map (fun (length, side) ->
       match side with
       | n when n >= 0 && n < m ->
-        filter_asts (try_under_concats (List.nth vars n) alpha length env ast)
+        filter_asts (try_under_str (List.nth vars n) alpha length env ast)
       | other -> failwith "Unreachable: remainder is negative"))
 ;;
 
@@ -2433,88 +2518,6 @@ let split_concats ast =
   end
   in
   apply_symantics_unsugared (module Pre) ast |> Ast.to_dnf
-;;
-
-let rewrite_via_concat { Info.all; _ } =
-  let module Map = Base.Map.Poly in
-  let gensym1 = gensym in
-  let rec gensym () =
-    let ans = gensym1 ~prefix:"%substr" () in
-    if Base.Set.Poly.mem all ans then gensym () else ans
-  in
-  let extra_ph = ref [] in
-  let extend v other =
-    extra_ph := Id_symantics.eqz (Id_symantics.var v) other :: !extra_ph
-  in
-  let extend_eq v other =
-    extra_ph := Id_symantics.eq_str (Id_symantics.str_var v) other :: !extra_ph
-  in
-  let module M_ = struct
-    include Id_symantics
-
-    let str_substr (term : str) (offset : term) (len : term) =
-      let svar v = Ast.Eia.atom (Ast.var v S) in
-      let z1 = gensym () in
-      let z2 = gensym () in
-      let len_z1 = gensym () in
-      let u = gensym () in
-      let y = gensym () in
-      let len_y = gensym () in
-      extend len_y (Ast.Eia.len (svar y));
-      extend len_y len;
-      extend len_z1 (Ast.Eia.len (svar z1));
-      extend len_z1 offset;
-      extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
-      extend_eq u term;
-      svar y
-    ;;
-
-    let str_at (term : str) (pos : term) =
-      let svar v = Ast.Eia.atom (Ast.var v S) in
-      let z1 = gensym () in
-      let z2 = gensym () in
-      let len_z1 = gensym () in
-      let u = gensym () in
-      let y = gensym () in
-      let len_y = gensym () in
-      extend len_y (Ast.Eia.len (svar y));
-      extend len_y (Ast.Eia.const Z.one);
-      extend len_z1 (Ast.Eia.len (svar z1));
-      extend len_z1 pos;
-      extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
-      extend_eq u term;
-      svar y
-    ;;
-
-    let str_prefixof (s1 : str) (s2 : str) =
-      let z1 = gensym () in
-      Id_symantics.eq_str (Ast.Eia.Concat (s1, Ast.Eia.atom (Ast.var z1 S))) s2
-    ;;
-
-    let str_contains (s1 : str) (s2 : str) =
-      let svar v = Ast.Eia.atom (Ast.var v S) in
-      let z1 = gensym () in
-      let z2 = gensym () in
-      Id_symantics.eq_str (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (s2, svar z2))) s1
-    ;;
-
-    let str_suffixof (s1 : str) (s2 : str) =
-      let z1 = gensym () in
-      Id_symantics.eq_str (Ast.Eia.Concat (Ast.Eia.atom (Ast.var z1 S), s1)) s2
-    ;;
-
-    let prj = function
-      | Ast.Land xs -> land_ (!extra_ph @ xs)
-      | ph -> land_ (!extra_ph @ [ ph ])
-    ;;
-  end
-  in
-  let module Sym = struct
-    include M_
-    include FT_SIG.Sugar (M_)
-  end
-  in
-  fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
 ;;
 
 module
@@ -2618,29 +2621,25 @@ let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 
 let run_string_simplify ast =
   let module Set = Base.Set.Poly in
-  let var_info = apply_symantics (module Who_in_exponents) ast in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat env
   | `Unsat -> `Unsat ast
   | `Unknown (ast', e, _, _) ->
-    log "After rewriting via concats:\n%!";
-    let ast' = ast' |> rewrite_via_concat var_info in
     let vars =
       if Config.config.under_str_all
       then
         ast'
         |> Ast.get_str_vars
         |> List.filter (fun s -> not (String.starts_with ~prefix:"%" s))
-        |> Utils.powerset
-        |> List.fast_sort (fun x y -> List.length x - List.length y)
-        |> List.map Set.of_list
+        |> fun x -> [ Set.of_list x ]
       else ast' |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
     in
     let alpha = collect_alpha ast' in
     let (module Symantics) = make_main_symantics ~alpha e in
     let ast = ast' |> over_concat |> apply_symantics (module Symantics) in
-    `Unknown
-      (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list) vars)
+    let underapproxed_asts = ast |> under_str e (Utils.with_extra_char alpha) vars in
+    let var_info = apply_symantics (module Who_in_exponents) ast in
+    `Unknown (ast |> rewrite_via_concat var_info, e, underapproxed_asts)
 ;;
 
 let arithmetize str_vars ast env =
@@ -2922,6 +2921,7 @@ let arithmetize str_vars ast env =
             | Str_const s -> const (Z.of_string s), []
             | Atom (Var (v, S)) -> atomi v, []
             | Concat (_, _) | At (_, _) | Substr (_, _, _) ->
+              log "AST: %a" Ast.pp_smtlib2 ast;
               failwith "Unexpected function in arithmetize_term"
             | (Const _ | Atom (Var (_, I))) as eia -> eia, []
             | Add ls ->
