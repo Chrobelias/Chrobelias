@@ -95,5 +95,5 @@ let with_extra_char alpha =
     |> Option.map Set.singleton
     |> Option.value ~default:Set.empty
   in
-  Set.union alpha extra_char
+  Set.union alpha extra_char |> Set.to_list
 ;;
