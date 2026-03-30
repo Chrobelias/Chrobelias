@@ -622,7 +622,10 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let sofi = function
-      | Ast.Eia.Const s -> Id_symantics.str_const (Z.to_string s)
+      | Ast.Eia.Const s ->
+        if Z.(s < zero)
+        then Id_symantics.str_const ""
+        else Id_symantics.str_const (Z.to_string s)
       | s -> Id_symantics.sofi s
     ;;
 
@@ -672,8 +675,13 @@ let make_main_symantics ?alpha ?agressive env =
     let str_substr term offset len =
       match term, offset, len with
       | Ast.Eia.Str_const s, Ast.Eia.Const n, Ast.Eia.Const len ->
-        (try Ast.Eia.Str_const (String.sub s (Z.to_int n) (Z.to_int len)) with
-         | _ -> Ast.Eia.Str_const "")
+        let n = Z.to_int n in
+        let len = Z.to_int len in
+        (try Ast.Eia.Str_const (String.sub s n len) with
+         | _ ->
+           if n < String.length s
+           then Ast.Eia.Str_const (String.sub s n (String.length s - n))
+           else Ast.Eia.Str_const "")
       | Ast.Eia.Str_const "", _, _ -> Ast.Eia.Str_const ""
       | _ -> Ast.Eia.substr term offset len
     ;;
@@ -2923,9 +2931,12 @@ let arithmetize str_vars ast env =
             (* | Len _ -> failwith "Unsupported constraint in arithmetize_term" *)
             | Str_const s -> Ast.Eia.const (Z.of_string s), []
             | Atom (Var (v, S)) -> atomi v, []
-            | Concat (_, _) | At (_, _) | Substr (_, _, _) ->
-              log "AST: %a" Ast.pp_smtlib2 ast;
-              failwith "Unexpected function in arithmetize_term"
+            | (Concat (_, _) | At (_, _) | Substr (_, _, _)) as term ->
+              failwith
+                (Format.asprintf
+                   "Unexpected in arithmetize_term: %a"
+                   Ast.Eia.pp_term
+                   term)
             | (Const _ | Atom (Var (_, I))) as eia -> eia, []
             | Add ls ->
               let ls, phs =
@@ -2953,7 +2964,12 @@ let arithmetize str_vars ast env =
               let lhs, lhs_phs = arithmetize_term str_vars lhs in
               let rhs, rhs_phs = arithmetize_term str_vars rhs in
               build lhs rhs, lhs_phs @ rhs_phs
-            | term -> failwith "Unexpected in arithmetize_term")
+            | term ->
+              failwith
+                (Format.asprintf
+                   "Unexpected in arithmetize_term: %a"
+                   Ast.Eia.pp_term
+                   term))
     in
     let arithmetize_in_re s nfa : Ast.t =
       if nfa |> NfaL.run |> not
