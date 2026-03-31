@@ -2447,6 +2447,52 @@ let under_str env alpha vars ast =
       | other -> failwith "Unreachable: remainder is negative"))
 ;;
 
+let nielsen_transform ast =
+  Format.printf "Nielsen input: %a\n%!" Ast.pp_smtlib2 ast;
+  Ast.map
+    (function
+      | Ast.Eia (Eq (Concat (x, u), Concat (y, v), S)) ->
+        let case_1 =
+          Ast.land_ [ Ast.eia (Ast.Eia.eq x y Ast.S); Ast.eia (Ast.Eia.eq u v Ast.S) ]
+        in
+        let case_2 =
+          Ast.land_
+            [ Ast.eia (Ast.Eia.eq x (Ast.Eia.str_const "") Ast.S)
+            ; Ast.eia (Ast.Eia.eq u (Ast.Eia.concat y v) Ast.S)
+            ]
+        in
+        let case_2' =
+          Ast.land_
+            [ Ast.eia (Ast.Eia.eq y (Ast.Eia.str_const "") Ast.S)
+            ; Ast.eia (Ast.Eia.eq v (Ast.Eia.concat x u) Ast.S)
+            ]
+        in
+        let y' = gensym ~prefix:"%nielsen" () in
+        let y' = Ast.Eia.Atom (Ast.var y' Ast.S) in
+        let case_3 =
+          Ast.land_
+            [ (* len(x) < len(y) *)
+              Ast.eia (Ast.Eia.lt (Ast.Eia.len x) (Ast.Eia.len y))
+            ; Ast.eia (Ast.Eia.eq y (Ast.Eia.concat x y') Ast.S)
+            ]
+        in
+        let x' = gensym ~prefix:"%nielsen" () in
+        let x' = Ast.Eia.Atom (Ast.var x' Ast.S) in
+        let case_3' =
+          Ast.land_
+            [ (* len(x) < len(y) *)
+              Ast.eia (Ast.Eia.lt (Ast.Eia.len y) (Ast.Eia.len x))
+            ; Ast.eia (Ast.Eia.eq x (Ast.Eia.concat y x') Ast.S)
+            ]
+        in
+        Ast.lor_ [ case_1; case_2; case_2'; case_3; case_3' ]
+      | ast -> ast)
+    ast
+  |> fun ast ->
+  Format.printf "Nielsen output %a\n%!" Ast.pp_smtlib2 ast;
+  ast
+;;
+
 let split_concats ast =
   Format.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
   let module Map = Base.Map.Poly in
