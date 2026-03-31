@@ -2569,7 +2569,7 @@ let split_concats ast =
     ;;
   end
   in
-  apply_symantics_unsugared (module Pre) ast |> Ast.to_dnf
+  apply_symantics_unsugared (module Pre) ast
 ;;
 
 module
@@ -2696,8 +2696,10 @@ let run_string_simplify ast =
      | `Unknown (ast, env, _, _) -> `Unknown (ast |> over_concat, env, approxed_asts))
 ;;
 
-let arithmetize str_vars ast env =
+let arithmetize ast env =
   let module Set = Base.Set.Poly in
+  assert (Ast.is_conjunct ast);
+  let str_vars = Ast.collect_str_vars ast in
   (*let exception StrVar_In_Arithmetize in*)
   let strlens s = String.concat "" [ "strlen"; s ] in
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
