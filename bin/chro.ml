@@ -624,7 +624,11 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     let in_stoi_or_concat v = Lib.Ast.in_stoi v ast || Lib.Ast.in_concat v ast in
     Lib.Utils.powerset_seq (Lib.Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
     |> Seq.concat_map (fun str_vars ->
-      Lib.SimplII.split_concats ast |> List.map (fun ast -> str_vars, ast) |> List.to_seq)
+      Lib.SimplII.split_concats ast
+      |> List.map Lib.SimplII.nielsen_transform
+      |> List.concat_map Lib.Ast.to_dnf
+      |> List.map (fun ast -> str_vars, ast)
+      |> List.to_seq)
     |> Seq.find_map (fun (str_vars, ast) ->
       let ast, e, post, regexes = Lib.SimplII.arithmetize str_vars ast env in
       log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
