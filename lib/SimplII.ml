@@ -457,6 +457,13 @@ struct
   include FT_SIG.Sugar (Who_in_exponents_)
 end
 
+let gensym =
+  let n = ref 0 in
+  fun ?(prefix = "eee") () ->
+    incr n;
+    Printf.sprintf "%s%d" prefix !n
+;;
+
 let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
   let helperT, helperS = apply_term_symantics (module S) in
   let rec helper = function
@@ -918,6 +925,47 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> ofop l r
     ;;
 
+    let nielsen_transform lhs rhs =
+      (* Format.printf "Nielsen input: %a\n%!" Ast.pp_smtlib2 ast; *)
+        match lhs, rhs with
+        | Eia.Concat (x, u), Eia.Concat (y, v) ->
+          let case_1 =
+            Ast.land_ [ Ast.eia (Ast.Eia.eq x y Ast.S); Ast.eia (Ast.Eia.eq u v Ast.S) ]
+          in
+          let case_2 =
+            Ast.land_
+              [ Ast.eia (Ast.Eia.eq x (Ast.Eia.str_const "") Ast.S)
+              ; Ast.eia (Ast.Eia.eq u (Ast.Eia.concat y v) Ast.S)
+              ]
+          in
+          let case_2' =
+            Ast.land_
+              [ Ast.eia (Ast.Eia.eq y (Ast.Eia.str_const "") Ast.S)
+              ; Ast.eia (Ast.Eia.eq v (Ast.Eia.concat x u) Ast.S)
+              ]
+          in
+          let y' = gensym ~prefix:"%nielsen" () in
+          let y' = Ast.Eia.Atom (Ast.var y' Ast.S) in
+          let case_3 =
+            Ast.land_
+              [ (* len(x) < len(y) *)
+                Ast.eia (Ast.Eia.lt (Ast.Eia.len x) (Ast.Eia.len y))
+              ; Ast.eia (Ast.Eia.eq y (Ast.Eia.concat x y') Ast.S)
+              ]
+          in
+          let x' = gensym ~prefix:"%nielsen" () in
+          let x' = Ast.Eia.Atom (Ast.var x' Ast.S) in
+          let case_3' =
+            Ast.land_
+              [ (* len(x) < len(y) *)
+                Ast.eia (Ast.Eia.lt (Ast.Eia.len y) (Ast.Eia.len x))
+              ; Ast.eia (Ast.Eia.eq x (Ast.Eia.concat y x') Ast.S)
+              ]
+          in
+          Ast.lor_ [ case_1; case_2; case_2'; case_3; case_3' ]
+        | lhs, rhs -> Id_symantics.eq_str lhs rhs
+    ;;
+
     let eq_str l r =
       match l, r with
       | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
@@ -954,6 +1002,8 @@ let make_main_symantics ?alpha ?agressive env =
              let c2' = Base.String.chop_prefix_if_exists c2 ~prefix:c1 in
              Id_symantics.eq_str l (Eia.Concat (Id_symantics.str_const c2', r)))
            else false_)
+      | (Eia.Concat (x, u) as lhs), (Eia.Concat (y, v) as rhs) ->
+        nielsen_transform lhs rhs
       | _ -> Id_symantics.eq_str l r
     ;;
 
@@ -1474,13 +1524,6 @@ let%test_module "about shrinking" =
         |}]
     ;;
   end)
-;;
-
-let gensym =
-  let n = ref 0 in
-  fun ?(prefix = "eee") () ->
-    incr n;
-    Printf.sprintf "%s%d" prefix !n
 ;;
 
 let flatten { Info.all; _ } =
@@ -2431,12 +2474,10 @@ let under_str env alpha vars ast =
       List.filter_map (fun (env, ast) ->
         log "After rewriting via concats:\n%!";
         let var_info = apply_symantics (module Who_in_exponents) ast in
-        match
-          basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info |> over_concat)
-        with
+        match basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info) with
         | `Unsat -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
-        | `Unknown (ast, env, _, _) -> Some (ast, env))
+        | `Unknown (ast, env, _, _) -> Some (ast |> over_concat, env))
     in
     let m = List.length vars in
     Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
@@ -2445,52 +2486,6 @@ let under_str env alpha vars ast =
       | n when n >= 0 && n < m ->
         filter_asts (try_under_str (List.nth vars n) alpha length env ast)
       | other -> failwith "Unreachable: remainder is negative"))
-;;
-
-let nielsen_transform ast =
-  Format.printf "Nielsen input: %a\n%!" Ast.pp_smtlib2 ast;
-  Ast.map
-    (function
-      | Ast.Eia (Eq (Concat (x, u), Concat (y, v), S)) ->
-        let case_1 =
-          Ast.land_ [ Ast.eia (Ast.Eia.eq x y Ast.S); Ast.eia (Ast.Eia.eq u v Ast.S) ]
-        in
-        let case_2 =
-          Ast.land_
-            [ Ast.eia (Ast.Eia.eq x (Ast.Eia.str_const "") Ast.S)
-            ; Ast.eia (Ast.Eia.eq u (Ast.Eia.concat y v) Ast.S)
-            ]
-        in
-        let case_2' =
-          Ast.land_
-            [ Ast.eia (Ast.Eia.eq y (Ast.Eia.str_const "") Ast.S)
-            ; Ast.eia (Ast.Eia.eq v (Ast.Eia.concat x u) Ast.S)
-            ]
-        in
-        let y' = gensym ~prefix:"%nielsen" () in
-        let y' = Ast.Eia.Atom (Ast.var y' Ast.S) in
-        let case_3 =
-          Ast.land_
-            [ (* len(x) < len(y) *)
-              Ast.eia (Ast.Eia.lt (Ast.Eia.len x) (Ast.Eia.len y))
-            ; Ast.eia (Ast.Eia.eq y (Ast.Eia.concat x y') Ast.S)
-            ]
-        in
-        let x' = gensym ~prefix:"%nielsen" () in
-        let x' = Ast.Eia.Atom (Ast.var x' Ast.S) in
-        let case_3' =
-          Ast.land_
-            [ (* len(x) < len(y) *)
-              Ast.eia (Ast.Eia.lt (Ast.Eia.len y) (Ast.Eia.len x))
-            ; Ast.eia (Ast.Eia.eq x (Ast.Eia.concat y x') Ast.S)
-            ]
-        in
-        Ast.lor_ [ case_1; case_2; case_2'; case_3; case_3' ]
-      | ast -> ast)
-    ast
-  |> fun ast ->
-  Format.printf "Nielsen output %a\n%!" Ast.pp_smtlib2 ast;
-  ast
 ;;
 
 let split_concats ast =
@@ -2698,8 +2693,7 @@ let run_string_simplify ast =
     (match basic_simplify [ 0 ] e (ast |> rewrite_via_concat var_info) with
      | `Sat env -> `Sat env
      | `Unsat -> `Unsat ast
-     | `Unknown (ast, env, _, _) ->
-       `Unknown (ast |> rewrite_via_concat var_info |> over_concat, env, approxed_asts))
+     | `Unknown (ast, env, _, _) -> `Unknown (ast |> over_concat, env, approxed_asts))
 ;;
 
 let arithmetize str_vars ast env =

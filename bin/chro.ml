@@ -625,7 +625,6 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     Lib.Utils.powerset_seq (Lib.Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
     |> Seq.concat_map (fun str_vars ->
       Lib.SimplII.split_concats ast
-      |> List.map Lib.SimplII.nielsen_transform
       |> List.concat_map Lib.Ast.to_dnf
       |> List.map (fun ast -> str_vars, ast)
       |> List.to_seq)
