@@ -2062,6 +2062,22 @@ let basic_simplify step ?multiple (env : Env.t) ast =
   | Sat (_, env) -> `Sat env
 ;;
 
+let normalize eia =
+  let open Ast.Eia in
+  let rec loop eia =
+    let (module Symantics) = make_main_symantics Env.empty in
+    let rez = apply_symantics (module Symantics) eia in
+    let eia2 = Symantics.prj rez in
+    if Ast.safe_eq eia eia2 then eia2 else loop eia2
+  in
+  match eia with
+  | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _)) as constr ->
+    (match loop (Ast.Eia constr) with
+     | Ast.Eia normalized -> normalized
+     | _ -> failwith "Unexpected non-integer constraint in normalization")
+  | _ -> eia
+;;
+
 let run_basic_simplify ?(env = Env.empty) ast =
   log "Basic simplifications:\n%!";
   let ast = lower_mod ast in
@@ -2489,7 +2505,6 @@ let under_str env alpha vars ast =
 ;;
 
 let split_concats ast =
-  Format.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
   let module Map = Base.Map.Poly in
   let var_or_const x =
     match x with

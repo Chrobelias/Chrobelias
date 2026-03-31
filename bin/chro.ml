@@ -326,25 +326,6 @@ let dpll check_sat =
     | Literal_type.P -> var
     | Literal_type.N -> Ast.lnot var
   in
-  let normalize eia =
-    let open Ast.Eia in
-    match eia with
-    | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _))
-      when Ast.get_str_vars (Ast.eia eia) |> List.is_empty ->
-      (try
-         match Lib.Me.ir_of_ast Lib.Env.empty (Ast.eia eia) with
-         | Ok ir ->
-           ir
-           |> Lib.Ir.simpl
-           |> Lib.Me.eia_of_ir
-           |> (function
-            | Eia eia -> eia
-            | _ -> failwith "Unexpected non-atomic formula in DPLL(T)")
-         | Error _ -> eia
-       with
-       | _ -> eia)
-    | _ -> eia
-  in
   fun ast ->
     let bool_internalc = ref 0 in
     let bool_internal_name () =
@@ -355,7 +336,7 @@ let dpll check_sat =
     let th_map, bool_map = ref Map.empty, ref Map.empty in
     let to_bool_skeleton ?allow_new ast =
       let eia_to_bool ?allow_new eia =
-        let eia = normalize eia in
+        let eia = Lib.SimplII.normalize eia in
         match Map.find !th_map eia with
         | Some (var, t) -> get_literal var t
         | None when allow_new |> Option.value ~default:false ->
@@ -369,7 +350,7 @@ let dpll check_sat =
                 th_map
                 := Map.add_exn
                      !th_map
-                     ~key:(normalize eia)
+                     ~key:(Lib.SimplII.normalize eia)
                      ~data:(Ast.pred s, Literal_type.N)
               | _ -> ());
              bool_map := Map.add_exn !bool_map ~key:s ~data:eia;

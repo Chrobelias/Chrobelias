@@ -31,6 +31,8 @@ val arithmetize
      * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ]) list
      * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t
 
+val normalize : Ast.Eia.t -> Ast.Eia.t
+
 val run_string_simplify
   :  Ast.t
   -> [ `Sat of Env.t
