@@ -1649,9 +1649,8 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
   in
   let var_can_be_prop v =
     Env.is_absent_key v env
-    && not
-         (String.starts_with ~prefix:"strlen" v
-          && Ast.forsome
+    (*&& not
+         (Ast.forsome
                (function
                  | Ast.Eia eia ->
                    Ast.Eia.fold2
@@ -1663,7 +1662,7 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
                      false
                      eia
                  | _ -> false)
-               ast)
+               ast)*)
   in
   let var_can_subst_complex v = var_can_be_prop v && not (Ast.in_strlen v ast) in
   let trivial_integer_propagations vn rhs =
@@ -1771,8 +1770,12 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
     in
     let module Set = Base.Set.Poly in
     match ast with
-    | Eia (Eia.Eq (Eia.Atom (Var (vn, I)), rhs, I)) when var_can_be_prop vn ->
-      trivial_integer_propagations vn rhs
+    | Eia (Eia.Eq ((Eia.Atom (Var (vn, I)) as lhs), rhs, I)) when var_can_be_prop vn ->
+    begin
+      match trivial_integer_propagations vn rhs with
+      | Noprop -> advanced_integer_propagations lhs rhs
+      | smth -> smth
+    end
     | Eia (Eia.Eq (rhs, Eia.Atom (Var (vn, I)), I)) when var_can_be_prop vn ->
       trivial_integer_propagations vn rhs
     | Eia (Eia.Eq (Eia.Atom (Var (vn, S)), rhs, S)) when var_can_be_prop vn ->
@@ -2096,6 +2099,11 @@ let normalize eia =
     (match loop (Ast.Eia constr) with
      | Ast.Eia normalized -> normalized
      | _ -> failwith "Unexpected non-integer constraint in normalization")
+  | _ -> eia
+;;
+
+let _normalize eia =
+  try normalize eia with
   | _ -> eia
 ;;
 
