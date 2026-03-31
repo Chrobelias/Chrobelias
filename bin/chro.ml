@@ -313,7 +313,7 @@ let reason lhs rhs =
   if lhs' <= rhs' then lhs else rhs
 ;;
 
-let dpll check_sat =
+let dpll check_sat ?(verbose = false) =
   let module Ast = Lib.Ast in
   let module Z3 = Smtml.Z3_mappings.Solver in
   let module Literal_type = struct
@@ -422,7 +422,7 @@ let dpll check_sat =
       end
       | `Unsat ->
         log "DPLL: Bool unsat found\n%!";
-        report_result (`Unsat !unsat_reason);
+        report_result ~verbose (`Unsat !unsat_reason);
         unsat !unsat_reason Ast.true_
       | `Unknown ->
         log "DPLL: Z3 SAT-solver gives 'unknown'\n%!";
@@ -796,7 +796,7 @@ let () =
       then config.logic <- `Eia
       else config.logic <- `Str;
       (try
-         let rez = dpll (check_sat state.tys ~verbose:true) ast in
+         let rez = dpll (check_sat state.tys ~verbose:true) ~verbose:true ast in
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->
