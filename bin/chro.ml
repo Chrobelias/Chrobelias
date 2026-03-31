@@ -328,7 +328,6 @@ let dpll check_sat ?(verbose = false) =
   in
   fun ast ->
     let bool_internalc = ref 0 in
-    let can_be_unk = ref false in
     let bool_internal_name () =
       let r = Format.asprintf "$%d" !bool_internalc in
       bool_internalc := !bool_internalc + 1;
@@ -401,6 +400,7 @@ let dpll check_sat ?(verbose = false) =
       |> Ast.land_
     in
     let unsat_reason = ref "bool" in
+    let can_be_unk = ref false in
     let rec dpll new_assumptions solver =
       log "DPLL: into Z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
       Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
@@ -427,9 +427,13 @@ let dpll check_sat ?(verbose = false) =
       end
       | `Unsat ->
         log "DPLL: Bool unsat found\n%!";
-        if !can_be_unk then report_result ~verbose (`Unknown "");
-        report_result ~verbose (`Unsat !unsat_reason);
-        unsat !unsat_reason Ast.true_
+        if !can_be_unk
+        then (
+          report_result ~verbose (`Unknown "");
+          unknown Ast.true_ Lib.Env.empty)
+        else (
+          report_result ~verbose (`Unsat !unsat_reason);
+          unsat !unsat_reason Ast.true_)
       | `Unknown ->
         log "DPLL: Z3 SAT-solver gives 'unknown'\n%!";
         unknown Ast.true_ Lib.Env.empty
@@ -802,7 +806,7 @@ let () =
       then config.logic <- `Eia
       else config.logic <- `Str;
       (try
-         let rez = dpll (check_sat state.tys ~verbose:true) ~verbose:true ast in
+         let rez = dpll (check_sat state.tys) ~verbose:true ast in
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->

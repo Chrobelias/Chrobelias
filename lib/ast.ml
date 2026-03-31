@@ -929,6 +929,27 @@ let in_stoi2 v ast =
 ;;
 
 let rec equal ast ast' =
+  let safe_eq_eia eia eia' =
+    let open Eia in
+    let eq_lin_term term1 term2 =
+      let module Set = Base.Set.Poly in
+      match term1, term2 with
+      | Add terms1, Add terms2 -> Set.equal (Set.of_list terms1) (Set.of_list terms2)
+      | term1, term2 -> Stdlib.(term1 = term2)
+    in
+    match eia, eia' with
+    | Eia (InReRaw (atom, S, lhs)), Eia (InReRaw (atom', S, rhs)) ->
+      NfaS.equal_start_and_final lhs rhs && atom = atom'
+    | Eia (InReRaw (atom, I, lhs)), Eia (InReRaw (atom', I, rhs)) ->
+      NfaS.equal_start_and_final lhs rhs && atom = atom'
+    | Eia (Eq (term, term', I)), Eia (Eq (term1, term1', I)) ->
+      eq_lin_term term term1 && eq_lin_term term' term1'
+    | Eia (Neq (term, term', I)), Eia (Neq (term1, term1', I)) ->
+      eq_lin_term term term1 && eq_lin_term term' term1'
+    | Eia (Leq (term, term')), Eia (Leq (term1, term1')) ->
+      eq_lin_term term term1 && eq_lin_term term' term1'
+    | eia, eia' -> Eia.equal eia eia'
+  in
   match ast, ast' with
   | True, True -> true
   | Lnot ast, Lnot ast' -> equal ast ast'
@@ -936,20 +957,9 @@ let rec equal ast ast' =
   | Lor asts, Lor asts' -> List.for_all2 equal asts asts'
   | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
   | Pred name, Pred name' -> name = name'
-  | Eia eia, Eia eia' -> Eia.equal eia eia'
+  | Unsupp _, Unsupp _ -> true
+  | Eia eia, Eia eia' -> safe_eq_eia (Eia eia) (Eia eia')
   | _, _ -> false
-;;
-
-let safe_eq ast ast' =
-  match ast, ast' with
-  | Eia (Eia.InReRaw (atom, S, lhs)), Eia (Eia.InReRaw (atom', S, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
-  | Eia (Eia.InReRaw (atom, I, lhs)), Eia (Eia.InReRaw (atom', I, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
-  | smth ->
-    (match Stdlib.(ast = ast') with
-     | exception _ -> true
-     | smth -> smth)
 ;;
 
 let to_nat ast =

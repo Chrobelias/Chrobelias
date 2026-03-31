@@ -2065,7 +2065,7 @@ let basic_simplify step ?multiple (env : Env.t) ast =
     let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
     let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     let next_step = next step in
-    match Env.length env2 > Env.length env, Ast.safe_eq ast ast2 with
+    match Env.length env2 > Env.length env, Ast.equal ast ast2 with
     | true, equal ->
       let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
@@ -2092,7 +2092,7 @@ let normalize eia =
     let (module Symantics) = make_main_symantics Env.empty in
     let rez = apply_symantics (module Symantics) eia in
     let eia2 = Symantics.prj rez in
-    if Ast.safe_eq eia eia2 then eia2 else loop eia2
+    if Ast.equal eia eia2 then eia2 else loop eia2
   in
   match eia with
   | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _)) as constr ->
