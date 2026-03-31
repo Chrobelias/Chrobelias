@@ -21,11 +21,10 @@ val simpl
      | `Underapprox of Ast.t list
      ]
 
-val split_concats : Ast.t -> Ast.t list
+val split_concats : Ast.t -> Ast.t
 
 val arithmetize
-  :  string list
-  -> Ast.t
+  :  Ast.t
   -> Env.t
   -> Ast.t
      * Env.t

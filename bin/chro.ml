@@ -345,7 +345,7 @@ let dpll check_sat =
        | _ -> eia)
     | _ -> eia
   in
-  fun tys ast ->
+  fun ast ->
     let bool_internalc = ref 0 in
     let bool_internal_name () =
       let r = Format.asprintf "$%d" !bool_internalc in
@@ -430,7 +430,7 @@ let dpll check_sat =
             (Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model)
         in
         log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
-        match check_sat tys candidate with
+        match check_sat candidate with
         | Sat (_, _) as result -> result
         | Unsat (s, _) ->
           unsat_reason := reason s !unsat_reason;
@@ -619,23 +619,31 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     | _ -> apporx_rez
   in
   let check_string_sat ?(light = false) env ast =
-    let unsat_reason = ref "presimpl str" in
-    let can_be_unk = ref false in
-    let in_stoi_or_concat v = Lib.Ast.in_stoi v ast || Lib.Ast.in_concat v ast in
-    Lib.Utils.powerset_seq (Lib.Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
-    |> Seq.concat_map (fun str_vars ->
-      Lib.SimplII.split_concats ast
-      |> List.concat_map Lib.Ast.to_dnf
-      |> List.map (fun ast -> str_vars, ast)
-      |> List.to_seq)
-    |> Seq.find_map (fun (str_vars, ast) ->
-      let ast, e, post, regexes = Lib.SimplII.arithmetize str_vars ast env in
+    let module Ast = Lib.Ast in
+    let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in
+    let split_vars =
+      Ast.get_str_vars ast
+      |> List.filter in_stoi_or_concat
+      |> List.map (fun var ->
+        Ast.lor_
+          [ Ast.eia
+              (Ast.Eia.eq
+                 (Ast.Eia.iofs (Ast.Eia.Atom (Ast.var var S)))
+                 (Const Z.minus_one)
+                 Ast.I)
+          ; Ast.eia
+              (Ast.Eia.geq (Ast.Eia.iofs (Atom (Var (var, S)))) (Ast.Eia.const Z.zero))
+          ])
+    in
+    let ast = Lib.Ast.Land (Lib.SimplII.split_concats ast :: split_vars) in
+    let arithmetize_and_check ?(light = false) env ast =
+      let ast, e, post, regexes = Lib.SimplII.arithmetize ast env in
       log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
       match check_eia_sat ~light ast e with
       | Sat (s, (ast, env, get_model, _)) -> begin
         let result = Sat (s, (ast, env, get_model, regexes)) in
         if List.is_empty post
-        then Some result
+        then result
         else (
           match get_model tys with
           | Result.Ok model ->
@@ -650,25 +658,16 @@ let rec check_sat ?(verbose = false) tys ast : rez =
                        | _ -> `Unknown)
                    with
                    | `Sat -> true
-                   | `Unknown ->
-                     can_be_unk := true;
-                     false)
+                   | `Unknown -> false)
                 post
-            then Some result
-            else None
+            then result
+            else unknown ast Lib.Env.empty
             end
-          | Result.Error _ -> Some result)
+          | Result.Error _ -> unknown ast Lib.Env.empty)
       end
-      | Unsat (s, _) ->
-        unsat_reason := reason s !unsat_reason;
-        None
-      | Unknown _ ->
-        can_be_unk := true;
-        None)
-    |> fun r ->
-    match r with
-    | Some rez -> rez
-    | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat (!unsat_reason, ast)
+      | other -> other
+    in
+    dpll (arithmetize_and_check ~light env) ast
   in
   let handle =
     fun result f ->
@@ -816,14 +815,14 @@ let () =
       then config.logic <- `Eia
       else config.logic <- `Str;
       (try
-         let rez = dpll (check_sat ~verbose:true) state.tys ast in
+         let rez = dpll (check_sat state.tys ~verbose:true) ast in
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->
          config.bound_res <- -1;
          config.bound_states <- -1;
          Lib.Config.bounded_unsat := false;
-         let rez = dpll (check_sat ~verbose:true) state.tys ast in
+         let rez = dpll (check_sat state.tys ~verbose:true) ast in
          { state with last_result = Some rez }
        | ex ->
          Format.printf
@@ -858,7 +857,7 @@ let () =
         let rez =
           match state.last_result with
           | Some r -> r
-          | None -> dpll check_sat state.tys ast
+          | None -> dpll (check_sat state.tys) ast
         in
         let () =
           match rez with
@@ -893,7 +892,7 @@ let () =
               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
               Lib.Config.config.under_approx <- -1;
               try
-                match dpll check_sat tys shrinked_ast with
+                match dpll (check_sat tys) shrinked_ast with
                 | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
                 | Sat (_, (_, env, get_model, _regexes)) ->
                   (* let tys = merge_tys state in *)

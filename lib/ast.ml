@@ -817,6 +817,21 @@ let collect_lin_exp ast =
     ast
 ;;
 
+let collect_str_vars ast =
+  let module Set = Base.Set.Poly in
+  fold
+    (fun vars ast ->
+       let open Eia in
+       match ast with
+       | Eia eia ->
+         (match eia with
+          | Eq (Iofs (Atom (Var (x, S))), Const c, I) when Z.(c = minus_one) -> x :: vars
+          | _ -> vars)
+       | _ -> vars)
+    []
+    ast
+;;
+
 let collect_all acc eia =
   Eia.fold2
     (fun (str, lin, exp) -> function
