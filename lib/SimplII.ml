@@ -1636,7 +1636,7 @@ type action =
   | PropAndPreserve : 'a Ast.Eia.term * 'a Ast.Eia.term * 'a Ast.kind -> action
   | Noprop
 
-let eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t) =
+let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t) =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let trivial_simplify eta = subst_term Env.empty eta in
@@ -1901,8 +1901,29 @@ let eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t) =
         Noprop
         xs
     in
-    handle_action env ast action
-  | Eia _ -> handle_action env ast (helper info ast env ast)
+    let env, ph = handle_action env ast action in
+    let ph =
+      match ph with
+      | Ast.Land xs ->
+        Ast.land_
+          (List.map
+             (function
+               | Ast.Lor ys ->
+                 Ast.lor_
+                   (List.map
+                      (fun y ->
+                         let env, ph = eq_propagation info env y in
+                         let (module Symantics) = make_main_symantics env in
+                         apply_symantics_unsugared (module Symantics) ph)
+                      ys)
+               | el -> el)
+             xs)
+      | ph -> ph
+    in
+    env, ph
+  | Eia _ ->
+    let env, ph = handle_action env ast (helper info ast env ast) in
+    env, ph
   | ph -> env, ph
 ;;
 
