@@ -2272,73 +2272,6 @@ let run_under2 env ast =
   `Underapprox asts
 ;;
 
-let try_under_str vars alpha len env ast =
-  let module Map = Base.Map.Poly in
-  let module Set = Base.Set.Poly in
-  if Base.Set.length vars = 0
-  then []
-  else (
-    let ( let* ) xs f = List.concat_map f xs in
-    let envs =
-      let regexes =
-        Map.map
-          ~f:(fun data ->
-            List.fold_left
-              (fun acc nfa -> NfaS.intersect nfa acc)
-              (NfaCollection.LsbStr.n ())
-              data)
-          (collect_regexes ast)
-      in
-      let all_as name =
-        let alpha =
-          alpha
-          |> Set.of_list
-          |> (fun x ->
-          Seq.fold_left (fun acc digit -> Set.add acc digit) x (Regex.dec |> String.to_seq))
-          |> Set.to_list
-        in
-        let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
-        let max_cnt = Config.under_str_config.max_cnt in
-        let length = Ast.get_len name ast in
-        let length, exact, count =
-          match length >= 0, Map.mem regexes name with
-          | true, other ->
-            length, true, min max_cnt (Utils.pow ~base:(List.length alpha) length)
-          | false, true -> length, false, max_cnt
-          | _ -> len, false, max_cnt
-        in
-        let list =
-          get_strings_range
-            (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
-            length
-            ~exact
-            count
-        in
-        log
-          "Strings for %s:\n %a\n%!"
-          name
-          Format.(
-            pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
-          list;
-        list
-      in
-      Base.Set.Poly.fold
-        ~f:(fun acc name ->
-          let* s = all_as name in
-          let* acc = acc in
-          [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
-        ~init:[ env ]
-        vars
-    in
-    List.map
-      (fun e ->
-         let (module Symantics) = make_main_symantics e in
-         (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
-         log "@[%a@]" (Env.pp ~title:"env = ") e; *)
-         e, apply_symantics (module Symantics) ast)
-      envs)
-;;
-
 let rewrite_via_concat { Info.all; _ } =
   let module Map = Base.Map.Poly in
   let gensym1 = gensym in
@@ -2423,18 +2356,87 @@ let rewrite_via_concat { Info.all; _ } =
 
 let under_str env alpha vars ast =
   let module Set = Base.Set.Poly in
+  let module Map = Base.Map.Poly in
+  let try_under_str vars alpha len env ast =
+    if Base.Set.length vars = 0
+    then []
+    else (
+      let ( let* ) xs f = List.concat_map f xs in
+      let envs =
+        let regexes =
+          Map.map
+            ~f:(fun data ->
+              List.fold_left
+                (fun acc nfa -> NfaS.intersect nfa acc)
+                (NfaCollection.LsbStr.n ())
+                data)
+            (collect_regexes ast)
+        in
+        let all_as name =
+          let alpha =
+            alpha
+            |> Set.of_list
+            |> (fun x ->
+            Seq.fold_left
+              (fun acc digit -> Set.add acc digit)
+              x
+              (Regex.dec |> String.to_seq))
+            |> Set.to_list
+          in
+          let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
+          let max_cnt = Config.under_str_config.max_cnt in
+          let length = Ast.get_len name ast in
+          let length, exact, count =
+            match length >= 0, Map.mem regexes name with
+            | true, other ->
+              length, true, min max_cnt (Utils.pow ~base:(List.length alpha) length)
+            | false, true -> length, false, max_cnt
+            | _ -> len, false, max_cnt
+          in
+          let list =
+            get_strings_range
+              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+              length
+              ~exact
+              count
+          in
+          log
+            "Strings for %s:\n %a\n%!"
+            name
+            Format.(
+              pp_print_list pp_print_string ~pp_sep:(fun ppf () -> Format.fprintf ppf " "))
+            list;
+          list
+        in
+        Base.Set.Poly.fold
+          ~f:(fun acc name ->
+            let* s = all_as name in
+            let* acc = acc in
+            [ Env.extend_string_exn acc name (Ast.Eia.Str_const s) ])
+          ~init:[ env ]
+          vars
+      in
+      List.map
+        (fun e ->
+           let (module Symantics) = make_main_symantics e in
+           (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
+         log "@[%a@]" (Env.pp ~title:"env = ") e; *)
+           e, apply_symantics (module Symantics) ast)
+        envs)
+  in
   if Config.under_str_config.max_cnt < 0
   then Seq.empty
   else (
     let filter_asts =
       List.filter_map (fun (env, ast) ->
-        match basic_simplify [ 0 ] env ast with
+        log "After rewriting via concats:\n%!";
+        let var_info = apply_symantics (module Who_in_exponents) ast in
+        match
+          basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info |> over_concat)
+        with
         | `Unsat -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
-        | `Unknown (ast, env, _, _) ->
-          log "After rewriting via concats:\n%!";
-          let var_info = apply_symantics (module Who_in_exponents) ast in
-          Some (ast |> rewrite_via_concat var_info, env))
+        | `Unknown (ast, env, _, _) -> Some (ast, env))
     in
     let m = List.length vars in
     Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
@@ -2446,6 +2448,7 @@ let under_str env alpha vars ast =
 ;;
 
 let split_concats ast =
+  Format.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
   let module Map = Base.Map.Poly in
   let var_or_const x =
     match x with
@@ -2643,11 +2646,14 @@ let run_string_simplify ast =
       else ast' |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
     in
     let alpha = collect_alpha ast' in
-    let (module Symantics) = make_main_symantics ~alpha e in
-    let ast = ast' |> over_concat |> apply_symantics (module Symantics) in
-    let underapproxed_asts = ast |> under_str e (Utils.with_extra_char alpha) vars in
+    let approxed_asts = ast |> under_str e (Utils.with_extra_char alpha) vars in
     let var_info = apply_symantics (module Who_in_exponents) ast in
-    `Unknown (ast |> rewrite_via_concat var_info, e, underapproxed_asts)
+    log "After rewriting via concats:\n%!";
+    (match basic_simplify [ 0 ] e (ast |> rewrite_via_concat var_info) with
+     | `Sat env -> `Sat env
+     | `Unsat -> `Unsat ast
+     | `Unknown (ast, env, _, _) ->
+       `Unknown (ast |> rewrite_via_concat var_info |> over_concat, env, approxed_asts))
 ;;
 
 let arithmetize str_vars ast env =
