@@ -328,6 +328,7 @@ let dpll check_sat ?(verbose = false) =
   in
   fun ast ->
     let bool_internalc = ref 0 in
+    let can_be_unk = ref false in
     let bool_internal_name () =
       let r = Format.asprintf "$%d" !bool_internalc in
       bool_internalc := !bool_internalc + 1;
@@ -418,10 +419,15 @@ let dpll check_sat ?(verbose = false) =
           let not_candidate = Ast.lnot candidate in
           let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
           dpll unsat_core_contra_sat_ast solver
-        | Unknown _ -> unknown Ast.true_ Lib.Env.empty
+        | Unknown _ ->
+          can_be_unk := true;
+          let not_candidate = Ast.lnot candidate in
+          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
+          dpll unsat_core_contra_sat_ast solver
       end
       | `Unsat ->
         log "DPLL: Bool unsat found\n%!";
+        if !can_be_unk then report_result ~verbose (`Unknown "");
         report_result ~verbose (`Unsat !unsat_reason);
         unsat !unsat_reason Ast.true_
       | `Unknown ->
