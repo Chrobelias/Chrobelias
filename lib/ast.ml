@@ -73,6 +73,72 @@ module Eia = struct
     | Substr : string term * Z.t term * Z.t term -> string term
   [@@deriving variants]
 
+  let len = function
+    | Str_const c -> Const (String.length c |> Z.of_int)
+    | ast -> Len ast
+  ;;
+
+  let rec mul = function
+    | [ hd ] -> hd
+    | xs ->
+      let c = ref Z.one in
+      let xs =
+        List.concat_map
+          (function
+            | Mul (Const c' :: ys) ->
+              (c := Z.(!c * c'));
+              ys
+            | Mul ys -> ys
+            | Const c' ->
+              (c := Z.(!c * c'));
+              []
+            | smth -> [ smth ])
+          xs
+      in
+      begin match xs with
+      | xs when Z.(!c = zero) -> Const Z.zero
+      | [] -> Const !c
+      | [ hd ] when Z.(!c = one) -> hd
+      | [ Const x ] -> Const Z.(!c * x)
+      | [ Add xs ] -> add (List.map (fun x -> mul [ Const !c; x ]) xs)
+      | xs when Z.(!c = one) -> Mul xs
+      | xs -> Mul (Const !c :: xs)
+      end
+
+  and add = function
+    | [ hd ] -> hd
+    | xs ->
+      let c = ref Z.zero in
+      let xs =
+        List.concat_map
+          (function
+            | Add (Const c' :: ys) ->
+              (c := Z.(!c + c'));
+              ys
+            | Add ys -> ys
+            | Const c' ->
+              (c := Z.(!c + c'));
+              []
+            | smth -> [ smth ])
+          xs
+      in
+      begin match xs with
+      | [] -> Const !c
+      | [ hd ] when Z.(!c = zero) -> hd
+      | xs when Z.(!c = zero) -> Add xs
+      | xs -> Add (Const !c :: xs)
+      end
+  ;;
+
+  (*let str_at s a =
+    match s, a with
+    | Str_const s, Const n ->
+      (try Str_const (String.sub s (Z.to_int n) 1) with
+       | _ -> Str_const "")
+    | Str_const "", _ -> Str_const ""
+    | _ -> at s a
+  ;;*)
+
   let rec pp_term : 'a. Format.formatter -> 'a term -> unit =
     fun (type a) ppf : (a term -> unit) -> function
     | Const c when Z.lt c Z.zero -> Format.fprintf ppf "(- %a)" Z.pp_print (Z.( ~- ) c)
@@ -245,7 +311,7 @@ module Eia = struct
     | Str_const s -> fs (Str_const s)
     | Atom (Var (name, S)) -> fs (Atom (Var (name, S)))
     | Atom (Var (name, I)) -> fz (Atom (Var (name, I)))
-    | Add xs -> fz (Add (List.map (map_term fz fs) xs))
+    | Add xs -> fz (add (List.map (map_term fz fs) xs))
     | Mul xs -> fz (Mul (List.map (map_term fz fs) xs))
     | Mod (xs, d) -> fz (Mod (map_term fz fs xs, d))
     | Bwand (l, r) -> fz (Bwand (map_term fz fs l, map_term fz fs r))
@@ -346,6 +412,15 @@ module Eia = struct
     | Contains of string term * string term
     | SuffixOf of string term * string term
   [@@deriving variants]
+
+  let leq lhs rhs = leq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero)
+
+  let eq (type a) : a term -> a term -> a kind -> t =
+    fun lhs rhs kind ->
+    match kind with
+    | I -> eq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero) I
+    | S -> eq lhs rhs S
+  ;;
 
   let compare l r = Stdlib.compare l r
   let geq a b = leq b a

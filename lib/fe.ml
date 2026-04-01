@@ -216,11 +216,11 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
   | Expr.Binop (_ty, Ty.Binop.Add, lhs, rhs) ->
     let* lhs, phs = to_eia_term lhs in
     let* rhs, phs' = to_eia_term rhs in
-    return (Ast.Eia.Add [ lhs; rhs ]) (phs @ phs')
+    return (Ast.Eia.add [ lhs; rhs ]) (phs @ phs')
   | Expr.Binop (_ty, Ty.Binop.Sub, lhs, rhs) ->
     let* lhs, phs = to_eia_term lhs in
     let* rhs, phs' = to_eia_term rhs in
-    return (Ast.Eia.Add [ lhs; neg rhs ]) (phs @ phs')
+    return (Ast.Eia.add [ lhs; neg rhs ]) (phs @ phs')
   | Expr.Binop (_ty, Ty.Binop.Mul, lhs, rhs) ->
     let* lhs, phs = to_eia_term lhs in
     let* rhs, phs' = to_eia_term rhs in

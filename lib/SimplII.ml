@@ -699,12 +699,12 @@ let make_main_symantics ?alpha ?agressive env =
            match x, acc with
            | Eia.Mul ys, _ -> ys @ acc
            | e, Eia.Add ss :: tl | Add ss, e :: tl ->
-             Add (List.map (fun x -> Eia.Mul [ x; e ]) ss) :: tl
+             add (List.map (fun x -> Eia.Mul [ x; e ]) ss) :: tl
            | Pow (base1, e1), Eia.Pow (base2, e2) :: tl when Stdlib.(base1 = base2) ->
-             Eia.Pow (base1, Eia.Add [ e1; e2 ]) :: tl
+             Eia.pow base1 (Eia.add [ e1; e2 ]) :: tl
            | Const c, Eia.Pow ((Const basec as base), Add (Const d :: ss)) :: tl
              when Z.(equal (abs c) basec) && d = Z.minus_one ->
-             Eia.(Const Z.(c / basec)) :: Eia.Pow (base, Add ss) :: tl
+             Eia.(Const Z.(c / basec)) :: Eia.Pow (base, add ss) :: tl
            | x, _ -> x :: acc)
         xs
         []
@@ -718,7 +718,7 @@ let make_main_symantics ?alpha ?agressive env =
                | Eia.(Const c) -> op c cacc, phacc
                | Eia.Pow ((Const base as b), Eia.Add (Const minus1 :: sums))
                  when Z.(cacc mod base = Z.zero) && Z.equal Z.minus_one minus1 ->
-                 Z.(cacc / base), Eia.Pow (b, Eia.Add sums) :: phacc
+                 Z.(cacc / base), Eia.Pow (b, Eia.add sums) :: phacc
                | ph -> cacc, ph :: phacc)
             (init, [])
             xs
@@ -733,7 +733,7 @@ let make_main_symantics ?alpha ?agressive env =
       | c, [ Pow ((Const base_ as base), Add [ Const v1; v ]) ]
         when Z.(equal c (Config.base ())) && base_ = Config.base () && v1 = Z.minus_one ->
         pow base v
-      | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
+      | c, [ Add ss ] -> Eia.add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
       | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)
 
     and pow base xs =
@@ -896,7 +896,7 @@ let make_main_symantics ?alpha ?agressive env =
          | Leq when l <= r -> true_
          | Leq -> false_)
       | Eia.(Add (Atom (Var (v1, _)) :: Mul [ Const c; Atom (Var (v2, _)) ] :: tl)), rhs
-        when String.equal v1 v2 && c = Z.minus_one -> ofop (Eia.Add tl) rhs
+        when String.equal v1 v2 && c = Z.minus_one -> ofop (Eia.add tl) rhs
       | Eia.Add ls, Eia.Add rs -> ofop (add (ls @ List.map negate rs)) (constz Z.zero)
       | Eia.Add (Const c :: tl), Const n -> ofop (add tl) (constz Z.(n - c))
       | Const c, Add (Const n :: tl) -> ofop (add (List.map negate tl)) (constz Z.(n - c))
@@ -920,7 +920,7 @@ let make_main_symantics ?alpha ?agressive env =
       | Eia.Pow (Eia.(Const base), Eia.Add (Const n :: etail)), _
         when Z.(n < zero) && Z.fits_int n ->
         ofop
-          (Eia.Pow (Eia.(Const base), Eia.Add etail))
+          (Eia.Pow (Eia.(Const base), Eia.add etail))
           (mul [ pow (constz base) (constz (Z.abs n)); r ])
       | _ -> ofop l r
     ;;
@@ -2098,14 +2098,21 @@ let normalize eia =
   | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _)) as constr ->
     (match loop (Ast.Eia constr) with
      | Ast.Eia normalized -> normalized
-     | _ -> failwith "Unexpected non-integer constraint in normalization")
+     | Lnot True -> Ast.Eia.leq (Ast.Eia.const Z.one) (Ast.Eia.const Z.zero)
+     | True -> Ast.Eia.leq (Ast.Eia.const Z.zero) (Ast.Eia.const Z.one)
+     | ast ->
+       failwith
+         (Format.asprintf
+            "Unexpected non-integer constraint in normalization: %a"
+            Ast.pp_smtlib2
+            ast))
   | _ -> eia
 ;;
 
-let _normalize eia =
+(*let normalize eia =
   try normalize eia with
   | _ -> eia
-;;
+;;*)
 
 let run_basic_simplify ?(env = Env.empty) ast =
   log "Basic simplifications:\n%!";
@@ -2251,7 +2258,7 @@ let try_under2_heuristics env ast =
                 acc
                 name
                 Id_symantics.(
-                  Ast.Eia.Add
+                  Ast.Eia.add
                     [ pow2var u; Ast.Eia.Mul [ const (-1); pow2var v ]; const a ])
             , Id_symantics.(prj (leq (var v) (var u))) :: phs )
           ])
@@ -2279,7 +2286,7 @@ let try_under2_heuristics env ast =
               Id_symantics.(const 0, [])
             |> snd
           in
-          [ Env.extend_int_exn acc name (Ast.Eia.Add sum), constraints @ phs ])
+          [ Env.extend_int_exn acc name (Ast.Eia.add sum), constraints @ phs ])
         ~init:[ env, [] ]
         under2vars
   in
