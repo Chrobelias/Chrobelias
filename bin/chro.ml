@@ -413,7 +413,9 @@ let dpll check_sat ?(verbose = false) =
         in
         log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
         match check_sat candidate with
-        | Sat (_, _) as result -> result
+        | Sat (s, _) as result ->
+          report_result ~verbose (`Sat s);
+          result
         | Unsat (s, _) ->
           unsat_reason := reason s !unsat_reason;
           let not_candidate = Ast.lnot candidate in
