@@ -407,10 +407,8 @@ let dpll check_sat ?(verbose = false) =
       match Z3.check solver ~assumptions:[] with
       | `Sat -> begin
         (* log "DPLL: found Bool model\n%!"; *)
-        let candidate =
-          of_bool_model
-            (Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model)
-        in
+        let model = Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model in
+        let candidate = of_bool_model model in
         log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
         match check_sat candidate with
         | Sat (s, _) as result ->
