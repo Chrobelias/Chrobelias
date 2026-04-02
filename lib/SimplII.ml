@@ -1641,9 +1641,24 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let trivial_simplify eta = subst_term Env.empty eta in
   let noprop = Noprop in
-  let returni vn rhs = Prop (vn, Ast.TT (Ast.I, rhs)) in
-  let returns vn rhs = Prop (vn, Ast.TT (Ast.S, rhs)) in
-  let return2i lhs rhs = PropAndPreserve (lhs, rhs, Ast.I) in
+  let is_simpl eia =
+    Eia.fold_term
+      (fun acc el ->
+         match el with
+         | Eia.At _ | Eia.Substr _ -> false
+         | _ -> acc)
+      (fun acc el ->
+         match el with
+         | Eia.At _ | Eia.Substr _ -> false
+         | _ -> acc)
+      true
+      eia
+  in
+  let returni vn rhs = if is_simpl rhs then Prop (vn, Ast.TT (Ast.I, rhs)) else noprop in
+  let returns vn rhs = if is_simpl rhs then Prop (vn, Ast.TT (Ast.S, rhs)) else noprop in
+  let return2i lhs rhs =
+    if is_simpl rhs then PropAndPreserve (lhs, rhs, Ast.I) else noprop
+  in
   let trivial_string_propagations v = function
     | rhs -> returns v rhs
   in
