@@ -130,14 +130,14 @@ module Eia = struct
       end
   ;;
 
-  (*let str_at s a =
+  let at s a =
     match s, a with
     | Str_const s, Const n ->
       (try Str_const (String.sub s (Z.to_int n) 1) with
        | _ -> Str_const "")
     | Str_const "", _ -> Str_const ""
     | _ -> at s a
-  ;;*)
+  ;;
 
   let rec pp_term : 'a. Format.formatter -> 'a term -> unit =
     fun (type a) ppf : (a term -> unit) -> function
@@ -586,7 +586,21 @@ let lor_ = function
      | asts -> Lor asts)
 ;;
 
-let eia eia = Eia eia
+let eia = function
+  | Eia.Leq (Const a, Const b) -> if Z.(leq a b) then true_ else false_
+  | Eia.Eq (Const a, Const b, I) -> if Z.(equal a b) then true_ else false_
+  | Eia.Neq (Const a, Const b, I) -> if Z.(equal a b |> not) then true_ else false_
+  | Eia.Eq (Str_const a, Str_const b, S) -> if a = b then true_ else false_
+  | Eia.Neq (Str_const a, Str_const b, S) -> if a <> b then true_ else false_
+  | Eia.PrefixOf (Str_const a, Str_const b) ->
+    if String.starts_with ~prefix:a b then true_ else false_
+  | Eia.SuffixOf (Str_const a, Str_const b) ->
+    if String.ends_with ~suffix:a b then true_ else false_
+  | Eia.Contains (Str_const a, Str_const b) ->
+    if Base.String.is_substring ~substring:a b then true_ else false_
+  | eia -> Eia eia
+;;
+
 let pred s = Pred s
 
 let rec lnot = function

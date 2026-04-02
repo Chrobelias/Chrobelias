@@ -1647,103 +1647,6 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
   let trivial_string_propagations v = function
     | rhs -> returns v rhs
   in
-  let var_can_be_prop v =
-    Env.is_absent_key v env
-    (*&& not
-         (Ast.forsome
-               (function
-                 | Ast.Eia eia ->
-                   Ast.Eia.fold2
-                     (fun acc -> function
-                        | Ast.Eia.Pow (_, Ast.Eia.Atom (Ast.Var (v', Ast.I))) when v = v'
-                          -> true
-                        | _ -> acc)
-                     (fun acc _ -> acc)
-                     false
-                     eia
-                 | _ -> false)
-               ast)*)
-  in
-  let var_can_subst_complex v = var_can_be_prop v && not (Ast.in_strlen v ast) in
-  let trivial_integer_propagations vn rhs =
-    match rhs with
-    | Ast.Eia.Const _
-    | Iofs (Atom (Var _))
-    | Len (Atom (Var _))
-    | Len2 (Atom (Var _))
-    | Sofi (Atom (Var _)) -> returni vn rhs
-    | Atom (Ast.Var (vn', _)) when vn' <> vn ->
-      if var_can_subst_complex vn then returni vn rhs else returni vn rhs
-    | _ -> noprop
-  in
-  let advanced_integer_propagations (lhs : Z.t Ast.Eia.term) (rhs : Z.t Ast.Eia.term)
-    : action
-    =
-    let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-    let single =
-      fun c1 (Ast.Var (vn1, _) as v1) c2 (Ast.Var (vn2, _) as v2) rhs ->
-      let is_bad v =
-        (not (var_can_subst_complex v))
-        || Info.is_in_expo v info
-        || Info.is_in_string v info
-      in
-      try
-        match is_bad vn1, is_bad vn2 with
-        | false, _
-          when Env.is_absent_key vn1 env && Env.is_absent_key vn2 env && Z.(equal c1 one)
-          -> returni vn1 S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ])
-        | _, false
-          when Env.is_absent_key vn2 env && Env.is_absent_key vn2 env && Z.(equal c2 one)
-          -> returni vn2 S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ])
-        | _ -> noprop
-        (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
-        (* MS: I am going to add try / catch for the Occurs exceeption *)
-        (* Note: presence of key means we already simplified this variable in another equality *)
-      with
-      | Env.Occurs -> noprop
-    in
-    match lhs, rhs with
-    | Atom (Var (vn, I)), Mul [ Const cl; Atom (Var (vn2, I)) ] when vn = vn2 ->
-      (* (= ( * c v) vr) *)
-      returni vn (Const Z.zero)
-    | Mul [ Const cl; Atom (Var (vn, I)) ], Mul [ Const cl2; Atom (Var (vn2, I)) ]
-      when vn = vn2 && cl <> cl2 -> returni vn (Const Z.zero)
-    | Ast.Eia.Mul [ Const _; Atom (Var (vn, _)) ], (Const z as rhs) when Z.(equal z zero)
-      ->
-      (* (= ( * c v) 0) *)
-      returni vn rhs
-    | Mul [ Const cl; Atom (Var (vn, _)) ], Const cr when Z.(cr mod cl = zero) ->
-      let rhs = Ast.Eia.(Const Z.(cr / cl)) in
-      returni vn rhs
-    | Add [ Atom (Var (v1n, _)); Mul [ Const c; (Atom (Var (v2n, _)) as v2) ] ], Const z0
-      when Z.(equal z0 zero) ->
-      (* (= (+ v1 c*v2)) 0) *)
-      if Env.occurs_var env v1n v2
-      then noprop
-      else (
-        let new_rhs =
-          if Z.(equal c minus_one) then v2 else Eia.Mul [ Const Z.(-c); v2 ]
-        in
-        returni v1n new_rhs)
-    | Add [ Atom (Var (_, I) as v1); Atom (Var (_, I) as v2) ], rhs when v1 <> v2 ->
-      (* (= (+ v1 v2) rhs) *)
-      (* log "%s %d. ast = %a" __FILE__ __LINE__ Ast.pp_smtlib2 ast; *)
-      single Z.one v1 Z.one v2 rhs
-    | Add [ Atom (Var (vn1, _) as v1); Mul [ Const c2; Atom (Var (vn2, _) as v2) ] ], rhs
-      when vn1 <> vn2 ->
-      (* (= (+ v1 ( * c v2)) rhs) *)
-      single Z.one v1 c2 v2 rhs
-    | ( Add
-          [ Mul [ Const c1; Atom (Var (vn1, _) as v1) ]
-          ; Mul [ Const c2; Atom (Var (vn2, _) as v2) ]
-          ]
-      , rhs )
-      when vn1 <> vn2 -> single c1 v1 c2 v2 rhs
-    | Mul [ Const cl; Len (Atom (Var (vn, _))) ], Const cr
-      when Z.(cr = zero) && Z.(cl <> zero) -> returns vn (S.str_const "")
-    | Len (Atom (Var (vn, _))), Const cr when Z.(cr = zero) -> returns vn (S.str_const "")
-    | _ -> noprop
-  in
   let term_propagations lhs =
     let cnt lhs =
       Ast.fold
@@ -1763,6 +1666,164 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
     | _ -> noprop
   in
   let helper info orig_ast env ast =
+    let var_can_be_prop v =
+      Env.is_absent_key v env
+      (*&& not
+           (Ast.forsome
+                 (function
+                   | Ast.Eia eia ->
+                     Ast.Eia.fold2
+                       (fun acc -> function
+                          | Ast.Eia.Pow (_, Ast.Eia.Atom (Ast.Var (v', Ast.I))) when v = v'
+                            -> true
+                          | _ -> acc)
+                       (fun acc _ -> acc)
+                       false
+                       eia
+                   | _ -> false)
+                 ast)*)
+    in
+    let var_can_subst_complex v = var_can_be_prop v && not (Ast.in_strlen v ast) in
+    let trivial_integer_propagations vn rhs =
+      match rhs with
+      | Ast.Eia.Const _
+      | Iofs (Atom (Var _))
+      | Len (Atom (Var _))
+      | Len2 (Atom (Var _))
+      | Sofi (Atom (Var _)) -> returni vn rhs
+      | Atom (Ast.Var (vn', _)) when vn' <> vn ->
+        if var_can_subst_complex vn then returni vn rhs else returni vn rhs
+      | _ -> noprop
+    in
+    let advanced_integer_propagations (lhs : Z.t Ast.Eia.term) (rhs : Z.t Ast.Eia.term)
+      : action
+      =
+      let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+      let single =
+        fun c1 (Ast.Var (vn1, _) as v1) c2 (Ast.Var (vn2, _) as v2) rhs ->
+        let is_bad v =
+          (not (var_can_subst_complex v))
+          || Info.is_in_expo v info
+          || Info.is_in_string v info
+        in
+        try
+          match is_bad vn1, is_bad vn2 with
+          | false, _
+            when Env.is_absent_key vn1 env
+                 && Env.is_absent_key vn2 env
+                 && Z.(equal c1 one) ->
+            returni vn1 S.(add [ mul [ constz Z.minus_one; constz c2; Atom v2 ]; rhs ])
+          | _, false
+            when Env.is_absent_key vn2 env
+                 && Env.is_absent_key vn2 env
+                 && Z.(equal c2 one) ->
+            returni vn2 S.(add [ mul [ constz Z.minus_one; constz c1; Atom v1 ]; rhs ])
+          | _ -> noprop
+          (* TODO(Kakadu): Support proper occurs check to workaround recursive substitutions *)
+          (* MS: I am going to add try / catch for the Occurs exceeption *)
+          (* Note: presence of key means we already simplified this variable in another equality *)
+        with
+        | Env.Occurs -> noprop
+      in
+      match lhs, rhs with
+      | Atom (Var (vn, I)), Mul [ Const cl; Atom (Var (vn2, I)) ] when vn = vn2 ->
+        (* (= ( * c v) vr) *)
+        returni vn (Const Z.zero)
+      | Mul [ Const cl; Atom (Var (vn, I)) ], Mul [ Const cl2; Atom (Var (vn2, I)) ]
+        when vn = vn2 && cl <> cl2 -> returni vn (Const Z.zero)
+      | Ast.Eia.Mul [ Const _; Atom (Var (vn, _)) ], (Const z as rhs)
+        when Z.(equal z zero) ->
+        (* (= ( * c v) 0) *)
+        returni vn rhs
+      | Mul [ Const cl; Atom (Var (vn, _)) ], Const cr when Z.(cr mod cl = zero) ->
+        let rhs = Ast.Eia.(Const Z.(cr / cl)) in
+        returni vn rhs
+      | ( Add [ Atom (Var (v1n, _)); Mul [ Const c; (Atom (Var (v2n, _)) as v2) ] ]
+        , Const z0 )
+        when Z.(equal z0 zero) ->
+        (* (= (+ v1 c*v2)) 0) *)
+        if Env.occurs_var env v1n v2
+        then noprop
+        else (
+          let new_rhs =
+            if Z.(equal c minus_one) then v2 else Eia.Mul [ Const Z.(-c); v2 ]
+          in
+          returni v1n new_rhs)
+      | Add [ Atom (Var (_, I) as v1); Atom (Var (_, I) as v2) ], rhs when v1 <> v2 ->
+        (* (= (+ v1 v2) rhs) *)
+        (* log "%s %d. ast = %a" __FILE__ __LINE__ Ast.pp_smtlib2 ast; *)
+        single Z.one v1 Z.one v2 rhs
+      | ( Add [ Atom (Var (vn1, _) as v1); Mul [ Const c2; Atom (Var (vn2, _) as v2) ] ]
+        , rhs )
+        when vn1 <> vn2 ->
+        (* (= (+ v1 ( * c v2)) rhs) *)
+        single Z.one v1 c2 v2 rhs
+      | ( Add
+            [ Mul [ Const c1; Atom (Var (vn1, _) as v1) ]
+            ; Mul [ Const c2; Atom (Var (vn2, _) as v2) ]
+            ]
+        , rhs )
+        when vn1 <> vn2 -> single c1 v1 c2 v2 rhs
+      | Mul [ Const cl; Len (Atom (Var (vn, _))) ], Const cr
+        when Z.(cr = zero) && Z.(cl <> zero) -> returns vn (S.str_const "")
+      | Len (Atom (Var (vn, _))), Const cr when Z.(cr = zero) ->
+        returns vn (S.str_const "")
+      | _ -> noprop
+    in
+    let last_resort lhs rhs =
+      match lhs, rhs with
+      | Ast.Eia.Add xs, Ast.Eia.Const z
+        when z = Z.zero
+             && List.exists
+                  (function
+                    | Ast.Eia.Atom (Var (x, _)) -> var_can_be_prop x
+                    | _ -> false)
+                  xs ->
+        let filtered = ref false in
+        let vn = ref Option.none in
+        let xs =
+          List.filter
+            (function
+              | Ast.Eia.Atom (Var (vn', _)) when (not !filtered) && var_can_be_prop vn' ->
+                vn := Option.some vn';
+                filtered := true;
+                false
+              | _ -> true)
+            xs
+        in
+        let vn = Option.get !vn in
+        let rhs = Ast.Eia.mul [ Ast.Eia.const Z.minus_one; Ast.Eia.add xs ] in
+        if Ast.get_vars (Ast.Eia.eq rhs (Ast.Eia.Const Z.zero) Ast.I) |> List.mem vn
+        then noprop
+        else returni vn rhs
+      | Add xs, Const z
+        when z = Z.zero
+             && List.exists
+                  (function
+                    | Ast.Eia.Mul [ Ast.Eia.Const m_one; Ast.Eia.Atom (Var (x, _)) ]
+                      when m_one = Z.minus_one -> var_can_be_prop x
+                    | _ -> false)
+                  xs ->
+        let filtered = ref false in
+        let vn = ref Option.none in
+        let xs =
+          List.filter
+            (function
+              | Ast.Eia.Mul [ Ast.Eia.Const m_one; Ast.Eia.Atom (Var (vn', _)) ]
+                when m_one = Z.minus_one && (not !filtered) && var_can_be_prop vn' ->
+                vn := Option.some vn';
+                filtered := true;
+                false
+              | _ -> true)
+            xs
+        in
+        let vn = Option.get !vn in
+        let rhs = Ast.Eia.add xs in
+        if Ast.get_vars (Ast.Eia.eq rhs (Ast.Eia.Const Z.zero) Ast.I) |> List.mem vn
+        then noprop
+        else returni vn rhs
+      | _ -> noprop
+    in
     let commut f lhs rhs =
       match f lhs rhs with
       | Noprop -> f rhs lhs
@@ -1773,7 +1834,7 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
     | Eia (Eia.Eq ((Eia.Atom (Var (vn, I)) as lhs), rhs, I)) when var_can_be_prop vn ->
     begin
       match trivial_integer_propagations vn rhs with
-      | Noprop -> advanced_integer_propagations lhs rhs
+      | Noprop -> begin advanced_integer_propagations lhs rhs end
       | smth -> smth
     end
     | Eia (Eia.Eq (rhs, Eia.Atom (Var (vn, I)), I)) when var_can_be_prop vn ->
@@ -1784,7 +1845,11 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
       trivial_string_propagations vn rhs
     | Eia (Eia.Eq (lhs, rhs, I)) -> begin
       match commut advanced_integer_propagations lhs rhs with
-      | Noprop -> commut term_propagations lhs rhs
+      | Noprop -> begin
+        match commut term_propagations lhs rhs with
+        | Noprop -> last_resort lhs rhs
+        | smth -> smth
+      end
       | smth -> smth
     end
     (*| Eia (Eia.Eq (Add sums, Const rhs, I)) when Z.(zero = rhs) ->
@@ -1899,7 +1964,7 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
       List.fold_left
         (fun acc h ->
            match acc with
-           | Noprop -> (helper ast info env) h
+           | Noprop -> (helper info ast env) h
            | smth -> smth)
         Noprop
         xs
