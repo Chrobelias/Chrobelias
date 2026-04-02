@@ -2807,7 +2807,7 @@ let run_string_simplify ast =
     let approxed_asts = ast |> under_str e (Utils.with_extra_char alpha) vars in
     let var_info = apply_symantics (module Who_in_exponents) ast in
     log "After rewriting via concats:\n%!";
-    (match basic_simplify [ 0 ] e (ast |> rewrite_via_concat var_info) with
+    (match basic_simplify [ 0 ] e (ast' |> rewrite_via_concat var_info) with
      | `Sat env -> `Sat env
      | `Unsat -> `Unsat ast
      | `Unknown (ast, env, _, _) -> `Unknown (ast |> over_concat, env, approxed_asts))

@@ -662,7 +662,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
          end
          | other -> other)
     in
-    dpll (arithmetize_and_check ~light env) ~verbose:true ast
+    dpll (arithmetize_and_check ~light env) ast
   in
   let handle =
     fun result f ->
