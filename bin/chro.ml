@@ -628,37 +628,41 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     in
     let ast = Lib.Ast.Land (Lib.SimplII.split_concats ast :: split_vars) in
     let arithmetize_and_check ?(light = false) env ast =
-      let ast, e, post, regexes = Lib.SimplII.arithmetize ast env in
-      log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-      match check_eia_sat ~light ast e with
-      | Sat (s, (ast, env, get_model, _)) -> begin
-        let result = Sat (s, (ast, env, get_model, regexes)) in
-        if List.is_empty post
-        then result
-        else (
-          match get_model tys with
-          | Result.Ok model ->
-            let model = model_from_parts_regexes_env tys model regexes env in
-            begin if
-              List.for_all
-                (fun post ->
-                   match
-                     post model ast (fun ast ->
-                       match (check_sat tys) ast with
-                       | Sat _ -> `Sat
-                       | _ -> `Unknown)
-                   with
-                   | `Sat -> true
-                   | `Unknown -> false)
-                post
-            then result
-            else unknown ast Lib.Env.empty
-            end
-          | Result.Error _ -> unknown ast Lib.Env.empty)
-      end
-      | other -> other
+      match Lib.SimplII.run_basic_simplify ~env ast with
+      | `Sat env -> sat "presimpl str" ast ~env
+      | `Unsat ast -> unsat "presimpl str" ast
+      | `Unknown (ast, env) ->
+        let ast, e, post, regexes = Lib.SimplII.arithmetize ast env in
+        log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+        (match check_eia_sat ~light ast e with
+         | Sat (s, (ast, env, get_model, _)) -> begin
+           let result = Sat (s, (ast, env, get_model, regexes)) in
+           if List.is_empty post
+           then result
+           else (
+             match get_model tys with
+             | Result.Ok model ->
+               let model = model_from_parts_regexes_env tys model regexes env in
+               begin if
+                 List.for_all
+                   (fun post ->
+                      match
+                        post model ast (fun ast ->
+                          match (check_sat tys) ast with
+                          | Sat _ -> `Sat
+                          | _ -> `Unknown)
+                      with
+                      | `Sat -> true
+                      | `Unknown -> false)
+                   post
+               then result
+               else unknown ast Lib.Env.empty
+               end
+             | Result.Error _ -> unknown ast Lib.Env.empty)
+         end
+         | other -> other)
     in
-    dpll (arithmetize_and_check ~light env) ast
+    dpll (arithmetize_and_check ~light env) ~verbose:true ast
   in
   let handle =
     fun result f ->
@@ -806,14 +810,14 @@ let () =
       then config.logic <- `Eia
       else config.logic <- `Str;
       (try
-         let rez = dpll (check_sat state.tys) ~verbose:true ast in
+         let rez = check_sat state.tys ~verbose:true ast in
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->
          config.bound_res <- -1;
          config.bound_states <- -1;
          Lib.Config.bounded_unsat := false;
-         let rez = dpll (check_sat state.tys ~verbose:true) ast in
+         let rez = check_sat state.tys ~verbose:true ast in
          { state with last_result = Some rez }
        | ex ->
          Format.printf
@@ -848,7 +852,7 @@ let () =
         let rez =
           match state.last_result with
           | Some r -> r
-          | None -> dpll (check_sat state.tys) ast
+          | None -> check_sat state.tys ast
         in
         let () =
           match rez with
@@ -883,7 +887,7 @@ let () =
               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
               Lib.Config.config.under_approx <- -1;
               try
-                match dpll (check_sat tys) shrinked_ast with
+                match check_sat tys shrinked_ast with
                 | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
                 | Sat (_, (_, env, get_model, _regexes)) ->
                   (* let tys = merge_tys state in *)

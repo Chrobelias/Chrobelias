@@ -838,6 +838,29 @@ let in_concat v ast =
     ast
 ;;
 
+let rec is_simpl = function
+  | True | Pred _ | Unsupp _ -> true
+  | Lnot ast' | Exists (_, ast') -> is_simpl ast'
+  | Land asts | Lor asts -> List.fold_left (fun acc ast -> acc && is_simpl ast) true asts
+  | Eia eia ->
+    let is_simpl eia =
+      Eia.fold2
+        (fun acc el ->
+           match el with
+           | Eia.At _ | Eia.Substr _ -> false
+           | _ -> acc)
+        (fun acc el ->
+           match el with
+           | Eia.At _ | Eia.Substr _ -> false
+           | _ -> acc)
+        true
+        eia
+    in
+    (match eia with
+     | Eia.PrefixOf _ | Eia.SuffixOf _ | Eia.Contains _ -> false
+     | other -> is_simpl other)
+;;
+
 let in_stoi v ast =
   let in_stoi_eia v eia =
     Eia.fold2
