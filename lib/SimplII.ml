@@ -2114,19 +2114,6 @@ let over_concat ast =
 ;;
 
 let basic_simplify step ?multiple (env : Env.t) ast =
-  let () =
-    Ast.fold
-      (fun acc -> function
-         | Ast.Lor xs ->
-           failwith
-             (Format.asprintf
-                "Calling the simplifier on something with or is bad!\n%a"
-                Ast.pp_smtlib2
-                ast)
-         | _ -> acc)
-      ()
-      ast
-  in
   let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
   in
@@ -2188,11 +2175,6 @@ let normalize eia =
             ast))
   | _ -> eia
 ;;
-
-(*let normalize eia =
-  try normalize eia with
-  | _ -> eia
-;;*)
 
 let run_basic_simplify ?(env = Env.empty) ast =
   log "Basic simplifications:\n%!";
@@ -2526,7 +2508,11 @@ let rewrite_via_concat { Info.all; _ } =
     include FT_SIG.Sugar (M_)
   end
   in
-  fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
+  let rec loop ast =
+    let ast' = Sym.prj (ast |> apply_symantics (module Sym)) in
+    if Ast.is_simpl ast' then ast' else loop ast'
+  in
+  fun ph -> loop ph
 ;;
 
 let under_str env alpha vars ast =
