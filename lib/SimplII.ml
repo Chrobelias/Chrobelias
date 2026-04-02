@@ -2556,7 +2556,9 @@ let under_str env alpha vars ast =
           in
           let list =
             get_strings_range
-              (if Map.mem regexes name then Map.find_exn regexes name else nfa_alpha)
+              (if Ast.is_conjunct ast && Map.mem regexes name
+               then Map.find_exn regexes name
+               else nfa_alpha)
               length
               ~exact
               count
@@ -2590,7 +2592,7 @@ let under_str env alpha vars ast =
   else (
     let filter_asts =
       List.filter_map (fun (env, ast) ->
-        log "After rewriting via concats:\n%!";
+        (* log "After rewriting via concats:\n%!"; *)
         let var_info = apply_symantics (module Who_in_exponents) ast in
         match basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info) with
         | `Unsat -> None
@@ -2800,16 +2802,18 @@ let run_string_simplify ast =
         ast'
         |> Ast.get_str_vars
         |> List.filter (fun s -> not (String.starts_with ~prefix:"%" s))
-        |> fun x -> [ Set.of_list x ]
+        |> Utils.powerset
+        |> List.fast_sort (fun x y -> List.length x - List.length y)
+        |> List.map Set.of_list
       else ast' |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
     in
     let alpha = collect_alpha ast' in
-    let approxed_asts = ast |> under_str e (Utils.with_extra_char alpha) vars in
-    let var_info = apply_symantics (module Who_in_exponents) ast in
+    let approxed_asts = ast' |> under_str e (Utils.with_extra_char alpha) vars in
+    let var_info = apply_symantics (module Who_in_exponents) ast' in
     log "After rewriting via concats:\n%!";
     (match basic_simplify [ 0 ] e (ast' |> rewrite_via_concat var_info) with
      | `Sat env -> `Sat env
-     | `Unsat -> `Unsat ast
+     | `Unsat -> `Unsat ast'
      | `Unknown (ast, env, _, _) -> `Unknown (ast |> over_concat, env, approxed_asts))
 ;;
 

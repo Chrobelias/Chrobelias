@@ -313,7 +313,7 @@ let reason lhs rhs =
   if lhs' <= rhs' then lhs else rhs
 ;;
 
-let dpll check_sat ?(verbose = false) =
+let dpll check_sat ?(verbose = false) ?(light = false) =
   let module Ast = Lib.Ast in
   let module Z3 = Smtml.Z3_mappings.Solver in
   let module Literal_type = struct
@@ -418,12 +418,16 @@ let dpll check_sat ?(verbose = false) =
           unsat_reason := reason s !unsat_reason;
           let not_candidate = Ast.lnot candidate in
           let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
-          dpll unsat_core_contra_sat_ast solver
+          if light
+          then unknown Ast.true_ Lib.Env.empty
+          else dpll unsat_core_contra_sat_ast solver
         | Unknown _ ->
           can_be_unk := true;
           let not_candidate = Ast.lnot candidate in
           let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
-          dpll unsat_core_contra_sat_ast solver
+          if light
+          then unknown Ast.true_ Lib.Env.empty
+          else dpll unsat_core_contra_sat_ast solver
       end
       | `Unsat ->
         log "DPLL: Bool unsat found\n%!";
@@ -626,43 +630,46 @@ let rec check_sat ?(verbose = false) tys ast : rez =
               (Ast.Eia.geq (Ast.Eia.iofs (Atom (Var (var, S)))) (Ast.Eia.const Z.zero))
           ])
     in
-    let ast = Lib.Ast.Land (Lib.SimplII.split_concats ast :: split_vars) in
-    let arithmetize_and_check ?(light = false) env ast =
-      match Lib.SimplII.run_basic_simplify ~env ast with
-      | `Sat env -> sat "presimpl str" ast ~env
-      | `Unsat ast -> unsat "presimpl str" ast
-      | `Unknown (ast, env) ->
-        let ast, e, post, regexes = Lib.SimplII.arithmetize ast env in
-        log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-        (match check_eia_sat ~light ast e with
-         | Sat (s, (ast, env, get_model, _)) -> begin
-           let result = Sat (s, (ast, env, get_model, regexes)) in
-           if List.is_empty post
-           then result
-           else (
-             match get_model tys with
-             | Result.Ok model ->
-               let model = model_from_parts_regexes_env tys model regexes env in
-               begin if
-                 List.for_all
-                   (fun post ->
-                      match
-                        post model ast (fun ast ->
-                          match (check_sat tys) ast with
-                          | Sat _ -> `Sat
-                          | _ -> `Unknown)
-                      with
-                      | `Sat -> true
-                      | `Unknown -> false)
-                   post
-               then result
-               else unknown ast Lib.Env.empty
-               end
-             | Result.Error _ -> unknown ast Lib.Env.empty)
-         end
-         | other -> other)
-    in
-    dpll (arithmetize_and_check ~light env) ast
+    let ast = Ast.Land (Lib.SimplII.split_concats ast :: split_vars) in
+    if config.stop_after == `Pre_dpll
+    then unknown ast Lib.Env.empty
+    else (
+      let arithmetize_and_check ?(light = false) env ast =
+        match Lib.SimplII.run_basic_simplify ~env ast with
+        | `Sat env -> sat "presimpl str" ast ~env
+        | `Unsat ast -> unsat "presimpl str" ast
+        | `Unknown (ast, env) ->
+          let ast, e, post, regexes = Lib.SimplII.arithmetize ast env in
+          log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+          (match check_eia_sat ~light ast e with
+           | Sat (s, (ast, env, get_model, _)) -> begin
+             let result = Sat (s, (ast, env, get_model, regexes)) in
+             if List.is_empty post
+             then result
+             else (
+               match get_model tys with
+               | Result.Ok model ->
+                 let model = model_from_parts_regexes_env tys model regexes env in
+                 begin if
+                   List.for_all
+                     (fun post ->
+                        match
+                          post model ast (fun ast ->
+                            match (check_sat tys) ast with
+                            | Sat _ -> `Sat
+                            | _ -> `Unknown)
+                        with
+                        | `Sat -> true
+                        | `Unknown -> false)
+                     post
+                 then result
+                 else unknown ast Lib.Env.empty
+                 end
+               | Result.Error _ -> unknown ast Lib.Env.empty)
+           end
+           | other -> other)
+      in
+      dpll (arithmetize_and_check ~light env) ~light ast)
   in
   let handle =
     fun result f ->
