@@ -2807,6 +2807,7 @@ let run_string_simplify ast =
         |> List.map Set.of_list
       else ast' |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
     in
+    let vars = List.rev vars in
     let alpha = collect_alpha ast' in
     let approxed_asts = ast' |> under_str e (Utils.with_extra_char alpha) vars in
     let var_info = apply_symantics (module Who_in_exponents) ast' in
