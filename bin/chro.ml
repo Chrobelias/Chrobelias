@@ -348,10 +348,14 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
              (match Ast.lnot (Ast.eia eia) with
               | Eia eia ->
                 th_map
-                := Map.add_exn
-                     !th_map
-                     ~key:(Lib.SimplII.normalize eia)
-                     ~data:(Ast.pred s, Literal_type.N)
+                := (match
+                      Map.add
+                        !th_map
+                        ~key:(Lib.SimplII.normalize eia)
+                        ~data:(Ast.pred s, Literal_type.N)
+                    with
+                     | `Ok th_map -> th_map
+                     | `Duplicate -> !th_map)
               | _ -> ());
              bool_map := Map.add_exn !bool_map ~key:s ~data:eia;
              Ast.pred s)
