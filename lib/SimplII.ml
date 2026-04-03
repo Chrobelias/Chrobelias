@@ -1636,7 +1636,7 @@ type action =
   | PropAndPreserve : 'a Ast.Eia.term * 'a Ast.Eia.term * 'a Ast.kind -> action
   | Noprop
 
-let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t) =
+let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast : Ast.t) =
   let open Ast in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let trivial_simplify eta = subst_term Env.empty eta in
@@ -1654,8 +1654,22 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
       true
       eia
   in
-  let returni vn rhs = if is_simpl rhs then Prop (vn, Ast.TT (Ast.I, rhs)) else noprop in
-  let returns vn rhs = if is_simpl rhs then Prop (vn, Ast.TT (Ast.S, rhs)) else noprop in
+  let returni vn rhs =
+    if is_simpl rhs
+    then
+      if Option.value ~default:false soft
+      then PropAndPreserve (Ast.Eia.Atom (Ast.var vn Ast.I), rhs, Ast.I)
+      else Prop (vn, Ast.TT (Ast.I, rhs))
+    else noprop
+  in
+  let returns vn rhs =
+    if is_simpl rhs
+    then
+      if Option.value ~default:false soft
+      then PropAndPreserve (Ast.Eia.Atom (Ast.var vn Ast.S), rhs, Ast.S)
+      else Prop (vn, Ast.TT (Ast.S, rhs))
+    else noprop
+  in
   let return2i lhs rhs =
     if is_simpl rhs then PropAndPreserve (lhs, rhs, Ast.I) else noprop
   in
@@ -1995,7 +2009,7 @@ let rec eq_propagation (info : Info.t) ?multiple:bool (env : Env.t) (ast : Ast.t
                  Ast.lor_
                    (List.map
                       (fun y ->
-                         let env, ph = eq_propagation info env y in
+                         let env, ph = eq_propagation ~soft:true info env y in
                          let (module Symantics) = make_main_symantics env in
                          apply_symantics_unsugared (module Symantics) ph)
                       ys)
