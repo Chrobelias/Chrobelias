@@ -1000,11 +1000,15 @@ let make_main_symantics ?alpha ?agressive env =
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
+      | Concat (lhs, x), Concat (rhs, y) when Eia.eq_term x y ->
+        Id_symantics.eq_str lhs rhs
       | Concat (l, Str_const c1), Concat (r, Str_const c2) -> cancel false c1 l c2 r
       | Str_const c1, Concat (r, Str_const c2) -> cancel false c1 (Str_const "") c2 r
       | Concat (l, Str_const c1), Str_const c2 -> cancel false c1 l c2 (Str_const "")
       | (Concat _ as l), (Concat _ as r) ->
         (match concats_to_list l, concats_to_list r with
+         | x :: xs, y :: ys when Eia.eq_term x y ->
+           Id_symantics.eq_str (list_to_concats xs) (list_to_concats ys)
          | Str_const c1 :: xs, Str_const c2 :: ys ->
            cancel true c1 (list_to_concats xs) c2 (list_to_concats ys)
          | _ -> nielsen_transform l r)
