@@ -966,45 +966,41 @@ let make_main_symantics ?alpha ?agressive env =
         | lhs, rhs -> Id_symantics.eq_str lhs rhs
     ;;
 
-    let eq_str l r =
-      match l, r with
-      | Eia.Sofi (Atom (Var _) as l), Eia.Sofi (Atom (Var _) as r) ->
-        Eia (Eia.Eq (l, r, I))
+    let eq_str lhs rhs =
+      let cancel side c1 l c2 r =
+        let can_chop, chop =
+          match side with
+          | true ->
+            ( (fun x y -> Base.String.is_prefix x ~prefix:y)
+            , fun x y -> Base.String.chop_prefix_if_exists x ~prefix:y )
+          | false ->
+            ( (fun x y -> Base.String.is_suffix x ~suffix:y)
+            , fun x y -> Base.String.chop_suffix_if_exists x ~suffix:y )
+        in
+        match String.length c1 - String.length c2 with
+        | 0 -> if String.equal c1 c2 then Id_symantics.eq_str l r else false_
+        | d when d > 0 ->
+          if can_chop c1 c2
+          then Id_symantics.eq_str (Eia.Concat (l, Id_symantics.str_const (chop c1 c2))) r
+          else false_
+        | _ ->
+          if can_chop c2 c1
+          then Id_symantics.eq_str l (Eia.Concat (r, Id_symantics.str_const (chop c2 c1)))
+          else false_
+      in
+      let open Eia in
+      match lhs, rhs with
+      | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
-      | Eia.Concat (l, Str_const c1), Eia.Concat (r, Str_const c2) ->
-        (match String.length c1 - String.length c2 with
-         | 0 -> if String.equal c1 c2 then Id_symantics.eq_str l r else false_
-         | d when d > 0 ->
-           if Base.String.is_suffix c1 ~suffix:c2
-           then (
-             let c1' = Base.String.chop_suffix_if_exists c1 ~suffix:c2 in
-             Id_symantics.eq_str (Eia.Concat (l, Id_symantics.str_const c1')) r)
-           else false_
-         | _ ->
-           if Base.String.is_suffix c2 ~suffix:c1
-           then (
-             let c2' = Base.String.chop_suffix_if_exists c2 ~suffix:c1 in
-             Id_symantics.eq_str l (Eia.Concat (r, Id_symantics.str_const c2')))
-           else false_)
-      | Eia.Concat (Str_const c1, l), Eia.Concat (Str_const c2, r) ->
-        (match String.length c1 - String.length c2 with
-         | 0 -> if String.equal c1 c2 then Id_symantics.eq_str l r else false_
-         | d when d > 0 ->
-           if Base.String.is_prefix c1 ~prefix:c2
-           then (
-             let c1' = Base.String.chop_prefix_if_exists c1 ~prefix:c2 in
-             Id_symantics.eq_str (Eia.Concat (Id_symantics.str_const c1', l)) r)
-           else false_
-         | _ ->
-           if Base.String.is_prefix c2 ~prefix:c1
-           then (
-             let c2' = Base.String.chop_prefix_if_exists c2 ~prefix:c1 in
-             Id_symantics.eq_str l (Eia.Concat (Id_symantics.str_const c2', r)))
-           else false_)
-      | (Eia.Concat (x, u) as lhs), (Eia.Concat (y, v) as rhs) ->
-        nielsen_transform lhs rhs
-      | _ -> Id_symantics.eq_str l r
+      | Concat (Str_const c1, l), Concat (Str_const c2, r) -> cancel true c1 l c2 r
+      | Str_const c1, Concat (Str_const c2, r) -> cancel true c1 (Str_const "") c2 r
+      | Concat (Str_const c1, l), Str_const c2 -> cancel true c1 l c2 (Str_const "")
+      | Concat (l, Str_const c1), Concat (r, Str_const c2) -> cancel false c1 l c2 r
+      | Str_const c1, Concat (r, Str_const c2) -> cancel false c1 (Str_const "") c2 r
+      | Concat (l, Str_const c1), Str_const c2 -> cancel false c1 l c2 (Str_const "")
+      | (Concat (x, u) as lhs), (Concat (y, v) as rhs) -> nielsen_transform lhs rhs
+      | _ -> Id_symantics.eq_str lhs rhs
     ;;
 
     let neq_str l r =
