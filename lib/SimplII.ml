@@ -58,8 +58,8 @@ let check_errors ph =
     | _ -> acc
   in
   let on_str_term acc = function
-    | Concat (Str_const lhs, rhs) | Concat (rhs, Str_const lhs) -> acc
-    | Concat (lhs, rhs) as ans -> Non_linear_string [ ans ] :: acc
+    | Concat xs as ans when Ast.Eia.is_concat_nontrivial xs ->
+      Non_linear_string [ ans ] :: acc
     | _ -> acc
   in
   Ast.fold
@@ -136,7 +136,7 @@ module type SYM0 = sig
   val str_suffixof : str -> str -> ph
 
   (* String formulas *)
-  val str_concat : str -> str -> str
+  val str_concat : str list -> str
 
   (* All formulas  *)
   val pow2var : string -> term
@@ -215,7 +215,7 @@ module Id_symantics :
   (* let str_from_eia_const c = Ast.Eia.Atom (Str_const (Z.to_string c))
   let str_concat s1 s2 = Ast.Eia.concat s1 s2 *)
   let str_from_eia_const c = Ast.Eia.sofi (Const c)
-  let str_concat s1 s2 = Ast.Eia.concat s1 s2
+  let str_concat xs = Ast.Eia.concat xs
   let mod_ = Ast.Eia.mod_
   let pow = Ast.Eia.pow
   let mul = Ast.Eia.mul
@@ -288,7 +288,7 @@ let apply_term_symantics
     | Atom (Ast.Var (s, _)) -> S.str_var s
     | Sofi eia -> S.sofi (helperT eia)
     | At (s1, a) -> S.str_at (helperS s1) (helperT a)
-    | Concat (s1, s2) -> S.str_concat (helperS s1) (helperS s2)
+    | Concat xs -> S.str_concat (List.map helperS xs)
     | Substr (s1, (Atom (Var (a, I)) as l), (Atom (Var (b, I)) as r)) ->
       S.str_substr (helperS s1) (helperT l) (helperT r)
     | Substr (s1, a, b) -> S.str_substr (helperS s1) (helperT a) (helperT b)
@@ -393,7 +393,7 @@ module Who_in_exponents_ = struct
   ;;
 
   let str_from_eia_const s = empty
-  let str_concat = ( ++ )
+  let str_concat = List.fold_left ( ++ ) empty
   let const _ = empty
   let constz _ = empty
   let var s = { empty with all = S.singleton s }
@@ -570,17 +570,18 @@ let make_main_symantics ?alpha ?agressive env =
 
     let rec str_len = function
       | Ast.Eia.Str_const s -> Id_symantics.const (String.length s)
-      | Ast.Eia.Concat (l, r) -> add [ str_len l; str_len r ]
+      | Ast.Eia.Concat xs -> add (List.map str_len xs)
       | s -> Id_symantics.str_len s
     ;;
 
-    let str_concat lhs rhs =
-      match lhs, rhs with
-      | Ast.Eia.Str_const lhs, Ast.Eia.Str_const rhs ->
-        Id_symantics.str_const (String.concat "" [ lhs; rhs ])
-      | Ast.Eia.Str_const c, rhs when String.equal c "" -> rhs
-      | lhs, Ast.Eia.Str_const c when String.equal c "" -> lhs
-      | lhs, rhs -> Id_symantics.str_concat lhs rhs
+    let str_concat xs =
+      let xs = List.filter (( <> ) (Id_symantics.str_const "")) xs in
+      match xs with
+      | Ast.Eia.Str_const lhs :: Ast.Eia.Str_const rhs :: tl ->
+        Id_symantics.str_concat
+          (Id_symantics.str_const (String.concat "" [ lhs; rhs ]) :: tl)
+      | [ hd ] -> hd
+      | xs -> Id_symantics.str_concat xs
     ;;
 
     let str_len2 = function
@@ -603,7 +604,7 @@ let make_main_symantics ?alpha ?agressive env =
               ]
           ; Id_symantics.iofs rhs
           ] *)
-      | Ast.Eia.Concat (lhs, Ast.Eia.Str_const s) when String.for_all Base.Char.is_digit s
+      (* | Ast.Eia.Concat (lhs, Ast.Eia.Str_const s) when String.for_all Base.Char.is_digit s ??
         ->
         Id_symantics.add
           [ Ast.Eia.mul
@@ -624,7 +625,7 @@ let make_main_symantics ?alpha ?agressive env =
         | s when String.for_all Base.Char.is_digit s ->
           Id_symantics.constz (Z.of_string s)
         | _ -> Id_symantics.constz Z.minus_one
-      end
+      end *)
       | s -> Id_symantics.iofs s
     ;;
 
@@ -925,45 +926,44 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> ofop l r
     ;;
 
-    let eq_str lhs rhs =
-      let open Ast.Eia in
-      let rec concats_to_list = function
-        | Eia.Concat (x, u) -> concats_to_list x @ concats_to_list u
-        | x -> [ x ]
-      in
-      let list_to_concats = function
-        | [] -> failwith "Unsupported argument in list_to_concats"
-        | x :: xs -> List.fold_left (fun acc term -> Ast.Eia.concat acc term) x xs
-      in
-      let nielsen_transform lhs rhs =
-        match concats_to_list lhs, concats_to_list rhs with
-        | x :: xs, y :: ys ->
-          let u, v =
-            match xs, ys with
-            | xs, ys when Bool.not (List.is_empty xs) && Bool.not (List.is_empty ys) ->
-              list_to_concats xs, list_to_concats ys
-            | xs, [ Str_const c ] when Bool.not (List.is_empty xs) ->
-              list_to_concats xs, Str_const c
-            | [ Str_const c ], ys when Bool.not (List.is_empty ys) ->
-              Str_const c, list_to_concats ys
-            | other -> failwith "Unexpected argument in nielsen_transform"
+    let nielsen_transform lhs rhs =
+      (* Format.printf "Nielsen input: %a\n%!" Ast.pp_smtlib2 ast; *)
+        match lhs, rhs with
+        | Eia.Concat (x :: u), Eia.Concat (y :: v) ->
+          let u = Ast.Eia.concat u in
+          let v = Ast.Eia.concat v in
+          let case_1 =
+            Ast.land_ [ Ast.eia (Ast.Eia.eq x y Ast.S); Ast.eia (Ast.Eia.eq u v Ast.S) ]
           in
-          let case_1 = land_ [ eq_str x y; eq_str u v ] in
-          let case_2 = land_ [ eq_str x (str_const ""); eq_str u rhs ] in
-          let case_2' = land_ [ eq_str y (str_const ""); eq_str lhs v ] in
-          (* len(x) < len(y) *)
-          let x' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
+          let case_2 =
+            Ast.land_
+              [ Ast.eia (Ast.Eia.eq x (Ast.Eia.str_const "") Ast.S)
+              ; Ast.eia (Ast.Eia.eq u (Ast.Eia.concat [ y; v ]) Ast.S)
+              ]
+          in
+          let case_2' =
+            Ast.land_
+              [ Ast.eia (Ast.Eia.eq y (Ast.Eia.str_const "") Ast.S)
+              ; Ast.eia (Ast.Eia.eq v (Ast.Eia.concat [ x; u ]) Ast.S)
+              ]
+          in
+          let y' = gensym ~prefix:"%nielsen" () in
+          let y' = Ast.Eia.Atom (Ast.var y' Ast.S) in
           let case_3 =
-            land_
-              [ eia (lt (len y) (len x)); eq_str x (concat y x'); eq_str (concat x' u) v ]
+            Ast.land_
+              [ (* len(x) < len(y) *)
+                Ast.eia (Ast.Eia.lt (Ast.Eia.len x) (Ast.Eia.len y))
+              ; Ast.eia (Ast.Eia.eq y (Ast.Eia.concat [ x; y' ]) Ast.S)
+              ]
           in
           (* len(x) < len(y) *)
+          let open Ast.Eia in
           let y' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
           let case_3' =
             land_
               [ eia (leq (len x) (len y))
-              ; eq_str y (concat x y')
-              ; eq_str u (concat y' v)
+              ; eq_str y (concat [ x; y' ])
+              ; eq_str u (concat [ y'; v ])
               ]
           in
           (match x, y with
@@ -972,54 +972,17 @@ let make_main_symantics ?alpha ?agressive env =
            | _, Atom _ -> Ast.lor_ [ case_1; case_2'; case_3' ]
            | _ -> eq_str lhs rhs)
         | _ -> eq_str lhs rhs
-      in
-      let cancel side c1 l c2 r =
-        let module String = Base.String in
-        let can_chop, chop =
-          match side with
-          | true ->
-            ( (fun x y -> String.is_prefix x ~prefix:y)
-            , fun x y ->
-                Concat
-                  (Id_symantics.str_const (String.chop_prefix_if_exists c1 ~prefix:c2), l)
-            )
-          | false ->
-            ( (fun x y -> String.is_suffix x ~suffix:y)
-            , fun x y ->
-                Concat
-                  (r, Id_symantics.str_const (String.chop_suffix_if_exists c1 ~suffix:c2))
-            )
-        in
-        match String.length c1 - String.length c2 with
-        | 0 -> if String.equal c1 c2 then Id_symantics.eq_str l r else false_
-        | d when d > 0 ->
-          if can_chop c1 c2 then Id_symantics.eq_str (chop c1 c2) r else false_
-        | _ -> if can_chop c2 c1 then Id_symantics.eq_str l (chop c2 c1) else false_
-      in
+    ;;
+
+    let eq_str lhs rhs =
+      let open Ast.Eia in
       match lhs, rhs with
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
-      | Concat (lhs, x), Concat (rhs, y) when Eia.eq_term x y ->
-        Id_symantics.eq_str lhs rhs
-      | Concat (l, Str_const c1), Concat (r, Str_const c2) -> cancel false c1 l c2 r
-      | Str_const c1, Concat (r, Str_const c2) -> cancel false c1 (Str_const "") c2 r
-      | Concat (l, Str_const c1), Str_const c2 -> cancel false c1 l c2 (Str_const "")
-      | (Concat _ as l), (Concat _ as r) ->
-        (match concats_to_list l, concats_to_list r with
-         | x :: xs, y :: ys when Eia.eq_term x y ->
-           Id_symantics.eq_str (list_to_concats xs) (list_to_concats ys)
-         | Str_const c1 :: xs, Str_const c2 :: ys ->
-           cancel true c1 (list_to_concats xs) c2 (list_to_concats ys)
-         | _ -> nielsen_transform l r)
-      | (Concat _ as l), Str_const c2 ->
-        (match concats_to_list l with
-         | Str_const c1 :: xs -> cancel true c1 (list_to_concats xs) c2 (Str_const "")
-         | _ -> nielsen_transform l (Str_const c2))
-      | Str_const c1, (Concat _ as r) ->
-        (match concats_to_list r with
-         | Str_const c2 :: ys -> cancel true c1 (Str_const "") c2 (list_to_concats ys)
-         | _ -> nielsen_transform (Str_const c1) r)
+      | (Concat _ as lhs), (Concat _ as rhs) -> nielsen_transform lhs rhs
+      | (Concat _ as l), Str_const c2 -> nielsen_transform l (Str_const c2)
+      | Str_const c1, (Concat _ as r) -> nielsen_transform (Str_const c1) r
       | _ -> Id_symantics.eq_str lhs rhs
     ;;
 
@@ -1326,18 +1289,16 @@ let find_vars_for_under2s ast =
     fun acc ->
     fun c ->
     match c with
-    | Concat (Atom (Var (s, S)), Str_const _) -> acc
-    | Concat (Atom (Var (s, S)), _) when not (String.starts_with ~prefix:"%" s) ->
-      S.add acc s
-    | t -> acc
-  in
-  let fs_right : string S.t -> string Ast.Eia.term -> _ =
-    fun acc ->
-    fun c ->
-    match c with
-    | Concat (Str_const _, Atom (Var (s, S))) -> acc
-    | Concat (_, Atom (Var (s, S))) when not (String.starts_with ~prefix:"%" s) ->
-      S.add acc s
+    | Concat xs when Ast.Eia.is_concat_nontrivial xs ->
+      let vars =
+        List.filter_map
+          (function
+            | Atom (Var (s, S)) when not (String.starts_with ~prefix:"%" s) ->
+              Option.some s
+            | _ -> Option.none)
+          xs
+      in
+      S.union acc (S.of_list vars)
     | t -> acc
   in
   let collect fs ast =
@@ -1353,7 +1314,7 @@ let find_vars_for_under2s ast =
       S.empty
       ast
   in
-  collect fs_left ast, collect fs_right ast
+  collect fs_left ast
 ;;
 
 let find_vars_for_under2 ast =
@@ -1551,7 +1512,8 @@ let flatten { Info.all; _ } =
     | Str_const _ | Atom (Var (_, S)) -> 0
     | Iofs ts | Len ts | Len2 ts -> get_exp_max_height ts
     | Sofi t -> get_exp_max_height t
-    | Concat (term', term'') -> max (get_exp_max_height term') (get_exp_max_height term'')
+    | Concat terms ->
+      List.fold_left (fun acc term -> max acc (get_exp_max_height term)) 0 terms
     | Substr (term', term'', term''') ->
       max
         (max (get_exp_max_height term') (get_exp_max_height term''))
@@ -2101,7 +2063,7 @@ let over_concat ast =
   let open Ast in
   let over_reg =
     let open Ast.Eia in
-    let collect_consts term =
+    let _collect_consts term =
       Ast.Eia.fold_term
         (fun acc x -> acc)
         (fun acc term ->
@@ -2113,7 +2075,7 @@ let over_concat ast =
     in
     Ast.fold
       (fun acc -> function
-         | Ast.Eia (Eq (lhs, rhs, S)) -> begin
+         (*| Ast.Eia (Eq (lhs, rhs, S)) -> begin
            match lhs, rhs with
            | Concat (Str_const s, rhs'), term | term, Concat (Str_const s, rhs') ->
              collect_consts rhs'
@@ -2126,7 +2088,7 @@ let over_concat ast =
              |> (fun constr -> Id_symantics.in_re term (Regex.suffix s) :: constr)
              |> List.fold_left (fun acc' constr -> constr :: acc') acc
            | _ -> acc
-         end
+         end*)
          | ast -> acc)
       []
       ast
@@ -2488,7 +2450,7 @@ let rewrite_via_concat { Info.all; _ } =
       extend len_y len;
       extend len_z1 (Ast.Eia.len (svar z1));
       extend len_z1 offset;
-      extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
+      extend_eq u (Ast.Eia.concat [ svar z1; svar y; svar z2 ]);
       extend_eq u term;
       svar y
     ;;
@@ -2505,26 +2467,26 @@ let rewrite_via_concat { Info.all; _ } =
       extend len_y (Ast.Eia.const Z.one);
       extend len_z1 (Ast.Eia.len (svar z1));
       extend len_z1 pos;
-      extend_eq u (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (svar y, svar z2)));
+      extend_eq u (Ast.Eia.concat [ svar z1; svar y; svar z2 ]);
       extend_eq u term;
       svar y
     ;;
 
     let str_prefixof (s1 : str) (s2 : str) =
       let z1 = gensym () in
-      Id_symantics.eq_str (Ast.Eia.Concat (s1, Ast.Eia.atom (Ast.var z1 S))) s2
+      Id_symantics.eq_str (Ast.Eia.concat [ s1; Ast.Eia.atom (Ast.var z1 S) ]) s2
     ;;
 
     let str_contains (s1 : str) (s2 : str) =
       let svar v = Ast.Eia.atom (Ast.var v S) in
       let z1 = gensym () in
       let z2 = gensym () in
-      Id_symantics.eq_str (Ast.Eia.Concat (svar z1, Ast.Eia.Concat (s2, svar z2))) s1
+      Id_symantics.eq_str (Ast.Eia.concat [ svar z1; s2; svar z2 ]) s1
     ;;
 
     let str_suffixof (s1 : str) (s2 : str) =
       let z1 = gensym () in
-      Id_symantics.eq_str (Ast.Eia.Concat (Ast.Eia.atom (Ast.var z1 S), s1)) s2
+      Id_symantics.eq_str (Ast.Eia.concat [ Ast.Eia.atom (Ast.var z1 S); s1 ]) s2
     ;;
 
     let prj = function
@@ -2653,44 +2615,37 @@ let split_concats ast =
   let module Pre = struct
     include Id_symantics
 
-    let split lhs rhs nfa =
-      let rec helper lhs rhs nfa =
+    let split xs nfa =
+      let rec helper xs nfa =
         Debug.dump_nfa ~msg:"Before splitting: %s" NfaS.format_nfa nfa;
         let nfas : (NfaS.t * NfaS.t) list = NfaS.split nfa in
         Debug.printf "==================================================\n%!";
-        match lhs, rhs with
-        | x, Ast.Eia.Str_const y ->
+        match xs with
+        | [ x; Ast.Eia.Str_const y ] ->
           Debug.dump_nfa ~msg:"Before splitting derivative %s" NfaS.format_nfa nfa;
           let nfa = NfaS.deriv nfa (String.to_seq y |> List.of_seq |> List.rev) in
           Debug.dump_nfa ~msg:"Splitting derivative %s" NfaS.format_nfa nfa;
           simplify_in_re_raw x nfa
-        | Ast.Eia.Str_const x, y ->
+        | [ Ast.Eia.Str_const x; y ] ->
           Debug.dump_nfa ~msg:"Before splitting derivative %s" NfaS.format_nfa nfa;
           let nfa = NfaS.deriv_final nfa (String.to_seq x |> List.of_seq) in
           Debug.dump_nfa ~msg:"Splitting derivative %s" NfaS.format_nfa nfa;
           simplify_in_re_raw y nfa
-        | x, y when var_or_const x && var_or_const y ->
+        | [ x; y ] when var_or_const x && var_or_const y ->
           List.map
             (fun (nfa, nfa') ->
                [ Id_symantics.in_re_raw x nfa; Id_symantics.in_re_raw y nfa' ])
             nfas
-        | x, Ast.Eia.Concat (lhs1, rhs1) ->
+        | x :: tl ->
           List.concat
             (List.map
                (fun (nfa, nfa') ->
-                  let nfas' = helper lhs1 rhs1 nfa' in
+                  let nfas' = helper tl nfa' in
                   List.map (fun conj -> Id_symantics.in_re_raw x nfa :: conj) nfas')
-               nfas)
-        | Ast.Eia.Concat (lhs1, rhs1), y ->
-          List.concat
-            (List.map
-               (fun (nfa, nfa') ->
-                  let nfas' = helper lhs1 rhs1 nfa in
-                  List.map (fun conj -> Id_symantics.in_re_raw y nfa' :: conj) nfas')
                nfas)
         | _ -> raise Exit
       in
-      let nfas = List.map (fun conj -> Ast.land_ conj) (helper lhs rhs nfa) in
+      let nfas = List.map (fun conj -> Ast.land_ conj) (helper xs nfa) in
       Ast.lor_ nfas
     ;;
 
@@ -2699,21 +2654,20 @@ let split_concats ast =
                  (helper lhs1 rhs1 nfa')) *)
     let eq_str l r =
       match l, r with
-      | Ast.Eia.Str_const s, Ast.Eia.Concat (lhs, rhs)
-      | Ast.Eia.Concat (lhs, rhs), Ast.Eia.Str_const s ->
-        split lhs rhs (NfaS.of_regex (Regex.str_to_re s))
+      | Ast.Eia.Str_const s, Ast.Eia.Concat xs | Ast.Eia.Concat xs, Ast.Eia.Str_const s ->
+        split xs (NfaS.of_regex (Regex.str_to_re s))
       | lhs, rhs -> Id_symantics.eq_str lhs rhs
     ;;
 
     let in_re l regex =
       match l with
-      | Ast.Eia.Concat (lhs, rhs) -> split lhs rhs (NfaS.of_regex regex)
+      | Ast.Eia.Concat xs -> split xs (NfaS.of_regex regex)
       | str -> Id_symantics.in_re l regex
     ;;
 
     let rec str_len str =
       match str with
-      | Ast.Eia.Concat (lhs, rhs) -> Id_symantics.add [ str_len lhs; str_len rhs ]
+      | Ast.Eia.Concat xs -> Id_symantics.add (List.map str_len xs)
       | str -> Id_symantics.str_len str
     ;;
   end
@@ -2754,7 +2708,7 @@ struct
   ;;
 
   let str_from_eia_const s = empty
-  let str_concat = ( ++ )
+  let str_concat = List.fold_left ( ++ ) empty
   let const _ = empty
   let constz _ = empty
   let var s = empty
@@ -2835,7 +2789,7 @@ let run_string_simplify ast =
         |> Utils.powerset
         |> List.fast_sort (fun x y -> List.length x - List.length y)
         |> List.map Set.of_list
-      else ast' |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
+      else ast' |> find_vars_for_under2s |> fun x -> [ x ]
     in
     let vars = List.rev vars in
     let alpha = collect_alpha ast' in
@@ -3007,10 +2961,12 @@ let arithmetize ast env =
             (fun acc el ->
                match el with
                | Ast.Eia.Atom (Var (s, S)) when List.mem s vars -> true
-               | Ast.Eia.Concat (_, Ast.Eia.Atom (Var (s, S))) when List.mem s vars ->
-                 true
-               | Ast.Eia.Concat (Ast.Eia.Atom (Var (s, S)), _) when List.mem s vars ->
-                 true
+               | Ast.Eia.Concat xs
+                 when List.exists
+                        (function
+                          | Ast.Eia.Atom (Var (s, S)) -> List.mem s vars
+                          | _ -> false)
+                        xs -> true
                | _ -> acc)
             false
         in
@@ -3023,7 +2979,7 @@ let arithmetize ast env =
     let module ArConc = struct
       include Id_symantics
 
-      let str_concat (lhs : str) (rhs : str) =
+      let str_concat xs =
         let handle_concat (lhs : str) (rhs : str) =
           let u = gensym () in
           let v = gensym () in
@@ -3040,23 +2996,19 @@ let arithmetize ast env =
           extend v (Ast.Eia.len rhs);
           Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
         in
-        let rec do_concat lhs rhs =
-          match lhs, rhs with
-          | Ast.Eia.Concat (lhs1, rhs1), Ast.Eia.Concat (lhs2, rhs2) ->
-            do_concat (do_concat lhs1 rhs1) (do_concat lhs1 rhs1)
-          | Ast.Eia.Concat (lhs1, rhs1), rhs2 -> handle_concat (do_concat lhs1 rhs1) rhs2
-          | lhs1, Ast.Eia.Concat (lhs2, rhs2) -> handle_concat lhs1 (do_concat lhs2 rhs2)
-          | lhs1, rhs1 ->
-            (match lhs1, rhs1 with
-             | Ast.Eia.Str_const s, _
-               when String.for_all Base.Char.is_digit s |> Stdlib.not ->
-               raise (Unsupp_concat s)
-             | _, Ast.Eia.Str_const s
-               when String.for_all Base.Char.is_digit s |> Stdlib.not ->
-               raise (Unsupp_concat s)
-             | lhs1, rhs1 -> handle_concat lhs1 rhs1)
+        let rec do_concat (xs : string Ast.Eia.term list) =
+          match xs with
+          | [ Ast.Eia.Str_const s; _ ]
+            when String.for_all Base.Char.is_digit s |> Stdlib.not ->
+            raise (Unsupp_concat s)
+          | [ _; Ast.Eia.Str_const s ]
+            when String.for_all Base.Char.is_digit s |> Stdlib.not ->
+            raise (Unsupp_concat s)
+          | [ lhs1; rhs1 ] -> handle_concat lhs1 rhs1
+          | hd :: tl -> handle_concat hd (do_concat tl)
+          | [] -> Id_symantics.str_const ""
         in
-        try do_concat lhs rhs with
+        try do_concat xs with
         | Unsupp_concat s ->
           extend_unsupp s;
           let unsupp = gensym () in
@@ -3131,7 +3083,7 @@ let arithmetize ast env =
             (* | Len _ -> failwith "Unsupported constraint in arithmetize_term" *)
             | Str_const s -> Ast.Eia.const (Z.of_string s), []
             | Atom (Var (v, S)) -> atomi v, []
-            | (Concat (_, _) | At (_, _) | Substr (_, _, _)) as term ->
+            | (Concat _ | At (_, _) | Substr (_, _, _)) as term ->
               failwith
                 (Format.asprintf
                    "Unexpected in arithmetize_term: %a"

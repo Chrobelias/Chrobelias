@@ -123,9 +123,15 @@ let occurs_var_exn =
       | Ast.Eia.Str_const _ -> ()
       | Eia.Sofi x -> helper env v x
       | Eia.At (_, _) -> ()
-      | Eia.Concat (Eia.Atom (Var (v2, _)), _) when String.equal v v2 -> raise_occurs v
-      | Eia.Concat (_, Eia.Atom (Var (v2, _))) when String.equal v v2 -> raise_occurs v
-      | Eia.Concat (_, _) -> ()
+      | Eia.Concat xs ->
+        if
+          List.exists
+            (function
+              | Eia.Atom (Var (v2, _)) -> v2 = v
+              | _ -> false)
+            xs
+        then raise Occurs
+        else ()
       | Eia.Substr (_, _, _) -> ()
       | x ->
         Format.kasprintf
