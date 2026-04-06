@@ -926,38 +926,72 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> ofop l r
     ;;
 
-    let nielsen_transform lhs rhs =
-      (* Format.printf "Nielsen input: %a\n%!" Ast.pp_smtlib2 ast; *)
+    let eq_str lhs rhs =
+      let open Ast.Eia in
+      let module S = String in
+      let rec trim_left lhs rhs =
+        match lhs, rhs with
+        | hd :: tl, hd' :: tl' when hd = hd' -> trim_left tl tl'
+        | Str_const s :: tl, Str_const s' :: tl' when S.starts_with ~prefix:s' s ->
+          let s = Str_const (S.sub s (S.length s') (S.length s - S.length s')) in
+          trim_left (s :: tl) tl'
+        | Str_const s' :: tl', Str_const s :: tl when S.starts_with ~prefix:s' s ->
+          let s = Str_const (S.sub s (S.length s') (S.length s - S.length s')) in
+          trim_left (s :: tl) tl'
+        | lhs, rhs -> lhs, rhs
+      in
+      let trim_right lhs rhs =
+        let lhs, rhs = List.rev lhs, List.rev rhs in
+        let rec trim_right lhs rhs =
+          match lhs, rhs with
+          | hd :: tl, hd' :: tl' when hd = hd' -> trim_right tl tl'
+          | Str_const s :: tl, Str_const s' :: tl' when S.ends_with ~suffix:s' s ->
+            let s = Str_const (S.sub s 0 (S.length s - S.length s')) in
+            trim_right (s :: tl) tl'
+          | Str_const s' :: tl', Str_const s :: tl when S.ends_with ~suffix:s' s ->
+            let s = Str_const (S.sub s 0 (S.length s - S.length s')) in
+            trim_right (s :: tl) tl'
+          | lhs, rhs -> lhs, rhs
+        in
+        let lhs, rhs = trim_right lhs rhs in
+        let lhs, rhs = List.rev lhs, List.rev rhs in
+        lhs, rhs
+      in
+      let trim lhs rhs =
+        let lhs =
+          match lhs with
+          | Concat xs -> xs
+          | x -> [ x ]
+        in
+        let rhs =
+          match rhs with
+          | Concat xs -> xs
+          | x -> [ x ]
+        in
+        let lhs, rhs = trim_left lhs rhs in
+        match trim_right lhs rhs with
+        | [], [] -> true_
+        | [], rhs -> false_
+        | lhs, [] -> false_
+        | lhs, rhs -> eq_str (concat lhs) (concat rhs)
+      in
+      let nielsen lhs rhs =
         match lhs, rhs with
         | Eia.Concat (x :: u), Eia.Concat (y :: v) ->
-          let u = Ast.Eia.concat u in
-          let v = Ast.Eia.concat v in
-          let case_1 =
-            Ast.land_ [ Ast.eia (Ast.Eia.eq x y Ast.S); Ast.eia (Ast.Eia.eq u v Ast.S) ]
-          in
-          let case_2 =
-            Ast.land_
-              [ Ast.eia (Ast.Eia.eq x (Ast.Eia.str_const "") Ast.S)
-              ; Ast.eia (Ast.Eia.eq u (Ast.Eia.concat [ y; v ]) Ast.S)
-              ]
-          in
-          let case_2' =
-            Ast.land_
-              [ Ast.eia (Ast.Eia.eq y (Ast.Eia.str_const "") Ast.S)
-              ; Ast.eia (Ast.Eia.eq v (Ast.Eia.concat [ x; u ]) Ast.S)
-              ]
-          in
-          let y' = gensym ~prefix:"%nielsen" () in
-          let y' = Ast.Eia.Atom (Ast.var y' Ast.S) in
+          let u, v = concat u, concat v in
+          let case_1 = land_ [ eq_str x y; eq_str u v ] in
+          let case_2 = land_ [ eq_str x (str_const ""); eq_str u (concat [ y; v ]) ] in
+          let case_2' = land_ [ eq_str y (str_const ""); eq_str v (concat [ x; u ]) ] in
+          (* len(x) < len(y) *)
+          let x' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
           let case_3 =
-            Ast.land_
-              [ (* len(x) < len(y) *)
-                Ast.eia (Ast.Eia.lt (Ast.Eia.len x) (Ast.Eia.len y))
-              ; Ast.eia (Ast.Eia.eq y (Ast.Eia.concat [ x; y' ]) Ast.S)
+            land_
+              [ eia (lt (len y) (len x))
+              ; eq_str x (concat [ y; x' ])
+              ; eq_str (concat [ x'; u ]) v
               ]
           in
           (* len(x) < len(y) *)
-          let open Ast.Eia in
           let y' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
           let case_3' =
             land_
@@ -972,17 +1006,30 @@ let make_main_symantics ?alpha ?agressive env =
            | _, Atom _ -> Ast.lor_ [ case_1; case_2'; case_3' ]
            | _ -> eq_str lhs rhs)
         | _ -> eq_str lhs rhs
-    ;;
-
-    let eq_str lhs rhs =
-      let open Ast.Eia in
+      in
       match lhs, rhs with
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
-      | (Concat _ as lhs), (Concat _ as rhs) -> nielsen_transform lhs rhs
-      | (Concat _ as l), Str_const c2 -> nielsen_transform l (Str_const c2)
-      | Str_const c1, (Concat _ as r) -> nielsen_transform (Str_const c1) r
+      | Concat llhs, Concat lrhs
+        when match llhs, lrhs with
+             | x :: _, y :: _ when Eia.eq_term x y -> true
+             | Str_const _ :: _, Str_const _ :: _ -> true
+             | _, _ -> false -> trim lhs rhs
+      | Concat llhs, Concat lrhs
+        when match llhs |> List.rev, lrhs |> List.rev with
+             | x :: _, y :: _ when Eia.eq_term x y -> true
+             | Str_const _ :: _, Str_const _ :: _ -> true
+             | _, _ -> false -> trim lhs rhs
+      | Concat llhs, Str_const _ ->
+        (match llhs with
+         | Str_const _ :: _ -> trim lhs rhs
+         | _ -> nielsen lhs (Concat [ rhs ]))
+      | Str_const _, Concat lrhs ->
+        (match lrhs with
+         | Str_const _ :: _ -> trim lhs rhs
+         | _ -> nielsen (Concat [ lhs ]) rhs)
+      | Concat _, Concat _ -> nielsen lhs rhs
       | _ -> Id_symantics.eq_str lhs rhs
     ;;
 
