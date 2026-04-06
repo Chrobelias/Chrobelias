@@ -1996,6 +1996,15 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       | ph -> ph
     in
     env, ph
+  | Ast.Lor ys ->
+    ( env
+    , Ast.lor_
+        (List.map
+           (fun y ->
+              let env, ph = eq_propagation ~soft:true info env y in
+              let (module Symantics) = make_main_symantics env in
+              apply_symantics_unsugared (module Symantics) ph)
+           ys) )
   | Eia _ ->
     let env, ph = handle_action env ast (helper info ast env ast) in
     env, ph
