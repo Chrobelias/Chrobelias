@@ -619,76 +619,11 @@ let lor_ = function
      | asts -> Lor asts)
 ;;
 
-let rec trim_left lhs rhs =
-  match lhs, rhs with
-  | hd :: tl, hd' :: tl' when hd = hd' -> trim_left tl tl'
-  | Eia.Str_const s :: tl, Eia.Str_const s' :: tl' when String.starts_with ~prefix:s' s ->
-    let s =
-      Eia.Str_const (String.sub s (String.length s') (String.length s - String.length s'))
-    in
-    trim_left (s :: tl) tl'
-  | Eia.Str_const s' :: tl', Eia.Str_const s :: tl when String.starts_with ~prefix:s' s ->
-    let s =
-      Eia.Str_const (String.sub s (String.length s') (String.length s - String.length s'))
-    in
-    trim_left (s :: tl) tl'
-  | lhs, rhs -> lhs, rhs
-;;
-
-let trim_right lhs rhs =
-  let lhs, rhs = List.rev lhs, List.rev rhs in
-  let rec trim_right lhs rhs =
-    match lhs, rhs with
-    | hd :: tl, hd' :: tl' when hd = hd' -> trim_right tl tl'
-    | Eia.Str_const s :: tl, Eia.Str_const s' :: tl' when String.ends_with ~suffix:s' s ->
-      let s = Eia.Str_const (String.sub s 0 (String.length s - String.length s')) in
-      trim_right (s :: tl) tl'
-    | Eia.Str_const s' :: tl', Eia.Str_const s :: tl when String.ends_with ~suffix:s' s ->
-      let s = Eia.Str_const (String.sub s 0 (String.length s - String.length s')) in
-      trim_right (s :: tl) tl'
-    | lhs, rhs -> lhs, rhs
-  in
-  let lhs, rhs = trim_right lhs rhs in
-  let lhs, rhs = List.rev lhs, List.rev rhs in
-  lhs, rhs
-;;
-
-let trim lhs rhs =
-  let lhs =
-    match lhs with
-    | Eia.Concat xs -> xs
-    | x -> [ x ]
-  in
-  let rhs =
-    match rhs with
-    | Eia.Concat xs -> xs
-    | x -> [ x ]
-  in
-  let lhs, rhs = trim_left lhs rhs in
-  trim_right lhs rhs
-;;
-
 let eia = function
   | Eia.Leq (Const a, Const b) -> if Z.(leq a b) then true_ else false_
   | Eia.Eq (Const a, Const b, I) -> if Z.(equal a b) then true_ else false_
   | Eia.Neq (Const a, Const b, I) -> if Z.(equal a b |> not) then true_ else false_
   | Eia.Eq (Str_const a, Str_const b, S) -> if a = b then true_ else false_
-  | Eia.Eq ((Eia.Concat _ as lhs), rhs, S) ->
-    let lhs, rhs = trim lhs rhs in
-    begin match lhs, rhs with
-    | [], [] -> true_
-    | [], rhs -> false_
-    | lhs, [] -> false_
-    | lhs, rhs -> Eia (Eia.eq (Eia.concat lhs) (Eia.concat rhs) S)
-    end
-  | Eia.Eq (lhs, (Eia.Concat _ as rhs), S) ->
-    let lhs, rhs = trim lhs rhs in
-    begin match lhs, rhs with
-    | [], [] -> true_
-    | [], rhs -> false_
-    | lhs, [] -> false_
-    | lhs, rhs -> Eia (Eia.eq (Eia.concat lhs) (Eia.concat rhs) S)
-    end
   | Eia.Neq (Str_const a, Str_const b, S) -> if a <> b then true_ else false_
   | Eia.PrefixOf (Str_const a, Str_const b) ->
     if String.starts_with ~prefix:a b then true_ else false_
