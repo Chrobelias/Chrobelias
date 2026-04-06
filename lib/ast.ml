@@ -68,7 +68,7 @@ module Eia = struct
     | Sofi : Z.t term -> string term
     | Iofs : string term -> Z.t term
     | Len2 : string term -> Z.t term
-    | Concat : string term * string term -> string term
+    | Concat : string term list -> string term
     | At : string term * Z.t term -> string term
     | Substr : string term * Z.t term * Z.t term -> string term
   [@@deriving variants]
@@ -130,6 +130,24 @@ module Eia = struct
       end
   ;;
 
+  let concat = function
+    | [] -> Str_const ""
+    | [ hd ] -> hd
+    | xs ->
+      let xs =
+        List.concat_map
+          (function
+            | Concat ys -> ys
+            | smth -> [ smth ])
+          xs
+      in
+      begin match xs with
+      | [] -> Str_const ""
+      | [ hd ] -> hd
+      | xs -> Concat xs
+      end
+  ;;
+
   let at s a =
     match s, a with
     | Str_const s, Const n ->
@@ -167,7 +185,12 @@ module Eia = struct
     | Len2 a -> Format.fprintf ppf "@[(chrob.len %a)@]" pp_term a
     | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
     (* Strings  *)
-    | Concat (s1, s2) -> Format.fprintf ppf "@[(str.++ %a %a)@]" pp_term s1 pp_term s2
+    | Concat s ->
+      Format.fprintf
+        ppf
+        "@[(str.++ %a)@]"
+        (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
+        s
     | Substr (term', a, b) ->
       Format.fprintf ppf "(str.substr %a %a %a)" pp_term term' pp_term a pp_term b
     | At (term', a) -> Format.fprintf ppf "(str.at %a %a)" pp_term term' pp_term a
@@ -285,6 +308,16 @@ module Eia = struct
     helper
   ;;
 
+  let is_concat_nontrivial xs =
+    List.filter
+      (function
+        | Str_const _ -> false
+        | _ -> true)
+      xs
+    |> List.length
+    > 1
+  ;;
+
   (* let%test _ = is_constant_term (atom (const (Z.of_int 4))) = Some (Z.of_int 4)
   let%test _ = is_constant_term (atom (var "s")) = None
 
@@ -321,7 +354,7 @@ module Eia = struct
     | Sofi s -> fs (Sofi (map_term fz fs s))
     | Iofs s -> fz (Iofs (map_term fz fs s))
     | Len2 s -> fz (Len2 (map_term fz fs s))
-    | Concat (l, r) -> fs (Concat (map_term fz fs l, map_term fz fs r))
+    | Concat xs -> fs (concat (List.map (map_term fz fs) xs))
     | At (l, r) -> fs (At (map_term fz fs l, map_term fz fs r))
     | Substr (l, r, k) ->
       fs (Substr (map_term fz fs l, map_term fz fs r, map_term fz fs k))
@@ -358,7 +391,7 @@ module Eia = struct
     | (Str_const _ | Atom (Var (_, S))) as term -> fs acc term
     | (Iofs ts | Len ts | Len2 ts) as term -> fz (fold_term fz fs acc ts) term
     | Sofi t as term -> fs (fold_term fz fs acc t) term
-    | Concat (lhs, rhs) as term -> fs (fold_term fz fs (fold_term fz fs acc lhs) rhs) term
+    | Concat terms as term -> fs (List.fold_left (fold_term fz fs) acc terms) term
     | Substr (term', tz1, tz2) as term ->
       fs (fold_term fz fs (fold_term fz fs (fold_term fz fs acc term') tz1) tz2) term
     | At (term', tidx) as term ->
@@ -586,11 +619,76 @@ let lor_ = function
      | asts -> Lor asts)
 ;;
 
+let rec trim_left lhs rhs =
+  match lhs, rhs with
+  | hd :: tl, hd' :: tl' when hd = hd' -> trim_left tl tl'
+  | Eia.Str_const s :: tl, Eia.Str_const s' :: tl' when String.starts_with ~prefix:s' s ->
+    let s =
+      Eia.Str_const (String.sub s (String.length s') (String.length s - String.length s'))
+    in
+    trim_left (s :: tl) tl'
+  | Eia.Str_const s' :: tl', Eia.Str_const s :: tl when String.starts_with ~prefix:s' s ->
+    let s =
+      Eia.Str_const (String.sub s (String.length s') (String.length s - String.length s'))
+    in
+    trim_left (s :: tl) tl'
+  | lhs, rhs -> lhs, rhs
+;;
+
+let trim_right lhs rhs =
+  let lhs, rhs = List.rev lhs, List.rev rhs in
+  let rec trim_right lhs rhs =
+    match lhs, rhs with
+    | hd :: tl, hd' :: tl' when hd = hd' -> trim_right tl tl'
+    | Eia.Str_const s :: tl, Eia.Str_const s' :: tl' when String.ends_with ~suffix:s' s ->
+      let s = Eia.Str_const (String.sub s 0 (String.length s - String.length s')) in
+      trim_right (s :: tl) tl'
+    | Eia.Str_const s' :: tl', Eia.Str_const s :: tl when String.ends_with ~suffix:s' s ->
+      let s = Eia.Str_const (String.sub s 0 (String.length s - String.length s')) in
+      trim_right (s :: tl) tl'
+    | lhs, rhs -> lhs, rhs
+  in
+  let lhs, rhs = trim_right lhs rhs in
+  let lhs, rhs = List.rev lhs, List.rev rhs in
+  lhs, rhs
+;;
+
+let trim lhs rhs =
+  let lhs =
+    match lhs with
+    | Eia.Concat xs -> xs
+    | x -> [ x ]
+  in
+  let rhs =
+    match rhs with
+    | Eia.Concat xs -> xs
+    | x -> [ x ]
+  in
+  let lhs, rhs = trim_left lhs rhs in
+  trim_right lhs rhs
+;;
+
 let eia = function
   | Eia.Leq (Const a, Const b) -> if Z.(leq a b) then true_ else false_
   | Eia.Eq (Const a, Const b, I) -> if Z.(equal a b) then true_ else false_
   | Eia.Neq (Const a, Const b, I) -> if Z.(equal a b |> not) then true_ else false_
   | Eia.Eq (Str_const a, Str_const b, S) -> if a = b then true_ else false_
+  | Eia.Eq ((Eia.Concat _ as lhs), rhs, S) ->
+    let lhs, rhs = trim lhs rhs in
+    begin match lhs, rhs with
+    | [], [] -> true_
+    | [], rhs -> false_
+    | lhs, [] -> false_
+    | lhs, rhs -> Eia (Eia.eq (Eia.concat lhs) (Eia.concat rhs) S)
+    end
+  | Eia.Eq (lhs, (Eia.Concat _ as rhs), S) ->
+    let lhs, rhs = trim lhs rhs in
+    begin match lhs, rhs with
+    | [], [] -> true_
+    | [], rhs -> false_
+    | lhs, [] -> false_
+    | lhs, rhs -> Eia (Eia.eq (Eia.concat lhs) (Eia.concat rhs) S)
+    end
   | Eia.Neq (Str_const a, Str_const b, S) -> if a <> b then true_ else false_
   | Eia.PrefixOf (Str_const a, Str_const b) ->
     if String.starts_with ~prefix:a b then true_ else false_
@@ -829,8 +927,7 @@ let in_concat v ast =
          (fun acc _ -> acc)
          (fun acc el ->
             match el with
-            | Eia.Concat (_, Eia.Atom (Var (s, S))) when s = v -> true
-            | Eia.Concat (Eia.Atom (Var (s, S)), _) when s = v -> true
+            | Eia.Concat xs when List.exists (( = ) (Eia.atom (var v S))) xs -> true
             | _ -> acc)
          false
          eia)

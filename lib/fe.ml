@@ -42,21 +42,8 @@ let rec to_string orig_expr : string Ast.Eia.term * Ast.t =
   | Expr.Naryop (_, Ty.Naryop.Concat, ls) ->
     (* VERIFY ME ?? *)
     let ls = List.map to_string ls in
-    begin match ls with
-    | hd :: tl ->
-      let* hd, phs = hd in
-      let* tl, phs =
-        List.fold_left
-          (fun acc el ->
-             let* acc, phs = acc in
-             let* el, phs' = el in
-             return (Ast.Eia.concat acc el) (phs @ phs'))
-          (return hd phs)
-          tl
-      in
-      return tl phs
-    | _ -> failf "unable to concat 0 strings"
-    end
+    let ls, phs = List.split ls in
+    return (Ast.Eia.concat ls) (Ast.land_ phs)
   | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ expr ])
   | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.String_from_int, expr) ->
