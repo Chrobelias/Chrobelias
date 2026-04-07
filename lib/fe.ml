@@ -488,7 +488,8 @@ and to_ast tys orig_expr : Ast.t =
 
 let to_ast a b =
   extras := [];
-  Ast.land_ (to_ast a b :: !extras)
+  let ast = to_ast a b in
+  Ast.land_ (ast :: !extras)
 ;;
 
 let pred_to_sym s = Expr.symbol (Symbol.make Ty.Ty_bool s)
