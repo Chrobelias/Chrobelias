@@ -963,7 +963,16 @@ let make_main_symantics ?alpha ?agressive env =
         | [], [] -> true_
         | [], rhs -> false_
         | lhs, [] -> false_
-        | lhs, rhs -> eq_str (concat lhs) (concat rhs)
+        | Str_const a :: tl, Str_const b :: tl'
+          when Stdlib.not
+                 (String.starts_with ~prefix:a b && String.starts_with ~prefix:b a) ->
+          false_
+        | lhs, rhs ->
+          (match List.rev lhs, List.rev rhs with
+           | Str_const a :: tl, Str_const b :: tl'
+             when Stdlib.not (String.ends_with ~suffix:a b && String.ends_with ~suffix:b a)
+             -> false_
+           | _ -> eq_str (concat lhs) (concat rhs))
       in
       let nielsen lhs rhs =
         match lhs, rhs with
