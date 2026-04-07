@@ -27,6 +27,8 @@ let internal_name () =
 ;;
 
 let internal kind = Ast.var (internal_name ()) kind
+let extras = ref []
+let extend ast = extras := ast :: !extras
 
 let rec to_string orig_expr : string Ast.Eia.term * Ast.t =
   let expr = Expr.view orig_expr in
@@ -252,230 +254,242 @@ and to_ast tys orig_expr : Ast.t =
   (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
-  let is_str tys expr =
-    (Expr.ty expr = Ty.Ty_str
-     &&
+  (let is_str tys expr =
+     (Expr.ty expr = Ty.Ty_str
+      &&
+        match Expr.view expr with
+        | Expr.Unop (_, Ty.Unop.Length, _)
+        | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ _ ])
+        | Expr.Cvtop (_, Ty.Cvtop.String_to_int, _) -> false
+        | _ -> true)
+     ||
        match Expr.view expr with
-       | Expr.Unop (_, Ty.Unop.Length, _)
-       | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ _ ])
-       | Expr.Cvtop (_, Ty.Cvtop.String_to_int, _) -> false
-       | _ -> true)
-    ||
-      match Expr.view expr with
-      | Expr.Symbol symbol ->
-        Option.bind
-          (Base.Map.Poly.find tys (Ir.var (Symbol.to_string symbol)))
-          (function
-            | `Str -> Option.some true
-            | _ -> Option.none)
-        |> Option.is_some
-      | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ _ ])
-      | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ _ ])
-      | Expr.Cvtop (_, Ty.Cvtop.ToString, _) -> true
-      | _ -> false
-  in
-  let to_regex_helper term re =
-    let term =
-      match to_string term with
-      | term, ast when ast = Ast.true_ -> term
-      | _ ->
-        failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp term)
-    in
-    let is_empty re =
-      match Expr.view re with
-      | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
-      | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
-        (match to_string expr with
-         | Ast.Eia.Str_const "", ast when ast = Ast.true_ -> true
-         | _ -> false)
-      | _ -> false
-    in
-    let expr = Expr.view re in
-    match expr with
-    | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
-    | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
-      let str =
-        match to_string expr with
-        | Ast.Eia.Str_const s, ast when ast = Ast.true_ -> s
-        | _ ->
-          failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp expr)
-      in
-      Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const str) Ast.S)
-    | Expr.Unop (_ty, Ty.Unop.Regexp_plus, re') when is_empty re' ->
-      Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const "") Ast.S)
-    | Expr.Unop (_ty, Ty.Unop.Regexp_star, re') when is_empty re' ->
-      Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const "") Ast.S)
-    | _ ->
-      let re = to_regex re in
-      let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
-      Ast.Eia (Ast.Eia.inre term Ast.S re)
-  in
-  let expr = Expr.view orig_expr in
-  try
-    match expr with
-    (* Constants. *)
-    | Expr.Val v -> begin
-      match v with
-      | True -> Ast.True
-      | False -> Ast.lnot Ast.true_
-      | _ ->
-        failf (Format.asprintf "unable to handle %a as boolean term" Expr.pp orig_expr)
-    end
-    (* Variables. *)
-    | Expr.Symbol symbol -> Ast.pred (Symbol.to_string symbol)
-    (* Yes, probably this stuff is kinda over-engineered. *)
-    (* Logical operations. *)
-    (* Not. *)
-    | Expr.Unop (_ty, Ty.Unop.Not, expr) ->
-      let expr = to_ast tys expr in
-      Ast.lnot expr
-    | Expr.Binop (_ty, Ty.Binop.And, lhs, rhs) ->
-      let lhs = to_ast tys lhs in
-      let rhs = to_ast tys rhs in
-      Ast.land_ [ lhs; rhs ]
-    | Expr.Naryop (_ty, Ty.Naryop.Logand, exprs) ->
-      let a : Ast.t list =
-        List.fold_left
-          (fun acc (expr : Expr.t) ->
-             let acc = acc in
-             let (ir : Ast.t) = to_ast tys expr in
-             ir :: acc)
-          []
-          exprs
-      in
-      Ast.land_ a
-    (* Binary and arbitrary or *)
-    | Expr.Binop (_ty, Ty.Binop.Or, lhs, rhs) -> begin
-      let lhs = to_ast tys lhs in
-      let rhs = to_ast tys rhs in
-      Ast.lor_ [ lhs; rhs ]
-    end
-    | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) ->
-      let a : Ast.t list =
-        List.fold_left
-          (fun acc (expr : Expr.t) ->
-             let acc = acc in
-             let (ir : Ast.t) = to_ast tys expr in
-             ir :: acc)
-          []
-          exprs
-      in
-      Ast.lor_ a
-    (* Implication *)
-    | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) ->
-      let lhs = to_ast tys lhs in
-      let rhs = to_ast tys rhs in
-      Ast.lor_ [ Ast.lnot lhs; rhs ]
-    (* Integer comparisons. *)
-    | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
-      let build t c = Ast.eia (Ast.Eia.eq t c S) in
-      let lhs, (phs : Ast.t) = to_string lhs in
-      let rhs, (phs' : Ast.t) = to_string rhs in
-      Ast.land_ [ build lhs rhs; phs; phs' ]
-    | Expr.Relop (_ty, rel, lhs, rhs) ->
-      let build =
-        match rel with
-        | Ty.Relop.Eq -> fun t c -> Ast.eia (Ast.Eia.eq t c I)
-        | Ty.Relop.Ne -> fun t c -> Ast.lnot (Ast.eia (Ast.Eia.eq t c I))
-        | Ty.Relop.Le -> fun t c -> Ast.eia (Ast.Eia.leq t c)
-        | Ty.Relop.Lt -> fun t c -> Ast.eia (Ast.Eia.lt t c)
-        | Ty.Relop.Ge -> fun t c -> Ast.eia (Ast.Eia.geq t c)
-        | Ty.Relop.Gt -> fun t c -> Ast.eia (Ast.Eia.gt t c)
-        | _ -> failwith "Unsupported relational operator in EIA"
-      in
-      let* lhs, phs = to_eia_term lhs in
-      let* rhs, phs' = to_eia_term rhs in
-      Ast.land_ [ build lhs rhs; phs; phs' ]
-    (* Strings. *)
-    | Expr.App ({ name = Symbol.Simple "str.in.re"; _ }, [ str; re ])
-    | Expr.Binop (_, Ty.Binop.String_in_re, str, re) -> to_regex_helper str re
-    | Expr.Binop
-        ( _
-        , ((Ty.Binop.String_prefix | Ty.Binop.String_suffix | Ty.Binop.String_contains) as
-           op)
-        , str
-        , str' ) ->
-      let build t c =
-        match op with
-        | Ty.Binop.String_prefix -> Ast.eia (Ast.Eia.prefixof t c)
-        | Ty.Binop.String_suffix -> Ast.eia (Ast.Eia.suffixof t c)
-        | Ty.Binop.String_contains -> Ast.eia (Ast.Eia.contains t c)
-        | _ -> assert false
-      in
-      let* str, phs = to_string str in
-      let* str', phs' = to_string str' in
-      Ast.land_ [ build str str'; phs; phs' ]
-    (* Quantifiers and binders. *)
-    | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
-      let* c = to_ast tys c in
-      let* t = to_ast tys t in
-      let* e = to_ast tys e in
-      Ast.lor_ [ Ast.land_ [ c; t ]; Ast.land_ [ Ast.lnot c; e ] ]
-    | Expr.Binder (((Binder.Forall | Binder.Exists) as q), atoms, formula) ->
-      let binder =
-        match q with
-        | Binder.Forall -> Ast.any
-        | Binder.Exists -> Ast.exists
-        | _ -> failwith "Unreachable"
-      in
-      let atoms =
-        List.map
-          begin fun expr ->
-            match Expr.view expr with
-            | Expr.App (symbol, [ expr ])
-              when match Expr.view expr with
-                   | Symbol { name = Symbol.Simple "Int"; _ } -> true
-                   | _ -> false ->
-              let var = Symbol.to_string symbol in
-              Ast.Any_atom (Ast.int_var var)
-            | _ -> failwith "Unexpected value in quantifier"
-          end
-          atoms
-      in
-      let* formula = to_ast tys formula in
-      binder atoms formula
-    | Expr.Binder (Binder.Let_in, bindings, expr) -> begin
-      let ast = to_ast tys expr in
-      List.fold_left
-        (fun acc binding ->
-           match Expr.view binding with
-           | Expr.App (symbol, [ expr ]) ->
-             let symbol = Symbol.to_string symbol in
-             (match expr |> to_ast tys with
-              | (exception _) | Unsupp _ -> begin
-                match to_eia_term expr with
-                | eia', asts ->
-                  let ast =
-                    Ast.map
-                      (function
-                        | Ast.Eia eia ->
-                          Ast.eia
-                            (Ast.Eia.map2
-                               Fun.id
-                               (function
-                                 | Ast.Eia.Atom (Ast.Var (v, _)) when v = symbol -> eia'
-                                 | term -> term)
-                               Fun.id
-                               eia)
-                        | ast -> ast)
-                      acc
-                  in
-                  Ast.land_ [ ast; asts ]
-                | exception _ -> failwith "Unexpected construction in let-in binding"
-              end
-              | ast' ->
-                Ast.map
-                  (function
-                    | Ast.Pred symbol' when symbol = symbol' -> ast'
-                    | ast -> ast)
-                  acc)
-           | _ -> failwith "Unexpected construction in let-in binding")
-        ast
-        bindings
-    end
-    | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
-  with
-  | UnsupportedException m -> Ast.Unsupp m
+       | Expr.Symbol symbol ->
+         Option.bind
+           (Base.Map.Poly.find tys (Ir.var (Symbol.to_string symbol)))
+           (function
+             | `Str -> Option.some true
+             | _ -> Option.none)
+         |> Option.is_some
+       | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ _ ])
+       | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ _ ])
+       | Expr.Cvtop (_, Ty.Cvtop.ToString, _) -> true
+       | _ -> false
+   in
+   let to_regex_helper term re =
+     let term =
+       match to_string term with
+       | term, ast when ast = Ast.true_ -> term
+       | _ ->
+         failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp term)
+     in
+     let is_empty re =
+       match Expr.view re with
+       | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
+       | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
+         (match to_string expr with
+          | Ast.Eia.Str_const "", ast when ast = Ast.true_ -> true
+          | _ -> false)
+       | _ -> false
+     in
+     let expr = Expr.view re in
+     match expr with
+     | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
+     | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
+       let str =
+         match to_string expr with
+         | Ast.Eia.Str_const s, ast when ast = Ast.true_ -> s
+         | _ ->
+           failf (Format.asprintf "unable to create regex dynamically in %a" Expr.pp expr)
+       in
+       Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const str) Ast.S)
+     | Expr.Unop (_ty, Ty.Unop.Regexp_plus, re') when is_empty re' ->
+       Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const "") Ast.S)
+     | Expr.Unop (_ty, Ty.Unop.Regexp_star, re') when is_empty re' ->
+       Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const "") Ast.S)
+     | _ ->
+       let re = to_regex re in
+       let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
+       Ast.Eia (Ast.Eia.inre term Ast.S re)
+   in
+   let expr = Expr.view orig_expr in
+   try
+     match expr with
+     (* Constants. *)
+     | Expr.Val v -> begin
+       match v with
+       | True -> Ast.True
+       | False -> Ast.lnot Ast.true_
+       | _ ->
+         failf (Format.asprintf "unable to handle %a as boolean term" Expr.pp orig_expr)
+     end
+     (* Variables. *)
+     | Expr.Symbol symbol -> Ast.pred (Symbol.to_string symbol)
+     (* Yes, probably this stuff is kinda over-engineered. *)
+     (* Logical operations. *)
+     (* Not. *)
+     | Expr.Unop (_ty, Ty.Unop.Not, expr) ->
+       let expr = to_ast tys expr in
+       Ast.lnot expr
+     | Expr.Binop (_ty, Ty.Binop.And, lhs, rhs) ->
+       let lhs = to_ast tys lhs in
+       let rhs = to_ast tys rhs in
+       Ast.land_ [ lhs; rhs ]
+     | Expr.Naryop (_ty, Ty.Naryop.Logand, exprs) ->
+       let a : Ast.t list =
+         List.fold_left
+           (fun acc (expr : Expr.t) ->
+              let acc = acc in
+              let (ir : Ast.t) = to_ast tys expr in
+              ir :: acc)
+           []
+           exprs
+       in
+       Ast.land_ a
+     (* Binary and arbitrary or *)
+     | Expr.Binop (_ty, Ty.Binop.Or, lhs, rhs) -> begin
+       let lhs = to_ast tys lhs in
+       let rhs = to_ast tys rhs in
+       Ast.lor_ [ lhs; rhs ]
+     end
+     | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) ->
+       let a : Ast.t list =
+         List.fold_left
+           (fun acc (expr : Expr.t) ->
+              let acc = acc in
+              let (ir : Ast.t) = to_ast tys expr in
+              ir :: acc)
+           []
+           exprs
+       in
+       Ast.lor_ a
+     (* Implication *)
+     | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) ->
+       let lhs = to_ast tys lhs in
+       let rhs = to_ast tys rhs in
+       Ast.lor_ [ Ast.lnot lhs; rhs ]
+     (* Integer comparisons. *)
+     | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
+       let build t c = Ast.eia (Ast.Eia.eq t c S) in
+       let lhs, (phs : Ast.t) = to_string lhs in
+       let rhs, (phs' : Ast.t) = to_string rhs in
+       extend phs;
+       extend phs';
+       build lhs rhs
+     | Expr.Relop (_ty, rel, lhs, rhs) ->
+       let build =
+         match rel with
+         | Ty.Relop.Eq -> fun t c -> Ast.eia (Ast.Eia.eq t c I)
+         | Ty.Relop.Ne -> fun t c -> Ast.lnot (Ast.eia (Ast.Eia.eq t c I))
+         | Ty.Relop.Le -> fun t c -> Ast.eia (Ast.Eia.leq t c)
+         | Ty.Relop.Lt -> fun t c -> Ast.eia (Ast.Eia.lt t c)
+         | Ty.Relop.Ge -> fun t c -> Ast.eia (Ast.Eia.geq t c)
+         | Ty.Relop.Gt -> fun t c -> Ast.eia (Ast.Eia.gt t c)
+         | _ -> failwith "Unsupported relational operator in EIA"
+       in
+       let* lhs, phs = to_eia_term lhs in
+       let* rhs, phs' = to_eia_term rhs in
+       extend phs;
+       extend phs';
+       build lhs rhs
+     (* Strings. *)
+     | Expr.App ({ name = Symbol.Simple "str.in.re"; _ }, [ str; re ])
+     | Expr.Binop (_, Ty.Binop.String_in_re, str, re) -> to_regex_helper str re
+     | Expr.Binop
+         ( _
+         , ((Ty.Binop.String_prefix | Ty.Binop.String_suffix | Ty.Binop.String_contains)
+            as op)
+         , str
+         , str' ) ->
+       let build t c =
+         match op with
+         | Ty.Binop.String_prefix -> Ast.eia (Ast.Eia.prefixof t c)
+         | Ty.Binop.String_suffix -> Ast.eia (Ast.Eia.suffixof t c)
+         | Ty.Binop.String_contains -> Ast.eia (Ast.Eia.contains t c)
+         | _ -> assert false
+       in
+       let* str, phs = to_string str in
+       let* str', phs' = to_string str' in
+       extend phs;
+       extend phs';
+       build str str'
+     (* Quantifiers and binders. *)
+     | Expr.Triop (_, Ty.Triop.Ite, c, t, e) ->
+       let* c = to_ast tys c in
+       let* t = to_ast tys t in
+       let* e = to_ast tys e in
+       Ast.lor_ [ Ast.land_ [ c; t ]; Ast.land_ [ Ast.lnot c; e ] ]
+     | Expr.Binder (((Binder.Forall | Binder.Exists) as q), atoms, formula) ->
+       let binder =
+         match q with
+         | Binder.Forall -> Ast.any
+         | Binder.Exists -> Ast.exists
+         | _ -> failwith "Unreachable"
+       in
+       let atoms =
+         List.map
+           begin fun expr ->
+             match Expr.view expr with
+             | Expr.App (symbol, [ expr ])
+               when match Expr.view expr with
+                    | Symbol { name = Symbol.Simple "Int"; _ } -> true
+                    | _ -> false ->
+               let var = Symbol.to_string symbol in
+               Ast.Any_atom (Ast.int_var var)
+             | _ -> failwith "Unexpected value in quantifier"
+           end
+           atoms
+       in
+       let* formula = to_ast tys formula in
+       binder atoms formula
+     | Expr.Binder (Binder.Let_in, bindings, expr) -> begin
+       let ast = to_ast tys expr in
+       List.fold_left
+         (fun acc binding ->
+            match Expr.view binding with
+            | Expr.App (symbol, [ expr ]) ->
+              let symbol = Symbol.to_string symbol in
+              (match expr |> to_ast tys with
+               | (exception _) | Unsupp _ -> begin
+                 match to_eia_term expr with
+                 | eia', asts ->
+                   let ast =
+                     Ast.map
+                       (function
+                         | Ast.Eia eia ->
+                           Ast.eia
+                             (Ast.Eia.map2
+                                Fun.id
+                                (function
+                                  | Ast.Eia.Atom (Ast.Var (v, _)) when v = symbol -> eia'
+                                  | term -> term)
+                                Fun.id
+                                eia)
+                         | ast -> ast)
+                       acc
+                   in
+                   Ast.land_ [ ast; asts ]
+                 | exception _ -> failwith "Unexpected construction in let-in binding"
+               end
+               | ast' ->
+                 Ast.map
+                   (function
+                     | Ast.Pred symbol' when symbol = symbol' -> ast'
+                     | ast -> ast)
+                   acc)
+            | _ -> failwith "Unexpected construction in let-in binding")
+         ast
+         bindings
+     end
+     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
+   with
+   | UnsupportedException m -> Ast.Unsupp m)
+  |> fun ast -> Ast.land_ (ast :: !extras)
+;;
+
+let to_ast a b =
+  extras := [];
+  to_ast a b
 ;;
 
 let pred_to_sym s = Expr.symbol (Symbol.make Ty.Ty_bool s)
