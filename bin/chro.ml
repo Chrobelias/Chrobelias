@@ -641,6 +641,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
           (match check_eia_sat ~light ast e with
            | Sat (s, (ast, env, get_model, _)) -> begin
+             let env = Lib.Env.merge_exn env e in
              let result = Sat (s, (ast, env, get_model, regexes)) in
              if List.is_empty post
              then result
