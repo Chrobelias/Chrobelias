@@ -1080,7 +1080,15 @@ let make_main_symantics ?alpha ?agressive env =
              | Str_const _ :: _, Str_const _ :: _ -> true
              | _, _ -> false -> trim Neq llhs lrhs
       | Concat (Str_const _ :: _ as llhs), Str_const _ -> trim Neq llhs [ r ]
+      | Concat llhs, Str_const _
+        when match List.rev llhs with
+             | Str_const _ :: _ -> true
+             | _ -> false -> trim Neq llhs [ r ]
       | Str_const _, Concat (Str_const _ :: _ as lrhs) -> trim Neq [ l ] lrhs
+      | Str_const _, Concat lrhs
+        when match List.rev lrhs with
+             | Str_const _ :: _ -> true
+             | _ -> false -> trim Neq [ l ] lrhs
       | _ -> Id_symantics.neq_str l r
     ;;
 
