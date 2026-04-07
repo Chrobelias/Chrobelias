@@ -1033,33 +1033,37 @@ let make_main_symantics ?alpha ?agressive env =
             | _ -> eq_str (concat lhs) (concat rhs))
         | _ -> eq_str (concat lhs) (concat rhs)
       in
+      let trim = trim Eq in
       match lhs, rhs with
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
-             | x :: _, y :: _ when Eia.eq_term x y -> true
+             | x :: _, y :: _ when x = y -> true
              | Str_const _ :: _, Str_const _ :: _ -> true
-             | _, _ -> false -> trim Eq llhs lrhs
+             | _, _ -> false -> trim llhs lrhs
       | Concat llhs, Concat lrhs
         when match llhs |> List.rev, lrhs |> List.rev with
-             | x :: _, y :: _ when Eia.eq_term x y -> true
+             | x :: _, y :: _ when x = y -> true
              | Str_const _ :: _, Str_const _ :: _ -> true
-             | _, _ -> false -> trim Eq llhs lrhs
+             | _, _ -> false -> trim llhs lrhs
+      | Concat (x :: _ as llhs), y when x = y -> trim llhs [ y ]
+      | x, Concat (y :: _ as lrhs) when x = y -> trim [ x ] lrhs
       | Concat llhs, Str_const _ ->
         (match llhs with
-         | Str_const _ :: _ -> trim Eq llhs [ rhs ]
+         | Str_const _ :: _ -> trim llhs [ rhs ]
          | _ -> nielsen llhs [ rhs ])
       | Str_const _, Concat lrhs ->
         (match lrhs with
-         | Str_const _ :: _ -> trim Eq [ lhs ] lrhs
+         | Str_const _ :: _ -> trim [ lhs ] lrhs
          | _ -> nielsen [ lhs ] lrhs)
       | Concat llhs, Concat lrhs -> nielsen llhs lrhs
       | _ -> Id_symantics.eq_str lhs rhs
     ;;
 
     let neq_str l r =
+      let trim = trim Neq in
       match l, r with
       | Ast.Eia.Str_const l, Ast.Eia.Str_const r ->
         if l <> r then Ast.true_ else Ast.false_
@@ -1071,24 +1075,26 @@ let make_main_symantics ?alpha ?agressive env =
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
-             | x :: _, y :: _ when Eia.eq_term x y -> true
+             | x :: _, y :: _ when x = y -> true
              | Str_const _ :: _, Str_const _ :: _ -> true
-             | _, _ -> false -> trim Neq llhs lrhs
+             | _, _ -> false -> trim llhs lrhs
       | Concat llhs, Concat lrhs
         when match llhs |> List.rev, lrhs |> List.rev with
-             | x :: _, y :: _ when Eia.eq_term x y -> true
+             | x :: _, y :: _ when x = y -> true
              | Str_const _ :: _, Str_const _ :: _ -> true
-             | _, _ -> false -> trim Neq llhs lrhs
-      | Concat (Str_const _ :: _ as llhs), Str_const _ -> trim Neq llhs [ r ]
+             | _, _ -> false -> trim llhs lrhs
+      | Concat (x :: _ as llhs), y when x = y -> trim llhs [ y ]
+      | x, Concat (y :: _ as lrhs) when x = y -> trim [ x ] lrhs
+      | Concat (Str_const _ :: _ as llhs), Str_const _ -> trim llhs [ r ]
       | Concat llhs, Str_const _
         when match List.rev llhs with
              | Str_const _ :: _ -> true
-             | _ -> false -> trim Neq llhs [ r ]
-      | Str_const _, Concat (Str_const _ :: _ as lrhs) -> trim Neq [ l ] lrhs
+             | _ -> false -> trim llhs [ r ]
+      | Str_const _, Concat (Str_const _ :: _ as lrhs) -> trim [ l ] lrhs
       | Str_const _, Concat lrhs
         when match List.rev lrhs with
              | Str_const _ :: _ -> true
-             | _ -> false -> trim Neq [ l ] lrhs
+             | _ -> false -> trim [ l ] lrhs
       | _ -> Id_symantics.neq_str l r
     ;;
 
