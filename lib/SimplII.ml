@@ -108,6 +108,10 @@ type relop =
   | Leq
   | Eq
 
+type str_relop =
+  | Eq
+  | Neq
+
 module type SYM0 = sig
   type term
   type str
@@ -926,9 +930,16 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> ofop l r
     ;;
 
-    let eq_str lhs rhs =
-      let open Ast.Eia in
+    let trim op lhs rhs =
       let module S = String in
+      let ofop result =
+        match op, result with
+        | Eq, true -> true_
+        | Eq, false -> false_
+        | Neq, true -> false_
+        | Neq, false -> true_
+      in
+      let open Ast.Eia in
       let rec trim_left lhs rhs =
         match lhs, rhs with
         | hd :: tl, hd' :: tl' when hd = hd' -> trim_left tl tl'
@@ -957,23 +968,27 @@ let make_main_symantics ?alpha ?agressive env =
         let lhs, rhs = List.rev lhs, List.rev rhs in
         lhs, rhs
       in
-      let trim lhs rhs =
-        let lhs, rhs = trim_left lhs rhs in
-        match trim_right lhs rhs with
-        | [], [] -> true_
-        | [], rhs -> false_
-        | lhs, [] -> false_
-        | Str_const a :: tl, Str_const b :: tl'
-          when Stdlib.not
-                 (String.starts_with ~prefix:a b && String.starts_with ~prefix:b a) ->
-          false_
-        | lhs, rhs ->
-          (match List.rev lhs, List.rev rhs with
-           | Str_const a :: tl, Str_const b :: tl'
-             when Stdlib.not (String.ends_with ~suffix:a b && String.ends_with ~suffix:b a)
-             -> false_
-           | _ -> eq_str (concat lhs) (concat rhs))
-      in
+      let lhs, rhs = trim_left lhs rhs in
+      match trim_right lhs rhs with
+      | [], [] -> ofop true
+      | [], rhs -> ofop false
+      | lhs, [] -> ofop false
+      | Str_const a :: tl, Str_const b :: tl'
+        when Stdlib.not (String.starts_with ~prefix:a b && String.starts_with ~prefix:b a)
+        -> ofop false
+      | lhs, rhs ->
+        (match List.rev lhs, List.rev rhs with
+         | Str_const a :: tl, Str_const b :: tl'
+           when Stdlib.not (String.ends_with ~suffix:a b && String.ends_with ~suffix:b a)
+           -> ofop false
+         | _ ->
+           (match op with
+            | Eq -> eq_str (concat lhs) (concat rhs)
+            | Neq -> neq_str (concat lhs) (concat rhs)))
+    ;;
+
+    let eq_str lhs rhs =
+      let open Ast.Eia in
       let nielsen lhs rhs =
         match lhs, rhs with
         | x :: u, y :: v ->
@@ -1024,19 +1039,19 @@ let make_main_symantics ?alpha ?agressive env =
         when match llhs, lrhs with
              | x :: _, y :: _ when Eia.eq_term x y -> true
              | Str_const _ :: _, Str_const _ :: _ -> true
-             | _, _ -> false -> trim llhs lrhs
+             | _, _ -> false -> trim Eq llhs lrhs
       | Concat llhs, Concat lrhs
         when match llhs |> List.rev, lrhs |> List.rev with
              | x :: _, y :: _ when Eia.eq_term x y -> true
              | Str_const _ :: _, Str_const _ :: _ -> true
-             | _, _ -> false -> trim llhs lrhs
+             | _, _ -> false -> trim Eq llhs lrhs
       | Concat llhs, Str_const _ ->
         (match llhs with
-         | Str_const _ :: _ -> trim llhs [ rhs ]
+         | Str_const _ :: _ -> trim Eq llhs [ rhs ]
          | _ -> nielsen llhs [ rhs ])
       | Str_const _, Concat lrhs ->
         (match lrhs with
-         | Str_const _ :: _ -> trim [ lhs ] lrhs
+         | Str_const _ :: _ -> trim Eq [ lhs ] lrhs
          | _ -> nielsen [ lhs ] lrhs)
       | Concat llhs, Concat lrhs -> nielsen llhs lrhs
       | _ -> Id_symantics.eq_str lhs rhs
@@ -1052,6 +1067,18 @@ let make_main_symantics ?alpha ?agressive env =
           v
           (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha:alpha_with_extra_char)
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
+      | Concat llhs, Concat lrhs
+        when match llhs, lrhs with
+             | x :: _, y :: _ when Eia.eq_term x y -> true
+             | Str_const _ :: _, Str_const _ :: _ -> true
+             | _, _ -> false -> trim Neq llhs lrhs
+      | Concat llhs, Concat lrhs
+        when match llhs |> List.rev, lrhs |> List.rev with
+             | x :: _, y :: _ when Eia.eq_term x y -> true
+             | Str_const _ :: _, Str_const _ :: _ -> true
+             | _, _ -> false -> trim Neq llhs lrhs
+      | Concat (Str_const _ :: _ as llhs), Str_const _ -> trim Neq llhs [ r ]
+      | Str_const _, Concat (Str_const _ :: _ as lrhs) -> trim Neq [ l ] lrhs
       | _ -> Id_symantics.neq_str l r
     ;;
 
@@ -2125,10 +2152,9 @@ let lower_mod ast =
 ;;
 
 let over_concat ast =
-  let open Ast in
-  let over_reg =
-    let open Ast.Eia in
-    let _collect_consts term =
+  let open Ast.Eia in
+  (* let over_reg =
+    let collect_consts term =
       Ast.Eia.fold_term
         (fun acc x -> acc)
         (fun acc term ->
@@ -2140,7 +2166,7 @@ let over_concat ast =
     in
     Ast.fold
       (fun acc -> function
-         (*| Ast.Eia (Eq (lhs, rhs, S)) -> begin
+         | Ast.Eia (Eq (lhs, rhs, S)) -> begin
            match lhs, rhs with
            | Concat (Str_const s, rhs'), term | term, Concat (Str_const s, rhs') ->
              collect_consts rhs'
@@ -2153,28 +2179,20 @@ let over_concat ast =
              |> (fun constr -> Id_symantics.in_re term (Regex.suffix s) :: constr)
              |> List.fold_left (fun acc' constr -> constr :: acc') acc
            | _ -> acc
-         end*)
+         end
+         | ast -> acc)
+      []
+      ast
+  in *)
+  let over_length =
+    Ast.fold
+      (fun acc -> function
+         | Ast.Eia (Eq (lhs, rhs, S)) -> Ast.Eia (Eq (len lhs, len rhs, I)) :: acc
          | ast -> acc)
       []
       ast
   in
-  let rec over_length = function
-    | Ast.Eia (Eq (lhs, rhs, S)) as ast ->
-      ast, Ast.Eia (Eq (Ast.Eia.len lhs, Ast.Eia.len rhs, I))
-    | Ast.Lor xs ->
-      let asts_n_overs = List.map over_length xs in
-      ( Ast.lor_ (List.map (fun (ast, over) -> Ast.land_ [ ast; over ]) asts_n_overs)
-      , Ast.true_ )
-    | Ast.Land xs ->
-      let asts, overs = List.map over_length xs |> List.split in
-      Ast.land_ (asts @ overs), Ast.true_
-    | ast -> ast, Ast.true_
-  in
-  let over_length ast =
-    let ast, overs = over_length ast in
-    Ast.land_ [ ast; overs ]
-  in
-  over_length (Ast.land_ (over_reg @ [ ast ]))
+  Ast.land_ (over_length @ [ ast ])
 ;;
 
 let basic_simplify step ?multiple (env : Env.t) ast =
@@ -2243,6 +2261,7 @@ let normalize eia =
 let run_basic_simplify ?(env = Env.empty) ast =
   log "Basic simplifications:\n%!";
   let ast = lower_mod ast in
+  let ast = over_concat ast in
   let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
   then (
@@ -2661,7 +2680,7 @@ let under_str env alpha vars ast =
         match basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info) with
         | `Unsat -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
-        | `Unknown (ast, env, _, _) -> Some (ast |> over_concat, env))
+        | `Unknown (ast, env, _, _) -> Some (ast, env))
     in
     let m = List.length vars in
     Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
@@ -2871,7 +2890,7 @@ let run_string_simplify ast =
     (match basic_simplify [ 0 ] e (ast' |> rewrite_via_concat var_info) with
      | `Sat env -> `Sat env
      | `Unsat -> `Unsat ast'
-     | `Unknown (ast, env, _, _) -> `Unknown (ast |> over_concat, env, approxed_asts))
+     | `Unknown (ast, env, _, _) -> `Unknown (ast, env, approxed_asts))
 ;;
 
 let arithmetize ast env =

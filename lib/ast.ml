@@ -969,7 +969,7 @@ let collect_str_vars ast =
        match ast with
        | Eia eia ->
          (match eia with
-          | Eq (Iofs (Atom (Var (x, S))), Const c, I) when Z.(c = minus_one) -> x :: vars
+          | Eq (Iofs (Atom (Var (x, S))), Const c, I) when Z.(c <= minus_one) -> x :: vars
           | _ -> vars)
        | _ -> vars)
     []
