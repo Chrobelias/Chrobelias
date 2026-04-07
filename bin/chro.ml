@@ -618,23 +618,17 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     | _ -> apporx_rez
   in
   let check_string_sat ?(light = false) env ast =
-    let module Ast = Lib.Ast in
-    let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in
+    let open Lib.Ast in
+    let in_stoi_or_concat v = in_stoi v ast || in_concat v ast in
     let split_vars =
-      Ast.get_str_vars ast
+      let non_num var =
+        eia (Eia.leq (Eia.iofs (Eia.Atom (Lib.Ast.var var S))) (Const Z.minus_one))
+      in
+      get_str_vars ast
       |> List.filter in_stoi_or_concat
-      |> List.map (fun var ->
-        Ast.lor_
-          [ Ast.eia
-              (Ast.Eia.eq
-                 (Ast.Eia.iofs (Ast.Eia.Atom (Ast.var var S)))
-                 (Const Z.minus_one)
-                 Ast.I)
-          ; Ast.eia
-              (Ast.Eia.geq (Ast.Eia.iofs (Atom (Var (var, S)))) (Ast.Eia.const Z.zero))
-          ])
+      |> List.map (fun var -> lor_ [ non_num var; lnot (non_num var) ])
     in
-    let ast = Ast.Land (Lib.SimplII.split_concats ast :: split_vars) in
+    let ast = land_ (Lib.SimplII.split_concats ast :: split_vars) in
     if config.stop_after == `Pre_dpll
     then unknown ast Lib.Env.empty
     else (
