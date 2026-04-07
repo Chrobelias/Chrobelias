@@ -629,6 +629,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       |> List.map (fun var -> lor_ [ non_num var; lnot (non_num var) ])
     in
     let ast = land_ (Lib.SimplII.split_concats ast :: split_vars) in
+    log "After string approximations: %a\n%!" pp_smtlib2 ast;
     if config.stop_after == `Pre_dpll
     then unknown ast Lib.Env.empty
     else (
