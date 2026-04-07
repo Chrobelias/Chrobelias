@@ -2158,16 +2158,23 @@ let over_concat ast =
       []
       ast
   in
-  let over_length =
-    Ast.fold
-      (fun acc -> function
-         | Ast.Eia (Eq (lhs, rhs, S)) ->
-           Ast.Eia (Eq (Ast.Eia.len lhs, Ast.Eia.len rhs, I)) :: acc
-         | ast -> acc)
-      []
-      ast
+  let rec over_length = function
+    | Ast.Eia (Eq (lhs, rhs, S)) as ast ->
+      ast, Ast.Eia (Eq (Ast.Eia.len lhs, Ast.Eia.len rhs, I))
+    | Ast.Lor xs ->
+      let asts_n_overs = List.map over_length xs in
+      ( Ast.lor_ (List.map (fun (ast, over) -> Ast.land_ [ ast; over ]) asts_n_overs)
+      , Ast.true_ )
+    | Ast.Land xs ->
+      let asts, overs = List.map over_length xs |> List.split in
+      Ast.land_ (asts @ overs), Ast.true_
+    | ast -> ast, Ast.true_
   in
-  Ast.land_ (over_reg @ over_length @ [ ast ])
+  let over_length ast =
+    let ast, overs = over_length ast in
+    Ast.land_ [ ast; overs ]
+  in
+  over_length (Ast.land_ (over_reg @ [ ast ]))
 ;;
 
 let basic_simplify step ?multiple (env : Env.t) ast =
