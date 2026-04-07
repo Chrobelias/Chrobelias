@@ -2151,50 +2151,6 @@ let lower_mod ast =
   | acc -> Ast.land_ (ph :: acc)
 ;;
 
-let over_concat ast =
-  let open Ast.Eia in
-  (* let over_reg =
-    let collect_consts term =
-      Ast.Eia.fold_term
-        (fun acc x -> acc)
-        (fun acc term ->
-           match term with
-           | Str_const s -> s :: acc
-           | _ -> acc)
-        []
-        term
-    in
-    Ast.fold
-      (fun acc -> function
-         | Ast.Eia (Eq (lhs, rhs, S)) -> begin
-           match lhs, rhs with
-           | Concat (Str_const s, rhs'), term | term, Concat (Str_const s, rhs') ->
-             collect_consts rhs'
-             |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
-             |> (fun constr -> Id_symantics.in_re term (Regex.prefix s) :: constr)
-             |> List.fold_left (fun acc' constr -> constr :: acc') acc
-           | Concat (lhs', Str_const s), term | term, Concat (lhs', Str_const s) ->
-             collect_consts lhs'
-             |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
-             |> (fun constr -> Id_symantics.in_re term (Regex.suffix s) :: constr)
-             |> List.fold_left (fun acc' constr -> constr :: acc') acc
-           | _ -> acc
-         end
-         | ast -> acc)
-      []
-      ast
-  in *)
-  let over_length =
-    Ast.fold
-      (fun acc -> function
-         | Ast.Eia (Eq (lhs, rhs, S)) -> Ast.Eia (Eq (len lhs, len rhs, I)) :: acc
-         | ast -> acc)
-      []
-      ast
-  in
-  Ast.land_ (over_length @ [ ast ])
-;;
-
 let basic_simplify step ?multiple (env : Env.t) ast =
   let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
@@ -2256,21 +2212,6 @@ let normalize eia =
             Ast.pp_smtlib2
             ast))
   | _ -> eia
-;;
-
-let run_basic_simplify ?(env = Env.empty) ast =
-  log "Basic simplifications:\n%!";
-  let ast = lower_mod ast in
-  let ast = over_concat ast in
-  let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
-  if Ast.is_conjunct ast
-  then (
-    match basic_simplify [ 1 ] env ast with
-    | `Sat env -> `Sat env
-    | `Unsat -> `Unsat ast
-    | `Unknown (ast, e, _, _) ->
-      `Unknown (ast |> shrink_variables |> flatten Info.empty, e))
-  else `Unknown (ast, Env.empty)
 ;;
 
 let collect_regexes ast =
@@ -2865,6 +2806,54 @@ end
 
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 
+let over_concat ast =
+  let open Ast.Eia in
+  let over_reg =
+    let collect_consts =
+      List.fold_left
+        (fun acc term ->
+           match term with
+           | Str_const s -> s :: acc
+           | _ -> acc)
+        []
+    in
+    Ast.fold
+      (fun acc -> function
+         | Ast.Eia (Eq (lhs, rhs, S)) -> begin
+           match lhs, rhs with
+           | Concat (Str_const s :: tl), term | term, Concat (Str_const s :: tl) ->
+             collect_consts tl
+             |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
+             |> (fun constr -> Id_symantics.in_re term (Regex.prefix s) :: constr)
+             |> List.fold_left (fun acc' constr -> constr :: acc') acc
+           | Concat l, term | term, Concat l ->
+             (match l |> List.rev with
+              | Str_const s :: tl ->
+                collect_consts tl
+                |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
+                |> (fun constr -> Id_symantics.in_re term (Regex.suffix s) :: constr)
+                |> List.fold_left (fun acc' constr -> constr :: acc') acc
+              | _ ->
+                collect_consts l
+                |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
+                |> List.fold_left (fun acc' constr -> constr :: acc') acc)
+           | _ -> acc
+         end
+         | ast -> acc)
+      []
+      ast
+  in
+  let over_length =
+    Ast.fold
+      (fun acc -> function
+         | Ast.Eia (Eq (lhs, rhs, S)) -> Ast.Eia (Eq (len lhs, len rhs, I)) :: acc
+         | ast -> acc)
+      []
+      ast
+  in
+  Ast.land_ (over_reg @ over_length @ [ ast ])
+;;
+
 let run_string_simplify ast =
   let module Set = Base.Set.Poly in
   match basic_simplify [ 1 ] Env.empty ast with
@@ -2891,6 +2880,21 @@ let run_string_simplify ast =
      | `Sat env -> `Sat env
      | `Unsat -> `Unsat ast'
      | `Unknown (ast, env, _, _) -> `Unknown (ast, env, approxed_asts))
+;;
+
+let run_basic_simplify ?(env = Env.empty) ast =
+  log "Basic simplifications:\n%!";
+  let ast = lower_mod ast in
+  let ast = over_concat ast in
+  let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
+  if Ast.is_conjunct ast
+  then (
+    match basic_simplify [ 1 ] env ast with
+    | `Sat env -> `Sat env
+    | `Unsat -> `Unsat ast
+    | `Unknown (ast, e, _, _) ->
+      `Unknown (ast |> shrink_variables |> flatten Info.empty, e))
+  else `Unknown (ast, Env.empty)
 ;;
 
 let arithmetize ast env =
