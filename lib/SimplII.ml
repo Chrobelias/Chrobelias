@@ -958,16 +958,6 @@ let make_main_symantics ?alpha ?agressive env =
         lhs, rhs
       in
       let trim lhs rhs =
-        let lhs =
-          match lhs with
-          | Concat xs -> xs
-          | x -> [ x ]
-        in
-        let rhs =
-          match rhs with
-          | Concat xs -> xs
-          | x -> [ x ]
-        in
         let lhs, rhs = trim_left lhs rhs in
         match trim_right lhs rhs with
         | [], [] -> true_
@@ -977,35 +967,45 @@ let make_main_symantics ?alpha ?agressive env =
       in
       let nielsen lhs rhs =
         match lhs, rhs with
-        | Eia.Concat (x :: u), Eia.Concat (y :: v) ->
-          let u, v = concat u, concat v in
-          let case_1 = land_ [ eq_str x y; eq_str u v ] in
-          let case_2 = land_ [ eq_str x (str_const ""); eq_str u (concat [ y; v ]) ] in
-          let case_2' = land_ [ eq_str y (str_const ""); eq_str v (concat [ x; u ]) ] in
-          (* len(x) < len(y) *)
-          let x' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
-          let case_3 =
-            land_
-              [ eia (lt (len y) (len x))
-              ; eq_str x (concat [ y; x' ])
-              ; eq_str (concat [ x'; u ]) v
-              ]
+        | x :: u, y :: v ->
+          let fixedpoint =
+            if List.is_empty u || List.is_empty v
+            then true
+            else (
+              let ru, rv = u |> List.rev |> List.hd, v |> List.rev |> List.hd in
+              Eia.eq_term rv x || Eia.eq_term ru y)
           in
-          (* len(x) < len(y) *)
-          let y' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
-          let case_3' =
-            land_
-              [ eia (leq (len x) (len y))
-              ; eq_str y (concat [ x; y' ])
-              ; eq_str u (concat [ y'; v ])
-              ]
-          in
-          (match x, y with
-           | Atom _, Atom _ -> Ast.lor_ [ case_1; case_2; case_3; case_3' ]
-           | Atom _, _ -> Ast.lor_ [ case_1; case_2; case_3 ]
-           | _, Atom _ -> Ast.lor_ [ case_1; case_2'; case_3' ]
-           | _ -> eq_str lhs rhs)
-        | _ -> eq_str lhs rhs
+          if fixedpoint
+          then eq_str (concat lhs) (concat rhs)
+          else (
+            let u, v = concat u, concat v in
+            let case_1 = land_ [ eq_str x y; eq_str u v ] in
+            let case_2 = land_ [ eq_str x (str_const ""); eq_str u (concat [ y; v ]) ] in
+            let case_2' = land_ [ eq_str y (str_const ""); eq_str v (concat [ x; u ]) ] in
+            (* len(x) < len(y) *)
+            let x' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
+            let case_3 =
+              land_
+                [ eia (lt (len y) (len x))
+                ; eq_str x (concat [ y; x' ])
+                ; eq_str (concat [ x'; u ]) v
+                ]
+            in
+            (* len(x) < len(y) *)
+            let y' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
+            let case_3' =
+              land_
+                [ eia (leq (len x) (len y))
+                ; eq_str y (concat [ x; y' ])
+                ; eq_str u (concat [ y'; v ])
+                ]
+            in
+            match x, y with
+            | Atom _, Atom _ -> lor_ [ case_1; case_2; case_3; case_3' ]
+            | Atom _, _ -> lor_ [ case_1; case_2; case_3 ]
+            | _, Atom _ -> lor_ [ case_1; case_2'; case_3' ]
+            | _ -> eq_str (concat lhs) (concat rhs))
+        | _ -> eq_str (concat lhs) (concat rhs)
       in
       match lhs, rhs with
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
@@ -1015,21 +1015,21 @@ let make_main_symantics ?alpha ?agressive env =
         when match llhs, lrhs with
              | x :: _, y :: _ when Eia.eq_term x y -> true
              | Str_const _ :: _, Str_const _ :: _ -> true
-             | _, _ -> false -> trim lhs rhs
+             | _, _ -> false -> trim llhs lrhs
       | Concat llhs, Concat lrhs
         when match llhs |> List.rev, lrhs |> List.rev with
              | x :: _, y :: _ when Eia.eq_term x y -> true
              | Str_const _ :: _, Str_const _ :: _ -> true
-             | _, _ -> false -> trim lhs rhs
+             | _, _ -> false -> trim llhs lrhs
       | Concat llhs, Str_const _ ->
         (match llhs with
-         | Str_const _ :: _ -> trim lhs rhs
-         | _ -> nielsen lhs (Concat [ rhs ]))
+         | Str_const _ :: _ -> trim llhs [ rhs ]
+         | _ -> nielsen llhs [ rhs ])
       | Str_const _, Concat lrhs ->
         (match lrhs with
-         | Str_const _ :: _ -> trim lhs rhs
-         | _ -> nielsen (Concat [ lhs ]) rhs)
-      | Concat _, Concat _ -> nielsen lhs rhs
+         | Str_const _ :: _ -> trim [ lhs ] lrhs
+         | _ -> nielsen [ lhs ] lrhs)
+      | Concat llhs, Concat lrhs -> nielsen llhs lrhs
       | _ -> Id_symantics.eq_str lhs rhs
     ;;
 
