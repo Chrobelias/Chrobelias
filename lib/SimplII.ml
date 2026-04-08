@@ -3016,8 +3016,8 @@ let arithmetize ast env =
            | Ast.Eia.Atom (Ast.Var (s, S)) when List.mem s str_vars ->
              raise (Unsupp_concat ("str var " ^ s))
            | _ ->
-             Id_symantics.eqz (Id_symantics.var v) (Ast.Eia.Iofs strv)
-             :: Id_symantics.leq (Ast.Eia.Const Z.zero) (Ast.Eia.Iofs strv)
+             Id_symantics.eqz (Id_symantics.var v) (Ast.Eia.iofs strv)
+             :: Id_symantics.leq (Ast.Eia.Const Z.zero) (Ast.Eia.iofs strv)
              :: !extra_ph
     in
     let extend_unsupp s =
@@ -3042,8 +3042,28 @@ let arithmetize ast env =
                | _ -> acc)
             false
         in
+        let contains_non_digit_strconst =
+          let is_nondigit s =
+            String.to_seq s |> Seq.exists (Fun.negate Base.Char.is_digit)
+          in
+          Ast.Eia.fold_term
+            (fun acc el -> acc)
+            (fun acc el ->
+               match el with
+               | Ast.Eia.Str_const s -> is_nondigit s || acc
+               | Ast.Eia.Concat xs ->
+                 List.exists
+                   (function
+                     | Ast.Eia.Str_const s -> is_nondigit s || acc
+                     | _ -> false)
+                   xs
+                 || acc
+               | _ -> acc)
+            false
+        in
         function
-        | s when contains_var str_vars s -> Id_symantics.constz Z.minus_one
+        | s when contains_var str_vars s || contains_non_digit_strconst s ->
+          Id_symantics.constz Z.minus_one
         | s -> Id_symantics.iofs s
       ;;
     end
@@ -3098,6 +3118,7 @@ let arithmetize ast env =
         (ph
          |> apply_symantics_unsugared (module ArConcIofs)
          |> apply_symantics_unsugared (module ArConc))
+      |> apply_symantics_unsugared (module ArConcIofs)
   in
   let arithmetize var_info ast : Ast.t =
     let (module M) = make_main_symantics Env.empty in
