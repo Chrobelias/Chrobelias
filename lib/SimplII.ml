@@ -594,43 +594,24 @@ let make_main_symantics ?alpha ?agressive env =
       | s -> Id_symantics.str_len2 s
     ;;
 
-    let iofs = function
-      (* 
-      MS: False start of arithmetization. 
-      Add cases of digit/non-digits strings under iofs to arithmetize_concats *)
-
-      (* Id_symantics.add
-          [ Ast.Eia.mul
-              [ Id_symantics.iofs lhs
-              ; Ast.Eia.pow
-                  (Id_symantics.constz (Config.base ()))
-                  (Id_symantics.str_len rhs)
-              ]
-          ; Id_symantics.iofs rhs
-          ] *)
-      (* | Ast.Eia.Concat (lhs, Ast.Eia.Str_const s) when String.for_all Base.Char.is_digit s ??
-        ->
-        Id_symantics.add
-          [ Ast.Eia.mul
-              [ Id_symantics.iofs lhs
-              ; Ast.Eia.pow
-                  (Id_symantics.constz (Config.base ()))
-                  (Id_symantics.constz (Z.of_int (String.length s)))
-              ]
-          ; Id_symantics.constz (Z.of_string s)
-          ]
-      | Ast.Eia.Concat (lhs, Ast.Eia.Str_const s) -> Id_symantics.constz Z.minus_one
-      | Ast.Eia.Concat (Ast.Eia.Str_const s, rhs) as term
-        when String.for_all Base.Char.is_digit s -> Id_symantics.iofs term
-      | Ast.Eia.Concat (Ast.Eia.Str_const s, rhs) -> Id_symantics.constz Z.minus_one
-      | Ast.Eia.Str_const s -> begin
+    let iofs =
+      let open Ast.Eia in
+      function
+      | Concat terms
+        when List.exists
+               (fun term ->
+                  match term with
+                  | Str_const s when Bool.not (String.for_all Base.Char.is_digit s) ->
+                    true
+                  | _ -> false)
+               terms -> constz Z.minus_one
+      | Str_const s -> begin
         match s with
-        | "" -> Id_symantics.constz Z.minus_one
-        | s when String.for_all Base.Char.is_digit s ->
-          Id_symantics.constz (Z.of_string s)
-        | _ -> Id_symantics.constz Z.minus_one
-      end *)
-      | s -> Id_symantics.iofs s
+        | "" -> constz Z.minus_one
+        | s when String.for_all Base.Char.is_digit s -> constz (Z.of_string s)
+        | _ -> constz Z.minus_one
+      end
+      | s -> iofs s
     ;;
 
     let sofi = function
