@@ -2582,7 +2582,7 @@ let rewrite_via_concat { Info.all; _ } =
   let extend_eq v other =
     extra_ph := Id_symantics.eq_str (Id_symantics.str_var v) other :: !extra_ph
   in
-  let module M_ = struct
+  let module Rewrite = struct
     include Id_symantics
 
     let str_substr (term : str) (offset : term) (len : term) =
@@ -2642,68 +2642,59 @@ let rewrite_via_concat { Info.all; _ } =
     ;;
   end
   in
-  let module Sym = struct
-    include M_
-    include FT_SIG.Sugar (M_)
-  end
-  in
   let rec loop ast =
-    let ast' = Sym.prj (ast |> apply_symantics (module Sym)) in
+    let ast' = Rewrite.prj (ast |> apply_symantics_unsugared (module Rewrite)) in
     if Ast.is_simpl ast' then ast' else loop ast'
   in
   fun ph -> loop ph
 ;;
 
-let over_concat ast =
+(* let over_reg ast =
   let open Ast.Eia in
-  let over_reg ast =
-    let collect_consts =
-      List.fold_left
-        (fun acc term ->
-           match term with
-           | Str_const s -> s :: acc
-           | _ -> acc)
-        []
-    in
-    Ast.fold
-      (fun acc -> function
-         | Ast.Eia (Eq (lhs, rhs, S)) -> begin
-           match lhs, rhs with
-           | Concat (Str_const s :: tl), term | term, Concat (Str_const s :: tl) ->
-             collect_consts tl
-             |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
-             |> (fun constr -> Id_symantics.in_re term (Regex.prefix s) :: constr)
-             |> List.fold_left (fun acc' constr -> constr :: acc') acc
-           | Concat l, term | term, Concat l ->
-             (match l |> List.rev with
-              | Str_const s :: tl ->
-                collect_consts tl
-                |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
-                |> (fun constr -> Id_symantics.in_re term (Regex.suffix s) :: constr)
-                |> List.fold_left (fun acc' constr -> constr :: acc') acc
-              | _ ->
-                collect_consts l
-                |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
-                |> List.fold_left (fun acc' constr -> constr :: acc') acc)
-           | _ -> acc
-         end
-         | ast -> acc)
+  let collect_consts =
+    List.fold_left
+      (fun acc term ->
+         match term with
+         | Str_const s -> s :: acc
+         | _ -> acc)
       []
-      ast
   in
-  let rec over_ast = function
-    | Ast.Eia (Eq (lhs, rhs, S)) as ast ->
-      Ast.land_
-        [ ast
-        ; Ast.limpl
-            ast
-            (Ast.land_ ([ Ast.Eia (Eq (len lhs, len rhs, I)) ] @ over_reg ast))
-        ]
-    | Ast.Lor xs -> Ast.lor_ (List.map over_ast xs)
-    | Ast.Land xs -> Ast.land_ (List.map over_ast xs)
-    | ast -> ast
+  Ast.fold
+    (fun acc -> function
+       | Ast.Eia (Eq (lhs, rhs, S)) -> begin
+         match lhs, rhs with
+         | Concat (Str_const s :: tl), term | term, Concat (Str_const s :: tl) ->
+           collect_consts tl
+           |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
+           |> (fun constr -> Id_symantics.in_re term (Regex.prefix s) :: constr)
+           |> List.fold_left (fun acc' constr -> constr :: acc') acc
+         | Concat l, term | term, Concat l ->
+           (match l |> List.rev with
+            | Str_const s :: tl ->
+              collect_consts tl
+              |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
+              |> (fun constr -> Id_symantics.in_re term (Regex.suffix s) :: constr)
+              |> List.fold_left (fun acc' constr -> constr :: acc') acc
+            | _ ->
+              collect_consts l
+              |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
+              |> List.fold_left (fun acc' constr -> constr :: acc') acc)
+         | _ -> acc
+       end
+       | ast -> acc)
+    []
+    ast
+;; *)
+
+let over_concat_len ast =
+  let open Ast.Eia in
+  let module OverStrLen = struct
+    include Id_symantics
+
+    let eq_str lhs rhs = land_ [ eq_str lhs rhs; eqz (len lhs) (len rhs) ]
+  end
   in
-  over_ast ast
+  apply_symantics_unsugared (module OverStrLen) ast
 ;;
 
 let under_str env alpha vars ast =
@@ -2788,7 +2779,7 @@ let under_str env alpha vars ast =
         match basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info) with
         | `Unsat -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
-        | `Unknown (ast, env, _, _) -> Some (ast |> over_concat, env))
+        | `Unknown (ast, env, _, _) -> Some (ast |> over_concat_len, env))
     in
     let m = List.length vars in
     Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
@@ -2896,10 +2887,12 @@ let run_string_simplify ast =
     let approxed_asts = ast' |> under_str e (Utils.with_extra_char alpha) vars in
     let var_info = apply_symantics (module Who_in_exponents) ast' in
     (* log "After rewriting via concats:\n%!"; *)
-      (match basic_simplify [ 0 ] e (ast' |> rewrite_via_concat var_info) with
+      (match
+         basic_simplify [ 0 ] e (ast' |> rewrite_via_concat var_info |> over_concat_len)
+       with
        | `Sat env -> `Sat env
        | `Unsat -> `Unsat ast'
-       | `Unknown (ast, env, _, _) -> `Unknown (ast |> over_concat, env, approxed_asts))
+       | `Unknown (ast, env, _, _) -> `Unknown (ast, env, approxed_asts))
 ;;
 
 let run_basic_simplify ?(env = Env.empty) ast =
@@ -3097,21 +3090,11 @@ let arithmetize ast env =
       ;;
     end
     in
-    let module SymArConcIofs = struct
-      include ArConcIofs
-      include FT_SIG.Sugar (ArConcIofs)
-    end
-    in
-    let module SymArConc = struct
-      include ArConc
-      include FT_SIG.Sugar (ArConc)
-    end
-    in
     fun ph ->
-      SymArConc.prj
+      ArConc.prj
         (ph
-         |> apply_symantics (module SymArConcIofs)
-         |> apply_symantics (module SymArConc))
+         |> apply_symantics_unsugared (module ArConcIofs)
+         |> apply_symantics_unsugared (module ArConc))
   in
   let arithmetize var_info ast : Ast.t =
     let (module M) = make_main_symantics Env.empty in
@@ -3319,7 +3302,7 @@ let arithmetize ast env =
         | ast -> ast)
       ast
   in
-  let unfold_neq var_info regexes ast =
+  let unfold_neq var_info ast regexes =
     let strlen_var s = String.concat "" [ "strlen"; s ] in
     let strleni s = Ast.Eia.Atom (Ast.Var (strlen_var s, Ast.I)) in
     let get_len v =
@@ -3491,15 +3474,8 @@ let arithmetize ast env =
       regexes
       regexes'
   in
-  ast', regexes
-  (*<<<<<<< Updated upstream
-         (arithmetize var_info ast))
-    asts_n_regexes
-  |> List.concat_map (fun (a, b) ->
-=======*))
-  |> fun (a, b) ->
-  (*>>>>>>> Stashed changes*)
-  unfold_neq var_info b a |> fun (a, a') -> a, env, a', b
+  ast', regexes)
+  |> fun (a, b) -> unfold_neq var_info a b |> fun (a, a') -> a, env, a', b
 ;;
 
 (* let distribute xs =
