@@ -1018,6 +1018,9 @@ let make_main_symantics ?alpha ?agressive env =
       match lhs, rhs with
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
+      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v)
+        when Option.is_some alpha_with_extra_char ->
+        Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex)
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
