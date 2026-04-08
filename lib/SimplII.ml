@@ -1772,8 +1772,11 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     | _ -> noprop
   in
   let helper info orig_ast env ast =
-    let var_can_be_prop v =
+    let var_can_be_prop ?rhs v =
       Env.is_absent_key v env
+      && Option.value
+           ~default:true
+           (Option.map (fun rhs -> Env.occurs_var env v rhs |> not) rhs)
       (*&& not
            (Ast.forsome
                  (function
@@ -1937,17 +1940,17 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     in
     let module Set = Base.Set.Poly in
     match ast with
-    | Eia (Eia.Eq ((Eia.Atom (Var (vn, I)) as lhs), rhs, I)) when var_can_be_prop vn ->
-    begin
+    | Eia (Eia.Eq ((Eia.Atom (Var (vn, I)) as lhs), rhs, I)) when var_can_be_prop vn ~rhs
+      -> begin
       match trivial_integer_propagations vn rhs with
       | Noprop -> begin advanced_integer_propagations lhs rhs end
       | smth -> smth
     end
-    | Eia (Eia.Eq (rhs, Eia.Atom (Var (vn, I)), I)) when var_can_be_prop vn ->
+    | Eia (Eia.Eq (rhs, Eia.Atom (Var (vn, I)), I)) when var_can_be_prop ~rhs vn ->
       trivial_integer_propagations vn rhs
-    | Eia (Eia.Eq (Eia.Atom (Var (vn, S)), rhs, S)) when var_can_be_prop vn ->
+    | Eia (Eia.Eq (Eia.Atom (Var (vn, S)), rhs, S)) when var_can_be_prop ~rhs vn ->
       trivial_string_propagations vn rhs
-    | Eia (Eia.Eq (rhs, Eia.Atom (Var (vn, S)), S)) when var_can_be_prop vn ->
+    | Eia (Eia.Eq (rhs, Eia.Atom (Var (vn, S)), S)) when var_can_be_prop ~rhs vn ->
       trivial_string_propagations vn rhs
     | Eia (Eia.Eq (lhs, rhs, I)) -> begin
       match commut advanced_integer_propagations lhs rhs with
