@@ -975,7 +975,13 @@ let make_main_symantics ?alpha ?agressive env =
         | x :: u, y :: v ->
           let fixedpoint =
             if List.is_empty u || List.is_empty v
-            then true
+            then (
+              let check x u =
+                match x, u with
+                | Atom _, [] -> true
+                | _ -> false
+              in
+              check x u || check y v)
             else (
               let ru, rv = u |> List.rev |> List.hd, v |> List.rev |> List.hd in
               Eia.eq_term rv x || Eia.eq_term ru y)
@@ -987,6 +993,14 @@ let make_main_symantics ?alpha ?agressive env =
             let case_1 = land_ [ eq_str x y; eq_str u v ] in
             let case_2 = land_ [ eq_str x (str_const ""); eq_str u (concat [ y; v ]) ] in
             let case_2' = land_ [ eq_str y (str_const ""); eq_str v (concat [ x; u ]) ] in
+            let case_2'' s x v =
+              lor_
+                (0 -- String.length s
+                 |> List.map (fun x ->
+                   String.sub s 0 x, String.sub s x (String.length s - x))
+                 |> List.map (fun (s1, s2) ->
+                   land_ [ eq_str x (str_const s1); eq_str v (str_const s2) ]))
+            in
             (* len(x) < len(y) *)
             let x' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
             let case_3 =
@@ -1009,8 +1023,8 @@ let make_main_symantics ?alpha ?agressive env =
             in
             match x, y with
             | Atom _, Atom _ -> lor_ [ case_1; case_2; case_3; case_3' ]
-            | Atom _, _ -> lor_ [ case_1; case_2; case_3 ]
-            | _, Atom _ -> lor_ [ case_1; case_2'; case_3' ]
+            | Atom _, Str_const s -> lor_ [ case_1; case_2; case_2'' s x u ]
+            | Str_const s, Atom _ -> lor_ [ case_1; case_2'; case_2'' s y v ]
             | _ -> eq_str (concat lhs) (concat rhs))
         | _ -> eq_str (concat lhs) (concat rhs)
       in
