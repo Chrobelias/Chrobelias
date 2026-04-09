@@ -247,15 +247,23 @@ let rec model_from_parts_regexes_env tys model regexes env' =
   let real_model =
     Map.fold
       ~f:(fun ~key ~data acc ->
+        let key' =
+          match key with
+          | Lib.Ir.Var key -> key
+          | _ -> assert false
+        in
         if Map.mem acc key
         then acc
-        else (
+        else if Lib.Env.is_absent_key key' env
+        then (
           match data with
           | `Int -> Map.add_exn acc ~key ~data:(`Int Z.zero)
-          | `Str -> Map.add_exn acc ~key ~data:(`Str "")))
+          | `Str -> Map.add_exn acc ~key ~data:(`Str ""))
+        else acc)
       ~init:real_model
       tys
   in
+  let env = Lib.Env.enrich2 env real_model in
   if Lib.Env.definite_length env' <> Lib.Env.definite_length env
   then model_from_parts_regexes_env tys model regexes env
   else real_model
