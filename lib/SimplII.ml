@@ -991,8 +991,6 @@ let make_main_symantics ?alpha ?agressive env =
           else (
             let u, v = concat xs, concat ys in
             let trival = land_ [ eq_str x y; eq_str u v ] in
-            let empty_x = land_ [ eq_str x (str_const ""); eq_str u (concat [ y; v ]) ] in
-            let empty_y = land_ [ eq_str y (str_const ""); eq_str v (concat [ x; u ]) ] in
             (* len(y) < len(x) *)
             let x' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
             let nielsen_x =
@@ -1021,7 +1019,7 @@ let make_main_symantics ?alpha ?agressive env =
                      [ eq_str y (str_const s1); eq_str (concat [ str_const s2; u ]) v ]))
             in
             match x, y with
-            | Atom _, Atom _ -> lor_ [ trival; empty_x; empty_y; nielsen_x; nielsen_y ]
+            | Atom _, Atom _ -> lor_ [ trival; nielsen_x; nielsen_y ]
             | Atom _, Str_const s when List.is_empty ys -> split s x u
             | Atom _, Str_const s -> lor_ [ trival; nielsen_x; split_conc s v x u ]
             | Str_const s, Atom _ when List.is_empty xs -> split s y v
@@ -2909,6 +2907,18 @@ let run_basic_simplify ?(env = Env.empty) ast =
     | `Unknown (ast, e, _, _) ->
       `Unknown (ast |> shrink_variables |> flatten Info.empty, e))
   else `Unknown (ast, Env.empty)
+;;
+
+let theory_lemmas map =
+  let phs = Base.Map.keys map in
+  let variants =
+    Base.List.cartesian_product phs phs
+    |> List.filter_map (fun (x, y) ->
+      match basic_simplify [ 0 ] Env.empty (Ast.land_ [ x; y ]) with
+      | `Unsat -> Some (Ast.land_ [ Base.Map.find_exn map x; Base.Map.find_exn map y ])
+      | _ -> None)
+  in
+  Ast.land_ (List.map Ast.lnot variants)
 ;;
 
 let arithmetize ast env =

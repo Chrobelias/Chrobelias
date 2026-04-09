@@ -405,19 +405,6 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
     in
     let unsat_reason = ref "bool" in
     let can_be_unk = ref false in
-    let dpll_bootstrap : Ast.t -> Ast.t option = function
-      | Ast.Land xs ->
-        let variants = Base.List.cartesian_product xs xs in
-        List.find_map
-          (fun (x, y) ->
-             let ast = Ast.land_ [ x; y ] in
-             begin match Lib.SimplII.run_basic_simplify ast with
-             | `Unsat _ -> Option.some ast
-             | _ -> Option.none
-             end)
-          variants
-      | _ -> Option.none
-    in
     let rec dpll new_assumptions solver =
       log "DPLL: into Z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
       Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
@@ -427,29 +414,21 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
         let model = Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model in
         let candidate = of_bool_model model in
         log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
-        match dpll_bootstrap candidate with
-        | None -> begin
-          match check_sat candidate with
-          | Sat (s, _) as result ->
-            report_result ~verbose (`Sat s);
-            result
-          | Unsat (s, _) ->
-            unsat_reason := reason s !unsat_reason;
-            let not_candidate = Ast.lnot candidate in
-            let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
-            if light
-            then unknown Ast.true_ Lib.Env.empty
-            else dpll unsat_core_contra_sat_ast solver
-          | Unknown _ ->
-            can_be_unk := true;
-            let not_candidate = Ast.lnot candidate in
-            let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
-            if light
-            then unknown Ast.true_ Lib.Env.empty
-            else dpll unsat_core_contra_sat_ast solver
-        end
-        | Some unsat_core ->
-          let unsat_core_contra_sat_ast = Ast.lnot unsat_core |> to_bool_skeleton in
+        match check_sat candidate with
+        | Sat (s, _) as result ->
+          report_result ~verbose (`Sat s);
+          result
+        | Unsat (s, _) ->
+          unsat_reason := reason s !unsat_reason;
+          let not_candidate = Ast.lnot candidate in
+          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
+          if light
+          then unknown Ast.true_ Lib.Env.empty
+          else dpll unsat_core_contra_sat_ast solver
+        | Unknown _ ->
+          can_be_unk := true;
+          let not_candidate = Ast.lnot candidate in
+          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
           if light
           then unknown Ast.true_ Lib.Env.empty
           else dpll unsat_core_contra_sat_ast solver
@@ -468,8 +447,21 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
         unknown Ast.true_ Lib.Env.empty
     in
     log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
+    let assumptions = ast |> to_bool_skeleton ~allow_new:true in
+    let assumptions =
+      Ast.land_
+        [ assumptions
+        ; Lib.SimplII.theory_lemmas
+            (Map.filter_map
+               (Map.map_keys_exn !th_map ~f:(fun key -> Ast.eia key))
+               ~f:(fun (eia, t) ->
+                 match t with
+                 | Literal_type.P -> Some eia
+                 | _ -> None))
+        ]
+    in
     dpll
-      (ast |> to_bool_skeleton ~allow_new:true)
+      assumptions
       (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
 ;;
 
