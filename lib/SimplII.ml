@@ -972,59 +972,60 @@ let make_main_symantics ?alpha ?agressive env =
       let open Ast.Eia in
       let nielsen lhs rhs =
         match lhs, rhs with
-        | x :: u, y :: v ->
+        | x :: xs, y :: ys ->
           let fixedpoint =
-            if List.is_empty u || List.is_empty v
+            if List.is_empty xs || List.is_empty ys
             then (
               let check x u =
                 match x, u with
                 | Atom _, [] -> true
                 | _ -> false
               in
-              check x u || check y v)
+              check x xs || check y ys)
             else (
-              let ru, rv = u |> List.rev |> List.hd, v |> List.rev |> List.hd in
+              let ru, rv = xs |> List.rev |> List.hd, ys |> List.rev |> List.hd in
               Eia.eq_term rv x || Eia.eq_term ru y)
           in
           if fixedpoint
           then eq_str (concat lhs) (concat rhs)
           else (
-            let u, v = concat u, concat v in
-            let case_1 = land_ [ eq_str x y; eq_str u v ] in
-            let case_2 = land_ [ eq_str x (str_const ""); eq_str u (concat [ y; v ]) ] in
-            let case_2' = land_ [ eq_str y (str_const ""); eq_str v (concat [ x; u ]) ] in
-            let case_2'' s x v =
-              lor_
-                (0 -- String.length s
-                 |> List.map (fun x ->
-                   String.sub s 0 x, String.sub s x (String.length s - x))
-                 |> List.map (fun (s1, s2) ->
-                   land_ [ eq_str x (str_const s1); eq_str v (str_const s2) ]))
-            in
-            (* len(x) < len(y) *)
+            let u, v = concat xs, concat ys in
+            let trival = land_ [ eq_str x y; eq_str u v ] in
+            let empty_x = land_ [ eq_str x (str_const ""); eq_str u (concat [ y; v ]) ] in
+            let empty_y = land_ [ eq_str y (str_const ""); eq_str v (concat [ x; u ]) ] in
+            (* len(y) < len(x) *)
             let x' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
-            let case_3 =
-              land_
-                [ (* eia (lt (len y) (len x))
-                ;  *)
-                  eq_str x (concat [ y; x' ])
-                ; eq_str (concat [ x'; u ]) v
-                ]
+            let nielsen_x =
+              land_ [ eq_str x (concat [ y; x' ]); eq_str (concat [ x'; u ]) v ]
             in
             (* len(x) < len(y) *)
             let y' = Atom (Ast.var (gensym ~prefix:"%nielsen" ()) S) in
-            let case_3' =
-              land_
-                [ (* eia (leq (len x) (len y))
-                ;  *)
-                  eq_str y (concat [ x; y' ])
-                ; eq_str u (concat [ y'; v ])
-                ]
+            let nielsen_y =
+              land_ [ eq_str y (concat [ x; y' ]); eq_str u (concat [ y'; v ]) ]
+            in
+            let split str y v =
+              lor_
+                (0 -- String.length str
+                 |> List.map (fun x ->
+                   String.sub str 0 x, String.sub str x (String.length str - x))
+                 |> List.map (fun (s1, s2) ->
+                   land_ [ eq_str y (str_const s1); eq_str v (str_const s2) ]))
+            in
+            let split_conc str u y v =
+              lor_
+                (0 -- String.length str
+                 |> List.map (fun x ->
+                   String.sub str 0 x, String.sub str x (String.length str - x))
+                 |> List.map (fun (s1, s2) ->
+                   land_
+                     [ eq_str y (str_const s1); eq_str (concat [ str_const s2; u ]) v ]))
             in
             match x, y with
-            | Atom _, Atom _ -> lor_ [ case_1; case_2; case_3; case_3' ]
-            | Atom _, Str_const s -> lor_ [ case_1; case_2; case_2'' s x u ]
-            | Str_const s, Atom _ -> lor_ [ case_1; case_2'; case_2'' s y v ]
+            | Atom _, Atom _ -> lor_ [ trival; empty_x; empty_y; nielsen_x; nielsen_y ]
+            | Atom _, Str_const s when List.is_empty ys -> split s x u
+            | Atom _, Str_const s -> lor_ [ trival; nielsen_x; split_conc s v x u ]
+            | Str_const s, Atom _ when List.is_empty xs -> split s y v
+            | Str_const s, Atom _ -> lor_ [ trival; nielsen_y; split_conc s u y v ]
             | _ -> eq_str (concat lhs) (concat rhs))
         | _ -> eq_str (concat lhs) (concat rhs)
       in
