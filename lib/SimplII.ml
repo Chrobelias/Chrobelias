@@ -952,8 +952,10 @@ let make_main_symantics ?alpha ?agressive env =
       let lhs, rhs = trim_left lhs rhs in
       match trim_right lhs rhs with
       | [], [] -> ofop true
-      | [], rhs -> ofop false
-      | lhs, [] -> ofop false
+      | [], rhs ->
+        Ast.Eia.eq (Ast.Eia.concat rhs) (Id_symantics.str_const "") Ast.S |> Ast.eia
+      | lhs, [] ->
+        Ast.Eia.eq (Ast.Eia.concat lhs) (Id_symantics.str_const "") Ast.S |> Ast.eia
       | Str_const a :: tl, Str_const b :: tl'
         when Stdlib.not (String.starts_with ~prefix:a b && String.starts_with ~prefix:b a)
         -> ofop false
