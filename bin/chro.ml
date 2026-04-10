@@ -390,16 +390,27 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
           (Printexc.to_string expr);
         raise_notrace expr
     in
-    let of_bool_model z3_model =
-      let bool_to_eia s =
-        match Map.find !bool_map s with
-        | Some eia -> eia
-        | None ->
-          Format.kasprintf
-            failwith
-            "Unexpected state: predicate %s is in the original definition"
-            s
-      in
+    let bool_to_eia s =
+      match Map.find !bool_map s with
+      | Some eia -> eia
+      | None ->
+        Format.kasprintf
+          failwith
+          "Unexpected state: predicate %s is in the original definition"
+          s
+    in
+    let skeletoned_ast_of_bool_model z3_model =
+      Hashtbl.fold
+        (fun sym value acc ->
+           match value with
+           | Smtml.Value.True -> Ast.pred (Lib.Fe.sym_to_pred sym) :: acc
+           | Smtml.Value.False -> Ast.lnot (Ast.pred (Lib.Fe.sym_to_pred sym)) :: acc
+           | _ -> acc)
+        z3_model
+        []
+    in
+    let ast_of_bool_model z3_model =
+      (* TODO: use skeletoned_ast_of_bool_model here *)
       Hashtbl.fold
         (fun sym value acc ->
            match value with
@@ -413,6 +424,8 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
     in
     let unsat_reason = ref "bool" in
     let can_be_unk = ref false in
+    let assumptions = ast |> to_bool_skeleton ~allow_new:true in
+    Format.printf "skeletoned: %a\n%!" Ast.pp_smtlib2 assumptions;
     let rec dpll new_assumptions solver =
       log "DPLL: into Z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
       Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
@@ -420,12 +433,73 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
       | `Sat -> begin
         (* log "DPLL: found Bool model\n%!"; *)
         let model = Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model in
-        let candidate = of_bool_model model in
+        let skeletoned_candidate = skeletoned_ast_of_bool_model model in
+        let candidate = ast_of_bool_model model in
+        let unsupp_afs = ref Map.empty in
+        let candidate =
+          Ast.map
+            (function
+              | Eia eia | Lnot (Eia eia) ->
+                let is_eia_unsupp =
+                  Lib.Ast.Eia.fold2
+                    (fun acc _ -> acc)
+                    (fun acc -> function
+                       | Concat xs ->
+                         List.exists
+                           (function
+                             | Ast.Eia.Str_const s ->
+                               if String.exists (Fun.negate Base.Char.is_digit) s
+                               then begin
+                                 log "dpll: filtered %a\n%!" Ast.Eia.pp eia;
+                                 unsupp_afs
+                                 := Map.add_exn
+                                      ~key:(Map.find_exn !th_map eia |> fst)
+                                      ~data:(Lib.Ast.Eia eia)
+                                      !unsupp_afs;
+                                 true
+                               end
+                               else acc
+                             | _ -> acc)
+                           xs
+                       | _ -> acc)
+                    false
+                    eia
+                in
+                if is_eia_unsupp then Ast.true_ else Eia eia
+              | ast -> ast)
+            candidate
+        in
         log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
         match check_sat candidate with
         | Sat (s, _) as result ->
-          report_result ~verbose (`Sat s);
-          result
+          let is_true_sat =
+            let skeletoned_candidate =
+              List.filter
+                (fun k -> Map.find !unsupp_afs k |> Option.is_none)
+                skeletoned_candidate
+            in
+            Format.printf " >  %a\n%!" Ast.pp_smtlib2 (Ast.land_ skeletoned_candidate);
+            let substituted_ast =
+              assumptions
+              |> Ast.map (fun ast ->
+                if List.mem ast skeletoned_candidate then Ast.true_ else ast)
+            in
+            Format.printf " > > > %a\n%!" Ast.pp_smtlib2 substituted_ast;
+            substituted_ast = Lib.Ast.true_
+          in
+          if is_true_sat
+          then begin
+            report_result ~verbose (`Sat s);
+            result
+          end
+          else begin
+            can_be_unk := true;
+            let not_candidate = Ast.lnot candidate in
+            let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
+            if light
+            then unknown Ast.true_ Lib.Env.empty
+            else dpll unsat_core_contra_sat_ast solver
+          end
         | Unsat (s, _) ->
           unsat_reason := reason s !unsat_reason;
           let not_candidate = Ast.lnot candidate in
@@ -434,6 +508,7 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
           then unknown Ast.true_ Lib.Env.empty
           else dpll unsat_core_contra_sat_ast solver
         | Unknown _ ->
+          Format.printf "got unknown on %a\n%!" Ast.pp_smtlib2 candidate;
           can_be_unk := true;
           let not_candidate = Ast.lnot candidate in
           let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
@@ -455,7 +530,6 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
         unknown Ast.true_ Lib.Env.empty
     in
     log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
-    let assumptions = ast |> to_bool_skeleton ~allow_new:true in
     let assumptions =
       Ast.land_
         [ assumptions
@@ -837,22 +911,8 @@ let () =
       if ast |> Lib.Ast.get_str_vars |> List.is_empty
       then config.logic <- `Eia
       else config.logic <- `Str;
-      (try
-         let rez = check_sat state.tys ~verbose:true ast in
-         { state with last_result = Some rez }
-       with
-       | Lics_Underapprox_unsuccessful ->
-         config.bound_res <- -1;
-         config.bound_states <- -1;
-         Lib.Config.bounded_unsat := false;
-         let rez = check_sat state.tys ~verbose:true ast in
-         { state with last_result = Some rez }
-       | ex ->
-         Format.printf
-           "(error: %s)\n%!"
-           (Printexc.to_string_default ex |> Str.global_replace (Str.regexp "\\\\n") "\n");
-         report_result ~verbose:true (`Unknown "exception");
-         { state with last_result = Some (Unknown (ast, Lib.Env.empty)) })
+      let rez = check_sat state.tys ~verbose:true ast in
+      { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
       if config.no_model = true
       then (
