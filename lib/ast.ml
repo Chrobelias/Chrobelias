@@ -141,6 +141,12 @@ module Eia = struct
             | smth -> [ smth ])
           xs
       in
+      let rec aux = function
+        | Str_const s1 :: Str_const s2 :: tl -> aux (Str_const s1 :: tl)
+        | hd :: tl -> hd :: aux tl
+        | [] -> []
+      in
+      let xs = aux xs in
       begin match xs with
       | [] -> Str_const ""
       | [ hd ] -> hd
@@ -595,12 +601,14 @@ let land_ = function
     in
     (match asts with
      | [] -> true_
+     | [ ast ] -> ast
      | asts -> Land asts)
 ;;
 
 let false_ = Lnot true_
 
-let lor_ = function
+let lor_ xs =
+  match xs with
   | [] -> false_
   | [ ast ] -> ast
   | asts when List.exists (( = ) True) asts -> True
@@ -616,6 +624,7 @@ let lor_ = function
     in
     (match asts with
      | [] -> false_
+     | [ ast ] -> ast
      | asts -> Lor asts)
 ;;
 
@@ -634,8 +643,6 @@ let eia = function
   | eia -> Eia eia
 ;;
 
-let pred s = Pred s
-
 let rec lnot = function
   | Lnot ast -> ast
   | Land asts -> lor_ (List.map lnot asts)
@@ -647,6 +654,12 @@ let rec lnot = function
   | Eia (Eia.Leq (lhs, rhs)) -> eia (Eia.gt lhs rhs)
   | ast -> Lnot ast
 ;;
+
+let lxor_ xs =
+  lor_ (List.map (fun x -> land_ (List.map (fun y -> if x = y then x else lnot y) xs)) xs)
+;;
+
+let pred s = Pred s
 
 let rec exists = function
   | [] -> Fun.id
@@ -1097,8 +1110,10 @@ let rec equal ast ast' =
   match ast, ast' with
   | True, True -> true
   | Lnot ast, Lnot ast' -> equal ast ast'
-  | Land asts, Land asts' -> List.for_all2 equal asts asts'
-  | Lor asts, Lor asts' -> List.for_all2 equal asts asts'
+  | Land asts, Land asts' ->
+    List.length asts = List.length asts' && List.for_all2 equal asts asts'
+  | Lor asts, Lor asts' ->
+    List.length asts = List.length asts' && List.for_all2 equal asts asts'
   | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
   | Pred name, Pred name' -> name = name'
   | Unsupp _, Unsupp _ -> true

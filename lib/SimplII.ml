@@ -238,12 +238,12 @@ module Id_symantics :
 
   let var s = Ast.Eia.Atom (Ast.Var (s, I))
   let exists atoms ph = Ast.exists atoms ph
-  let eqz l r = Ast.Eia (Ast.Eia.eq l r Ast.I)
-  let neqz l r = Ast.Eia (Ast.Eia.neq l r Ast.I)
-  let eq_str l r = Ast.Eia (Ast.Eia.eq l r Ast.S)
-  let neq_str l r = Ast.Eia (Ast.Eia.neq l r Ast.S)
-  let leq l r = Ast.Eia (Ast.Eia.leq l r)
-  let lt l r = Ast.Eia (Ast.Eia.lt l r)
+  let eqz l r = Ast.eia (Ast.Eia.eq l r Ast.I)
+  let neqz l r = Ast.eia (Ast.Eia.neq l r Ast.I)
+  let eq_str l r = Ast.eia (Ast.Eia.eq l r Ast.S)
+  let neq_str l r = Ast.eia (Ast.Eia.neq l r Ast.S)
+  let leq l r = Ast.eia (Ast.Eia.leq l r)
+  let lt l r = Ast.eia (Ast.Eia.lt l r)
   let true_ = Ast.true_
   let false_ = Ast.false_
   let prj = Fun.id
@@ -866,13 +866,13 @@ let make_main_symantics ?alpha ?agressive env =
          | xs -> Ast.land_ xs)
     ;;
 
-    let lor_ x = Ast.Lor x
+    let lor_ x = Ast.lor_ x
 
     let relop op l r =
       let ofop =
         match op with
-        | Leq -> fun x y -> Eia (Eia.leq x y)
-        | Eq -> fun x y -> Eia (Eia.eq x y I)
+        | Leq -> fun x y -> eia (Eia.leq x y)
+        | Eq -> fun x y -> eia (Eia.eq x y I)
       in
       match l, r with
       | Eia.(Const l), Eia.(Const r) ->
@@ -2068,16 +2068,23 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
   in
   match ast with
   | Land xs ->
-    let action =
+    let had_prop = ref false in
+    let actions =
       List.fold_left
         (fun acc h ->
-           match acc with
-           | Noprop -> (helper info ast env) h
-           | smth -> smth)
-        Noprop
+           match (helper info ast env) h with
+           | Noprop -> acc
+           | Prop _ as smth when !had_prop |> not ->
+             had_prop := true;
+             [ smth ]
+           | Prop _ -> acc
+           | PropAndPreserve _ as smth -> smth :: acc)
+        []
         xs
     in
-    let env, ph = handle_action env ast action in
+    let env, ph =
+      List.fold_left (fun (env, ph) -> handle_action env ph) (env, ast) actions
+    in
     let ph =
       match ph with
       | Ast.Land xs ->
@@ -2913,8 +2920,12 @@ let run_basic_simplify ?(env = Env.empty) ast =
 
 let theory_lemmas map =
   let phs = Base.Map.keys map in
+  let cartesian_product xs ys =
+    List.mapi (fun i x -> List.drop (i + 1) ys |> List.map (fun y -> x, y)) xs
+    |> List.concat
+  in
   let variants =
-    Base.List.cartesian_product phs phs
+    cartesian_product phs phs
     |> List.filter_map (fun (x, y) ->
       match basic_simplify [ 0 ] Env.empty (Ast.land_ [ x; y ]) with
       | `Unsat -> Some (Ast.land_ [ Base.Map.find_exn map x; Base.Map.find_exn map y ])

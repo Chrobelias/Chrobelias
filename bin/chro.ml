@@ -424,8 +424,15 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
     in
     let unsat_reason = ref "bool" in
     let can_be_unk = ref false in
+    let ast =
+      Lib.SimplII.run_string_simplify ast
+      |> function
+      | `Sat _ -> Ast.true_
+      | `Unsat _ -> Ast.false_
+      | `Unknown (ast, _, _) -> ast
+    in
+    log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
     let assumptions = ast |> to_bool_skeleton ~allow_new:true in
-    Format.printf "skeletoned: %a\n%!" Ast.pp_smtlib2 assumptions;
     let rec dpll new_assumptions solver =
       log "DPLL: into Z3 added: %a\n%!" Ast.pp_smtlib2 new_assumptions;
       Z3.add solver [ new_assumptions |> Lib.Fe.of_ast ];
@@ -435,11 +442,11 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
         let model = Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model in
         let skeletoned_candidate = skeletoned_ast_of_bool_model model in
         let candidate = ast_of_bool_model model in
-        let unsupp_afs = ref Map.empty in
+        let unsupp_afs = ref [] in
         let candidate =
           Ast.map
             (function
-              | Eia eia | Lnot (Eia eia) ->
+              | Eia eia ->
                 let is_eia_unsupp =
                   Lib.Ast.Eia.fold2
                     (fun acc _ -> acc)
@@ -452,10 +459,7 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
                                then begin
                                  log "dpll: filtered %a\n%!" Ast.Eia.pp eia;
                                  unsupp_afs
-                                 := Map.add_exn
-                                      ~key:(Map.find_exn !th_map eia |> fst)
-                                      ~data:(Lib.Ast.Eia eia)
-                                      !unsupp_afs;
+                                 := (Map.find_exn !th_map eia |> fst) :: !unsupp_afs;
                                  true
                                end
                                else acc
@@ -466,55 +470,77 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
                     eia
                 in
                 if is_eia_unsupp then Ast.true_ else Eia eia
+              | Lnot (Eia eia) ->
+                let is_eia_unsupp =
+                  Lib.Ast.Eia.fold2
+                    (fun acc _ -> acc)
+                    (fun acc -> function
+                       | Concat xs ->
+                         List.exists
+                           (function
+                             | Ast.Eia.Str_const s ->
+                               if String.exists (Fun.negate Base.Char.is_digit) s
+                               then begin
+                                 Format.printf "dpll: filtered %a\n%!" Ast.Eia.pp eia;
+                                 unsupp_afs
+                                 := Ast.lnot (Map.find_exn !th_map eia |> fst)
+                                    :: !unsupp_afs;
+                                 true
+                               end
+                               else acc
+                             | _ -> acc)
+                           xs
+                       | _ -> acc)
+                    false
+                    eia
+                in
+                if is_eia_unsupp then Ast.true_ else Lnot (Eia eia)
               | ast -> ast)
             candidate
         in
-        log "DPLL: into chro goes: %a\n%!" Ast.pp_smtlib2 candidate;
-        match check_sat candidate with
-        | Sat (s, _) as result ->
-          let is_true_sat =
-            let skeletoned_candidate =
-              List.filter
-                (fun k -> Map.find !unsupp_afs k |> Option.is_none)
-                skeletoned_candidate
+          match check_sat candidate with
+          | Sat (s, _) as result ->
+            let is_true_sat =
+              let skeletoned_candidate =
+                List.filter (fun k -> List.mem k !unsupp_afs |> not) skeletoned_candidate
+              in
+              let substituted_ast =
+                assumptions
+                |> Ast.map (fun ast ->
+                  if List.mem ast skeletoned_candidate then Ast.true_ else ast)
+              in
+              substituted_ast = Lib.Ast.true_
             in
-            Format.printf " >  %a\n%!" Ast.pp_smtlib2 (Ast.land_ skeletoned_candidate);
-            let substituted_ast =
-              assumptions
-              |> Ast.map (fun ast ->
-                if List.mem ast skeletoned_candidate then Ast.true_ else ast)
-            in
-            Format.printf " > > > %a\n%!" Ast.pp_smtlib2 substituted_ast;
-            substituted_ast = Lib.Ast.true_
-          in
-          if is_true_sat
-          then begin
-            report_result ~verbose (`Sat s);
-            result
-          end
-          else begin
-            can_be_unk := true;
-            let not_candidate = Ast.lnot candidate in
-            let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
+            if is_true_sat
+            then begin
+              report_result ~verbose (`Sat s);
+              result
+            end
+            else begin
+              can_be_unk := true;
+              (*let not_candidate = Ast.lnot candidate in
+            let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in*)
+              let unsat_core_contra_sat_ast = Ast.lnot (Ast.land_ skeletoned_candidate) in
+              if light
+              then unknown Ast.true_ Lib.Env.empty
+              else dpll unsat_core_contra_sat_ast solver
+            end
+          | Unsat (s, _) ->
+            unsat_reason := reason s !unsat_reason;
+            (*let not_candidate = Ast.lnot candidate in
+          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in*)
+            let unsat_core_contra_sat_ast = Ast.lnot (Ast.land_ skeletoned_candidate) in
             if light
             then unknown Ast.true_ Lib.Env.empty
             else dpll unsat_core_contra_sat_ast solver
-          end
-        | Unsat (s, _) ->
-          unsat_reason := reason s !unsat_reason;
-          let not_candidate = Ast.lnot candidate in
-          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
-          if light
-          then unknown Ast.true_ Lib.Env.empty
-          else dpll unsat_core_contra_sat_ast solver
-        | Unknown _ ->
-          Format.printf "got unknown on %a\n%!" Ast.pp_smtlib2 candidate;
-          can_be_unk := true;
-          let not_candidate = Ast.lnot candidate in
-          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in
-          if light
-          then unknown Ast.true_ Lib.Env.empty
-          else dpll unsat_core_contra_sat_ast solver
+          | Unknown _ ->
+            can_be_unk := true;
+            (*let not_candidate = Ast.lnot candidate in
+          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in*)
+            let unsat_core_contra_sat_ast = Ast.lnot (Ast.land_ skeletoned_candidate) in
+            if light
+            then unknown Ast.true_ Lib.Env.empty
+            else dpll unsat_core_contra_sat_ast solver
       end
       | `Unsat ->
         log "DPLL: Bool unsat found\n%!";
