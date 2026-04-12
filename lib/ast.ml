@@ -30,6 +30,10 @@ let pp_any_atom ppf = function
   | Any_atom a -> Format.fprintf ppf "%a" pp_atom a
 ;;
 
+let of_lia_atom : AstL.atom -> 'a atom = function
+  | Var s -> Var (s, I)
+;;
+
 module Eq = struct
   type (_, _) t = Eq : ('a, 'a) t
 
@@ -183,52 +187,6 @@ module Eia = struct
       fs ast
   ;;
 
-  let is_constant_term =
-    let exception Early of Z.t in
-    let rec helper = function
-      | Atom (Var _) -> None
-      | Const n -> Some n
-      | Add ts ->
-        (try
-           List.fold_left
-             (fun acc x ->
-                match helper x with
-                | None -> None
-                | Some m -> Option.map (Z.( + ) m) acc)
-             (Some Z.zero)
-             ts
-         with
-         | Early n -> Some n)
-      | Mul ts ->
-        (try
-           List.fold_left
-             (fun acc x ->
-                match helper x with
-                | None -> None
-                | Some m when Z.(m = zero) -> raise (Early Z.zero)
-                | Some m -> Option.map (Z.( * ) m) acc)
-             (Some Z.one)
-             ts
-         with
-         | Early n -> Some n)
-      | _ -> None
-    in
-    helper
-  ;;
-
-  (* let%test _ = is_constant_term (atom (const (Z.of_int 4))) = Some (Z.of_int 4)
-  let%test _ = is_constant_term (atom (var "s")) = None
-
-  let%test _ =
-    is_constant_term (mul [ atom (const (Z.of_int 4)); atom (const Z.one) ])
-    = Some (Z.of_int 4)
-  ;;
-
-  let%test _ =
-    is_constant_term (add [ atom (const (Z.of_int 4)); atom (const Z.one) ])
-    = Some (Z.of_int 5)
-  ;; *)
-
   let rec map_term
     : 'a 'b. (Z.t term -> Z.t term) -> (string term -> string term) -> 'a term -> 'a term
     =
@@ -257,21 +215,6 @@ module Eia = struct
     | Substr (l, r, k) ->
       fs (Substr (map_term fz fs l, map_term fz fs r, map_term fz fs k))
   ;;
-
-  (* | (Len _ | Iofs _ | Len2 _) as term -> f term *)
-  (* | _ -> assert false *)
-
-  (* | Atom _ | Len _ | Sofi _ | Iofs _ | Len2 _ -> f term
-    | Add terms -> f (add (List.map (map_term f) terms))
-    | Mul terms -> f (mul (List.map (map_term f) terms))
-    | Bwand (term, term') -> f (bwand (map_term f term) (map_term f term'))
-    | Bwor (term, term') -> f (bwor (map_term f term) (map_term f term'))
-    | Bwxor (term, term') -> f (bwxor (map_term f term) (map_term f term'))
-    | Pow (term, term') -> f (pow (map_term f term) (map_term f term'))
-    | Mod (t, c) -> f (mod_ (map_term f t) c)
-    | Concat (lhs, rhs) -> f (concat (map_term f lhs) (map_term f rhs))
-    | Substr (term', a, b) -> f (substr (map_term f term') a b)
-    | At (term', a) -> f (at (map_term f term') a) *)
 
   let rec fold_term
     :  'acc 'a.
@@ -318,8 +261,14 @@ module Eia = struct
   ;;
 
   let compare_term (type a) : a term -> a term -> int = fun l r -> Stdlib.compare l r
-  (*match l, r with
-    | _ -> failwith "tbd"*)
+
+  let rec of_lia_term : AstL.Lia.term -> 'a term = function
+    | Const c -> Const (Z.of_int c)
+    | Atom (Var name) -> Atom (Var (name, I))
+    | Add xs -> Add (List.map of_lia_term xs)
+    | Mul xs -> Mul (List.map of_lia_term xs)
+    | Mod (xs, d) -> Mod (of_lia_term xs, Z.of_int d)
+  ;;
 
   type t =
     | Eq : 'a term * 'a term * 'a kind -> t
@@ -436,6 +385,12 @@ module Eia = struct
 
   let equal = Stdlib.( = )
   let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
+
+  let of_lia : AstL.Lia.t -> t = function
+    | Eq (l, r) -> Eq (of_lia_term l, of_lia_term r, I)
+    | Neq (l, r) -> Neq (of_lia_term l, of_lia_term r, I)
+    | Leq (l, r) -> Leq (of_lia_term l, of_lia_term r)
+  ;;
 
   let is_str_eia ast =
     let exception String_obj in
@@ -601,65 +556,6 @@ let pp_term_smtlib2 =
   in
   pp_eia
 ;;
-
-(*
-   let tfold ft acc t =
-  let rec foldt acc = function
-    | (Const _ | Var _) as f -> ft acc f
-    | (Pow (_, t1) | Mul (_, t1)) as t -> ft (foldt acc t1) t
-    | (Add (t1, t2) | Bvand (t1, t2) | Bvor (t1, t2) | Bvxor (t1, t2)) as t ->
-      ft (foldt (foldt acc t1) t2) t
-  in
-  foldt acc t
-;;
-
-let fold ff ft acc f =
-  let rec foldt acc = function
-    | (Const _ | Var _) as f -> ft acc f
-    | (Pow (_, t1) | Mul (_, t1)) as t -> ft (foldt acc t1) t
-    | (Add (t1, t2) | Bvand (t1, t2) | Bvor (t1, t2) | Bvxor (t1, t2)) as t ->
-      ft (foldt (foldt acc t1) t2) t
-  in
-  let rec foldf acc = function
-    | (True | False) as f -> ff acc f
-    | ( Eq (t1, t2)
-      | Lt (t1, t2)
-      | Gt (t1, t2)
-      | Leq (t1, t2)
-      | Geq (t1, t2)
-      | Neq (t1, t2) ) as f -> ff (foldt (foldt acc t1) t2) f
-    | (Mor (f1, f2) | Mand (f1, f2) | Miff (f1, f2) | Mimpl (f1, f2)) as f ->
-      ff (foldf (foldf acc f1) f2) f
-    | Mnot f1 as f -> ff (foldf acc f1) f
-    | (Exists (_, f1) | Any (_, f1)) as f -> ff (foldf acc f1) f
-    | Pred (_, args) as f -> ff (List.fold_left foldt acc args) f
-  in
-  foldf acc f
-;;
-
-let for_some ff ft f =
-  fold (fun acc f -> ff f |> ( || ) acc) (fun acc t -> ft t |> ( || ) acc) false f
-;;
-
-
-let for_all ff ft f =
-  fold (fun acc f -> ff f |> ( && ) acc) (fun acc t -> ft t |> ( && ) acc) true f
-;;
-
-
-let map ff ft f =
-  let rec mapt = function
-    | (Const _ | Var _) as f -> ft f
-    | Mul (a, t1) -> Mul (a, mapt t1) |> ft
-    | Add (t1, t2) -> Add (mapt t1, mapt t2) |> ft
-    | Bvand (t1, t2) -> Bvand (mapt t1, mapt t2) |> ft
-    | Bvor (t1, t2) -> Bvor (mapt t1, mapt t2) |> ft
-    | Bvxor (t1, t2) -> Bvxor (mapt t1, mapt t2) |> ft
-    | Pow (a, t1) -> Pow (a, mapt t1) |> ft
-  in
-  mapf f
-;;
-*)
 
 let rec fold f acc ast =
   match ast with
@@ -967,6 +863,18 @@ let to_nat ast =
        return ast)
     (return ast)
     vars
+;;
+
+let rec of_astl : AstL.t -> t = function
+  | True -> True
+  | Lnot ast -> lnot (of_astl ast)
+  | Land asts -> land_ (List.map of_astl asts)
+  | Lor asts -> lor_ (List.map of_astl asts)
+  | Exists (atoms, ast) ->
+    let atoms' = List.map of_lia_atom atoms in
+    exists (List.map (fun x -> Any_atom x) atoms') (of_astl ast)
+  | Pred s -> pred s
+  | Lia lia -> Eia (Eia.of_lia lia)
 ;;
 
 let is_str ast =

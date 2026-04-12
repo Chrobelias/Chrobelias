@@ -56,6 +56,19 @@ module Str : sig
   val is_one_at : int -> t -> bool
 end
 
+module Par : sig
+  include L with type u = AstL.t and type t = AstL.t
+
+  val u_null : u
+  val u_eos : u
+  val u_one : u
+  val is_end_char : u -> bool
+  val is_eos_at : int -> t -> bool
+  val is_any_at : int -> t -> bool
+  val is_zero_at : int -> t -> bool
+  val is_one_at : int -> t -> bool
+end
+
 module StrBv : sig
   include L with type u = Z.t and type t = Z.t * Z.t
 

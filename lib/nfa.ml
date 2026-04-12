@@ -684,6 +684,48 @@ module Str = struct
   let alpha s = Array.to_list s |> Set.of_list
 end
 
+module Par = struct
+  type u = AstL.t
+  type t = AstL.t
+
+  open AstL
+
+  let const c = Lia.Const c
+  let var s = Lia.Atom (Var s)
+  let eq lhs rhs = Lia (Eq (lhs, rhs))
+  let basei = 10
+  let base = Z.of_int basei
+
+  let u_zero, u_one, u_null, u_eos =
+    eq (var "x") (const 0), eq (var "x") (const 1), true_, false_
+  ;;
+
+  let is_end_char c = c = u_eos || c = u_null
+  let get = AstL.get
+  let is_eos_at i label = equal_alpha (get label i) u_eos
+  let is_any_at i label = equal_alpha (get label i) u_null
+  let is_zero_at i label = get label i = u_zero
+  let is_one_at i label = get label i = u_one
+  let equal = AstL.equal
+  let combine vec1 vec2 = AstL.Land [ vec1; vec2 ]
+  let project proj vec = failwith "TODO"
+  let truncate len vec = failwith "TODO"
+  let is_zero vec = failwith "TODO"
+  let is_zero_soft vec = failwith "TODO"
+  let alphabet = failwith "TODO"
+  let variations ?alpha vec = failwith "TODO"
+  let zero deg = failwith "TODO"
+  let zero_with_mask mask = failwith "TODO"
+  let eos_with_mask mask = failwith "TODO"
+  let singleton_with_mask c mask = failwith "TODO"
+  let one_with_mask mask = failwith "TODO"
+  let pp_u = AstL.pp
+  let pp ppf (vec : t) = Format.fprintf ppf "(%a)" AstL.pp vec
+  let reenumerate map vec = failwith "TODO"
+  let of_list l = failwith "TODO"
+  let alpha s = failwith "TODO"
+end
+
 module Graph (Label : L) = struct
   type t = (Label.t * state) list array
 
@@ -1231,21 +1273,7 @@ struct
           , q1 ))
         |> remove_duplicates
     in
-    let transitions' =
-      Array.map shrink nfa.transitions
-      (*nfa.transitions
-      |> Array.map (fun delta ->
-        let length = length nfa in
-        let states =
-          Graph.reachable_in_range nfa.transitions 0 ((length * length) - 1) nfa.start
-          |> List.fold_left (fun acc x -> Set.union acc x) Set.empty
-        in
-        states
-        |> Set.to_list
-        |> List.map (fun x -> List.filter (fun (label, state) -> state = x) delta)
-        |> List.map shrink
-        |> List.concat)*)
-    in
+    let transitions' = Array.map shrink nfa.transitions in
     let result = { nfa with transitions = transitions' } in
     result
   ;;
