@@ -970,8 +970,55 @@ let make_main_symantics ?alpha ?agressive env =
             | Neq -> neq_str (concat lhs) (concat rhs)))
     ;;
 
+    let check_card lhs rhs =
+      let open Ast.Eia in
+      let alpha =
+        if Option.is_some alpha_with_extra_char
+        then Option.get alpha_with_extra_char
+        else []
+      in
+      let count a xs =
+        List.fold_left
+          (fun (c, terms) x ->
+             match x with
+             | Atom (Var (name, S)) -> c, name :: terms
+             | Str_const s -> c + Base.String.count ~f:(fun x -> x = a) s, terms
+             | term ->
+               failwith
+                 (Format.asprintf
+                    "Unexpected term %a in word equation"
+                    Ast.pp_term_smtlib2
+                    term))
+          (0, [])
+          xs
+      in
+      let contains lhs rhs =
+        let sort = List.sort String.compare in
+        let rec helper lhs rhs =
+          match lhs, rhs with
+          | [], _ -> true
+          | _, [] -> false
+          | x :: xs, y :: ys when x = y -> helper xs ys
+          | x :: xs, y :: ys when x > y -> helper (x :: xs) ys
+          | _ -> false
+        in
+        helper (sort lhs) (sort rhs)
+      in
+      List.exists
+        (fun a ->
+           let (c1, l), (c2, r) = count a lhs, count a rhs in
+           (c1 < c2 && contains l r) || (c1 > c2 && contains r l))
+        alpha
+    ;;
+
     let eq_str lhs rhs =
       let open Ast.Eia in
+      let as_list = function
+        | Str_const _ as c -> [ c ]
+        | Atom (Var _) as v -> [ v ]
+        | Concat list -> list
+        | _ -> []
+      in
       let nielsen lhs rhs =
         match lhs, rhs with
         | x :: xs, y :: ys ->
@@ -1033,10 +1080,11 @@ let make_main_symantics ?alpha ?agressive env =
       match lhs, rhs with
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
-      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v)
+      (* | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v)
         when Option.is_some alpha_with_extra_char ->
-        Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex)
+        Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex) *)
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
+      | lhs, rhs when check_card (as_list lhs) (as_list rhs) -> Ast.false_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
              | x :: _, y :: _ when x = y -> true
@@ -2176,69 +2224,6 @@ let lower_mod ast =
   | acc -> Ast.land_ (ph :: acc)
 ;;
 
-let basic_simplify step ?multiple (env : Env.t) ast =
-  let log =
-    if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
-  in
-  log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
-  let rec loop step (env : Env.t) ast =
-    let (module Symantics) = make_main_symantics env in
-    let rez = apply_symantics (module Symantics) ast in
-    let ast2 = Symantics.prj rez in
-    (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
-    (* let ast2 = ast2 |> propagate_exponents |> shrink_variables in *)
-    let ast2 = propagate_exponents ast2 in
-    let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
-    let var_info = apply_symantics (module Who_in_exponents) ast in
-    (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
-    let env2, ast2 = eq_propagation var_info ?multiple env ast2 in
-    let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
-    let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
-    let next_step = next step in
-    match Env.length env2 > Env.length env, Ast.equal ast ast2 with
-    | true, equal ->
-      let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
-      let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
-      if not equal then log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
-      loop next_step (Env.merge_exn env2 env) ast2
-    | false, false ->
-      log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
-      loop next_step env ast2
-    | false, true ->
-      log "fixed-point\n";
-      (match ast2 with
-       | Ast.True -> raise (Sat ("presimpl", env))
-       | Ast.Lnot Ast.True -> raise Unsat
-       | _ -> ast2, env, var_info, step)
-  in
-  try `Unknown (loop step env ast) with
-  | Unsat -> `Unsat
-  | Sat (_, env) -> `Sat env
-;;
-
-let normalize eia =
-  let open Ast.Eia in
-  let rec loop eia =
-    let (module Symantics) = make_main_symantics Env.empty in
-    let rez = apply_symantics (module Symantics) eia in
-    let eia2 = Symantics.prj rez in
-    if Ast.equal eia eia2 then eia2 else loop eia2
-  in
-  match eia with
-  | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _)) as constr ->
-    (match loop (Ast.Eia constr) with
-     | Ast.Eia normalized -> normalized
-     | Lnot True -> Ast.Eia.leq (Ast.Eia.const Z.one) (Ast.Eia.const Z.zero)
-     | True -> Ast.Eia.leq (Ast.Eia.const Z.zero) (Ast.Eia.const Z.one)
-     | ast ->
-       failwith
-         (Format.asprintf
-            "Unexpected non-integer constraint in normalization: %a"
-            Ast.pp_smtlib2
-            ast))
-  | _ -> eia
-;;
-
 module
   Collect_alpha_
   (*: SYM_SUGAR with type repr = char Base.Set.Poly.t and type ph = char Base.Set.Poly.t*) =
@@ -2337,6 +2322,70 @@ struct
 end
 
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
+
+let basic_simplify step ?multiple (env : Env.t) ast =
+  let log =
+    if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
+  in
+  log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
+  let alpha = collect_alpha ast in
+  let rec loop step (env : Env.t) ast =
+    let (module Symantics) = make_main_symantics ~alpha env in
+    let rez = apply_symantics (module Symantics) ast in
+    let ast2 = Symantics.prj rez in
+    (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
+    (* let ast2 = ast2 |> propagate_exponents |> shrink_variables in *)
+    let ast2 = propagate_exponents ast2 in
+    let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
+    let var_info = apply_symantics (module Who_in_exponents) ast in
+    (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
+    let env2, ast2 = eq_propagation var_info ?multiple env ast2 in
+    let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
+    let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
+    let next_step = next step in
+    match Env.length env2 > Env.length env, Ast.equal ast ast2 with
+    | true, equal ->
+      let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
+      let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
+      if not equal then log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
+      loop next_step (Env.merge_exn env2 env) ast2
+    | false, false ->
+      log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
+      loop next_step env ast2
+    | false, true ->
+      log "fixed-point\n";
+      (match ast2 with
+       | Ast.True -> raise (Sat ("presimpl", env))
+       | Ast.Lnot Ast.True -> raise Unsat
+       | _ -> ast2, env, var_info, step)
+  in
+  try `Unknown (loop step env ast) with
+  | Unsat -> `Unsat
+  | Sat (_, env) -> `Sat env
+;;
+
+let normalize eia =
+  let open Ast.Eia in
+  let rec loop eia =
+    let (module Symantics) = make_main_symantics Env.empty in
+    let rez = apply_symantics (module Symantics) eia in
+    let eia2 = Symantics.prj rez in
+    if Ast.equal eia eia2 then eia2 else loop eia2
+  in
+  match eia with
+  | (Eq (_, _, I) | Neq (_, _, I) | Leq (_, _)) as constr ->
+    (match loop (Ast.Eia constr) with
+     | Ast.Eia normalized -> normalized
+     | Lnot True -> Ast.Eia.leq (Ast.Eia.const Z.one) (Ast.Eia.const Z.zero)
+     | True -> Ast.Eia.leq (Ast.Eia.const Z.zero) (Ast.Eia.const Z.one)
+     | ast ->
+       failwith
+         (Format.asprintf
+            "Unexpected non-integer constraint in normalization: %a"
+            Ast.pp_smtlib2
+            ast))
+  | _ -> eia
+;;
 
 let collect_regexes ast =
   let module NfaL = Nfa.Lsb (Nfa.Str) in
