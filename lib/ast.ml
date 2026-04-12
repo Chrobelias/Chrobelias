@@ -142,7 +142,8 @@ module Eia = struct
           xs
       in
       let rec aux = function
-        | Str_const s1 :: Str_const s2 :: tl -> aux (Str_const s1 :: tl)
+        | Str_const s1 :: Str_const s2 :: tl ->
+          aux (Str_const (String.concat "" [ s1; s2 ]) :: tl)
         | hd :: tl -> hd :: aux tl
         | [] -> []
       in
