@@ -269,7 +269,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
   else real_model
 ;;
 
-let print_model tys model regexes env =
+let calculate_model tys model regexes env =
   let real_model =
     try model_from_parts_regexes_env tys model regexes env with
     | _ -> raise Too_long_model
@@ -282,8 +282,10 @@ let print_model tys model regexes env =
         | _ -> true)
       real_model
   in
-  Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
+  real_model
 ;;
+
+let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
 
 let report_result ?(verbose = false) rez =
   let check_answer () =
@@ -566,7 +568,7 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
       (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
 ;;
 
-let rec check_sat ?(verbose = false) tys ast : rez =
+let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
   let __ () =
     if config.stop_after = `Pre_simplify
     then (
@@ -811,7 +813,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           let seq_of_variants = Seq.filter (Fun.negate List.is_empty) seq_of_variants in
           if Seq.is_empty seq_of_variants
           then
-            handle (check_string_sat e ast) (fun () ->
+            handle (check_string_sat ~light e ast) (fun () ->
               report_result2 (`Unknown "nfa");
               unknown ast Lib.Env.empty)
           else
@@ -869,6 +871,37 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       report_result2 (`Unknown "");
       unknown ast Lib.Env.empty)
     else raise s
+;;
+
+let check_model
+      tys
+      (ast : Lib.Ast.t)
+      (model : (Lib.Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t)
+  =
+  let ast =
+    Map.fold
+      ~init:ast
+      ~f:(fun ~key ~data ast ->
+        let key =
+          match key with
+          | Lib.Ir.Var s -> s
+          | _ -> assert false
+        in
+        let open Lib.Ast in
+        let ast' =
+          match data with
+          | `Int c -> eia (Eia.eq (Eia.atom (var key I)) (Lib.Ast.Eia.const c) I)
+          | `Str c -> eia (Eia.eq (Eia.atom (var key S)) (Lib.Ast.Eia.str_const c) S)
+        in
+        Lib.Ast.land_ [ ast'; ast ])
+      model
+  in
+  log "Checking model correctness;\n  ast=%a\n%!" Lib.Ast.pp_smtlib2 ast;
+  match check_sat ~light:true tys ast with
+  | Sat _ -> ()
+  | Unsat _ ->
+    Printf.eprintf "(error: model check has failed; the model might be wrong)\n%!"
+  | Unknown _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
 ;;
 
 type state =
@@ -1001,7 +1034,11 @@ let () =
                     (match get_model tys with
                      | Result.Ok model ->
                        let model = join_int_model tys env model in
-                       print_model tys model regexes env
+                       let model = calculate_model tys model regexes env in
+                       print_model model;
+                       if Lib.Config.config.check_model
+                       then check_model tys ast model
+                       else ()
                      | Result.Error `Too_long -> Format.printf "no short model\n%!"
                      | Result.Error `No_model -> assert false)
               with
@@ -1017,7 +1054,11 @@ let () =
             (try
                match get_model tys with
                | Result.Ok model -> begin
-                 try print_model tys model regexes env with
+                 try
+                   let model = calculate_model tys model regexes env in
+                   print_model model;
+                   if Lib.Config.config.check_model then check_model tys ast model else ()
+                 with
                  | Too_long_model -> shrink_model ()
                end
                | Result.Error `Too_long -> shrink_model ()
