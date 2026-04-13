@@ -4,15 +4,6 @@ let log = Utils.log
 
 module NfaS = Nfa.Lsb (Nfa.Str)
 
-(* module Term_map = Map.Make (struct
-    type t =
-      [ `Eia of Ast.Eia.term
-      | `Str of Ast.Str.term
-      ]
-
-    let compare = Stdlib.compare
-  end) *)
-
 type error =
   | Non_linear_arith : Z.t Ast.Eia.term list -> error
   | Non_linear_string : string Ast.Eia.term list -> error
@@ -574,19 +565,6 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let iofs = function
-      (* 
-      MS: False start of arithmetization. 
-      Add cases of digit/non-digits strings under iofs to arithmetize_concats *)
-
-      (* Id_symantics.add
-          [ Ast.Eia.mul
-              [ Id_symantics.iofs lhs
-              ; Ast.Eia.pow
-                  (Id_symantics.constz (Config.base ()))
-                  (Id_symantics.str_len rhs)
-              ]
-          ; Id_symantics.iofs rhs
-          ] *)
       | Ast.Eia.Concat (lhs, Ast.Eia.Str_const s) when String.for_all Base.Char.is_digit s
         ->
         Id_symantics.add
@@ -3317,41 +3295,6 @@ let arithmetize ast env =
     unfold_neq var_info b a |> List.map (fun (a, a') -> a, env, a', b))
 ;;
 
-(* let distribute xs =
-  let open Ast in
-  List.fold_left
-    (fun acc -> function
-       | Eia.Add ys -> List.concat_map (fun zs -> List.map (fun h -> h :: zs) ys) acc
-       | other -> List.map (fun x -> other :: x) acc)
-    ([ [] ] : _ list list)
-    xs
-;; *)
-
-(* let test_distr xs =
-  let (module Main_symantics) = make_main_symantics Env.empty in
-  let ans = distribute xs |> List.map Main_symantics.mul |> Main_symantics.add in
-  Debug.printf "@[%a@]\n%!" Ast.pp_term_smtlib2 ans
-;; *)
-
-(* Outdated tests*)
-(* let%expect_test _ =
-  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ] ];
-  [%expect "(+ (* 5 x) (* 5 y))"]
-;;
-
-let%expect_test _ =
-  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; var "u" ] ];
-  [%expect "(+ (* 5 u x) (* 5 u y) (* 5 x z) (* 5 y z))"]
-;;
-
-let%expect_test _ =
-  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; const 2 ] ];
-  [%expect "(+ (* 5 x z) (* 5 y z) (* 10 x) (* 10 y))"]
-;; *)
-
 let leq_simpl l r =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let ans = TS.prj TS.(l <= r) in
@@ -3375,19 +3318,6 @@ let%expect_test " -2x <= -1" =
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-1));
   [%expect "(<= (* (- 2) x) (- 1))"]
 ;;
-
-(* let tracing_on =
-  match Sys.getenv "CHRO_TRACE_OPT" with
-  | exception Not_found -> false
-  | "1" -> true
-  | _ -> false
-;; *)
-
-(* let log ppf =
-  if tracing_on
-  then Format.kasprintf (Format.printf "%s%!") ppf
-  else Format.ifprintf Format.std_formatter ppf
-;; *)
 
 let simpl bound ast =
   let prepare_choices env var_info =

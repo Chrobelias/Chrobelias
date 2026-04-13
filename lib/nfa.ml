@@ -303,8 +303,6 @@ module StrBv = struct
       :: decompose (s - 1) (Z.shift_right_trunc x basei)
   ;;
 
-  (* FIXME: GB: I think we should shift right then.or something like this. *)
-  (* MS: looks good. Assume basei = 4, then nth 1 vec 11110000 = 2^8 - 2^4*)
   let bv_get v i =
     Z.shift_right
       (Z.logand
@@ -482,7 +480,6 @@ module StrBv = struct
     |> Format.fprintf ppf "(%s)"
   ;;
 
-  (* FIXME *)
   let of_list l =
     let label = List.map snd l in
     let vars = List.map fst l in
@@ -507,7 +504,6 @@ module Str = struct
   type t = char array
   type u = char
 
-  (* TODO: use me here! *)
   let base = Z.of_int 10
   let basei = Z.to_int base
   let config = Config.string_config
@@ -1418,22 +1414,7 @@ struct
     { final = nfa.start; start = nfa.final; transitions; deg = nfa.deg; is_dfa = false }
   ;;
 
-  (* Note(Kakadu): it seems to be the slowest function *)
   let to_dfa ?alpha nfa =
-    (* Format.printf "Runinng to_dfa\n%!"; *)
-    (*let alpha =
-      Option.value
-        ~default:
-          (nfa.transitions
-           |> Array.to_seq
-           |> Seq.map List.to_seq
-           |> Seq.concat_map Fun.id
-           |> Seq.map fst
-           |> Seq.map Label.alpha
-           |> Seq.fold_left Set.union Set.empty
-           |> Set.to_list)
-        alpha
-    in*)
     if nfa.is_dfa
     then nfa
     else (
@@ -1526,7 +1507,6 @@ struct
       Queue.add nfa.start queue;
       let transitions, final = aux [] Set.empty queue in
       let transitions = Array.of_list transitions in
-      (* Format.printf "End to_dfa\n%!"; *)
       { final; start = Set.singleton 0; transitions; deg = nfa.deg; is_dfa = true })
   ;;
 

@@ -118,43 +118,6 @@ let ( -- ) i j =
   aux j []
 ;;
 
-(*let to_nfa (type a) (module Nfa : Nfa.Type with type v = a) (r: (a list) t) =
-   let rec traverse visited = function
-    | [] -> []
-    | r :: tl ->
-      if List.exists (fun r' -> r' = r) visited
-      then traverse visited tl
-      else (
-        let visited = r :: visited in
-        let symbols = symbols r in
-        let delta = List.map (fun symbol -> symbol, deriv symbol r) symbols in
-        let tl = List.append (List.map snd delta) tl in
-        (r, delta) :: traverse visited tl)
-  in
-  let transitions = traverse [] [ r ] in
-  let regex_to_state =
-    transitions |> List.map fst |> List.mapi (fun i r -> r, i) |> Map.of_alist_exn
-  in
-  let finals = Map.keys regex_to_state |> List.filter v in
-  let regex_to_state = Map.find_exn regex_to_state in
-  let transitions =
-    transitions
-    |> List.concat_map (fun (q, delta) ->
-      List.map
-        (fun (l, q') -> regex_to_state q, l, regex_to_state q')
-        delta)
-  in
-  let deg = symbols r |> List.fold_left (fun acc v -> max acc (List.length v)) 0 in
-  Nfa.create_nfa
-    ~transitions
-    ~start:[ regex_to_state r ]
-    ~final:(finals |> List.map regex_to_state)
-    ~vars:(0 -- (deg - 1) |> List.rev)
-    ~deg
-*)
-
-(*open Angstrom*)
-
 let of_string symbol = failwith symbol
 (*
    let is_whitespace = function
