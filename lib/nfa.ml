@@ -708,7 +708,11 @@ module Par = struct
   let truncate len vec = failwith "TODO"
   let is_zero vec = failwith "TODO"
   let is_zero_soft vec = failwith "TODO"
-  let alphabet = failwith "TODO"
+
+  let alphabet =
+    (0 -- (basei - 1) |> List.map (fun x -> eq (var "x") (const 0))) @ [ u_null; u_eos ]
+  ;;
+
   let variations ?alpha vec = failwith "TODO"
   let zero deg = failwith "TODO"
   let zero_with_mask mask = failwith "TODO"
