@@ -34,6 +34,10 @@ module MsbStr : sig
   include Type with type t = Nfa.Msb(Nfa.Str).t and type v = Nfa.Str.u
 end
 
+module MsbPar : sig
+  include Type with type t = Nfa.Msb(Nfa.Par).t and type v = Nfa.Par.u
+end
+
 module MsbStrBv : sig
   include Type with type t = Nfa.Msb(Nfa.StrBv).t and type v = Nfa.StrBv.u
 end
@@ -44,6 +48,10 @@ end
 
 module MsbNatStr : sig
   include NatType with type t = Nfa.MsbNat(Nfa.Str).t and type v = Nfa.Str.u
+end
+
+module MsbNatPar : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.Par).t and type v = Nfa.Par.u
 end
 
 module MsbNatStrBv : sig

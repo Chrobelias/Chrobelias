@@ -283,14 +283,7 @@ struct
          else if Nfa.run nfa
          then NfaCollection.n ()
          else NfaCollection.z ()
-       | Ir.SReg (atom, reg) ->
-         Extra.eval_sreg vars atom reg
-         |> fun nfa ->
-         Debug.printf "(c, d)\n%!";
-         Seq.iter
-           (fun (c, d) -> Debug.printf "(%d, %d)\n%!" c d)
-           (NfaNat.chrobak (nfa |> Nfa.to_nat));
-         nfa
+       | Ir.SReg (atom, reg) -> Extra.eval_sreg vars atom reg
        | Ir.SRegRaw (atom, reg) -> Extra.eval_sregraw vars atom reg
        | Ir.SLen (atom, atom') ->
          NfaCollection.strlen
@@ -1171,9 +1164,7 @@ module MsbStr =
   Make (Nfa.MsbNat (Nfa.Str)) (NfaCollection.MsbNatStr) (Nfa.Msb (Nfa.Str))
     (NfaCollection.MsbStr)
     (struct
-      module NfaO = Nfa
       module Str = Nfa.Str
-      module NfaO2 = Nfa.Msb (Str)
       module Nfa = Nfa.Msb (Str)
 
       let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
@@ -1186,14 +1177,14 @@ module MsbStr =
                (Regex.symbol [ Str.u_eos ]))
             reg
         in
-        let nfa = reg |> NfaO2.of_regex in
+        let nfa = reg |> Nfa.of_regex in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
 
       let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> Nfa.t =
         fun vars atom reg ->
-        let nfa = NfaO2.of_lsb reg in
+        let nfa = Nfa.of_lsb reg in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
@@ -1212,6 +1203,30 @@ module MsbStr =
       let int_to_model n =
         n |> Z.to_string |> String.to_seq |> List.of_seq |> List.map char_to_v
       ;;
+    end)
+
+module MsbPar =
+  Make (Nfa.MsbNat (Nfa.Par)) (NfaCollection.MsbNatPar) (Nfa.Msb (Nfa.Par))
+    (NfaCollection.MsbPar)
+    (struct
+      module Par = Nfa.Par
+      module Nfa = Nfa.Msb (Par)
+
+      let eval_reg _ = failwith "TODO"
+      let eval_sreg vars atom reg = failwith "TODO"
+      let eval_sregraw _vars _atom _regex = failwith "TODO"
+
+      let model_to_int = function
+        | x -> Z.zero
+      ;;
+
+      let nat_model_to_int = function
+        | x -> Z.zero
+      ;;
+
+      let char_to_v c = failwith "TODO"
+      let nat_model_to_model model = failwith "TODO"
+      let int_to_model n = failwith "TODO"
     end)
 
 module MsbStrBv =
@@ -1421,6 +1436,12 @@ let check_sat ir
         | `Unknown -> `Unknown
         | `Unsat -> `Unsat
       in
+      let wrap' f =
+        fun ir ->
+        match f ir with
+        | `Sat _ | `Unknown -> `Unknown
+        | `Unsat -> `Unsat
+      in
       match Config.config.logic, Config.config.mode with
       | `Str, `Lsb ->
         Debug.printfln "Running string LSB mode";
@@ -1428,6 +1449,10 @@ let check_sat ir
       | `Str, `Msb ->
         Debug.printfln "Running string MSB mode";
         MsbStr.check_sat
+      | `Par, `Msb ->
+        Debug.printfln "Running parametric MSB mode";
+        wrap' MsbPar.check_sat
+      | `Par, `Lsb -> failwith "Unimplemented parametric LSB mode"
       | `StrBv, `Lsb ->
         Debug.printfln "Running string-bitvector LSB mode";
         wrap LsbStrBv.check_sat
@@ -1470,5 +1495,5 @@ let check_sat ir
   in
   match Config.config.logic with
   | `Eia -> on_no_strings ir
-  | `Str | `StrBv -> on_strings ir
+  | `Str | `StrBv | `Par -> on_strings ir
 ;;

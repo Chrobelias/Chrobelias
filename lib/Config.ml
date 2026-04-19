@@ -10,7 +10,7 @@ type config =
   ; mutable good_for_minimize : int
   ; mutable good_for_shrinking : int
   ; mutable input_file : string
-  ; mutable logic : [ `Eia | `Str | `StrBv ]
+  ; mutable logic : [ `Eia | `Str | `StrBv | `Par ]
   ; mutable mode : [ `Msb | `Lsb ]
   ; mutable no_model : bool
   ; mutable no_str_bv : bool
@@ -41,7 +41,6 @@ let config =
   ; error_check = true
   ; good_for_minimize = 15
   ; good_for_shrinking = 20
-  ; pre_simpl = true
   ; over_approx = true
   ; over_approx_early = false
   ; over_nfa = false
@@ -50,6 +49,7 @@ let config =
   ; mode = `Msb
   ; no_model = false
   ; no_str_bv = false
+  ; pre_simpl = true
   ; quiet = false
   ; simpl_alpha = false
   ; simpl_mono = true
@@ -92,13 +92,15 @@ let huge_const () = huge_const_config.const
 let huge_path () = huge_const_config.path
 let huge_const_for_model () = huge_const_config.const_model
 let under2_config = { amin = 5; amax = 11; flat = -1 }
-let under_str_config = { max_len = 32; max_cnt = 32 }
+let under_str_config = { max_len = -1; max_cnt = -1 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
 
 let base () =
-  if config.logic = `Str || config.logic = `StrBv then Z.of_int 10 else Z.of_int 2
+  if config.logic = `Str || config.logic = `StrBv || config.logic = `Par
+  then Z.of_int 10
+  else Z.of_int 2
 ;;
 
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
@@ -174,6 +176,7 @@ Basic options:
             under_str_config.max_cnt <- -1;
             under_str_config.max_len <- -1)
       , "Disable string underapproximations in concats" )
+    ; "-par", Arg.Unit (fun () -> config.logic <- `Par), "  \tRun in parametric mode"
     ; ( "-sbcnt"
       , Arg.Int (fun n -> under_str_config.max_cnt <- n)
       , "<n>\tUnderapproximate strings in concats via first <n> words w.r.t. regexes \

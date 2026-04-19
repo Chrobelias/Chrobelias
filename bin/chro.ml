@@ -412,7 +412,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         | `Unsat ->
           Unsat "over" (*| `Sat r -> sat "over" r e (fun _ -> Result.Ok Map.empty)*))
       else unknown ast e)
-      <+> (fun ast e ->
+      <+> fun ast e ->
       match Lib.SimplII.has_unsupported_nonlinearity ast with
       | Result.Ok () -> unknown ast e
       | Error terms ->
@@ -428,38 +428,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
           | `Unknown ->
             report_result2 (`Unknown "nia");
             exit 0)
-        else unknown ast e)
-      <+> fun ast e ->
-      if Lib.Config.is_under2_enabled ()
-      then (
-        used_under2 := true;
-        match Lib.SimplII.run_under2 e ast with
-        | `Sat -> sat "under II" ast e (fun _ -> Result.Ok Map.empty) Map.empty
-        | `Underapprox asts ->
-          if config.dump_pre_simpl then Format.printf "@[%a@]\n%!" Lib.Ast.pp_smtlib2 ast;
-          if config.stop_after = `Pre_simplify then exit 0;
-          log "Looking for SAT in %d asts..." (List.length asts);
-          let exception
-            Sat_found of
-              ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
-               -> (Lib.Ir.model, [ `Too_long | `No_model ]) Result.t)
-          in
-          (try
-             let f ast =
-               let ir = Lib.Me.ir_of_ast e ast in
-               match ir with
-               | Ok ir -> begin
-                 match Lib.Solver.check_sat ir with
-                 | `Sat e -> raise (Sat_found e)
-                 | _ -> Result.ok ()
-               end
-               | Error s -> Result.error s
-             in
-             let _results = List.map f asts in
-             unknown ast e
-           with
-           | Sat_found model -> sat "under II" ast e model Map.empty))
-      else unknown ast e
+        else unknown ast e
     in
     match apporx_rez with
     | Unknown (ast, e) ->
@@ -773,7 +742,12 @@ let () =
       in
       { state with tys }
     | Smtml.Ast.Set_logic (Smtml.Logic.QF_S | Smtml.Logic.QF_SLIA) ->
-      config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
+      config.logic
+      <- (if Lib.Config.config.logic = `Par
+          then `Par
+          else if Lib.Config.config.no_str_bv
+          then `Str
+          else `StrBv);
       (* config.under_approx <- 0; *)
       config.over_approx <- false;
       config.simpl_alpha <- false;
