@@ -621,7 +621,7 @@ let antiprenex =
         if atoms_set |> Set.is_empty
         then orig_ir
         else (
-          let irs_using_var =
+          let irs_using_var : (int * atom Set.t) list =
             List.mapi
               begin fun i ir ->
                 let free_vars = collect_free ir in
@@ -630,12 +630,21 @@ let antiprenex =
               end
               irs
           in
-          let var_is_used_in =
+          let var_is_used_in : (atom, int list) Map.t =
             List.map
               begin fun atom ->
                 ( atom
                 , List.filter_map
-                    (fun (i, s) -> if Set.mem s atom then Some i else None)
+                    (fun (i, s) ->
+                       if
+                         Set.mem s atom
+                         || (Config.config.antiprenex_mode = `Lower_re
+                             && List.nth irs i
+                                |> function
+                                | SRegRaw _ -> true
+                                | _ -> false)
+                       then Some i
+                       else None)
                     irs_using_var )
               end
               atoms
