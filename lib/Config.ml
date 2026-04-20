@@ -25,6 +25,7 @@ type config =
   ; mutable under_str_all : bool
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
+  ; mutable antiprenex_mode : [ `All | `Lower_re ]
   }
 
 let config =
@@ -54,6 +55,7 @@ let config =
   ; with_info = true
   ; under_approx = 2
   ; under_str_all = false
+  ; antiprenex_mode = `All
   }
 ;;
 
@@ -237,6 +239,10 @@ Basic options:
     ; ( "--dpresimpl"
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , "\tDump AST simplifications" )
+    ; ( "--antiprenex-lower-re"
+      , Arg.Unit (fun () -> config.antiprenex_mode <- `Lower_re)
+      , "\tKeep regular constraints lower in the AST tree and don't promote quantifiers \
+         to lower levels" )
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )
