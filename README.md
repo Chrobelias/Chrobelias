@@ -17,17 +17,7 @@ To build the project you need the following dependencies to be installed:
 - opam - OCaml package manager.
 - OCaml >5.0.
 
-
-During the installation of OCaml and opam you might be asked to set up some system-level dependencies.
-If you are using a Debian-based distro you might install all the required dependencies at once by running the command:
-
-```bash
-sudo apt-get update && sudo apt-get install git curl build-essential unzip bubblewrap
-```
-
-After that you might continue with opam and OCaml configuration and initialization.
-If you use a non-Debian-based distro, please install [curl](https://curl.se) and run the following commands.
-Refer to `opam init --bare` messages to install the missing dependencies using the appropriate package manager.
+The dependencies can be installed using the bash commands
 
 ```bash
 # Installing the OCaml package manager
@@ -36,8 +26,6 @@ bash -c "sh <(curl -fsSL https://opam.ocaml.org/install.sh)"
 opam init --bare
 # Installing OCaml 5.3.
 opam switch create 5.3.0+flambda --packages=ocaml-variants.5.3.0+options,ocaml-option-flambda --yes
-# (Optional) update the current environment to skip restarting the terminal.
-eval $(opam env --switch=5.3.0+flambda)
 ```
 
 ChrobELIAS is built as follows:
