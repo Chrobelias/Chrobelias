@@ -1,5 +1,6 @@
 type config =
-  { mutable bound_res : int
+  { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
+  ; mutable bound_res : int
   ; mutable bound_states : int
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
@@ -25,11 +26,11 @@ type config =
   ; mutable under_str_all : bool
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
-  ; mutable antiprenex_mode : [ `All | `Lower_re ]
   }
 
 let config =
-  { bound_res = -1
+  { antiprenex_mode = `All
+  ; bound_res = -1
   ; bound_states = -1
   ; stop_after = `Solving
   ; dump_lics = false
@@ -55,7 +56,6 @@ let config =
   ; with_info = true
   ; under_approx = 2
   ; under_str_all = false
-  ; antiprenex_mode = `All
   }
 ;;
 
@@ -204,6 +204,14 @@ Basic options:
     ; ( "-q"
       , Arg.Unit (fun () -> config.quiet <- true)
       , "   \tPrint 'unknown' instead of Exceptions\t" )
+    ; ( "--apren"
+      , Arg.String
+          (function
+            | "push-reg" | "push_reg" -> config.antiprenex_mode <- `Push_re
+            | "all" -> config.antiprenex_mode <- `All
+            | "no" | "disable" -> config.antiprenex_mode <- `Disable
+            | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
+      , "\tAntiprenex mode [all; push-reg; disable]" )
     ; "-base10", Arg.Unit (fun () -> config.logic <- `StrBv), "\tSwitch to base 10 EIA\t"
     ; ( "--stop-after"
       , Arg.String
@@ -211,7 +219,7 @@ Basic options:
             | "simpl" -> config.stop_after <- `Simpl
             | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
               config.stop_after <- `Pre_simplify
-            | s -> failwith ("Bad argument: " ^ s))
+            | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tStop after step [presimpl; simpl]" )
       (* ; "--err-check", Arg.Unit (fun () -> config.error_check <- true), "\t"
     ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t" *)
@@ -239,10 +247,6 @@ Basic options:
     ; ( "--dpresimpl"
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , "\tDump AST simplifications" )
-    ; ( "--antiprenex-lower-re"
-      , Arg.Unit (fun () -> config.antiprenex_mode <- `Lower_re)
-      , "\tKeep regular constraints lower in the AST tree and don't promote quantifiers \
-         to lower levels" )
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )
