@@ -148,6 +148,146 @@ let level = ref 0
 module NfaS = Nfa.Lsb (Nfa.Str)
 module Str = Nfa.Str
 
+module Basic
+    (Nfa : Nfa.BasicType)
+    (NfaCollection : NfaCollection.Type with type t = Nfa.t and type v = Nfa.v)
+    (Eval : sig
+       val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
+       val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
+       val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
+     end) =
+struct
+  let eval ir =
+    let ir = Ir.antiprenex ir in
+    let alpha = (*collect_alpha ir |> Option.map Set.to_list *) None in
+    (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
+    let vars = Ir.collect_vars ir in
+    (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
+    let rec eval ir =
+      if Config.config.dump_ir
+      then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
+      level := !level + 1;
+      (match ir with
+       | Ir.Unsupp s -> NfaCollection.n ()
+       | Ir.True -> NfaCollection.n ()
+       | Ir.Lnot ir -> eval ir |> Nfa.invert
+       (*
+          | Ir.Land (hd :: tl) ->
+                       List.fold_left (fun nfa ir -> eval ir |> Nfa.intersect nfa) (eval hd) tl
+       *)
+       | Ir.Land irs ->
+         let nfas =
+           List.map
+             (fun ir ->
+                let nfa = eval ir in
+                Debug.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
+                nfa |> do_if_lsb Nfa.reverse, ir)
+             irs
+           |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
+         in
+         let rec eval_and = function
+           | (hd, _) :: [] -> hd
+           | (hd, ir) :: (hd', ir') :: tl ->
+             Debug.printf
+               "Intersecting\n  [%d (%a)]\n  [%d (%a)]\n%!"
+               (Nfa.length hd)
+               Ir.pp
+               ir
+               (Nfa.length hd')
+               Ir.pp
+               ir';
+             let nfa = Nfa.intersect hd hd' in
+             let ir = Ir.land_ [ ir; ir' ] in
+             let nfas =
+               (nfa, ir) :: tl
+               |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
+             in
+             eval_and nfas
+           | [] -> NfaCollection.n ()
+         in
+         eval_and nfas
+         |> fun nfa ->
+         Debug.printf "Intersect result %d \n%!" (Nfa.length nfa);
+         nfa |> do_if_lsb Nfa.reverse
+       | Ir.Lor (hd :: tl) ->
+         List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
+       | Ir.Lor [] -> NfaCollection.z ()
+       | Ir.Rel (rel, term, c) -> begin
+         match rel with
+         | Ir.Eq -> NfaCollection.eq vars term c
+         | Ir.Leq -> NfaCollection.leq vars term c
+         | Ir.Neq -> NfaCollection.neq vars term c
+       end
+       | Ir.Reg (reg, atoms) -> Eval.eval_reg vars reg atoms
+       | Ir.Exists (atoms, ir) ->
+         let nfa =
+           eval ir
+           (*|> apply_post_strings atoms*)
+           |> Nfa.project (List.filter_map (Map.find vars) atoms)
+         in
+         if Nfa.run nfa then NfaCollection.n () else NfaCollection.z ()
+       | Ir.SReg (atom, reg) -> Eval.eval_sreg vars atom reg
+       | Ir.SRegRaw (atom, reg) -> Eval.eval_sregraw vars atom reg
+       | Ir.SLen (atom, atom') ->
+         NfaCollection.strlen
+           ~alpha
+           ~dest:(Map.find_exn vars atom')
+           ~src:(Map.find_exn vars atom)
+           ()
+       (*| Ir.Stoi (atom, atom') -> NfaCollection.n ()*)
+       (*NfaCollection.stoi ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')*)
+       (* | Ir.SEq (atom, atom') ->
+         NfaCollection.seq
+           ~alpha
+           ~dest:(Map.find_exn vars atom)
+           ~src:(Map.find_exn vars atom')
+           () *)
+       | _ -> failwith "unexpected due to Arithmetization")
+      |> fun nfa ->
+      Debug.printfln "Done %a\n%!" Ir.pp ir;
+      Debug.dump_nfa ~msg:"Evaluated %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
+      level := !level - 1;
+      nfa
+    in
+    let nfa = eval ir in
+    (*let nfa = apply_post_strings ( Ir.collect_free ir |> Set.to_list in*)
+    nfa, vars
+  ;;
+
+  let cache = ref Map.empty
+
+  let eval ir =
+    match Map.find !cache ir with
+    | Some v -> v
+    | None ->
+      let v = eval ir in
+      cache := Map.add_exn !cache ~key:ir ~data:v;
+      v
+  ;;
+
+  let check_sat ir
+    : [ `Sat of unit -> ((Ir.atom, Nfa.v list) Map.t, [ `Too_long | `No_model ]) Result.t
+      | `Unsat
+      | `Unknown
+      ]
+    =
+    let had_unsupp =
+      Ir.for_some
+        (function
+          | Ir.Unsupp _ -> true
+          | _ -> false)
+        ir
+    in
+    let sat_if_no_unsupp arg = if had_unsupp then `Unknown else `Sat arg in
+    let free_vars = Ir.collect_free ir in
+    let ir' = Ir.exists (free_vars |> Set.to_list) ir in
+    Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
+    if ir' |> eval |> fst |> Nfa.run
+    then sat_if_no_unsupp (fun () -> Result.Ok Map.empty)
+    else `Unsat
+  ;;
+end
+
 module Make
     (NfaNat : Nfa.NatType)
     (NfaCollectionNat : NfaCollection.NatType with type t = NfaNat.t)
@@ -1206,27 +1346,15 @@ module MsbStr =
     end)
 
 module MsbPar =
-  Make (Nfa.MsbNat (Nfa.Par)) (NfaCollection.MsbNatPar) (Nfa.Msb (Nfa.Par))
-    (NfaCollection.MsbPar)
+  Basic
+    (Nfa.Parametric (Nfa.Par)) (NfaCollection.MsbPar)
     (struct
       module Par = Nfa.Par
-      module Nfa = Nfa.Msb (Par)
+      module Nfa = Nfa.Parametric (Par)
 
       let eval_reg _ = failwith "TODO"
       let eval_sreg vars atom reg = failwith "TODO"
       let eval_sregraw _vars _atom _regex = failwith "TODO"
-
-      let model_to_int = function
-        | x -> Z.zero
-      ;;
-
-      let nat_model_to_int = function
-        | x -> Z.zero
-      ;;
-
-      let char_to_v c = failwith "TODO"
-      let nat_model_to_model model = failwith "TODO"
-      let int_to_model n = failwith "TODO"
     end)
 
 module MsbStrBv =

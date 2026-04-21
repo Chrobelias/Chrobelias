@@ -380,19 +380,19 @@ end
 
 module MsbPar = struct
   module Par = Nfa.Par
-  module Nfa = Nfa.Msb (Nfa.Par)
+  module Nfa = Nfa.Parametric (Nfa.Par)
 
   type t = Nfa.t
   type v = Par.u
 
-  let base = Par.base
+  let base = Z.of_int 10
   let n () = failwith "TODO"
   let z () = failwith "TODO"
   let power_of_two exp = failwith "TODO"
   let eq vars term c = failwith "TODO"
-  let neq vars term c = eq vars term c |> Nfa.invert
+  let neq vars term c = failwith "Unsupported"
   let leq vars term c = failwith "TODO"
-  let strlen ~alpha ~(dest : int) ~(src : int) () = failwith "Unimplemented"
+  let strlen ~alpha ~(dest : int) ~(src : int) () = failwith "Unsupported"
 end
 
 module MsbStrBv = struct
@@ -746,29 +746,6 @@ module MsbNatStr = struct
       alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
     in
     NfaMsbNat.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
-  ;;
-end
-
-module MsbNatPar = struct
-  module Par = Nfa.Par
-  module NfaPar = Nfa.Msb (Par)
-  module NfaMsbNat = Nfa.MsbNat (Par)
-
-  type t = NfaMsbNat.t
-  type v = Par.u
-
-  let base = Par.base
-  let n () = failwith "TODO"
-  let z () = failwith "TODO"
-  let div_in_pow var a c = failwith "Unsupported for Parametric Automata"
-  let pow_of_log_var var exp = failwith "Unsupported for Parametric Automata"
-  let power_of_two exp = failwith "TODO"
-  let eq vars term c = failwith "TODO"
-  let neq vars term c = failwith "TODO"
-  let leq vars term c = failwith "TODO"
-
-  let strlen ~alpha ~(dest : int) ~(src : int) () =
-    failwith "Unsupported for Parametric Automata"
   ;;
 end
 

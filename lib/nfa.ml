@@ -81,9 +81,21 @@ let rec pow a = function
     b * b * if n mod 2 = 0 then 1 else a
 ;;
 
-module type L = sig
-  type t
+module type BasicL = sig
   type u
+  type t
+
+  val equal : t -> t -> bool
+  val is_zero : t -> bool
+  val combine : t -> t -> t
+  val project : int list -> t -> t
+  val pp_u : Format.formatter -> u -> unit
+  val pp : Format.formatter -> t -> unit
+  val of_list : (int * u) list -> t
+end
+
+module type L = sig
+  include BasicL
 
   val base : Z.t
   val alphabet : u List.t
@@ -92,11 +104,7 @@ module type L = sig
   val u_eos : u
   val is_any_at : int -> t -> bool
   val get : t -> int -> u
-  val equal : t -> t -> bool
-  val combine : t -> t -> t
-  val project : int list -> t -> t
   val truncate : int -> t -> t
-  val is_zero : t -> bool
   val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
@@ -105,9 +113,6 @@ module type L = sig
   val eos_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
   val one_with_mask : int list -> t
-  val pp_u : formatter -> u -> unit
-  val pp : formatter -> t -> unit
-  val of_list : (int * u) list -> t
   val alpha : t -> u Set.t
 end
 
@@ -686,47 +691,19 @@ module Par = struct
 
   open AstL
 
-  let const c = Lia.Const c
+  (* let const c = Lia.Const c
   let var s = Lia.Atom (Var s)
-  let eq lhs rhs = Lia (Eq (lhs, rhs))
-  let basei = 10
-  let base = Z.of_int basei
-
-  let u_zero, u_one, u_null, u_eos =
-    eq (var "x") (const 0), eq (var "x") (const 1), true_, false_
-  ;;
-
-  let is_end_char c = c = u_eos || c = u_null
-  let get = AstL.get
-  let is_eos_at i label = equal_alpha (get label i) u_eos
-  let is_any_at i label = equal_alpha (get label i) u_null
-  let is_zero_at i label = get label i = u_zero
-  let is_one_at i label = get label i = u_one
+  let eq lhs rhs = Lia (Eq (lhs, rhs)) *)
   let equal = AstL.equal
-  let combine vec1 vec2 = AstL.Land [ vec1; vec2 ]
+  let is_zero = equal_alpha true_
+  let combine vec1 vec2 = land_ [ vec1; vec2 ]
   let project proj vec = failwith "TODO"
-  let truncate len vec = failwith "TODO"
-  let is_zero vec = failwith "TODO"
-  let is_zero_soft vec = failwith "TODO"
-
-  let alphabet =
-    (0 -- (basei - 1) |> List.map (fun x -> eq (var "x") (const 0))) @ [ u_null; u_eos ]
-  ;;
-
-  let variations ?alpha vec = failwith "TODO"
-  let zero deg = failwith "TODO"
-  let zero_with_mask mask = failwith "TODO"
-  let eos_with_mask mask = failwith "TODO"
-  let singleton_with_mask c mask = failwith "TODO"
-  let one_with_mask mask = failwith "TODO"
   let pp_u = AstL.pp
   let pp ppf (vec : t) = Format.fprintf ppf "(%a)" AstL.pp vec
-  let reenumerate map vec = failwith "TODO"
   let of_list l = failwith "TODO"
-  let alpha s = failwith "TODO"
 end
 
-module Graph (Label : L) = struct
+module Graph (Label : BasicL) = struct
   type t = (Label.t * state) list array
 
   let verticies (graph : t) = Array.length graph
@@ -958,9 +935,8 @@ let%expect_test "Important verticies smoke test" =
   [%expect {|0, 2; 1, 2; 2, 0|}]
 ;;
 
-module type Type = sig
+module type BasicType = sig
   type t
-  type u
   type v
 
   val length : t -> int
@@ -982,24 +958,31 @@ module type Type = sig
     -> t
 
   val run : t -> bool
+  val intersect : t -> t -> t
+  val unite : t -> t -> t
+  val invert : ?alpha:v list -> t -> t
+  val project : int list -> t -> t
+  val is_graph : t -> bool
+  val reverse : t -> t
+  val format_nfa : Format.formatter -> t -> unit
+end
+
+module type Type = sig
+  include BasicType
+
+  type u
+
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
   val all_paths_of_len : t -> int -> v list list
   val shrink : t -> t
-  val intersect : t -> t -> t
-  val unite : t -> t -> t
-  val project : int list -> t -> t
   val truncate : int -> t -> t
-  val is_graph : t -> bool
   val reenumerate : (int, int) Map.t -> t -> t
   val minimize : t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
-  val invert : ?alpha:v list -> t -> t
-  val reverse : t -> t
-  val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
   val of_nat : u -> t
   val of_regex : v list Regex.t -> t
@@ -1038,6 +1021,231 @@ type 'a _t =
 
 let length nfa = Array.length nfa.transitions
 let states nfa = 0 -- (length nfa - 1) |> Set.of_list
+
+module Parametric (Label : BasicL) = struct
+  module Graph = Graph (Label)
+
+  type t = Graph.t _t
+  type v = Label.u
+
+  let length = length
+
+  let create_nfa
+        ~(transitions : (state * Label.u list * state) list)
+        ~(start : state list)
+        ~(final : state list)
+        ~(vars : int list)
+        ~(deg : int)
+    =
+    (*let vars = List.rev vars in*)
+    let max =
+      transitions
+      |> Iter.of_list
+      |> Iter.map (fun (fst, _, snd) -> max fst snd)
+      |> Iter.fold max (List.fold_left max (List.fold_left max 0 final) start)
+    in
+    let transitions =
+      transitions
+      |> List.fold_left
+           (fun lists (src, lbl, dst) ->
+              lists.(src) <- (lbl, dst) :: lists.(src);
+              lists)
+           (Array.init (max + 1) (Fun.const []))
+      |> Array.map (fun delta ->
+        List.filter_map
+          (fun (label, q') -> (Label.of_list (List.combine vars label), q') |> return)
+          delta)
+    in
+    { transitions
+    ; final = Set.of_list final
+    ; start = Set.of_list start
+    ; deg
+    ; is_dfa = false
+    }
+  ;;
+
+  let create_dfa
+        ~(transitions : (state * Label.u list * state) list)
+        ~(start : state)
+        ~(final : state list)
+        ~(vars : int list)
+        ~(deg : int)
+    =
+    (*let vars = List.rev vars in*)
+    let max =
+      transitions
+      |> Iter.of_list
+      |> Iter.map (fun (fst, _, snd) -> max fst snd)
+      |> Iter.fold max 0
+    in
+    (* TODO: ensure transitions are actually deterministic. *)
+    let transitions =
+      transitions
+      |> List.fold_left
+           (fun lists (src, lbl, dst) ->
+              lists.(src) <- (lbl, dst) :: lists.(src);
+              lists)
+           (Array.init (max + 1) (Fun.const []))
+      |> Array.map (fun delta ->
+        List.filter_map
+          (fun (label, q') -> (Label.of_list (List.combine vars label), q') |> return)
+          delta)
+    in
+    { transitions
+    ; final = Set.of_list final
+    ; start = Set.singleton start
+    ; deg
+    ; is_dfa = true
+    }
+  ;;
+
+  let run nfa = failwith "Unimplemented"
+
+  let format_nfa ppf nfa =
+    let format_state ppf state = fprintf ppf "%d" state in
+    let start_final = Set.inter nfa.start nfa.final in
+    let start = Set.diff nfa.start start_final in
+    let final = Set.diff nfa.final start_final in
+    fprintf ppf "digraph {\n";
+    fprintf ppf "node [shape=circle]\n";
+    Set.iter final ~f:(fprintf ppf "\"%a\" [shape=doublecircle]\n" format_state);
+    Set.iter start ~f:(fprintf ppf "\"%a\" [shape=octagon]\n" format_state);
+    Set.iter start_final ~f:(fprintf ppf "\"%a\" [shape=doubleoctagon]\n" format_state);
+    Array.iteri
+      (fun q delta ->
+         delta
+         |> List.map (fun (label, q') -> q', label)
+         |> Map.of_alist_multi
+         |> Map.iteri ~f:(fun ~key:q' ~data:labels ->
+           fprintf
+             ppf
+             "\"%a\" -> \"%a\" [label=\"%a\"]\n"
+             format_state
+             q
+             format_state
+             q'
+             (Format.pp_print_list
+                ~pp_sep:(fun ppf () -> Format.fprintf ppf "\n")
+                Label.pp)
+             labels))
+      nfa.transitions;
+    fprintf ppf "}"
+  ;;
+
+  let intersect nfa1 nfa2 =
+    let cartesian_product l1 l2 =
+      Set.fold
+        ~f:(fun x a -> Set.fold ~f:(fun y b -> Set.add y (a, b)) ~init:x l2)
+        ~init:Set.empty
+        l1
+    in
+    let counter = ref 0 in
+    let visited = Array.make_matrix (length nfa1) (length nfa2) (-1) in
+    let q (q1, q2) = visited.(q1).(q2) in
+    let is_visited (q1, q2) = q (q1, q2) <> -1 in
+    let visit (q1, q2) =
+      if is_visited (q1, q2) |> not
+      then (
+        visited.(q1).(q2) <- !counter;
+        counter
+        := if !counter >= Config.max_nfa_size then raise Too_big_nfa else !counter + 1)
+    in
+    let rec aux transitions queue =
+      if Queue.is_empty queue
+      then transitions
+      else (
+        let q1, q2 = Queue.pop queue in
+        let delta1 = nfa1.transitions.(q1) in
+        let delta2 = nfa2.transitions.(q2) in
+        let delta =
+          List.fold_left
+            (fun acc_delta (label1, q1') ->
+               List.fold_left
+                 (fun acc_delta (label2, q2') ->
+                    let equal = Label.equal label1 label2 in
+                    match equal with
+                    | true ->
+                      let label = Label.combine label1 label2 in
+                      let is_visited = is_visited (q1', q2') in
+                      visit (q1', q2');
+                      let q' = q (q1', q2') in
+                      let acc_delta = (label, q') :: acc_delta in
+                      if is_visited |> not then Queue.add (q1', q2') queue;
+                      acc_delta
+                    | false -> acc_delta)
+                 acc_delta
+                 delta2)
+            []
+            delta1
+        in
+        aux (delta :: transitions) queue)
+    in
+    let start_pairs = cartesian_product nfa1.start nfa2.start in
+    let queue = Queue.create () in
+    Set.iter
+      ~f:(fun x ->
+        visit x;
+        Queue.add x queue)
+      start_pairs;
+    let transitions = aux [] queue |> List.rev |> Array.of_list in
+    let start = start_pairs |> Set.map ~f:q in
+    let final =
+      cartesian_product nfa1.final nfa2.final
+      |> Set.map ~f:q
+      |> Set.filter ~f:(( <> ) (-1))
+    in
+    let deg = max nfa1.deg nfa2.deg in
+    let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
+    let result = { final; start; transitions; deg; is_dfa } in
+    result
+  ;;
+
+  let unite nfa1 nfa2 =
+    let s1 q = q in
+    let s2 q = length nfa1 + q in
+    let start = Set.union (Set.map ~f:s1 nfa1.start) (Set.map ~f:s2 nfa2.start) in
+    let final = Set.union (Set.map ~f:s1 nfa1.final) (Set.map ~f:s2 nfa2.final) in
+    let transitions =
+      Array.append
+        (nfa1.transitions
+         |> Array.map (fun delta -> List.map (fun (label, q') -> label, s1 q') delta))
+        (nfa2.transitions
+         |> Array.map (fun delta -> List.map (fun (label, q') -> label, s2 q') delta))
+    in
+    let deg = max nfa1.deg nfa2.deg in
+    { start; final; transitions; deg; is_dfa = false }
+  ;;
+
+  let invert ?alpha nfa = failwith "Unimplemented"
+
+  let is_graph nfa =
+    nfa.transitions
+    |> Array.for_all (fun delta ->
+      List.for_all (fun (label, _) -> Label.is_zero label) delta)
+  ;;
+
+  let project to_remove nfa =
+    let transitions =
+      Array.mapi
+        (fun q delta ->
+           let project (label, q') = Label.project to_remove label, q' in
+           List.map project delta)
+        nfa.transitions
+    in
+    { final = nfa.final; start = nfa.start; transitions; deg = nfa.deg; is_dfa = false }
+  ;;
+
+  let reverse nfa =
+    let transitions = Array.make (length nfa) [] in
+    Array.iteri
+      (fun q delta ->
+         List.iter
+           (fun (label, q') -> transitions.(q') <- (label, q) :: transitions.(q'))
+           delta)
+      nfa.transitions;
+    { final = nfa.start; start = nfa.final; transitions; deg = nfa.deg; is_dfa = false }
+  ;;
+end
 
 module Make
     (Label : L)

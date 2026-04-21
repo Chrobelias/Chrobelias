@@ -9,9 +9,21 @@ exception Too_big_nfa
 type state = int
 type deg = int
 
-module type L = sig
-  type t
+module type BasicL = sig
   type u
+  type t
+
+  val equal : t -> t -> bool
+  val is_zero : t -> bool
+  val combine : t -> t -> t
+  val project : int list -> t -> t
+  val pp_u : Format.formatter -> u -> unit
+  val pp : Format.formatter -> t -> unit
+  val of_list : (int * u) list -> t
+end
+
+module type L = sig
+  include BasicL
 
   val base : Z.t
   val alphabet : u List.t
@@ -20,11 +32,7 @@ module type L = sig
   val u_eos : u
   val is_any_at : int -> t -> bool
   val get : t -> int -> u
-  val equal : t -> t -> bool
-  val combine : t -> t -> t
-  val project : int list -> t -> t
   val truncate : int -> t -> t
-  val is_zero : t -> bool
   val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
@@ -33,9 +41,6 @@ module type L = sig
   val eos_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
   val one_with_mask : int list -> t
-  val pp_u : Format.formatter -> u -> unit
-  val pp : Format.formatter -> t -> unit
-  val of_list : (int * u) list -> t
   val alpha : t -> u Set.t
 end
 
@@ -43,21 +48,12 @@ module Bv : sig
   include L with type u = bool
 end
 
-module Str : sig
-  include L with type u = char and type t = char array
-
-  val u_null : u
-  val u_eos : u
-  val u_one : u
-  val is_end_char : u -> bool
-  val is_eos_at : int -> t -> bool
-  val is_any_at : int -> t -> bool
-  val is_zero_at : int -> t -> bool
-  val is_one_at : int -> t -> bool
+module Par : sig
+  include BasicL with type u = AstL.t and type t = AstL.t
 end
 
-module Par : sig
-  include L with type u = AstL.t and type t = AstL.t
+module Str : sig
+  include L with type u = char and type t = char array
 
   val u_null : u
   val u_eos : u
@@ -82,9 +78,8 @@ module StrBv : sig
   val is_one_at : int -> t -> bool
 end
 
-module type Type = sig
+module type BasicType = sig
   type t
-  type u
   type v
 
   val length : t -> int
@@ -106,24 +101,35 @@ module type Type = sig
     -> t
 
   val run : t -> bool
+  val intersect : t -> t -> t
+  val unite : t -> t -> t
+  val invert : ?alpha:v list -> t -> t
+  val project : int list -> t -> t
+  val is_graph : t -> bool
+  val reverse : t -> t
+  val format_nfa : Format.formatter -> t -> unit
+end
+
+module Parametric (Label : BasicL) : sig
+  include BasicType with type v = Label.u
+end
+
+module type Type = sig
+  include BasicType
+
+  type u
+
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
   val all_paths_of_len : t -> int -> v list list
   val shrink : t -> t
-  val intersect : t -> t -> t
-  val unite : t -> t -> t
-  val project : int list -> t -> t
   val truncate : int -> t -> t
-  val is_graph : t -> bool
   val reenumerate : (int, int) Map.t -> t -> t
   val minimize : t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
-  val invert : ?alpha:v list -> t -> t
-  val reverse : t -> t
-  val format_nfa : Format.formatter -> t -> unit
   val to_nat : t -> u
   val of_nat : u -> t
   val of_regex : v list Regex.t -> t
