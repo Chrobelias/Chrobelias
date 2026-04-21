@@ -9,16 +9,34 @@ exception Too_big_nfa
 type state = int
 type deg = int
 
+(** A modle type representing labels and basic operations over them. *)
 module type BasicL = sig
+  (** The type [u] represents digits. *)
   type u
+
+  (** The type [t] represents arbitrary labels. *)
   type t
 
+  (** [equal l1 l2] returns [true] if labels [l1] and [l2] are equal, otherwise [false].*)
   val equal : t -> t -> bool
+
+  (** [is_zero l] returns [true] if labels [l] are equal to some ``good'' element, which is called zero*)
   val is_zero : t -> bool
+
+  (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
   val combine : t -> t -> t
+
+  (** [project pos l] returns a label obtained from [l] by projection over variables with positions 
+  from the list [pos]. *)
   val project : int list -> t -> t
+
+  (** Pretty print for digits*)
   val pp_u : Format.formatter -> u -> unit
+
+  (** Pretty print for labels*)
   val pp : Format.formatter -> t -> unit
+
+  (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 end
 
@@ -78,12 +96,21 @@ module StrBv : sig
   val is_one_at : int -> t -> bool
 end
 
+(** A modle type representing automata and basic operations for / over them. *)
 module type BasicType = sig
-  type t
+  (** The type [v] represents labels of automata. *)
   type v
 
+  (** The type [t] represents automata. *)
+  type t
+
+  (** [length a] returns the number of states in the automaton [a]*)
   val length : t -> int
 
+  (** [create_nfa trans start final vars deg] returns an nfa with [deg] states, which is 
+  constructed using the list of transitions [trans], where the second argument is the list 
+  of all labels from the lhs to the rhs; for two lists of states [start] and [final]; 
+  and with the labels corresponding to the variables in [vars] *)
   val create_nfa
     :  transitions:(state * v list * state) list
     -> start:state list
@@ -92,6 +119,10 @@ module type BasicType = sig
     -> deg:int
     -> t
 
+  (** [create_dfa trans start final vars deg] returns a dfa with [deg] states, which is 
+  constructed using the list of transitions [trans], where the second argument is the list 
+  of all labels from the lhs to the rhs; for the starting state [start] and the list 
+  of final states [final]; and with the labels corresponding to the variables in [vars] *)
   val create_dfa
     :  transitions:(state * v list * state) list
     -> start:state
@@ -100,13 +131,32 @@ module type BasicType = sig
     -> deg:int
     -> t
 
+  (** [run a] returns [true] if the automaton [a] recognizes a non-emty language, otherwise [false]. *)
   val run : t -> bool
+
+  (** [intersect a1 a2] returns an nfa recognizing the intersection of the languages 
+  recognizable by [a1] and [a2]. *)
   val intersect : t -> t -> t
+
+  (** [unite a1 a2] returns an nfa recognizing the union of the languages 
+  recognizable by [a1] and [a2]. *)
   val unite : t -> t -> t
+
+  (** [invert a] returns an nfa recognizing the complement of the language 
+  recognizable by [a]. *)
   val invert : ?alpha:v list -> t -> t
+
+  (** [project vars a] returns the result of the projection over the variables [vars] 
+  applied to the automaton [a]. *)
   val project : int list -> t -> t
+
+  (** [is_graph a] returns [true] if all labels in the automaton [a] are equal to the ``good'' element 
+    (see is_zero). *)
   val is_graph : t -> bool
+
+  (** [reverse a] returns the nfa [a] where all transitions are reversed. *)
   val reverse : t -> t
+
   val format_nfa : Format.formatter -> t -> unit
 end
 

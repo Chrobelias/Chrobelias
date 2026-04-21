@@ -154,13 +154,10 @@ module Basic
     (Eval : sig
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
        val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
-       val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
      end) =
 struct
   let eval ir =
     let ir = Ir.antiprenex ir in
-    let alpha = (*collect_alpha ir |> Option.map Set.to_list *) None in
-    (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
     let rec eval ir =
@@ -171,10 +168,6 @@ struct
        | Ir.Unsupp s -> NfaCollection.n ()
        | Ir.True -> NfaCollection.n ()
        | Ir.Lnot ir -> eval ir |> Nfa.invert
-       (*
-          | Ir.Land (hd :: tl) ->
-                       List.fold_left (fun nfa ir -> eval ir |> Nfa.intersect nfa) (eval hd) tl
-       *)
        | Ir.Land irs ->
          let nfas =
            List.map
@@ -218,7 +211,6 @@ struct
          | Ir.Leq -> NfaCollection.leq vars term c
          | Ir.Neq -> NfaCollection.neq vars term c
        end
-       | Ir.Reg (reg, atoms) -> Eval.eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
          let nfa =
            eval ir
@@ -230,19 +222,11 @@ struct
        | Ir.SRegRaw (atom, reg) -> Eval.eval_sregraw vars atom reg
        | Ir.SLen (atom, atom') ->
          NfaCollection.strlen
-           ~alpha
+           ~alpha:None
            ~dest:(Map.find_exn vars atom')
            ~src:(Map.find_exn vars atom)
            ()
-       (*| Ir.Stoi (atom, atom') -> NfaCollection.n ()*)
-       (*NfaCollection.stoi ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')*)
-       (* | Ir.SEq (atom, atom') ->
-         NfaCollection.seq
-           ~alpha
-           ~dest:(Map.find_exn vars atom)
-           ~src:(Map.find_exn vars atom')
-           () *)
-       | _ -> failwith "unexpected due to Arithmetization")
+       | _ -> failwith "Unexpected constraint")
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;
       Debug.dump_nfa ~msg:"Evaluated %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
@@ -1352,9 +1336,8 @@ module MsbPar =
       module Par = Nfa.Par
       module Nfa = Nfa.Parametric (Par)
 
-      let eval_reg _ = failwith "TODO"
       let eval_sreg vars atom reg = failwith "TODO"
-      let eval_sregraw _vars _atom _regex = failwith "TODO"
+      let eval_sregraw vars atom nfa = failwith "TODO"
     end)
 
 module MsbStrBv =

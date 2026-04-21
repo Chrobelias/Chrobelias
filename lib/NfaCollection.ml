@@ -386,13 +386,35 @@ module MsbPar = struct
   type v = Par.u
 
   let base = Z.of_int 10
+
+  (** returns an nfa recognizing every integer base [base]*)
   let n () = failwith "TODO"
+
+  (** returns an nfa recognizing the empty language. *)
+
   let z () = failwith "TODO"
+
+  (** [power_of_two exp] returns an nfa recognizing Pow([exp]). *)
   let power_of_two exp = failwith "TODO"
+
+  (** [eq vars term c] returns an nfa recognizing the equality [term]*[vars] = [c]. 
+  Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
+  (having the same length). *)
   let eq vars term c = failwith "TODO"
-  let neq vars term c = failwith "Unsupported"
+
+  (** [eq vars term c] returns an nfa recognizing the dis-equality [term]*[vars] <> [c]. 
+  Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
+  (having the same length). *)
+  let neq vars term c = failwith "Unsupported for parametric automata"
+
+  (** [eq vars term c] returns an nfa recognizing the inequality [term]*[vars] <= [c]. 
+  Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
+  (having the same length). *)
   let leq vars term c = failwith "TODO"
-  let strlen ~alpha ~(dest : int) ~(src : int) () = failwith "Unsupported"
+
+  let strlen ~alpha ~(dest : int) ~(src : int) () =
+    failwith "Unsupported in parametric automata"
+  ;;
 end
 
 module MsbStrBv = struct
