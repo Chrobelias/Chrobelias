@@ -12,8 +12,10 @@
   Basic simplifications:
   
   iter(1)= (and
-             (<= (exp 2 y) x)
-             (exists (x) (<= (exp 2 x) x)))
+             (<= (+ (exp 2 y) (* (- 1) x)) 0)
+             (exists (x) (<= (+ (exp 2 x) (* (- 1) x)) 0)))
+  Alphabet with extra char: #
+  
   fixed-point
   
   Bound for underapproximation: 3

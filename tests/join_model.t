@@ -10,18 +10,21 @@
   Basic simplifications:
   
   iter(1)= (and
-             (<= 100 z)
-             (= (+ (+ 2 y) (* (* (- 1) 3) x)) 0)
-             (= (+ (+ 5 y) (* (* (- 1) 7) u)) 0))
+             (<= (+ 100 (* (- 1) z)) 0)
+             (= (+ 2 y (* (- 3) x)) 0)
+             (= (+ 5 y (* (- 7) u)) 0))
+  Alphabet with extra char: #
+  
   Something ready to substitute
-        y -> (+ (- 5) (* 7 u));
+        y -> (+ (- 2) (* 3 x));
   
   iter(2)= (and
-             (= (+ y (* (- 3) x)) (- 2))
-             (<= 100 z))
+             (= (+ 2 (* (- 3) x) y) 0)
+             (= (+ 5 (* (- 7) u) y) 0)
+             (<= (+ 100 (* (- 1) z)) 0))
   iter(3)= (and
-             (= (+ (* (- 3) x) (* 7 u)) 3)
-             (<= 100 z))
+             (= (+ 3 (* (- 7) u) (* 3 x)) 0)
+             (<= (+ 100 (* (- 1) z)) 0))
   fixed-point
   
   Bound for underapproximation: 6
@@ -34,14 +37,76 @@
   sat (under int)
   (
      (define-fun u () Int
-      3)
+      0)
      (define-fun x () Int
-      6)
+      -1)
      (define-fun y () Int
-      16)
+      -5)
      (define-fun z () Int
       100)
   )
+  Checking model correctness;
+    ast=(and
+                                      (= (+ (- 100) z) 0)
+                                      (= (+ 5 y) 0)
+                                      (= (+ 1 x) 0)
+                                      (= u 0)
+                                      (<= (+ 100 (* (- 1) z)) 0)
+                                      (= (+ 2 y (* (- 3) x)) 0)
+                                      (= (+ 5 y (* (- 7) u)) 0))
+  
+  Basic simplifications:
+  
+  iter(1)= (and
+             (= (+ (- 100) z) 0)
+             (= (+ 5 y) 0)
+             (= (+ 1 x) 0)
+             (= u 0)
+             (<= (+ 100 (* (- 1) z)) 0)
+             (= (+ 2 y (* (- 3) x)) 0)
+             (= (+ 5 y (* (- 7) u)) 0))
+  Alphabet with extra char: #
+  
+  Something ready to substitute
+        u -> 0;
+  
+  iter(2)= (and
+             (= u 0)
+             (= (+ (- 100) z) 0)
+             (= (+ 1 x) 0)
+             (= (+ 2 (* (- 3) x) y) 0)
+             (= (+ 5 y) 0)
+             (= (+ 5 (* (- 7) u) y) 0)
+             (<= (+ 100 (* (- 1) z)) 0))
+  Something ready to substitute
+        u -> 0;
+        z -> 100;
+  
+  iter(3)= (and
+             (= (+ (- 100) z) 0)
+             (= (+ 1 x) 0)
+             (= (+ 2 (* (- 3) x) y) 0)
+             (= (+ 5 y) 0)
+             (<= (+ 100 (* (- 1) z)) 0))
+  Something ready to substitute
+        u -> 0;
+        x -> (- 1);
+        z -> 100;
+  
+  iter(4)= (and
+             (= (+ 1 x) 0)
+             (= (+ 2 (* (- 3) x) y) 0)
+             (= (+ 5 y) 0))
+  Something ready to substitute
+        u -> 0;
+        x -> (- 1);
+        y -> (- 5);
+        z -> 100;
+  
+  iter(5)= (= (+ 5 y) 0)
+  iter(6)= True
+  fixed-point
+  
 
 TODO: fix this later
   $ cat > 2.smt2 <<-EOF

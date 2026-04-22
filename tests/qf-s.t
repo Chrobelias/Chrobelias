@@ -18,7 +18,7 @@ Basic QF_S tests
   sat (presimpl str)
   unsat (presimpl str)
   unsat (presimpl str)
-  sat (under int)
+  sat (presimpl str)
   sat (presimpl str)
   sat (presimpl str)
   unsat (presimpl str)
@@ -85,7 +85,7 @@ Basic QF_S tests
      (define-fun x () Int
       0)
   )
-  sat (under int)
+  sat (presimpl int)
 
 +  1 sat
 +  2 sat

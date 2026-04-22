@@ -437,101 +437,18 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
         let model = Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model in
         let skeletoned_candidate = skeletoned_ast_of_bool_model model in
         let candidate = ast_of_bool_model model in
-        let unsupp_afs = ref [] in
-        let candidate =
-          Ast.map
-            (function
-              | Eia eia ->
-                let is_eia_unsupp =
-                  Lib.Ast.Eia.fold2
-                    (fun acc _ -> acc)
-                    (fun acc -> function
-                       | Concat xs ->
-                         List.exists
-                           (function
-                             | Ast.Eia.Str_const s ->
-                               if String.exists (Fun.negate Base.Char.is_digit) s
-                               then begin
-                                 log "dpll: filtered %a\n%!" Ast.Eia.pp eia;
-                                 unsupp_afs
-                                 := (Map.find_exn !th_map eia |> fst) :: !unsupp_afs;
-                                 true
-                               end
-                               else acc
-                             | _ -> acc)
-                           xs
-                       | _ -> acc)
-                    false
-                    eia
-                in
-                if is_eia_unsupp then Ast.true_ else Eia eia
-              | Lnot (Eia eia) ->
-                let is_eia_unsupp =
-                  Lib.Ast.Eia.fold2
-                    (fun acc _ -> acc)
-                    (fun acc -> function
-                       | Concat xs ->
-                         List.exists
-                           (function
-                             | Ast.Eia.Str_const s ->
-                               if String.exists (Fun.negate Base.Char.is_digit) s
-                               then begin
-                                 Format.printf "dpll: filtered %a\n%!" Ast.Eia.pp eia;
-                                 unsupp_afs
-                                 := Ast.lnot (Map.find_exn !th_map eia |> fst)
-                                    :: !unsupp_afs;
-                                 true
-                               end
-                               else acc
-                             | _ -> acc)
-                           xs
-                       | _ -> acc)
-                    false
-                    eia
-                in
-                if is_eia_unsupp then Ast.true_ else Lnot (Eia eia)
-              | ast -> ast)
-            candidate
-        in
         match check_sat candidate with
         | Sat (s, _) as result ->
-          let is_true_sat =
-            let skeletoned_candidate =
-              List.filter (fun k -> List.mem k !unsupp_afs |> not) skeletoned_candidate
-            in
-            let substituted_ast =
-              assumptions
-              |> Ast.map (fun ast ->
-                if List.mem ast skeletoned_candidate then Ast.true_ else ast)
-            in
-            substituted_ast = Lib.Ast.true_
-          in
-          if is_true_sat
-          then begin
-            report_result ~verbose (`Sat s);
-            result
-          end
-          else begin
-            can_be_unk := true;
-            (*let not_candidate = Ast.lnot candidate in
-            let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in*)
-            let unsat_core_contra_sat_ast = Ast.lnot (Ast.land_ skeletoned_candidate) in
-            if light
-            then unknown Ast.true_ Lib.Env.empty
-            else dpll unsat_core_contra_sat_ast solver
-          end
+          report_result ~verbose (`Sat s);
+          result
         | Unsat (s, _) ->
           unsat_reason := reason s !unsat_reason;
-          (*let not_candidate = Ast.lnot candidate in
-          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in*)
           let unsat_core_contra_sat_ast = Ast.lnot (Ast.land_ skeletoned_candidate) in
           if light
           then unknown Ast.true_ Lib.Env.empty
           else dpll unsat_core_contra_sat_ast solver
         | Unknown _ ->
           can_be_unk := true;
-          (*let not_candidate = Ast.lnot candidate in
-          let unsat_core_contra_sat_ast = not_candidate |> to_bool_skeleton in*)
           let unsat_core_contra_sat_ast = Ast.lnot (Ast.land_ skeletoned_candidate) in
           if light
           then unknown Ast.true_ Lib.Env.empty
@@ -744,6 +661,14 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
       |> List.filter (fun v -> in_stoi v ast)
       |> List.map (fun var -> lor_ [ non_num var; lnot (non_num var) ])
     in
+    let ast, unsupported_atomic_formulas =
+      Lib.SimplII.extract_and_filter_unsupported_atomic_formulas ast
+    in
+    log "Filtered unknown: %a\n%!" Lib.Ast.pp_smtlib2 ast;
+    log
+      "These atomic formulas are unsupported: %a\n%!"
+      (Format.pp_print_list Lib.Ast.pp_smtlib2)
+      unsupported_atomic_formulas;
     let ast = land_ (Lib.SimplII.split_concats ast :: split_vars) in
     log "After string approximations: %a\n%!" pp_smtlib2 ast;
     if config.stop_after == `Pre_dpll
@@ -785,7 +710,18 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
            end
            | other -> other)
       in
-      dpll (arithmetize_and_check ~light env) ~verbose ~light ast)
+      match dpll (arithmetize_and_check ~light env) ~verbose:false ~light ast with
+      | Sat _ as rez -> rez
+      | Unknown _ as rez -> rez
+      | Unsat _ as rez when unsupported_atomic_formulas |> List.is_empty -> rez
+      | Unsat (_reason, ast) ->
+        report_result
+          (`Unknown
+              (Format.asprintf
+                 "has partially supported operations: %a"
+                 (Format.pp_print_list Lib.Ast.pp_smtlib2)
+                 unsupported_atomic_formulas));
+        unknown ast Lib.Env.empty)
   in
   let handle =
     fun result f ->
@@ -793,7 +729,9 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
     | Sat (s, _) as rez ->
       report_result2 (`Sat s);
       rez
-    | Unsat (_, _) as rez -> rez
+    | Unsat (s, _) as rez ->
+      report_result2 (`Unsat s);
+      rez
     | Unknown _ -> f ()
   in
   try
@@ -897,11 +835,16 @@ let check_model
       model
   in
   log "Checking model correctness;\n  ast=%a\n%!" Lib.Ast.pp_smtlib2 ast;
-  match check_sat ~light:true tys ast with
-  | Sat _ -> ()
-  | Unsat _ ->
-    Printf.eprintf "(error: model check has failed; the model might be wrong)\n%!"
-  | Unknown _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
+  try
+    begin match check_sat ~light:true tys ast with
+    | Sat _ -> ()
+    | Unsat _ ->
+      Printf.eprintf "(error: model check has failed; the model might be wrong)\n%!"
+    | Unknown _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
+    end
+  with
+  | ex ->
+    Printf.printf "(info: unable to check the model: %s)\n%!" (Printexc.to_string ex)
 ;;
 
 type state =

@@ -2,22 +2,15 @@
   Basic simplifications:
   
   iter(1)= (and
-             (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
-             (= (+ z y) 52)
-             (<= (* x (+ 0 (* (- 1) 5))) 13))
-  Something ready to substitute
-        z -> (+ 52 (- y));
+             (<= (+ 14 (* (- 5) x) (* (- 8) (exp 2 y)) (* (- 7) z)) 0)
+             (= (+ (- 52) z y) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0))
+  Alphabet with extra char: #
   
   iter(2)= (and
-             (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 14))
-             (<= (* (- 5) x) 13))
-  iter(3)= (and
-             (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 52 (- 7))
-                 (* (* (- 1) y) (- 7))) (- 14))
-             (<= (* (- 5) x) 13))
-  iter(4)= (and
-             (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
-             (<= (* (- 5) x) 13))
+             (= (+ (- 52) y z) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 7) z) (* (- 8) (exp 2 y))) 0))
   fixed-point
   
 
@@ -35,22 +28,15 @@
   Basic simplifications:
   
   iter(1)= (and
-             (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
-             (= (+ z y) 52)
-             (<= (* x (+ 0 (* (- 1) 5))) 13))
-  Something ready to substitute
-        z -> (+ 52 (- y));
+             (<= (+ 14 (* (- 5) x) (* (- 8) (exp 2 y)) (* (- 7) z)) 0)
+             (= (+ (- 52) z y) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0))
+  Alphabet with extra char: #
   
   iter(2)= (and
-             (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 14))
-             (<= (* (- 5) x) 13))
-  iter(3)= (and
-             (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 52 (- 7))
-                 (* (* (- 1) y) (- 7))) (- 14))
-             (<= (* (- 5) x) 13))
-  iter(4)= (and
-             (<= (+ (* (- 8) (exp 2 y)) (* (- 5) x) (* 7 y)) 350)
-             (<= (* (- 5) x) 13))
+             (= (+ (- 52) y z) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 7) z) (* (- 8) (exp 2 y))) 0))
   fixed-point
   
   $ cat > sum_join1.smt2 <<-EOF
@@ -65,7 +51,9 @@
   $ CHRO_DEBUG=1 Chro -no-over -bound 0  --dsimpl --stop-after pre-simpl sum_join1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
-  iter(1)= (= (+ (* n (exp 2 n)) (* (* (- 1) 1) n (exp 2 n))) 0)
+  iter(1)= (= (+ (* n (exp 2 n)) (* (- 1) (exp 2 n) n)) 0)
+  Alphabet with extra char: #
+  
   iter(2)= True
   fixed-point
   
@@ -79,7 +67,9 @@
   $ CHRO_DEBUG=1 Chro -no-over -bound 0  --dsimpl --stop-after pre-simpl sum_join2.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
-  iter(1)= (not (= (+ (* (* (- 1) 1) (exp 2 n)) (exp 2 n)) 0))
+  iter(1)= (distinct (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)
+  Alphabet with extra char: #
+  
   iter(2)= (not True)
   fixed-point
   

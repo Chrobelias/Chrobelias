@@ -38,7 +38,9 @@ $ export CHRO_DEBUG=1
   $ CHRO_DEBUG=1 $RUN --stop-after presimpl
   Basic simplifications:
   
-  iter(1)= (= (* x (exp 2 z)) 3076)
+  iter(1)= (= (+ (- 3076) (* x (exp 2 z))) 0)
+  Alphabet with extra char: #
+  
   fixed-point
   
 The test below should be SAT but there is an issue #143
@@ -47,7 +49,8 @@ which is needed to be fixed first
   sat (nia)
   (
      (define-fun x () Int
-      3076)   (define-fun z () Int
+      3076)
+     (define-fun z () Int
       0)
   )
 
@@ -67,7 +70,8 @@ which is needed to be fixed first
   sat (nia)
   (
      (define-fun x () Int
-      3073)   (define-fun z () Int
+      3073)
+     (define-fun z () Int
       0)
   )
 
@@ -86,13 +90,16 @@ which is needed to be fixed first
   $ CHRO_DEBUG=1 $RUN --stop-after presimpl
   Basic simplifications:
   
-  iter(1)= (= (* x (exp 2 z)) 8096)
+  iter(1)= (= (+ (- 8096) (* x (exp 2 z))) 0)
+  Alphabet with extra char: #
+  
   fixed-point
   
   $ timeout 2 $RUN | grep -v assert | sed -r '/^\s*$/d'
   sat (nia)
   (
      (define-fun x () Int
-      8096)   (define-fun z () Int
+      8096)
+     (define-fun z () Int
       0)
   )

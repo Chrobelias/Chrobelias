@@ -3,22 +3,23 @@
   Basic simplifications:
   
   iter(1)= (and
-             (not (= (* (+ x n) (exp 2 n)) (+ (* 2
-                                              (* (+ x (+ n (* (- 1) 1)))
-                                              (exp 2 (+ n (* (- 1) 1)))))
-                                           (exp 2 n))))
-             (<= (+ 0 1) n))
+             (distinct (+ (* (+ x n) (exp 2 n))
+                       (* (- 2) (+ (- 1) x n) (exp 2 (+ (- 1) n)))
+                       (* (- 1) (exp 2 n))) 0)
+             (<= (+ 1 (* (- 1) n)) 0))
+  Alphabet with extra char: #
+  
   iter(2)= (and
-             (distinct (+ (* (- 2) (* (- 1) (exp 2 (+ (- 1) n))))
-                       (* (- 2) (* n (exp 2 (+ (- 1) n))))
-                       (* (- 2) (* x (exp 2 (+ (- 1) n)))) (* (- 1) (exp 2 n))
-                       (* n (exp 2 n)) (* x (exp 2 n))) 0)
-             (<= 1 n))
+             (distinct (+ (* n (exp 2 n)) (* x (exp 2 n))
+                       (* (* (- 1) (exp 2 (+ (- 1) n))) (- 2))
+                       (* (* n (exp 2 (+ (- 1) n))) (- 2))
+                       (* (* x (exp 2 (+ (- 1) n))) (- 2)) (* (- 1) (exp 2 n))) 0)
+             (<= (+ 1 (* (- 1) n)) 0))
   iter(3)= (and
-             (distinct (+ (* (- 1) n (exp 2 (+ n))) (* (- 1) x (exp 2 (+ n)))
-                       (* (- 1) (exp 2 n)) (* n (exp 2 n)) (* x (exp 2 n))
-                       (exp 2 (+ n))) 0)
-             (<= 1 n))
+             (distinct (+ (* (- 2) n (exp 2 (+ (- 1) n)))
+                       (* (- 2) x (exp 2 (+ (- 1) n))) (* n (exp 2 n))
+                       (* x (exp 2 n))) 0)
+             (<= (+ 1 (* (- 1) n)) 0))
   iter(4)= (not True)
   fixed-point
   

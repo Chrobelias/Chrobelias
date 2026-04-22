@@ -22,6 +22,7 @@ val simpl
      ]
 
 val split_concats : Ast.t -> Ast.t
+val extract_and_filter_unsupported_atomic_formulas : Ast.t -> Ast.t * Ast.t list
 
 val arithmetize
   :  Ast.t

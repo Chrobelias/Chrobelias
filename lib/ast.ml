@@ -656,10 +656,6 @@ let rec lnot = function
   | ast -> Lnot ast
 ;;
 
-let lxor_ xs =
-  lor_ (List.map (fun x -> land_ (List.map (fun y -> if x = y then x else lnot y) xs)) xs)
-;;
-
 let pred s = Pred s
 
 let rec exists = function
@@ -946,6 +942,20 @@ let rec in_strlen v ast =
   | Unsupp _ -> false
 ;;
 
+let rec in_chrob_len v ast =
+  match ast with
+  | True | Pred _ -> false
+  | Eia eia -> begin
+    match eia with
+    | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
+    | _ -> false
+  end
+  | Lnot ast' | Exists (_, ast') -> in_chrob_len v ast'
+  | Land asts | Lor asts ->
+    List.fold_left (fun acc ast -> acc || in_chrob_len v ast) false asts
+  | Unsupp _ -> false
+;;
+
 let collect_lin_exp ast =
   let module Set = Base.Set.Poly in
   fold
@@ -1120,6 +1130,13 @@ let rec equal ast ast' =
   | Unsupp _, Unsupp _ -> true
   | Eia eia, Eia eia' -> safe_eq_eia (Eia eia) (Eia eia')
   | _, _ -> false
+;;
+
+let lxor_ xs =
+  lor_
+    (List.map
+       (fun x -> land_ (List.map (fun y -> if equal x y then x else lnot y) xs))
+       xs)
 ;;
 
 let to_nat ast =

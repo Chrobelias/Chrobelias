@@ -2,6 +2,7 @@
 (* Copyright 2024-2025, Chrobelias. *)
 
 val flag : unit -> bool
+val enforce_debug : bool ref
 val printf : ('a, Format.formatter, unit) format -> 'a
 val printfln : ('a, Format.formatter, unit) format -> 'a
 val printflics : ('a, Format.formatter, unit) format -> 'a
