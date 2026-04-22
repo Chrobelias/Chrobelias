@@ -8,13 +8,13 @@
   $ CHRO_DEBUG=1 Chro --dpresimpl ./1.smt2
   Basic simplifications:
   
-  iter(1)= (and
-             (= x 12345)
-             (= 5 (+ 0 5)))
+  iter(1)= (= (+ (- 12345) x) 0)
+  Alphabet with extra char: #
+  
   Something ready to substitute
         x -> 12345;
         
-  iter(2)= True
+  iter(3)= True
   fixed-point
   
   sat (presimpl int)
@@ -27,4 +27,4 @@
   > EOF
 
   $ OCAMLRUNPARAM='b=0' Chro --dpresimpl ./2.smt2
-  sat (presimpl str)
+  sat (presimpl int)

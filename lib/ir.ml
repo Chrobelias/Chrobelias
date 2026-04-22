@@ -322,7 +322,7 @@ type model = (atom, [ `Int of Z.t | `Str of string ]) Map.t
 
 let pp_model_smtlib2 ppf m =
   let open Format in
-  fprintf ppf "@[<hv 1>@[(@]\n ";
+  fprintf ppf "@[<v 1>@[(@]\n ";
   let i = ref 0 in
   (* Mutability only for pretty-printing *)
   Map.iteri m ~f:(fun ~key ~data ->

@@ -6,26 +6,21 @@
   (check-sat)
   (get-model)
 
+
   $ Chro strings3.smt2 --dpresimpl | sed 's/[[:space:]]*$//'
-  Light run:
-  (and
-               (= strlenx (+ 1 %re_len9))
-               (= (+ (* (- 1) y (exp 10 strlenx)) (* 999 (exp 10 strlenx))) 0)
-               (<= 0 %re_len9)
-               (<= 0 strlenx)
-               (<= 0 x)
-               (<= 0 y))
-  sat (under int)
+  sat (presimpl str)
   (
      (define-fun x () String
-      "0")   (define-fun y () String
+      "")
+     (define-fun y () String
       "999")
   )
   $ unset CHRO_DEBUG
   $ timeout 8 Chro --dsimpl strings3.smt2
-  sat (under int)
+  sat (presimpl str)
   (
      (define-fun x () String
-      "0")   (define-fun y () String
+      "")
+     (define-fun y () String
       "999")
   )

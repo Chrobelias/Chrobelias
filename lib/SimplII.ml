@@ -523,17 +523,6 @@ let apply_symantics_unsugared (type a) (module S : SYM with type ph = a) =
 let make_main_symantics ?alpha ?agressive env =
   let _ : Env.t = env in
   let module Set = Base.Set.Poly in
-  let alpha_with_extra_char =
-    match alpha with
-    | Some alpha ->
-      let alpha = Utils.with_extra_char alpha in
-      Debug.printf
-        "Alphapbet with extra char: %a\n%!"
-        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
-        alpha;
-      Option.some alpha
-    | None -> Option.none
-  in
   let module Main_symantics_ = struct
     open Ast
     include Id_symantics
@@ -737,6 +726,12 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
+    let mod_ lhs rhs =
+      match lhs, rhs with
+      | Ast.Eia.Const lhs, rhs -> Id_symantics.constz (Z.( mod ) lhs rhs)
+      | lhs, rhs -> Id_symantics.mod_ lhs rhs
+    ;;
+
     let add xs =
       let collect_inside_add xs =
         let extend h tl =
@@ -819,17 +814,13 @@ let make_main_symantics ?alpha ?agressive env =
     let rec not = function
       | Ast.Eia (Ast.Eia.Leq (lhs, rhs)) -> Ast.eia (Ast.Eia.gt lhs rhs)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-      | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) when Option.is_some alpha_with_extra_char ->
-        Id_symantics.in_re_raw v (re |> NfaS.invert ?alpha:alpha_with_extra_char)
-      | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) when Option.is_some alpha_with_extra_char ->
-        Id_symantics.in_re_rawi v (re |> NfaS.invert ?alpha:alpha_with_extra_char)
+      | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) when Option.is_some alpha ->
+        Id_symantics.in_re_raw v (re |> NfaS.invert ?alpha)
+      | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) when Option.is_some alpha ->
+        Id_symantics.in_re_rawi v (re |> NfaS.invert ?alpha)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-      | Ast.Eia (Ast.Eia.InRe (v, kind, re)) when Option.is_some alpha_with_extra_char ->
-        Ast.eia
-          (Ast.Eia.inreraw
-             v
-             kind
-             (NfaS.invert ?alpha:alpha_with_extra_char (NfaS.of_regex re)))
+      | Ast.Eia (Ast.Eia.InRe (v, kind, re)) when Option.is_some alpha ->
+        Ast.eia (Ast.Eia.inreraw v kind (NfaS.invert ?alpha (NfaS.of_regex re)))
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, I)) -> Id_symantics.neqz lhs rhs
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, S)) -> Id_symantics.neq_str lhs rhs
       | Ast.Lnot x -> x
@@ -971,52 +962,48 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let check_card lhs rhs =
-      let open Ast.Eia in
-      let alpha =
-        if Option.is_some alpha_with_extra_char
-        then Option.get alpha_with_extra_char
-        else []
-      in
-      let count a xs =
-        List.fold_left
-          (fun (c, terms) x ->
-             match x with
-             | Atom (Var (name, S)) -> c, name :: terms
-             | Str_const s -> c + Base.String.count ~f:(fun x -> x = a) s, terms
-             | term ->
-               failwith
-                 (Format.asprintf
-                    "Unexpected term %a in word equation"
-                    Ast.pp_term_smtlib2
-                    term))
-          (0, [])
-          xs
-      in
-      let contains lhs rhs =
-        let sort = List.sort String.compare in
-        let rec helper lhs rhs =
-          match lhs, rhs with
-          | [], _ -> true
-          | _, [] -> false
-          | x :: xs, y :: ys when x = y -> helper xs ys
-          | x :: xs, y :: ys when x > y -> helper (x :: xs) ys
-          | _ -> false
+      let exception Unrewritten_term_in_equation in
+      try
+        let open Ast.Eia in
+        let alpha = if Option.is_some alpha then Option.get alpha else [] in
+        let count a xs =
+          List.fold_left
+            (fun (c, terms) x ->
+               match x with
+               | Atom (Var (name, S)) -> c, name :: terms
+               | Str_const s -> c + Base.String.count ~f:(fun x -> x = a) s, terms
+               | term -> raise_notrace Unrewritten_term_in_equation)
+            (0, [])
+            xs
         in
-        helper (sort lhs) (sort rhs)
-      in
-      List.exists
-        (fun a ->
-           let (c1, l), (c2, r) = count a lhs, count a rhs in
-           (c1 < c2 && contains l r) || (c1 > c2 && contains r l))
-        alpha
+        let contains lhs rhs =
+          let sort = List.sort String.compare in
+          let rec helper lhs rhs =
+            match lhs, rhs with
+            | [], _ -> true
+            | _, [] -> false
+            | x :: xs, y :: ys when x = y -> helper xs ys
+            | x :: xs, y :: ys when x > y -> helper (x :: xs) ys
+            | _ -> false
+          in
+          helper (sort lhs) (sort rhs)
+        in
+        List.exists
+          (fun a ->
+             let (c1, l), (c2, r) = count a lhs, count a rhs in
+             (c1 < c2 && contains l r) || (c1 > c2 && contains r l))
+          alpha
+      with
+      | Unrewritten_term_in_equation -> false
     ;;
 
     let eq_str lhs rhs =
       let open Ast.Eia in
-      let as_list = function
+      let as_list : string Ast.Eia.term -> string Ast.Eia.term list = function
         | Str_const _ as c -> [ c ]
         | Atom (Var _) as v -> [ v ]
         | Concat list -> list
+        | (Substr _ | At _) as v -> [ v ]
         | _ -> []
       in
       let nielsen lhs rhs =
@@ -1081,7 +1068,7 @@ let make_main_symantics ?alpha ?agressive env =
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
       (* | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v)
-        when Option.is_some alpha_with_extra_char ->
+        when Option.is_some alpha ->
         Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex) *)
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
       | lhs, rhs when check_card (as_list lhs) (as_list rhs) -> Ast.false_
@@ -1114,11 +1101,8 @@ let make_main_symantics ?alpha ?agressive env =
       match l, r with
       | Ast.Eia.Str_const l, Ast.Eia.Str_const r ->
         if l <> r then Ast.true_ else Ast.false_
-      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v)
-        when Option.is_some alpha_with_extra_char ->
-        Id_symantics.in_re_raw
-          v
-          (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha:alpha_with_extra_char)
+      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
+        Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha)
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
@@ -1350,7 +1334,7 @@ let%test_module _ =
       [%expect
         {|
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ (- 52) (exp 2 x) (exp 2 y)) 0)
           (<= (+ x (* (- 3) y)) 0))
 
         Exp: x y
@@ -1374,9 +1358,9 @@ let%test_module _ =
       [%expect
         {|
         (and
-          (<= x 2)
-          (<= (+ x z) 52)
-          (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 13)))
+          (<= (+ (- 2) x) 0)
+          (<= (+ (- 52) x z) 0)
+          (<= (+ 13 (* (- 5) x) (* (- 7) z) (* (- 8) (exp 2 y))) 0))
 
         Exp: y
         Str:
@@ -1597,12 +1581,12 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= x 3))
+          (<= (+ (- 52) (exp 2 x) (exp 2 y)) 0)
+          (<= (+ (- 3) x) 0))
 
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= (exp 2 x) (exp 2 3)))
+          (<= (+ (- 52) (exp 2 x) (exp 2 y)) 0)
+          (<= (+ (- 3) x) 0))
         |}]
     ;;
 
@@ -1618,14 +1602,14 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
+          (<= (+ (- 5000) (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 0)
           (<= (+ x (* (- 1) y)) 0)
-          (<= (+ v (* (- 1) u)) 0))
+          (<= (+ (* (- 1) u) v) 0))
 
         (and
-          (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
+          (<= (+ (- 5000) (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 0)
           (<= (+ x (* (- 1) y)) 0)
-          (<= (+ v (* (- 1) u)) 0))
+          (<= (+ (* (- 1) u) v) 0))
         |}]
     ;;
 
@@ -1638,11 +1622,11 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ (- 52) (exp 2 x) (exp 2 y)) 0)
           (<= (+ x (* (- 3) y)) 0))
 
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ (- 52) (exp 2 x) (exp 2 y)) 0)
           (<= (+ x (* (- 3) y)) 0))
         |}]
     ;;
@@ -1824,6 +1808,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       && Option.value
            ~default:true
            (Option.map (fun rhs -> Env.occurs_var env v rhs |> not) rhs)
+      && not (Ast.in_strlen v ast)
       (*&& not
            (Ast.forsome
                  (function
@@ -1949,7 +1934,10 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
         in
         let vn = Option.get !vn in
         let rhs = Ast.Eia.mul [ Ast.Eia.const Z.minus_one; Ast.Eia.add xs ] in
-        if Ast.get_vars (Ast.Eia.eq rhs (Ast.Eia.Const Z.zero) Ast.I) |> List.mem vn
+        if
+          Ast.get_vars (Ast.Eia.eq rhs (Ast.Eia.Const Z.zero) Ast.I) |> List.mem vn
+          || Ast.in_chrob_len vn orig_ast
+          || List.mem vn (Ast.get_exp_vars orig_ast)
         then noprop
         else returni vn rhs
       | Add xs, Const z
@@ -1975,7 +1963,10 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
         in
         let vn = Option.get !vn in
         let rhs = Ast.Eia.add xs in
-        if Ast.get_vars (Ast.Eia.eq rhs (Ast.Eia.Const Z.zero) Ast.I) |> List.mem vn
+        if
+          Ast.get_vars (Ast.Eia.eq rhs (Ast.Eia.Const Z.zero) Ast.I) |> List.mem vn
+          || Ast.in_chrob_len vn orig_ast
+          || List.mem vn (Ast.get_exp_vars orig_ast)
         then noprop
         else returni vn rhs
       | _ -> noprop
@@ -2175,11 +2166,11 @@ let%expect_test _ =
     Format.printf "@[%a@]\n%!" (Env.pp ~title:"") env2
   in
   test TS.(add [ mul [ const 1; var "x" ]; mul [ const 2; var "y" ] ] = var "z");
-  [%expect "x -> (+ z (* (- 2) y));"];
+  [%expect "x -> (+ (* (- 2) y) z);"];
   test TS.(add [ var "x"; mul [ const 2; var "y" ] ] = mul [ var "z"; var "z" ]);
   [%expect "x -> (+ (* (- 2) y) (* z z));"];
   test ~exp:[ "x" ] TS.(add [ var "x"; var "y" ] = mul [ var "z"; var "z" ]);
-  [%expect "y -> (+ (- x) (* z z));"];
+  [%expect "x -> (+ (- y) (* z z));"];
   ()
 ;;
 
@@ -2322,13 +2313,18 @@ struct
 end
 
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
+let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
 
 let basic_simplify step ?multiple (env : Env.t) ast =
   let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
   in
   log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
-  let alpha = collect_alpha ast in
+  let alpha = alpha_with_extra_char ast in
+  log
+    "Alphabet with extra char: %a\n%!"
+    Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
+    alpha;
   let rec loop step (env : Env.t) ast =
     let (module Symantics) = make_main_symantics ~alpha env in
     let rez = apply_symantics (module Symantics) ast in
@@ -2894,7 +2890,7 @@ let split_concats ast =
         | _ -> raise Exit
       in
       let nfas = List.map (fun conj -> Ast.land_ conj) (helper xs nfa) in
-      Ast.lor_ nfas
+      Ast.lxor_ nfas
     ;;
 
     (* (List.map
@@ -2921,6 +2917,52 @@ let split_concats ast =
   end
   in
   apply_symantics_unsugared (module Pre) ast
+;;
+
+let extract_and_filter_unsupported_atomic_formulas ast =
+  let string_contains_non_digit = String.exists (Fun.negate Base.Char.is_digit) in
+  let is_unsupported_concat = function
+    | Ast.Eia.Concat xs ->
+      List.exists
+        (function
+          | Ast.Eia.Str_const s when string_contains_non_digit s -> true
+          | _ -> false)
+        xs
+    | _ -> false
+  in
+  let is_unsupported_string_equalitiy = function
+    | Ast.Eia.Eq (_, _, S) as eia ->
+      Ast.Eia.fold2
+        (fun acc _ -> acc)
+        (fun acc term -> if is_unsupported_concat term then true else acc)
+        false
+        eia
+    | _ -> false
+  in
+  let is_eia_unsupported = function
+    | eia when is_unsupported_string_equalitiy eia -> true
+    | _ -> false
+  in
+  let unsupported_atomic_formulas = ref [] in
+  let rec aux =
+    let open Ast in
+    function
+    | Eia eia as ast when is_eia_unsupported eia -> begin
+      unsupported_atomic_formulas := ast :: !unsupported_atomic_formulas;
+      false_
+    end
+    | Lnot (Eia eia) as ast when is_eia_unsupported eia -> begin
+      unsupported_atomic_formulas := ast :: !unsupported_atomic_formulas;
+      false_
+    end
+    | Lnot ast -> lnot (aux ast)
+    | (True | Eia _ | Pred _ | Unsupp _) as ast -> ast
+    | Land xs -> land_ (List.map aux xs)
+    | Lor xs -> lor_ (List.map aux xs)
+    | Exists (x, v) -> exists x (aux v)
+  in
+  let ast = aux ast in
+  ast, !unsupported_atomic_formulas
 ;;
 
 let run_string_simplify ast =
@@ -3549,7 +3591,7 @@ let arithmetize ast env =
     ast, !posts'
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
-  let alpha = collect_alpha ast in
+  let alpha = alpha_with_extra_char ast in
   let (module Symantics) = make_main_symantics ~alpha env in
   let asts_n_regexes =
     ast
@@ -3620,19 +3662,19 @@ let leq_simpl l r =
 let%expect_test " -2x <= -7" =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-7));
-  [%expect "(<= (* (- 1) x) (- 4))"]
+  [%expect "(<= (+ 4 (* (- 1) x)) 0)"]
 ;;
 
 let%expect_test " -2x <= -8" =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-8));
-  [%expect "(<= (* (- 1) x) (- 4))"]
+  [%expect "(<= (+ 4 (* (- 1) x)) 0)"]
 ;;
 
 let%expect_test " -2x <= -1" =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-1));
-  [%expect "(<= (* (- 1) x) (- 1))"]
+  [%expect "(<= (+ 1 (* (- 1) x)) 0)"]
 ;;
 
 (* let tracing_on =

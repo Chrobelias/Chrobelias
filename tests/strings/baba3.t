@@ -4,20 +4,20 @@ $ cat baba3.smt2
   sat (under int)
   (
      (define-fun a () String
-      "BabBabBabBabBabBabBabBab")
+      "BabBabBabBabBabLyubaLyuba")
      (define-fun b () String
-      "2")
+      "22")
      (define-fun q () Int
-      24)
+      25)
   )
   $ Chro ./baba3.smt2
   sat (under int)
   (
      (define-fun a () String
-      "BabBabBabBabBabBabBabBab")
+      "BabBabBabBabBabLyubaLyuba")
      (define-fun b () String
-      "2")
+      "22")
      (define-fun q () Int
-      24)
+      25)
   )
 

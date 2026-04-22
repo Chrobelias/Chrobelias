@@ -4,7 +4,8 @@ $ cat baba4.smt2
   sat (presimpl str)
   (
      (define-fun a () String
-      "Ba")   (define-fun b () String
+      "Ba")
+     (define-fun b () String
       "20")
   )
 $ export CHRO_DEBUG=1
@@ -12,6 +13,7 @@ $ export CHRO_DEBUG=1
   sat (presimpl str)
   (
      (define-fun a () String
-      "Ba")   (define-fun b () String
+      "Ba")
+     (define-fun b () String
       "20")
   )

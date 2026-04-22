@@ -9,6 +9,8 @@
   $ CHRO_DEBUG=1 Chro -bound 1 --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
-  iter(1)= (= (exp x 2) 32)
+  iter(1)= (= (+ (- 32) (exp x 2)) 0)
+  Alphabet with extra char: #
+  
   fixed-point
   

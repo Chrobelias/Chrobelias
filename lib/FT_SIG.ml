@@ -109,7 +109,21 @@ end = struct
 
   let constz z =
     match Z.to_int z with
-    | exception Z.Overflow -> failwith "What to do?"
+    | exception Z.Overflow ->
+      if Z.(z > zero)
+      then
+        Smtml.Expr.cvtop
+          Ty.Ty_str
+          Ty.Cvtop.String_to_int
+          (Expr.value (Value.Str (Z.to_string z)))
+      else
+        Smtml.Expr.unop
+          Ty.Ty_int
+          Ty.Unop.Neg
+          (Smtml.Expr.cvtop
+             Ty.Ty_str
+             Ty.Cvtop.String_to_int
+             (Expr.value (Value.Str (Z.to_string (Z.neg z)))))
     | n -> Expr.value (Value.Int n)
   [@@ocaml.warnerror "-32"]
   ;;

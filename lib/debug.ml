@@ -1,5 +1,6 @@
 let nfa_cnt = ref 0
-let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
+let enforce_debug = ref false
+let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some || !enforce_debug
 
 let printf ppf =
   if flag ()

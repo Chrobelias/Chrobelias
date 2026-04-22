@@ -2,21 +2,13 @@
 $ export CHRO_DEBUG=1
 
   $ Chro -huge-c 100 --dpresimpl --stop-after simpl ../examples/exp-test27.smt2
-  Light run:
   (and
-               (= x (+ (* 11 %q4) (* 29 %q2)))
-               (<= (exp 10 0) (exp 10 strlenx))
-               (<= %q4 2)
-               (<= (exp 10 strlenx) (exp 10 99))
-               (<= (* (- 1) %q4) 0)
-               (str.in_re.raw x)
-               (chrob.len x (exp 10 strlenx)))
-  (and
-    (= x (+ (* 11 %q8) (* 29 %q6)))
-    (<= (exp 10 0) (exp 10 strlenx))
-    (<= %q8 2)
-    (<= (exp 10 strlenx) (exp 10 99))
-    (<= (* (- 1) %q8) 0)
+    (= (+ (* (- 11) %q4) (* (- 29) %q2) x) 0)
+    (<= (+ (- 99) strlenx) 0)
+    (<= (+ (- 28) (* (- 29) %q2) x) 0)
+    (<= (+ (* 29 %q2) (* (- 1) x)) 0)
+    (<= (* (- 1) strlenx) 0)
+    (<= (* (- 1) x) 0)
     (str.in_re.raw x)
     (chrob.len x (exp 10 strlenx)))
 
@@ -25,5 +17,5 @@ $ export CHRO_DEBUG=1
   sat (nfa)
   (
      (define-fun x () String
-      "12345828226262626262626")
+      "1234582828282828282828282828282828282828282828282828282828282828282262626262626")
   )

@@ -6,26 +6,21 @@ $ export CHRO_TRACE_OPT=1
   Basic simplifications:
   
   iter(1)= (and
-             (<= (+ (+ (exp 2 x1) (exp 2 x2)) (exp 2 x3)) (+ (+ (+ x1 x2) x3)
-                                                          10))
-             (<= (exp 2 x1) x2)
-             (<= 2 x2)
-             (<= 1 x2)
-             (<= 0 x1))
+             (<= (+ (- 10) (exp 2 x1) (exp 2 x2) (exp 2 x3) (* (- 1) x1)
+                 (* (- 1) x2) (* (- 1) x3)) 0)
+             (<= (+ (exp 2 x1) (* (- 1) x2)) 0)
+             (<= (+ 2 (* (- 1) x2)) 0)
+             (<= (+ 1 (* (- 1) x2)) 0)
+             (<= (* (- 1) x1) 0))
+  Alphabet with extra char: #
+  
   iter(2)= (and
-             (<= 0 x1)
-             (<= 1 x2)
-             (<= 2 x2)
              (<= (+ (- 10) (* (- 1) x1) (* (- 1) x2) (* (- 1) x3) (exp 2 x1)
                  (exp 2 x2) (exp 2 x3)) 0)
-             (<= (exp 2 x1) x2))
-  iter(3)= (and
-             (<= 0 x1)
-             (<= 1 x2)
-             (<= 2 x2)
-             (<= (+ (* (- 1) x1) (* (- 1) x2) (* (- 1) x3) (exp 2 x1)
-                 (exp 2 x2) (exp 2 x3)) 10)
-             (<= (exp 2 x1) x2))
+             (<= (+ 1 (* (- 1) x2)) 0)
+             (<= (+ 2 (* (- 1) x2)) 0)
+             (<= (+ (* (- 1) x2) (exp 2 x1)) 0)
+             (<= (* (- 1) x1) 0))
   fixed-point
   
   Bound for underapproximation: 4
