@@ -911,6 +911,11 @@ let make_main_symantics ?alpha ?agressive env =
         | Neq, true -> false_
         | Neq, false -> true_
       in
+      let ofop2 =
+        match op with
+        | Neq -> Ast.Eia.neq
+        | Eq -> Ast.Eia.eq
+      in
       let open Ast.Eia in
       let rec trim_left lhs rhs =
         match lhs, rhs with
@@ -943,10 +948,8 @@ let make_main_symantics ?alpha ?agressive env =
       let lhs, rhs = trim_left lhs rhs in
       match trim_right lhs rhs with
       | [], [] -> ofop true
-      | [], rhs ->
-        Ast.Eia.eq (Ast.Eia.concat rhs) (Id_symantics.str_const "") Ast.S |> Ast.eia
-      | lhs, [] ->
-        Ast.Eia.eq (Ast.Eia.concat lhs) (Id_symantics.str_const "") Ast.S |> Ast.eia
+      | [], rhs -> ofop2 (Ast.Eia.concat rhs) (Id_symantics.str_const "") Ast.S |> Ast.eia
+      | lhs, [] -> ofop2 (Ast.Eia.concat lhs) (Id_symantics.str_const "") Ast.S |> Ast.eia
       | Str_const a :: tl, Str_const b :: tl'
         when Stdlib.not (String.starts_with ~prefix:a b && String.starts_with ~prefix:b a)
         -> ofop false
@@ -3252,7 +3255,12 @@ let arithmetize ast env =
             | Len (Atom (Var (var, S))) ->
               let lenvar, phs = String.concat "" [ "strlen"; var ], [] in
               let v = atomi lenvar in
-              let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
+              let phs =
+                (match List.mem var str_vars with
+                 | true -> Ast.Eia.leq (Ast.Eia.const Z.zero) v
+                 | false -> Ast.Eia.leq (Ast.Eia.const Z.one) v)
+                :: phs
+              in
               let phs =
                 if List.mem var str_vars
                 then phs
