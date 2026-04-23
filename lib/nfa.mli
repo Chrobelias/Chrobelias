@@ -67,7 +67,7 @@ module Bv : sig
 end
 
 module Par : sig
-  include BasicL with type u = AstL.t and type t = AstL.t
+  include BasicL with type u = int and type t = AstL.t
 end
 
 module Str : sig

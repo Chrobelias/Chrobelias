@@ -620,3 +620,7 @@ let basic_simplify step ?multiple env ast =
   in
   loop step env ast, env
 ;;
+
+let simplify_lia ast =
+  ast |> basic_simplify [ 0 ] empty |> fun (ph, env) -> AstL.land_ (ph :: to_eqs env)
+;;

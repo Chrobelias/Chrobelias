@@ -704,24 +704,24 @@ module Str = struct
 end
 
 module Par = struct
-  type u = AstL.t
+  type u = int
   type t = AstL.t
 
   open AstL
 
-  (* let const c = Lia.Const c
-  let var s = Lia.Atom (Var s)
-  let eq lhs rhs = Lia (Eq (lhs, rhs)) *)
+  let const c = Lia.Const (Z.of_int c)
+  let eq lhs rhs = Lia (Eq (lhs, rhs))
   let equal = AstL.equal
   let is_zero = equal true_
-  let combine vec1 vec2 = land_ [ vec1; vec2 ]
-  let project proj vec = failwith "TODO"
-  let pp_u = AstL.pp
+  let combine vec1 vec2 = land_ [ vec1; vec2 ] |> SimplI.simplify_lia
+  let project = AstL.project
+  let pp_u = Format.pp_print_int
   let pp ppf (vec : t) = Format.fprintf ppf "(%a)" AstL.pp vec
-  let of_list l = failwith "TODO"
-  (* let vars, labels = Base.List.unzip l in
-    Array.init (List.length l) (fun i -> List.nth labels i)
-  ;; *)
+
+  let of_list l =
+    land_ (List.map (fun (i, value) -> eq (AstL.get i) (const value)) l)
+    |> SimplI.simplify_lia
+  ;;
 end
 
 module Graph (Label : BasicL) = struct
