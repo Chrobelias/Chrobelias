@@ -91,7 +91,7 @@ let with_extra_char alpha =
   let ascii = List.init (128 - 32) (fun i -> Char.chr (i + 32)) |> Set.of_list in
   let diff = Set.diff ascii alpha in
   let extra_char =
-    (if Set.mem diff '#' then Option.some '#' else Set.nth diff 0)
+    (if Set.mem diff '0' then Option.some '0' else Set.nth diff 0)
     |> Option.map Set.singleton
     |> Option.value ~default:Set.empty
   in
