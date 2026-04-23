@@ -263,11 +263,11 @@ module Eia = struct
   let compare_term (type a) : a term -> a term -> int = fun l r -> Stdlib.compare l r
 
   let rec of_lia_term : AstL.Lia.term -> 'a term = function
-    | Const c -> Const (Z.of_int c)
+    | Const c -> Const c
     | Atom (Var name) -> Atom (Var (name, I))
     | Add xs -> Add (List.map of_lia_term xs)
     | Mul xs -> Mul (List.map of_lia_term xs)
-    | Mod (xs, d) -> Mod (of_lia_term xs, Z.of_int d)
+    | Mod (xs, d) -> Mod (of_lia_term xs, d)
   ;;
 
   type t =

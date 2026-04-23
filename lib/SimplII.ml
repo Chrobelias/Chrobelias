@@ -515,10 +515,6 @@ let make_main_symantics ?alpha ?agressive env =
 
     let var s : term =
       match Env.lookup_int s env with
-      (*| Some (Eia.Iofs _)
-      | Some (Eia.Sofi _)
-      | Some (Eia.Len _)
-      | Some (Eia.Len2 _)*)
       | None -> begin
         match Env.lookup_string s env with
         | Some (Str_const c) -> begin

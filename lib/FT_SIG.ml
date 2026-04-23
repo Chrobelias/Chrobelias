@@ -16,25 +16,31 @@ module type str_term = sig
   val str_var : string -> str
 end
 
-module type z_term = sig
+module type z_lin_term = sig
   type term
 
   (** Arithmetic *)
 
   val mod_ : term -> Z.t -> term
-  val pow : term -> term -> term
   val mul : term list -> term
   val add : term list -> term
-  val bw : sup_binop -> term -> term -> term
-
-  (* val const : int -> term *)
   val constz : Z.t -> term
   val var : string -> term
 end
 
-module type s_ph = sig
+module type z_term = sig
+  type term
+
+  include z_lin_term with type term := term
+
+  (** More Arithmetic *)
+
+  val pow : term -> term -> term
+  val bw : sup_binop -> term -> term -> term
+end
+
+module type z_ph = sig
   type ph
-  type str
   type term
 
   val land_ : ph list -> ph
@@ -44,10 +50,19 @@ module type s_ph = sig
   val false_ : ph
   val eqz : term -> term -> ph
   val neqz : term -> term -> ph
-  val eq_str : str -> str -> ph
-  val neq_str : str -> str -> ph
   val leq : term -> term -> ph
   val lt : term -> term -> ph
+end
+
+module type s_ph = sig
+  type ph
+  type str
+  type term
+
+  include z_ph with type ph := ph and type term := term
+
+  val eq_str : str -> str -> ph
+  val neq_str : str -> str -> ph
   val in_re : str -> char list Regex.t -> ph
 end
 

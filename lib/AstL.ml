@@ -25,22 +25,24 @@ let genvar =
     Var (Printf.sprintf "%s%d" prefix !n)
 ;;
 
+let get_name i = Format.asprintf "%s%d" prefix i
+
 let pp_atom ppf = function
   | Var n -> Format.fprintf ppf "%s" n
 ;;
 
 module Lia = struct
   type term =
-    | Const : int -> term
+    | Const : Z.t -> term
     | Atom : atom -> term
     | Add : term list -> term
     | Mul : term list -> term
-    | Mod : term * int -> term
+    | Mod : term * Z.t -> term
   [@@deriving variants]
 
   let rec pp_term : Format.formatter -> term -> unit =
     fun ppf : (term -> unit) -> function
-    | Const c -> Format.fprintf ppf "%d" c
+    | Const c -> Format.fprintf ppf "%a" Z.pp_print c
     | Atom atom -> Format.fprintf ppf "%a" pp_atom atom
     | Add xs ->
       Format.fprintf
@@ -54,7 +56,7 @@ module Lia = struct
         "@[(* %a)@]"
         (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
         xs
-    | Mod (t, z) -> Format.fprintf ppf "(mod %a %d)" pp_term t z
+    | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
   ;;
 
   let rec map_term fz = function
@@ -83,7 +85,7 @@ module Lia = struct
 
   let compare l r = Stdlib.compare l r
   let geq a b = leq b a
-  let lt a b = leq (add [ a; const 1 ]) b
+  let lt a b = leq (add [ a; const Z.one ]) b
   let gt a b = lt b a
 
   let fold2 fz acc = function
@@ -267,11 +269,11 @@ let pp_term_smtlib2 =
   let open Format in
   let rec pp_lia : 'a. _ -> Lia.term -> unit =
     fun ppf : (Lia.term -> unit) -> function
-      | Lia.(Const c) when c < 0 -> fprintf ppf "(- %d)" c
+      | Lia.(Const c) when c < Z.zero -> fprintf ppf "(- %a)" Z.pp_print c
       | Atom a -> fprintf ppf "%a" pp_atom a
       | Add xs ->
         fprintf ppf "@[(+ %a)@]" (pp_print_list pp_lia ~pp_sep:pp_print_space) xs
-      | Mul [ Const c; (Atom (Var _) as v) ] when c = -1 ->
+      | Mul [ Const c; (Atom (Var _) as v) ] when c = Z.minus_one ->
         fprintf ppf "@[(- %a)@]" pp_lia v
       | Mul xs ->
         fprintf ppf "@[(* %a)@]" (pp_print_list pp_lia ~pp_sep:pp_print_space) xs
@@ -338,15 +340,13 @@ let get_vars ast =
   |> remove_dups
 ;;
 
-let get ast i =
-  let vars_to_proj =
-    ast
-    |> get_vars
-    |> List.filter (fun x -> not (String.equal (Format.asprintf "%s%d" prefix i) x))
-  in
+let project vars ast =
+  let names = List.map get_name vars in
+  let vars_to_proj = ast |> get_vars |> List.filter (fun x -> not (List.mem x names)) in
   exists (List.map (fun x -> Var x) vars_to_proj) ast
 ;;
 
+let get i = Lia.Atom (Var (get_name i))
 let length ast = ast |> get_vars |> List.length
 
 let rec map f = function

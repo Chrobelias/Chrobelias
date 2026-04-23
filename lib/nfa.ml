@@ -719,6 +719,9 @@ module Par = struct
   let pp_u = AstL.pp
   let pp ppf (vec : t) = Format.fprintf ppf "(%a)" AstL.pp vec
   let of_list l = failwith "TODO"
+  (* let vars, labels = Base.List.unzip l in
+    Array.init (List.length l) (fun i -> List.nth labels i)
+  ;; *)
 end
 
 module Graph (Label : BasicL) = struct
@@ -1088,7 +1091,6 @@ module Parametric (Label : BasicL) = struct
         ~(vars : int list)
         ~(deg : int)
     =
-    (*let vars = List.rev vars in*)
     let max =
       transitions
       |> Iter.of_list
