@@ -16,16 +16,18 @@ let compare_atom l r =
 
 let failf fmt = Format.kasprintf failwith fmt
 let int_var name = Var name
-let prefix = "lia"
+let vars, pars = ref 0, ref 0
 
-let genvar =
-  let n = ref 0 in
+let gen ?(prefix = "") n =
   fun () ->
-    incr n;
-    Var (Printf.sprintf "%s%d" prefix !n)
+  incr n;
+  Var (Printf.sprintf "%s%d" prefix !n)
 ;;
 
-let get_name i = Format.asprintf "%s%d" prefix i
+let genvar = gen ~prefix:"lia" vars
+let get_var_name i = Format.asprintf "lia%d" i
+let genpar = gen ~prefix:"t" pars
+let get_par_name i = Format.asprintf "t%d" i
 
 let pp_atom ppf = function
   | Var n -> Format.fprintf ppf "%s" n
@@ -341,12 +343,13 @@ let get_vars ast =
 ;;
 
 let project vars ast =
-  let names = List.map get_name vars in
+  let names = List.map get_var_name vars in
   let vars_to_proj = ast |> get_vars |> List.filter (fun x -> not (List.mem x names)) in
   exists (List.map (fun x -> Var x) vars_to_proj) ast
 ;;
 
-let get i = Lia.Atom (Var (get_name i))
+let get i = Lia.Atom (Var (get_var_name i))
+let get_par i = Lia.Atom (Var (get_par_name i))
 let length ast = ast |> get_vars |> List.length
 
 let rec map f = function

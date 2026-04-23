@@ -624,3 +624,65 @@ let basic_simplify step ?multiple env ast =
 let simplify_lia ast =
   ast |> basic_simplify [ 0 ] empty |> fun (ph, env) -> AstL.land_ (ph :: to_eqs env)
 ;;
+
+module type Smtml_symantics = sig
+  include FT_SIG.z_lin_term with type term := Smtml.Expr.t
+  include FT_SIG.z_ph with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
+  include FT_SIG.s_extra with type ph := Smtml.Expr.t and type term = Smtml.Expr.t
+
+  val exists : string list -> Smtml.Expr.t -> Smtml.Expr.t
+end
+
+module Symantics : Smtml_symantics = struct
+  include FT_SIG.To_smtml_symantics
+
+  let exists vs ph =
+    Smtml.Expr.exists
+      (List.map (fun s -> Smtml.Expr.symbol (Smtml.Symbol.make Ty_int s)) vs)
+      ph
+  ;;
+end
+
+let apply_symnatics (module S : Smtml_symantics) =
+  let rec helper = function
+    | AstL.True -> S.true_
+    | Lnot x -> S.not (helper x)
+    | Land xs -> S.land_ (List.map helper xs)
+    | Lor xs -> S.lor_ (List.map helper xs)
+    | Lia e -> helper_lia e
+    | Pred s -> assert false
+    | Exists (vs, ph) ->
+      let vs =
+        List.filter_map
+          (function
+            | AstL.Var s -> Some s)
+          vs
+      in
+      S.exists vs (helper ph)
+  and helperT = function
+    | AstL.Lia.Const n -> S.constz n
+    | Atom (AstL.Var s) -> S.var s
+    | Add terms -> S.add (List.map helperT terms)
+    | Mul terms -> S.mul (List.map helperT terms)
+    | Mod (t, z) -> S.mod_ (helperT t) z
+  and helper_lia ph =
+    match ph with
+    | Leq (l, r) -> S.(helperT l <= helperT r)
+    | Eq (l, r) -> S.(helperT l = helperT r)
+    | Neq (l, r) -> S.(helperT l <> helperT r)
+  in
+  fun x -> helper x
+;;
+
+let check_sat base ast =
+  let open AstL in
+  let base_eq = Lia (Eq (get_par 0, Lia.const (Z.of_int base))) in
+  let ph = apply_symnatics (module Symantics) (AstL.land_ [ base_eq; ast ]) in
+  let module Z3 = Smtml.Z3_mappings.Solver in
+  (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
+  let solver =
+    Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
+  in
+  Z3.reset solver;
+  Z3.check solver ~assumptions:[ ph ]
+;;

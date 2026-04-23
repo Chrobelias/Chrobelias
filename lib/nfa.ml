@@ -709,10 +709,19 @@ module Par = struct
 
   open AstL
 
+  (** Used in [run nfa] below to check existence of transitions *)
+  let base = 10
+
   let const c = Lia.Const (Z.of_int c)
   let eq lhs rhs = Lia (Eq (lhs, rhs))
   let equal = AstL.equal
-  let is_zero = equal true_
+
+  let is_zero label =
+    match SimplI.check_sat base label with
+    | `Sat -> true
+    | _ -> false
+  ;;
+
   let combine vec1 vec2 = land_ [ vec1; vec2 ] |> SimplI.simplify_lia
   let project = AstL.project
   let pp_u = Format.pp_print_int
@@ -958,7 +967,7 @@ let%expect_test "Important verticies smoke test" =
 
 (** A modle type representing automata and basic operations for / over them. *)
 module type BasicType = sig
-  (** The type [v] represents labels of automata. *)
+  (** The type [v] represents digits in labels of automata. *)
   type v
 
   (** The type [t] represents automata. *)
@@ -1064,7 +1073,7 @@ module type NatType = sig
   val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
 end
 
-type 'a _t =
+type 'a nfa_t =
   { transitions : 'a
   ; final : state Set.t
   ; start : state Set.t
@@ -1079,13 +1088,13 @@ let states nfa = 0 -- (length nfa - 1) |> Set.of_list
 module Parametric (Label : BasicL) = struct
   module Graph = Graph (Label)
 
-  type t = Graph.t _t
+  type t = Graph.t nfa_t
   type v = Label.u
 
   let length = length
 
   let create_nfa
-        ~(transitions : (state * Label.u list * state) list)
+        ~(transitions : (state * v list * state) list)
         ~(start : state list)
         ~(final : state list)
         ~(vars : int list)
@@ -1118,20 +1127,18 @@ module Parametric (Label : BasicL) = struct
   ;;
 
   let create_dfa
-        ~(transitions : (state * Label.u list * state) list)
+        ~(transitions : (state * v list * state) list)
         ~(start : state)
         ~(final : state list)
         ~(vars : int list)
         ~(deg : int)
     =
-    (*let vars = List.rev vars in*)
     let max =
       transitions
       |> Iter.of_list
       |> Iter.map (fun (fst, _, snd) -> max fst snd)
       |> Iter.fold max 0
     in
-    (* TODO: ensure transitions are actually deterministic. *)
     let transitions =
       transitions
       |> List.fold_left
@@ -1152,7 +1159,40 @@ module Parametric (Label : BasicL) = struct
     }
   ;;
 
-  let run nfa = failwith "Unimplemented"
+  let run nfa =
+    let transitions = nfa.transitions in
+    let frontier = Queue.create () in
+    let visited = Array.init (length nfa) (Fun.const false) in
+    let rec bfs () =
+      match Queue.take_opt frontier with
+      | Some ((_, hd) :: _ as path) ->
+        if visited.(hd)
+        then bfs ()
+        else begin
+          visited.(hd) <- true;
+          let new_paths =
+            Array.get transitions hd
+            |> List.filter_map (fun part ->
+              match Label.is_zero (fst part) with
+              | true -> Some (part :: path)
+              | _ -> None)
+          in
+          let path' =
+            List.find_opt
+              (fun path' -> Set.mem nfa.final (List.hd path' |> snd))
+              new_paths
+          in
+          begin match path' with
+          | Some path' -> true
+          | None ->
+            List.iter (fun path' -> Queue.add path' frontier) new_paths;
+            bfs ()
+          end
+        end
+      | _ -> false
+    in
+    if not (Set.inter nfa.start nfa.final |> Set.is_empty) then true else bfs ()
+  ;;
 
   let format_nfa ppf nfa =
     let format_state ppf state = fprintf ppf "%d" state in
@@ -1215,17 +1255,13 @@ module Parametric (Label : BasicL) = struct
             (fun acc_delta (label1, q1') ->
                List.fold_left
                  (fun acc_delta (label2, q2') ->
-                    let equal = Label.equal label1 label2 in
-                    match equal with
-                    | true ->
-                      let label = Label.combine label1 label2 in
-                      let is_visited = is_visited (q1', q2') in
-                      visit (q1', q2');
-                      let q' = q (q1', q2') in
-                      let acc_delta = (label, q') :: acc_delta in
-                      if is_visited |> not then Queue.add (q1', q2') queue;
-                      acc_delta
-                    | false -> acc_delta)
+                    let label = Label.combine label1 label2 in
+                    let is_visited = is_visited (q1', q2') in
+                    visit (q1', q2');
+                    let q' = q (q1', q2') in
+                    let acc_delta = (label, q') :: acc_delta in
+                    if is_visited |> not then Queue.add (q1', q2') queue;
+                    acc_delta)
                  acc_delta
                  delta2)
             []
@@ -1303,12 +1339,12 @@ end
 module Make
     (Label : L)
     (Invariants : sig
-       val update_invariants : (Graph(Label).t _t as 'a) -> 'a
+       val update_invariants : (Graph(Label).t nfa_t as 'a) -> 'a
      end) =
 struct
   module Graph = Graph (Label)
 
-  type t = Graph.t _t
+  type t = Graph.t nfa_t
   type v = Label.u
 
   let length = length
@@ -2129,7 +2165,7 @@ module Lsb (Label : L) = struct
     Make
       (Label)
       (struct
-        let update_invariants (nfa : Graph(Label).t _t) =
+        let update_invariants (nfa : Graph(Label).t nfa_t) =
           let module Graph = Graph (Label) in
           let reversed_transitions = nfa.transitions |> Graph.reverse in
           let final =
@@ -2752,7 +2788,7 @@ module Msb (Label : L) = struct
     Make
       (Label)
       (struct
-        let update_invariants (nfa : Graph(Label).t _t) =
+        let update_invariants (nfa : Graph(Label).t nfa_t) =
           match Set.find ~f:(Fun.const true) nfa.start with
           | Some start ->
             let rec helper front visited transitions =
