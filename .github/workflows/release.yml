@@ -8,10 +8,8 @@ on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   release:
@@ -36,7 +34,7 @@ jobs:
 
       - uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda,ocaml-option-static
+          ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda,ocaml-option-musl,ocaml-option-static
 
       - run: opam --version
       - run: opam exec -- ocamlopt --version
@@ -73,11 +71,17 @@ jobs:
           name: Chro
           path: _build/default/bin/chro
 
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: [release]
+    steps:
+      - uses: actions/download-artifact@v4
+      - id: release_vars
+        run: |
+          echo "artifact=$(find . -name 'chro' | xargs)" >> "$GITHUB_OUTPUT"
       - name: Draft release
-        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          files: |
-            _build/default/bin/chro
-          token: "${{ secrets.GITHUB_TOKEN }}"
+          files: ${{ steps.release_vars.outputs.artifact }}
