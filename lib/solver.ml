@@ -353,7 +353,7 @@ struct
                  then
                    acc
                    |> Nfa.intersect
-                        (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                        (NfaCollection.power_of_base v |> do_if_msb Nfa.minimize_strong)
                    |> do_if_msb Nfa.minimize_not_very_strong
                  else acc)
                vars
@@ -370,7 +370,7 @@ struct
                  then
                    acc
                    |> Nfa.intersect
-                        (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                        (NfaCollection.power_of_base v |> do_if_msb Nfa.minimize_strong)
                    |> do_if_msb Nfa.minimize_not_very_strong
                  else acc)
                vars
@@ -387,7 +387,7 @@ struct
                  then
                    acc
                    |> Nfa.intersect
-                        (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                        (NfaCollection.power_of_base v |> do_if_msb Nfa.minimize_strong)
                    |> do_if_msb Nfa.minimize_not_very_strong
                  else acc)
                vars
@@ -830,7 +830,7 @@ struct
           then
             acc
             |> Nfa.intersect
-                 (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                 (NfaCollection.power_of_base v |> do_if_msb Nfa.minimize_strong)
             |> do_if_msb Nfa.minimize_not_very_strong
           else acc)
         vars
@@ -1334,9 +1334,13 @@ module MsbPar =
     (Nfa.Parametric (Nfa.Par)) (NfaCollection.MsbPar)
     (struct
       module Par = Nfa.Par
-      module Nfa = Nfa.Parametric (Par)
+      module NfaPar = Nfa.Parametric (Par)
 
-      let eval_sreg vars atom reg = failwith "TODO"
+      let eval_sreg _ _ reg = failwith "TODO"
+      (* let nfa = nfa |> NfaO.convert_nfa_msb in
+        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
+        Nfa.reenumerate reenum nfa *)
+
       let eval_sregraw vars atom nfa = failwith "TODO"
     end)
 

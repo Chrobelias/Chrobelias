@@ -293,7 +293,7 @@ let make_main_symantics env =
         []
     ;;
 
-    let rec mul xs =
+    let mul xs =
       let fold_and_sort init op xs =
         let c, xs =
           List.fold_left
@@ -677,12 +677,27 @@ let apply_symnatics (module S : Smtml_symantics) =
 let check_sat base ast =
   let open AstL in
   let base_eq = Lia (Eq (get_par 0, Lia.const (Z.of_int base))) in
-  let ph = apply_symnatics (module Symantics) (AstL.land_ [ base_eq; ast ]) in
-  let module Z3 = Smtml.Z3_mappings.Solver in
-  (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
-  let solver =
-    Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
+  let digits_neq =
+    let open Lia in
+    ast
+    |> AstL.get_vars
+    |> List.map (fun var ->
+      land_
+        [ Lia (leq (const Z.zero) (atom (int_var var)))
+        ; Lia (leq (atom (int_var var)) (const (Z.of_int (base - 1))))
+        ])
+    |> land_
   in
-  Z3.reset solver;
-  Z3.check solver ~assumptions:[ ph ]
+  match land_ [ base_eq; digits_neq; ast ] |> basic_simplify [ 1 ] empty |> fst with
+  | ph when AstL.equal ph true_ -> `Sat
+  | ph when AstL.equal ph false_ -> `Unsat
+  | ph ->
+    let ph = apply_symnatics (module Symantics) ph in
+    let module Z3 = Smtml.Z3_mappings.Solver in
+    (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
+    let solver =
+      Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
+    in
+    Z3.reset solver;
+    Z3.check solver ~assumptions:[ ph ]
 ;;

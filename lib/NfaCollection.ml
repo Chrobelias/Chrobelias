@@ -12,7 +12,7 @@ module type Type = sig
 
   val n : unit -> t
   val z : unit -> t
-  val power_of_two : int -> t
+  val power_of_base : int -> t
   val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val neq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
@@ -29,6 +29,8 @@ end
 
 let gcd a b = Z.gcd a b
 (*if a < zero || b < zero then gcd (abs a) (abs b) else if b = zero then a else gcd b (a mod b)*)
+
+let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -56,7 +58,7 @@ module Msb = struct
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  let power_of_two exp =
+  let power_of_base exp =
     Nfa.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 2, [ o ], 0 ]
       ~start:[ 2 ]
@@ -224,7 +226,7 @@ module MsbStr = struct
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  let power_of_two exp =
+  let power_of_base exp =
     Nfa.create_nfa
       ~transitions:
         [ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ o ], 1; 1, [ i ], 2; 2, [ o ], 2 ]
@@ -385,27 +387,115 @@ module MsbPar = struct
   type t = Nfa.t
   type v = Par.u
 
-  let base = Z.of_int 10
+  let basei = 10
+  let base = Z.of_int basei
 
   (** returns an nfa recognizing every integer base [base]*)
-  let n () = failwith "TODO"
+  let n () =
+    Nfa.create_nfa ~transitions:[ 0, [], 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
+  ;;
 
   (** returns an nfa recognizing the empty language. *)
 
-  let z () = failwith "TODO"
+  let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  (** [power_of_two exp] returns an nfa recognizing Pow([exp]). *)
-  let power_of_two exp = failwith "TODO"
+  (** [power_of_base exp] returns an nfa recognizing Pow([exp]). *)
+  let power_of_base exp = failwith "TODO"
+
+  let powerset digits term =
+    let rec helper = function
+      | [] -> []
+      | [ x ] ->
+        ([ 0 ], [ Z.zero ]) :: (digits |> List.map (fun c -> [ c ], [ Z.(x * of_int c) ]))
+      | hd :: tl ->
+        let open Base.List.Let_syntax in
+        let ( let* ) = ( >>= ) in
+        let* n, thing = helper tl in
+        (0 :: n, Z.zero :: thing)
+        :: (digits |> List.map (fun c -> c :: n, Z.(hd * of_int c) :: thing))
+    in
+    term
+    |> List.map snd
+    |> helper
+    |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
+  ;;
 
   (** [eq vars term c] returns an nfa recognizing the equality [term]*[vars] = [c]. 
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
-  let eq vars term c = failwith "TODO"
+  let eq vars term c =
+    let open AstL.Lia in
+    let term =
+      Map.map_keys_exn ~f:(Map.find_exn vars) term
+      |> Map.to_alist
+      |> List.filter (fun (_, coeff) -> Z.(coeff <> zero))
+    in
+    let get_label v v' =
+      AstL.Lia
+        (eq
+           (const v)
+           (add
+              (mul [ const v'; AstL.get_par 0 ]
+               :: List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)))
+    in
+    let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if gcd_ = Z.zero
+    then if Z.(zero = c) then n () else z ()
+    else (
+      let states = ref Set.empty in
+      let transitions = ref Set.empty in
+      let thing = powerset (0 -- (basei - 1)) term in
+      let rec lp front =
+        match front with
+        | s when Set.is_empty s -> ()
+        | s ->
+          let hd = Set.nth s 0 |> Option.get in
+          let tl = Set.remove_index s 0 in
+          if Set.mem !states hd
+          then lp tl
+          else begin
+            let t =
+              thing
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
+              |> Set.of_list
+              |> Set.map ~f:(fun (bits, sum) ->
+                Z.(div_ (hd - sum) base), get_label hd Z.(div_ (hd - sum) base), hd)
+            in
+            states := Set.add !states hd;
+            transitions := Set.union t !transitions;
+            lp (Set.union (Set.map ~f:(fun (x, _, _) -> x) t) tl)
+          end
+      in
+      lp (Set.singleton c);
+      let states = Set.to_list !states in
+      let start = List.length states in
+      let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+      let idx c = Map.find states c |> Option.get in
+      let transitions =
+        !transitions |> Set.to_list |> List.map (fun (a, b, c) -> idx a, b, idx c)
+      in
+      let transitions =
+        (powerset [ 0 ] term
+         |> List.filter_map (fun (d, sum) ->
+           match Map.find states Z.(sum / (one - base)) with
+           | None -> None
+           | Some v ->
+             Some (start, Par.of_list (Base.List.zip_exn (List.map fst term) d), v)))
+        @ transitions
+      in
+      Nfa.create_nfa2
+        ~transitions
+        ~start:[ start ]
+        ~final:[ idx c ]
+        ~vars:(List.map fst term)
+        ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+      |> fun x -> x)
+  ;;
 
   (** [eq vars term c] returns an nfa recognizing the dis-equality [term]*[vars] <> [c]. 
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
-  let neq vars term c = failwith "Unsupported for parametric automata"
+  let neq vars term c = failwith "TODO"
 
   (** [eq vars term c] returns an nfa recognizing the inequality [term]*[vars] <= [c]. 
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
@@ -438,7 +528,7 @@ module MsbStrBv = struct
 
   let z () = Nfa.create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
 
-  let power_of_two exp =
+  let power_of_base exp =
     Nfa.create_nfa
       ~transitions:
         [ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ o ], 1; 1, [ i ], 2; 2, [ o ], 2 ]
@@ -466,8 +556,6 @@ module MsbStrBv = struct
     |> helper
     |> List.map (fun (a, x) -> a, Base.List.sum (module Z) ~f:Fun.id x)
   ;;
-
-  let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
 
   let eq vars term c =
     let term =
@@ -656,7 +744,7 @@ module MsbNat = struct
       ~deg:(max var exp + 1)
   ;;
 
-  let power_of_two exp =
+  let power_of_base exp =
     NfaMsbNat.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
       ~start:[ 0 ]
@@ -748,7 +836,7 @@ module MsbNatStr = struct
       ~deg:(max var exp + 1)
   ;;
 
-  let power_of_two exp =
+  let power_of_base exp =
     NfaMsbNat.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
       ~start:[ 0 ]
@@ -843,7 +931,7 @@ module MsbNatStrBv = struct
       ~deg:(max var exp + 1)
   ;;
 
-  let power_of_two exp =
+  let power_of_base exp =
     NfaMsbNat.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ Str.u_eos ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
       ~start:[ 0 ]
@@ -917,7 +1005,7 @@ module Lsb = struct
       ~deg:(max var exp + 1)
   ;;
 
-  let power_of_two exp =
+  let power_of_base exp =
     Nfa.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1 ]
       ~start:[ 0 ]
@@ -1112,7 +1200,7 @@ module LsbStr = struct
       ~deg:(max var exp + 1)
   ;;
 
-  let power_of_two exp =
+  let power_of_base exp =
     Nfa.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1 ]
       ~start:[ 0 ]
@@ -1321,7 +1409,7 @@ module LsbStrBv = struct
       ~deg:(max var exp + 1)
   ;;
 
-  let power_of_two exp =
+  let power_of_base exp =
     Nfa.create_nfa
       ~transitions:[ 0, [ o ], 0; 0, [ i ], 1; 1, [ o ], 1; 1, [ Str.u_eos ], 1 ]
       ~start:[ 0 ]

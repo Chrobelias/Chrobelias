@@ -722,8 +722,8 @@ module Par = struct
     | _ -> false
   ;;
 
-  let combine vec1 vec2 = land_ [ vec1; vec2 ] |> SimplI.simplify_lia
-  let project = AstL.project
+  let combine vec1 vec2 = land_ [ vec1; vec2 ]
+  let project vars ast = ast (* FIXME: handle projection somewhere. AstL.project *)
   let pp_u = Format.pp_print_int
   let pp ppf (vec : t) = Format.fprintf ppf "(%a)" AstL.pp vec
 
@@ -1090,6 +1090,7 @@ module Parametric (Label : BasicL) = struct
 
   type t = Graph.t nfa_t
   type v = Label.u
+  type vv = Label.t
 
   let length = length
 
@@ -1156,6 +1157,35 @@ module Parametric (Label : BasicL) = struct
     ; start = Set.singleton start
     ; deg
     ; is_dfa = true
+    }
+  ;;
+
+  let create_nfa2
+        ~(transitions : (state * vv * state) list)
+        ~(start : state list)
+        ~(final : state list)
+        ~(vars : int list)
+        ~(deg : int)
+    =
+    let max =
+      transitions
+      |> Iter.of_list
+      |> Iter.map (fun (fst, _, snd) -> max fst snd)
+      |> Iter.fold max (List.fold_left max (List.fold_left max 0 final) start)
+    in
+    let transitions =
+      transitions
+      |> List.fold_left
+           (fun lists (src, lbl, dst) ->
+              lists.(src) <- (lbl, dst) :: lists.(src);
+              lists)
+           (Array.init (max + 1) (Fun.const []))
+    in
+    { transitions
+    ; final = Set.of_list final
+    ; start = Set.of_list start
+    ; deg
+    ; is_dfa = false
     }
   ;;
 

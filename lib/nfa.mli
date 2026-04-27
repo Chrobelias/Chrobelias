@@ -162,6 +162,16 @@ end
 
 module Parametric (Label : BasicL) : sig
   include BasicType with type v = Label.u
+
+  type vv = Label.t
+
+  val create_nfa2
+    :  transitions:(state * vv * state) list
+    -> start:state list
+    -> final:state list
+    -> vars:int list
+    -> deg:int
+    -> t
 end
 
 module type Type = sig
