@@ -616,9 +616,9 @@ let basic_simplify step ?multiple env ast =
       loop next_step env ast2
     | false, true ->
       log "fixed-point\n";
-      ast2
+      ast2, env2
   in
-  loop step env ast, env
+  loop step env ast
 ;;
 
 let simplify_lia ast =
