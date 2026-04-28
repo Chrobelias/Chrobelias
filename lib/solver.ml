@@ -1335,15 +1335,32 @@ module MsbPar =
   Basic
     (Nfa.Parametric (Nfa.Par)) (NfaCollection.MsbPar)
     (struct
+      module NfaO = Nfa
       module Par = Nfa.Par
+      module NfaMsb = Nfa.Msb (Str)
       module NfaPar = Nfa.Parametric (Par)
 
-      let eval_sreg _ _ reg = failwith "TODO"
-      (* let nfa = nfa |> NfaO.convert_nfa_msb in
-        let reenum = Map.singleton (Map.find_exn vars atom) 0 in
-        Nfa.reenumerate reenum nfa *)
+      let eval_sreg (vars : (Ir.atom, int) Map.t) atom reg =
+        let nfa = reg |> NfaS.of_regex |> NfaMsb.of_lsb in
+        (* Instead of TODO there should be a map that maps lin0 *)
+        let reenum = Map.find_exn vars atom in
+        let nfa =
+          nfa
+          |> NfaO.convert_nfa_msb_par (Map.singleton (Format.asprintf "lin%d" reenum) 0)
+        in
+        nfa
+      ;;
 
-      let eval_sregraw vars atom nfa = failwith "TODO"
+      let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> NfaPar.t =
+        fun vars atom reg ->
+        let nfa = NfaMsb.of_lsb reg in
+        let reenum = Map.find_exn vars atom in
+        let nfa =
+          nfa
+          |> NfaO.convert_nfa_msb_par (Map.singleton (Format.asprintf "lin%d" reenum) 0)
+        in
+        nfa
+      ;;
     end)
 
 module MsbStrBv =
