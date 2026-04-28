@@ -402,6 +402,35 @@ module MsbPar = struct
   (** [power_of_base exp] returns an nfa recognizing Pow([exp]). *)
   let power_of_base exp = failwith "TODO"
 
+  let get_label v' term op v =
+    let open AstL.Lia in
+    AstL.Lia
+      (op
+         (add
+            (mul [ const v'; AstL.get_par 0 ]
+             :: List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term))
+         (const v))
+  ;;
+
+  let get_sign_label v term op =
+    let open AstL in
+    let open AstL.Lia in
+    land_
+      (Lia
+         (op
+            (add
+               (mul [ const v; add [ get_par 0; const Z.minus_one ] ]
+                :: List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term))
+            (const Z.zero))
+       :: List.map
+            (fun (var, _) ->
+               lor_
+                 [ Lia (eq (get var) (const Z.zero))
+                 ; Lia (eq (get var) (const Z.(base - one)))
+                 ])
+            term)
+  ;;
+
   let powerset digits term =
     let rec helper = function
       | [] -> []
@@ -430,14 +459,6 @@ module MsbPar = struct
       |> Map.to_alist
       |> List.filter (fun (_, coeff) -> Z.(coeff <> zero))
     in
-    let get_label v v' =
-      AstL.Lia
-        (eq
-           (const v)
-           (add
-              (mul [ const v'; AstL.get_par 0 ]
-               :: List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)))
-    in
     let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
     if gcd_ = Z.zero
     then if Z.(zero = c) then n () else z ()
@@ -459,7 +480,9 @@ module MsbPar = struct
               |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
               |> Set.of_list
               |> Set.map ~f:(fun (bits, sum) ->
-                Z.(div_ (hd - sum) base), get_label hd Z.(div_ (hd - sum) base), hd)
+                ( Z.(div_ (hd - sum) base)
+                , get_label Z.(div_ (hd - sum) base) term eq hd
+                , hd ))
             in
             states := Set.add !states hd;
             transitions := Set.union t !transitions;
@@ -471,17 +494,17 @@ module MsbPar = struct
       let start = List.length states in
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
+      let transitions = !transitions |> Set.map ~f:(fun (a, b, c) -> idx a, b, idx c) in
       let transitions =
-        !transitions |> Set.to_list |> List.map (fun (a, b, c) -> idx a, b, idx c)
-      in
-      let transitions =
-        (powerset [ 0 ] term
-         |> List.filter_map (fun (d, sum) ->
-           match Map.find states Z.(sum / (one - base)) with
-           | None -> None
-           | Some v ->
-             Some (start, Par.of_list (Base.List.zip_exn (List.map fst term) d), v)))
-        @ transitions
+        Set.union
+          (powerset [ 0; basei - 1 ] term
+           |> List.filter_map (fun (d, sum) ->
+             match Map.find states Z.(sum / (one - base)) with
+             | None -> None
+             | Some idv -> Some (start, get_sign_label Z.(sum / (one - base)) term eq, idv))
+           |> Set.of_list)
+          transitions
+        |> Set.to_list
       in
       Nfa.create_nfa2
         ~transitions
@@ -495,12 +518,78 @@ module MsbPar = struct
   (** [eq vars term c] returns an nfa recognizing the dis-equality [term]*[vars] <> [c]. 
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
-  let neq vars term c = failwith "TODO"
+  let neq vars term c = failwith "Unsupported in parametric automata"
 
   (** [eq vars term c] returns an nfa recognizing the inequality [term]*[vars] <= [c]. 
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
-  let leq vars term c = failwith "TODO"
+  let leq vars term c =
+    let open AstL.Lia in
+    let term =
+      Map.map_keys_exn ~f:(Map.find_exn vars) term
+      |> Map.to_alist
+      |> List.filter (fun (_, coeff) -> Z.(coeff <> zero))
+    in
+    let gcd_ = List.fold_left (fun acc (_, data) -> gcd data acc) Z.zero term in
+    if Z.(gcd_ = zero)
+    then if Z.(zero <= c) then n () else z ()
+    else (
+      let states = ref Set.empty in
+      let transitions = ref Set.empty in
+      let thing = powerset (0 -- (basei - 1)) term in
+      let rec lp front =
+        match front with
+        | s when Set.is_empty s -> ()
+        | s ->
+          let hd = Set.nth s 0 |> Option.get in
+          let tl = Set.remove_index s 0 in
+          if Set.mem !states hd
+          then lp tl
+          else begin
+            let t =
+              thing
+              |> Set.of_list
+              |> Set.map ~f:(fun (bits, sum) ->
+                let v'' = Z.(gcd_ * div_ (hd - sum) (base * gcd_)) in
+                ( v''
+                , AstL.land_
+                    [ get_label v'' term geq hd
+                    ; get_label Z.(v'' + gcd_ - one) term leq hd
+                    ]
+                , hd ))
+            in
+            states := Set.add !states hd;
+            transitions := Set.union t !transitions;
+            lp (Set.union (Set.map ~f:(fun (x, _, _) -> x) t) tl)
+          end
+      in
+      lp (Set.singleton c);
+      let states = Set.to_list !states in
+      let start = List.length states in
+      let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
+      let idx c = Map.find states c |> Option.get in
+      let transitions = !transitions |> Set.map ~f:(fun (a, b, c) -> idx a, b, idx c) in
+      let transitions =
+        Set.union
+          (powerset [ 0; basei - 1 ] term
+           |> List.concat_map (fun (d, sum) ->
+             Map.to_alist states
+             |> List.filter_map (fun (v, idv) ->
+               if Z.(sum / (one - base) <= v)
+               then Some (start, get_sign_label v term leq, idv)
+               else None))
+           |> Set.of_list)
+          transitions
+        |> Set.to_list
+      in
+      Nfa.create_nfa2
+        ~transitions
+        ~start:[ start ]
+        ~final:(states |> Map.filter_keys ~f:(fun x -> x <= c) |> Map.data)
+        ~vars:(List.map fst term)
+        ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+      |> fun x -> x)
+  ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     failwith "Unsupported in parametric automata"

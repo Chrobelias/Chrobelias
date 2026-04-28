@@ -722,8 +722,8 @@ module Par = struct
     | _ -> false
   ;;
 
-  let combine vec1 vec2 = land_ [ vec1; vec2 ]
-  let project vars ast = ast (* FIXME: handle projection somewhere. AstL.project *)
+  let combine vec1 vec2 = land_ [ vec1; vec2 ] |> SimplI.simplify_lia
+  let project = AstL.project
   let pp_u = Format.pp_print_int
   let pp ppf (vec : t) = Format.fprintf ppf "(%a)" AstL.pp vec
 
@@ -1190,6 +1190,7 @@ module Parametric (Label : BasicL) = struct
   ;;
 
   let run nfa =
+    Format.printf "WHY????? NFA size = %d" (length nfa);
     let transitions = nfa.transitions in
     let frontier = Queue.create () in
     let visited = Array.init (length nfa) (Fun.const false) in

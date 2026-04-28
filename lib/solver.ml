@@ -264,7 +264,9 @@ struct
     in
     let sat_if_no_unsupp arg = if had_unsupp then `Unknown else `Sat arg in
     let free_vars = Ir.collect_free ir in
-    let ir' = Ir.exists (free_vars |> Set.to_list) ir in
+    let ir' =
+      if Config.config.logic = `Par then ir else Ir.exists (free_vars |> Set.to_list) ir
+    in
     Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
     if ir' |> eval |> fst |> Nfa.run
     then sat_if_no_unsupp (fun () -> Result.Ok Map.empty)
