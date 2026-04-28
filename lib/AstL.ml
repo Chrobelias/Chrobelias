@@ -26,6 +26,12 @@ let gen ?(prefix = "") n =
 
 let genvar = gen ~prefix:"lia" vars
 let get_var_name i = Format.asprintf "lia%d" i
+
+let is_var = function
+  | Var s when String.starts_with ~prefix:"lia" s -> true
+  | _ -> false
+;;
+
 let genpar = gen ~prefix:"t" pars
 let get_par_name i = Format.asprintf "t%d" i
 
@@ -332,7 +338,7 @@ let get_vars ast =
        | Lia lia ->
          Lia.fold2
            (fun lin -> function
-              | Atom (Var x) -> x :: lin
+              | Atom (Var x) when is_var (Var x) -> x :: lin
               | _ -> lin)
            acc
            lia

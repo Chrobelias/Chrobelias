@@ -1556,7 +1556,12 @@ let check_sat ir
       let wrap' f =
         fun ir ->
         match f ir with
-        | `Sat _ | `Unknown -> `Unknown
+        | `Sat _ ->
+          `Sat
+            (fun () ->
+              let model = Map.empty in
+              return model)
+        | `Unknown -> `Unknown
         | `Unsat -> `Unsat
       in
       match Config.config.logic, Config.config.mode with

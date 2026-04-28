@@ -1190,13 +1190,12 @@ module Parametric (Label : BasicL) = struct
   ;;
 
   let run nfa =
-    Format.printf "WHY????? NFA size = %d" (length nfa);
     let transitions = nfa.transitions in
     let frontier = Queue.create () in
     let visited = Array.init (length nfa) (Fun.const false) in
     let rec bfs () =
       match Queue.take_opt frontier with
-      | Some ((_, hd) :: _ as path) ->
+      | Some (hd :: _ as path) ->
         if visited.(hd)
         then bfs ()
         else begin
@@ -1205,13 +1204,11 @@ module Parametric (Label : BasicL) = struct
             Array.get transitions hd
             |> List.filter_map (fun part ->
               match Label.is_zero (fst part) with
-              | true -> Some (part :: path)
+              | true -> Some (snd part :: path)
               | _ -> None)
           in
           let path' =
-            List.find_opt
-              (fun path' -> Set.mem nfa.final (List.hd path' |> snd))
-              new_paths
+            List.find_opt (fun path' -> Set.mem nfa.final (List.hd path')) new_paths
           in
           begin match path' with
           | Some path' -> true
@@ -1222,6 +1219,7 @@ module Parametric (Label : BasicL) = struct
         end
       | _ -> false
     in
+    Set.iter ~f:(fun q -> Queue.add [ q ] frontier) nfa.start;
     if not (Set.inter nfa.start nfa.final |> Set.is_empty) then true else bfs ()
   ;;
 
