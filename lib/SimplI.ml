@@ -729,6 +729,7 @@ let get_sat base asts =
     Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
   in
   Z3.reset solver;
+  Debug.printf "Running Z3...\n%!";
   match Z3.check solver ~assumptions:[ ph ] with
   | `Sat ->
     (match Z3.model solver with

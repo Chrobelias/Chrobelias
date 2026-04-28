@@ -728,7 +728,7 @@ module Par = struct
     | _ -> false
   ;;
 
-  let combine vec1 vec2 = land_ [ vec1; vec2 ] |> SimplI.simplify_lia
+  let combine vec1 vec2 = land_ [ vec1; vec2 ] (* |> SimplI.simplify_lia *)
   let project = AstL.project
   let pp_u = Format.pp_print_int
   let pp ppf (vec : t) = Format.fprintf ppf "(%a)" AstL.pp vec
