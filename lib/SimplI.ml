@@ -225,6 +225,7 @@ module Id_symantics : SYM with type term = AstL.Lia.term and type ph = AstL.t = 
   let land_ xs = AstL.land_ xs
   let lor_ xs = AstL.lor_ xs
   let not = AstL.lnot
+  let pred s = AstL.Pred s
   let constz s = Const s
   let var s = Atom (Var s)
   let exists atoms ph = AstL.exists atoms ph
@@ -650,7 +651,7 @@ let apply_symnatics (module S : Smtml_symantics) =
     | Land xs -> S.land_ (List.map helper xs)
     | Lor xs -> S.lor_ (List.map helper xs)
     | Lia e -> helper_lia e
-    | Pred s -> assert false
+    | Pred s -> S.pred s
     | Exists (vs, ph) ->
       let vs =
         List.filter_map
@@ -674,7 +675,7 @@ let apply_symnatics (module S : Smtml_symantics) =
   fun x -> helper x
 ;;
 
-let check_sat base ast =
+let deparametrize base ast =
   let open AstL in
   let base_eq = Lia (Eq (get_par 0, Lia.const (Z.of_int base))) in
   let digits_neq =
@@ -688,7 +689,12 @@ let check_sat base ast =
         ])
     |> land_
   in
-  match land_ [ base_eq; digits_neq; ast ] |> basic_simplify [ 1 ] empty |> fst with
+  land_ [ base_eq; digits_neq; ast ]
+;;
+
+let check_sat base ast =
+  let open AstL in
+  match ast |> deparametrize base |> basic_simplify [ 1 ] empty |> fst with
   | ph when AstL.equal ph true_ -> `Sat
   | ph when AstL.equal ph false_ -> `Unsat
   | ph ->
@@ -700,4 +706,42 @@ let check_sat base ast =
     in
     Z3.reset solver;
     Z3.check solver ~assumptions:[ ph ]
+;;
+
+let get_sat base asts =
+  let open AstL in
+  let pred_name state = "P" ^ Int.to_string state in
+  let get_state name =
+    name |> Base.String.chop_prefix_exn ~prefix:"P" |> Base.Int.of_string
+  in
+  let ph =
+    match asts with
+    | [] -> false_
+    | [ (ph, state) ] -> land_ [ deparametrize base ph; pred (pred_name state) ]
+    | phs ->
+      deparametrize
+        base
+        (lor_ (List.map (fun (ph, state) -> land_ [ ph; pred (pred_name state) ]) phs))
+  in
+  let ph = apply_symnatics (module Symantics) ph in
+  let module Z3 = Smtml.Z3_mappings.Solver in
+  let solver =
+    Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
+  in
+  Z3.reset solver;
+  match Z3.check solver ~assumptions:[ ph ] with
+  | `Sat ->
+    (match Z3.model solver with
+     | None -> assert false
+     | Some m ->
+       Hashtbl.fold
+         (fun k v acc ->
+            let _ : Smtml.Symbol.t = k in
+            match k.name, v with
+            | Smtml.Symbol.Simple s, Smtml.Value.True -> get_state s :: acc
+            | _ -> acc)
+         (Smtml.Z3_mappings.values_of_model m)
+         [])
+  | `Unsat -> []
+  | _ -> failwith "Unknown in Z3"
 ;;

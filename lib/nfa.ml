@@ -110,6 +110,8 @@ module type BasicL = sig
 
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
+
+  val filter_states : (t * state) list -> state list
 end
 
 module type L = sig
@@ -295,6 +297,7 @@ module Bv = struct
     vec, mask
   ;;
 
+  let filter_states = List.map snd
   let alpha _ = [ true; false ] |> Set.of_list
   let alphabet = [ true; false ]
   let is_any_at i (_, mask) = bv_get mask i = false
@@ -513,6 +516,8 @@ module StrBv = struct
     vec, mask
   ;;
 
+  let filter_states = List.map snd
+
   let alpha _ =
     (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
     |> Set.of_list
@@ -700,6 +705,7 @@ module Str = struct
     vec
   ;;
 
+  let filter_states = List.map snd
   let alpha s = Array.to_list s |> Set.of_list
 end
 
@@ -731,6 +737,8 @@ module Par = struct
     land_ (List.map (fun (i, value) -> eq (AstL.get i) (const value)) l)
     |> SimplI.simplify_lia
   ;;
+
+  let filter_states = SimplI.get_sat base
 end
 
 module Graph (Label : BasicL) = struct
@@ -1191,6 +1199,16 @@ module Parametric (Label : BasicL) = struct
 
   let run nfa =
     let transitions = nfa.transitions in
+    (* let computed_labels =
+      let labels =
+        transitions
+        |> Array.to_list
+        |> List.map (fun l -> l |> List.map fst |> Set.of_list)
+        |> List.fold_left Set.union Set.empty
+      in
+      Map.of_alist_exn (Set.to_list labels |> List.map (fun ph -> ph, Label.is_zero ph))
+    in
+    let eval label = Map.find_exn computed_labels label in *)
     let frontier = Queue.create () in
     let visited = Array.init (length nfa) (Fun.const false) in
     let rec bfs () =
@@ -1202,16 +1220,14 @@ module Parametric (Label : BasicL) = struct
           visited.(hd) <- true;
           let new_paths =
             Array.get transitions hd
-            |> List.filter_map (fun part ->
-              match Label.is_zero (fst part) with
-              | true -> Some (snd part :: path)
-              | _ -> None)
+            |> Label.filter_states
+            |> List.map (fun state -> state :: path)
           in
           let path' =
             List.find_opt (fun path' -> Set.mem nfa.final (List.hd path')) new_paths
           in
           begin match path' with
-          | Some path' -> true
+          | Some state' -> true
           | None ->
             List.iter (fun path' -> Queue.add path' frontier) new_paths;
             bfs ()

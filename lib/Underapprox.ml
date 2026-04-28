@@ -113,6 +113,7 @@ let make_collector () =
     let not = Fun.id
     let lor_ = List.fold_left ( ++ ) []
     let land_ = List.fold_left ( ++ ) []
+    let pred _ = empty
     let eqz = ( ++ )
     let neqz = ( ++ )
     let eq_str = ( ++ )
@@ -141,7 +142,7 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
     | Lnot x -> S.not (helper x)
     | True -> S.true_
     | Eia e -> helper_eia e
-    | Pred s -> assert false
+    | Pred s -> S.pred s
     | Exists (vs, ph) ->
       let vs =
         List.filter_map
