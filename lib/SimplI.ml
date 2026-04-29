@@ -752,7 +752,7 @@ let get_states base asts =
   in
   let ph, sum' = apply_symnatics (module SMT) ph, apply_term_symnatics (module SMT) sum in
   let module Z3 = Smtml.Z3_mappings.Solver in
-  let module OZ3 = Smtml.Optimizer.Z3 in
+  (* let module OZ3 = Smtml.Optimizer.Z3 in
   let opt_solver = OZ3.create () in
   OZ3.add opt_solver [ ph ];
   let count =
@@ -764,31 +764,32 @@ let get_states base asts =
        | _ -> 1)
   in
   debug_printfln "Num of reachable states is at least %d." count;
-  let extra = apply_symnatics (module SMT) (Lia (leq (const (Z.of_int count)) sum)) in
+  let extra = apply_symnatics (module SMT) (Lia (leq (const (Z.of_int count)) sum)) in *)
   let solver =
     Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
   in
   Z3.reset solver;
   debug_printfln "Running Z3...";
-  match Z3.check solver ~assumptions:[ ph; extra ] with
-  | `Sat ->
-    (match Z3.model solver with
-     | None -> assert false
-     | Some m ->
-       Hashtbl.fold
-         (fun k v acc ->
-            let _ : Smtml.Symbol.t = k in
-            match k.name, v with
-            | Smtml.Symbol.Simple s, Smtml.Value.Int n ->
-              if String.starts_with ~prefix:"state" s
-              then (
-                debug_printfln "State: %d is taken" (get_state s);
-                get_state s :: acc)
-              else acc
-            | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
-            | _ -> acc)
-         (Smtml.Z3_mappings.values_of_model m)
-         [])
-  | `Unsat -> []
-  | _ -> failwith "Unknown in Z3"
+  (* Add [extra] to assumptions to see why maximizing is slaw *)
+    match Z3.check solver ~assumptions:[ ph ] with
+    | `Sat ->
+      (match Z3.model solver with
+       | None -> assert false
+       | Some m ->
+         Hashtbl.fold
+           (fun k v acc ->
+              let _ : Smtml.Symbol.t = k in
+              match k.name, v with
+              | Smtml.Symbol.Simple s, Smtml.Value.Int n ->
+                if String.starts_with ~prefix:"state" s
+                then (
+                  debug_printfln "State: %d is taken" (get_state s);
+                  get_state s :: acc)
+                else acc
+              | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
+              | _ -> acc)
+           (Smtml.Z3_mappings.values_of_model m)
+           [])
+    | `Unsat -> []
+    | _ -> failwith "Unknown in Z3"
 ;;
