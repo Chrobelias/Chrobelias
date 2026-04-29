@@ -1341,7 +1341,7 @@ module MsbPar =
       module NfaPar = Nfa.Parametric (Par)
 
       let eval_sreg (vars : (Ir.atom, int) Map.t) atom reg =
-        let nfa = reg |> NfaS.of_regex |> NfaMsb.of_lsb in
+        let nfa = reg |> NfaS.of_regex |> NfaMsb.of_lsb |> NfaMsb.minimize_strong in
         (* Instead of TODO there should be a map that maps lin0 *)
         let reenum = Map.find_exn vars atom in
         let nfa =
@@ -1353,7 +1353,7 @@ module MsbPar =
 
       let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> NfaPar.t =
         fun vars atom reg ->
-        let nfa = NfaMsb.of_lsb reg in
+        let nfa = NfaMsb.of_lsb reg |> NfaMsb.minimize_strong in
         let reenum = Map.find_exn vars atom in
         let nfa =
           nfa

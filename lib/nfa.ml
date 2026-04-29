@@ -3061,32 +3061,22 @@ let convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t =
 let astl_of_str vars (str : Str.t) =
   Map.fold
     ~f:(fun ~key ~data acc ->
+      let open AstL in
+      let open Lia in
       let safe_get s i =
         if i < Array.length s then Option.some (Array.get s i) else Option.none
       in
       match safe_get str data with
-      | Some c when '0' <= c && c <= '9' ->
-        let c = Char.code c - Char.code '0' |> Z.of_int in
-        AstL.land_
-          [ AstL.lia (AstL.Lia.eq (AstL.Lia.atom (AstL.Var key)) (AstL.Lia.const c))
-          ; acc
-          ]
+      | Some c when Base.Char.is_digit c ->
+        let c = Base.Char.get_digit_exn c |> Z.of_int in
+        land_ [ lia (eq (atom (Var key)) (const c)); acc ]
+      | Some c when Char.equal c Str.u_eos ->
+        land_ [ lia (eq (atom (Var key)) (const Z.zero)); acc ]
       | _ -> acc)
     ~init:AstL.true_
     vars
+  |> SimplI.simplify_lia
 ;;
-
-(*AstL.Lia.eq (AstL.Lia.)
-  ( PStrBv.bv_init (Array.length str) (fun i ->
-      match Str.get str i with
-      | c when c = Str.u_eos -> StrBv.u_eos
-      | c when c = Str.u_null -> StrBv.u_null
-      | '0' .. '9' as c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0')
-      | _ -> StrBv.u_null)
-  , StrBv.bv_init (Array.length str) (fun i ->
-      match Str.get str i with
-      | c when c = Str.u_null -> StrBv.u_null
-      | c -> StrBv.u_eos) )*)
 
 let convert_nfa_msb_par vars : Msb(Str).t -> Parametric(Par).t =
   fun nfa ->
