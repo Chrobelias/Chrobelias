@@ -634,7 +634,7 @@ module type Smtml_symantics = sig
   val exists : string list -> Smtml.Expr.t -> Smtml.Expr.t
 end
 
-module Symantics : Smtml_symantics = struct
+module SMT : Smtml_symantics = struct
   include FT_SIG.To_smtml_symantics
 
   let exists vs ph =
@@ -643,6 +643,17 @@ module Symantics : Smtml_symantics = struct
       ph
   ;;
 end
+
+let apply_term_symnatics (module S : Smtml_symantics) =
+  let rec helperT = function
+    | AstL.Lia.Const n -> S.constz n
+    | Atom (AstL.Var s) -> S.var s
+    | Add terms -> S.add (List.map helperT terms)
+    | Mul terms -> S.mul (List.map helperT terms)
+    | Mod (t, z) -> S.mod_ (helperT t) z
+  in
+  fun x -> helperT x
+;;
 
 let apply_symnatics (module S : Smtml_symantics) =
   let rec helper = function
@@ -660,18 +671,12 @@ let apply_symnatics (module S : Smtml_symantics) =
           vs
       in
       S.exists vs (helper ph)
-  and helperT = function
-    | AstL.Lia.Const n -> S.constz n
-    | Atom (AstL.Var s) -> S.var s
-    | Add terms -> S.add (List.map helperT terms)
-    | Mul terms -> S.mul (List.map helperT terms)
-    | Mod (t, z) -> S.mod_ (helperT t) z
   and helper_lia ph =
     match ph with
     | Leq (l, r) -> S.(helperT l <= helperT r)
     | Eq (l, r) -> S.(helperT l = helperT r)
     | Neq (l, r) -> S.(helperT l <> helperT r)
-  in
+  and helperT = apply_term_symnatics (module S : Smtml_symantics) in
   fun x -> helper x
 ;;
 
@@ -698,7 +703,7 @@ let check_sat base ast =
   | ph when AstL.equal ph true_ -> `Sat
   | ph when AstL.equal ph false_ -> `Unsat
   | ph ->
-    let ph = apply_symnatics (module Symantics) ph in
+    let ph = apply_symnatics (module SMT) ph in
     let module Z3 = Smtml.Z3_mappings.Solver in
     let solver =
       Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
@@ -723,27 +728,49 @@ let debug_printfln ppf =
 
 let get_states base asts =
   let open AstL in
-  let pred_name state = "P" ^ Int.to_string state in
+  let open Lia in
+  let name state = "state" ^ Int.to_string state in
+  let var state = atom (Var (name state)) in
+  let eq state rhs = Lia (eq (var state) rhs) in
+  let bool_val state = lor_ [ eq state (const Z.zero); eq state (const Z.one) ] in
   let get_state name =
-    name |> Base.String.chop_prefix_exn ~prefix:"P" |> Base.Int.of_string
+    name |> Base.String.chop_prefix_exn ~prefix:"state" |> Base.Int.of_string
   in
-  let ph =
+  let ph, sum =
     match asts with
-    | [] -> false_
-    | [ (ph, state) ] -> land_ [ deparametrize base ph; pred (pred_name state) ]
+    | [] -> failwith "Unexpected empty list in get_states"
+    | [ (ph, state) ] ->
+      land_ [ deparametrize base ph; eq state (const Z.one) ], var state
     | phs ->
-      deparametrize
-        base
-        (lor_ (List.map (fun (ph, state) -> land_ [ ph; pred (pred_name state) ]) phs))
+      ( deparametrize
+          base
+          (land_
+             (lor_
+                (List.map (fun (ph, state) -> land_ [ ph; eq state (const Z.one) ]) phs)
+              :: List.map (fun (_, state) -> bool_val state) phs))
+      , add (List.map (fun (_, state) -> var state) asts) )
   in
-  let ph = apply_symnatics (module Symantics) ph in
+  let ph, sum' = apply_symnatics (module SMT) ph, apply_term_symnatics (module SMT) sum in
   let module Z3 = Smtml.Z3_mappings.Solver in
+  let module OZ3 = Smtml.Optimizer.Z3 in
+  let opt_solver = OZ3.create () in
+  OZ3.add opt_solver [ ph ];
+  let count =
+    match OZ3.maximize opt_solver sum' with
+    | None -> 1
+    | Some m ->
+      (match m with
+       | Int n -> n
+       | _ -> 1)
+  in
+  debug_printfln "Num of reachable states is at least %d." count;
+  let extra = apply_symnatics (module SMT) (Lia (leq (const (Z.of_int count)) sum)) in
   let solver =
     Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
   in
   Z3.reset solver;
   debug_printfln "Running Z3...";
-  match Z3.check solver ~assumptions:[ ph ] with
+  match Z3.check solver ~assumptions:[ ph; extra ] with
   | `Sat ->
     (match Z3.model solver with
      | None -> assert false
@@ -752,12 +779,13 @@ let get_states base asts =
          (fun k v acc ->
             let _ : Smtml.Symbol.t = k in
             match k.name, v with
-            | Smtml.Symbol.Simple s, Smtml.Value.True ->
-              debug_printfln "State: %s is taken" s;
-              get_state s :: acc
-            | Smtml.Symbol.Simple s, Smtml.Value.False ->
-              (* debug_printfln "Sorry, %s is false..." s; *)
-              acc
+            | Smtml.Symbol.Simple s, Smtml.Value.Int n ->
+              if String.starts_with ~prefix:"state" s
+              then (
+                debug_printfln "State: %d is taken" (get_state s);
+                get_state s :: acc)
+              else acc
+            | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
             | _ -> acc)
          (Smtml.Z3_mappings.values_of_model m)
          [])
