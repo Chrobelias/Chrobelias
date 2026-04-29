@@ -738,7 +738,7 @@ let get_states base asts =
   in
   let ph, sum =
     match asts with
-    | [] -> failwith "Unexpected empty list in get_states"
+    | [] -> raise Exit
     | [ (ph, state) ] ->
       land_ [ deparametrize base ph; eq state (const Z.one) ], var state
     | phs ->

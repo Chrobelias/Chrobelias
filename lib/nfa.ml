@@ -748,9 +748,12 @@ module Par = struct
 
   let filter_states visited =
     fun transitions ->
-    transitions
-    |> List.filter (fun (_, state) -> not visited.(state))
-    |> SimplI.get_states base
+    try
+      transitions
+      |> List.filter (fun (_, state) -> not visited.(state))
+      |> SimplI.get_states base
+    with
+    | Exit -> []
   ;;
 end
 
