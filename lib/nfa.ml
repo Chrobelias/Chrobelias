@@ -111,7 +111,7 @@ module type BasicL = sig
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 
-  val filter_states : (t * state) list -> state list
+  val filter_states : bool array -> (t * state) list -> state list
 end
 
 module type L = sig
@@ -297,7 +297,10 @@ module Bv = struct
     vec, mask
   ;;
 
-  let filter_states = List.map snd
+  let filter_states vistied =
+    List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
+  ;;
+
   let alpha _ = [ true; false ] |> Set.of_list
   let alphabet = [ true; false ]
   let is_any_at i (_, mask) = bv_get mask i = false
@@ -516,7 +519,9 @@ module StrBv = struct
     vec, mask
   ;;
 
-  let filter_states = List.map snd
+  let filter_states vistied =
+    List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
+  ;;
 
   let alpha _ =
     (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
@@ -705,7 +710,10 @@ module Str = struct
     vec
   ;;
 
-  let filter_states = List.map snd
+  let filter_states vistied =
+    List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
+  ;;
+
   let alpha s = Array.to_list s |> Set.of_list
 end
 
@@ -738,7 +746,12 @@ module Par = struct
     |> SimplI.simplify_lia
   ;;
 
-  let filter_states = SimplI.get_sat base
+  let filter_states visited =
+    fun transitions ->
+    transitions
+    |> List.filter (fun (_, state) -> not visited.(state))
+    |> SimplI.get_states base
+  ;;
 end
 
 module Graph (Label : BasicL) = struct
@@ -1198,6 +1211,44 @@ module Parametric (Label : BasicL) = struct
   ;;
 
   let run nfa =
+    let exception Sat_found in
+    let transitions = nfa.transitions in
+    let successors state =
+      let transitions = Array.get transitions state in
+      let next without = transitions |> Label.filter_states without in
+      let rec succ without =
+        match next without with
+        | [] -> Seq.empty
+        | states ->
+          List.iter (fun state -> without.(state) <- true) states;
+          Seq.append (List.to_seq states) (succ without)
+      in
+      succ (Array.init (length nfa) (Fun.const false))
+    in
+    let dfs start =
+      let rec rdfs visited node =
+        if not (List.mem node visited)
+        then begin
+          if Set.mem nfa.final node
+          then raise Sat_found
+          else Seq.fold_left rdfs (node :: visited) (successors node)
+        end
+        else visited
+      in
+      rdfs [] start
+    in
+    let visited = Array.init (length nfa) (Fun.const false) in
+    let inspect state =
+      try
+        List.iter (fun state -> visited.(state) <- true) (dfs state);
+        false
+      with
+      | Sat_found -> true
+    in
+    Set.exists ~f:inspect nfa.start
+  ;;
+
+  (* let run nfa =
     let transitions = nfa.transitions in
     (* let computed_labels =
       let labels =
@@ -1220,7 +1271,7 @@ module Parametric (Label : BasicL) = struct
           visited.(hd) <- true;
           let new_paths =
             Array.get transitions hd
-            |> Label.filter_states
+            |> Label.filter_states visited
             |> List.map (fun state -> state :: path)
           in
           let path' =
@@ -1237,7 +1288,7 @@ module Parametric (Label : BasicL) = struct
     in
     Set.iter ~f:(fun q -> Queue.add [ q ] frontier) nfa.start;
     if not (Set.inter nfa.start nfa.final |> Set.is_empty) then true else bfs ()
-  ;;
+  ;; *)
 
   let format_nfa ppf nfa =
     let format_state ppf state = fprintf ppf "%d" state in

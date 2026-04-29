@@ -700,7 +700,6 @@ let check_sat base ast =
   | ph ->
     let ph = apply_symnatics (module Symantics) ph in
     let module Z3 = Smtml.Z3_mappings.Solver in
-    (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
     let solver =
       Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
     in
@@ -708,7 +707,21 @@ let check_sat base ast =
     Z3.check solver ~assumptions:[ ph ]
 ;;
 
-let get_sat base asts =
+let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
+
+let debug_printf ppf =
+  if flag ()
+  then Format.kasprintf (Format.printf "%s%!") ppf
+  else Format.ifprintf Format.std_formatter ppf
+;;
+
+let debug_printfln ppf =
+  if flag ()
+  then Format.kasprintf (Format.printf "%s%!\n") ppf
+  else Format.ifprintf Format.std_formatter ppf
+;;
+
+let get_states base asts =
   let open AstL in
   let pred_name state = "P" ^ Int.to_string state in
   let get_state name =
@@ -729,7 +742,7 @@ let get_sat base asts =
     Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
   in
   Z3.reset solver;
-  Debug.printf "Running Z3...\n%!";
+  debug_printfln "Running Z3...";
   match Z3.check solver ~assumptions:[ ph ] with
   | `Sat ->
     (match Z3.model solver with
@@ -739,7 +752,12 @@ let get_sat base asts =
          (fun k v acc ->
             let _ : Smtml.Symbol.t = k in
             match k.name, v with
-            | Smtml.Symbol.Simple s, Smtml.Value.True -> get_state s :: acc
+            | Smtml.Symbol.Simple s, Smtml.Value.True ->
+              debug_printfln "State: %s is taken" s;
+              get_state s :: acc
+            | Smtml.Symbol.Simple s, Smtml.Value.False ->
+              (* debug_printfln "Sorry, %s is false..." s; *)
+              acc
             | _ -> acc)
          (Smtml.Z3_mappings.values_of_model m)
          [])
