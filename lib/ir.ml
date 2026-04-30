@@ -857,6 +857,83 @@ let simpl_ineq ir =
   |> simpl_ineq
 ;;
 
+let%expect_test _ =
+  (* 3v <= 3 ~> v <= 1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int 3) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 3v <= 4 ~> v <= 1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int 4) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 3v <= 2 ~> v <= 0 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int 2) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 500v <= 0 ~> v <= 0 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 500)) (Z.of_int 0) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 3v <= -2 ~> v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int (-2)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* wrong *)
+  (* 3v <= -4 ~> v <= -2 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int (-4)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* 3v <= -3 ~> v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int (-3)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= -8 ~> -v <= -2 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int (-8)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= -7 ~> -v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int (-7)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= -6 ~> -v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int (-6)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* wrong *)
+  (* -7v <= 8 ~> -v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 8) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= 6 ~> -v <= 0 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 6) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -7v <= 7 ~> -v <= -1 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 7) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  (* -31v <= -35 ~> -v <= -2 *)
+  let v = leq (Map.singleton (var "t") Z.(of_int (-31))) (Z.of_int (-35)) in
+  Format.printf "@[%a@] " pp_smtlib2 v;
+  Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
+  [%expect
+    {|
+    (assert (<= (* 3 t)  3) ) (assert (<= t  1) )
+    (assert (<= (* 3 t)  4) ) (assert (<= t  1) )
+    (assert (<= (* 3 t)  2) ) (assert (<= t  0) )
+    (assert (<= (* 500 t)  0) ) (assert (<= t  0) )
+    (assert (<= (* 3 t)  -2) ) (assert (<= t  -1) )
+    (assert (<= (* 3 t)  -4) ) (assert (<= t  -2) )
+    (assert (<= (* 3 t)  -3) ) (assert (<= t  -1) )
+    (assert (<= (* (- 7) t)  -8) ) (assert (<= (* (- 1) t)  -2) )
+    (assert (<= (* (- 7) t)  -7) ) (assert (<= (* (- 1) t)  -1) )
+    (assert (<= (* (- 7) t)  -6) ) (assert (<= (* (- 1) t)  -1) )
+    (assert (<= (* (- 7) t)  8) ) (assert (<= (* (- 1) t)  1) )
+    (assert (<= (* (- 7) t)  6) ) (assert (<= (* (- 1) t)  0) )
+    (assert (<= (* (- 7) t)  7) ) (assert (<= (* (- 1) t)  1) )
+    |}]
+;;
+
 (** Habermehl's 2024 monotonicity simplification  *)
 let simpl_monotonicty ir =
   let is_bounded qvar ir =
