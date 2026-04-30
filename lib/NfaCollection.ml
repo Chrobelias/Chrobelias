@@ -37,6 +37,9 @@ let ( -- ) i j =
   aux j []
 ;;
 
+let both f (a, b) = f a, f b
+let rec get_list lb ub step = if lb > ub then [] else lb :: get_list Z.(lb + step) ub step
+
 (* ------------------------------------------------------------- *)
 (* ------------------------- MSB types ------------------------- *)
 (* ------------------------------------------------------------- *)
@@ -464,47 +467,58 @@ module MsbPar = struct
     then if Z.(zero = c) then n () else z ()
     else (
       let states = ref Set.empty in
-      let transitions = ref Set.empty in
-      let thing = powerset (0 -- (basei - 1)) term in
+      let transitions = ref [] in
+      let get_incoming state =
+        let lower, upper =
+          List.fold_left
+            (fun (p, n) (_, a) -> if Z.(a > zero) then Z.(p + a), n else p, Z.(n + a))
+            (Z.zero, Z.zero)
+            term
+          |> both (fun x -> Z.(state - (x * (base - one))))
+        in
+        let lb =
+          if Z.(lower mod (base * gcd_) = zero)
+          then div_ lower base
+          else Z.((div_ lower (base * gcd_) + one) * gcd_)
+        in
+        let ub =
+          if Z.(upper mod (base * gcd_) = zero)
+          then div_ upper base
+          else Z.(div_ upper (base * gcd_) * gcd_)
+        in
+        get_list lb ub gcd_
+        |> List.map (fun prev -> prev, get_label prev term eq state, state)
+      in
       let rec lp front =
         match front with
-        | s when Set.is_empty s -> ()
-        | s ->
-          let hd = Set.nth s 0 |> Option.get in
-          let tl = Set.remove_index s 0 in
+        | [] -> ()
+        | hd :: tl ->
           if Set.mem !states hd
           then lp tl
           else begin
-            let t =
-              thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
-              |> Set.of_list
-              |> Set.map ~f:(fun (bits, sum) ->
-                ( Z.(div_ (hd - sum) base)
-                , get_label Z.(div_ (hd - sum) base) term eq hd
-                , hd ))
-            in
+            let t = get_incoming hd in
             states := Set.add !states hd;
-            transitions := Set.union t !transitions;
-            lp (Set.union (Set.map ~f:(fun (x, _, _) -> x) t) tl)
+            transitions := t @ !transitions;
+            lp (List.map (fun (x, _, _) -> x) t @ tl)
           end
       in
-      lp (Set.singleton c);
+      lp [ c ];
       let states = Set.to_list !states in
       let start = List.length states in
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
-      let transitions = !transitions |> Set.map ~f:(fun (a, b, c) -> idx a, b, idx c) in
+      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
       let transitions =
-        Set.union
-          (powerset [ 0; basei - 1 ] term
-           |> List.filter_map (fun (d, sum) ->
-             match Map.find states Z.(sum / (one - base)) with
-             | None -> None
-             | Some idv -> Some (start, get_sign_label Z.(sum / (one - base)) term eq, idv))
-           |> Set.of_list)
-          transitions
-        |> Set.to_list
+        (term
+         |> List.map snd
+         |> Utils.powerset
+         |> List.map (fun x -> Base.List.sum (module Z) ~f:Fun.id x)
+         |> Base.List.dedup_and_sort ~compare:Z.compare
+         |> List.filter_map (fun sum ->
+           match Map.find states Z.(sum / minus_one) with
+           | None -> None
+           | Some idv -> Some (start, get_sign_label Z.(sum / minus_one) term eq, idv)))
+        @ transitions
       in
       Nfa.create_nfa2
         ~transitions

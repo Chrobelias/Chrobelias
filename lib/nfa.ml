@@ -1251,48 +1251,6 @@ module Parametric (Label : BasicL) = struct
     Set.exists ~f:inspect nfa.start
   ;;
 
-  (* let run nfa =
-    let transitions = nfa.transitions in
-    (* let computed_labels =
-      let labels =
-        transitions
-        |> Array.to_list
-        |> List.map (fun l -> l |> List.map fst |> Set.of_list)
-        |> List.fold_left Set.union Set.empty
-      in
-      Map.of_alist_exn (Set.to_list labels |> List.map (fun ph -> ph, Label.is_zero ph))
-    in
-    let eval label = Map.find_exn computed_labels label in *)
-    let frontier = Queue.create () in
-    let visited = Array.init (length nfa) (Fun.const false) in
-    let rec bfs () =
-      match Queue.take_opt frontier with
-      | Some (hd :: _ as path) ->
-        if visited.(hd)
-        then bfs ()
-        else begin
-          visited.(hd) <- true;
-          let new_paths =
-            Array.get transitions hd
-            |> Label.filter_states visited
-            |> List.map (fun state -> state :: path)
-          in
-          let path' =
-            List.find_opt (fun path' -> Set.mem nfa.final (List.hd path')) new_paths
-          in
-          begin match path' with
-          | Some state' -> true
-          | None ->
-            List.iter (fun path' -> Queue.add path' frontier) new_paths;
-            bfs ()
-          end
-        end
-      | _ -> false
-    in
-    Set.iter ~f:(fun q -> Queue.add [ q ] frontier) nfa.start;
-    if not (Set.inter nfa.start nfa.final |> Set.is_empty) then true else bfs ()
-  ;; *)
-
   let format_nfa ppf nfa =
     let format_state ppf state = fprintf ppf "%d" state in
     let start_final = Set.inter nfa.start nfa.final in
