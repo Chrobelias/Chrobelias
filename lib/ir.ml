@@ -991,3 +991,8 @@ let get_partial_model ir =
     []
     ir
 ;;
+
+let is_reg = function
+  | SReg _ | Reg _ | SRegRaw _ -> true
+  | _ -> false
+;;

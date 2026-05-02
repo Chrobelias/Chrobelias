@@ -429,7 +429,30 @@ let make_main_symantics env =
          | xs -> AstL.land_ xs)
     ;;
 
-    let lor_ x = Id_symantics.lor_ x
+    let lor_ xs =
+      let flat =
+        List.concat_map
+          (function
+            | AstL.Lor xs -> xs
+            | x -> [ x ])
+          xs
+      in
+      let compare_ast l r =
+        match l, r with
+        | AstL.True, AstL.True -> 0
+        | True, _ -> -1
+        | _, True -> 1
+        | Lnot _, _ -> -1
+        | _, Lnot _ -> 1
+        | _ -> AstL.compare l r
+      in
+      let flat = Base.List.dedup_and_sort ~compare:compare_ast flat in
+      match flat with
+      | [] -> Id_symantics.true_
+      | [ h ] -> h
+      | True :: _ -> Id_symantics.true_
+      | xs -> AstL.lor_ xs
+    ;;
 
     let relop op l r =
       let ofop =
@@ -623,7 +646,13 @@ let basic_simplify step ?multiple env ast =
 ;;
 
 let simplify_lia ast =
-  ast |> basic_simplify [ 0 ] empty |> fun (ph, env) -> AstL.land_ (ph :: to_eqs env)
+  ast
+  |> basic_simplify [ 0 ] empty
+  |> fun (ph, env) ->
+  match ph, to_eqs env with
+  | ph, [] -> ph
+  | ph, eqs when AstL.equal ph AstL.true_ -> AstL.land_ eqs
+  | ph, sqs -> AstL.land_ (ph :: to_eqs env)
 ;;
 
 module type Smtml_symantics = sig

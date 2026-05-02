@@ -26,6 +26,8 @@ module type BasicL = sig
   (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
   val combine : t -> t -> t
 
+  val simplify : t -> t
+
   (** [project pos l] returns a label obtained from [l] by projection over variables with positions 
   from the list [pos]. *)
   val project : int list -> t -> t
@@ -156,6 +158,8 @@ module type BasicType = sig
     (see is_zero). *)
   val is_graph : t -> bool
 
+  val minimize : t -> t
+
   (** [reverse a] returns the nfa [a] where all transitions are reversed. *)
   val reverse : t -> t
 
@@ -189,7 +193,6 @@ module type Type = sig
   val shrink : t -> t
   val truncate : int -> t -> t
   val reenumerate : (int, int) Map.t -> t -> t
-  val minimize : t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
   val to_nat : t -> u

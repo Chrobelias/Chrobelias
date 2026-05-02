@@ -189,7 +189,11 @@ struct
                (Nfa.length hd')
                Ir.pp
                ir';
-             let nfa = Nfa.intersect hd hd' in
+             let nfa =
+               Nfa.intersect hd hd'
+               (* |> fun nfa ->
+               if Ir.is_reg ir || Ir.is_reg ir' then Nfa.minimize nfa else nfa *)
+             in
              let ir = Ir.land_ [ ir; ir' ] in
              let nfas =
                (nfa, ir) :: tl
@@ -1346,7 +1350,7 @@ module MsbPar =
         let reenum = Map.find_exn vars atom in
         let nfa =
           nfa
-          |> NfaO.convert_nfa_msb_par (Map.singleton (Format.asprintf "lin%d" reenum) 0)
+          |> NfaO.convert_nfa_msb_par (Map.singleton (Format.asprintf "lia%d" reenum) 0)
         in
         nfa
       ;;

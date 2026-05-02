@@ -98,6 +98,8 @@ module type BasicL = sig
   (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
   val combine : t -> t -> t
 
+  val simplify : t -> t
+
   (** [project pos l] returns a label obtained from [l] by projection over variables with positions 
   from the list [pos]. *)
   val project : int list -> t -> t
@@ -208,6 +210,8 @@ module Bv = struct
   let combine (vec1, mask1) (vec2, mask2) =
     Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
+
+  let simplify = Fun.id
 
   let project proj (vec, mask) =
     let proj = bv_of_list proj in
@@ -373,6 +377,8 @@ module StrBv = struct
   let combine (vec1, mask1) (vec2, mask2) =
     Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
+
+  let simplify = Fun.id
 
   let project proj (vec, mask) =
     let proj = bv_of_list proj in
@@ -580,6 +586,8 @@ module Str = struct
       if Char.equal c1 u_null then get vec2 i else c1)
   ;;
 
+  let simplify = Fun.id
+
   let project proj vec =
     Array.init (Array.length vec) (fun i ->
       if List.mem i proj then u_null else unsafe_get vec i)
@@ -737,6 +745,7 @@ module Par = struct
   ;;
 
   let combine vec1 vec2 = land_ [ vec1; vec2 ] (* |> SimplI.simplify_lia *)
+  let simplify = SimplI.simplify_lia
   let project = AstL.project
   let pp_u = Format.pp_print_int
   let pp ppf (vec : t) = Format.fprintf ppf "(%a)" AstL.pp vec
@@ -1047,6 +1056,8 @@ module type BasicType = sig
     (see is_zero). *)
   val is_graph : t -> bool
 
+  val minimize : t -> t
+
   (** [reverse a] returns the nfa [a] where all transitions are reversed. *)
   val reverse : t -> t
 
@@ -1066,7 +1077,6 @@ module type Type = sig
   val shrink : t -> t
   val truncate : int -> t -> t
   val reenumerate : (int, int) Map.t -> t -> t
-  val minimize : t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
   val to_nat : t -> u
@@ -1368,6 +1378,20 @@ module Parametric (Label : BasicL) = struct
     nfa.transitions
     |> Array.for_all (fun delta ->
       List.for_all (fun (label, _) -> Label.is_zero label) delta)
+  ;;
+
+  let minimize nfa =
+    nfa
+    |> fun nfa ->
+    { nfa with
+      transitions =
+        nfa.transitions
+        |> Array.map (fun delta ->
+          delta
+          |> List.map (fun (label, pos) -> Label.simplify label, pos)
+          |> Set.of_list
+          |> Set.to_list)
+    }
   ;;
 
   let project to_remove nfa =
@@ -3027,12 +3051,13 @@ let astl_of_str vars (str : Str.t) =
       match safe_get str data with
       | Some c when Base.Char.is_digit c ->
         let c = Base.Char.get_digit_exn c |> Z.of_int in
-        land_ [ lia (eq (atom (Var key)) (const c)); acc ]
+        lia (eq (atom (Var key)) (const c)) :: acc
       | Some c when Char.equal c Str.u_eos ->
-        land_ [ lia (eq (atom (Var key)) (const Z.zero)); acc ]
+        lia (eq (atom (Var key)) (const Z.zero)) :: acc
       | _ -> acc)
-    ~init:AstL.true_
+    ~init:[]
     vars
+  |> AstL.land_
   |> SimplI.simplify_lia
 ;;
 
@@ -3043,6 +3068,15 @@ let convert_nfa_msb_par vars : Msb(Str).t -> Parametric(Par).t =
   ; deg = nfa.deg
   ; final = nfa.final
   ; transitions =
-      Array.map (List.map (fun (label, q') -> astl_of_str vars label, q')) nfa.transitions
+      (let f =
+         fun x ->
+         x
+         |> List.map (fun (label, q') -> q', astl_of_str vars label)
+         |> Map.of_alist_multi
+         |> Map.map ~f:(fun ts -> SimplI.simplify_lia (AstL.lor_ ts))
+         |> Map.to_alist
+         |> List.map (fun (x, y) -> y, x)
+       in
+       Array.map f nfa.transitions)
   }
 ;;
