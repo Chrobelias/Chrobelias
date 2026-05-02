@@ -630,10 +630,10 @@ let make_main_symantics ?alpha ?agressive env =
     let str_contains s1 s2 =
       match s1, s2 with
       | Ast.Eia.Str_const s1, Ast.Eia.Str_const s2 ->
-        if Base.String.is_substring ~substring:s1 s2
+        if Base.String.is_substring ~substring:s2 s1
         then Id_symantics.true_
         else Id_symantics.false_
-      | Ast.Eia.Str_const s1, s2 -> Id_symantics.in_re s2 (Regex.contains s1)
+      | s1, Ast.Eia.Str_const s2 -> Id_symantics.in_re s1 (Regex.contains s2)
       | s1, s2 -> Ast.eia (Ast.Eia.contains s1 s2)
     ;;
 
@@ -3240,17 +3240,19 @@ let arithmetize ast env =
             | Len (Atom (Var (var, S))) ->
               let lenvar, phs = String.concat "" [ "strlen"; var ], [] in
               let v = atomi lenvar in
+              let regexes = collect_regexes ast in
+              let in_regex = Map.mem regexes in
               let phs =
-                (match List.mem var str_vars with
-                 | true -> Ast.Eia.leq (Ast.Eia.const Z.zero) v
-                 | false -> Ast.Eia.leq (Ast.Eia.const Z.one) v)
+                (match in_stoi var, List.mem var str_vars with
+                 | true, false -> Ast.Eia.leq (Ast.Eia.const Z.one) v
+                 | _, _ -> Ast.Eia.leq (Ast.Eia.const Z.zero) v)
                 :: phs
               in
               let phs =
                 if List.mem var str_vars
                 then phs
                 else (
-                  match in_stoi var, Map.mem (collect_regexes ast) var with
+                  match in_stoi var, in_regex var with
                   | true, true -> Ast.Eia.rlen (atomi var) (pow_base v) :: phs
                   | true, false -> Ast.Eia.lt (atomi var) (pow_base v) :: phs
                   | false, other -> phs)
