@@ -410,7 +410,8 @@ module MsbPar = struct
     AstL.Lia
       (op
          (add
-            (mul [ const v'; AstL.get_par 0 ]
+            (* (mul [ const v'; AstL.get_par 0 ] *)
+            (const Z.(v' * base)
              :: List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term))
          (const v))
   ;;
@@ -422,7 +423,8 @@ module MsbPar = struct
       (Lia
          (op
             (add
-               (mul [ const v; add [ get_par 0; const Z.minus_one ] ]
+               (* (mul [ const v; add [ get_par 0; const Z.minus_one ] ] *)
+               (const Z.(v * (base - one))
                 :: List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term))
             (const Z.zero))
        :: List.map
