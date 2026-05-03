@@ -761,7 +761,7 @@ let deparametrize base ast =
 
 let check_sat base ast =
   let open AstL in
-  match ast |> deparametrize base |> basic_simplify [ 1 ] empty |> fst with
+  match ast |> deparametrize base |> basic_simplify [ 0 ] empty |> fst with
   | ph when AstL.equal ph true_ -> `Sat
   | ph when AstL.equal ph false_ -> `Unsat
   | ph ->

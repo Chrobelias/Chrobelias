@@ -1231,6 +1231,74 @@ module Parametric (Label : BasicL) = struct
     }
   ;;
 
+  let project_verticies nfa verticies =
+    let map_new_old =
+      verticies
+      |> Set.to_sequence
+      |> Sequence.mapi ~f:(fun i v -> i, v)
+      |> Map.of_sequence_exn
+    in
+    let map_old_new =
+      verticies
+      |> Set.to_sequence
+      |> Sequence.mapi ~f:(fun i v -> v, i)
+      |> Map.of_sequence_exn
+    in
+    let start = nfa.start |> Set.filter_map ~f:(Map.find map_old_new) in
+    let final = nfa.final |> Set.filter_map ~f:(Map.find map_old_new) in
+    let transitions =
+      Array.init (Set.length verticies) (fun q ->
+        let old_q = Map.find_exn map_new_old q in
+        let delta = nfa.transitions.(old_q) in
+        List.filter_map
+          (fun (label, old_q') ->
+             if Set.mem verticies old_q'
+             then (
+               let q' = Map.find_exn map_old_new old_q' in
+               Option.some (label, q'))
+             else Option.none)
+          delta)
+    in
+    { transitions; start; final; deg = nfa.deg; is_dfa = false }
+  ;;
+
+  let remove_unreachable_from_start nfa =
+    let visited = Array.make (length nfa) false in
+    let rec bfs reachable = function
+      | [] -> reachable
+      | q :: tl ->
+        if visited.(q)
+        then bfs reachable tl
+        else (
+          visited.(q) <- true;
+          let reachable = Set.add reachable q in
+          let delta = Array.get nfa.transitions q in
+          let qs = (delta |> List.map snd) @ tl in
+          bfs reachable qs)
+    in
+    bfs Set.empty (nfa.start |> Set.to_list) |> project_verticies nfa
+  ;;
+
+  let remove_unreachable_from_final nfa =
+    let reversed_transitions = nfa.transitions |> Graph.reverse in
+    let visited = Array.make (length nfa) false in
+    let rec bfs reachable = function
+      | [] -> reachable
+      | q :: tl ->
+        if visited.(q)
+        then bfs reachable tl
+        else (
+          visited.(q) <- true;
+          let reachable = Set.add reachable q in
+          let delta = Array.get reversed_transitions q in
+          let qs = (delta |> List.map snd) @ tl in
+          bfs reachable qs)
+    in
+    if Set.is_empty nfa.final
+    then create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
+    else bfs Set.empty (nfa.final |> Set.to_list) |> project_verticies nfa
+  ;;
+
   let run nfa =
     let exception Sat_found in
     let transitions = nfa.transitions in
@@ -1363,8 +1431,9 @@ module Parametric (Label : BasicL) = struct
     in
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
-    let result = { final; start; transitions; deg; is_dfa } in
-    result
+    { final; start; transitions; deg; is_dfa }
+    |> remove_unreachable_from_start
+    |> remove_unreachable_from_final
   ;;
 
   let unite nfa1 nfa2 =
@@ -1404,6 +1473,8 @@ module Parametric (Label : BasicL) = struct
           |> Set.of_list
           |> Set.to_list)
     }
+    |> remove_unreachable_from_final
+    |> remove_unreachable_from_start
   ;;
 
   let project to_remove nfa =
