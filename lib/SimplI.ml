@@ -473,34 +473,67 @@ let make_main_symantics env =
       | Add (Const c :: tl), Const n -> ofop (add tl) (constz Z.(n - c))
       | Const c, Add (Const n :: tl) -> ofop (add (List.map negate tl)) (constz Z.(n - c))
       | Const c, Add xs -> ofop (add (List.map negate xs)) (constz Z.(-c))
-      | Mul [ Const c; (Atom (Var _) as v) ], Const rhs when op = Leq && Z.(abs c <> one)
-        ->
-        if Z.(equal zero rhs)
-        then ofop (mul [ constz (Z.of_int (Z.sign c)); v ]) r
-        else if Z.(c < zero) && Z.(rhs < zero)
-        then
-          ofop
-            (mul [ constz Z.minus_one; v ])
-            (mul [ constz Z.minus_one; constz Z.((abs rhs + one) / abs c) ])
-        else if Z.(c > zero) && Z.(rhs > zero)
-        then ofop v (Const Z.(abs rhs / c))
-        else ofop l r
       | _ -> ofop l r
     ;;
 
+    let cancel_left op lhs rhs =
+      let open AstL.Lia in
+      let simplify divisor =
+        let divide_by d = function
+          | Mul (Const lc :: ltl) -> Mul (Const Z.(lc / d) :: ltl)
+          | Const lc -> Const Z.(lc / d)
+          | lt when Z.(d = one) -> lt
+          | other -> failwith "Unexpected divison in linear term"
+        in
+        function
+        | [] -> constz Z.zero
+        | [ atom ] -> divide_by divisor atom
+        | atoms -> Add (List.map (divide_by divisor) atoms)
+      in
+      let gcd atoms =
+        let rec gcd acc = function
+          | Mul (Const lc :: ltl) :: other -> Z.gcd lc (gcd acc other)
+          | Const lc :: other -> Z.gcd lc (gcd acc other)
+          | _ :: other -> Z.one
+          | [] -> acc
+        in
+        gcd Z.zero atoms
+      in
+      let lhs' = List.filter (fun x -> Bool.not (List.mem x rhs)) lhs in
+      let rhs' = List.filter (fun x -> Bool.not (List.mem x lhs)) rhs in
+      let gcd_l, gcd_r = gcd lhs', gcd rhs' in
+      match lhs', rhs' with
+      | [ Const c ], _ when Z.(c mod gcd_r <> zero) -> false_
+      | _, [ Const c ] when Z.(c mod gcd_l <> zero) -> false_
+      | _ ->
+        let d = Z.gcd gcd_l gcd_r in
+        op (simplify d lhs') (simplify d rhs')
+    ;;
+
     let lt l r = relop Leq (add [ constz Z.one; l ]) r
-    let leq = relop Leq
+
+    let leq l r =
+      let open AstL.Lia in
+      match l, r with
+      | Add lhs, Add rhs -> cancel_left (relop Leq) lhs rhs
+      | lhs, Add rhs -> cancel_left (relop Leq) [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left (relop Leq) lhs [ rhs ]
+      | _ -> relop Leq l r
+    ;;
 
     let eqz l r =
       let open AstL.Lia in
       match l, r with
+      | l, r when eq_term l r -> true_
+      | Add lhs, Add rhs -> cancel_left (relop Eq) lhs rhs
+      | lhs, Add rhs -> cancel_left (relop Eq) [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left (relop Eq) lhs [ rhs ]
       | Mul (Const lc :: ltl), Mul (Const rc :: rtl) ->
         let gcd1 = Z.gcd lc rc in
         if Z.(equal gcd1 one)
         then relop Eq l r
         else
           relop Eq (mul (constz Z.(lc / gcd1) :: ltl)) (mul (constz Z.(rc / gcd1) :: rtl))
-      | l, r when eq_term l r -> AstL.true_
       | _ -> relop Eq l r
     ;;
 
