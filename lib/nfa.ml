@@ -747,7 +747,12 @@ module Par = struct
       | _ -> false)
   ;;
 
-  let combine vec1 vec2 = land_ [ vec1; vec2 ] (* |> SimplI.simplify_lia *)
+  let combine vec1 vec2 =
+    if AstL.is_trivial vec1 || AstL.is_trivial vec2
+    then land_ [ vec1; vec2 ] |> SimplI.simplify_lia
+    else land_ [ vec1; vec2 ]
+  ;;
+
   let simplify = SimplI.simplify_lia
   let project = AstL.project
   let pp_u = Format.pp_print_int
@@ -1326,12 +1331,15 @@ module Parametric (Label : BasicL) = struct
                List.fold_left
                  (fun acc_delta (label2, q2') ->
                     let label = Label.combine label1 label2 in
-                    let is_visited = is_visited (q1', q2') in
-                    visit (q1', q2');
-                    let q' = q (q1', q2') in
-                    let acc_delta = (label, q') :: acc_delta in
-                    if is_visited |> not then Queue.add (q1', q2') queue;
-                    acc_delta)
+                    if Label.is_zero label
+                    then (
+                      let is_visited = is_visited (q1', q2') in
+                      visit (q1', q2');
+                      let q' = q (q1', q2') in
+                      let acc_delta = (label, q') :: acc_delta in
+                      if is_visited |> not then Queue.add (q1', q2') queue;
+                      acc_delta)
+                    else acc_delta)
                  acc_delta
                  delta2)
             []

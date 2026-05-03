@@ -383,3 +383,10 @@ let rec equal_par eq_lia ast ast' =
 
 let equal ast ast' = equal_par Lia.equal ast ast'
 let equal_alpha ast ast' = equal_par Lia.equal_alpha ast ast'
+
+let rec is_trivial = function
+  | Lia (Eq (Atom (Var _), Const _)) -> true
+  | Lia (Eq (Const _, Atom (Var _))) -> true
+  | Land asts -> List.fold_left (fun acc ph -> acc && is_trivial ph) true asts
+  | _ -> false
+;;
