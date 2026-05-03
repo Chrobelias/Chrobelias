@@ -739,9 +739,12 @@ module Par = struct
   let equal = AstL.equal
 
   let is_zero label =
-    match SimplI.check_sat base label with
-    | `Sat -> true
-    | _ -> false
+    if Lia.equal label AstL.false_
+    then false
+    else (
+      match SimplI.check_sat base label with
+      | `Sat -> true
+      | _ -> false)
   ;;
 
   let combine vec1 vec2 = land_ [ vec1; vec2 ] (* |> SimplI.simplify_lia *)
@@ -1389,6 +1392,7 @@ module Parametric (Label : BasicL) = struct
         |> Array.map (fun delta ->
           delta
           |> List.map (fun (label, pos) -> Label.simplify label, pos)
+          |> List.filter (fun (label, _) -> Label.is_zero label)
           |> Set.of_list
           |> Set.to_list)
     }
