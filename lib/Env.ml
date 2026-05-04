@@ -373,18 +373,18 @@ let enrich m other =
 
 let enrich2 m other =
   let _ : t = m in
-  let _ : (Ir.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t = other in
+  let _ : Model.t = other in
   let m =
     Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
-      match key, data with
-      | Ir.Var s, `Int z -> set_int_exn acc s (Const z)
-      | _, _ -> acc)
+      match data with
+      | `Int z -> set_int_exn acc key (Const z)
+      | _ -> acc)
   in
   let m =
     Base.Map.fold other ~init:m ~f:(fun ~key ~data acc ->
-      match key, data with
-      | Ir.Var s, `Str z -> set_string_exn acc s (Str_const z)
-      | _, _ -> acc)
+      match data with
+      | `Str z -> set_string_exn acc key (Str_const z)
+      | _ -> acc)
   in
   m
 ;;

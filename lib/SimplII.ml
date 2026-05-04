@@ -146,6 +146,11 @@ module type SYM0 = sig
   val pow2var : string -> term
   val exists : Ast.any_atom list -> ph -> ph
   val unsupp : string -> ph
+
+  val unsupp_check
+    :  (Model.t -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ])
+    -> ph
+
   val pow_minus_one : term -> term
 end
 
@@ -253,7 +258,8 @@ module Id_symantics :
     Ast.Eia.pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var c I))
   ;;
 
-  let unsupp s = Ast.Unsupp s
+  let unsupp s = Ast.Unsupp (`Msg s)
+  let unsupp_check c = Ast.Unsupp (`Check c)
 end
 
 let apply_term_symantics
@@ -450,6 +456,7 @@ module Who_in_exponents_ = struct
   let pow base e = { e with all = S.union base.all e.all; exp = S.union e.all base.exp }
   let prj = Fun.id
   let unsupp _ = empty
+  let unsupp_check _ = empty
 end
 
 module _ : SYM = Who_in_exponents_
@@ -491,7 +498,8 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) =
       let r = helperT term' in
       (* Format.printf "Apply Str.Eq: l = %a, r = %a\n%!" S.pp_str l S.pp_str r; *)
       S.str_equal l r *)
-    | Unsupp s -> S.unsupp s
+    | Unsupp (`Msg s) -> S.unsupp s
+    | Unsupp (`Check c) -> S.unsupp_check c
   and helper_eia eia =
     match eia with
     | Ast.Eia.Eq (l, r, I) -> S.(helperT l = helperT r)
@@ -844,7 +852,7 @@ let make_main_symantics ?alpha ?agressive env =
         | _, True -> 1
         | Lnot _, _ -> -1
         | _, Lnot _ -> 1
-        | _ -> Ast.compare l r
+        | _ -> Stdlib.compare l r
       in
       let flat = Base.List.dedup_and_sort ~compare:compare_ast flat in
       match flat with
@@ -1718,6 +1726,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let in_re_rawi _ = failwith "not implemented"
     let rlen _ = failwith "not implemented"
     let unsupp _ = failwith "not implemented"
+    let unsupp_check _ = failwith "not implemented"
   end
   in
   (module struct
@@ -2291,6 +2300,7 @@ struct
   let pow = ( ++ )
   let prj = Fun.id
   let unsupp _ = empty
+  let unsupp_check _ = empty
 end
 
 module Collect_alpha :
@@ -2393,6 +2403,17 @@ let collect_regexes ast =
     []
     ast
   |> Map.of_alist_multi
+;;
+
+let collect_regexes2 ast =
+  let module Map = Base.Map.Poly in
+  Map.map
+    ~f:(fun data ->
+      List.fold_left
+        (fun acc nfa -> NfaS.intersect nfa acc)
+        (NfaCollection.LsbStr.n ())
+        data)
+    (collect_regexes ast)
 ;;
 
 let get_range () =
@@ -2748,15 +2769,7 @@ let under_str env alpha vars ast =
     else (
       let ( let* ) xs f = List.concat_map f xs in
       let envs =
-        let regexes =
-          Map.map
-            ~f:(fun data ->
-              List.fold_left
-                (fun acc nfa -> NfaS.intersect nfa acc)
-                (NfaCollection.LsbStr.n ())
-                data)
-            (collect_regexes ast)
-        in
+        let regexes = collect_regexes2 ast in
         let all_as name =
           let alpha =
             alpha
@@ -3013,10 +3026,146 @@ let theory_lemmas map =
   Ast.land_ (List.map Ast.lnot variants)
 ;;
 
-let arithmetize ast env =
+let unfold_neq ast =
+  let module Map = Base.Map.Poly in
+  let module NfaL = Nfa.Lsb (Nfa.Str) in
+  let module NfaCL = NfaCollection.LsbStr in
+  let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
+  let strlen_var s = String.concat "" [ "strlen"; s ] in
+  let strleni s = Ast.Eia.Len (Ast.Eia.Atom (Ast.Var (s, Ast.S))) in
+  let get_len v =
+    Ast.fold
+      (fun acc -> function
+         | Eia (Eq (Atom (Var (s, _)), Const c, I)) when s = strlen_var v -> Z.max c acc
+         | Eia (Eq (Const c, Atom (Var (s, _)), I)) when s = strlen_var v -> Z.max c acc
+         | Eia (Eq (Atom (Var (s, _)), Str_const c, S)) when s = v ->
+           Z.of_int (String.length c)
+         | Eia (Eq (Str_const c, Atom (Var (s, _)), S)) when s = v ->
+           Z.of_int (String.length c)
+         | _ -> acc)
+      Z.minus_one
+      ast
+    |> Z.to_int
+  in
+  (*let ast_if cond ast = if cond then ast else Ast.false_ in*)
+  let aux (f : string -> string -> Ast.t) =
+    Ast.map (function
+      | Ast.Eia
+          (Ast.Eia.Neq
+             ( Ast.Eia.Atom (Ast.Var (lhs, Ast.S))
+             , Ast.Eia.Atom (Ast.Var (rhs, Ast.S))
+             , Ast.S )) -> f lhs rhs
+      | ast -> ast)
+  in
+  (*let can_be_both_digit lhs rhs =
+    let lhs_re =
+      Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
+    in
+    let rhs_re =
+      Map.find regexes rhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
+    in
+    match lhs_re, rhs_re with
+    | Some lhs_re, Some rhs_re -> lhs_re |> NfaL.run && rhs_re |> NfaL.run
+    | Some re, None | None, Some re -> NfaL.run re
+    | None, None -> true
+  in*)
+  let asts =
+    ast
+    |> aux (fun lhs rhs ->
+      let ast1 = Ast.eia (Ast.Eia.neq (strleni lhs) (strleni rhs) Ast.I) in
+      let ast2 =
+        (*let ast =*)
+        Ast.land_
+          [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+          ; Ast.eia (Ast.Eia.neq (atomi lhs) (atomi rhs) Ast.I)
+          ]
+        (*in
+        ast_if (can_be_both_digit lhs rhs) ast*)
+      in
+      (* The third case: they are both non-digit strings of the same length; to_int is -1*)
+      let ast3 =
+        let post
+              (model : Model.t)
+              (orig_ast : Ast.t)
+              (check_sat : Ast.t -> [ `Sat | `Unknown ])
+          =
+          let regexes = collect_regexes2 orig_ast in
+          let lhs_re =
+            Map.find regexes lhs
+            |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
+            |> Option.value ~default:(NfaCL.n ())
+          in
+          let rhs_re =
+            Map.find regexes rhs
+            |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
+            |> Option.value ~default:(NfaCL.n ())
+          in
+          let length_check length =
+            if length > 0
+            then (
+              let w1 = NfaS.all_paths_of_len lhs_re length in
+              let w2 = NfaS.all_paths_of_len rhs_re length in
+              List.length w1 + List.length w2 > 2
+              || (List.length w1 = 1
+                  && List.length w2 = 1
+                  && List.nth w1 0 <> List.nth w2 0))
+            else lhs_re |> NfaS.run && rhs_re |> NfaS.run
+          in
+          if length_check (max (get_len lhs) (get_len rhs))
+          then `Sat
+          else begin
+            let model_ast =
+              Map.fold
+                ~f:(fun ~key ~data acc ->
+                  match data with
+                  | `Int d ->
+                    (*Ast.Eia.eq
+                      (Ast.Eia.atom (Ast.var key Ast.I))
+                      (Ast.Eia.const d)
+                      Ast.I
+                    :: *)
+                    acc
+                  | `Str s ->
+                    Ast.Eia.eq
+                      (strleni key)
+                      (Ast.Eia.const (String.length s |> Z.of_int))
+                      Ast.I
+                    :: acc)
+                ~init:[]
+                model
+              |> List.map Ast.eia
+              |> Ast.land_
+            in
+            let ast =
+              Ast.land_
+                [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+                ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
+                ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+                ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
+                ; Ast.lnot model_ast
+                ; orig_ast
+                ]
+              |> Ast.to_dnf
+            in
+            if List.exists (fun ast -> check_sat ast = `Sat) ast then `Sat else `Unknown
+          end
+        in
+        Ast.land_
+          [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+          ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
+          ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+          ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
+          ; Id_symantics.unsupp_check post
+          ]
+      in
+      Ast.lor_ [ ast1; ast2; ast3 ])
+  in
+  asts
+;;
+
+let arithmetize str_vars ast env =
   let module Set = Base.Set.Poly in
   assert (Ast.is_conjunct ast);
-  let str_vars = Ast.collect_str_vars ast in
   (*let exception StrVar_In_Arithmetize in*)
   let strlens s = String.concat "" [ "strlen"; s ] in
   let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
@@ -3316,7 +3465,6 @@ let arithmetize ast env =
       then Ast.false_
       else (
         log "Arithmetizing regex ... for variable %s" s;
-        Debug.dump_nfa ~msg:"for NFA %s" NfaS.format_nfa nfa;
         let strlens = strlens s in
         let csds =
           let is_eos vec =
@@ -3434,154 +3582,6 @@ let arithmetize ast env =
         | ast -> ast)
       ast
   in
-  let unfold_neq var_info ast regexes =
-    let strlen_var s = String.concat "" [ "strlen"; s ] in
-    let strleni s = Ast.Eia.Atom (Ast.Var (strlen_var s, Ast.I)) in
-    let get_len v =
-      Ast.fold
-        (fun acc -> function
-           | Eia (Eq (Atom (Var (s, _)), Const c, I)) when s = strlen_var v -> Z.max c acc
-           | Eia (Eq (Const c, Atom (Var (s, _)), I)) when s = strlen_var v -> Z.max c acc
-           | _ -> acc)
-        Z.minus_one
-        ast
-      |> Z.to_int
-    in
-    let ast_if cond ast = if cond then ast else Ast.false_ in
-    let aux (f : string -> string -> Ast.t) =
-      Ast.map (function
-        | Ast.Eia
-            (Ast.Eia.Neq
-               ( Ast.Eia.Atom (Ast.Var (lhs, Ast.S))
-               , Ast.Eia.Atom (Ast.Var (rhs, Ast.S))
-               , Ast.S )) -> f lhs rhs
-        | ast -> ast)
-    in
-    let can_be_both_digit lhs rhs =
-      let lhs_re =
-        Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
-      in
-      let rhs_re =
-        Map.find regexes rhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
-      in
-      match lhs_re, rhs_re with
-      | Some lhs_re, Some rhs_re -> lhs_re |> NfaL.run && rhs_re |> NfaL.run
-      | Some re, None | None, Some re -> NfaL.run re
-      | None, None -> true
-    in
-    let posts = ref Map.empty in
-    let asts =
-      ast
-      |> aux (fun lhs rhs ->
-        let ast1 = Ast.eia (Ast.Eia.neq (strleni lhs) (strleni rhs) Ast.I) in
-        let ast2 =
-          let ast =
-            Ast.land_
-              [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-              ; Ast.eia (Ast.Eia.neq (atomi lhs) (atomi rhs) Ast.I)
-              ]
-          in
-          ast_if (can_be_both_digit lhs rhs) ast
-        in
-        (* The third case: they are both non-digit strings of the same length; to_int is -1*)
-        let ast3 =
-          let lhs_re =
-            Map.find regexes lhs
-            |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
-            |> Option.value ~default:(NfaCL.n ())
-          in
-          let rhs_re =
-            Map.find regexes rhs
-            |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
-            |> Option.value ~default:(NfaCL.n ())
-          in
-          let length_check length =
-            if length > 0
-            then (
-              let w1 = NfaS.all_paths_of_len lhs_re length in
-              let w2 = NfaS.all_paths_of_len rhs_re length in
-              List.length w1 + List.length w2 > 2
-              || (List.length w1 = 1
-                  && List.length w2 = 1
-                  && List.nth w1 0 <> List.nth w2 0))
-            else lhs_re |> NfaS.run && rhs_re |> NfaS.run
-          in
-          let constr = gensym ~prefix:"%under_distinct_3" () in
-          let post
-                (model : Ir.model)
-                (orig_ast : Ast.t)
-                (check_sat : Ast.t -> [ `Sat | `Unknown ])
-            =
-            if length_check (max (get_len lhs) (get_len rhs))
-            then `Sat
-            else begin
-              let model_ast =
-                Map.fold
-                  ~f:(fun ~key ~data acc ->
-                    let key =
-                      match key with
-                      | Ir.Var key -> key
-                      | _ -> assert false
-                    in
-                    match data with
-                    | `Int d ->
-                      (*Ast.Eia.eq
-                        (Ast.Eia.atom (Ast.var key Ast.I))
-                        (Ast.Eia.const d)
-                        Ast.I
-                      :: *)
-                      acc
-                    | `Str s ->
-                      Ast.Eia.eq
-                        (strleni key)
-                        (Ast.Eia.const (String.length s |> Z.of_int))
-                        Ast.I
-                      :: acc)
-                  ~init:[]
-                  model
-                |> List.map Ast.eia
-                |> Ast.land_
-              in
-              let ast =
-                Ast.land_
-                  [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-                  ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
-                  ; Ast.eia
-                      (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
-                  ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
-                  ; Ast.lnot model_ast
-                  ; orig_ast
-                  ]
-                |> Ast.to_dnf
-              in
-              if List.exists (fun ast -> check_sat ast = `Sat) ast then `Sat else `Unknown
-            end
-          in
-          posts := Map.add_exn !posts ~key:constr ~data:post;
-          Ast.land_
-            [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-            ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
-            ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
-            ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
-            ; Ast.Unsupp constr
-            ]
-        in
-        Ast.lor_ [ ast1; ast2; ast3 ])
-    in
-    asts
-    |> fun ast ->
-    let posts' = ref [] in
-    let ast =
-      Ast.map
-        (function
-          | Unsupp s when Map.mem !posts s ->
-            posts' := Map.find_exn !posts s :: !posts';
-            Ast.true_
-          | ast -> ast)
-        ast
-    in
-    ast, !posts'
-  in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   let alpha = alpha_with_extra_char ast in
   let (module Symantics) = make_main_symantics ~alpha env in
@@ -3593,7 +3593,7 @@ let arithmetize ast env =
     |> fold_regexes
   in
   asts_n_regexes
-  |> (fun (ast, regexes) ->
+  |> fun (ast, regexes) ->
   arithmetize var_info ast
   |> fun ast' ->
   let ast', regexes' = fold_regexes_i ast' in
@@ -3606,9 +3606,16 @@ let arithmetize ast env =
       regexes
       regexes'
   in
-  ast', regexes)
-  |> fun (a, b) -> unfold_neq var_info a b |> fun (a, a') -> a, env, a', b
+  ast', env, regexes
 ;;
+
+(*|> fun (a, b) -> 
+
+        (log "BEFORE UNFOLDED %a\n%!" Ast.pp_smtlib2 a);
+      unfold_neq var_info a b |> fun (a, a') -> 
+
+        (log "UNFOLDED %a\n%!" Ast.pp_smtlib2 a);
+      a, env, a', b*)
 
 (* let distribute xs =
   let open Ast in

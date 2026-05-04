@@ -590,7 +590,8 @@ let ir_of_ast env ast =
            eia
        with
        | Unsupported_constraint s -> return (Ir.Unsupp s))
-    | Unsupp s -> return (Ir.Unsupp s)
+    | Unsupp (`Msg s) -> return (Ir.Unsupp s)
+    | Unsupp (`Check _) -> return Ir.true_
     | Pred s -> failf "Unexpected %s" s
   in
   (*let ast =

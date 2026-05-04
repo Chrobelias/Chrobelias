@@ -49,7 +49,7 @@ val extend_cstrt_exn : t -> key:'a Ast.atom -> 'a Ast.Eia.term -> t
 val pp : ?title:string -> Format.formatter -> t -> unit
 val to_eqs : t -> Ast.t list
 val enrich : t -> (Ast.any_atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
-val enrich2 : t -> (Ir.atom, [ `Int of Z.t | `Str of string ]) Base.Map.Poly.t -> t
+val enrich2 : t -> Model.t -> t
 val occurs_var : t -> string -> 'a Ast.Eia.term -> bool
 val walk : t -> 'a Ast.Eia.term -> 'a Ast.Eia.term
 

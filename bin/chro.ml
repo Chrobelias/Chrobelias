@@ -26,8 +26,7 @@ let () =
 type sat_supp =
   Lib.Ast.t
   * Lib.Env.t
-  * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
-     -> (Lib.Ir.model, [ `Too_long | `No_model ]) Result.t)
+  * (Lib.Model.tys -> (Lib.Model.t, [ `Too_long | `No_model ]) Result.t)
   * (string, Lib.Nfa.Lsb(Lib.Nfa.Str).u) Base.Map.Poly.t
 
 type rez =
@@ -62,13 +61,7 @@ let lift desc ast = function
   | `Unknown (ast, e) -> unknown ast e
 ;;
 
-let logBaseZ n =
-  let base = Lib.Config.base () in
-  let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base) in
-  helper Z.minus_one n
-;;
-
-let join_int_model _tys prefix m =
+let join_int_model prefix m =
   let open Lib in
   (* Format.printf
     "prefix.length = %d, n.length = %d\n%!"
@@ -78,9 +71,7 @@ let join_int_model _tys prefix m =
   Format.printf "MODEL %a\n%!" Ir.pp_model_smtlib2 m;*)
   let prefix =
     let shrink_ir_model =
-      Base.Map.Poly.map_keys_exn m ~f:(function
-        | Ir.Var s -> Ast.Any_atom (Ast.var s Ast.I)
-        | Ir.Pow2 _ -> assert false)
+      Base.Map.Poly.map_keys_exn m ~f:(fun s -> Ast.Any_atom (Ast.var s Ast.I))
     in
     Env.enrich prefix shrink_ir_model
   in
@@ -146,7 +137,7 @@ let join_int_model _tys prefix m =
   in
   Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
     match seek prefix key with
-    | Some value -> Map.set acc ~key:(Ir.var key) ~data:value
+    | Some value -> Map.set acc ~key ~data:value
     | None -> acc)
 ;;
 
@@ -154,33 +145,18 @@ exception Too_long_model
 exception Lics_Underapprox_unsuccessful
 
 let rec model_from_parts_regexes_env tys model regexes env' =
-  let model =
-    model
-    |> Map.mapi ~f:(fun ~key ~data ->
-      match data with
-      | `Str str -> `Str str
-      | `Int eia -> begin
-        match key with
-        | Lib.Ir.Var _ -> data
-        | Pow2 _ -> `Int (logBaseZ eia)
-      end)
-    |> Map.map_keys_exn ~f:(function
-      | Lib.Ir.Var _ as v -> v
-      | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
-  in
-  let model = join_int_model tys env' model in
+  let model = join_int_model env' model in
   (*New code goes here *)
-  let var = Lib.Ir.var in
   let raw_model = model in
   let prefix = "strlen" in
   let prefix_len = String.length prefix in
   let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
   let module NfaC = Lib.NfaCollection in
-  let aux raw_model =
+  let aux (raw_model : Lib.Model.t) : Lib.Model.t =
     Map.to_alist raw_model
     |> List.filter_map (fun (key, data) ->
       match key with
-      | Lib.Ir.Var key when String.starts_with ~prefix key ->
+      | key when String.starts_with ~prefix key ->
         let real_var = String.sub key prefix_len (String.length key - prefix_len) in
         let data =
           match data with
@@ -192,7 +168,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
               | Z.Overflow -> raise Too_long_model)
           | _ -> assert false
         in
-        begin if not (Map.mem raw_model (var real_var))
+        begin if not (Map.mem raw_model real_var)
         then
           if Map.mem regexes real_var
           then (
@@ -202,16 +178,16 @@ let rec model_from_parts_regexes_env tys model regexes env' =
               NfaS.path_of_len2 ~var:0 ~len:data nfa
               |> Option.value ~default:(List.init data (fun _ -> '0'))
             in
-            Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
-          else Some (var real_var, `Str (String.init data (fun _ -> '0')))
+            Some (real_var, `Str (List.to_seq path |> String.of_seq)))
+          else Some (real_var, `Str (String.init data (fun _ -> '0')))
         else None
         end
-      | Lib.Ir.Var key ->
+      | key ->
         let data' =
           match data with
           | `Str c -> `Str c
           | `Int d ->
-            (match Map.find tys (Lib.Ir.Var key) with
+            (match Map.find tys key with
              | Some `Str -> `Str (Z.to_string d)
              | Some `Int | None -> `Int d)
         in
@@ -220,7 +196,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
           | `Str str ->
             let len_var = String.concat "" [ prefix; key ] in
             let len =
-              match Map.find raw_model (var len_var) with
+              match Map.find raw_model len_var with
               | Some (`Int len) -> Z.to_int len
               | _ -> String.length str
             in
@@ -237,8 +213,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
             `Str str
           | `Int d -> `Int d
         in
-        Some (var key, result)
-      | _ -> Some (key, data))
+        Some (key, result))
     |> Map.of_alist_exn
   in
   let real_model = aux raw_model in
@@ -247,14 +222,9 @@ let rec model_from_parts_regexes_env tys model regexes env' =
   let real_model =
     Map.fold
       ~f:(fun ~key ~data acc ->
-        let key' =
-          match key with
-          | Lib.Ir.Var key -> key
-          | _ -> assert false
-        in
         if Map.mem acc key
         then acc
-        else if Lib.Env.is_absent_key key' env
+        else if Lib.Env.is_absent_key key env
         then (
           match data with
           | `Int -> Map.add_exn acc ~key ~data:(`Int Z.zero)
@@ -274,18 +244,10 @@ let calculate_model tys model regexes env =
     try model_from_parts_regexes_env tys model regexes env with
     | _ -> raise Too_long_model
   in
-  let real_model =
-    Map.filteri
-      ~f:(fun ~key ~data:_ ->
-        match key with
-        | Var v when String.starts_with ~prefix:"%" v -> false
-        | _ -> true)
-      real_model
-  in
   real_model
 ;;
 
-let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+let print_model model = Format.printf "%s\n%!" (Lib.Model.to_string model)
 
 let report_result ?(verbose = false) rez =
   let check_answer () =
@@ -346,7 +308,12 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
     let th_map, bool_map = ref Map.empty, ref Map.empty in
     let to_bool_skeleton ?allow_new ast =
       let eia_to_bool ?allow_new eia =
-        let eia = Lib.SimplII.normalize eia in
+        let eia =
+          match eia with
+          | Lib.Ast.Eia eia -> Lib.Ast.Eia (Lib.SimplII.normalize eia)
+          | Unsupp _ as ast -> ast
+          | _ -> assert false
+        in
         match Map.find !th_map eia with
         | Some (var, t) -> get_literal var t
         | None when allow_new |> Option.value ~default:false ->
@@ -355,13 +322,13 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
            | None ->
              let s = bool_internal_name () in
              th_map := Map.add_exn !th_map ~key:eia ~data:(Ast.pred s, Literal_type.P);
-             (match Ast.lnot (Ast.eia eia) with
+             (match Ast.lnot eia with
               | Eia eia ->
                 th_map
                 := (match
                       Map.add
                         !th_map
-                        ~key:(Lib.SimplII.normalize eia)
+                        ~key:(Lib.Ast.Eia (Lib.SimplII.normalize eia))
                         ~data:(Ast.pred s, Literal_type.N)
                     with
                      | `Ok th_map -> th_map
@@ -373,17 +340,18 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
           failwith
             (Format.asprintf
                "Unexpected state: unable to find predicate for %a, available keys: %a"
-               Ast.Eia.pp
+               Ast.pp_smtlib2
                eia
-               (Format.pp_print_list Ast.Eia.pp)
+               (Format.pp_print_list Ast.pp_smtlib2)
                (Map.keys !th_map))
       in
       try
         Ast.map
           (function
+            | Eia _ as ast -> eia_to_bool ?allow_new ast
+            | Unsupp (`Check _) as ast -> eia_to_bool ?allow_new ast
             | (True | Land _ | Lnot _ | Lor _ | Exists _ | Pred _ | Unsupp _) as ast ->
-              ast
-            | Eia eia -> eia_to_bool ?allow_new eia)
+              ast)
           ast
       with
       | expr ->
@@ -416,9 +384,8 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
       Hashtbl.fold
         (fun sym value acc ->
            match value with
-           | Smtml.Value.True -> Ast.eia (bool_to_eia (Lib.Fe.sym_to_pred sym)) :: acc
-           | Smtml.Value.False ->
-             Ast.lnot (Ast.eia (bool_to_eia (Lib.Fe.sym_to_pred sym))) :: acc
+           | Smtml.Value.True -> bool_to_eia (Lib.Fe.sym_to_pred sym) :: acc
+           | Smtml.Value.False -> Ast.lnot (bool_to_eia (Lib.Fe.sym_to_pred sym)) :: acc
            | _ -> acc)
         z3_model
         []
@@ -473,7 +440,7 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
         [ assumptions
         ; Lib.SimplII.theory_lemmas
             (Map.filter_map
-               (Map.map_keys_exn !th_map ~f:(fun key -> Ast.eia key))
+               (Map.map_keys_exn !th_map ~f:(fun key -> key))
                ~f:(fun (eia, t) ->
                  match t with
                  | Literal_type.P -> Some eia
@@ -485,7 +452,7 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
       (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
 ;;
 
-let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
+let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast : rez =
   let __ () =
     if config.stop_after = `Pre_simplify
     then (
@@ -608,8 +575,7 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
           log "Looking for SAT in %d asts..." (List.length asts);
           let exception
             Sat_found of
-              ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
-               -> (Lib.Ir.model, [ `Too_long | `No_model ]) Result.t)
+              (Lib.Model.tys -> (Lib.Model.t, [ `Too_long | `No_model ]) Result.t)
           in
           (try
              let f ast =
@@ -652,6 +618,7 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
   in
   let check_string_sat ?(light = false) env ast =
     let open Lib.Ast in
+    let can_be_unk = ref false in
     (* let in_stoi_or_concat v = in_stoi v ast || in_concat v ast in *)
     let split_vars =
       let non_num var =
@@ -669,20 +636,31 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
       "These atomic formulas are unsupported: %a\n%!"
       (Format.pp_print_list Lib.Ast.pp_smtlib2)
       unsupported_atomic_formulas;
-    let ast = land_ (Lib.SimplII.split_concats ast :: split_vars) in
+    let ast =
+      land_ (Lib.SimplII.unfold_neq (Lib.SimplII.split_concats ast) :: split_vars)
+    in
     log "After string approximations: %a\n%!" pp_smtlib2 ast;
     if config.stop_after == `Pre_dpll
     then unknown ast Lib.Env.empty
     else (
       let arithmetize_and_check ?(light = false) env ast =
+        let str_vars = Lib.Ast.collect_str_vars ast in
         match Lib.SimplII.run_basic_simplify ~env ast with
         | `Sat env -> sat "presimpl str" ast ~env
         | `Unsat ast -> unsat "presimpl str" ast
         | `Unknown (ast, env) ->
-          let ast, e, post, regexes = Lib.SimplII.arithmetize ast env in
+          let ast, e, regexes = Lib.SimplII.arithmetize str_vars ast env in
           log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
           (match check_eia_sat ~light ast e with
            | Sat (s, (ast, env, get_model, _)) -> begin
+             let post =
+               Lib.Ast.fold
+                 (fun acc -> function
+                    | Unsupp (`Check p) -> p :: acc
+                    | _ -> acc)
+                 []
+                 ast
+             in
              let env = Lib.Env.merge_exn env e in
              let result = Sat (s, (ast, env, get_model, regexes)) in
              if List.is_empty post
@@ -690,7 +668,7 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
              else (
                match get_model tys with
                | Result.Ok model ->
-                 let model = model_from_parts_regexes_env tys model regexes env in
+                 (*let model = model_from_parts_regexes_env tys model regexes env in*)
                  begin if
                    List.for_all
                      (fun post ->
@@ -704,16 +682,21 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
                         | `Unknown -> false)
                      post
                  then result
-                 else unknown ast Lib.Env.empty
+                 else (
+                   can_be_unk := true;
+                   unknown ast Lib.Env.empty)
                  end
-               | Result.Error _ -> unknown ast Lib.Env.empty)
+               | Result.Error _ ->
+                 can_be_unk := true;
+                 unknown ast Lib.Env.empty)
            end
            | other -> other)
       in
       match dpll (arithmetize_and_check ~light env) ~verbose:false ~light ast with
       | Sat _ as rez -> rez
       | Unknown _ as rez -> rez
-      | Unsat _ as rez when unsupported_atomic_formulas |> List.is_empty -> rez
+      | Unsat _ as rez
+        when unsupported_atomic_formulas |> List.is_empty && not !can_be_unk -> rez
       | Unsat (_reason, ast) ->
         report_result
           (`Unknown
@@ -811,20 +794,11 @@ let rec check_sat ?(verbose = false) ?(light = false) tys ast : rez =
     else raise s
 ;;
 
-let check_model
-      tys
-      (ast : Lib.Ast.t)
-      (model : (Lib.Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t)
-  =
+let check_model tys (ast : Lib.Ast.t) (model : Lib.Model.t) =
   let ast =
     Map.fold
       ~init:ast
       ~f:(fun ~key ~data ast ->
-        let key =
-          match key with
-          | Lib.Ir.Var s -> s
-          | _ -> assert false
-        in
         let open Lib.Ast in
         let ast' =
           match data with
@@ -851,7 +825,7 @@ type state =
   { asserts : Lib.Ast.t list
   ; prev : state option (* TODO: where is the stack? *)
   ; last_result : rez option
-  ; tys : (Lib.Ir.atom, [ `Str | `Int ]) Map.t
+  ; tys : Lib.Model.tys
   }
 
 let () =
@@ -866,7 +840,7 @@ let () =
   let exec ({ prev; _ } as state) = function
     | Smtml.Ast.Declare_const { id; sort; _ }
     | Smtml.Ast.Declare_fun { id; sort; args = [] } ->
-      let id = Lib.Ir.var (Smtml.Symbol.to_string id) in
+      let id = Smtml.Symbol.to_string id in
       let sort = Smtml.Symbol.to_string sort in
       let tys =
         match sort with
@@ -951,20 +925,19 @@ let () =
               in
               log "model is TOO big after %d attempt\n%!" attempt;
               let shrinked_ast =
-                Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
-                  match key, data with
-                  | Lib.Ir.Var v, `Str ->
+                Map.fold ~init:[ ast ] state.tys ~f:(fun ~key:v ~data acc ->
+                  match data with
+                  | `Str ->
                     Lib.Ast.(
                       eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int len))))
                     :: acc
-                  | Lib.Ir.Var v, `Int ->
+                  | `Int ->
                     Lib.Ast.(
                       eia
                         (Eia.leq
                            (Atom (Var (v, I)))
                            (Const Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ())))))
-                    :: acc
-                  | _ -> acc)
+                    :: acc)
                 |> Lib.Ast.land_
               in
               log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
@@ -976,7 +949,7 @@ let () =
                   (* let tys = merge_tys state in *)
                     (match get_model tys with
                      | Result.Ok model ->
-                       let model = join_int_model tys env model in
+                       let model = join_int_model env model in
                        let model = calculate_model tys model regexes env in
                        print_model model;
                        if Lib.Config.config.check_model

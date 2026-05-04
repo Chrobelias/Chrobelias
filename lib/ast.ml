@@ -582,8 +582,10 @@ type t =
   | Lor of t list
   | Exists of any_atom list * t
   | Pred of string
-  | Unsupp of string
-[@@deriving compare]
+  | Unsupp of
+      [ `Msg of string
+      | `Check of Model.t -> t -> (t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ]
+      ]
 
 let true_ = True
 
@@ -695,7 +697,8 @@ let rec pp ppf = function
       pp
       b
   | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
-  | Unsupp s -> Format.fprintf ppf "%s" s
+  | Unsupp (`Msg s) -> Format.fprintf ppf "%s" s
+  | Unsupp (`Check _) -> Format.fprintf ppf "post check"
 ;;
 
 let pp_smtlib2 =
@@ -729,7 +732,8 @@ let pp_smtlib2 =
         pp
         b
     | Eia eia -> fprintf ppf "%a" Eia.pp eia
-    | Unsupp s -> fprintf ppf "%s" s
+    | Unsupp (`Msg s) -> fprintf ppf "(unsupp: %s)" s
+    | Unsupp (`Check _) -> Format.fprintf ppf "(unsupp: post check)"
   in
   pp
 ;;

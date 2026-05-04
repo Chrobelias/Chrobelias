@@ -23,14 +23,13 @@ val simpl
 
 val split_concats : Ast.t -> Ast.t
 val extract_and_filter_unsupported_atomic_formulas : Ast.t -> Ast.t * Ast.t list
+val unfold_neq : Ast.t -> Ast.t
 
 val arithmetize
-  :  Ast.t
-  -> Env.t
+  :  string list
   -> Ast.t
-     * Env.t
-     * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ]) list
-     * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t
+  -> Env.t
+  -> Ast.t * Env.t * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t
 
 val normalize : Ast.Eia.t -> Ast.Eia.t
 

@@ -266,7 +266,7 @@ and to_ast tys orig_expr : Ast.t =
       match Expr.view expr with
       | Expr.Symbol symbol ->
         Option.bind
-          (Base.Map.Poly.find tys (Ir.var (Symbol.to_string symbol)))
+          (Base.Map.Poly.find tys (Symbol.to_string symbol))
           (function
             | `Str -> Option.some true
             | _ -> Option.none)
@@ -483,7 +483,7 @@ and to_ast tys orig_expr : Ast.t =
     end
     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
   with
-  | UnsupportedException m -> Ast.Unsupp m
+  | UnsupportedException m -> Ast.Unsupp (`Msg m)
 ;;
 
 let to_ast a b =
