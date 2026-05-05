@@ -1411,21 +1411,26 @@ let find_vars_for_under2s ast =
   let module S = Base.Set.Poly in
   let open Ast.Eia in
   let fz = fun acc _ -> acc in
-  let fs_left : string S.t -> string Ast.Eia.term -> _ =
-    fun acc ->
-    fun c ->
-    match c with
-    | Concat xs when Ast.Eia.is_concat_nontrivial xs ->
-      let vars =
-        List.filter_map
-          (function
-            | Atom (Var (s, S)) when not (String.starts_with ~prefix:"%" s) ->
-              Option.some s
-            | _ -> Option.none)
-          xs
-      in
-      S.union acc (S.of_list vars)
-    | t -> acc
+  let fs : bool -> string S.t -> string Ast.Eia.term -> _ =
+    let reverse_if = fun x -> if x then List.rev else Fun.id in
+    let remove_head = function
+      | Atom (Var (_, S)) :: xs -> xs
+      | Const _ :: Atom (Var (_, S)) :: xs -> xs
+      | _ -> []
+    in
+    fun is_left acc -> function
+      | Concat xs when Ast.Eia.is_concat_nontrivial xs ->
+        let xs = xs |> reverse_if is_left |> remove_head in
+        let vars =
+          List.filter_map
+            (function
+              | Atom (Var (s, S)) when not (String.starts_with ~prefix:"%" s) ->
+                Option.some s
+              | _ -> Option.none)
+            xs
+        in
+        S.union acc (S.of_list vars)
+      | t -> acc
   in
   let collect fs ast =
     Ast.fold
@@ -1440,7 +1445,7 @@ let find_vars_for_under2s ast =
       S.empty
       ast
   in
-  collect fs_left ast
+  collect (fs true) ast, collect (fs false) ast
 ;;
 
 let find_vars_for_under2 ast =
@@ -2981,11 +2986,11 @@ let run_string_simplify ast =
         |> Utils.powerset
         |> List.fast_sort (fun x y -> List.length x - List.length y)
         |> List.map Set.of_list
-      else ast' |> find_vars_for_under2s |> fun x -> [ x ]
+      else ast' |> find_vars_for_under2s |> fun (x, y) -> [ x; y ]
     in
     let vars = List.rev vars in
     let alpha = collect_alpha ast' in
-    let approxed_asts = ast' |> under_str e (Utils.with_extra_char alpha) vars in
+    let approxed_asts = ast |> under_str e (Utils.with_extra_char alpha) vars in
     let var_info = apply_symantics (module Who_in_exponents) ast' in
     (* log "After rewriting via concats:\n%!"; *)
       (match
