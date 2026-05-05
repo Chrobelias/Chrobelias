@@ -264,7 +264,7 @@ let report_result ?(verbose = false) rez =
     | `Sat _, Some `Unsat ->
       Printf.eprintf "(error: check annotation that says 'unsat')\n%!"
   in
-  let () = if Lib.Debug.flag () then () else check_answer () in
+  let () = if Lib.Debug.flag () || not verbose then () else check_answer () in
   if verbose
   then (
     match rez with
@@ -620,6 +620,7 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
     let open Lib.Ast in
     let can_be_unk = ref false in
     (* let in_stoi_or_concat v = in_stoi v ast || in_concat v ast in *)
+    let ast = Lib.SimplII.unfold_neq ast in
     let split_vars =
       let non_num var =
         eia (Eia.leq (Eia.iofs (Eia.Atom (Lib.Ast.var var S))) (Const Z.minus_one))
@@ -636,9 +637,7 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
       "These atomic formulas are unsupported: %a\n%!"
       (Format.pp_print_list Lib.Ast.pp_smtlib2)
       unsupported_atomic_formulas;
-    let ast =
-      land_ (Lib.SimplII.unfold_neq (Lib.SimplII.split_concats ast) :: split_vars)
-    in
+    let ast = land_ (Lib.SimplII.split_concats ast :: split_vars) in
     log "After string approximations: %a\n%!" pp_smtlib2 ast;
     if config.stop_after == `Pre_dpll
     then unknown ast Lib.Env.empty
@@ -649,48 +648,65 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
         | `Sat env -> sat "presimpl str" ast ~env
         | `Unsat ast -> unsat "presimpl str" ast
         | `Unknown (ast, env) ->
-          let ast, e, regexes = Lib.SimplII.arithmetize str_vars ast env in
-          log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
-          (match check_eia_sat ~light ast e with
-           | Sat (s, (ast, env, get_model, _)) -> begin
-             let post =
-               Lib.Ast.fold
-                 (fun acc -> function
-                    | Unsupp (`Check p) -> p :: acc
-                    | _ -> acc)
-                 []
-                 ast
-             in
-             let env = Lib.Env.merge_exn env e in
-             let result = Sat (s, (ast, env, get_model, regexes)) in
-             if List.is_empty post
-             then result
-             else (
-               match get_model tys with
-               | Result.Ok model ->
-                 (*let model = model_from_parts_regexes_env tys model regexes env in*)
-                 begin if
-                   List.for_all
-                     (fun post ->
-                        match
-                          post model ast (fun ast ->
-                            match (check_sat tys) ast with
-                            | Sat _ -> `Sat
-                            | _ -> `Unknown)
-                        with
-                        | `Sat -> true
-                        | `Unknown -> false)
-                     post
-                 then result
-                 else (
-                   can_be_unk := true;
-                   unknown ast Lib.Env.empty)
-                 end
-               | Result.Error _ ->
-                 can_be_unk := true;
-                 unknown ast Lib.Env.empty)
-           end
-           | other -> other)
+          let arithmetized_asts = Lib.SimplII.arithmetize str_vars ast env in
+          log "Arithmetization gave %d asts\n" (List.length arithmetized_asts);
+          List.fold_left
+            (fun acc (ast, e, regexes) ->
+               log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+               match acc with
+               | Sat _ as rez -> rez
+               | Unknown _ | Unsat _ ->
+                 let unsat_or_unknown rez =
+                   match acc with
+                   | Sat _ -> assert false
+                   | Unknown _ as rez -> rez
+                   | Unsat _ -> rez
+                 in
+                 (match check_eia_sat ~light ast e with
+                  | Sat (s, (ast, env, get_model, _)) -> begin
+                    let post =
+                      Lib.Ast.fold
+                        (fun acc -> function
+                           | Unsupp (`Check p) -> p :: acc
+                           | _ -> acc)
+                        []
+                        ast
+                    in
+                    let env = Lib.Env.merge_exn env e in
+                    let result = Sat (s, (ast, env, get_model, regexes)) in
+                    if List.is_empty post
+                    then result
+                    else (
+                      match get_model tys with
+                      | Result.Ok model ->
+                        (*let model = model_from_parts_regexes_env tys model regexes env in*)
+                        begin if
+                          List.for_all
+                            (fun post ->
+                               match
+                                 post model ast (fun ast ->
+                                   match (check_sat tys) ast with
+                                   | Sat _ -> `Sat
+                                   | _ ->
+                                     Format.printf "POST CHECK FAILED\n%!";
+                                     `Unknown)
+                               with
+                               | `Sat -> true
+                               | `Unknown -> false)
+                            post
+                        then result
+                        else (
+                          can_be_unk := true;
+                          unknown ast Lib.Env.empty)
+                        end
+                      | Result.Error _ ->
+                        can_be_unk := true;
+                        unknown ast Lib.Env.empty)
+                  end
+                  | Unknown _ as rez -> rez
+                  | Unsat _ as rez -> unsat_or_unknown rez))
+            (Unsat ("", ast))
+            arithmetized_asts
       in
       match dpll (arithmetize_and_check ~light env) ~verbose:false ~light ast with
       | Sat _ as rez -> rez

@@ -29,7 +29,7 @@ val arithmetize
   :  string list
   -> Ast.t
   -> Env.t
-  -> Ast.t * Env.t * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t
+  -> (Ast.t * Env.t * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t) list
 
 val normalize : Ast.Eia.t -> Ast.Eia.t
 

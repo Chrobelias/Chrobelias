@@ -3035,7 +3035,8 @@ let unfold_neq ast =
   let module Map = Base.Map.Poly in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module NfaCL = NfaCollection.LsbStr in
-  let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
+  let atoms v = Ast.Eia.Atom (Ast.Var (v, Ast.S)) in
+  let stoi v = Ast.Eia.Iofs (atoms v) in
   let strlen_var s = String.concat "" [ "strlen"; s ] in
   let strleni s = Ast.Eia.Len (Ast.Eia.Atom (Ast.Var (s, Ast.S))) in
   let get_len v =
@@ -3082,7 +3083,7 @@ let unfold_neq ast =
         (*let ast =*)
         Ast.land_
           [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-          ; Ast.eia (Ast.Eia.neq (atomi lhs) (atomi rhs) Ast.I)
+          ; Ast.eia (Ast.Eia.neq (stoi lhs) (stoi rhs) Ast.I)
           ]
         (*in
         ast_if (can_be_both_digit lhs rhs) ast*)
@@ -3144,8 +3145,8 @@ let unfold_neq ast =
             let ast =
               Ast.land_
                 [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-                ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
-                ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+                ; Ast.eia (Ast.Eia.eq (stoi lhs) (stoi rhs) Ast.I)
+                ; Ast.eia (Ast.Eia.eq (stoi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
                 ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
                 ; Ast.lnot model_ast
                 ; orig_ast
@@ -3157,8 +3158,8 @@ let unfold_neq ast =
         in
         Ast.land_
           [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-          ; Ast.eia (Ast.Eia.eq (atomi lhs) (atomi rhs) Ast.I)
-          ; Ast.eia (Ast.Eia.eq (atomi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+          ; Ast.eia (Ast.Eia.eq (stoi lhs) (stoi rhs) Ast.I)
+          ; Ast.eia (Ast.Eia.eq (stoi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
           ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
           ; Id_symantics.unsupp_check post
           ]
@@ -3498,7 +3499,9 @@ let arithmetize str_vars ast env =
         |> List.of_seq
         |> Ast.lor_)
     in
-    let rec arithmetize_conj str_vars : Ast.t -> Ast.t = function
+    let rec arithmetize_conj str_vars : Ast.t -> Ast.t =
+      fun ast ->
+      match ast with
       | Ast.Land xs -> Ast.land_ (List.map (fun x -> arithmetize_conj str_vars x) xs)
       | Ast.Eia (Leq (lhs, rhs)) ->
         let lhs', lhs_phs = arithmetize_term str_vars lhs in
@@ -3592,27 +3595,29 @@ let arithmetize str_vars ast env =
   let (module Symantics) = make_main_symantics ~alpha env in
   let asts_n_regexes =
     ast
-    (*|> split_concats var_info*)
-    (*|> Ast.to_dnf*)
-    (*|> List.map *) |> apply_symantics (module Symantics)
-    |> fold_regexes
+    |> split_concats
+    |> Ast.to_dnf
+    |> List.map (fun ast -> ast |> apply_symantics (module Symantics) |> fold_regexes)
   in
   asts_n_regexes
-  |> fun (ast, regexes) ->
-  arithmetize var_info ast
-  |> fun ast' ->
-  let ast', regexes' = fold_regexes_i ast' in
-  let regexes =
-    Map.merge
-      ~f:(fun ~key -> function
-         | `Left v -> Some v
-         | `Right v -> Some v
-         | `Both (v, v') -> Some (NfaS.intersect v v'))
-      regexes
-      regexes'
-  in
-  ast', env, regexes
+  |> List.concat_map (fun (ast, regexes) ->
+    arithmetize var_info ast
+    |> Ast.to_dnf
+    |> List.map (fun ast' ->
+      let ast', regexes' = fold_regexes_i ast' in
+      let regexes =
+        Map.merge
+          ~f:(fun ~key -> function
+             | `Left v -> Some v
+             | `Right v -> Some v
+             | `Both (v, v') -> Some (NfaS.intersect v v'))
+          regexes
+          regexes'
+      in
+      ast', env, regexes))
 ;;
+
+(*|> split_concats var_info*)
 
 (*|> fun (a, b) -> 
 
