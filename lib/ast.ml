@@ -584,7 +584,12 @@ type t =
   | Pred of string
   | Unsupp of
       [ `Msg of string
-      | `Check of Model.t -> t -> (t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ]
+      | `Check of
+          Model.t
+          -> t
+          -> (string, NfaCollection.LsbStr.t) Map.t
+          -> (t -> [ `Sat | `Unknown ])
+          -> [ `Sat | `Unknown ]
       ]
 
 let true_ = True

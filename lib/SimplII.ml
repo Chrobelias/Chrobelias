@@ -148,7 +148,11 @@ module type SYM0 = sig
   val unsupp : string -> ph
 
   val unsupp_check
-    :  (Model.t -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ])
+    :  (Model.t
+        -> Ast.t
+        -> (string, NfaCollection.LsbStr.t) Base.Map.Poly.t
+        -> (Ast.t -> [ `Sat | `Unknown ])
+        -> [ `Sat | `Unknown ])
     -> ph
 
   val pow_minus_one : term -> term
@@ -3037,22 +3041,7 @@ let unfold_neq ast =
   let module NfaCL = NfaCollection.LsbStr in
   let atoms v = Ast.Eia.Atom (Ast.Var (v, Ast.S)) in
   let stoi v = Ast.Eia.Iofs (atoms v) in
-  let strlen_var s = String.concat "" [ "strlen"; s ] in
   let strleni s = Ast.Eia.Len (Ast.Eia.Atom (Ast.Var (s, Ast.S))) in
-  let get_len v =
-    Ast.fold
-      (fun acc -> function
-         | Eia (Eq (Atom (Var (s, _)), Const c, I)) when s = strlen_var v -> Z.max c acc
-         | Eia (Eq (Const c, Atom (Var (s, _)), I)) when s = strlen_var v -> Z.max c acc
-         | Eia (Eq (Atom (Var (s, _)), Str_const c, S)) when s = v ->
-           Z.of_int (String.length c)
-         | Eia (Eq (Str_const c, Atom (Var (s, _)), S)) when s = v ->
-           Z.of_int (String.length c)
-         | _ -> acc)
-      Z.minus_one
-      ast
-    |> Z.to_int
-  in
   (*let ast_if cond ast = if cond then ast else Ast.false_ in*)
   let aux (f : string -> string -> Ast.t) =
     Ast.map (function
@@ -3093,9 +3082,15 @@ let unfold_neq ast =
         let post
               (model : Model.t)
               (orig_ast : Ast.t)
+              (regexes : (string, NfaCL.t) Map.t)
               (check_sat : Ast.t -> [ `Sat | `Unknown ])
           =
-          let regexes = collect_regexes2 orig_ast in
+          let get_len v =
+            match Map.find model v with
+            | Some (`Str v) -> String.length v
+            | Some (`Int v) -> assert false
+            | None -> 0
+          in
           let lhs_re =
             Map.find regexes lhs
             |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))

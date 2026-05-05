@@ -648,6 +648,7 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
         | `Sat env -> sat "presimpl str" ast ~env
         | `Unsat ast -> unsat "presimpl str" ast
         | `Unknown (ast, env) ->
+          let orig_ast = ast in
           let arithmetized_asts = Lib.SimplII.arithmetize str_vars ast env in
           log "Arithmetization gave %d asts\n" (List.length arithmetized_asts);
           List.fold_left
@@ -679,17 +680,15 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
                     else (
                       match get_model tys with
                       | Result.Ok model ->
-                        (*let model = model_from_parts_regexes_env tys model regexes env in*)
+                        let model = model_from_parts_regexes_env tys model regexes env in
                         begin if
                           List.for_all
                             (fun post ->
                                match
-                                 post model ast (fun ast ->
+                                 post model orig_ast regexes (fun ast ->
                                    match (check_sat tys) ast with
                                    | Sat _ -> `Sat
-                                   | _ ->
-                                     Format.printf "POST CHECK FAILED\n%!";
-                                     `Unknown)
+                                   | _ -> `Unknown)
                                with
                                | `Sat -> true
                                | `Unknown -> false)
