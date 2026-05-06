@@ -788,7 +788,7 @@ let debug_printfln ppf =
   else Format.ifprintf Format.std_formatter ppf
 ;;
 
-let get_states base asts =
+let get_states base extra asts =
   let open AstL in
   let open Lia in
   let name state = "state" ^ Int.to_string state in
@@ -802,13 +802,16 @@ let get_states base asts =
     match asts with
     | [] -> raise Exit
     | [ (ph, state) ] ->
-      land_ [ deparametrize base ph; eq state (const Z.one) ], var state
+      land_ [ extra; deparametrize base ph; eq state (const Z.one) ], var state
     | phs ->
       ( deparametrize
           base
           (land_
-             (lor_
-                (List.map (fun (ph, state) -> land_ [ ph; eq state (const Z.one) ]) phs)
+             (extra
+              :: lor_
+                   (List.map
+                      (fun (ph, state) -> land_ [ ph; eq state (const Z.one) ])
+                      phs)
               :: List.map (fun (_, state) -> bool_val state) phs))
       , add (List.map (fun (_, state) -> var state) asts) )
   in

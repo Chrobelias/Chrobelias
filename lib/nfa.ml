@@ -113,7 +113,7 @@ module type BasicL = sig
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 
-  val filter_states : bool array -> (t * state) list -> state list
+  val filter_states : bool array -> AstL.t -> (t * state) list -> state list
 end
 
 module type L = sig
@@ -301,7 +301,7 @@ module Bv = struct
     vec, mask
   ;;
 
-  let filter_states vistied =
+  let filter_states vistied _ =
     List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
   ;;
 
@@ -525,7 +525,7 @@ module StrBv = struct
     vec, mask
   ;;
 
-  let filter_states vistied =
+  let filter_states vistied _ =
     List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
   ;;
 
@@ -718,7 +718,7 @@ module Str = struct
     vec
   ;;
 
-  let filter_states vistied =
+  let filter_states vistied _ =
     List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
   ;;
 
@@ -760,12 +760,12 @@ module Par = struct
     |> SimplI.simplify_lia
   ;;
 
-  let filter_states visited =
+  let filter_states visited ph =
     fun transitions ->
     try
       transitions
       |> List.filter (fun (_, state) -> not visited.(state))
-      |> SimplI.get_states base
+      |> SimplI.get_states base ph
     with
     | Exit -> []
   ;;
@@ -1319,7 +1319,7 @@ module Parametric (Label : BasicL) = struct
     let transitions = nfa.transitions in
     let successors state =
       let transitions = Array.get transitions state in
-      let next without = transitions |> Label.filter_states without in
+      let next without = transitions |> Label.filter_states without nfa.extra in
       let rec succ without =
         match next without with
         | [] -> Seq.empty
@@ -1358,6 +1358,8 @@ module Parametric (Label : BasicL) = struct
     let start = Set.diff nfa.start start_final in
     let final = Set.diff nfa.final start_final in
     fprintf ppf "digraph {\n";
+    if Bool.not (AstL.equal nfa.extra AstL.true_)
+    then fprintf ppf "NodeL [label=\"%a\", shape=box];\n" AstL.pp_smtlib2 nfa.extra;
     fprintf ppf "node [shape=circle]\n";
     Set.iter final ~f:(fprintf ppf "\"%a\" [shape=doublecircle]\n" format_state);
     Set.iter start ~f:(fprintf ppf "\"%a\" [shape=octagon]\n" format_state);
@@ -1446,18 +1448,15 @@ module Parametric (Label : BasicL) = struct
     in
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
-    let nfa =
-      { final
-      ; start
-      ; transitions
-      ; deg
-      ; is_dfa
-      ; extra = AstL.land_ [ nfa1.extra; nfa2.extra ]
-      }
-      |> remove_unreachable_from_start
-      |> remove_unreachable_from_final
-    in
-    { nfa with extra = AstL.true_ }
+    { final
+    ; start
+    ; transitions
+    ; deg
+    ; is_dfa
+    ; extra = AstL.land_ [ nfa1.extra; nfa2.extra ]
+    }
+    |> remove_unreachable_from_start
+    |> remove_unreachable_from_final
   ;;
 
   let unite nfa1 nfa2 =
