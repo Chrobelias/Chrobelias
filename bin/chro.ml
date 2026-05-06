@@ -411,9 +411,7 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
         | Unsat (s, _) ->
           unsat_reason := reason s !unsat_reason;
           let unsat_core_contra_sat_ast = Ast.lnot (Ast.land_ skeletoned_candidate) in
-          if light
-          then unknown Ast.true_ Lib.Env.empty
-          else dpll unsat_core_contra_sat_ast solver
+          dpll unsat_core_contra_sat_ast solver
         | Unknown _ ->
           can_be_unk := true;
           let unsat_core_contra_sat_ast = Ast.lnot (Ast.land_ skeletoned_candidate) in
@@ -746,7 +744,6 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
           report_result2 (`Unsat "presimpl str");
           unsat "presimpl str" core
         | `Unknown (ast, e, seq_of_variants) ->
-          let seq_of_variants = Seq.filter (Fun.negate List.is_empty) seq_of_variants in
           if Seq.is_empty seq_of_variants
           then
             handle (check_string_sat ~light e ast) (fun () ->

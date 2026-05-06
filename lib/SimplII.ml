@@ -2763,6 +2763,44 @@ let over_concat_len ast =
   let module OverStrLen = struct
     include Id_symantics
 
+    let in_re s re =
+      let module NfaStr = Nfa.Lsb (Nfa.Str) in
+      let open Ast.Eia in
+      match s with
+      | Atom (Var (s, S)) ->
+        let nfa = NfaStr.of_regex re in
+        if Bool.not (NfaStr.run nfa)
+        then false_
+        else (
+          let csds =
+            let is_eos vec =
+              match Array.length vec with
+              | 1 -> Char.equal (Array.get vec 0) Nfa.Str.u_eos
+              | _ -> failwith "unexpected nfa in arithmetize_in_re"
+            in
+            NfaStr.filter_map nfa (fun (label, q') ->
+              if is_eos label then Option.none else Option.some (label, q'))
+            |> NfaStr.to_nat
+            |> NfaStr.chrobak
+          in
+          csds
+          |> Seq.map (fun (c, d) ->
+            let c, d = Z.of_int c, Z.of_int d in
+            let n = gensym ~prefix:"%re_len" () in
+            land_
+              [ in_re (str_var s) re
+              ; Ast.eia (leq (const Z.zero) (var n))
+              ; Ast.eia
+                  (eq
+                     (str_len (str_var s))
+                     (add [ const c; mul [ const d; var n ] ])
+                     Ast.I)
+              ])
+          |> List.of_seq
+          |> Ast.lor_)
+      | _ -> in_re s re
+    ;;
+
     let eq_str lhs rhs = land_ [ eq_str lhs rhs; eqz (len lhs) (len rhs) ]
   end
   in
@@ -2900,7 +2938,7 @@ let split_concats ast =
         | _ -> raise Exit
       in
       let nfas = List.map (fun conj -> Ast.land_ conj) (helper xs nfa) in
-      Ast.lxor_ nfas
+      Ast.lor_ nfas
     ;;
 
     (* (List.map
@@ -2977,7 +3015,7 @@ let extract_and_filter_unsupported_atomic_formulas ast =
 
 let run_string_simplify ast =
   let module Set = Base.Set.Poly in
-  match basic_simplify [ 1 ] Env.empty ast with
+  match basic_simplify [ 1 ] Env.empty (ast |> over_concat_len) with
   | `Sat env -> `Sat env
   | `Unsat -> `Unsat ast
   | `Unknown (ast', e, _, _) ->
