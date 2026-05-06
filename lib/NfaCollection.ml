@@ -411,9 +411,10 @@ module MsbPar = struct
       (op
          (add
             (* (mul [ const v'; AstL.get_par 0 ] *)
-            (const Z.(v' * base)
-             :: List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term))
-         (const v))
+            (* (const Z.(v' * base)
+             ::  *)
+            (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term))
+         (const Z.(v - (v' * base))))
   ;;
 
   let get_sign_label v term op =
@@ -424,9 +425,10 @@ module MsbPar = struct
          (op
             (add
                (* (mul [ const v; add [ get_par 0; const Z.minus_one ] ] *)
-               (const Z.(v * (base - one))
-                :: List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term))
-            (const Z.zero))
+               (* (const Z.(v * (base - one))
+                ::  *)
+               (List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term))
+            (const Z.(v * (one - base))))
        :: List.map
             (fun (var, _) ->
                lor_
