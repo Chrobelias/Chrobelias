@@ -1112,17 +1112,13 @@ module type NatType = sig
   val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
 end
 
-type 'a nfa_t =
+type ('a, 'b) nfa_t =
   { transitions : 'a
   ; final : state Set.t
   ; start : state Set.t
   ; deg : deg
   ; is_dfa : bool
-  }
-
-type 'a nfa_par_t =
-  { nfa : 'a nfa_t
-  ; ph : AstL.t
+  ; extra : 'b
   }
 
 let length nfa = Array.length nfa.transitions
@@ -1131,12 +1127,12 @@ let states nfa = 0 -- (length nfa - 1) |> Set.of_list
 module Parametric (Label : BasicL) = struct
   module Graph = Graph (Label)
 
-  type t = Graph.t nfa_par_t
+  type t = (Graph.t, AstL.t) nfa_t
   type v = Label.u
   type vv = Label.t
 
   let length = length
-  let wrap = fun nfa -> { nfa; ph = AstL.true_ }
+  let wrap = fun nfa -> { nfa with extra = AstL.true_ }
 
   let create_nfa
         ~(transitions : (state * v list * state) list)
@@ -1169,6 +1165,7 @@ module Parametric (Label : BasicL) = struct
       ; start = Set.of_list start
       ; deg
       ; is_dfa = false
+      ; extra = ()
       }
   ;;
 
@@ -1203,6 +1200,7 @@ module Parametric (Label : BasicL) = struct
       ; start = Set.singleton start
       ; deg
       ; is_dfa = true
+      ; extra = ()
       }
   ;;
 
@@ -1233,6 +1231,7 @@ module Parametric (Label : BasicL) = struct
       ; start = Set.of_list start
       ; deg
       ; is_dfa = false
+      ; extra = ()
       }
   ;;
 
@@ -1244,7 +1243,7 @@ module Parametric (Label : BasicL) = struct
         ~(deg : int)
         ~(ph : AstL.t)
     =
-    { (create_nfa2 ~transitions ~start ~final ~vars ~deg) with ph }
+    { (create_nfa2 ~transitions ~start ~final ~vars ~deg) with extra = ph }
   ;;
 
   let project_verticies nfa verticies =
@@ -1275,7 +1274,7 @@ module Parametric (Label : BasicL) = struct
              else Option.none)
           delta)
     in
-    { transitions; start; final; deg = nfa.deg; is_dfa = false }
+    { transitions; start; final; deg = nfa.deg; is_dfa = false; extra = nfa.extra }
   ;;
 
   let remove_unreachable_from_start nfa =
@@ -1448,11 +1447,17 @@ module Parametric (Label : BasicL) = struct
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
     let nfa =
-      { final; start; transitions; deg; is_dfa }
+      { final
+      ; start
+      ; transitions
+      ; deg
+      ; is_dfa
+      ; extra = AstL.land_ [ nfa1.extra; nfa2.extra ]
+      }
       |> remove_unreachable_from_start
       |> remove_unreachable_from_final
     in
-    { nfa; ph = AstL.true_ }
+    { nfa with extra = AstL.true_ }
   ;;
 
   let unite nfa1 nfa2 =
@@ -1468,7 +1473,13 @@ module Parametric (Label : BasicL) = struct
          |> Array.map (fun delta -> List.map (fun (label, q') -> label, s2 q') delta))
     in
     let deg = max nfa1.deg nfa2.deg in
-    { start; final; transitions; deg; is_dfa = false }
+    { start
+    ; final
+    ; transitions
+    ; deg
+    ; is_dfa = false
+    ; extra = AstL.lor_ [ nfa1.extra; nfa2.extra ]
+    }
   ;;
 
   let invert ?alpha nfa = failwith "Unimplemented"
@@ -1504,7 +1515,13 @@ module Parametric (Label : BasicL) = struct
            List.map project delta)
         nfa.transitions
     in
-    { final = nfa.final; start = nfa.start; transitions; deg = nfa.deg; is_dfa = false }
+    { final = nfa.final
+    ; start = nfa.start
+    ; transitions
+    ; deg = nfa.deg
+    ; is_dfa = false
+    ; extra = failwith "TODO ME"
+    }
   ;;
 
   let reverse nfa =
@@ -1515,19 +1532,25 @@ module Parametric (Label : BasicL) = struct
            (fun (label, q') -> transitions.(q') <- (label, q) :: transitions.(q'))
            delta)
       nfa.transitions;
-    { final = nfa.start; start = nfa.final; transitions; deg = nfa.deg; is_dfa = false }
+    { final = nfa.start
+    ; start = nfa.final
+    ; transitions
+    ; deg = nfa.deg
+    ; is_dfa = false
+    ; extra = nfa.extra
+    }
   ;;
 end
 
 module Make
     (Label : L)
     (Invariants : sig
-       val update_invariants : (Graph(Label).t nfa_t as 'a) -> 'a
+       val update_invariants : ((Graph(Label).t, unit) nfa_t as 'a) -> 'a
      end) =
 struct
   module Graph = Graph (Label)
 
-  type t = Graph.t nfa_t
+  type t = (Graph.t, unit) nfa_t
   type v = Label.u
 
   let length = length
@@ -1560,7 +1583,7 @@ struct
              else Option.none)
           delta)
     in
-    { transitions; start; final; deg = nfa.deg; is_dfa = false }
+    { transitions; start; final; deg = nfa.deg; is_dfa = false; extra = () }
   ;;
 
   let remove_unreachable_from_start nfa =
@@ -1629,6 +1652,7 @@ struct
     ; start = Set.of_list start
     ; deg
     ; is_dfa = false
+    ; extra = ()
     }
     |> Invariants.update_invariants
   ;;
@@ -1665,6 +1689,7 @@ struct
     ; start = Set.singleton start
     ; deg
     ; is_dfa = true
+    ; extra = ()
     }
   ;;
 
@@ -1823,7 +1848,8 @@ struct
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
     let result =
-      { final; start; transitions; deg; is_dfa } |> remove_unreachable_from_start
+      { final; start; transitions; deg; is_dfa; extra = () }
+      |> remove_unreachable_from_start
     in
     result
   ;;
@@ -1841,7 +1867,7 @@ struct
          |> Array.map (fun delta -> List.map (fun (label, q') -> label, s2 q') delta))
     in
     let deg = max nfa1.deg nfa2.deg in
-    { start; final; transitions; deg; is_dfa = false }
+    { start; final; transitions; deg; is_dfa = false; extra = () }
   ;;
 
   let is_graph nfa =
@@ -1861,6 +1887,7 @@ struct
     ; transitions
     ; is_dfa = nfa.is_dfa
     ; deg = Map.keys map |> List.fold_left max min_int
+    ; extra = ()
     }
   ;;
 
@@ -1872,7 +1899,13 @@ struct
            List.map project delta)
         nfa.transitions
     in
-    { final = nfa.final; start = nfa.start; transitions; deg = nfa.deg; is_dfa = false }
+    { final = nfa.final
+    ; start = nfa.start
+    ; transitions
+    ; deg = nfa.deg
+    ; is_dfa = false
+    ; extra = ()
+    }
     |> Invariants.update_invariants
   ;;
 
@@ -1883,7 +1916,13 @@ struct
          let truncate (label, q') = Label.truncate l label, q' in
          Array.set transitions q (List.map truncate delta))
       transitions;
-    { final = nfa.final; start = nfa.start; transitions; deg = l; is_dfa = false }
+    { final = nfa.final
+    ; start = nfa.start
+    ; transitions
+    ; deg = l
+    ; is_dfa = false
+    ; extra = ()
+    }
     |> Invariants.update_invariants
   ;;
 
@@ -1895,7 +1934,13 @@ struct
            (fun (label, q') -> transitions.(q') <- (label, q) :: transitions.(q'))
            delta)
       nfa.transitions;
-    { final = nfa.start; start = nfa.final; transitions; deg = nfa.deg; is_dfa = false }
+    { final = nfa.start
+    ; start = nfa.final
+    ; transitions
+    ; deg = nfa.deg
+    ; is_dfa = false
+    ; extra = ()
+    }
   ;;
 
   let to_dfa ?alpha nfa =
@@ -1991,7 +2036,13 @@ struct
       Queue.add nfa.start queue;
       let transitions, final = aux [] Set.empty queue in
       let transitions = Array.of_list transitions in
-      { final; start = Set.singleton 0; transitions; deg = nfa.deg; is_dfa = true })
+      { final
+      ; start = Set.singleton 0
+      ; transitions
+      ; deg = nfa.deg
+      ; is_dfa = true
+      ; extra = ()
+      })
   ;;
 
   let invert ?alpha nfa =
@@ -2004,6 +2055,7 @@ struct
     ; transitions = dfa.transitions
     ; deg = dfa.deg
     ; is_dfa = true
+    ; extra = ()
     }
   ;;
 
@@ -2080,6 +2132,7 @@ struct
         ; transitions = nfa.transitions
         ; start = nfa.start
         ; final = Set.singleton state
+        ; extra = ()
         }
         |> remove_unreachable_from_final
       in
@@ -2089,6 +2142,7 @@ struct
         ; transitions = nfa.transitions
         ; start = Set.singleton state
         ; final = nfa.final
+        ; extra = ()
         }
         |> remove_unreachable_from_start
       in
@@ -2348,7 +2402,7 @@ module Lsb (Label : L) = struct
     Make
       (Label)
       (struct
-        let update_invariants (nfa : Graph(Label).t nfa_t) =
+        let update_invariants (nfa : (Graph(Label).t, unit) nfa_t) =
           let module Graph = Graph (Label) in
           let reversed_transitions = nfa.transitions |> Graph.reverse in
           let final =
@@ -2375,6 +2429,7 @@ module Lsb (Label : L) = struct
           ; final
           ; deg = nfa.deg
           ; is_dfa = nfa.is_dfa
+          ; extra = ()
           }
         ;;
       end)
@@ -2450,7 +2505,7 @@ module Lsb (Label : L) = struct
       Graph.union_list [ end_transitions; zero_transitions ] |> Graph.reverse
     in
     let result =
-      { transitions; final = nfa.final; start; deg = nfa.deg; is_dfa = false }
+      { transitions; final = nfa.final; start; deg = nfa.deg; is_dfa = false; extra = () }
     in
     result
   ;;
@@ -2782,6 +2837,7 @@ module MsbNat (Label : L) = struct
       ; start = Set.empty
       ; deg = nfa.deg
       ; is_dfa = false
+      ; extra = ()
       }
     in
     let path_nfa =
@@ -2791,6 +2847,7 @@ module MsbNat (Label : L) = struct
       ; final = Set.empty
       ; deg = nfa.deg
       ; is_dfa = false
+      ; extra = ()
       }
     in
     (*Debug.dump_nfa ~msg:"Exponent sub_nfa output: %s" format_nfa result;*)
@@ -2959,6 +3016,7 @@ let%expect_test "find_c_d smoke test" =
     ; final = Set.singleton 2
     ; deg = 0
     ; is_dfa = false
+    ; extra = ()
     }
   in
   let imp = Map.of_alist_exn [ 0, 2; 1, 2 ] in
@@ -2971,7 +3029,7 @@ module Msb (Label : L) = struct
     Make
       (Label)
       (struct
-        let update_invariants (nfa : Graph(Label).t nfa_t) =
+        let update_invariants (nfa : (Graph(Label).t, unit) nfa_t) =
           match Set.find ~f:(Fun.const true) nfa.start with
           | Some start ->
             let rec helper front visited transitions =
@@ -3059,6 +3117,7 @@ module Msb (Label : L) = struct
     ; start
     ; deg = nfa.deg
     ; is_dfa = nfa.is_dfa
+    ; extra = ()
     }
     |> fun nfa ->
     Debug.dump_nfa ~msg:"after to_nat nfa %s" MsbNat.format_nfa nfa;
@@ -3079,6 +3138,7 @@ module Msb (Label : L) = struct
     ; final = nfa.final
     ; transitions = transitions'
     ; deg = nfa.deg
+    ; extra = ()
     }
   ;;
 
@@ -3103,6 +3163,7 @@ module Msb (Label : L) = struct
     ; final = nfa.start
     ; transitions = transitions'
     ; deg = nfa.deg
+    ; extra = ()
     }
   ;;
 end
@@ -3126,6 +3187,7 @@ let convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t =
   ; is_dfa = nfa.is_dfa
   ; deg = nfa.deg
   ; final = nfa.final
+  ; extra = ()
   ; transitions =
       Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
   }
@@ -3137,6 +3199,7 @@ let convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t =
   ; is_dfa = nfa.is_dfa
   ; deg = nfa.deg
   ; final = nfa.final
+  ; extra = ()
   ; transitions =
       Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
   }
@@ -3165,23 +3228,21 @@ let astl_of_str vars (str : Str.t) =
 
 let convert_nfa_msb_par vars : Msb(Str).t -> Parametric(Par).t =
   fun nfa ->
-  { nfa =
-      { start = nfa.start
-      ; is_dfa = nfa.is_dfa
-      ; deg = nfa.deg
-      ; final = nfa.final
-      ; transitions =
-          (let f =
-             fun x ->
-             x
-             |> List.map (fun (label, q') -> q', astl_of_str vars label)
-             |> Map.of_alist_multi
-             |> Map.map ~f:(fun ts -> SimplI.simplify_lia (AstL.lor_ ts))
-             |> Map.to_alist
-             |> List.map (fun (x, y) -> y, x)
-           in
-           Array.map f nfa.transitions)
-      }
-  ; ph = AstL.true_
+  { start = nfa.start
+  ; is_dfa = nfa.is_dfa
+  ; deg = nfa.deg
+  ; final = nfa.final
+  ; transitions =
+      (let f =
+         fun x ->
+         x
+         |> List.map (fun (label, q') -> q', astl_of_str vars label)
+         |> Map.of_alist_multi
+         |> Map.map ~f:(fun ts -> SimplI.simplify_lia (AstL.lor_ ts))
+         |> Map.to_alist
+         |> List.map (fun (x, y) -> y, x)
+       in
+       Array.map f nfa.transitions)
+  ; extra = AstL.true_
   }
 ;;
