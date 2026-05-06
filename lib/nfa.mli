@@ -178,6 +178,15 @@ module Parametric (Label : BasicL) : sig
     -> vars:int list
     -> deg:int
     -> t
+
+  val create_nfa3
+    :  transitions:(state * vv * state) list
+    -> start:state list
+    -> final:state list
+    -> vars:int list
+    -> deg:int
+    -> ph:AstL.t
+    -> t
 end
 
 module type Type = sig

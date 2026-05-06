@@ -737,15 +737,12 @@ module Par = struct
   let const c = Lia.Const (Z.of_int c)
   let eq lhs rhs = Lia (Eq (lhs, rhs))
   let equal = AstL.equal
-
-  let is_zero label =
-    if Lia.equal label AstL.false_
-    then false
-    else (
+  let is_zero label = if Lia.equal label AstL.false_ then false else true
+  (* else (
       match SimplI.check_sat base label with
-      | `Sat -> true
-      | _ -> false)
-  ;;
+      | `Sat ->
+        true
+      | _ -> false) *)
 
   let combine vec1 vec2 =
     if AstL.is_trivial vec1 || AstL.is_trivial vec2
@@ -1123,18 +1120,23 @@ type 'a nfa_t =
   ; is_dfa : bool
   }
 
+type 'a nfa_par_t =
+  { nfa : 'a nfa_t
+  ; ph : AstL.t
+  }
+
 let length nfa = Array.length nfa.transitions
 let states nfa = 0 -- (length nfa - 1) |> Set.of_list
 
-(** All functions described above are just copies of functions from [module Make] below *)
 module Parametric (Label : BasicL) = struct
   module Graph = Graph (Label)
 
-  type t = Graph.t nfa_t
+  type t = Graph.t nfa_par_t
   type v = Label.u
   type vv = Label.t
 
   let length = length
+  let wrap = fun nfa -> { nfa; ph = AstL.true_ }
 
   let create_nfa
         ~(transitions : (state * v list * state) list)
@@ -1161,12 +1163,13 @@ module Parametric (Label : BasicL) = struct
           (fun (label, q') -> (Label.of_list (List.combine vars label), q') |> return)
           delta)
     in
-    { transitions
-    ; final = Set.of_list final
-    ; start = Set.of_list start
-    ; deg
-    ; is_dfa = false
-    }
+    wrap
+      { transitions
+      ; final = Set.of_list final
+      ; start = Set.of_list start
+      ; deg
+      ; is_dfa = false
+      }
   ;;
 
   let create_dfa
@@ -1194,12 +1197,13 @@ module Parametric (Label : BasicL) = struct
           (fun (label, q') -> (Label.of_list (List.combine vars label), q') |> return)
           delta)
     in
-    { transitions
-    ; final = Set.of_list final
-    ; start = Set.singleton start
-    ; deg
-    ; is_dfa = true
-    }
+    wrap
+      { transitions
+      ; final = Set.of_list final
+      ; start = Set.singleton start
+      ; deg
+      ; is_dfa = true
+      }
   ;;
 
   let create_nfa2
@@ -1223,12 +1227,24 @@ module Parametric (Label : BasicL) = struct
               lists)
            (Array.init (max + 1) (Fun.const []))
     in
-    { transitions
-    ; final = Set.of_list final
-    ; start = Set.of_list start
-    ; deg
-    ; is_dfa = false
-    }
+    wrap
+      { transitions
+      ; final = Set.of_list final
+      ; start = Set.of_list start
+      ; deg
+      ; is_dfa = false
+      }
+  ;;
+
+  let create_nfa3
+        ~(transitions : (state * vv * state) list)
+        ~(start : state list)
+        ~(final : state list)
+        ~(vars : int list)
+        ~(deg : int)
+        ~(ph : AstL.t)
+    =
+    { (create_nfa2 ~transitions ~start ~final ~vars ~deg) with ph }
   ;;
 
   let project_verticies nfa verticies =
@@ -1431,9 +1447,12 @@ module Parametric (Label : BasicL) = struct
     in
     let deg = max nfa1.deg nfa2.deg in
     let is_dfa = nfa1.is_dfa && nfa2.is_dfa in
-    { final; start; transitions; deg; is_dfa }
-    |> remove_unreachable_from_start
-    |> remove_unreachable_from_final
+    let nfa =
+      { final; start; transitions; deg; is_dfa }
+      |> remove_unreachable_from_start
+      |> remove_unreachable_from_final
+    in
+    { nfa; ph = AstL.true_ }
   ;;
 
   let unite nfa1 nfa2 =
@@ -3146,20 +3165,23 @@ let astl_of_str vars (str : Str.t) =
 
 let convert_nfa_msb_par vars : Msb(Str).t -> Parametric(Par).t =
   fun nfa ->
-  { start = nfa.start
-  ; is_dfa = nfa.is_dfa
-  ; deg = nfa.deg
-  ; final = nfa.final
-  ; transitions =
-      (let f =
-         fun x ->
-         x
-         |> List.map (fun (label, q') -> q', astl_of_str vars label)
-         |> Map.of_alist_multi
-         |> Map.map ~f:(fun ts -> SimplI.simplify_lia (AstL.lor_ ts))
-         |> Map.to_alist
-         |> List.map (fun (x, y) -> y, x)
-       in
-       Array.map f nfa.transitions)
+  { nfa =
+      { start = nfa.start
+      ; is_dfa = nfa.is_dfa
+      ; deg = nfa.deg
+      ; final = nfa.final
+      ; transitions =
+          (let f =
+             fun x ->
+             x
+             |> List.map (fun (label, q') -> q', astl_of_str vars label)
+             |> Map.of_alist_multi
+             |> Map.map ~f:(fun ts -> SimplI.simplify_lia (AstL.lor_ ts))
+             |> Map.to_alist
+             |> List.map (fun (x, y) -> y, x)
+           in
+           Array.map f nfa.transitions)
+      }
+  ; ph = AstL.true_
   }
 ;;
