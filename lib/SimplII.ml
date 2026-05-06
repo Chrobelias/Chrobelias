@@ -1748,6 +1748,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
 type action =
   | Prop : string * Ast.typed_term -> action
   | PropAndPreserve : 'a Ast.Eia.term * 'a Ast.Eia.term * 'a Ast.kind -> action
+  | PropLen : string * Z.t -> action
   | Noprop
 
 let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast : Ast.t) =
@@ -1975,6 +1976,15 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
           || List.mem vn (Ast.get_exp_vars orig_ast)
         then noprop
         else returni vn rhs
+      | ( Ast.Eia.Add [ Ast.Eia.Const c; Ast.Eia.Len (Ast.Eia.Atom (Var (vn', _))) ]
+        , Ast.Eia.Const rhs )
+        when rhs = Z.zero -> PropLen (vn', Z.(neg c))
+      | ( Ast.Eia.Add
+            [ Ast.Eia.Const c
+            ; Ast.Eia.Mul [ Ast.Eia.Const d; Ast.Eia.Len (Ast.Eia.Atom (Var (vn', _))) ]
+            ]
+        , Ast.Eia.Const rhs )
+        when rhs = Z.zero && d = Z.minus_one -> PropLen (vn', c)
       | _ -> noprop
     in
     let commut f lhs rhs =
@@ -2091,6 +2101,38 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       in
       let ast = Ast.land_ [ S.eqz term rhs; ast ] in
       env, ast
+    | PropLen (s, len) ->
+      let unfold_nfa_with_fixed_len len nfa =
+        let len = Z.to_int len in
+        let words =
+          NfaS.all_paths_of_len nfa len
+          |> List.map (fun c -> String.sub (List.to_seq c |> String.of_seq) 0 len)
+          |> List.map (fun word ->
+            if String.length word <> len then failwith "lengths doesn't match" else word)
+        in
+        words
+      in
+      let words_into_disjunction words =
+        words
+        |> List.map (fun word -> Eia.eq (Eia.Atom (Var (s, S))) (Eia.Str_const word) S)
+        |> List.map Ast.eia
+        |> Ast.lor_
+      in
+      let ast =
+        Ast.map
+          (function
+            | Eia (Eia.InRe (Eia.Atom (Var (s', S)), S, re)) when s = s' ->
+              unfold_nfa_with_fixed_len len (NfaS.of_regex re) |> words_into_disjunction
+            | Eia (Eia.InReRaw (Eia.Atom (Var (s', S)), S, nfa)) when s = s' ->
+              unfold_nfa_with_fixed_len len nfa |> words_into_disjunction
+            | Eia (Eia.InRe (Eia.Atom (Var (s', I)), I, re)) when s = s' ->
+              unfold_nfa_with_fixed_len len (NfaS.of_regex re) |> words_into_disjunction
+            | Eia (Eia.InReRaw (Eia.Atom (Var (s', I)), I, nfa)) when s = s' ->
+              unfold_nfa_with_fixed_len len nfa |> words_into_disjunction
+            | el -> el)
+          ast
+      in
+      env, ast
     | PropAndPreserve (term, rhs, Ast.S) ->
       let ast =
         Ast.map
@@ -2123,7 +2165,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
              had_prop := true;
              [ smth ]
            | Prop _ -> acc
-           | PropAndPreserve _ as smth -> smth :: acc)
+           | (PropAndPreserve _ | PropLen _) as smth -> smth :: acc)
         []
         xs
     in
