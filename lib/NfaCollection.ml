@@ -392,7 +392,6 @@ module MsbPar = struct
 
   let basei = 10
   let base = Z.of_int basei
-  let par = AstL.genpar ()
 
   (** returns an nfa recognizing every integer base [base]*)
   let n () =
@@ -406,11 +405,11 @@ module MsbPar = struct
   (** [power_of_base exp] returns an nfa recognizing Pow([exp]). *)
   let power_of_base exp = failwith "TODO"
 
-  let get_label v' op v =
+  let get_label t' v' op v =
     let open AstL.Lia in
     AstL.Lia
       (op
-         (Atom par)
+         (Atom t')
          (* (add
             (* (mul [ const v'; AstL.get_par 0 ] *)
             (* (const Z.(v' * base)
@@ -419,21 +418,21 @@ module MsbPar = struct
          (const Z.(v - (v' * base))))
   ;;
 
-  let get_extra term =
+  let get_extra t' term =
     let open AstL.Lia in
     AstL.Lia
       (eq
-         (Atom par)
+         (Atom t')
          (add (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)))
   ;;
 
-  let get_sign_label v term op =
+  let get_sign_label t' v term op =
     let open AstL in
     let open AstL.Lia in
     land_
       (Lia
          (op
-            (Atom par)
+            (Atom t')
             (* (add
                (* (mul [ const v; add [ get_par 0; const Z.minus_one ] ] *)
                (* (const Z.(v * (base - one))
@@ -454,6 +453,7 @@ module MsbPar = struct
   (having the same length). *)
   let eq vars term c =
     let open AstL.Lia in
+    let t' = AstL.genpar () in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -483,7 +483,8 @@ module MsbPar = struct
           then div_ upper base
           else Z.(div_ upper (base * gcd_) * gcd_)
         in
-        get_list lb ub gcd_ |> List.map (fun prev -> prev, get_label prev eq state, state)
+        get_list lb ub gcd_
+        |> List.map (fun prev -> prev, get_label t' prev eq state, state)
       in
       let rec lp front =
         match front with
@@ -513,7 +514,8 @@ module MsbPar = struct
          |> List.filter_map (fun sum ->
            match Map.find states Z.(sum / minus_one) with
            | None -> None
-           | Some idv -> Some (start, get_sign_label Z.(sum / minus_one) term eq, idv)))
+           | Some idv -> Some (start, get_sign_label t' Z.(sum / minus_one) term eq, idv))
+        )
         @ transitions
       in
       Nfa.create_nfa3
@@ -522,7 +524,7 @@ module MsbPar = struct
         ~final:[ idx c ]
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
-        ~ph:(get_extra term)
+        ~ph:(get_extra t' term)
       |> fun x -> x)
   ;;
 
@@ -536,6 +538,7 @@ module MsbPar = struct
   (having the same length). *)
   let leq vars term c =
     let open AstL.Lia in
+    let t' = AstL.genpar () in
     let term =
       Map.map_keys_exn ~f:(Map.find_exn vars) term
       |> Map.to_alist
@@ -559,7 +562,8 @@ module MsbPar = struct
         get_list lb ub gcd_
         |> List.map (fun prev ->
           ( prev
-          , AstL.land_ [ get_label prev leq state; get_label Z.(prev + gcd_) geq state ]
+          , AstL.land_
+              [ get_label t' prev leq state; get_label t' Z.(prev + gcd_) geq state ]
           , state ))
       in
       let rec lp front =
@@ -592,7 +596,7 @@ module MsbPar = struct
          Map.to_alist states
          |> List.filter_map (fun (v, idv) ->
            if List.exists (fun sum -> Z.(sum / minus_one <= v)) sums
-           then Some (start, get_sign_label v term leq, idv)
+           then Some (start, get_sign_label t' v term leq, idv)
            else None))
         @ transitions
       in
@@ -602,7 +606,7 @@ module MsbPar = struct
         ~final:(states |> Map.filter_keys ~f:(fun x -> x <= c) |> Map.data)
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
-        ~ph:(get_extra term)
+        ~ph:(get_extra t' term)
       |> fun x -> x)
   ;;
 
