@@ -114,6 +114,7 @@ module type BasicL = sig
   val of_list : (int * u) list -> t
 
   val filter_states : bool array -> AstL.t -> (t * state) list -> (t * state) list
+  val get : t -> int -> u
 end
 
 module type L = sig
@@ -125,7 +126,6 @@ module type L = sig
   val u_null : u
   val u_eos : u
   val is_any_at : int -> t -> bool
-  val get : t -> int -> u
   val truncate : int -> t -> t
   val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
@@ -772,6 +772,17 @@ module Par = struct
     with
     | Exit -> []
   ;;
+
+  let get : t -> int -> u =
+    fun ast i ->
+    AstL.fold
+      (fun acc -> function
+         | AstL.Lia (AstL.Lia.Eq (AstL.Lia.Atom (AstL.Var v'), AstL.Lia.Const c'))
+           when v' = v -> c' |> Z.to_int
+         | _ -> acc)
+      0
+      ast
+  ;;
 end
 
 module Graph (Label : BasicL) = struct
@@ -1080,6 +1091,7 @@ module type Type = sig
   type u
 
   val re_accepts : v list -> t -> bool
+  val any_path : t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
   val all_paths_of_len : t -> int -> v list list
@@ -1400,16 +1412,17 @@ module Parametric (Label : BasicL) = struct
     match Set.find_map ~f:inspect nfa.start with
     | Some [] -> Some (List.map (fun _ -> []) vars, 0)
     | Some p ->
-      failwith "TODO HERE"
-      (* let p = List.rev p |> List.tl in
+      let p = List.rev p |> List.tl in
       let length = List.length p in
       Some
         ( List.map
-            (fun var -> List.init length (fun i -> Label.get (List.nth p i |> fst) var))
+            (fun var -> List.init length (fun i -> Label.get (List.nth p i) var))
             vars
-        , length ) *)
+        , length )
     | None -> None
   ;;
+
+  let any_path = any_path ~nozero:false
 
   let format_nfa ppf nfa =
     let format_state ppf state = fprintf ppf "%d" state in

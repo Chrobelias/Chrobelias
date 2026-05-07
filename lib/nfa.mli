@@ -41,7 +41,8 @@ module type BasicL = sig
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 
-  val filter_states : bool array -> AstL.t -> (t * state) list -> t * state
+  val filter_states : bool array -> AstL.t -> (t * state) list -> (t * state) list
+  val get : t -> int -> u
 end
 
 module type L = sig
@@ -53,7 +54,6 @@ module type L = sig
   val u_null : u
   val u_eos : u
   val is_any_at : int -> t -> bool
-  val get : t -> int -> u
   val truncate : int -> t -> t
   val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
