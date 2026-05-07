@@ -791,70 +791,57 @@ let debug_printfln ppf =
 let get_states base extra asts =
   let open AstL in
   let open Lia in
-  let name state = "state" ^ Int.to_string state in
-  let var state = atom (Var (name state)) in
-  let eq state rhs = Lia (eq (var state) rhs) in
-  let bool_val state = lor_ [ eq state (const Z.zero); eq state (const Z.one) ] in
+  let pred_name state = "P" ^ Int.to_string state in
   let get_state name =
-    name |> Base.String.chop_prefix_exn ~prefix:"state" |> Base.Int.of_string
+    name |> Base.String.chop_prefix_exn ~prefix:"P" |> Base.Int.of_string
   in
-  let ph, sum =
+  let ph =
     match asts with
     | [] -> raise Exit
-    | [ (ph, state) ] ->
-      land_ [ extra; deparametrize base ph; eq state (const Z.one) ], var state
+    | [ (ph, state) ] -> land_ [ deparametrize base ph; pred (pred_name state) ]
     | phs ->
-      ( deparametrize
-          base
-          (land_
-             (extra
-              :: lor_
-                   (List.map
-                      (fun (ph, state) -> land_ [ ph; eq state (const Z.one) ])
-                      phs)
-              :: List.map (fun (_, state) -> bool_val state) phs))
-      , add (List.map (fun (_, state) -> var state) asts) )
+      deparametrize
+        base
+        (land_
+           [ extra
+           ; lor_ (List.map (fun (ph, state) -> land_ [ ph; pred (pred_name state) ]) phs)
+           ])
   in
-  let ph, sum' = apply_symnatics (module SMT) ph, apply_term_symnatics (module SMT) sum in
+  let ph = apply_symnatics (module SMT) ph in
   let module Z3 = Smtml.Z3_mappings.Solver in
-  (* let module OZ3 = Smtml.Optimizer.Z3 in
-  let opt_solver = OZ3.create () in
-  OZ3.add opt_solver [ ph ];
-  let count =
-    match OZ3.maximize opt_solver sum' with
-    | None -> 1
-    | Some m ->
-      (match m with
-       | Int n -> n
-       | _ -> 1)
-  in
-  debug_printfln "Num of reachable states is at least %d." count;
-  let extra = apply_symnatics (module SMT) (Lia (leq (const (Z.of_int count)) sum)) in *)
   let solver =
     Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
   in
   Z3.reset solver;
   debug_printfln "Running Z3...";
-  (* Add [extra] to assumptions to see why maximizing is slaw *)
-    match Z3.check solver ~assumptions:[ ph ] with
-    | `Sat ->
-      (match Z3.model solver with
-       | None -> assert false
-       | Some m ->
+  match Z3.check solver ~assumptions:[ ph ] with
+  | `Sat ->
+    (match Z3.model solver with
+     | None -> assert false
+     | Some m ->
+       let digits =
          Hashtbl.fold
            (fun k v acc ->
               let _ : Smtml.Symbol.t = k in
               match k.name, v with
-              | Smtml.Symbol.Simple s, Smtml.Value.Int n ->
-                if String.starts_with ~prefix:"state" s
-                then (
-                  debug_printfln "State: %d is taken" (get_state s);
-                  get_state s :: acc)
-                else acc
-              | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
+              | Smtml.Symbol.Simple s, Smtml.Value.Int n
+                when String.starts_with ~prefix:"lia" s ->
+                Lia (Lia.eq (atom (int_var s)) (const (Z.of_int n))) :: acc
               | _ -> acc)
            (Smtml.Z3_mappings.values_of_model m)
-           [])
-    | `Unsat -> []
-    | _ -> failwith "Unknown in Z3"
+           []
+       in
+       Hashtbl.fold
+         (fun k v acc ->
+            let _ : Smtml.Symbol.t = k in
+            match k.name, v with
+            | Smtml.Symbol.Simple s, Smtml.Value.True ->
+              debug_printfln "State: %s is taken" s;
+              (land_ digits, get_state s) :: acc
+            | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
+            | _ -> acc)
+         (Smtml.Z3_mappings.values_of_model m)
+         [])
+  | `Unsat -> []
+  | _ -> failwith "Unknown in Z3"
 ;;

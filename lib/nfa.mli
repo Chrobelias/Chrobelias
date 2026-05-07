@@ -41,7 +41,7 @@ module type BasicL = sig
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 
-  val filter_states : bool array -> AstL.t -> (t * state) list -> state list
+  val filter_states : bool array -> AstL.t -> (t * state) list -> t * state
 end
 
 module type L = sig
@@ -137,6 +137,8 @@ module type BasicType = sig
 
   (** [run a] returns [true] if the automaton [a] recognizes a non-emty language, otherwise [false]. *)
   val run : t -> bool
+
+  val any_path : t -> int list -> (v list list * int) option
 
   (** [intersect a1 a2] returns an nfa recognizing the intersection of the languages 
   recognizable by [a1] and [a2]. *)

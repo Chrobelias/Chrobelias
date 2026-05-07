@@ -113,7 +113,7 @@ module type BasicL = sig
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 
-  val filter_states : bool array -> AstL.t -> (t * state) list -> state list
+  val filter_states : bool array -> AstL.t -> (t * state) list -> (t * state) list
 end
 
 module type L = sig
@@ -302,7 +302,8 @@ module Bv = struct
   ;;
 
   let filter_states vistied _ =
-    List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
+    List.filter_map (fun (_, state) ->
+      if vistied.(state) then None else Some (zero 0, state))
   ;;
 
   let alpha _ = [ true; false ] |> Set.of_list
@@ -526,7 +527,8 @@ module StrBv = struct
   ;;
 
   let filter_states vistied _ =
-    List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
+    List.filter_map (fun (_, state) ->
+      if vistied.(state) then None else Some (zero 0, state))
   ;;
 
   let alpha _ =
@@ -719,7 +721,8 @@ module Str = struct
   ;;
 
   let filter_states vistied _ =
-    List.filter_map (fun (_, state) -> if vistied.(state) then None else Some state)
+    List.filter_map (fun (_, state) ->
+      if vistied.(state) then None else Some (zero 0, state))
   ;;
 
   let alpha s = Array.to_list s |> Set.of_list
@@ -1041,6 +1044,8 @@ module type BasicType = sig
   (** [run a] returns [true] if the automaton [a] recognizes a non-emty language, otherwise [false]. *)
   val run : t -> bool
 
+  val any_path : t -> int list -> (v list list * int) option
+
   (** [intersect a1 a2] returns an nfa recognizing the intersection of the languages 
   recognizable by [a1] and [a2]. *)
   val intersect : t -> t -> t
@@ -1075,7 +1080,6 @@ module type Type = sig
   type u
 
   val re_accepts : v list -> t -> bool
-  val any_path : t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
   val all_paths_of_len : t -> int -> v list list
@@ -1319,7 +1323,9 @@ module Parametric (Label : BasicL) = struct
     let transitions = nfa.transitions in
     let successors state =
       let transitions = Array.get transitions state in
-      let next without = transitions |> Label.filter_states without nfa.extra in
+      let next without =
+        transitions |> Label.filter_states without nfa.extra |> List.map snd
+      in
       let rec succ without =
         match next without with
         | [] -> Seq.empty
@@ -1350,6 +1356,59 @@ module Parametric (Label : BasicL) = struct
       | Sat_found -> true
     in
     Set.exists ~f:inspect nfa.start
+  ;;
+
+  let any_path ?nozero (nfa : t) vars =
+    let exception Sat_found of vv list in
+    let transitions = nfa.transitions in
+    let successors state =
+      let transitions = Array.get transitions state in
+      let next without = transitions |> Label.filter_states without nfa.extra in
+      let rec succ without =
+        match next without with
+        | [] -> Seq.empty
+        | states ->
+          states |> List.map snd |> List.iter (fun state -> without.(state) <- true);
+          Seq.append (List.to_seq states) (succ without)
+      in
+      succ (Array.init (length nfa) (Fun.const false))
+    in
+    let dfs start =
+      let rec rdfs path visited node =
+        if not (List.mem node visited)
+        then begin
+          if Set.mem nfa.final node
+          then raise (Sat_found path)
+          else
+            Seq.fold_left
+              (fun acc x -> rdfs (fst x :: path) acc (snd x))
+              (node :: visited)
+              (successors node)
+        end
+        else visited
+      in
+      rdfs [] [] start
+    in
+    let visited = Array.init (length nfa) (Fun.const false) in
+    let inspect state =
+      try
+        List.iter (fun state -> visited.(state) <- true) (dfs state);
+        None
+      with
+      | Sat_found path -> Some path
+    in
+    match Set.find_map ~f:inspect nfa.start with
+    | Some [] -> Some (List.map (fun _ -> []) vars, 0)
+    | Some p ->
+      failwith "TODO HERE"
+      (* let p = List.rev p |> List.tl in
+      let length = List.length p in
+      Some
+        ( List.map
+            (fun var -> List.init length (fun i -> Label.get (List.nth p i |> fst) var))
+            vars
+        , length ) *)
+    | None -> None
   ;;
 
   let format_nfa ppf nfa =
