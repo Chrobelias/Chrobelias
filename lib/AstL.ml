@@ -348,6 +348,15 @@ let get_vars ast =
   |> remove_dups
 ;;
 
+let get_val ast var =
+  fold
+    (fun acc -> function
+       | Lia (Eq (Atom (Var v'), Const c')) when v' = get_var_name var -> c' |> Z.to_int
+       | _ -> acc)
+    0
+    ast
+;;
+
 let project vars ast =
   let names = List.map get_var_name vars in
   let vars_to_proj = ast |> get_vars |> List.filter (fun x -> not (List.mem x names)) in

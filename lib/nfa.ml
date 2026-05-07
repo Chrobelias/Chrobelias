@@ -773,16 +773,7 @@ module Par = struct
     | Exit -> []
   ;;
 
-  let get : t -> int -> u =
-    fun ast i ->
-    AstL.fold
-      (fun acc -> function
-         | AstL.Lia (AstL.Lia.Eq (AstL.Lia.Atom (AstL.Var v'), AstL.Lia.Const c'))
-           when v' = v -> c' |> Z.to_int
-         | _ -> acc)
-      0
-      ast
-  ;;
+  let get = AstL.get_val
 end
 
 module Graph (Label : BasicL) = struct

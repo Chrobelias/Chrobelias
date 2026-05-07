@@ -253,6 +253,15 @@ struct
       v
   ;;
 
+  let get_model_nfa ir () =
+    let nfa, vars = ir |> eval in
+    let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
+    match Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) with
+    | Some (model, _) ->
+      Some (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
+    | None -> None
+  ;;
+
   let check_sat ir
     : [ `Sat of unit -> ((Ir.atom, Nfa.v list) Map.t, [ `Too_long | `No_model ]) Result.t
       | `Unsat
@@ -272,9 +281,9 @@ struct
       if Config.config.logic = `Par then ir else Ir.exists (free_vars |> Set.to_list) ir
     in
     Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
-    if ir' |> eval |> fst |> Nfa.run
-    then sat_if_no_unsupp (fun () -> Result.Ok Map.empty)
-    else `Unsat
+    match get_model_nfa ir' () with
+    | Some model -> sat_if_no_unsupp (fun () -> Result.Ok model)
+    | None -> `Unsat
   ;;
 end
 
