@@ -2904,35 +2904,32 @@ let arithmetize ast env =
   let arithmetize var_info ast =
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
+    let open Ast.Eia in
     let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in
-    let rec arithmetize_term
-      : 'a. string list -> 'a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list
-      =
-      fun (type a)
-        : (string list -> a Ast.Eia.term -> Z.t Ast.Eia.term * Ast.Eia.t list) ->
-        function
+    let rec arithmetize_term : 'a. string list -> 'a term -> Z.t term * Ast.Eia.t list =
+      fun (type a) : (string list -> a term -> Z.t term * Ast.Eia.t list) -> function
         | str_vars ->
           (function
-            | Ast.Eia.Sofi s -> s, []
-            | Iofs (Atom (Var (v, S))) when List.mem v str_vars ->
-              Ast.Eia.const Z.minus_one, []
+            | Sofi s -> s, []
+            | Iofs (Atom (Var (v, S))) when List.mem v str_vars -> const Z.minus_one, []
+            | Iofs (Atom (Var (v, S))) -> atomi v, [ leq (const Z.zero) (atomi v) ]
             | Iofs s -> arithmetize_term str_vars s
             | Len (Atom (Var (var, S))) ->
               let lenvar, phs = String.concat "" [ "strlen"; var ], [] in
               let v = atomi lenvar in
-              let phs = Ast.Eia.leq (Ast.Eia.const Z.zero) v :: phs in
+              let phs = leq (Ast.Eia.const Z.zero) v :: phs in
               let phs =
                 if List.mem var str_vars
                 then phs
                 else (
                   match in_stoi var, Map.mem (collect_regexes ast) var with
-                  | true, true -> Ast.Eia.rlen (atomi var) (pow_base v) :: phs
-                  | true, false -> Ast.Eia.lt (atomi var) (pow_base v) :: phs
+                  | true, true -> rlen (atomi var) (pow_base v) :: phs
+                  | true, false -> lt (atomi var) (pow_base v) :: phs
                   | false, other -> phs)
               in
               v, phs
             | Len _ -> failwith "Unsupported constraint in arithmetize_term"
-            | Str_const s -> Ast.Eia.const (Z.of_string s), []
+            | Str_const s -> const (Z.of_string s), []
             | Atom (Var (v, S)) -> atomi v, []
             | Concat (_, _) | At (_, _) | Substr (_, _, _) ->
               failwith "Unexpected function in arithmetize_term"
@@ -2941,23 +2938,23 @@ let arithmetize ast env =
               let ls, phs =
                 List.map (fun x -> arithmetize_term str_vars x) ls |> List.split
               in
-              Ast.Eia.add ls, List.concat phs
+              add ls, List.concat phs
             | Mul ls ->
               let ls, phs =
                 List.map (fun x -> arithmetize_term str_vars x) ls |> List.split
               in
-              Ast.Eia.mul ls, List.concat phs
+              mul ls, List.concat phs
             | Mod (lhs, rhs) ->
               let lhs, lhs_phs = arithmetize_term str_vars lhs in
-              Ast.Eia.mod_ lhs rhs, lhs_phs
+              mod_ lhs rhs, lhs_phs
             | (Pow (lhs, rhs) | Bwand (lhs, rhs) | Bwor (lhs, rhs) | Bwxor (lhs, rhs)) as
               eia ->
               let build =
                 match eia with
-                | Pow _ -> Ast.Eia.pow
-                | Bwand _ -> Ast.Eia.bwand
-                | Bwor _ -> Ast.Eia.bwor
-                | Bwxor _ -> Ast.Eia.bwxor
+                | Pow _ -> pow
+                | Bwand _ -> bwand
+                | Bwor _ -> bwor
+                | Bwxor _ -> bwxor
                 | _ -> assert false
               in
               let lhs, lhs_phs = arithmetize_term str_vars lhs in
