@@ -26,6 +26,8 @@ type config =
   ; mutable under_str_all : bool
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
+  ; mutable check_model : bool
+  ; mutable force_model_check : bool
   }
 
 let config =
@@ -56,6 +58,8 @@ let config =
   ; with_info = true
   ; under_approx = 2
   ; under_str_all = false
+  ; check_model = true
+  ; force_model_check = false
   }
 ;;
 
@@ -250,6 +254,12 @@ Basic options:
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )
+    ; ( "--no-model-check"
+      , Arg.Unit (fun () -> config.check_model <- false)
+      , "\tSkip running model check after (get-model)" )
+    ; ( "--force-model-check"
+      , Arg.Unit (fun () -> config.force_model_check <- true)
+      , "\tEnforce calculating the model on each (check-sat) and performing its check" )
     ]
   in
   Arg.parse

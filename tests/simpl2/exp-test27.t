@@ -29,3 +29,4 @@ $ export CHRO_DEBUG=1
      (define-fun x () String
       "12345828226262626262626")
   )
+  (warning: the correctness of model is unknown)
