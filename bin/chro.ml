@@ -249,8 +249,11 @@ let rec model_from_parts_regexes_env tys model regexes env' =
   else real_model
 ;;
 
-let print_model tys model regexes env =
-  let real_model = model_from_parts_regexes_env tys model regexes env in
+let calculate_model tys model regexes env =
+  let real_model =
+    try model_from_parts_regexes_env tys model regexes env with
+    | _ -> raise Too_long_model
+  in
   let real_model =
     Map.filteri
       ~f:(fun ~key ~data:_ ->
@@ -259,8 +262,10 @@ let print_model tys model regexes env =
         | _ -> true)
       real_model
   in
-  Format.printf "%s\n%!" (Lib.Ir.model_to_str real_model)
+  real_model
 ;;
+
+let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
 
 let rec check_sat ?(verbose = false) tys ast : rez =
   let __ () =
@@ -604,6 +609,40 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     else raise s
 ;;
 
+let check_model
+      tys
+      (ast : Lib.Ast.t)
+      (model : (Lib.Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t)
+  =
+  let ast =
+    Map.fold
+      ~init:ast
+      ~f:(fun ~key ~data ast ->
+        let key =
+          match key with
+          | Lib.Ir.Var s -> s
+          | _ -> assert false
+        in
+        let open Lib.Ast in
+        let ast' =
+          match data with
+          | `Int c -> eia (Eia.eq (Eia.atom (var key I)) (Lib.Ast.Eia.const c) I)
+          | `Str c -> eia (Eia.eq (Eia.atom (var key S)) (Lib.Ast.Eia.str_const c) S)
+        in
+        Lib.Ast.land_ [ ast'; ast ])
+      model
+  in
+  log "Checking model correctness;\n  ast=%a\n%!" Lib.Ast.pp_smtlib2 ast;
+  try
+    match check_sat tys ast with
+    | Sat _ -> ()
+    | Unsat _ ->
+      Printf.eprintf "(error: model check has failed; the model might be wrong)\n%!"
+    | Unknown _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
+  with
+  | _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
+;;
+
 type state =
   { asserts : Lib.Ast.t list
   ; prev : state option (* TODO: where is the stack? *)
@@ -620,7 +659,93 @@ let () =
       exit 1
     | Ok file -> Smtml.Parse.from_file file
   in
-  let exec ({ prev; _ } as state) = function
+  let exec ({ prev; _ } as state) =
+    let get_model ?(noprint = false) ast (rez : rez) =
+      let rec merge_tys state =
+        match state.prev with
+        | Some state' ->
+          Map.merge
+            ~f:(fun ~key:_ -> function
+               | `Left x -> Some x
+               | `Right x -> Some x
+               | `Both (x, _) -> Some x)
+            state.tys
+            (merge_tys state')
+        | None -> state.tys
+      in
+      let printf = if not noprint then Format.printf else fun _ -> () in
+      let print_model = if not noprint then print_model else fun _ -> () in
+      match rez with
+      | Unknown _ | Unsat _ -> printf "no model"
+      | Sat (_, _, env, get_model, regexes) ->
+        sat_found := true;
+        let tys = merge_tys state in
+        let rec shrink_model ?len () =
+          let attempt, len =
+            if Option.is_some len then 2, Option.get len else 1, Lib.Config.huge_path ()
+          in
+          log "model is TOO big after %d attempt\n%!" attempt;
+          let shrinked_ast =
+            Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
+              match key, data with
+              | Lib.Ir.Var v, `Str ->
+                Lib.Ast.(eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int len))))
+                :: acc
+              | Lib.Ir.Var v, `Int ->
+                Lib.Ast.(
+                  eia
+                    (Eia.leq
+                       (Atom (Var (v, I)))
+                       (Const Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ())))))
+                :: acc
+              | _ -> acc)
+            |> Lib.Ast.land_
+          in
+          log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
+          Lib.Config.config.under_approx <- -1;
+          try
+            match check_sat tys shrinked_ast with
+            | Unknown _ | Unsat _ -> printf "no short model\n%!"
+            | Sat (_, _, env, get_model, _regexes) ->
+              (* let tys = merge_tys state in *)
+                (match get_model tys with
+                 | Result.Ok model ->
+                   let model = join_int_model tys env model in
+                   let model = calculate_model tys model regexes env in
+                   print_model model;
+                   if Lib.Config.config.check_model then check_model tys ast model else ()
+                 | Result.Error `Too_long -> printf "no short model\n%!"
+                 | Result.Error `No_model -> assert false)
+          with
+          | Lics_Underapprox_unsuccessful ->
+            config.bound_res <- -1;
+            config.bound_states <- -1;
+            shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
+          | Lib.Nfa.Too_big_nfa ->
+            if attempt == 1
+            then shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
+            else printf "no short model found (nfa)\n%!"
+        in
+        let () =
+          try
+            match get_model tys with
+            | Result.Ok model -> begin
+              try
+                let model = calculate_model tys model regexes env in
+                print_model model;
+                if Lib.Config.config.check_model then check_model tys ast model else ()
+              with
+              | Too_long_model -> shrink_model ()
+            end
+            | Result.Error `Too_long -> shrink_model ()
+            | Result.Error `No_model -> Format.printf "no model mode\n%!"
+          with
+          | Lib.Nfa.Too_big_nfa ->
+            shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
+        in
+        ()
+    in
+    function
     | Smtml.Ast.Declare_const { id; sort; _ }
     | Smtml.Ast.Declare_fun { id; sort; args = [] } ->
       let id = Lib.Ir.var (Smtml.Symbol.to_string id) in
@@ -662,6 +787,7 @@ let () =
       in
       (try
          let rez = check_sat ~verbose:true state.tys ast in
+         if Lib.Config.config.force_model_check then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->
@@ -669,6 +795,7 @@ let () =
          config.bound_states <- -1;
          Lib.Config.bounded_unsat := false;
          let rez = check_sat ~verbose:true state.tys ast in
+         if Lib.Config.config.force_model_check then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
        | _ -> state)
     | Smtml.Ast.Get_model ->
@@ -682,89 +809,13 @@ let () =
           | Some state -> asserts @ get_ast state
           | None -> asserts
         in
-        let rec merge_tys state =
-          match state.prev with
-          | Some state' ->
-            Map.merge
-              ~f:(fun ~key:_ -> function
-                 | `Left x -> Some x
-                 | `Right x -> Some x
-                 | `Both (x, _) -> Some x)
-              state.tys
-              (merge_tys state')
-          | None -> state.tys
-        in
         let ast = Lib.Ast.land_ (get_ast state) in
         let rez =
           match state.last_result with
           | Some r -> r
           | None -> check_sat state.tys ast
         in
-        let () =
-          match rez with
-          | Unknown _ | Unsat _ -> print_endline "no model"
-          | Sat (_, _, env, get_model, regexes) ->
-            sat_found := true;
-            let tys = merge_tys state in
-            let rec shrink_model ?len () =
-              let attempt, len =
-                if Option.is_some len
-                then 2, Option.get len
-                else 1, Lib.Config.huge_path ()
-              in
-              log "model is TOO big after %d attempt\n%!" attempt;
-              let shrinked_ast =
-                Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
-                  match key, data with
-                  | Lib.Ir.Var v, `Str ->
-                    Lib.Ast.(
-                      eia (Eia.leq (Len (Atom (Var (v, S)))) (Const (Z.of_int len))))
-                    :: acc
-                  | Lib.Ir.Var v, `Int ->
-                    Lib.Ast.(
-                      eia
-                        (Eia.leq
-                           (Atom (Var (v, I)))
-                           (Const Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ())))))
-                    :: acc
-                  | _ -> acc)
-                |> Lib.Ast.land_
-              in
-              log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
-              Lib.Config.config.under_approx <- -1;
-              try
-                match check_sat tys shrinked_ast with
-                | Unknown _ | Unsat _ -> Format.printf "no short model\n%!"
-                | Sat (_, _, env, get_model, _regexes) ->
-                  (* let tys = merge_tys state in *)
-                    (match get_model tys with
-                     | Result.Ok model ->
-                       let model = join_int_model tys env model in
-                       print_model tys model regexes env
-                     | Result.Error `Too_long -> Format.printf "no short model\n%!"
-                     | Result.Error `No_model -> assert false)
-              with
-              | Lics_Underapprox_unsuccessful ->
-                config.bound_res <- -1;
-                config.bound_states <- -1;
-                shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
-              | Lib.Nfa.Too_big_nfa ->
-                if attempt == 1
-                then shrink_model ~len:(Lib.Config.huge_const_for_model ()) ()
-                else Format.printf "no short model found (nfa)\n%!"
-            in
-            (try
-               match get_model tys with
-               | Result.Ok model -> begin
-                 try print_model tys model regexes env with
-                 | Too_long_model -> shrink_model ()
-               end
-               | Result.Error `Too_long -> shrink_model ()
-               | Result.Error `No_model -> Format.printf "no model mode\n%!"
-             with
-             | Lib.Nfa.Too_big_nfa ->
-               shrink_model ~len:(Lib.Config.huge_const_for_model ()) ())
-        in
+        get_model ast rez;
         state)
     | Smtml.Ast.Assert expr -> begin
       let ast = expr |> Lib.Fe._to_ir state.tys in
