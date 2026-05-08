@@ -6,6 +6,7 @@ $ export CHRO_DEBUG=1
   (and
                (= x (+ (* 11 %q4) (* 29 %q2)))
                (<= (exp 10 0) (exp 10 strlenx))
+               (<= 0 x)
                (<= %q4 2)
                (<= (exp 10 strlenx) (exp 10 99))
                (<= (* (- 1) %q4) 0)
@@ -14,6 +15,7 @@ $ export CHRO_DEBUG=1
   (and
     (= x (+ (* 11 %q8) (* 29 %q6)))
     (<= (exp 10 0) (exp 10 strlenx))
+    (<= 0 x)
     (<= %q8 2)
     (<= (exp 10 strlenx) (exp 10 99))
     (<= (* (- 1) %q8) 0)
