@@ -632,12 +632,12 @@ let check_model
         Lib.Ast.land_ [ ast'; ast ])
       model
   in
+  let _ = set_guess `Unknown in
   log "Checking model correctness;\n  ast=%a\n%!" Lib.Ast.pp_smtlib2 ast;
   try
     match check_sat tys ast with
     | Sat _ -> ()
-    | Unsat _ ->
-      Printf.eprintf "(error: model check has failed; the model might be wrong)\n%!"
+    | Unsat _ -> Printf.eprintf "(error: model check has failed, incorrect model)\n%!"
     | Unknown _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
   with
   | _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
