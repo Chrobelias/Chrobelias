@@ -8,6 +8,7 @@ $ cat baba2.smt2
                (<= 0 %re_len1)
                (<= 0 b)
                (<= 0 strlenb)
+               (<= 1 strlenb)
                (str.in_re.raw b)
                (chrob.len b (exp 10 strlenb)))
   Light run:
@@ -17,6 +18,7 @@ $ cat baba2.smt2
                (<= 0 %re_len2)
                (<= 0 b)
                (<= 0 strlenb)
+               (<= 1 strlenb)
                (str.in_re.raw b)
                (chrob.len b (exp 10 strlenb)))
   (and
@@ -25,6 +27,7 @@ $ cat baba2.smt2
     (<= 0 %re_len5)
     (<= 0 b)
     (<= 0 strlenb)
+    (<= 1 strlenb)
     (str.in_re.raw b)
     (chrob.len b (exp 10 strlenb)))
   sat (nfa)

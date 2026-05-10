@@ -3,18 +3,18 @@
   Light run:
   (and
                (= (* 1171 w) (+ x (* 444 u)))
-               (<= 0 strlenx)
                (<= 0 x)
                (<= 0 (* 444 u))
+               (<= 1 strlenx)
                (<= strlenx 99)
                (<= u 2)
                (str.in_re.raw x)
                (chrob.len x (exp 10 strlenx)))
   (and
     (= (* 1171 w) (+ x (* 444 u)))
-    (<= 0 strlenx)
     (<= 0 x)
     (<= 0 (* 444 u))
+    (<= 1 strlenx)
     (<= strlenx 99)
     (<= u 2)
     (str.in_re.raw x)
