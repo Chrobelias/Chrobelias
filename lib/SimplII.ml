@@ -3056,7 +3056,7 @@ let arithmetize ast env =
           then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
           else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
         in
-        (match in_stoi s, List.mem s str_vars with
+        (match in_stoi_or_concat s, List.mem s str_vars with
          | true, false ->
            Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia)
          | _ ->
