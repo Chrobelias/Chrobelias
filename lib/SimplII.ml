@@ -2904,31 +2904,49 @@ let arithmetize ast env =
   let arithmetize var_info ast =
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
+    let in_regex v = Map.mem (collect_regexes ast) v in
     let open Ast.Eia in
     let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in
     let rec arithmetize_term : 'a. string list -> 'a term -> Z.t term * Ast.Eia.t list =
       fun (type a) : (string list -> a term -> Z.t term * Ast.Eia.t list) -> function
         | str_vars ->
           (function
-            | Sofi s -> s, []
+            | Sofi s -> arithmetize_term str_vars s
             | Iofs (Atom (Var (v, S))) when List.mem v str_vars -> const Z.minus_one, []
             | Iofs (Atom (Var (v, S))) -> atomi v, [ leq (const Z.zero) (atomi v) ]
             | Iofs s -> arithmetize_term str_vars s
             | Len (Atom (Var (var, S))) ->
               let lenvar, phs = String.concat "" [ "strlen"; var ], [] in
               let v = atomi lenvar in
-              let phs = leq (Ast.Eia.const Z.zero) v :: phs in
+              let phs =
+                (if in_stoi var && not (List.mem var str_vars)
+                 then leq (const Z.one) v
+                 else leq (const Z.zero) v)
+                :: phs
+              in
               let phs =
                 if List.mem var str_vars
                 then phs
                 else (
-                  match in_stoi var, Map.mem (collect_regexes ast) var with
+                  match in_stoi var, in_regex var with
                   | true, true -> rlen (atomi var) (pow_base v) :: phs
                   | true, false -> lt (atomi var) (pow_base v) :: phs
                   | false, other -> phs)
               in
               v, phs
-            | Len _ -> failwith "Unsupported constraint in arithmetize_term"
+            | Len term ->
+              let term', phs = arithmetize_term str_vars term in
+              let lenvar, phs =
+                Format.asprintf "strlen_%a" Ast.pp_term_smtlib2 term', []
+              in
+              let v = atomi lenvar in
+              let phs = leq (Ast.Eia.const Z.zero) v :: phs in
+              let phs =
+                leq (pow_base v) term'
+                :: lt term' (Mul [ const (Config.base ()); pow_base v ])
+                :: phs
+              in
+              v, phs
             | Str_const s -> const (Z.of_string s), []
             | Atom (Var (v, S)) -> atomi v, []
             | Concat (_, _) | At (_, _) | Substr (_, _, _) ->
@@ -2960,7 +2978,12 @@ let arithmetize ast env =
               let lhs, lhs_phs = arithmetize_term str_vars lhs in
               let rhs, rhs_phs = arithmetize_term str_vars rhs in
               build lhs rhs, lhs_phs @ rhs_phs
-            | term -> failwith "Unexpected in arithmetize_term")
+            | term ->
+              failwith
+                (Format.asprintf
+                   "Unexpected in arithmetize_term: %a"
+                   Ast.Eia.pp_term
+                   term))
     in
     let arithmetize_in_re s nfa =
       log "Arithmetizing regex ...";
