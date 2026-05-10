@@ -333,7 +333,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
        | _ ->
          if light
          then (
-           log "Unknown in Light solving ...\n%!";
+           log "Unknown in Lightweight solving ...\n%!";
            Unknown (ast, e))
          else (
            if config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
@@ -356,7 +356,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       then unknown ast e
       else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
       <+> (fun ast e ->
-      let light_str = if light then "Light run:\n" else "" in
+      let light_str = if light then "Lightweight run:\n" else "" in
       if config.dump_pre_simpl
       then Format.printf "@[%s%a@]\n%!" light_str Lib.Ast.pp_smtlib2 ast;
       unknown ast e)
