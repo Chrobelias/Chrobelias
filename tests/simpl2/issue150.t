@@ -1,15 +1,15 @@
 
   $ Chro -no-over -bound -1 --dpresimpl --dir --stop-after simpl ../examples/issue150.smt2 2>&1 | sed 's/[[:space:]]*$//'
-  Light run:
+  Lightweight run:
   (and
-               (= (* 1171 w) (+ x (* 444 u)))
-               (<= 0 x)
-               (<= 0 (* 444 u))
-               (<= 1 strlenx)
-               (<= strlenx 99)
-               (<= u 2)
-               (str.in_re.raw x)
-               (chrob.len x (exp 10 strlenx)))
+                     (= (* 1171 w) (+ x (* 444 u)))
+                     (<= 0 x)
+                     (<= 0 (* 444 u))
+                     (<= 1 strlenx)
+                     (<= strlenx 99)
+                     (<= u 2)
+                     (str.in_re.raw x)
+                     (chrob.len x (exp 10 strlenx)))
   (and
     (= (* 1171 w) (+ x (* 444 u)))
     (<= 0 x)
