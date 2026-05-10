@@ -2919,7 +2919,7 @@ let arithmetize ast env =
               let lenvar, phs = String.concat "" [ "strlen"; var ], [] in
               let v = atomi lenvar in
               let phs =
-                (if in_stoi var && not (List.mem var str_vars)
+                (if in_stoi_or_concat var && not (List.mem var str_vars)
                  then leq (const Z.one) v
                  else leq (const Z.zero) v)
                 :: phs
