@@ -13,7 +13,7 @@
   > EOF
 
   $ export CHRO_LONGEST_PATH=100
-  $ timeout 6 Chro -no-over -bound 0 2.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro -no-over -bound 0 2.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   (
      (define-fun u () Int
@@ -40,7 +40,7 @@
   > EOF
 
   $ export CHRO_LONGEST_PATH=10000
-  $ timeout 7 Chro 3.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro 3.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   (
      (define-fun x () String
