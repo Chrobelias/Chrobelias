@@ -13,9 +13,9 @@
                (= strlenx (+ 1 %re_len9))
                (= (+ (* (- 1) y (exp 10 strlenx)) (* 999 (exp 10 strlenx))) 0)
                (<= 0 %re_len9)
-               (<= 0 strlenx)
                (<= 0 x)
-               (<= 0 y))
+               (<= 0 y)
+               (<= 1 strlenx))
   sat (under int)
   (
      (define-fun x () String
