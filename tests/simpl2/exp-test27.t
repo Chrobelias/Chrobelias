@@ -2,16 +2,16 @@
 $ export CHRO_DEBUG=1
 
   $ Chro -huge-c 100 --dpresimpl --stop-after simpl ../examples/exp-test27.smt2
-  Light run:
+  Lightweight run:
   (and
-               (= x (+ (* 11 %q4) (* 29 %q2)))
-               (<= 0 x)
-               (<= (exp 10 1) (exp 10 strlenx))
-               (<= %q4 2)
-               (<= (exp 10 strlenx) (exp 10 99))
-               (<= (* (- 1) %q4) 0)
-               (str.in_re.raw x)
-               (chrob.len x (exp 10 strlenx)))
+                     (= x (+ (* 11 %q4) (* 29 %q2)))
+                     (<= 0 x)
+                     (<= (exp 10 1) (exp 10 strlenx))
+                     (<= %q4 2)
+                     (<= (exp 10 strlenx) (exp 10 99))
+                     (<= (* (- 1) %q4) 0)
+                     (str.in_re.raw x)
+                     (chrob.len x (exp 10 strlenx)))
   (and
     (= x (+ (* 11 %q8) (* 29 %q6)))
     (<= 0 x)
