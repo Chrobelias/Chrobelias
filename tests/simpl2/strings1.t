@@ -21,6 +21,13 @@
   (and
                      (<= 0 %re_len29)
                      (<= 0 y)
+                     (<= 1 %re_len29)
+                     (str.in_re.raw y)
+                     str var x in unsupported concat)
+  Lightweight run:
+  (and
+                     (<= 0 %re_len52)
+                     (<= 0 y)
                      (str.in_re.raw y)
                      str var x in unsupported concat)
   Lightweight run:
@@ -34,9 +41,10 @@
                      (str.in_re.raw y))
   Lightweight run:
   (and
-                     (<= 0 %re_len69)
+                     (<= 0 %re_len83)
                      (<= 0 y)
-                     (<= (* (- 1) %re_len69) 2)
+                     (<= (* (- 1) %re_len83) 1)
+                     (<= (* (- 1) %re_len83) 2)
                      (str.in_re.raw y)
                      str var x in unsupported concat)
   Lightweight run:
@@ -50,9 +58,10 @@
                      (str.in_re.raw y))
   Lightweight run:
   (and
-                     (<= 0 %re_len108)
+                     (<= 0 %re_len102)
                      (<= 0 y)
-                     (<= (* (- 1) %re_len108) 3)
+                     (<= (* (- 1) %re_len102) 2)
+                     (<= (* (- 1) %re_len102) 3)
                      (str.in_re.raw y)
                      str var x in unsupported concat)
   sat (under str)

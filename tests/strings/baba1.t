@@ -23,8 +23,8 @@ $ cat baba1.smt2
                      (chrob.len b (exp 10 strlenb)))
   (and
     (= strlenb (+ 1 b))
-    (= (+ b (* (- 2) %re_len5)) 1)
-    (<= 0 %re_len5)
+    (= (+ b (* (- 2) %re_len3)) 1)
+    (<= 0 %re_len3)
     (<= 0 b)
     (<= 1 strlenb)
     (<= (* (- 1) b) 1)
@@ -32,8 +32,8 @@ $ cat baba1.smt2
     (chrob.len b (exp 10 strlenb)))
   (and
     (= strlenb (+ 1 b))
-    (= (+ b (* (- 2) %re_len6)) 2)
-    (<= 0 %re_len6)
+    (= (+ b (* (- 2) %re_len4)) 2)
+    (<= 0 %re_len4)
     (<= 0 b)
     (<= 1 strlenb)
     (<= (* (- 1) b) 1)
