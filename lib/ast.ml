@@ -851,6 +851,10 @@ let in_stoi2 v ast =
   in_eia_term in_stoi_eia v ast'
 ;;
 
+let get_stoi_conc_vars ast =
+  ast |> get_str_vars |> List.filter (fun v -> in_stoi v ast || in_concat v ast)
+;;
+
 let get_len name ast =
   fold
     (fun acc -> function
