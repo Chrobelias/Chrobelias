@@ -2901,7 +2901,7 @@ let arithmetize ast env =
          |> apply_symantics (module SymArConcIofs)
          |> apply_symantics (module SymArConc))
   in
-  let arithmetize var_info ast =
+  let arithmetize var_info str_vars ast =
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
     let in_regex v = Map.mem (collect_regexes ast) v in
@@ -3049,19 +3049,19 @@ let arithmetize ast env =
             let v = gensym ~prefix:"%arith_re_raw" () in
             v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
         in
-        let nfa =
+        (* let nfa =
           if not (in_stoi_or_concat s)
           then nfa
           else if List.mem s str_vars
           then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
           else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
-        in
-        (match in_stoi_or_concat s, List.mem s str_vars with
-         | true, false ->
-           Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia)
-         | _ ->
-           arithmetize_in_re s nfa
-           |> List.map (fun ast' -> Ast.land_ (ast' :: (phs |> List.map Ast.eia))))
+        in *)
+          (match in_stoi_or_concat s, List.mem s str_vars with
+           | true, false ->
+             Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia)
+           | _ ->
+             arithmetize_in_re s nfa
+             |> List.map (fun ast' -> Ast.land_ (ast' :: (phs |> List.map Ast.eia))))
       | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "Unexpected constraint"
       | Ast.Unsupp s -> [ Ast.Unsupp s ]
       | _ as non_eia -> [ non_eia ]
@@ -3090,22 +3090,20 @@ let arithmetize ast env =
        | Unsupp _ -> false)
       |> fun res -> res
     in
-    Utils.powerset (Ast.get_str_vars ast |> List.filter in_stoi_or_concat)
-    |> List.concat_map (fun str_vars ->
-      arithmetize_concats var_info str_vars ast
-      |> apply_symantics_unsugared (module M)
-      |> arithmetize_conj str_vars
-      |> List.map (fun ast ->
-        Ast.map
-          (function
-            | Ast.Eia (Ast.Eia.RLen (Ast.Eia.Atom (Ast.Var (s, _)), rhs))
-              when var_appears_as_string s ast ->
-              Ast.eia
-                (Ast.Eia.rlen
-                   (Ast.Eia.atom (Ast.Var (String.concat "" [ "string"; s ], Ast.I)))
-                   rhs)
-            | ast -> ast)
-          ast))
+    arithmetize_concats var_info str_vars ast
+    |> apply_symantics_unsugared (module M)
+    |> arithmetize_conj str_vars
+    |> List.map (fun ast ->
+      Ast.map
+        (function
+          | Ast.Eia (Ast.Eia.RLen (Ast.Eia.Atom (Ast.Var (s, _)), rhs))
+            when var_appears_as_string s ast ->
+            Ast.eia
+              (Ast.Eia.rlen
+                 (Ast.Eia.atom (Ast.Var (String.concat "" [ "string"; s ], Ast.I)))
+                 rhs)
+          | ast -> ast)
+        ast)
   in
   let unfold_neq var_info regexes ast =
     let strlen_var s = String.concat "" [ "strlen"; s ] in
@@ -3259,15 +3257,52 @@ let arithmetize ast env =
   let var_info = apply_symantics (module Who_in_exponents) ast in
   let alpha = collect_alpha ast in
   let (module Symantics) = make_main_symantics ~alpha env in
+  let with_empty_cases ast =
+    let open Id_symantics in
+    let important_vars = Ast.get_stoi_conc_vars ast in
+    Ast.land_
+      [ ast
+      ; Ast.lor_
+          (Utils.powerset important_vars
+           |> List.map (fun empty_vars ->
+             Ast.land_
+               (List.map
+                  (fun var ->
+                     if List.mem var empty_vars
+                     then eq_str (str_var var) (str_const "")
+                     else leq (constz Z.one) (str_len (str_var var)))
+                  important_vars)))
+      ]
+  in
+  let str_vars_options ast =
+    let open Id_symantics in
+    let important_vars = Ast.get_stoi_conc_vars ast in
+    let options =
+      Utils.powerset important_vars
+      |> List.map (fun str_vars ->
+        let extra_regexes =
+          important_vars
+          |> List.map (fun var ->
+            if List.mem var str_vars
+            then in_re_raw (str_var var) (Regex.nondigit |> NfaS.of_regex)
+            else in_re_raw (str_var var) (Regex.digit |> NfaS.of_regex))
+          |> Ast.land_
+        in
+        str_vars, Ast.land_ [ ast; extra_regexes ])
+    in
+    if List.is_empty options then [ [], ast ] else options
+  in
   let asts_n_regexes =
     ast
     |> split_concats var_info
+    |> with_empty_cases
     |> Ast.to_dnf
     |> List.map (apply_symantics (module Symantics))
-    |> List.map fold_regexes
+    |> List.concat_map str_vars_options
+    |> List.map (fun (str_vars, ast) -> str_vars, fold_regexes ast)
   in
   List.concat_map
-    (fun (ast, regexes) ->
+    (fun (str_vars, (ast, regexes)) ->
        List.map
          (fun ast' ->
             let ast', regexes' = fold_regexes_i ast' in
@@ -3281,7 +3316,7 @@ let arithmetize ast env =
                 regexes'
             in
             ast', regexes)
-         (ast |> flatten |> arithmetize var_info))
+         (ast |> flatten |> arithmetize var_info str_vars))
     asts_n_regexes
   |> List.concat_map (fun (a, b) ->
     unfold_neq var_info b a |> List.map (fun (a, a') -> a, env, a', b))
