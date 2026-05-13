@@ -1,5 +1,5 @@
   $ Chro ./subst.smt2 
-  unsat (presimpl int)
+  unsat (presimpl str)
 
   $ Chro ./subst-2.smt2 
   unsat (presimpl str)
@@ -11,4 +11,4 @@
   sat (under int)
 
   $ Chro ./subst-5.smt2 
-  sat (under int)
+  sat (presimpl int)
