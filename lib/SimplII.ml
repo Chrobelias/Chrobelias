@@ -2675,29 +2675,17 @@ let arithmetize ast env =
     | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, _)) -> true
     | _ -> false
   in
-  let fold_regexes ast =
-    let ast_with_positive_regex =
-      ast
-      (*Ast.map
-        (function
-          | Lnot (Lnot ast) -> ast
-          | Lnot (Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const str, S)))
-            ->
-            Ast.Eia
-              (InReRaw
-                 ( Ast.Eia.Atom (Ast.Var (s, S))
-                 , Ast.S
-                   (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-                 , Regex.str_to_re str |> NfaL.of_regex |> NfaL.invert ))
-          | Lnot (Ast.Eia (InRe (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re))) ->
-            Ast.Eia
-              (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-              (InReRaw
-                 (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, re |> NfaL.of_regex |> NfaL.invert))
-          | Lnot (Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa))) ->
-            Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, S)), Ast.S, nfa |> NfaL.invert))
-          | ast -> ast)
-        ast*)
+  let fold_regexes ?(str_vars = []) ast =
+    let ast_with_extra_regexes =
+      let open Ast in
+      let extra_regexes =
+        Ast.get_stoi_conc_vars ast
+        |> List.map (fun var ->
+          if List.mem var str_vars
+          then Eia (InRe (Eia.Atom (Var (var, S)), S, Regex.nondigit))
+          else Eia (InRe (Eia.Atom (Var (var, S)), S, Regex.digit)))
+      in
+      Ast.land_ (ast :: extra_regexes)
     in
     let regexes =
       Map.map
@@ -2706,14 +2694,14 @@ let arithmetize ast env =
             (fun acc nfa -> NfaS.intersect nfa acc)
             (NfaCollection.LsbStr.n ())
             data)
-        (collect_regexes ast_with_positive_regex)
+        (collect_regexes ast_with_extra_regexes)
     in
     let ast_without_regex =
       Ast.map
         (function
           | ast when is_regex ast -> Ast.true_
           | ast -> ast)
-        ast_with_positive_regex
+        ast_with_extra_regexes
     in
     let phs =
       if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) regexes
@@ -3049,19 +3037,19 @@ let arithmetize ast env =
             let v = gensym ~prefix:"%arith_re_raw" () in
             v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
         in
-        (* let nfa =
+        let nfa =
           if not (in_stoi_or_concat s)
           then nfa
           else if List.mem s str_vars
           then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
           else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
-        in *)
-          (match in_stoi_or_concat s, List.mem s str_vars with
-           | true, false ->
-             Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia)
-           | _ ->
-             arithmetize_in_re s nfa
-             |> List.map (fun ast' -> Ast.land_ (ast' :: (phs |> List.map Ast.eia))))
+        in
+        (match in_stoi_or_concat s, List.mem s str_vars with
+         | true, false ->
+           Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia)
+         | _ ->
+           arithmetize_in_re s nfa
+           |> List.map (fun ast' -> Ast.land_ (ast' :: (phs |> List.map Ast.eia))))
       | Ast.Eia (PrefixOf _ | SuffixOf _ | Contains _) -> failwith "Unexpected constraint"
       | Ast.Unsupp s -> [ Ast.Unsupp s ]
       | _ as non_eia -> [ non_eia ]
@@ -3275,22 +3263,11 @@ let arithmetize ast env =
       ]
   in
   let str_vars_options ast =
-    let open Id_symantics in
-    let important_vars = Ast.get_stoi_conc_vars ast in
-    let options =
+    match Ast.get_stoi_conc_vars ast with
+    | [] -> [ [], fold_regexes ast ]
+    | important_vars ->
       Utils.powerset important_vars
-      |> List.map (fun str_vars ->
-        let extra_regexes =
-          important_vars
-          |> List.map (fun var ->
-            if List.mem var str_vars
-            then in_re_raw (str_var var) (Regex.nondigit |> NfaS.of_regex)
-            else in_re_raw (str_var var) (Regex.digit |> NfaS.of_regex))
-          |> Ast.land_
-        in
-        str_vars, Ast.land_ [ ast; extra_regexes ])
-    in
-    if List.is_empty options then [ [], ast ] else options
+      |> List.map (fun str_vars -> str_vars, fold_regexes ~str_vars ast)
   in
   let asts_n_regexes =
     ast
@@ -3299,7 +3276,6 @@ let arithmetize ast env =
     |> Ast.to_dnf
     |> List.map (apply_symantics (module Symantics))
     |> List.concat_map str_vars_options
-    |> List.map (fun (str_vars, ast) -> str_vars, fold_regexes ast)
   in
   List.concat_map
     (fun (str_vars, (ast, regexes)) ->
