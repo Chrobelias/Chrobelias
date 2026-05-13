@@ -1329,14 +1329,15 @@ module Parametric (Label : BasicL) = struct
       let next without =
         transitions |> Label.filter_states without nfa.extra |> List.map snd
       in
-      let rec succ without =
+      let succ without () =
         match next without with
-        | [] -> Seq.empty
+        | [] -> []
         | states ->
           List.iter (fun state -> without.(state) <- true) states;
-          Seq.append (List.to_seq states) (succ without)
+          states
       in
-      succ (Array.init (length nfa) (Fun.const false))
+      Seq.forever (succ (Array.init (length nfa) (Fun.const false)))
+      |> Seq.take_while (Fun.negate List.is_empty)
     in
     let dfs start =
       let rec rdfs visited node =
@@ -1344,7 +1345,7 @@ module Parametric (Label : BasicL) = struct
         then begin
           if Set.mem nfa.final node
           then raise Sat_found
-          else Seq.fold_left rdfs (node :: visited) (successors node)
+          else Seq.fold_left (List.fold_left rdfs) (node :: visited) (successors node)
         end
         else visited
       in
@@ -1367,24 +1368,27 @@ module Parametric (Label : BasicL) = struct
     let successors state =
       let transitions = Array.get transitions state in
       let next without = transitions |> Label.filter_states without nfa.extra in
-      let rec succ without =
+      let succ without () =
         match next without with
-        | [] -> Seq.empty
+        | [] -> []
         | states ->
           states |> List.map snd |> List.iter (fun state -> without.(state) <- true);
-          Seq.append (List.to_seq states) (succ without)
+          states
       in
-      succ (Array.init (length nfa) (Fun.const false))
+      Seq.forever (succ (Array.init (length nfa) (Fun.const false)))
+      |> Seq.take_while (Fun.negate List.is_empty)
     in
     let dfs start =
       let rec rdfs path visited node =
+        Debug.printfln "\nVisited states list: ";
+        List.iter (fun x -> Debug.printfln "%d; " x) visited;
         if not (List.mem node visited)
         then begin
           if Set.mem nfa.final node
           then raise (Sat_found path)
           else
             Seq.fold_left
-              (fun acc x -> rdfs (fst x :: path) acc (snd x))
+              (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node)
         end
