@@ -2676,32 +2676,20 @@ let arithmetize ast env =
     | _ -> false
   in
   let fold_regexes ?(str_vars = []) ast =
-    let ast_with_extra_regexes =
-      let open Ast in
-      let extra_regexes =
-        Ast.get_stoi_conc_vars ast
-        |> List.map (fun var ->
-          if List.mem var str_vars
-          then Eia (InRe (Eia.Atom (Var (var, S)), S, Regex.nondigit))
-          else Eia (InRe (Eia.Atom (Var (var, S)), S, Regex.digit)))
-      in
-      Ast.land_ (ast :: extra_regexes)
-    in
     let regexes =
-      Map.map
-        ~f:(fun data ->
-          List.fold_left
-            (fun acc nfa -> NfaS.intersect nfa acc)
-            (NfaCollection.LsbStr.n ())
-            data)
-        (collect_regexes ast_with_extra_regexes)
+      Map.mapi
+        ~f:(fun ~key:var ~data ->
+          let n = if List.mem var str_vars then Regex.nondigit else Regex.digit in
+          let n = NfaS.of_regex n in
+          List.fold_left (fun acc nfa -> NfaS.intersect nfa acc) n data)
+        (collect_regexes ast)
     in
     let ast_without_regex =
       Ast.map
         (function
           | ast when is_regex ast -> Ast.true_
           | ast -> ast)
-        ast_with_extra_regexes
+        ast
     in
     let phs =
       if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) regexes
