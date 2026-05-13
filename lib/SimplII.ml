@@ -2676,11 +2676,16 @@ let arithmetize ast env =
     | _ -> false
   in
   let fold_regexes ?(str_vars = []) ast =
+    let stoi_conc_vars = Ast.get_stoi_conc_vars ast in
     let regexes =
       Map.mapi
         ~f:(fun ~key:var ~data ->
-          let n = if List.mem var str_vars then Regex.nondigit else Regex.digit in
-          let n = NfaS.of_regex n in
+          let n =
+            match List.mem var stoi_conc_vars, List.mem var str_vars with
+            | false, _ -> NfaCL.n ()
+            | true, true -> NfaS.of_regex Regex.nondigit
+            | true, false -> NfaS.of_regex Regex.digit
+          in
           List.fold_left (fun acc nfa -> NfaS.intersect nfa acc) n data)
         (collect_regexes ast)
     in
