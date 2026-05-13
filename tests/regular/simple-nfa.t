@@ -4,4 +4,4 @@
   (assert (= %1  1099) )
   
   sat (nfa)
-  sat (under int)
+  sat (presimpl int)
