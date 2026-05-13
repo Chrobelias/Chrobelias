@@ -3250,39 +3250,40 @@ let arithmetize ast env =
                   important_vars)))
       ]
   in
-  let str_vars_options ast =
+  let str_vars_options ast env =
     match Ast.get_stoi_conc_vars ast with
-    | [] -> [ [], fold_regexes ast ]
+    | [] -> [ [], fold_regexes ast, env ]
     | important_vars ->
       Utils.powerset important_vars
-      |> List.map (fun str_vars -> str_vars, fold_regexes ~str_vars ast)
+      |> List.map (fun str_vars -> str_vars, fold_regexes ~str_vars ast, env)
   in
-  let asts_n_regexes =
-    ast
-    |> split_concats var_info
-    |> with_empty_cases
-    |> Ast.to_dnf
-    |> List.map (apply_symantics (module Symantics))
-    |> List.concat_map str_vars_options
-  in
-  List.concat_map
-    (fun (str_vars, (ast, regexes)) ->
-       List.map
-         (fun ast' ->
-            let ast', regexes' = fold_regexes_i ast' in
-            let regexes =
-              Map.merge
-                ~f:(fun ~key -> function
-                   | `Left v -> Some v
-                   | `Right v -> Some v
-                   | `Both (v, v') -> Some (NfaS.intersect v v'))
-                regexes
-                regexes'
-            in
-            ast', regexes)
-         (ast |> flatten |> arithmetize var_info str_vars))
-    asts_n_regexes
-  |> List.concat_map (fun (a, b) ->
+  ast
+  |> split_concats var_info
+  |> with_empty_cases
+  |> Ast.to_dnf
+  |> List.map (apply_symantics (module Symantics))
+  |> List.filter_map (fun ast ->
+    match basic_simplify [ 0 ] env ast with
+    | `Unsat -> None
+    | `Sat env -> Some (Ast.true_, env)
+    | `Unknown (ast, env, _, _) -> Some (ast, env))
+  |> List.concat_map (fun (ast, env) -> str_vars_options ast env)
+  |> List.concat_map (fun (str_vars, (ast, regexes), env) ->
+    List.map
+      (fun ast' ->
+         let ast', regexes' = fold_regexes_i ast' in
+         let regexes =
+           Map.merge
+             ~f:(fun ~key -> function
+                | `Left v -> Some v
+                | `Right v -> Some v
+                | `Both (v, v') -> Some (NfaS.intersect v v'))
+             regexes
+             regexes'
+         in
+         ast', regexes, env)
+      (ast |> flatten |> arithmetize var_info str_vars))
+  |> List.concat_map (fun (a, b, env) ->
     unfold_neq var_info b a |> List.map (fun (a, a') -> a, env, a', b))
 ;;
 
