@@ -795,6 +795,9 @@ let get_states base extra asts =
   let get_state name =
     name |> Base.String.chop_prefix_exn ~prefix:"P" |> Base.Int.of_string
   in
+  (* let get_val name =
+    name |> Base.String.chop_prefix_exn ~prefix:"lia" |> Base.Int.of_string
+  in *)
   let ph =
     match asts with
     | [] -> raise Exit
@@ -813,35 +816,36 @@ let get_states base extra asts =
     Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
   in
   Z3.reset solver;
-  debug_printfln "Running Z3...";
-  match Z3.check solver ~assumptions:[ ph ] with
-  | `Sat ->
-    (match Z3.model solver with
-     | None -> assert false
-     | Some m ->
-       let digits =
+  (* debug_printfln "Running Z3..."; *)
+    match Z3.check solver ~assumptions:[ ph ] with
+    | `Sat ->
+      (match Z3.model solver with
+       | None -> assert false
+       | Some m ->
+         let digits =
+           Hashtbl.fold
+             (fun k v acc ->
+                let _ : Smtml.Symbol.t = k in
+                match k.name, v with
+                | Smtml.Symbol.Simple s, Smtml.Value.Int n
+                  when String.starts_with ~prefix:"lia" s ->
+                  (* debug_printfln "var%d = %d;" (get_val s) n; *)
+                  Lia (Lia.eq (atom (int_var s)) (const (Z.of_int n))) :: acc
+                | _ -> acc)
+             (Smtml.Z3_mappings.values_of_model m)
+             []
+         in
          Hashtbl.fold
            (fun k v acc ->
               let _ : Smtml.Symbol.t = k in
               match k.name, v with
-              | Smtml.Symbol.Simple s, Smtml.Value.Int n
-                when String.starts_with ~prefix:"lia" s ->
-                Lia (Lia.eq (atom (int_var s)) (const (Z.of_int n))) :: acc
+              | Smtml.Symbol.Simple s, Smtml.Value.True ->
+                (* debug_printfln "State: %d is taken" (get_state s); *)
+                (land_ digits, get_state s) :: acc
+              | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
               | _ -> acc)
            (Smtml.Z3_mappings.values_of_model m)
-           []
-       in
-       Hashtbl.fold
-         (fun k v acc ->
-            let _ : Smtml.Symbol.t = k in
-            match k.name, v with
-            | Smtml.Symbol.Simple s, Smtml.Value.True ->
-              debug_printfln "State: %s is taken" s;
-              (land_ digits, get_state s) :: acc
-            | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
-            | _ -> acc)
-         (Smtml.Z3_mappings.values_of_model m)
-         [])
-  | `Unsat -> []
-  | _ -> failwith "Unknown in Z3"
+           [])
+    | `Unsat -> []
+    | _ -> failwith "Unknown in Z3"
 ;;

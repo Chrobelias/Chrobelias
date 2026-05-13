@@ -1571,25 +1571,14 @@ let check_sat ir
   in
   let on_strings ir =
     let checker =
-      let wrap f =
+      let wrap f to_char =
         fun ir ->
         match f ir with
         | `Sat model ->
           `Sat
             (fun () ->
               let* model = model () in
-              let model = Map.map ~f:(List.map strbv_to_char) model in
-              return model)
-        | `Unknown -> `Unknown
-        | `Unsat -> `Unsat
-      in
-      let wrap' f =
-        fun ir ->
-        match f ir with
-        | `Sat _ ->
-          `Sat
-            (fun () ->
-              let model = Map.empty in
+              let model = Map.map ~f:(List.map to_char) model in
               return model)
         | `Unknown -> `Unknown
         | `Unsat -> `Unsat
@@ -1603,14 +1592,18 @@ let check_sat ir
         MsbStr.check_sat
       | `Par, `Msb ->
         Debug.printfln "Running parametric MSB mode";
-        wrap' MsbPar.check_sat
+        let int_to_char = function
+          | c when 0 <= c && c <= 9 -> Char.chr (Char.code '0' + c)
+          | _ -> failwith "Unexpected symbol"
+        in
+        wrap MsbPar.check_sat int_to_char
       | `Par, `Lsb -> failwith "Unimplemented parametric LSB mode"
       | `StrBv, `Lsb ->
         Debug.printfln "Running string-bitvector LSB mode";
-        wrap LsbStrBv.check_sat
+        wrap LsbStrBv.check_sat strbv_to_char
       | `StrBv, `Msb ->
         Debug.printfln "Running string-bitvector MSB mode";
-        wrap MsbStrBv.check_sat
+        wrap MsbStrBv.check_sat strbv_to_char
       | _ -> assert false
     in
     match checker ir with

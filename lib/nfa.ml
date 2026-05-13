@@ -1380,8 +1380,8 @@ module Parametric (Label : BasicL) = struct
     in
     let dfs start =
       let rec rdfs path visited node =
-        Debug.printfln "\nVisited states list: ";
-        List.iter (fun x -> Debug.printfln "%d; " x) visited;
+        (* Debug.printfln "\nVisited states list: ";
+        List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
         then begin
           if Set.mem nfa.final node
