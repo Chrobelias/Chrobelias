@@ -1326,18 +1326,18 @@ module Parametric (Label : BasicL) = struct
     let transitions = nfa.transitions in
     let successors state =
       let transitions = Array.get transitions state in
+      let visited = Array.init (length nfa) (Fun.const false) in
       let next without =
         transitions |> Label.filter_states without nfa.extra |> List.map snd
       in
-      let succ without () =
+      let succ without =
         match next without with
         | [] -> []
         | states ->
           List.iter (fun state -> without.(state) <- true) states;
           states
       in
-      Seq.forever (succ (Array.init (length nfa) (Fun.const false)))
-      |> Seq.take_while (Fun.negate List.is_empty)
+      Seq.forever (fun () -> succ visited) |> Seq.take_while (Fun.negate List.is_empty)
     in
     let dfs start =
       let rec rdfs visited node =
@@ -1367,16 +1367,16 @@ module Parametric (Label : BasicL) = struct
     let transitions = nfa.transitions in
     let successors state =
       let transitions = Array.get transitions state in
+      let visited = Array.init (length nfa) (Fun.const false) in
       let next without = transitions |> Label.filter_states without nfa.extra in
-      let succ without () =
+      let succ without =
         match next without with
         | [] -> []
         | states ->
           states |> List.map snd |> List.iter (fun state -> without.(state) <- true);
           states
       in
-      Seq.forever (succ (Array.init (length nfa) (Fun.const false)))
-      |> Seq.take_while (Fun.negate List.is_empty)
+      Seq.forever (fun () -> succ visited) |> Seq.take_while (Fun.negate List.is_empty)
     in
     let dfs start =
       let rec rdfs path visited node =
