@@ -331,20 +331,20 @@ let digit =
 ;;
 
 let nondigit =
-  mor
-    (kleene (symbol [ Config.string_config.eos ]))
+  concat
     (concat
-       (concat
-          (kleene (symbol [ Config.string_config.null ]))
-          (32 -- 128
-           |> List.map Char.chr
-           |> List.filter (function
-             | '0' .. '9' -> false
-             | _ -> true)
-           |> List.map (fun c -> symbol [ c ])
-           |> List.fold_left (fun acc a -> mor a acc) empty))
-       (kleene (symbol [ Config.string_config.null ])))
+       (kleene (symbol [ Config.string_config.null ]))
+       (32 -- 128
+        |> List.map Char.chr
+        |> List.filter (function
+          | '0' .. '9' -> false
+          | _ -> true)
+        |> List.map (fun c -> symbol [ c ])
+        |> List.fold_left (fun acc a -> mor a acc) empty))
+    (kleene (symbol [ Config.string_config.null ]))
 ;;
+
+let nondigit2 = mor (kleene (symbol [ Config.string_config.eos ])) nondigit
 
 let allchar =
   concat

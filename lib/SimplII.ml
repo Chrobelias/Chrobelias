@@ -3239,21 +3239,24 @@ let arithmetize ast env =
   let alpha = collect_alpha ast in
   let (module Symantics) = make_main_symantics ~alpha env in
   let with_empty_cases ast =
-    let open Id_symantics in
-    let important_vars = Ast.get_stoi_conc_vars ast in
-    Ast.land_
-      [ ast
-      ; Ast.lor_
-          (Utils.powerset important_vars
-           |> List.map (fun empty_vars ->
-             Ast.land_
-               (List.map
-                  (fun var ->
-                     if List.mem var empty_vars
-                     then eq_str (str_var var) (str_const "")
-                     else leq (constz Z.one) (str_len (str_var var)))
-                  important_vars)))
-      ]
+    let open Ast in
+    let open Ast.Eia in
+    match get_stoi_conc_vars ast with
+    | [] -> ast
+    | important_vars ->
+      land_
+        [ ast
+        ; lor_
+            (Utils.powerset important_vars
+             |> List.filter_map (function
+               | [] -> None
+               | empty_vars ->
+                 Some
+                   (land_
+                      (List.map
+                         (fun var -> eia (Eq (Atom (Var (var, S)), str_const "", S)))
+                         empty_vars))))
+        ]
   in
   let str_vars_options ast env =
     match Ast.get_stoi_conc_vars ast with
