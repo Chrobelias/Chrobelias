@@ -3242,16 +3242,11 @@ let arithmetize ast env =
     let open Ast in
     let open Ast.Eia in
     let important_vars = get_stoi_conc_vars ast in
-    land_
-      [ ast
-      ; lor_
-          (Utils.powerset important_vars
-           |> List.map (fun empty_vars ->
-             land_
-               (List.map
-                  (fun var -> eia (Eq (Atom (Var (var, S)), str_const "", S)))
-                  empty_vars)))
-      ]
+    Utils.powerset important_vars
+    |> List.map (fun empty_vars ->
+      Ast.land_
+        (List.map (fun var -> eia (Eq (Atom (Var (var, S)), str_const "", S))) empty_vars))
+    |> List.map (fun ast' -> Ast.land_ [ ast; ast' ])
   in
   let str_vars_options ast env =
     match Ast.get_stoi_conc_vars ast with
@@ -3263,7 +3258,7 @@ let arithmetize ast env =
   ast
   |> split_concats var_info
   |> with_empty_cases
-  |> Ast.to_dnf
+  |> List.concat_map Ast.to_dnf
   |> List.map (apply_symantics (module Symantics))
   |> List.filter_map (fun ast ->
     match basic_simplify [ 0 ] env ast with
