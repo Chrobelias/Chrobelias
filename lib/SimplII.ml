@@ -3241,22 +3241,17 @@ let arithmetize ast env =
   let with_empty_cases ast =
     let open Ast in
     let open Ast.Eia in
-    match get_stoi_conc_vars ast with
-    | [] -> ast
-    | important_vars ->
-      land_
-        [ ast
-        ; lor_
-            (Utils.powerset important_vars
-             |> List.filter_map (function
-               | [] -> None
-               | empty_vars ->
-                 Some
-                   (land_
-                      (List.map
-                         (fun var -> eia (Eq (Atom (Var (var, S)), str_const "", S)))
-                         empty_vars))))
-        ]
+    let important_vars = get_stoi_conc_vars ast in
+    land_
+      [ ast
+      ; lor_
+          (Utils.powerset important_vars
+           |> List.map (fun empty_vars ->
+             land_
+               (List.map
+                  (fun var -> eia (Eq (Atom (Var (var, S)), str_const "", S)))
+                  empty_vars)))
+      ]
   in
   let str_vars_options ast env =
     match Ast.get_stoi_conc_vars ast with
