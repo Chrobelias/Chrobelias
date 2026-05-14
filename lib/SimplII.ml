@@ -514,17 +514,6 @@ let apply_symantics_unsugared (type a) (module S : SYM with type ph = a) =
 let make_main_symantics ?alpha ?agressive env =
   let _ : Env.t = env in
   let module Set = Base.Set.Poly in
-  let alpha_with_extra_char =
-    match alpha with
-    | Some alpha ->
-      let alpha = alpha |> Utils.with_extra_char |> Set.to_list in
-      Debug.printf
-        "Alphapbet with extra char: %a\n%!"
-        Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
-        alpha;
-      Option.some alpha
-    | None -> Option.none
-  in
   let module Main_symantics_ = struct
     open Ast
     include Id_symantics
@@ -821,17 +810,13 @@ let make_main_symantics ?alpha ?agressive env =
     let rec not = function
       | Ast.Eia (Ast.Eia.Leq (lhs, rhs)) -> Ast.eia (Ast.Eia.gt lhs rhs)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-      | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) when Option.is_some alpha_with_extra_char ->
-        Id_symantics.in_re_raw v (re |> NfaS.invert ?alpha:alpha_with_extra_char)
-      | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) when Option.is_some alpha_with_extra_char ->
-        Id_symantics.in_re_rawi v (re |> NfaS.invert ?alpha:alpha_with_extra_char)
+      | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) when Option.is_some alpha ->
+        Id_symantics.in_re_raw v (re |> NfaS.invert ?alpha)
+      | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) when Option.is_some alpha ->
+        Id_symantics.in_re_rawi v (re |> NfaS.invert ?alpha)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
-      | Ast.Eia (Ast.Eia.InRe (v, kind, re)) when Option.is_some alpha_with_extra_char ->
-        Ast.eia
-          (Ast.Eia.inreraw
-             v
-             kind
-             (NfaS.invert ?alpha:alpha_with_extra_char (NfaS.of_regex re)))
+      | Ast.Eia (Ast.Eia.InRe (v, kind, re)) when Option.is_some alpha ->
+        Ast.eia (Ast.Eia.inreraw v kind (NfaS.invert ?alpha (NfaS.of_regex re)))
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, I)) -> Id_symantics.neqz lhs rhs
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, S)) -> Id_symantics.neq_str lhs rhs
       | Ast.Lnot x -> x
@@ -959,11 +944,9 @@ let make_main_symantics ?alpha ?agressive env =
       match l, r with
       | Ast.Eia.Str_const l, Ast.Eia.Str_const r ->
         if l <> r then Ast.true_ else Ast.false_
-      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v)
-        when Option.is_some alpha_with_extra_char ->
-        Id_symantics.in_re_raw
-          v
-          (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha:alpha_with_extra_char)
+      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
+        Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha)
+      | v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v -> failwith "BABKI, BABKI!"
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | _ -> Id_symantics.neq_str l r
     ;;
@@ -2005,13 +1988,118 @@ let over_concat ast =
   Ast.land_ (over_reg @ over_length @ [ ast ])
 ;;
 
+module
+  Collect_alpha_
+  (*: SYM_SUGAR with type repr = char Base.Set.Poly.t and type ph = char Base.Set.Poly.t*) =
+struct
+  module S = Base.Set.Poly
+
+  type term = char S.t
+
+  let ( ++ ) = S.union
+  let empty = S.empty
+
+  type ph = term
+  type str = term
+  type repr = ph
+
+  let in_re lhs re =
+    lhs ++ (Regex.symbols re |> List.map (fun a -> List.nth a 0) |> S.of_list)
+  ;;
+
+  let in_rei lhs re = lhs ++ empty
+  let in_re_raw lhs re = lhs ++ NfaS.alpha re
+  let in_re_rawi lhs re = lhs ++ NfaS.alpha re
+  let str_len s = s
+  let sofi s = s
+  let iofs s = s
+  let str_const s = String.to_seq s |> List.of_seq |> S.of_list
+
+  let str_var v =
+    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
+    empty
+  ;;
+
+  let str_from_eia_const s = empty
+  let str_concat = ( ++ )
+  let const _ = empty
+  let constz _ = empty
+  let var s = empty
+
+  let str_len2 v =
+    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
+    v
+  ;;
+
+  let pp_str fmt ph = Format.fprintf fmt "todo"
+  let str_at _ _ = empty
+  let str_substr _ _ _ = empty
+  let str_prefixof = ( ++ )
+  let str_contains = ( ++ )
+  let str_suffixof = ( ++ )
+
+  let mul xs =
+    let aaa = List.fold_left ( ++ ) empty xs in
+    (* let u2 =
+      match xs with
+      | [ Eia.Atom (Var (v,_)); Eia.Pow (Eia.  (Const 2), Eia.Atom (Var _)) ] ->
+        S.singleton v
+      | _ -> S.empty
+    in
+    { aaa with under2 = S.union aaa.under2 u2 } *)
+    aaa
+  ;;
+
+  let add = List.fold_left ( ++ ) empty
+  let mod_ x _ = x
+  let bw _ = ( ++ )
+  let true_ = empty
+  let false_ = empty
+  let land_ = List.fold_left ( ++ ) empty
+  let lor_ = List.fold_left ( ++ ) empty
+  let not = Fun.id
+  let eqz = ( ++ )
+  let neqz = ( ++ )
+  let eq_str = ( ++ )
+  let neq_str = ( ++ )
+  let leq = ( ++ )
+  let lt = ( ++ )
+  let pow_minus_one x = x
+  let rlen = ( ++ )
+
+  let exists _ info =
+    (* This place could be buggy when name clashes  *)
+    info
+  ;;
+
+  let pow2var v = empty
+  let pow = ( ++ )
+  let prj = Fun.id
+  let unsupp _ = empty
+end
+
+module Collect_alpha :
+  SYM_SUGAR with type repr = Collect_alpha_.repr and type ph = Collect_alpha_.repr =
+struct
+  include Collect_alpha_
+  include FT_SIG.Sugar (Collect_alpha_)
+end
+
+let collect_alpha ast = apply_symantics (module Collect_alpha) ast
+let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
+
 let basic_simplify step ?multiple (env : Env.t) ast =
   let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
   in
   log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
+  let alpha = alpha_with_extra_char ast in
+  log
+    "Alphabet with extra char: %a\n%!"
+    Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
+    alpha;
   let rec loop step (env : Env.t) ast =
-    let (module Symantics) = make_main_symantics env in
+    let (module Symantics) = make_main_symantics ~alpha env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
     (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
@@ -2545,105 +2633,6 @@ let rewrite_via_concat { Info.all; _ } =
   fun ph -> Sym.prj (ph |> apply_symantics (module Sym))
 ;;
 
-module
-  Collect_alpha_
-  (*: SYM_SUGAR with type repr = char Base.Set.Poly.t and type ph = char Base.Set.Poly.t*) =
-struct
-  module S = Base.Set.Poly
-
-  type term = char S.t
-
-  let ( ++ ) = S.union
-  let empty = S.empty
-
-  type ph = term
-  type str = term
-  type repr = ph
-
-  let in_re lhs re =
-    lhs ++ (Regex.symbols re |> List.map (fun a -> List.nth a 0) |> S.of_list)
-  ;;
-
-  let in_rei lhs re = lhs ++ empty
-  let in_re_raw lhs re = lhs ++ NfaS.alpha re
-  let in_re_rawi lhs re = lhs ++ NfaS.alpha re
-  let str_len s = s
-  let sofi s = s
-  let iofs s = s
-  let str_const s = String.to_seq s |> List.of_seq |> S.of_list
-
-  let str_var v =
-    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
-    empty
-  ;;
-
-  let str_from_eia_const s = empty
-  let str_concat = ( ++ )
-  let const _ = empty
-  let constz _ = empty
-  let var s = empty
-
-  let str_len2 v =
-    (* Format.printf "%s %d: %s\n%!" __FUNCTION__ __LINE__ v; *)
-    v
-  ;;
-
-  let pp_str fmt ph = Format.fprintf fmt "todo"
-  let str_at _ _ = empty
-  let str_substr _ _ _ = empty
-  let str_prefixof = ( ++ )
-  let str_contains = ( ++ )
-  let str_suffixof = ( ++ )
-
-  let mul xs =
-    let aaa = List.fold_left ( ++ ) empty xs in
-    (* let u2 =
-      match xs with
-      | [ Eia.Atom (Var (v,_)); Eia.Pow (Eia.  (Const 2), Eia.Atom (Var _)) ] ->
-        S.singleton v
-      | _ -> S.empty
-    in
-    { aaa with under2 = S.union aaa.under2 u2 } *)
-    aaa
-  ;;
-
-  let add = List.fold_left ( ++ ) empty
-  let mod_ x _ = x
-  let bw _ = ( ++ )
-  let true_ = empty
-  let false_ = empty
-  let land_ = List.fold_left ( ++ ) empty
-  let lor_ = List.fold_left ( ++ ) empty
-  let not = Fun.id
-  let eqz = ( ++ )
-  let neqz = ( ++ )
-  let eq_str = ( ++ )
-  let neq_str = ( ++ )
-  let leq = ( ++ )
-  let lt = ( ++ )
-  let pow_minus_one x = x
-  let rlen = ( ++ )
-
-  let exists _ info =
-    (* This place could be buggy when name clashes  *)
-    info
-  ;;
-
-  let pow2var v = empty
-  let pow = ( ++ )
-  let prj = Fun.id
-  let unsupp _ = empty
-end
-
-module Collect_alpha :
-  SYM_SUGAR with type repr = Collect_alpha_.repr and type ph = Collect_alpha_.repr =
-struct
-  include Collect_alpha_
-  include FT_SIG.Sugar (Collect_alpha_)
-end
-
-let collect_alpha ast = apply_symantics (module Collect_alpha) ast
-
 let run_string_simplify ast =
   let module Set = Base.Set.Poly in
   let var_info = apply_symantics (module Who_in_exponents) ast in
@@ -2652,10 +2641,9 @@ let run_string_simplify ast =
   | `Unsat -> `Unsat
   | `Unknown (ast', e, _, _) ->
     let alpha = collect_alpha ast' in
-    let (module Symantics) = make_main_symantics ~alpha e in
+    let (module Symantics) = make_main_symantics ~alpha:(Utils.with_extra_char alpha) e in
     let ast = ast' |> over_concat |> apply_symantics (module Symantics) in
-    `Unknown
-      (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char |> Set.to_list))
+    `Unknown (ast, e, ast |> under_concats e (alpha |> Utils.with_extra_char))
 ;;
 
 let arithmetize ast env =
@@ -3237,7 +3225,7 @@ let arithmetize ast env =
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   let alpha = collect_alpha ast in
-  let (module Symantics) = make_main_symantics ~alpha env in
+  let (module Symantics) = make_main_symantics ~alpha:(Utils.with_extra_char alpha) env in
   let with_empty_cases ast =
     let open Ast in
     let open Ast.Eia in
