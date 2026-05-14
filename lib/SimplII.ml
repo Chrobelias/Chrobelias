@@ -3272,6 +3272,8 @@ let arithmetize ast env =
     | `Unsat -> None
     | `Sat env -> Some (Ast.true_, env)
     | `Unknown (ast, env, _, _) -> Some (ast, env))
+  |> List.concat_map (fun (ast, env) ->
+    List.map (fun ast -> ast, env) (ast |> split_concats var_info |> Ast.to_dnf))
   |> List.concat_map (fun (ast, env) -> str_vars_options ast env)
   |> List.concat_map (fun (str_vars, (ast, regexes), env) ->
     List.map
