@@ -12,6 +12,8 @@
              (= (str.to.int x) (+ (* 11111 %q2) %r1))
              (<= (+ %r1 1) 11111)
              (<= 0 %r1))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         %r1 -> 42;
   
@@ -41,6 +43,8 @@ $ cat 1.smt2
              (= (str.to.int x) (+ (* 442271 %q2) %r1))
              (<= (+ %r1 1) 442271)
              (<= 0 %r1))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         %r1 -> (+ %r3 (* 417677 %q4));
   

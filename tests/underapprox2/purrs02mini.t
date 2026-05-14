@@ -8,6 +8,8 @@
                                               (exp 2 (+ n (* (- 1) 1)))))
                                            (exp 2 n))))
              (<= (+ 0 1) n))
+  Alphabet with extra char: 0
+  
   iter(2)= (and
              (distinct (+ (* (- 2) (* (- 1) (exp 2 (+ (- 1) n))))
                        (* (- 2) (* n (exp 2 (+ (- 1) n))))

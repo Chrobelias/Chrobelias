@@ -8,6 +8,8 @@
              (= (exp 2 (+ x (* (- 1) 3))) u)
              (= (exp 2 (+ x (* (- 1) 1))) z)
              (= (exp 2 x) y))
+  Alphabet with extra char: 0
+  
   Lib__SimplII.propagate_exponents.check: (exp 2 (+ x)) -> (* 32 v)
   Lib__SimplII.propagate_exponents.check: (exp 2 (+ x)) -> (* 32 v)
   iter(2)= (and

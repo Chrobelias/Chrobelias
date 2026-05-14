@@ -115,6 +115,8 @@
              (<= 0 (+ i3 (* (- 1) 2)))
              (= (+ i1 (* (- 1) 1)) 0)
              (<= 0 (+ i4 (* (- 1) 2))))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         i1 -> 1;
   

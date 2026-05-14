@@ -111,6 +111,8 @@
              (= (+ (+ it616 (* i2 (* (- 1) 1))) (* (- 1) 1)) 0)
              (= (+ it615 (* (- 1) 2)) 0)
              (= (+ i1 (* (- 1) 1)) 0))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         i1 -> 1;
   

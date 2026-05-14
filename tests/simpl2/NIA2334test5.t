@@ -49,6 +49,8 @@
              (<= 0 x3)
              (<= 0 x2)
              (<= 0 x1))
+  Alphabet with extra char: 0
+  
   iter(2)= (and
              (<= 0 x1)
              (<= 0 x2)

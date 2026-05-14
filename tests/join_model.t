@@ -13,6 +13,8 @@
              (<= 100 z)
              (= (+ (+ 2 y) (* (* (- 1) 3) x)) 0)
              (= (+ (+ 5 y) (* (* (- 1) 7) u)) 0))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         y -> (+ (- 5) (* 7 u));
   

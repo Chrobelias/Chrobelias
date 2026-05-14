@@ -10,5 +10,7 @@
   Basic simplifications:
   
   iter(1)= (= (exp x 2) 32)
+  Alphabet with extra char: 0
+  
   fixed-point
   

@@ -11,6 +11,8 @@
   iter(1)= (and
              (= x 12345)
              (= 5 (+ 0 5)))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         x -> 12345;
         

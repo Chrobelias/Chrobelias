@@ -14,6 +14,8 @@
   iter(1)= (and
              (<= (exp 2 y) x)
              (<= (exp 2 x) x))
+  Alphabet with extra char: 0
+  
   iter(2)= (and
              (<= (exp 2 x) x)
              (<= (exp 2 y) x))
@@ -45,6 +47,8 @@
                  (* (* (- 1) 575) x1)) (* (- 1) 80))
              (<= 0 x2)
              (<= 0 x1))
+  Alphabet with extra char: 0
+  
   iter(2)= (and
              (<= 0 x1)
              (<= 0 x2)

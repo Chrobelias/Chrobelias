@@ -14,6 +14,8 @@
   iter(1)= (and
              (<= (exp 2 y) x)
              (exists (x) (<= (exp 2 x) x)))
+  Alphabet with extra char: 0
+  
   fixed-point
   
   Bound for underapproximation: 3

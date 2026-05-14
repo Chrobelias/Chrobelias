@@ -4,6 +4,8 @@
   iter(1)= (and
              (= (+ y x) 13)
              (= (+ x y) 13))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         x -> (+ 13 (- y));
   
@@ -19,6 +21,8 @@
              (= (+ z x) 10000)
              (= (+ y z) 100)
              (= (+ x y) 1))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         x -> (+ 1 (- y));
   
@@ -44,6 +48,8 @@
   Basic simplifications:
   
   iter(1)= (= (+ y y) (* (- 1) 9899))
+  Alphabet with extra char: 0
+  
   iter(2)= (= (+ y y) (- 9899))
   fixed-point
   
@@ -67,6 +73,8 @@
   iter(1)= (and
              (= (+ (+ it19 it23) (* (* (- 1) 1) i4)) (* (- 1) 1))
              (= (+ (+ (+ it21 it57) (* (* (- 1) 1) it21)) (* (* (- 1) 1) it57)) 0))
+  Alphabet with extra char: 0
+  
   iter(2)= (and
              (= (+ it19 it23 (* (- 1) i4)) (- 1))
              (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0))
@@ -95,6 +103,8 @@
              (= (+ (+ it19 (* it200 (* (- 1) 1))) z) 0)
              (= (+ (* it199 (* (- 1) 1)) it233) 0)
              (= (+ (+ (* it198 (* (- 1) 1)) it232) (* it19 (* (- 1) 3))) 0))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         it19 -> (+ it200 (- z));
   

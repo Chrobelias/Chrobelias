@@ -5,6 +5,8 @@
              (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
              (= (+ z y) 52)
              (<= (* x (+ 0 (* (- 1) 5))) 13))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         z -> (+ 52 (- y));
   
@@ -38,6 +40,8 @@
              (<= (+ 13 1) (+ (+ (* x 5) (* (exp 2 y) 8)) (* z 7)))
              (= (+ z y) 52)
              (<= (* x (+ 0 (* (- 1) 5))) 13))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         z -> (+ 52 (- y));
   
@@ -66,6 +70,8 @@
   Basic simplifications:
   
   iter(1)= (= (+ (* n (exp 2 n)) (* (* (- 1) 1) n (exp 2 n))) 0)
+  Alphabet with extra char: 0
+  
   iter(2)= True
   fixed-point
   
@@ -80,6 +86,8 @@
   Basic simplifications:
   
   iter(1)= (not (= (+ (* (* (- 1) 1) (exp 2 n)) (exp 2 n)) 0))
+  Alphabet with extra char: 0
+  
   iter(2)= (not True)
   fixed-point
   
