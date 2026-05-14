@@ -50,6 +50,8 @@ $ cat input2.smt2
              (<= (* (* (- 1) 1) it140) (* (- 1) 1))
              (<= (* (* (- 1) 1) it326) 5)
              (<= (* (* (- 1) 1) it372) (* (- 1) 3)))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         i1 -> 1;
   

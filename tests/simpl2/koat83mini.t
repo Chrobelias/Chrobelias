@@ -19,6 +19,8 @@ This test doesn't simplify (not True)
                          2))
              (<= (+ 0 1) (+ (+ it3 (* it13 (* (- 1) 2))) 1))
              (<= 0 (+ it92 (* (- 1) 1))))
+  Alphabet with extra char: 0
+  
   iter(2)= (not True)
   fixed-point
   

@@ -16,14 +16,14 @@ $ cat len1.smt2
              (<= (+ 1 1) (str.len x))
              (<= (+ (str.len x) 1) (str.len y))
              (<= (+ 1000 1) (str.len y)))
+  Alphabet with extra char: 0
+  
   iter(2)= (and
              (<= 2 (str.len x))
              (<= 1001 (str.len y))
              (<= (+ 1 (str.len x)) (str.len y)))
   fixed-point
   
-  Alphapbet with extra char: #
-  Alphapbet with extra char: #
   Arithmetization gives 1 asts...
   Arithmetized: (and
                   (<= 2 strlenx)
@@ -44,6 +44,8 @@ $ cat len1.smt2
              (<= (+ 1 strlenx) strleny)
              (<= 0 strlenx)
              (<= 0 strleny))
+  Alphabet with extra char: 0
+  
   iter(2)= (and
              (<= 0 strlenx)
              (<= 0 strleny)

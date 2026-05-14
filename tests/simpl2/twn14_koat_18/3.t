@@ -36,6 +36,8 @@ $ cat input3.smt2
                  (exp it362 5)) (* (- 1) 1))
              (<= (* (* (- 1) 1) i6) 5)
              (<= (* (* (- 1) 1) it140) (* (- 1) 1)))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         it358 -> (+ 3 i2);
   

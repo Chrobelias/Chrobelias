@@ -12,6 +12,8 @@ $ export CHRO_DEBUG=1
   iter(1)= (and
              (= y "321")
              (= (str.++ "123" x) (str.++ y x)))
+  Alphabet with extra char: 0 1 2 3
+  
   Something ready to substitute
         y -> "321";
   

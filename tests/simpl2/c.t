@@ -13,6 +13,8 @@
   iter(1)= (and
              (= (* (* (- 1) 2) z) 0)
              (= (+ it2 (* (* (- 1) 1) i2)) 2))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         it2 -> (+ 2 i2);
   

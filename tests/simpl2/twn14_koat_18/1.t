@@ -66,6 +66,8 @@ $ cat input1.smt2
              (= (+ (+ (* i2 (* (- 1) 1)) it322) (* (- 1) 1)) 0)
              (= (+ it321 (* (- 1) 2)) 0)
              (= (+ i1 (* (- 1) 1)) 0))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         i1 -> 1;
   

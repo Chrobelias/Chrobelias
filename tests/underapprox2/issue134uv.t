@@ -39,6 +39,8 @@ $ export CHRO_DEBUG=1
   Basic simplifications:
   
   iter(1)= (= (* x (exp 2 z)) 3076)
+  Alphabet with extra char: 0
+  
   fixed-point
   
 The test below should be SAT but there is an issue #143
@@ -87,6 +89,8 @@ which is needed to be fixed first
   Basic simplifications:
   
   iter(1)= (= (* x (exp 2 z)) 8096)
+  Alphabet with extra char: 0
+  
   fixed-point
   
   $ timeout 2 $RUN | grep -v assert | sed -r '/^\s*$/d'

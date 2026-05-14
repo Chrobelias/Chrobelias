@@ -15,6 +15,8 @@
              (<= (+ 111111 1) (+ (exp 2 x) (exp 2 y)))
              (= (+ z x) 32)
              (= (+ z y) 52))
+  Alphabet with extra char: 0
+  
   Something ready to substitute
         z -> (+ 32 (- x));
   
