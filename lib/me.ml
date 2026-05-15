@@ -321,7 +321,8 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
 
   let stoi (v : _ Ast.Eia.term) =
     match v with
-    | Ast.Eia.Atom (Var (v, _)) -> Symbol (Ir.var v, [])
+    | Ast.Eia.Atom (Var (v, _)) ->
+      Symbol (Ir.var v, [ Ir.leq (Map.singleton (Ir.var v) Z.minus_one) Z.zero ])
     | Ast.Eia.(Str_const s) ->
       let u = Ir.internal () in
       let re = Regex.int_to_re s in

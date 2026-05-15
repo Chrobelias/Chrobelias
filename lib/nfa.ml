@@ -750,6 +750,7 @@ module Par = struct
   let combine vec1 vec2 =
     if AstL.is_trivial vec1 || AstL.is_trivial vec2
     then land_ [ vec1; vec2 ] |> SimplI.simplify_lia
+    (* FIXME: simplificator with 'or' *)
     else land_ [ vec1; vec2 ]
   ;;
 
@@ -1407,7 +1408,7 @@ module Parametric (Label : BasicL) = struct
     match Set.find_map ~f:inspect nfa.start with
     | Some [] -> Some (List.map (fun _ -> []) vars, 0)
     | Some p ->
-      let p = List.rev p |> List.tl in
+      let p = List.rev p in
       let length = List.length p in
       Some
         ( List.map
