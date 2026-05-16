@@ -1401,27 +1401,29 @@ module Parametric (Label : BasicL) = struct
       rdfs [] [] start
     in
     let bfs start =
-      let rec rbfs path visited = function
+      let rec rbfs visited = function
         | [] -> visited
-        | (label, state) :: other ->
+        | ((label, state) :: tl as path) :: other ->
           if not (List.mem state visited)
           then begin
             if Set.mem nfa.final state
-            then raise (Sat_found path)
+            then raise (Sat_found (List.map fst path))
             else (
               let neighbors =
                 List.of_seq (successors state)
                 |> List.concat
                 |> List.filter (fun (label, state) -> not (List.mem state visited))
+                |> List.map (fun (label', state') -> (label', state') :: path)
               in
               (* List.iter
                 (fun x -> Format.printf "(%a, %d); " Label.pp (fst x) (snd x))
                 neighbors; *)
-              rbfs (label :: path) (state :: visited) (other @ neighbors))
+              rbfs (state :: visited) (other @ neighbors))
           end
-          else rbfs path visited other
+          else rbfs visited other
+        | _ -> assert false
       in
-      rbfs [] [] [ Label.zero 0, start ]
+      rbfs [] [ [ Label.zero 0, start ] ]
     in
     let visited = Array.init (length nfa) (Fun.const false) in
     let inspect state =
