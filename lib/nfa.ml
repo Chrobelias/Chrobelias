@@ -92,8 +92,6 @@ module type BasicL = sig
   (** [equal l1 l2] returns [true] if labels [l1] and [l2] are equal, otherwise [false].*)
   val equal : t -> t -> bool
 
-  val zero : int -> t
-
   (** [is_zero l] returns [true] if labels [l] are equal to some ``good'' element, which is called zero*)
   val is_zero : t -> bool
 
@@ -132,6 +130,7 @@ module type L = sig
   val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
+  val zero : int -> t
   val zero_with_mask : int list -> t
   val eos_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
@@ -741,7 +740,6 @@ module Par = struct
   let const c = Lia.Const (Z.of_int c)
   let eq lhs rhs = Lia (Eq (lhs, rhs))
   let equal = AstL.equal
-  let zero _ = AstL.true_
   let is_zero label = if Lia.equal label AstL.false_ then false else true
   (* else (
       match SimplI.check_sat base label with
@@ -1405,20 +1403,22 @@ module Parametric (Label : BasicL) = struct
           if not (List.mem state visited)
           then begin
             if Set.mem nfa.final state
-            then raise (Sat_found (List.map fst path))
+            then raise (Sat_found (List.filter_map fst path))
             else (
               let neighbors =
                 List.of_seq (successors state)
                 |> List.concat
                 |> List.filter_map (fun (label, state) ->
-                  if List.mem state visited then None else Some ((label, state) :: path))
+                  if List.mem state visited
+                  then None
+                  else Some ((Some label, state) :: path))
               in
               rbfs (state :: visited) (other @ neighbors))
           end
           else rbfs visited other
         | _ -> assert false
       in
-      rbfs [] [ [ Label.zero 0, start ] ]
+      rbfs [] [ [ None, start ] ]
     in
     let visited = Array.init (length nfa) (Fun.const false) in
     let inspect state =

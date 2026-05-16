@@ -20,8 +20,6 @@ module type BasicL = sig
   (** [equal l1 l2] returns [true] if labels [l1] and [l2] are equal, otherwise [false].*)
   val equal : t -> t -> bool
 
-  val zero : int -> t
-
   (** [is_zero l] returns [true] if labels [l] are equal to some ``good'' element, which is called zero*)
   val is_zero : t -> bool
 
@@ -60,6 +58,7 @@ module type L = sig
   val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
+  val zero : int -> t
   val zero_with_mask : int list -> t
   val eos_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
