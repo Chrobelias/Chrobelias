@@ -751,9 +751,7 @@ module Par = struct
 
   let combine vec1 vec2 =
     if AstL.is_trivial vec1 || AstL.is_trivial vec2
-    then land_ [ vec1; vec2 ]
-    (* |> SimplI.simplify_lia *)
-    (* FIXME: simplificator with 'or' *)
+    then land_ [ vec1; vec2 ] |> SimplI.simplify_lia
     else land_ [ vec1; vec2 ]
   ;;
 
@@ -1412,12 +1410,9 @@ module Parametric (Label : BasicL) = struct
               let neighbors =
                 List.of_seq (successors state)
                 |> List.concat
-                |> List.filter (fun (label, state) -> not (List.mem state visited))
-                |> List.map (fun (label', state') -> (label', state') :: path)
+                |> List.filter_map (fun (label, state) ->
+                  if List.mem state visited then None else Some ((label, state) :: path))
               in
-              (* List.iter
-                (fun x -> Format.printf "(%a, %d); " Label.pp (fst x) (snd x))
-                neighbors; *)
               rbfs (state :: visited) (other @ neighbors))
           end
           else rbfs visited other
@@ -3301,7 +3296,7 @@ let convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t =
   }
 ;;
 
-let astl_of_str vars (str : Str.t) =
+let astl_of_str is_sign vars (str : Str.t) =
   Map.fold
     ~f:(fun ~key ~data acc ->
       let open AstL in
@@ -3313,8 +3308,9 @@ let astl_of_str vars (str : Str.t) =
       | Some c when Base.Char.is_digit c ->
         let c = Base.Char.get_digit_exn c |> Z.of_int in
         lia (eq (atom (Var key)) (const c)) :: acc
-      | Some c when Char.equal c Str.u_eos ->
+      | Some c when Char.equal c Str.u_eos && is_sign ->
         lia (eq (atom (Var key)) (const Z.zero)) :: acc
+      | Some c when Char.equal c Str.u_eos -> false_ :: acc
       | _ -> acc)
     ~init:[]
     vars
@@ -3330,15 +3326,18 @@ let convert_nfa_msb_par vars : Msb(Str).t -> Parametric(Par).t =
   ; final = nfa.final
   ; transitions =
       (let f =
-         fun x ->
+         fun i x ->
          x
-         |> List.map (fun (label, q') -> q', astl_of_str vars label)
+         |> List.map (fun (label, q') -> q', astl_of_str (Set.mem nfa.start i) vars label)
          |> Map.of_alist_multi
-         |> Map.map ~f:(fun ts -> SimplI.simplify_lia (AstL.lor_ ts))
+         |> Map.filter_map ~f:(fun ts ->
+           match SimplI.simplify_lia (AstL.lor_ ts) with
+           | ph when AstL.equal ph AstL.false_ -> None
+           | ph -> Some ph)
          |> Map.to_alist
          |> List.map (fun (x, y) -> y, x)
        in
-       Array.map f nfa.transitions)
+       Array.mapi f nfa.transitions)
   ; extra = AstL.true_
   }
 ;;

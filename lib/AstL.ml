@@ -381,8 +381,9 @@ let rec equal_par eq_lia ast ast' =
   match ast, ast' with
   | True, True -> true
   | Lnot ast, Lnot ast' -> equal_par eq_lia ast ast'
-  | Land asts, Land asts' -> List.for_all2 (equal_par eq_lia) asts asts'
-  | Lor asts, Lor asts' -> List.for_all2 (equal_par eq_lia) asts asts'
+  | Land asts, Land asts' | Lor asts, Lor asts' ->
+    (try List.for_all2 (equal_par eq_lia) asts asts' with
+     | Invalid_argument _ -> false)
   | Exists (atoms, ast), Exists (atoms', ast') ->
     equal_par eq_lia ast ast' && atoms = atoms'
   | Pred name, Pred name' -> name = name'
