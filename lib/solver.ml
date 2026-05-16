@@ -1187,9 +1187,13 @@ struct
       let free_vars = Ir.collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
       Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
-      if ir' |> eval |> fst |> Nfa.run
-      then sat_if_no_unsupp (fun () -> Result.Ok (get_model_nfa ir ()))
-      else `Unsat)
+      if Config.config.no_model
+      then begin
+        if ir' |> eval |> fst |> Nfa.run
+        then sat_if_no_unsupp (fun () -> Result.Ok Map.empty)
+        else `Unsat
+      end
+      else sat_if_no_unsupp (fun () -> Result.Ok (get_model_nfa ir ())))
   ;;
 end
 
