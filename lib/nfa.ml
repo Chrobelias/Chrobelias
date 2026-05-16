@@ -92,6 +92,8 @@ module type BasicL = sig
   (** [equal l1 l2] returns [true] if labels [l1] and [l2] are equal, otherwise [false].*)
   val equal : t -> t -> bool
 
+  val zero : int -> t
+
   (** [is_zero l] returns [true] if labels [l] are equal to some ``good'' element, which is called zero*)
   val is_zero : t -> bool
 
@@ -130,7 +132,6 @@ module type L = sig
   val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
   val reenumerate : (int, int) Map.t -> t -> t
-  val zero : int -> t
   val zero_with_mask : int list -> t
   val eos_with_mask : int list -> t
   val singleton_with_mask : int -> int list -> t
@@ -740,6 +741,7 @@ module Par = struct
   let const c = Lia.Const (Z.of_int c)
   let eq lhs rhs = Lia (Eq (lhs, rhs))
   let equal = AstL.equal
+  let zero _ = AstL.true_
   let is_zero label = if Lia.equal label AstL.false_ then false else true
   (* else (
       match SimplI.check_sat base label with
@@ -749,7 +751,8 @@ module Par = struct
 
   let combine vec1 vec2 =
     if AstL.is_trivial vec1 || AstL.is_trivial vec2
-    then land_ [ vec1; vec2 ] |> SimplI.simplify_lia
+    then land_ [ vec1; vec2 ]
+    (* |> SimplI.simplify_lia *)
     (* FIXME: simplificator with 'or' *)
     else land_ [ vec1; vec2 ]
   ;;
@@ -1397,10 +1400,34 @@ module Parametric (Label : BasicL) = struct
       in
       rdfs [] [] start
     in
+    let bfs start =
+      let rec rbfs path visited = function
+        | [] -> visited
+        | (label, state) :: other ->
+          if not (List.mem state visited)
+          then begin
+            if Set.mem nfa.final state
+            then raise (Sat_found path)
+            else (
+              let neighbors =
+                List.of_seq (successors state)
+                |> List.concat
+                |> List.filter (fun (label, state) -> not (List.mem state visited))
+              in
+              (* List.iter
+                (fun x -> Format.printf "(%a, %d); " Label.pp (fst x) (snd x))
+                neighbors; *)
+              rbfs (label :: path) (state :: visited) (other @ neighbors))
+          end
+          else rbfs path visited other
+      in
+      rbfs [] [] [ Label.zero 0, start ]
+    in
     let visited = Array.init (length nfa) (Fun.const false) in
     let inspect state =
+      let serach = if config.path_search = `Bfs then bfs else dfs in
       try
-        List.iter (fun state -> visited.(state) <- true) (dfs state);
+        List.iter (fun state -> visited.(state) <- true) (serach state);
         None
       with
       | Sat_found path -> Some path

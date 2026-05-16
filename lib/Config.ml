@@ -17,6 +17,7 @@ type config =
   ; mutable over_approx : bool
   ; mutable over_approx_early : bool
   ; mutable over_nfa : bool
+  ; mutable path_search : [ `Dfs | `Bfs ]
   ; mutable pre_simpl : bool
   ; mutable quiet : bool
   ; mutable simpl_alpha : bool
@@ -41,22 +42,23 @@ let config =
   ; error_check = true
   ; good_for_minimize = 15
   ; good_for_shrinking = 20
-  ; over_approx = true
-  ; over_approx_early = false
-  ; over_nfa = false
   ; input_file = ""
   ; logic = `Eia
   ; mode = `Msb
   ; no_model = false
   ; no_str_bv = false
+  ; over_approx = true
+  ; over_approx_early = false
+  ; over_nfa = false
+  ; path_search = `Dfs
   ; pre_simpl = true
   ; quiet = false
   ; simpl_alpha = false
   ; simpl_mono = true
-  ; with_check_sat = false
-  ; with_info = true
   ; under_approx = 2
   ; under_str_all = false
+  ; with_check_sat = false
+  ; with_info = true
   ; check_model = false
   }
 ;;
@@ -218,6 +220,9 @@ Basic options:
             | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tAntiprenex mode [all; push-reg; disable]" )
     ; "-base10", Arg.Unit (fun () -> config.logic <- `StrBv), "\tSwitch to base 10 EIA\t"
+    ; ( "--bfs"
+      , Arg.Unit (fun () -> config.path_search <- `Bfs)
+      , "\tSwitch to bfs in parametric check_sat\t" )
     ; ( "--stop-after"
       , Arg.String
           (function
