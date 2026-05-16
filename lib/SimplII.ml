@@ -1601,6 +1601,16 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
         List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
       | Unsupp _ -> false
     in
+    let rec in_in_re_rawi v ast =
+      match ast with
+      | True | Pred _ -> false
+      | Eia (InReRaw (Ast.Eia.Atom (Ast.Var (v, I)), I, _)) -> true
+      | Eia _ -> false
+      | Lnot ast' | Exists (_, ast') -> in_in_re_rawi v ast'
+      | Land asts | Lor asts ->
+        List.fold_left (fun acc ast -> acc || in_in_re_rawi v ast) false asts
+      | Unsupp _ -> false
+    in
     let var_can_subst v =
       Env.is_absent_key v env
       && not
@@ -1619,7 +1629,9 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
                    | _ -> false)
                  orig_ast)
     in
-    let var_can_subst_complex v = var_can_subst v && not (in_strlen v orig_ast) in
+    let var_can_subst_complex v =
+      var_can_subst v && (not (in_strlen v orig_ast)) && not (in_in_re_rawi v orig_ast)
+    in
     let single =
       fun info env c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
       let is_bad v =
