@@ -875,7 +875,7 @@ let make_main_symantics ?alpha ?agressive env =
       | Const c, Add (Const n :: tl) -> ofop (add (List.map negate tl)) (constz Z.(n - c))
       | Const c, Add xs -> ofop (add (List.map negate xs)) (constz Z.(-c))
       | Pow (basel, powl), Pow (baser, powr) when basel = baser -> ofop powl powr
-      | Eia.Mul [ Const c; (Atom (Var (_, _)) as v) ], Eia.(Const rhs)
+      (*| Eia.Mul [ Const c; (Atom (Var (_, _)) as v) ], Eia.(Const rhs)
         when op = Leq && Z.(abs c <> one) ->
         (* optimizing single bounds *)
         if Z.(equal zero rhs)
@@ -889,7 +889,7 @@ let make_main_symantics ?alpha ?agressive env =
         then ofop v (Const Z.(abs rhs / c))
         else
           (* TODO(Kakadu): Support other three cases *)
-          ofop l r
+          ofop l r*)
       | Eia.Pow (Eia.(Const base), Eia.Add (Const n :: etail)), _
         when Z.(n < zero) && Z.fits_int n ->
         ofop
