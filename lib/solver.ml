@@ -9,6 +9,8 @@ type t =
   ; internal_counter : int
   }
 
+exception Too_long_model
+
 let internal s =
   let len = s.vars |> Map.data |> List.fold_left Int.max 0 in
   let c = Ir.internal () in
@@ -30,187 +32,114 @@ let ( -- ) i j =
 let do_if_msb f = if Config.config.mode = `Msb then f else Fun.id
 let do_if_lsb f = if Config.config.mode = `Lsb then f else Fun.id
 
-(*type bound =
-       | EqConst of Ir.atom * int
-  | LeqConst of (Ir.atom, int) Map.t * int
-  | EqVar of Ir.atom * Ir.atom
-*)
+let strbv_to_char =
+  let module StrBv = Nfa.StrBv in
+  let module Str = Nfa.Str in
+  function
+  | c when c = StrBv.u_eos -> Str.u_eos
+  | c when c = StrBv.u_null -> '0'
+  | c -> Z.log2 c |> fun i -> Char.chr (Char.code '0' + i)
+;;
 
-(* let antiprenex ir =
-  (*let rec infer_bounds : Ir.t -> _ = function
-                | Ir.Land irs ->
-                                let bounds = List.map infer_bounds irs in
-Set.union_list bounds
-       | Ir.Lor irs ->
-                       let bounds = List.map infer_bounds irs in
-begin
-        match bounds with
-        | hd :: tl -> List.fold_left Set.inter hd tl
-        | _ -> Set.empty
+let char_to_strbv =
+  let module StrBv = Nfa.StrBv in
+  let module Str = Nfa.Str in
+  function
+  | '0' .. '9' as c -> Z.pow (Z.of_int 2) (Char.code c - Char.code '0')
+  | c when c = Str.u_eos -> StrBv.u_eos
+  | c when c = Str.u_null -> StrBv.u_null
+  | _ -> assert false
+;;
+
+let aux_of_path
+      (type a)
+      (module Label : Nfa.L with type u = a)
+      ?(mode : [ `Lsb | `Msb ] option)
+      ?(no_sign = false)
+      number
+  : [ `Plus | `Minus ] * a List.t
+  =
+  let mode = Option.value mode ~default:Config.config.mode in
+  let sign, number =
+    match mode, no_sign with
+    | `Lsb, true -> `Plus, List.rev number
+    | `Lsb, false ->
+      let number = List.rev number in
+      begin match number with
+      | hd :: tl when hd = Label.u_zero || hd = Label.u_eos -> `Plus, tl
+      | hd :: tl -> `Minus, tl
+      | _ -> assert false
       end
-       | True -> Set.empty
-    | Rel (Ir.Leq, term, c) -> Set.singleton (LeqConst (term, c))
-    | Rel (Ir.Eq, term, c) when Map.length term = 1 ->
-                    let k, v = Map.nth_exn term 0 in
-if v = 1
-      then (
-              let bound = EqConst (k, c) in
-Set.singleton bound)
-        else if v = -1
-      then (
-              let bound = EqConst (k, -c) in
-Set.singleton bound)
-      else Set.empty
-       | Rel (Ir.Eq, term, 0)
-      when Map.length term = 2
-           && Map.nth_exn term 0 |> snd = -1
-           && Map.nth_exn term 1 |> snd = 1
-           && Map.for_alli
-                ~f:(fun ~key ~data:_ ->
-                        match key with
-                  | Ir.Var _ -> true
-                  | Ir.Pow2 _ -> false)
-                term (* TODO: without the last assert it breaks get_model_semenov *) ->
-                        let v1 = Map.nth_exn term 0 |> fst in
-let v2 = Map.nth_exn term 1 |> fst in
-Set.singleton (EqVar (v1, v2))
-       | Rel (Ir.Eq, term, 0)
-      when Map.length term = 2
-           && Map.nth_exn term 0 |> snd = 1
-           && Map.nth_exn term 1 |> snd = -1
-           && Map.for_alli
-                ~f:(fun ~key ~data:_ ->
-                        match key with
-                  | Ir.Var _ -> true
-                  | Ir.Pow2 _ -> false)
-                term (* TODO: without the last assert it breaks get_model_semenov *) ->
-                        let v1 = Map.nth_exn term 0 |> fst in
-let v2 = Map.nth_exn term 1 |> fst in
-Set.singleton (EqVar (v1, v2))
-       | Ir.Exists (atoms, ir) ->
-                       let atoms' = Set.of_list atoms in
-let bounds = infer_bounds ir in
-Set.filter
-        ~f:(function
-                | EqConst (atom, _) -> Set.mem atoms' atom |> not
-          | EqVar (atom, _) -> Set.mem atoms' atom |> not
-          | LeqConst (term, _) ->
-                          Set.inter atoms' (Map.keys term |> Set.of_list) |> Set.is_empty)
-        bounds
-       | _ -> Set.empty
-in
-  let apply_bounds bounds ir =
-          Ir.map
-      (function
-              | Ir.Rel (rel, term, c) -> begin
-                      let atoms = Map.keys term in
-                      let bounded_atoms =
-                              List.filter_map
-              (fun atom ->
-                      let atom_bound =
-                              Set.find
-                     ~f:(fun bound ->
-                             match bound with
-                       | EqConst (atom', _) when atom = atom' -> true
-                       | _ -> false)
-                     bounds
-                      in
-                 begin
-                         match atom_bound with
-                   | Some (EqConst (atom, c)) -> Some (atom, c)
-                   | _ -> None
-                 end)
-              atoms
-                   |> Map.of_alist_exn
-                      in
-          let eq_atoms =
-                  List.filter_map
-              (fun atom ->
-                      let atom_bound =
-                              Set.find
-                     ~f:(fun bound ->
-                             match bound with
-                       | EqVar (atom', _) when atom = atom' -> true
-                       | _ -> false)
-                     bounds
-                      in
-                 begin
-                         match atom_bound with
-                   | Some (EqVar (atom, atom')) -> Some (atom, atom')
-                   | _ -> None
-                 end)
-              atoms
-                   |> Map.of_alist_exn
-                      in
-          let build =
-                  match rel with
-            | Ir.Eq -> Ir.eq
-            | Ir.Leq -> Ir.leq
-          in
-          let c =
-                  Map.to_alist term
-            |> List.fold_left
-                 (fun acc (atom, a) ->
-                         match Map.find bounded_atoms atom with
-                    | Some c' -> acc - (c' * a)
-                    | None -> acc)
-                 c
-          in
-          let term =
-                  Map.filter_keys ~f:(fun atom -> Map.mem bounded_atoms atom |> not) term
-          in
-          let term =
-                  term
-                    |> Map.to_alist
-            |> List.map (fun (atom, c) ->
-                            match Map.find eq_atoms atom with
-              | Some atom' -> atom', c
-              | None -> atom, c)
-            |> Map.of_alist_fold ~f:( + ) ~init:0
-          in
-          build term c
-                 end
-              | ir -> ir)
-      ir
-              |> Ir.map (function
-                      | Ir.Rel (Ir.Leq, term, c) as ir ->
-                                      let c' =
-                                              Set.filter_map
-            ~f:(fun bound ->
-                    match bound with
-              | LeqConst (term', c') when Map.equal ( = ) term term' -> Some c'
-              | _ -> None)
-            bounds
-              |> Set.fold ~f:Int.min ~init:Int.max_int
-          in
-        if c' < c then Ir.true_ else ir
-              | ir -> ir)
-                                      in*)
-  (*let aux ir =
-          Ir.map
-      (function
-              | Ir.Exists (atoms, ir') ->
-                              let atoms' = Set.of_list atoms in
-let bounds = infer_bounds ir' in
-let bounds' =
-        Set.filter
-              ~f:(function
-                      | EqConst (atom, _) -> Set.mem atoms' atom
-                | EqVar (atom, _) -> Set.mem atoms' atom
-                | LeqConst (term, _) ->
-                                Set.inter atoms' (Map.keys term |> Set.of_list) |> Set.is_empty |> not)
-              bounds
-in
-          Ir.exists atoms (apply_bounds bounds' ir' |> simpl)
-          | ir -> ir)
-      ir
-in*)
-  let rec aux2 ir =
-    let ir' = (*aux *) ir |> Ir.simpl |> Ir.antiprenex in
-    if Ir.equal ir ir' then ir' else aux2 ir'
+    | `Msb, true -> `Plus, number
+    | `Msb, false -> begin
+      match number with
+      | hd :: tl when hd = Label.u_zero || hd = Label.u_eos -> `Plus, tl
+      | hd :: tl -> `Minus, tl
+      | _ -> assert false
+    end
   in
-  aux2 ir
-;; *)
+  let number =
+    number
+    |> List.drop_while (fun c -> c = Label.u_eos)
+    |> List.map (fun c -> if c = Label.u_null || c = Label.u_eos then Label.u_zero else c)
+  in
+  sign, number
+;;
+
+let int_of_path
+      (type a)
+      (module Label : Nfa.L with type u = a)
+      ?(mode : [ `Lsb | `Msb ] option)
+      (f : a List.t -> Z.t)
+      ?(negate_symbol : (a -> a) option)
+      path
+  =
+  let sign, path =
+    aux_of_path (module Label) ?mode ~no_sign:(negate_symbol |> Option.is_none) path
+  in
+  match sign with
+  | `Plus -> f path
+  | `Minus ->
+    let negate_symbol = Option.get negate_symbol in
+    path |> List.map negate_symbol |> f |> fun x -> Z.(-x - one)
+;;
+
+let string_of_path
+      (type a)
+      (module Label : Nfa.L with type u = a)
+      ?(mode : [ `Lsb | `Msb ] option)
+      (f : a List.t -> string)
+      path
+  =
+  let sign, path = aux_of_path (module Label) ?mode ~no_sign:true path in
+  match sign with
+  | `Plus -> f path
+  | _ -> assert false
+;;
+
+(* The following functions assume MSB input. *)
+let z_of_char_list p = p |> List.to_seq |> String.of_seq |> Z.of_string
+
+let z_of_strbv_list p =
+  p |> List.map strbv_to_char |> List.to_seq |> String.of_seq |> Z.of_string
+;;
+
+let string_of_char_list p = p |> List.to_seq |> String.of_seq
+
+let z_of_bool_list p =
+  let p = List.rev p in
+  let length = List.length p in
+  let bv_init deg f =
+    List.fold_left
+      (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
+      Z.zero
+      (0 -- (deg - 1))
+  in
+  bv_init length (fun i -> List.nth p i)
+;;
+
+let char_negate c = Char.chr (Char.code '0' + (Char.code '9' - Char.code c))
+let strbv_negate c = strbv_to_char c |> char_negate |> char_to_strbv
 
 open Config
 
@@ -228,55 +157,18 @@ module Make
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
        val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
        val eval_reg : (Ir.atom, int) Map.t -> bool list Regex.t -> Ir.atom list -> Nfa.t
-       val model_to_int : Nfa.v list -> Z.t
+
+       (*val model_to_int : Nfa.v list -> Z.t*)
        val nat_model_to_int : NfaNat.v list -> Z.t
        val nat_model_to_model : NfaNat.v list -> Nfa.v list
-       val char_to_v : char -> NfaCollection.v
        val int_to_model : Z.t -> Nfa.v list
      end) =
 struct
   let is_exp = Ir.is_exp
 
-  let _collect_alpha (ir : Ir.t) =
-    if Config.config.logic = `Eia
-    then None
-    else (
-      let ( let* ) = Option.bind in
-      let return = Option.some in
-      let* alpha =
-        Ir.fold
-          (fun acc -> function
-             | Ir.SReg (_, re) ->
-               let* acc = acc in
-               Regex.symbols re |> List.flatten |> Set.of_list |> Set.union acc |> return
-             | Ir.SRegRaw (_, nfa) ->
-               let* acc = acc in
-               Ir.NfaS.alpha nfa |> Set.union acc |> return
-             | Ir.Lnot _ -> Option.none
-             | _ ->
-               let* acc = acc in
-               return acc)
-          (Some Set.empty)
-          ir
-      in
-      let alpha =
-        Set.diff alpha (Set.of_list [ Str.u_eos; Str.u_null ])
-        |> Set.map ~f:Extra.char_to_v
-      in
-      return
-        (if Set.is_empty alpha
-         then
-           Set.of_list
-             (Str.alphabet
-              |> List.take (Config.base () |> Z.to_int)
-              |> List.map Extra.char_to_v)
-         else alpha))
-  ;;
-
   let eval ir =
     let ir = Ir.antiprenex ir in
-    let alpha = (*collect_alpha ir |> Option.map Set.to_list *) None in
-    (*let ir = if Config.v.logic = `Eia then trivial ir else ir in*)
+    let alpha = None in
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
     let rec eval ir =
@@ -287,10 +179,6 @@ struct
        | Ir.Unsupp s -> NfaCollection.n ()
        | Ir.True -> NfaCollection.n ()
        | Ir.Lnot ir -> eval ir |> Nfa.invert
-       (*
-          | Ir.Land (hd :: tl) ->
-                       List.fold_left (fun nfa ir -> eval ir |> Nfa.intersect nfa) (eval hd) tl
-       *)
        | Ir.Land irs ->
          let nfas =
            List.map
@@ -410,14 +298,6 @@ struct
            ~dest:(Map.find_exn vars atom')
            ~src:(Map.find_exn vars atom)
            ()
-       (*| Ir.Stoi (atom, atom') -> NfaCollection.n ()*)
-       (*NfaCollection.stoi ~dest:(Map.find_exn vars atom) ~src:(Map.find_exn vars atom')*)
-       (* | Ir.SEq (atom, atom') ->
-         NfaCollection.seq
-           ~alpha
-           ~dest:(Map.find_exn vars atom)
-           ~src:(Map.find_exn vars atom')
-           () *)
        | _ -> failwith "unexpected due to Arithmetization")
       |> fun nfa ->
       Debug.printfln "Done %a\n%!" Ir.pp ir;
@@ -992,8 +872,6 @@ struct
     helper mapVals len order [] models |> Result.map (Map.map_keys_exn ~f:Ir.var)
   ;;
 
-  exception Too_long_model
-
   let get_model_nfa ir () =
     let nfa, vars = ir |> eval in
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
@@ -1007,7 +885,7 @@ struct
   ;;
 
   let get_model_semenov f s order (model, len) models () =
-    let get_val map atom = Extra.model_to_int (Map.find_exn map atom) in
+    let get_val map atom = Extra.nat_model_to_int (Map.find_exn map atom) in
     let apply ?(light = false) map ir =
       Debug.printf "Formula before substitutions: %a\n" Ir.pp f;
       Debug.printf
@@ -1242,25 +1120,6 @@ module LsbStr =
       ;;
     end)
 
-let strbv_to_char =
-  let module StrBv = Nfa.StrBv in
-  let module Str = Nfa.Str in
-  function
-  | c when c = StrBv.u_eos -> Str.u_eos
-  | c when c = StrBv.u_null -> '0'
-  | c -> Z.log2 c |> fun i -> Char.chr (Char.code '0' + i)
-;;
-
-let char_to_strbv =
-  let module StrBv = Nfa.StrBv in
-  let module Str = Nfa.Str in
-  function
-  | '0' .. '9' as c -> Z.pow (Z.of_int 2) (Char.code c - Char.code '0')
-  | c when c = Str.u_eos -> StrBv.u_eos
-  | c when c = Str.u_null -> StrBv.u_null
-  | _ -> assert false
-;;
-
 module LsbStrBv =
   Make (Nfa.Lsb (Nfa.StrBv)) (NfaCollection.LsbStrBv) (Nfa.Lsb (Nfa.StrBv))
     (NfaCollection.LsbStrBv)
@@ -1317,31 +1176,6 @@ module MsbStr =
       module NfaO2 = Nfa.Msb (Str)
       module Nfa = Nfa.Msb (Str)
 
-      let z_of_list_msb_nat_str p =
-        p
-        |> List.to_seq
-        |> Seq.drop_while (fun c -> c = Str.u_eos)
-        |> Seq.map (fun c -> if c = Str.u_null || c = Str.u_eos then '0' else c)
-        |> String.of_seq
-        |> Z.of_string
-      ;;
-
-      let z_of_list_msb_str p =
-        let sign, p =
-          match p with
-          | hd :: tl ->
-            (if hd = Str.u_zero || hd = Str.u_eos then Z.one else Z.minus_one), tl
-          | _ -> failwith "unreachable"
-        in
-        p
-        |> List.to_seq
-        |> Seq.drop_while (fun c -> c = Str.u_eos)
-        |> Seq.map (fun c -> if c = Str.u_null || c = Str.u_eos then '0' else c)
-        |> String.of_seq
-        |> Z.of_string
-        |> Z.mul sign
-      ;;
-
       let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
 
       let eval_sreg vars atom reg =
@@ -1364,8 +1198,14 @@ module MsbStr =
         Nfa.reenumerate reenum nfa
       ;;
 
-      let model_to_int = z_of_list_msb_str
-      let nat_model_to_int = z_of_list_msb_nat_str
+      let _model_to_int =
+        int_of_path (module NfaO.Str) ~mode:`Msb z_of_char_list ~negate_symbol:char_negate
+      ;;
+
+      let nat_model_to_int =
+        int_of_path (module NfaO.Str) ~mode:`Msb z_of_char_list ?negate_symbol:Option.none
+      ;;
+
       let char_to_v c = c
       let nat_model_to_model model = char_to_v '0' :: model
 
@@ -1382,33 +1222,6 @@ module MsbStrBv =
       module NfaO2 = Nfa.Msb (Nfa.Str)
       module Str = Nfa.StrBv
       module Nfa = Nfa.Msb (Nfa.StrBv)
-
-      let z_of_list_msb_nat_str p =
-        p
-        |> List.to_seq
-        |> Seq.drop_while (fun c -> c = Str.u_eos)
-        |> Seq.map (fun c ->
-          if c = Str.u_null || c = Str.u_eos then '0' else strbv_to_char c)
-        |> String.of_seq
-        |> Z.of_string
-      ;;
-
-      let z_of_list_msb_str p =
-        let sign, p =
-          match p with
-          | hd :: tl ->
-            (if hd = Str.u_zero || hd = Str.u_eos then Z.one else Z.minus_one), tl
-          | _ -> failwith "unreachable"
-        in
-        p
-        |> List.to_seq
-        |> Seq.drop_while (fun c -> c = Str.u_eos)
-        |> Seq.map (fun c ->
-          if c = Str.u_null || c = Str.u_eos then '0' else strbv_to_char c)
-        |> String.of_seq
-        |> Z.of_string
-        |> Z.mul sign
-      ;;
 
       let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
 
@@ -1427,8 +1240,22 @@ module MsbStrBv =
         Nfa.reenumerate reenum nfa
       ;;
 
-      let model_to_int = z_of_list_msb_str
-      let nat_model_to_int = z_of_list_msb_nat_str
+      let _model_to_int =
+        int_of_path
+          (module NfaO.StrBv)
+          ~mode:`Msb
+          z_of_strbv_list
+          ~negate_symbol:strbv_negate
+      ;;
+
+      let nat_model_to_int =
+        int_of_path
+          (module NfaO.StrBv)
+          ~mode:`Msb
+          z_of_strbv_list
+          ?negate_symbol:Option.none
+      ;;
+
       let char_to_v = char_to_strbv
       let nat_model_to_model model = char_to_v '0' :: model
 
@@ -1437,20 +1264,10 @@ module MsbStrBv =
       ;;
     end)
 
-let z_of_list_lsb p =
-  let length = List.length p in
-  let bv_init deg f =
-    List.fold_left
-      (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
-      Z.zero
-      (0 -- (deg - 1))
-  in
-  bv_init length (fun i -> List.nth p i)
-;;
-
 module Lsb =
   Make (Nfa.Lsb (Nfa.Bv)) (NfaCollection.Lsb) (Nfa.Lsb (Nfa.Bv)) (NfaCollection.Lsb)
     (struct
+      module NfaO = Nfa
       module Nfa = Nfa.Lsb (Nfa.Bv)
 
       let eval_reg vars reg atoms =
@@ -1471,52 +1288,30 @@ module Lsb =
         failwith "string constraints are not supported in EIA mode"
       ;;
 
-      let model_to_int c = z_of_list_lsb c
-      let nat_model_to_int = model_to_int
+      let _model_to_int =
+        int_of_path (module NfaO.Bv) ~mode:`Lsb z_of_bool_list ~negate_symbol:not
+      ;;
+
+      let nat_model_to_int =
+        int_of_path (module NfaO.Bv) ~mode:`Lsb z_of_bool_list ?negate_symbol:Option.none
+      ;;
+
       let nat_model_to_model = Fun.id
 
-      let char_to_v c =
+      (*let char_to_v c =
         match c with
         | '0' -> false
         | '1' -> true
         | _ -> failwith "string constraints are not supported in EIA mode"
-      ;;
+      ;;*)
 
       let int_to_model n = n |> Utils.to_bits
     end)
 
-let z_of_list_msb p =
-  let sign, p =
-    match p with
-    | hd :: tl -> (if not hd then Z.one else Z.minus_one), tl
-    | _ -> failwith "unreachable"
-  in
-  let p = List.rev p in
-  let length = List.length p in
-  let bv_init deg f =
-    List.fold_left
-      (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
-      Z.zero
-      (0 -- (deg - 1))
-  in
-  Z.mul (bv_init length (fun i -> List.nth p i)) sign
-;;
-
-let z_of_list_msb_nat p =
-  let p = List.rev p in
-  let length = List.length p in
-  let bv_init deg f =
-    List.fold_left
-      (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
-      Z.zero
-      (0 -- (deg - 1))
-  in
-  bv_init length (fun i -> List.nth p i)
-;;
-
 module Msb =
   Make (Nfa.MsbNat (Nfa.Bv)) (NfaCollection.MsbNat) (Nfa.Msb (Nfa.Bv)) (NfaCollection.Msb)
     (struct
+      module NfaO = Nfa
       module Nfa = Nfa.Msb (Nfa.Bv)
 
       let eval_reg vars reg atoms =
@@ -1537,8 +1332,13 @@ module Msb =
         failwith "string constraints are not supported in EIA mode"
       ;;
 
-      let model_to_int c = z_of_list_msb c
-      let nat_model_to_int = z_of_list_msb_nat
+      let _model_to_int =
+        int_of_path (module NfaO.Bv) ~mode:`Msb z_of_bool_list ~negate_symbol:not
+      ;;
+
+      let nat_model_to_int =
+        int_of_path (module NfaO.Bv) ~mode:`Msb z_of_bool_list ?negate_symbol:Option.none
+      ;;
 
       let char_to_v c =
         match c with
@@ -1552,35 +1352,8 @@ module Msb =
     end)
 
 let is_internal = String.starts_with ~prefix:"%"
-
-let _filter_internal =
-  Map.filter_keys ~f:(function
-    | Ir.Var s -> not (is_internal s)
-    | _ -> true)
-;;
-
 let ( let* ) = Result.bind
 let return = Result.ok
-
-let z_of_list_str p =
-  let sign, p =
-    if Config.config.mode = `Lsb
-    then Z.one, List.rev p
-    else (
-      let sign, p =
-        match p with
-        | hd :: tl -> (if hd = '0' || hd == Nfa.Str.u_eos then Z.one else Z.minus_one), tl
-        | _ -> failwith "unreachable"
-      in
-      sign, p)
-  in
-  p
-  |> List.to_seq
-  |> Seq.drop_while (fun c -> c = Nfa.Str.u_eos)
-  |> Seq.map (fun c -> if c = Nfa.Str.u_null || c = Nfa.Str.u_eos then '0' else c)
-  |> (fun s -> if sign = Z.one then s else Seq.append (List.to_seq [ '-' ]) s)
-  |> String.of_seq
-;;
 
 let check_sat ir
   : [ `Sat of
@@ -1611,9 +1384,7 @@ let check_sat ir
               |> Map.mapi ~f:(fun ~key:k ~data:v ->
                 match Map.find tys k with
                 | None | Some `Int ->
-                  let v =
-                    if Config.config.mode = `Lsb then z_of_list_lsb v else z_of_list_msb v
-                  in
+                  let v = int_of_path (module Nfa.Bv) z_of_bool_list v in
                   let v =
                     match k with
                     | Ir.Var _ -> v
@@ -1677,12 +1448,20 @@ let check_sat ir
                 match ty with
                 | `Int -> begin
                   try
-                    let s = v |> z_of_list_str in
-                    if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero
+                    `Int
+                      (int_of_path
+                         (module Nfa.Str)
+                         z_of_char_list
+                         ~negate_symbol:char_negate
+                         v)
+                    (*let s = v |> z_of_list_str in
+                    if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero*)
                   with
-                  | Invalid_argument _ -> `Str (v |> z_of_list_str)
+                  | Invalid_argument ex as exp ->
+                    Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
+                    `Str (v |> string_of_path (module Nfa.Str) string_of_char_list)
                 end
-                | `Str -> `Str (v |> z_of_list_str))
+                | `Str -> `Str (v |> string_of_path (module Nfa.Str) string_of_char_list))
               model
           in
           return main_model)

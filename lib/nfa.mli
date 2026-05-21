@@ -16,6 +16,8 @@ module type L = sig
   val base : Z.t
   val alphabet : u List.t
   val u_zero : u
+  val u_null : u
+  val u_eos : u
   val is_any_at : int -> t -> bool
   val get : t -> int -> u
   val equal : t -> t -> bool

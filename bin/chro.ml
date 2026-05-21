@@ -728,15 +728,17 @@ let () =
         in
         let () =
           try
-            match get_model tys with
-            | Result.Ok model -> begin
+            match
               try
-                let model = calculate_model tys model regexes env in
-                print_model model;
-                if Lib.Config.config.check_model then check_model tys ast model else ()
+                get_model tys
+                |> Result.map (fun model ->
+                  let model = calculate_model tys model regexes env in
+                  print_model model;
+                  if Lib.Config.config.check_model then check_model tys ast model else ())
               with
-              | Too_long_model -> shrink_model ()
-            end
+              | Too_long_model | Lib.Solver.Too_long_model -> Result.error `Too_long
+            with
+            | Result.Ok () -> ()
             | Result.Error `Too_long -> shrink_model ()
             | Result.Error `No_model -> Format.printf "no model mode\n%!"
           with
