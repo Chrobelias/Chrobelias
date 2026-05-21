@@ -88,6 +88,8 @@ module type L = sig
   val base : Z.t
   val alphabet : u List.t
   val u_zero : u
+  val u_null : u
+  val u_eos : u
   val is_any_at : int -> t -> bool
   val get : t -> int -> u
   val equal : t -> t -> bool
@@ -169,6 +171,8 @@ module Bv = struct
 
   (* ----------------- Implementaton of the interface ----------------- *)
   let u_zero = false
+  let u_null = false
+  let u_eos = false
   let get (vec, _mask) = bv_get vec
 
   let equal (vec1, mask1) (vec2, mask2) =
