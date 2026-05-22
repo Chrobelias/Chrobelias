@@ -2689,6 +2689,15 @@ let arithmetize ast env =
           List.fold_left (fun acc nfa -> NfaS.intersect nfa acc) n data)
         (collect_regexes ast)
     in
+    let regexes =
+      List.fold_left
+        (fun regexes var ->
+           if (not (List.mem var stoi_conc_vars)) && List.mem var str_vars
+           then Map.add_exn ~key:var ~data:(NfaS.of_regex Regex.nondigit) regexes
+           else regexes)
+        regexes
+        (Ast.get_str_vars ast)
+    in
     let ast_without_regex =
       Ast.map
         (function
@@ -3260,6 +3269,10 @@ let arithmetize ast env =
   |> with_empty_cases
   |> List.concat_map Ast.to_dnf
   |> List.map (apply_symantics (module Symantics))
+  (*|> List.map (fun ((ast) as v) ->
+    Format.printf "> %a\n%!" Ast.pp_smtlib2 ast;
+    Format.printf "   %a\n%!" (Env.pp ~title:"") env;
+    v)*)
   |> List.filter_map (fun ast ->
     match basic_simplify [ 0 ] env ast with
     | `Unsat -> None
@@ -3267,7 +3280,16 @@ let arithmetize ast env =
     | `Unknown (ast, env, _, _) -> Some (ast, env))
   |> List.concat_map (fun (ast, env) ->
     List.map (fun ast -> ast, env) (ast |> split_concats var_info |> Ast.to_dnf))
+  (*|> List.map (fun (((ast, regexes)) as v) ->
+    Format.printf "> %a\n%!" Ast.pp_smtlib2 ast;
+    Format.printf "   %a\n%!" (Env.pp ~title:"") env;
+    v)*)
   |> List.concat_map (fun (ast, env) -> str_vars_options ast env)
+  (*|> List.map (fun ((str_vars, (ast, regexes), env) as v) ->
+    Format.printf ">> %a\n%!" Ast.pp_smtlib2 ast;
+    Format.printf "   %a\n%!" (Env.pp ~title:"") env;
+    Format.printf "   %a\n%!" (Format.pp_print_list Format.pp_print_string) str_vars;
+    v)*)
   |> List.concat_map (fun (str_vars, (ast, regexes), env) ->
     List.map
       (fun ast' ->

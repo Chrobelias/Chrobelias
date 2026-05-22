@@ -334,7 +334,7 @@ let nondigit =
   concat
     (concat
        (kleene (symbol [ Config.string_config.null ]))
-       (32 -- 128
+       (32 -- 126
         |> List.map Char.chr
         |> List.filter (function
           | '0' .. '9' -> false
