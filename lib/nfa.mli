@@ -26,6 +26,10 @@ module type BasicL = sig
   (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
   val combine : t -> t -> t
 
+  (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
+  Usegful when working with automata for LIA-constraints *)
+  val combine2 : t -> t -> AstL.t -> t
+
   val simplify : t -> t
 
   (** [project pos l] returns a label obtained from [l] by projection over variables with positions 

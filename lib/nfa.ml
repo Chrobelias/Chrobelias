@@ -98,6 +98,10 @@ module type BasicL = sig
   (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
   val combine : t -> t -> t
 
+  (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
+  Usegful when working with automata for LIA-constraints *)
+  val combine2 : t -> t -> AstL.t -> t
+
   val simplify : t -> t
 
   (** [project pos l] returns a label obtained from [l] by projection over variables with positions 
@@ -211,6 +215,7 @@ module Bv = struct
     Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
 
+  let combine2 l r _ = combine l r
   let simplify = Fun.id
 
   let project proj (vec, mask) =
@@ -379,6 +384,7 @@ module StrBv = struct
     Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
 
+  let combine2 l r _ = combine l r
   let simplify = Fun.id
 
   let project proj (vec, mask) =
@@ -588,6 +594,7 @@ module Str = struct
       if Char.equal c1 u_null then get vec2 i else c1)
   ;;
 
+  let combine2 l r _ = combine l r
   let simplify = Fun.id
 
   let project proj vec =
@@ -750,6 +757,12 @@ module Par = struct
   let combine vec1 vec2 =
     if AstL.is_trivial vec1 || AstL.is_trivial vec2
     then land_ [ vec1; vec2 ] |> SimplI.simplify_lia
+    else land_ [ vec1; vec2 ]
+  ;;
+
+  let combine2 vec1 vec2 ph =
+    if AstL.is_trivial vec1 || AstL.is_trivial vec2
+    then land_ [ vec1; vec2; ph ] |> SimplI.simplify_lia
     else land_ [ vec1; vec2 ]
   ;;
 
@@ -1507,7 +1520,9 @@ module Parametric (Label : BasicL) = struct
             (fun acc_delta (label1, q1') ->
                List.fold_left
                  (fun acc_delta (label2, q2') ->
-                    let label = Label.combine label1 label2 in
+                    let label =
+                      Label.combine2 label1 label2 (AstL.land_ [ nfa1.extra; nfa2.extra ])
+                    in
                     if Label.is_zero label
                     then (
                       let is_visited = is_visited (q1', q2') in
