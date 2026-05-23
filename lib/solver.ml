@@ -875,13 +875,9 @@ struct
   let get_model_nfa ir () =
     let nfa, vars = ir |> eval in
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
-    let model, _ =
-      try
-        Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) |> Option.get
-      with
-      | _ -> raise Too_long_model
-    in
-    model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn
+    Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars)
+    |> Option.map (fun (model, _) ->
+      List.mapi (fun i v -> List.nth free_vars i, v) model |> Map.of_alist_exn)
   ;;
 
   let get_model_semenov f s order (model, len) models () =
@@ -994,7 +990,7 @@ struct
        | None ->
          (try
             let f = apply map f in
-            let model = get_model_nfa f () in
+            let model = get_model_nfa f () |> Option.get in
             Result.Ok
               (Map.merge map model ~f:(fun ~key -> function
                  | `Left x -> Some x
@@ -1071,7 +1067,11 @@ struct
         then sat_if_no_unsupp (fun () -> Result.Ok Map.empty)
         else `Unsat
       end
-      else sat_if_no_unsupp (fun () -> Result.Ok (get_model_nfa ir ())))
+      else (
+        let model = get_model_nfa ir () in
+        match model with
+        | Some model -> sat_if_no_unsupp (fun () -> Result.Ok model)
+        | None -> `Unsat))
   ;;
 end
 
