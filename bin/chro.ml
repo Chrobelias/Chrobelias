@@ -800,7 +800,7 @@ let () =
       in
       (try
          let rez = check_sat ~verbose:true state.tys ast in
-         if Lib.Config.config.force_model_check then get_model ~noprint:true ast rez;
+         if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->
@@ -808,7 +808,7 @@ let () =
          config.bound_states <- -1;
          Lib.Config.bounded_unsat := false;
          let rez = check_sat ~verbose:true state.tys ast in
-         if Lib.Config.config.force_model_check then get_model ~noprint:true ast rez;
+         if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
        | _ -> state)
     | Smtml.Ast.Get_model ->

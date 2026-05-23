@@ -52,7 +52,7 @@ jobs:
           START_TIME=$(date +%s)
           for i in ./benchmarks/chrobelias/QF_SLIA/stringfuzzregex/transformed/z3str2/*.smt2; do
             echo $i;
-            timeout 10s _build/default/bin/chro.exe ${{ matrix.flags }} $i --force-model-check;
+            timeout 10s _build/default/bin/chro.exe ${{ matrix.flags }} $i --check-model;
           done 2>&1 | tee res.txt;
           END_TIME=$(date +%s)
           DURATION=$(($END_TIME - $START_TIME))
