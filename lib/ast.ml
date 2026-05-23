@@ -436,6 +436,12 @@ module Eia = struct
 
   let equal = Stdlib.( = )
   let eq_term : 'a term -> 'a term -> bool = Stdlib.( = )
+
+  let is_str_eia ast =
+    let exception String_obj in
+    try fold2 (fun acc _ -> acc) (fun acc _ -> raise String_obj) true ast with
+    | String_obj -> true
+  ;;
 end
 
 type typed_term = TT : 'a kind * 'a Eia.term -> typed_term
@@ -961,4 +967,13 @@ let to_nat ast =
        return ast)
     (return ast)
     vars
+;;
+
+let is_str ast =
+  fold
+    (fun acc -> function
+       | Eia ph -> Eia.is_str_eia ph
+       | _ -> acc)
+    false
+    ast
 ;;
