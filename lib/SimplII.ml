@@ -1134,7 +1134,7 @@ let%test_module _ =
       [%expect
         {|
         (and
-          (<= x 2)
+          (<= (* 5 x) 13)
           (<= (+ x z) 52)
           (<= (+ (* (- 8) (exp 2 y)) (* (- 7) z) (* (- 5) x)) (- 13)))
 
@@ -3361,19 +3361,19 @@ let leq_simpl l r =
 let%expect_test " -2x <= -7" =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-7));
-  [%expect "(<= (* (- 1) x) (- 4))"]
+  [%expect "(<= (* (- 2) x) (- 7))"]
 ;;
 
 let%expect_test " -2x <= -8" =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-8));
-  [%expect "(<= (* (- 1) x) (- 4))"]
+  [%expect "(<= (* (- 2) x) (- 8))"]
 ;;
 
 let%expect_test " -2x <= -1" =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-1));
-  [%expect "(<= (* (- 1) x) (- 1))"]
+  [%expect "(<= (* (- 2) x) (- 1))"]
 ;;
 
 (* let tracing_on =
