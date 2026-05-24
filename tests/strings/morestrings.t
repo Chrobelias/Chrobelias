@@ -6,8 +6,6 @@
   > EOF
 
   $ CHRO_DEBUG=1 Chro --dpresimpl ./1.smt2
-  Basic simplifications:
-  
   iter(1)= (and
              (= x 12345)
              (= 5 (+ 0 5)))
@@ -19,7 +17,7 @@
   iter(2)= True
   fixed-point
   
-  sat (presimpl int)
+  sat (presimpl str)
 
   $ cat > 2.smt2 <<-EOF
   > (set-logic QF_S)

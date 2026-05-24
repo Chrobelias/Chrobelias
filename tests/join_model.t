@@ -34,6 +34,15 @@
   
   lib/Underapprox.ml gives early Sat.
   sat (under int)
+  Calculating the model
+  NFA model:
+    (
+  
+  )
+  Env      :
+     u -> 3; x -> 6; y -> (+ (- 5) (* 7 u)); z -> 100;
+  Regexes: :
+  
   (
      (define-fun u () Int
       3)
@@ -44,63 +53,6 @@
      (define-fun z () Int
       100)
   )
-  Checking model correctness;
-    ast=(and
-                                      (= z 100)
-                                      (= y 16)
-                                      (= x 6)
-                                      (= u 3)
-                                      (<= 100 z)
-                                      (= (+ (+ 2 y) (* (* (- 1) 3) x)) 0)
-                                      (= (+ (+ 5 y) (* (* (- 1) 7) u)) 0))
-  
-  Basic simplifications:
-  
-  iter(1)= (and
-             (= z 100)
-             (= y 16)
-             (= x 6)
-             (= u 3)
-             (<= 100 z)
-             (= (+ (+ 2 y) (* (* (- 1) 3) x)) 0)
-             (= (+ (+ 5 y) (* (* (- 1) 7) u)) 0))
-  Something ready to substitute
-        u -> 3;
-  
-  iter(2)= (and
-             (= x 6)
-             (= y 16)
-             (= z 100)
-             (= (+ y (* (- 7) u)) (- 5))
-             (= (+ y (* (- 3) x)) (- 2))
-             (<= 100 z))
-  Something ready to substitute
-        u -> 3;
-        x -> 6;
-  
-  iter(3)= (and
-             (= y 16)
-             (= z 100)
-             (= (+ y (* (- 3) x)) (- 2))
-             (<= 100 z))
-  Something ready to substitute
-        u -> 3;
-        x -> 6;
-        y -> 16;
-  
-  iter(4)= (and
-             (= z 100)
-             (<= 100 z))
-  Something ready to substitute
-        u -> 3;
-        x -> 6;
-        y -> 16;
-        z -> 100;
-  
-  iter(5)= (<= 100 z)
-  iter(6)= True
-  fixed-point
-  
 
 TODO: fix this later
   $ cat > 2.smt2 <<-EOF
