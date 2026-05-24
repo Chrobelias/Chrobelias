@@ -439,7 +439,7 @@ module Eia = struct
 
   let is_str_eia ast =
     let exception String_obj in
-    try fold2 (fun acc _ -> acc) (fun acc _ -> raise String_obj) true ast with
+    try fold2 (fun acc _ -> acc) (fun acc _ -> raise String_obj) false ast with
     | String_obj -> true
   ;;
 end
