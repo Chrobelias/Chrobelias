@@ -225,7 +225,7 @@ Basic options:
       , "\tStop after step [presimpl; simpl]" )
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
-      , "\tСalculate a model and check its correctness" )
+      , "Сalculate a model and check its correctness" )
       (* ; "--err-check", Arg.Unit (fun () -> config.error_check <- true), "\t"
     ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t" *)
       (* ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
