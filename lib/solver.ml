@@ -1328,12 +1328,13 @@ module MsbStr =
         Nfa.reenumerate reenum nfa
       ;;
 
-      let _model_to_int =
-        int_of_path (module NfaO.Str) ~mode:`Msb z_of_char_list ~negate_symbol:char_negate
-      ;;
-
-      let nat_model_to_int =
-        int_of_path (module NfaO.Str) ~mode:`Msb z_of_char_list ?negate_symbol:Option.none
+      let nat_model_to_int p =
+        p
+        |> List.to_seq
+        |> Seq.drop_while (fun c -> c = Str.u_eos)
+        |> Seq.map (fun c -> if c = Str.u_null || c = Str.u_eos then '0' else c)
+        |> String.of_seq
+        |> Z.of_string
       ;;
 
       let char_to_v c = c
