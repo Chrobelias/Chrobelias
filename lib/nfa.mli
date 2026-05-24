@@ -45,7 +45,13 @@ module type BasicL = sig
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 
-  val filter_states : bool array -> AstL.t -> (t * state) list -> (t * state) list
+  val filter_states
+    :  state Set.t
+    -> bool array
+    -> AstL.t
+    -> (t * state) list
+    -> (t * state) list
+
   val get : t -> int -> u
 end
 

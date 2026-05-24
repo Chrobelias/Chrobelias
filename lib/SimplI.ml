@@ -801,7 +801,8 @@ let get_states base extra asts =
   let ph =
     match asts with
     | [] -> raise Exit
-    | [ (ph, state) ] -> land_ [ deparametrize base ph; pred (pred_name state) ]
+    | [ (ph, state) ] ->
+      land_ [ deparametrize base (land_ [ ph; extra ]); pred (pred_name state) ]
     | phs ->
       deparametrize
         base
@@ -810,6 +811,7 @@ let get_states base extra asts =
            ; lor_ (List.map (fun (ph, state) -> land_ [ ph; pred (pred_name state) ]) phs)
            ])
   in
+  (* debug_printfln "Composed ast: %a" AstL.pp_smtlib2 ph; *)
   let ph = apply_symnatics (module SMT) ph in
   let module Z3 = Smtml.Z3_mappings.Solver in
   let solver =

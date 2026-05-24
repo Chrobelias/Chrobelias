@@ -250,10 +250,10 @@ let rec model_from_parts_regexes_env tys model regexes env' =
 ;;
 
 let calculate_model tys model regexes env =
-  Lib.Debug.printf "Calculating the model\n%!";
+  (* Lib.Debug.printf "Calculating the model\n%!";
   Lib.Debug.printf "NFA model:\n  %a\n%!" Lib.Ir.pp_model_smtlib2 model;
   Lib.Debug.printf "Env      :\n  %a\n%!" (Lib.Env.pp ~title:"") env;
-  Lib.Debug.printf "Regexes: :\n";
+  Lib.Debug.printf "Regexes: :\n"; *)
   let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
   Map.iteri
     ~f:(fun ~key ~data ->
