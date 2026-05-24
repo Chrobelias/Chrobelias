@@ -29,7 +29,6 @@ Should be (<= x 2)
   iter(1)= (<= (* 5 x1) 13)
   Alphabet with extra char: 0
   
-  iter(2)= (<= x1 2)
   fixed-point
   
 

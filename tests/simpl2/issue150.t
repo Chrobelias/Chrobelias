@@ -7,7 +7,7 @@
                      (<= 0 (* 444 u))
                      (<= 1 strlenx)
                      (<= strlenx 99)
-                     (<= u 2)
+                     (<= (* 444 u) 1170)
                      (str.in_re.raw x)
                      (chrob.len x (exp 10 strlenx)))
   (and
@@ -16,7 +16,7 @@
     (<= 0 (* 444 u))
     (<= 1 strlenx)
     (<= strlenx 99)
-    (<= u 2)
+    (<= (* 444 u) 1170)
     (str.in_re.raw x)
     (chrob.len x (exp 10 strlenx)))
 $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
