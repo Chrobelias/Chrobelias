@@ -596,7 +596,7 @@ module MsbPar = struct
          Map.to_alist states
          |> List.filter_map (fun (v, idv) ->
            if List.exists (fun sum -> Z.(sum / minus_one <= v)) sums
-           then Some (start, get_sign_label t' v term leq, idv)
+           then Some (start, get_sign_label t' v term geq, idv)
            else None))
         @ transitions
       in

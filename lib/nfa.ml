@@ -791,7 +791,9 @@ module Par = struct
       match
         active_transitions
         |> List.filter (fun (_, state) -> Set.mem final state)
-        |> SimplI.get_states base ph
+        |> function
+        | [] -> []
+        | asts -> SimplI.get_states base ph asts
       with
       | [] -> active_transitions |> SimplI.get_states base ph
       | states -> states
