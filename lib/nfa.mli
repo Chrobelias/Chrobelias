@@ -57,13 +57,6 @@ module type ParL = sig
     -> AstL.t
     -> (t * state) list
     -> (t * state) list
-
-  val filter_states_list
-    :  state Set.t list
-    -> bool array
-    -> AstL.t
-    -> (t * state) list
-    -> (t * state) list
 end
 
 module type L = sig

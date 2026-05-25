@@ -1622,7 +1622,7 @@ module Parametric (Label : ParL) = struct
     }
   ;;
 
-  let any_path_list ?nozero (nfas : t list) vars = failwith "TODO"
+  let any_path_list (nfas : t list) vars = failwith "TODO"
   let run_list nfas = any_path_list nfas [] |> Option.is_some
 end
 
