@@ -524,6 +524,7 @@ module MsbPar = struct
         ~final:[ idx c ]
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+        ~is_dfa:true
         ~ph:(get_extra t' term)
       |> fun x -> x)
   ;;
@@ -531,7 +532,7 @@ module MsbPar = struct
   (** [eq vars term c] returns an nfa recognizing the dis-equality [term]*[vars] <> [c]. 
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
-  let neq vars term c = failwith "Unsupported in parametric automata"
+  let neq vars term c = eq vars term c |> Nfa.invert
 
   (** [eq vars term c] returns an nfa recognizing the inequality [term]*[vars] <= [c]. 
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
@@ -606,6 +607,7 @@ module MsbPar = struct
         ~final:(states |> Map.filter_keys ~f:(fun x -> x <= c) |> Map.data)
         ~vars:(List.map fst term)
         ~deg:(1 + List.fold_left Int.max 0 (List.map fst term))
+        ~is_dfa:false
         ~ph:(get_extra t' term)
       |> fun x -> x)
   ;;

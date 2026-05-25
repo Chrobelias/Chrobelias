@@ -47,7 +47,7 @@ let config =
   ; mode = `Msb
   ; no_model = false
   ; no_str_bv = false
-  ; over_approx = false
+  ; over_approx = true
   ; over_approx_early = false
   ; over_nfa = false
   ; path_search = `Dfs
@@ -55,7 +55,7 @@ let config =
   ; quiet = false
   ; simpl_alpha = false
   ; simpl_mono = true
-  ; under_approx = -1
+  ; under_approx = 2
   ; under_str_all = false
   ; with_check_sat = false
   ; with_info = true
@@ -169,7 +169,7 @@ Basic options:
     ; ( "-no-model"
       , Arg.Unit (fun () -> config.no_model <- true)
       , "\tDisable model generation subroutines" )
-    (* ; ( "-no-over"
+      (* ; ( "-no-over"
       , Arg.Unit (fun () -> config.over_approx <- false)
       , "\tDisable simple Z3 overapprox" ) *)
     ; ( "-no-str-under"
@@ -178,7 +178,13 @@ Basic options:
             under_str_config.max_cnt <- -1;
             under_str_config.max_len <- -1)
       , "Disable string underapproximations in concats" )
-    ; "-par", Arg.Unit (fun () -> config.logic <- `Par), "  \tRun in parametric mode"
+    ; ( "-par"
+      , Arg.Unit
+          (fun () ->
+            config.logic <- `Par;
+            config.over_approx <- false;
+            config.under_approx <- -1)
+      , "  \tRun in parametric mode (All Z3 LIA approximations are disabled)" )
     ; ( "-sbcnt"
       , Arg.Int (fun n -> under_str_config.max_cnt <- n)
       , "<n>\tUnderapproximate strings in concats via first <n> words w.r.t. regexes \
@@ -187,9 +193,7 @@ Basic options:
       , Arg.Int (fun n -> under_str_config.max_len <- n)
       , "<n>\tUnderapproximate strings in concats via words of length at most <n> \
          (DEFAULT n=32)" )
-      ; ( "-over"
-      , Arg.Unit (fun () -> config.over_approx <- true)
-      , "\tSimple Z3 overapprox" )
+    ; "-over", Arg.Unit (fun () -> config.over_approx <- true), "\tSimple Z3 overapprox"
       (* ; ( "-over-early"
       , Arg.Unit (fun () -> config.over_approx_early <- true)
       , "\tSimple overapprox before underapprox II" ) *)

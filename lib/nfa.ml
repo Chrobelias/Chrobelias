@@ -98,10 +98,6 @@ module type BasicL = sig
   (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
   val combine : t -> t -> t
 
-  (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
-  Usegful when working with automata for LIA-constraints *)
-  val combine2 : t -> t -> AstL.t -> t
-
   val simplify : t -> t
 
   (** [project pos l] returns a label obtained from [l] by projection over variables with positions 
@@ -117,14 +113,22 @@ module type BasicL = sig
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 
+  val get : t -> int -> u
+end
+
+module type ParL = sig
+  include BasicL
+
+  (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
+  Usegful when working with automata for LIA-constraints *)
+  val combine2 : t -> t -> AstL.t -> t
+
   val filter_states
     :  state Set.t
     -> bool array
     -> AstL.t
     -> (t * state) list
     -> (t * state) list
-
-  val get : t -> int -> u
 end
 
 module type L = sig
@@ -221,7 +225,6 @@ module Bv = struct
     Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
 
-  let combine2 l r _ = combine l r
   let simplify = Fun.id
 
   let project proj (vec, mask) =
@@ -312,11 +315,6 @@ module Bv = struct
     vec, mask
   ;;
 
-  let filter_states _ vistied _ =
-    List.filter_map (fun (_, state) ->
-      if vistied.(state) then None else Some (zero 0, state))
-  ;;
-
   let alpha _ = [ true; false ] |> Set.of_list
   let alphabet = [ true; false ]
   let is_any_at i (_, mask) = bv_get mask i = false
@@ -390,7 +388,6 @@ module StrBv = struct
     Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
   ;;
 
-  let combine2 l r _ = combine l r
   let simplify = Fun.id
 
   let project proj (vec, mask) =
@@ -538,11 +535,6 @@ module StrBv = struct
     vec, mask
   ;;
 
-  let filter_states _ vistied _ =
-    List.filter_map (fun (_, state) ->
-      if vistied.(state) then None else Some (zero 0, state))
-  ;;
-
   let alpha _ =
     (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
     |> Set.of_list
@@ -600,7 +592,6 @@ module Str = struct
       if Char.equal c1 u_null then get vec2 i else c1)
   ;;
 
-  let combine2 l r _ = combine l r
   let simplify = Fun.id
 
   let project proj vec =
@@ -731,11 +722,6 @@ module Str = struct
     let deg = List.fold_left max 0 vars + 1 in
     let vec = stretch bv vars deg |> Option.get in
     vec
-  ;;
-
-  let filter_states _ vistied _ =
-    List.filter_map (fun (_, state) ->
-      if vistied.(state) then None else Some (zero 0, state))
   ;;
 
   let alpha s = Array.to_list s |> Set.of_list
@@ -1159,7 +1145,7 @@ type ('a, 'b) nfa_t =
 let length nfa = Array.length nfa.transitions
 let states nfa = 0 -- (length nfa - 1) |> Set.of_list
 
-module Parametric (Label : BasicL) = struct
+module Parametric (Label : ParL) = struct
   module Graph = Graph (Label)
 
   type t = (Graph.t, AstL.t) nfa_t
@@ -1276,9 +1262,10 @@ module Parametric (Label : BasicL) = struct
         ~(final : state list)
         ~(vars : int list)
         ~(deg : int)
+        ~(is_dfa : bool)
         ~(ph : AstL.t)
     =
-    { (create_nfa2 ~transitions ~start ~final ~vars ~deg) with extra = ph }
+    { (create_nfa2 ~transitions ~start ~final ~vars ~deg) with extra = ph; is_dfa }
   ;;
 
   let project_verticies nfa verticies =
@@ -1372,15 +1359,15 @@ module Parametric (Label : BasicL) = struct
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
-        then begin
-          if Set.mem nfa.final node
+        then
+          begin if Set.mem nfa.final node
           then raise (Sat_found path)
           else
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-        end
+          end
         else visited
       in
       rdfs [] [] start
@@ -1390,8 +1377,8 @@ module Parametric (Label : BasicL) = struct
         | [] -> visited
         | ((label, state) :: tl as path) :: other ->
           if not (List.mem state visited)
-          then begin
-            if Set.mem nfa.final state
+          then
+            begin if Set.mem nfa.final state
             then raise (Sat_found (List.filter_map fst path))
             else (
               let neighbors =
@@ -1403,7 +1390,7 @@ module Parametric (Label : BasicL) = struct
                   else Some ((Some label, state) :: path))
               in
               rbfs (state :: visited) (other @ neighbors))
-          end
+            end
           else rbfs visited other
         | _ -> assert false
       in
@@ -1565,7 +1552,18 @@ module Parametric (Label : BasicL) = struct
     }
   ;;
 
-  let invert ?alpha nfa = failwith "Unimplemented"
+  let invert ?alpha nfa =
+    let dfa = if nfa.is_dfa then nfa else failwith "Unimplemented" in
+    let states = states dfa in
+    let final = Set.diff states dfa.final in
+    { final
+    ; start = dfa.start
+    ; transitions = dfa.transitions
+    ; deg = dfa.deg
+    ; is_dfa = true
+    ; extra = dfa.extra
+    }
+  ;;
 
   let is_graph nfa =
     nfa.transitions
@@ -1623,6 +1621,9 @@ module Parametric (Label : BasicL) = struct
     ; extra = nfa.extra
     }
   ;;
+
+  let any_path_list ?nozero (nfas : t list) vars = failwith "TODO"
+  let run_list nfas = any_path_list nfas [] |> Option.is_some
 end
 
 module Make

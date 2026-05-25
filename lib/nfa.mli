@@ -26,10 +26,6 @@ module type BasicL = sig
   (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
   val combine : t -> t -> t
 
-  (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
-  Usegful when working with automata for LIA-constraints *)
-  val combine2 : t -> t -> AstL.t -> t
-
   val simplify : t -> t
 
   (** [project pos l] returns a label obtained from [l] by projection over variables with positions 
@@ -45,6 +41,16 @@ module type BasicL = sig
   (** [of_list vals] returns a label obtained from a list [vals] of pairs of positions and digits on these positions. *)
   val of_list : (int * u) list -> t
 
+  val get : t -> int -> u
+end
+
+module type ParL = sig
+  include BasicL
+
+  (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
+  Usegful when working with automata for LIA-constraints *)
+  val combine2 : t -> t -> AstL.t -> t
+
   val filter_states
     :  state Set.t
     -> bool array
@@ -52,7 +58,12 @@ module type BasicL = sig
     -> (t * state) list
     -> (t * state) list
 
-  val get : t -> int -> u
+  val filter_states_list
+    :  state Set.t list
+    -> bool array
+    -> AstL.t
+    -> (t * state) list
+    -> (t * state) list
 end
 
 module type L = sig
@@ -76,12 +87,12 @@ module type L = sig
   val alpha : t -> u Set.t
 end
 
-module Bv : sig
-  include L with type u = bool
+module Par : sig
+  include ParL with type u = int and type t = AstL.t
 end
 
-module Par : sig
-  include BasicL with type u = int and type t = AstL.t
+module Bv : sig
+  include L with type u = bool
 end
 
 module Str : sig
@@ -178,7 +189,7 @@ module type BasicType = sig
   val format_nfa : Format.formatter -> t -> unit
 end
 
-module Parametric (Label : BasicL) : sig
+module Parametric (Label : ParL) : sig
   include BasicType with type v = Label.u
 
   type vv = Label.t
@@ -197,8 +208,14 @@ module Parametric (Label : BasicL) : sig
     -> final:state list
     -> vars:int list
     -> deg:int
+    -> is_dfa:bool
     -> ph:AstL.t
     -> t
+
+  (** [run a] returns [true] if the automaton [a] recognizes a non-emty language, otherwise [false]. *)
+  val run_list : t list -> bool
+
+  val any_path_list : t list -> int list -> (v list list * int) option
 end
 
 module type Type = sig
