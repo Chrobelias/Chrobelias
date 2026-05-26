@@ -1061,6 +1061,8 @@ module type BasicType = sig
   val run : t -> bool
 
   val any_path : t -> int list -> (v list list * int) option
+  val run_list : t list -> bool
+  val any_path_list : t list -> int list -> (v list list * int) option
 
   (** [intersect a1 a2] returns an nfa recognizing the intersection of the languages 
   recognizable by [a1] and [a2]. *)
@@ -1622,7 +1624,7 @@ module Parametric (Label : ParL) = struct
     }
   ;;
 
-  let any_path_list (nfas : t list) vars = failwith "TODO"
+  let any_path_list (nfas : t list) vars = failwith "TODO very soon"
   let run_list nfas = any_path_list nfas [] |> Option.is_some
 end
 
@@ -2401,6 +2403,8 @@ struct
     any_n_paths_helper nfa ?len ~n (fun x y -> x <= y)
   ;;
 
+  (* let any_path_list nfas vars = failwith "Unimplemented"
+  let run_list nfas = any_path_list nfas [] |> Option.is_some *)
   let all_paths_of_len (nfa : t) len = any_n_paths_helper nfa ~len (fun x y -> x = y)
 
   let re_accepts path nfa =
@@ -2523,6 +2527,8 @@ module Lsb (Label : L) = struct
   let zero_any_path = any_path ~nozero:false
   let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
+  let any_path_list nfas vars = failwith "Unimplemented"
+  let run_list nfas = any_path_list nfas [] |> Option.is_some
 
   let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
     let zero_lbl = Label.zero_with_mask [ res; temp ] in
@@ -2838,6 +2844,8 @@ module MsbNat (Label : L) = struct
 
   let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
+  let any_path_list nfas vars = failwith "Unimplemented"
+  let run_list nfas = any_path_list nfas [] |> Option.is_some
 
   let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
     (*Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;*)
@@ -3184,6 +3192,8 @@ module Msb (Label : L) = struct
   ;;
 
   let run nfa = any_path nfa [] |> Option.is_some
+  let any_path_list nfas vars = failwith "Unimplemented"
+  let run_list nfas = any_path_list nfas [] |> Option.is_some
 
   let to_nat (nfa : t) : u =
     let start =

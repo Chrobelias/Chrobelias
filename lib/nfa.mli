@@ -154,6 +154,11 @@ module type BasicType = sig
 
   val any_path : t -> int list -> (v list list * int) option
 
+  (** [run nfas] returns [true] if the intersection of automata [nfas] recognizes a non-emty language, otherwise [false]. *)
+  val run_list : t list -> bool
+
+  val any_path_list : t list -> int list -> (v list list * int) option
+
   (** [intersect a1 a2] returns an nfa recognizing the intersection of the languages 
   recognizable by [a1] and [a2]. *)
   val intersect : t -> t -> t
@@ -204,11 +209,6 @@ module Parametric (Label : ParL) : sig
     -> is_dfa:bool
     -> ph:AstL.t
     -> t
-
-  (** [run a] returns [true] if the automaton [a] recognizes a non-emty language, otherwise [false]. *)
-  val run_list : t list -> bool
-
-  val any_path_list : t list -> int list -> (v list list * int) option
 end
 
 module type Type = sig
