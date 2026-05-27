@@ -2102,33 +2102,49 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       let ast = Ast.land_ [ S.eqz term rhs; ast ] in
       env, ast
     | PropLen (s, len) ->
+      let many_words = 10 in
       let unfold_nfa_with_fixed_len len nfa =
-        let len = Z.to_int len in
-        let words =
-          NfaS.all_paths_of_len nfa len
-          |> List.map (fun c -> String.sub (List.to_seq c |> String.of_seq) 0 len)
-          |> List.map (fun word ->
-            if String.length word <> len then failwith "lengths doesn't match" else word)
-        in
-        words
+        try
+          let len = Z.to_int len in
+          let words =
+            NfaS.all_paths_of_len nfa len ~limit:many_words
+            |> List.map (fun c -> String.sub (List.to_seq c |> String.of_seq) 0 len)
+            |> List.map (fun word ->
+              if String.length word <> len then failwith "lengths doesn't match" else word)
+          in
+          Option.some words
+        with
+        | _ -> None
       in
-      let words_into_disjunction words =
-        words
-        |> List.map (fun word -> Eia.eq (Eia.Atom (Var (s, S))) (Eia.Str_const word) S)
-        |> List.map Ast.eia
-        |> Ast.lor_
+      let words_into_disjunction ?default words =
+        Format.printf "WORDS: %a\n%!" (Format.pp_print_list Format.pp_print_string) words;
+        if Option.is_some default && List.length words > many_words
+        then default |> Option.get
+        else
+          words
+          |> List.map (fun word -> Eia.eq (Eia.Atom (Var (s, S))) (Eia.Str_const word) S)
+          |> List.map Ast.eia
+          |> Ast.lor_
       in
       let ast =
         Ast.map
           (function
-            | Eia (Eia.InRe (Eia.Atom (Var (s', S)), S, re)) when s = s' ->
-              unfold_nfa_with_fixed_len len (NfaS.of_regex re) |> words_into_disjunction
-            | Eia (Eia.InReRaw (Eia.Atom (Var (s', S)), S, nfa)) when s = s' ->
-              unfold_nfa_with_fixed_len len nfa |> words_into_disjunction
-            | Eia (Eia.InRe (Eia.Atom (Var (s', I)), I, re)) when s = s' ->
-              unfold_nfa_with_fixed_len len (NfaS.of_regex re) |> words_into_disjunction
-            | Eia (Eia.InReRaw (Eia.Atom (Var (s', I)), I, nfa)) when s = s' ->
-              unfold_nfa_with_fixed_len len nfa |> words_into_disjunction
+            | Eia (Eia.InRe (Eia.Atom (Var (s', S)), S, re)) as orig when s = s' ->
+              unfold_nfa_with_fixed_len len (NfaS.of_regex re)
+              |> Option.map words_into_disjunction
+              |> Option.value ~default:orig
+            | Eia (Eia.InReRaw (Eia.Atom (Var (s', S)), S, nfa)) as orig when s = s' ->
+              unfold_nfa_with_fixed_len len nfa
+              |> Option.map words_into_disjunction
+              |> Option.value ~default:orig
+            | Eia (Eia.InRe (Eia.Atom (Var (s', I)), I, re)) as orig when s = s' ->
+              unfold_nfa_with_fixed_len len (NfaS.of_regex re)
+              |> Option.map words_into_disjunction
+              |> Option.value ~default:orig
+            | Eia (Eia.InReRaw (Eia.Atom (Var (s', I)), I, nfa)) as orig when s = s' ->
+              unfold_nfa_with_fixed_len len nfa
+              |> Option.map words_into_disjunction
+              |> Option.value ~default:orig
             | el -> el)
           ast
       in
@@ -2800,7 +2816,7 @@ let rewrite_via_concat { Info.all; _ } =
     ast
 ;; *)
 
-let over_concat_len ast =
+let _over_concat_len ast =
   let open Ast.Eia in
   let module OverStrLen = struct
     include Id_symantics
@@ -2923,7 +2939,7 @@ let under_str env alpha vars ast =
         match basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info) with
         | `Unsat -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
-        | `Unknown (ast, env, _, _) -> Some (ast |> over_concat_len, env))
+        | `Unknown (ast, env, _, _) -> Some (ast (*|> over_concat_len*), env))
     in
     let m = List.length vars in
     Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
@@ -3057,7 +3073,7 @@ let extract_and_filter_unsupported_atomic_formulas ast =
 
 let run_string_simplify ast =
   let module Set = Base.Set.Poly in
-  match basic_simplify [ 1 ] Env.empty (ast |> over_concat_len) with
+  match basic_simplify [ 1 ] Env.empty ast (*|> over_concat_len*) with
   | `Sat env -> `Sat env
   | `Unsat -> `Unsat ast
   | `Unknown (ast', e, _, _) ->
@@ -3078,7 +3094,10 @@ let run_string_simplify ast =
     let var_info = apply_symantics (module Who_in_exponents) ast' in
     (* log "After rewriting via concats:\n%!"; *)
       (match
-         basic_simplify [ 0 ] e (ast' |> rewrite_via_concat var_info |> over_concat_len)
+         basic_simplify
+           [ 0 ]
+           e
+           (ast' |> rewrite_via_concat var_info (*|> over_concat_len*))
        with
        | `Sat env -> `Sat env
        | `Unsat -> `Unsat ast'
