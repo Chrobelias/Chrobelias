@@ -759,7 +759,7 @@ let deparametrize base ast =
   land_ [ base_eq; digits_neq; ast ]
 ;;
 
-let check_sat base ast =
+let check_sat ?(base = 10) ast =
   let open AstL in
   match ast |> deparametrize base |> basic_simplify [ 0 ] empty |> fst with
   | ph when AstL.equal ph true_ -> `Sat
@@ -788,13 +788,12 @@ let debug_printfln ppf =
   else Format.ifprintf Format.std_formatter ppf
 ;;
 
+let get_state name = name |> Base.String.chop_prefix_exn ~prefix:"P" |> Base.Int.of_string
+let pred_name state = "P" ^ Int.to_string state
+
 let get_states base extra asts =
   let open AstL in
   let open Lia in
-  let pred_name state = "P" ^ Int.to_string state in
-  let get_state name =
-    name |> Base.String.chop_prefix_exn ~prefix:"P" |> Base.Int.of_string
-  in
   (* let get_val name =
     name |> Base.String.chop_prefix_exn ~prefix:"lia" |> Base.Int.of_string
   in *)

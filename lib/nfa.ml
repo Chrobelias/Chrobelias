@@ -73,6 +73,13 @@ let ( -- ) i j =
   aux j []
 ;;
 
+let cartesian_product l1 l2 =
+  Set.fold
+    ~f:(fun x a -> Set.fold ~f:(fun y b -> Set.add y (a, b)) ~init:x l2)
+    ~init:Set.empty
+    l1
+;;
+
 let rec pow a = function
   | 0 -> 1
   | 1 -> a
@@ -129,6 +136,13 @@ module type ParL = sig
     -> AstL.t
     -> (t * state) list
     -> (t * state) list
+
+  val filter_states_bool_comb
+    :  AstL.t
+    -> state list list
+    -> AstL.t list
+    -> (t * state) list list
+    -> (t * state) list list
 end
 
 module type L = sig
@@ -782,6 +796,22 @@ module Par = struct
         | asts -> SimplI.get_states base ph asts
       with
       | [] -> active_transitions |> SimplI.get_states base ph
+      | states -> states
+    with
+    | Exit -> []
+  ;;
+
+  let filter_states_bool_comb ac_cond visited phs =
+    fun transitions ->
+    let states_ph =
+      visited
+      |> List.map (fun sl ->
+        AstL.lnot (AstL.land_ (List.map (fun x -> AstL.pred (SimplI.pred_name x)) sl)))
+    in
+    let ph = AstL.land_ (phs @ states_ph) in
+    try
+      match SimplI.get_states base (AstL.land_ [ ac_cond; ph ]) transitions with
+      | [] -> SimplI.get_states base ph transitions
       | states -> states
     with
     | Exit -> []
@@ -1462,12 +1492,6 @@ module Parametric (Label : ParL) = struct
   ;;
 
   let intersect nfa1 nfa2 =
-    let cartesian_product l1 l2 =
-      Set.fold
-        ~f:(fun x a -> Set.fold ~f:(fun y b -> Set.add y (a, b)) ~init:x l2)
-        ~init:Set.empty
-        l1
-    in
     let counter = ref 0 in
     let visited = Array.make_matrix (length nfa1) (length nfa2) (-1) in
     let q (q1, q2) = visited.(q1).(q2) in
@@ -1629,7 +1653,82 @@ module Parametric (Label : ParL) = struct
     }
   ;;
 
-  let any_path_bool_comb skel (nfas : (int, t) Map.t) vars = failwith "TODO very soon"
+  let any_path_bool_comb skel (nfas : (int, t) Map.t) vars =
+    let exception Sat_found of vv list in
+    let nfas' = Map.data nfas in
+    let each f = nfas' |> List.map f in
+    let starts, transitions, finals, extras =
+      ( each (fun nfa -> nfa.start)
+      , each (fun nfa -> nfa.transitions)
+      , each (fun nfa -> nfa.final)
+      , each (fun nfa -> nfa.extra) )
+    in
+    let ac_cond =
+      AstL.map
+        (function
+          | Pred s ->
+            let n = AstL.get_atom_num_exn s in
+            AstL.lor_ (List.nth finals n |> Set.to_list |> List.map AstL.get_pred)
+          | ast -> ast)
+        skel
+    in
+    let to_ast node = AstL.land_ (List.map AstL.get_pred node) in
+    let successors state visited =
+      let transitions =
+        List.mapi (fun n arr -> Array.get arr (List.nth state n)) transitions
+      in
+      let without = state :: visited in
+      let next without =
+        transitions |> Label.filter_states_bool_comb ac_cond without extras
+      in
+      let succ without =
+        match next without with
+        | [] -> []
+        | states -> List.fold_left (fun acc sl -> List.map snd sl :: acc) without states
+      in
+      Seq.forever (fun () -> succ without) |> Seq.take_while (Fun.negate List.is_empty)
+    in
+    failwith "I am here..."
+  ;;
+
+  (* let dfs start =
+      let rec rdfs path visited node =
+        (* Debug.printfln "\nVisited states list: ";
+        List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
+        if not (List.mem node visited)
+        then
+          begin match SimplI.check_sat (AstL.land_ [ ac_cond; to_ast node ]) with
+          | `Sat -> raise (Sat_found path)
+          | `Unsat | `Unknown ->
+            Seq.fold_left
+              (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
+              (node :: visited)
+              (successors node visited)
+          end
+        else visited
+      in
+      rdfs [] [] start
+    in
+    let visited = Array.init (length nfa) (Fun.const false) in
+    let inspect state =
+      try
+        List.iter (fun state -> visited.(state) <- true) (dfs state);
+        None
+      with
+      | Sat_found path -> Some path
+    in
+    match Set.find_map ~f:inspect starts with
+    | Some [] -> Some (List.map (fun _ -> []) vars, 0)
+    | Some p ->
+      let p = List.rev p in
+      let length = List.length p in
+      Some
+        ( List.map
+            (fun var -> List.init length (fun i -> Label.get (List.nth p i) var))
+            vars
+        , length )
+    | None -> None *)
+
   let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
 end
 
@@ -1875,12 +1974,6 @@ struct
   ;;
 
   let intersect nfa1 nfa2 =
-    let cartesian_product l1 l2 =
-      Set.fold
-        ~f:(fun x a -> Set.fold ~f:(fun y b -> Set.add y (a, b)) ~init:x l2)
-        ~init:Set.empty
-        l1
-    in
     let counter = ref 0 in
     let visited = Array.make_matrix (length nfa1) (length nfa2) (-1) in
     let q (q1, q2) = visited.(q1).(q2) in

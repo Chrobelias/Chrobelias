@@ -194,6 +194,7 @@ let lor_ = function
 let lia lia = Lia lia
 let pred s = Pred s
 let get_pred ?(s = "Atom") i = Pred (Format.asprintf "%s%d" s i)
+let get_atom_num_exn s = s |> Base.String.chop_prefix_exn ~prefix:"Atom" |> Base.Int.of_string
 
 let rec lnot = function
   | Lnot ast -> ast
