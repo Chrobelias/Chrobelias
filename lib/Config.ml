@@ -1,5 +1,6 @@
 type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
+  ; mutable bool_comb_sat : bool
   ; mutable bound_res : int
   ; mutable bound_states : int
   ; mutable dump_simpl : bool
@@ -32,6 +33,7 @@ type config =
 
 let config =
   { antiprenex_mode = `All
+  ; bool_comb_sat = false
   ; bound_res = -1
   ; bound_states = -1
   ; stop_after = `Solving
@@ -238,6 +240,9 @@ Basic options:
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness" )
+    ; ( "--bool-comb-sat"
+      , Arg.Unit (fun () -> config.bool_comb_sat <- true)
+      , "Disable automatic boolean combinations" )
       (* ; "--err-check", Arg.Unit (fun () -> config.error_check <- true), "\t"
     ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t" *)
       (* ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"

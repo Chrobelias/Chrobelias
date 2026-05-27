@@ -157,9 +157,94 @@ module Basic
      end) =
 struct
   let eval ir =
+    let ir = Ir.antiprenex ir in
     let vars = Ir.collect_vars ir in
-    let to_nfa ir =
-      match ir with
+    (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
+    let rec eval ir =
+      if Config.config.dump_ir
+      then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
+      level := !level + 1;
+      (match ir with
+       | Ir.Unsupp s -> NfaCollection.n ()
+       | Ir.True -> NfaCollection.n ()
+       | Ir.Lnot ir -> eval ir |> Nfa.invert
+       | Ir.Land irs ->
+         let nfas =
+           List.map
+             (fun ir ->
+                let nfa = eval ir in
+                Debug.printf "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
+                nfa |> do_if_lsb Nfa.reverse, ir)
+             irs
+           |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
+         in
+         let rec eval_and = function
+           | (hd, _) :: [] -> hd
+           | (hd, ir) :: (hd', ir') :: tl ->
+             Debug.printf
+               "Intersecting\n  [%d (%a)]\n  [%d (%a)]\n%!"
+               (Nfa.length hd)
+               Ir.pp
+               ir
+               (Nfa.length hd')
+               Ir.pp
+               ir';
+             let nfa =
+               Nfa.intersect hd hd'
+               (* |> fun nfa ->
+               if Ir.is_reg ir || Ir.is_reg ir' then Nfa.minimize nfa else nfa *)
+             in
+             let ir = Ir.land_ [ ir; ir' ] in
+             let nfas =
+               (nfa, ir) :: tl
+               |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
+             in
+             eval_and nfas
+           | [] -> NfaCollection.n ()
+         in
+         eval_and nfas
+         |> fun nfa ->
+         Debug.printf "Intersect result %d \n%!" (Nfa.length nfa);
+         nfa |> do_if_lsb Nfa.reverse
+       | Ir.Lor (hd :: tl) ->
+         List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
+       | Ir.Lor [] -> NfaCollection.z ()
+       | Ir.Rel (rel, term, c) ->
+         begin match rel with
+         | Ir.Eq -> NfaCollection.eq vars term c
+         | Ir.Leq -> NfaCollection.leq vars term c
+         | Ir.Neq -> NfaCollection.neq vars term c
+         end
+       | Ir.Exists (atoms, ir) ->
+         let nfa =
+           eval ir
+           (*|> apply_post_strings atoms*)
+           |> Nfa.project (List.filter_map (Map.find vars) atoms)
+         in
+         if Nfa.run nfa then NfaCollection.n () else NfaCollection.z ()
+       | Ir.SReg (atom, reg) -> Eval.eval_sreg vars atom reg
+       | Ir.SRegRaw (atom, reg) -> Eval.eval_sregraw vars atom reg
+       | Ir.SLen (atom, atom') ->
+         NfaCollection.strlen
+           ~alpha:None
+           ~dest:(Map.find_exn vars atom')
+           ~src:(Map.find_exn vars atom)
+           ()
+       | _ -> failwith "Unexpected constraint")
+      |> fun nfa ->
+      Debug.printfln "Done %a\n%!" Ir.pp ir;
+      Debug.dump_nfa ~msg:"Evaluated %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
+      level := !level - 1;
+      nfa
+    in
+    let nfa = eval ir in
+    (*let nfa = apply_post_strings ( Ir.collect_free ir |> Set.to_list in*)
+    nfa, vars
+  ;;
+
+  let eval_bool_comb ir =
+    let vars = Ir.collect_vars ir in
+    let to_nfa = function
       | Ir.Unsupp s -> NfaCollection.n ()
       | Ir.True -> NfaCollection.n ()
       | Ir.Rel (rel, term, c) ->
@@ -172,12 +257,17 @@ struct
       | Ir.SRegRaw (atom, reg) -> Eval.eval_sregraw vars atom reg
       | _ -> failwith "Unexpected constraint"
     in
-    let rec collect_irs = function
-      | Ir.Land irs -> List.concat_map (fun ir -> collect_irs ir) irs
-      | Ir.Lor irs -> List.concat_map (fun ir -> collect_irs ir) irs
-      | _ as ir -> [ to_nfa ir ]
+    let atomics =
+      ir |> Ir.collect_atomics |> Set.to_list |> List.mapi (fun i atom -> i, atom)
     in
-    collect_irs ir, vars
+    let rec get_skeleton_exn m = function
+      | Ir.Land irs -> AstL.land_ (List.map (get_skeleton_exn m) irs)
+      | Ir.Lor irs -> AstL.lor_ (List.map (get_skeleton_exn m) irs)
+      | _ as ir -> List.find (fun (i, atom) -> Ir.equal atom ir) m |> fst |> AstL.get_pred
+    in
+    ( get_skeleton_exn atomics ir
+    , atomics |> List.map (fun (i, atom) -> i, to_nfa atom) |> Map.of_alist_exn
+    , vars )
   ;;
 
   let cache = ref Map.empty
@@ -192,12 +282,25 @@ struct
   ;;
 
   let get_model_nfa ir () =
-    let nfa, vars = ir |> eval in
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
-    match Nfa.any_path_list nfa (List.map (fun v -> Map.find_exn vars v) free_vars) with
-    | Some (model, _) ->
-      Some (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
-    | None -> None
+    if Config.config.bool_comb_sat
+    then (
+      let skel, nfas, vars = ir |> eval_bool_comb in
+      match
+        Nfa.any_path_bool_comb
+          skel
+          nfas
+          (List.map (fun v -> Map.find_exn vars v) free_vars)
+      with
+      | Some (model, _) ->
+        Some (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
+      | None -> None)
+    else (
+      let nfa, vars = ir |> eval in
+      match Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) with
+      | Some (model, _) ->
+        Some (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
+      | None -> None)
   ;;
 
   let check_sat ir

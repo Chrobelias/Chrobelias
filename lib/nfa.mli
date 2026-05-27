@@ -153,11 +153,13 @@ module type BasicType = sig
   val run : t -> bool
 
   val any_path : t -> int list -> (v list list * int) option
+  val run_bool_comb : AstL.t -> (int, t) Map.t -> bool
 
-  (** [run nfas] returns [true] if the intersection of automata [nfas] recognizes a non-emty language, otherwise [false]. *)
-  val run_list : t list -> bool
-
-  val any_path_list : t list -> int list -> (v list list * int) option
+  val any_path_bool_comb
+    :  AstL.t
+    -> (int, t) Map.t
+    -> int list
+    -> (v list list * int) option
 
   (** [intersect a1 a2] returns an nfa recognizing the intersection of the languages 
   recognizable by [a1] and [a2]. *)

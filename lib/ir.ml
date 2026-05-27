@@ -594,6 +594,16 @@ let collect_free (ir : t) =
     ir
 ;;
 
+let collect_atomics =
+  fold
+    (fun acc -> function
+       | Rel _ as ir -> Set.add acc ir
+       | SReg (atom, _) as ir -> Set.add acc ir
+       | SRegRaw (atom, _) as ir -> Set.add acc ir
+       | _ -> acc)
+    Set.empty
+;;
+
 let antiprenex =
   fun ir ->
   if Config.config.antiprenex_mode = `Disable

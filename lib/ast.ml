@@ -457,6 +457,7 @@ let lor_ = function
 
 let eia eia = Eia eia
 let pred s = Pred s
+let get_pred ?(s = "Atom") i = Pred (Format.asprintf "%s%d" s i)
 
 let rec lnot = function
   | Lnot ast -> ast
@@ -467,11 +468,11 @@ let rec lnot = function
 
 let rec exists = function
   | [] -> Fun.id
-  | atoms -> begin
-    function
-    | Exists (atoms', ast) -> exists (atoms @ atoms') ast
-    | ast -> Exists (atoms, ast)
-  end
+  | atoms ->
+    begin function
+      | Exists (atoms', ast) -> exists (atoms @ atoms') ast
+      | ast -> Exists (atoms, ast)
+    end
 ;;
 
 let limpl a b = lor_ [ lnot a; b ]
