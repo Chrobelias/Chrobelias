@@ -603,23 +603,63 @@ type t =
 
 let true_ = True
 
-let land_ = function
-  | [] -> true_
-  | [ ast ] -> ast
-  | asts when List.exists (( = ) (Lnot True)) asts -> Lnot True
-  | asts ->
-    let asts =
-      List.concat_map
-        (function
-          | Land asts' -> asts'
-          | True -> []
-          | ast -> [ ast ])
-        asts
-    in
-    (match asts with
-     | [] -> true_
-     | [ ast ] -> ast
-     | asts -> Land asts)
+let pp_smtlib2 =
+  let open Format in
+  let rec pp ppf = function
+    | True -> Format.fprintf ppf "True"
+    | Pred a -> Format.fprintf ppf "(P %s)" a
+    | Lnot a -> Format.fprintf ppf "(not %a)" pp a
+    | Land irs ->
+      Format.fprintf ppf "@[<v 2>(and@,";
+      List.iteri
+        (fun i ->
+           if i <> 0 then fprintf ppf "@,";
+           fprintf ppf "@[%a@]" pp)
+        irs;
+      fprintf ppf ")@]"
+    | Lor irs ->
+      Format.fprintf ppf "@[<v 2>(or@,";
+      List.iteri
+        (fun i ->
+           if i <> 0 then fprintf ppf "@,";
+           fprintf ppf "@[%a@]" pp)
+        irs;
+      fprintf ppf ")@]"
+    | Exists (a, b) ->
+      Format.fprintf
+        ppf
+        "(exists (%a) %a)"
+        (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") pp_any_atom)
+        a
+        pp
+        b
+    | Eia eia -> fprintf ppf "%a" Eia.pp eia
+    | Unsupp (`Msg s) -> fprintf ppf "(unsupp: %s)" s
+    | Unsupp (`Check _) -> Format.fprintf ppf "(unsupp: post check)"
+  in
+  pp
+;;
+
+let land_ =
+  fun asts ->
+  (* Format.printf "> %a\n%!" (Format.pp_print_list pp_smtlib2) asts; *)
+    match asts with
+    | [] -> true_
+    | [ ast ] -> ast
+    | asts when List.exists (( = ) (Lnot True)) asts -> Lnot True
+    | asts ->
+      let asts =
+        List.concat_map
+          (function
+            | Land asts' -> asts'
+            | True -> []
+            | ast -> [ ast ])
+          asts
+      in
+      (match asts with
+       | [] -> true_
+       | [ ast ] -> ast
+       | asts -> Land asts)
 ;;
 
 let false_ = Lnot true_
@@ -713,43 +753,6 @@ let rec pp ppf = function
   | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
   | Unsupp (`Msg s) -> Format.fprintf ppf "%s" s
   | Unsupp (`Check _) -> Format.fprintf ppf "post check"
-;;
-
-let pp_smtlib2 =
-  let open Format in
-  let rec pp ppf = function
-    | True -> Format.fprintf ppf "True"
-    | Pred a -> Format.fprintf ppf "(P %s)" a
-    | Lnot a -> Format.fprintf ppf "(not %a)" pp a
-    | Land irs ->
-      Format.fprintf ppf "@[<v 2>(and@,";
-      List.iteri
-        (fun i ->
-           if i <> 0 then fprintf ppf "@,";
-           fprintf ppf "@[%a@]" pp)
-        irs;
-      fprintf ppf ")@]"
-    | Lor irs ->
-      Format.fprintf ppf "@[<v 2>(or@,";
-      List.iteri
-        (fun i ->
-           if i <> 0 then fprintf ppf "@,";
-           fprintf ppf "@[%a@]" pp)
-        irs;
-      fprintf ppf ")@]"
-    | Exists (a, b) ->
-      Format.fprintf
-        ppf
-        "(exists (%a) %a)"
-        (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") pp_any_atom)
-        a
-        pp
-        b
-    | Eia eia -> fprintf ppf "%a" Eia.pp eia
-    | Unsupp (`Msg s) -> fprintf ppf "(unsupp: %s)" s
-    | Unsupp (`Check _) -> Format.fprintf ppf "(unsupp: post check)"
-  in
-  pp
 ;;
 
 let pp_term_smtlib2 =

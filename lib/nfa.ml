@@ -1754,8 +1754,8 @@ struct
             |> List.map (fun path' ->
               path'
               |> List.map (fun (label, q') -> label)
-              |> List.drop_while Label.is_zero_soft
-              |> List.map (fun label -> Label.get label 0))
+              |> List.map (fun label -> Label.get label 0)
+              |> List.drop_while (( = ) Label.u_eos))
             |> List.filter (fun path' ->
               Option.is_none len || sign (List.length path') (Option.get len + 1))
           in
