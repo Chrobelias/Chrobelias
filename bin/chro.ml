@@ -456,8 +456,6 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
                  | _ -> None))
         ]
     in
-    if config.logic = `Eia && Lib.Ast.is_str assumptions
-    then config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
     dpll
       assumptions
       (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
@@ -636,10 +634,10 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
       let non_num var =
         eia (Eia.leq (Eia.iofs (Eia.Atom (Lib.Ast.var var S))) (Const Z.minus_one))
       in
-      let empty var = eia (Eia.Eq (Atom (Var (var, S)), Lib.Ast.Eia.str_const "", S)) in
+      (*let empty var = eia (Eia.Eq (Atom (Var (var, S)), Lib.Ast.Eia.str_const "", S)) in*)
       get_str_vars ast
       |> List.filter (fun v -> in_stoi v ast)
-      |> List.map (fun var -> lor_ [ non_num var; lnot (non_num var); empty var ])
+      |> List.map (fun var -> lor_ [ non_num var; lnot (non_num var) (*; empty var*) ])
     in
     let ast, unsupported_atomic_formulas =
       Lib.SimplII.extract_and_filter_unsupported_atomic_formulas ast
@@ -796,7 +794,7 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
                   report_result2 (`Unknown "");
                   unknown ast Lib.Env.empty)
               | None, false ->
-                (*report_result2 (`Unsat !unsat_reason);*)
+                report_result2 (`Unsat !unsat_reason);
                 Unsat (!unsat_reason, ast))
       with
       | Lib.SimplII.Str_Underapprox_fired env ->
@@ -991,6 +989,8 @@ let () =
           (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
       in
       (try
+         if config.logic = `Eia && Lib.Ast.is_str ast
+         then config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
          let rez = check_sat ~verbose:true state.tys ast in
          if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
@@ -1002,7 +1002,11 @@ let () =
          let rez = check_sat ~verbose:true state.tys ast in
          if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
-       | _ -> state)
+       | ex ->
+         Format.printf
+           "(warning: error during checking sat %s)\n%!"
+           (Printexc.to_string ex);
+         state)
     | Smtml.Ast.Get_model ->
       if config.no_model = true
       then (
