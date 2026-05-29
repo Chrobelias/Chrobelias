@@ -11,7 +11,7 @@
   > EOF
 
   $ Chro 1.smt2
-  sat (nfa)
+  sat (under int)
   (
      (define-fun A () String
       "1")

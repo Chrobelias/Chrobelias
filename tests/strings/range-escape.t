@@ -11,4 +11,4 @@
   > (check-sat)
   > EOF
   $ Chro test.smt2
-  unsat (presimpl int)
+  unsat (presimpl str)

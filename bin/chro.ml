@@ -443,7 +443,7 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
         log "DPLL: Z3 SAT-solver gives 'unknown'\n%!";
         unknown Ast.true_ Lib.Env.empty
     in
-    log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
+    (* log "DPLL: Theory ast: %a\n%!" Ast.pp_smtlib2 ast; *)
     let assumptions =
       Ast.land_
         [ assumptions

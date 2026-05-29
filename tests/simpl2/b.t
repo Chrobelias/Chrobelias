@@ -12,19 +12,14 @@
   Basic simplifications:
   
   iter(1)= (and
-             (<= (+ 111111 1) (+ (exp 2 x) (exp 2 y)))
-             (= (+ z x) 32)
-             (= (+ z y) 52))
+             (<= (+ 111112 (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) 0)
+             (= (+ (- 32) z x) 0)
+             (= (+ (- 52) z y) 0))
   Alphabet with extra char: 0
   
-  Something ready to substitute
-        z -> (+ 32 (- x));
-  
   iter(2)= (and
-             (= (+ y z) 52)
-             (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
-  iter(3)= (and
-             (= (+ y (* (- 1) x)) 20)
-             (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
+             (= (+ (- 52) y z) 0)
+             (= (+ (- 32) x z) 0)
+             (<= (+ 111112 (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) 0))
   fixed-point
   

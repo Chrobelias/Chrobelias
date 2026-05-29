@@ -6,15 +6,14 @@
   > EOF
 
   $ CHRO_DEBUG=1 Chro --dpresimpl ./1.smt2
-  iter(1)= (and
-             (= x 12345)
-             (= 5 (+ 0 5)))
+  iter(1)= (= (+ x (* (- 1) (str.to.int "12345"))) 0)
   Alphabet with extra char: 0
   
   Something ready to substitute
         x -> 12345;
         
-  iter(2)= True
+  iter(2)= (= (+ (- 12345) x) 0)
+  iter(3)= True
   fixed-point
   
   sat (presimpl str)

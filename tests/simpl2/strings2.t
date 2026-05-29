@@ -15,9 +15,11 @@ $ export CHRO_DEBUG=1
   Alphabet with extra char: 0 1 2 3
   
   Something ready to substitute
-        y -> "321";
+        y -> "123";
   
-  iter(2)= (= (str.++ "123" x) (str.++ y x))
+  iter(2)= (and
+             (= "123" y)
+             (= y "321"))
   iter(3)= (not True)
   fixed-point
   

@@ -11,19 +11,22 @@
   Basic simplifications:
   
   iter(1)= (and
-             (= (* (* (- 1) 2) z) 0)
-             (= (+ it2 (* (* (- 1) 1) i2)) 2))
+             (= (* (- 2) z) 0)
+             (= (+ (- 2) it2 (* (- 1) i2)) 0))
   Alphabet with extra char: 0
   
   Something ready to substitute
         it2 -> (+ 2 i2);
   
-  iter(2)= (= (* (- 2) z) 0)
+  iter(2)= (and
+             (= (+ (- 2) (* (- 1) i2) it2) 0)
+             (= (* (- 2) z) 0))
   Something ready to substitute
         it2 -> (+ 2 i2);
         z -> 0;
   
-  iter(3)= True
+  iter(3)= (= (* (- 2) z) 0)
+  iter(4)= True
   fixed-point
   
   sat (presimpl int)

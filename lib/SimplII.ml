@@ -3793,9 +3793,9 @@ let arithmetize str_vars ast env =
                 rhs)
          | ast -> ast)
        ast)
-    |> fun ast' ->
+    (* |> fun ast' ->
     Debug.printf "arithmetize(%a) -> %a" Ast.pp_smtlib2 ast Ast.pp_smtlib2 ast';
-    ast'
+    ast' *)
   in
   let var_info = apply_symantics (module Who_in_exponents) ast in
   let alpha = alpha_with_extra_char ast in

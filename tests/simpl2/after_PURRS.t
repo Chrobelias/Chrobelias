@@ -13,14 +13,11 @@
   $ Chro -bound -1 --dpresimpl --stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
-  iter(1)= (= (+ (exp 2 n) (exp 2 n)) (* 2
-                                      (+ (exp 2 (+ n (* (- 1) 1)))
-                                      (exp 2 (+ n (* (- 1) 1))))))
+  iter(1)= (= (+ (exp 2 n) (exp 2 n) (* (- 2) (exp 2 (+ (- 1) n)))
+              (* (- 2) (exp 2 (+ (- 1) n)))) 0)
   Alphabet with extra char: 0
   
-  iter(2)= (= (+ (* (- 2) (exp 2 (+ n))) (exp 2 n) (exp 2 n)) 0)
-  iter(3)= (= (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)
-  iter(4)= True
+  iter(2)= True
   fixed-point
   
   sat (presimpl int)
@@ -38,11 +35,10 @@
   $ Chro -bound -1 --dpresimpl --stop-after pre-simpl 2.smt2 | sed 's/[[:space:]]*$//'
   Basic simplifications:
   
-  iter(1)= (= (* 2 (+ (exp 2 (+ n (* (- 1) 1))) (exp 2 (+ n (* (- 1) 1))))) 333)
+  iter(1)= (= (+ (- 333) (* 2 (exp 2 (+ (- 1) n))) (* 2 (exp 2 (+ (- 1) n)))) 0)
   Alphabet with extra char: 0
   
-  iter(2)= (= (+ (* (exp 2 (+ (- 1) n)) 2) (* (exp 2 (+ (- 1) n)) 2)) 333)
-  iter(3)= (= (+ (exp 2 n) (exp 2 n)) 333)
+  iter(2)= (= (+ (- 333) (* 2 (exp 2 n))) 0)
   fixed-point
   
-  (= (+ (exp 2 n) (exp 2 n)) 333)
+  (= (+ (- 333) (* 2 (exp 2 n))) 0)
