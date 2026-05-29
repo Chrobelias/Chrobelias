@@ -2,6 +2,7 @@
   sat (under int)
   (
      (define-fun u () String
-      "")   (define-fun x () String
-      "09019")
+      "")
+     (define-fun x () String
+      "01909")
   )

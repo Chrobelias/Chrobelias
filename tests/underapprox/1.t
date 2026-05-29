@@ -12,13 +12,13 @@
   Basic simplifications:
   
   iter(1)= (and
-             (<= (exp 2 y) x)
-             (<= (exp 2 x) x))
+             (<= (+ (exp 2 y) (* (- 1) x)) 0)
+             (<= (+ (exp 2 x) (* (- 1) x)) 0))
   Alphabet with extra char: 0
   
   iter(2)= (and
-             (<= (exp 2 x) x)
-             (<= (exp 2 y) x))
+             (<= (+ (* (- 1) x) (exp 2 x)) 0)
+             (<= (+ (* (- 1) x) (exp 2 y)) 0))
   fixed-point
   
   Bound for underapproximation: 3
@@ -43,17 +43,17 @@
   Basic simplifications:
   
   iter(1)= (and
-             (<= (+ (+ (+ (* 77 (exp 2 x1)) (* 42 (exp 2 x2))) (* 575 x2))
-                 (* (* (- 1) 575) x1)) (* (- 1) 80))
-             (<= 0 x2)
-             (<= 0 x1))
+             (<= (+ 80 (* 77 (exp 2 x1)) (* 42 (exp 2 x2)) (* 575 x2)
+                 (* (- 575) x1)) 0)
+             (<= (* (- 1) x2) 0)
+             (<= (* (- 1) x1) 0))
   Alphabet with extra char: 0
   
   iter(2)= (and
-             (<= 0 x1)
-             (<= 0 x2)
-             (<= (+ (* (- 575) x1) (* 42 (exp 2 x2)) (* 77 (exp 2 x1))
-                 (* 575 x2)) (- 80)))
+             (<= (+ 80 (* 575 x2) (* (- 575) x1) (* 77 (exp 2 x1))
+                 (* 42 (exp 2 x2))) 0)
+             (<= (* (- 1) x1) 0)
+             (<= (* (- 1) x2) 0))
   fixed-point
   
   Bound for underapproximation: 10
