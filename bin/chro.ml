@@ -97,7 +97,6 @@ let join_int_model prefix m =
         | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
         | _ -> None
       end
-      | None when Solver.is_internal key -> None
       | None -> None
     end
   in
@@ -139,6 +138,7 @@ let join_int_model prefix m =
     match seek prefix key with
     | Some value -> Map.set acc ~key ~data:value
     | None -> acc)
+  |> Map.filter_keys ~f:(Fun.negate Solver.is_internal)
 ;;
 
 exception Too_long_model
