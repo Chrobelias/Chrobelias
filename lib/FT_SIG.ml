@@ -128,7 +128,12 @@ end = struct
   [@@ocaml.warnerror "-32"]
   ;;
 
-  let mod_ _ _ = failwith "not implemented"
+  let mod_ t z =
+    if Z.(z > zero)
+    then Expr.binop Ty.Ty_int Ty.Binop.Rem t (constz z)
+    else failwith "mod_: non-positive divisor"
+  ;;
+
   let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
 
   let add = function
