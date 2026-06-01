@@ -111,6 +111,7 @@ module type Type = sig
   val invert : ?alpha:v list -> t -> t
   val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit
+  val format_nfa_mm : string -> t -> unit
   val to_nat : t -> u
   val of_nat : u -> t
   val of_regex : v list Regex.t -> t

@@ -1472,3 +1472,5 @@ let check_sat ir
   | `Eia -> on_no_strings ir
   | `Str | `StrBv -> on_strings ir
 ;;
+
+let calc_lsb_nfa_for_ir : Ir.t -> Nfa.Lsb(Nfa.Bv).t = fun ir -> Lsb.eval ir |> fst

@@ -958,6 +958,7 @@ module type Type = sig
   val invert : ?alpha:v list -> t -> t
   val reverse : t -> t
   val format_nfa : Format.formatter -> t -> unit
+  val format_nfa_mm : string -> t -> unit
   val to_nat : t -> u
   val of_nat : u -> t
   val of_regex : v list Regex.t -> t
@@ -1175,6 +1176,72 @@ struct
              labels))
       nfa.transitions;
     fprintf ppf "}"
+  ;;
+
+  let dump_nfa_mm (dir : string) (nfa : t) =
+    let n = length nfa in
+    (* Collect all transitions grouped by label *)
+    let by_label : (string, (int * int) list) Map.t ref = ref Map.empty in
+    let label_to_str = Format.asprintf "%a" Label.pp in
+    Array.iteri
+      (fun src delta ->
+         List.iter
+           (fun (label, dst) ->
+              let existing =
+                match Map.find !by_label (label_to_str label) with
+                | Some l -> l
+                | None -> []
+              in
+              by_label
+              := Map.set !by_label ~key:(label_to_str label) ~data:((src, dst) :: existing))
+           delta)
+      nfa.transitions;
+    (* Write one file per label *)
+    let label_index = ref 0 in
+    Map.iteri
+      ~f:(fun ~key:label ~data:edges ->
+        incr label_index;
+        let filename = Filename.concat dir (string_of_int !label_index ^ ".txt") in
+        let oc = open_out filename in
+        let edges = List.sort_uniq compare edges in
+        let nnz = List.length edges in
+        (* MatrixMarket header; states are 1-indexed *)
+        Printf.fprintf oc "%%%%MatrixMarket matrix coordinate pattern general\n";
+        Printf.fprintf oc "%% Label: %s\n" label;
+        Printf.fprintf oc "%d %d %d\n" n n nnz;
+        List.iter
+          (fun (src, dst) -> Printf.fprintf oc "%d %d\n" (src + 1) (dst + 1))
+          edges;
+        close_out oc)
+      !by_label;
+    (* Write meta.txt *)
+    let meta_file = Filename.concat dir "meta.txt" in
+    let mc = open_out meta_file in
+    nfa.start
+    |> Set.to_list
+    |> List.map (( + ) 1)
+    |> List.map string_of_int
+    |> String.concat " "
+    |> Printf.fprintf mc "%s\n";
+    nfa.final
+    |> Set.to_list
+    |> List.map (( + ) 1)
+    |> List.map string_of_int
+    |> String.concat " "
+    |> Printf.fprintf mc "%s\n";
+    let dot_file = Format.asprintf "%s/nfa.dot" dir in
+    let svg_file = Format.asprintf "%s/nfa.svg" dir in
+    let oc = open_out dot_file in
+    let command = Format.sprintf {|dot -Tsvg "%s" > "%s"|} dot_file svg_file in
+    Format.asprintf "%a" format_nfa nfa |> Printf.fprintf oc "%s";
+    close_out oc;
+    Sys.command command |> ignore;
+    close_out mc
+  ;;
+
+  let format_nfa_mm dir nfa =
+    Sys.command (Printf.sprintf {|mkdir -p "%s"|} dir) |> ignore;
+    dump_nfa_mm dir nfa
   ;;
 
   let shrink (nfa : t) =

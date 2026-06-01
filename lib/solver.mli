@@ -3,6 +3,8 @@
 
 module Map = Base.Map.Poly
 
+val calc_lsb_nfa_for_ir : Ir.t -> Nfa.Lsb(Nfa.Bv).t
+
 val check_sat
   :  Ir.t
   -> [ `Sat of

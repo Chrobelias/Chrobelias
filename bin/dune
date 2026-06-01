@@ -25,6 +25,15 @@
  (flags
   (:standard -verbose -cclib -static -cclib -no-pie)))
 
+(executables
+ (public_names DumpNfa)
+ (names DumpNfa)
+ (libraries
+  lib
+  str
+  ;memtrace
+  ))
+
 (rule
  (targets swine)
  (action
