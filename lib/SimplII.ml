@@ -1494,26 +1494,26 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
       | Some c -> constz c
     ;;
 
-    let str_from_eia_const _ = failwith "not implemented"
-    let str_concat _ = failwith "not implemented"
-    let str_at _ = failwith "not implemented"
-    let str_substr _ = failwith "not implemented"
-    let str_prefixof _ = failwith "not implemented"
-    let str_contains _ = failwith "not implemented"
-    let str_suffixof _ = failwith "not implemented"
+    let str_from_eia_const _ = failwith "not implemented str_from_eia_const"
+    let str_concat _ = failwith "not implemented str_concat"
+    let str_at _ = failwith "not implemented str_at"
+    let str_substr _ = failwith "not implemented str_substr"
+    let str_prefixof _ = failwith "not implemented str_prefixof"
+    let str_contains _ = failwith "not implemented str_contains"
+    let str_suffixof _ = failwith "not implemented str_suffixof"
 
     (*let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)*)
     let pow_minus_one t = pow (constz Z.minus_one) t
     let exists vars x = failwith "tbd"
     let pow2var s = pow (constz (Config.base ())) (var s)
-    let str_len2 _ = failwith "not implemented"
+    let str_len2 _ = failwith "not implemented str_len2"
     let pp_str = Smtml.Expr.pp
     let const c = constz (Z.of_int c)
-    let in_rei _ = failwith "not implemented"
-    let in_re_raw _ = failwith "not implemented"
-    let in_re_rawi _ = failwith "not implemented"
-    let rlen _ = failwith "not implemented"
-    let unsupp _ = failwith "not implemented"
+    let in_rei _ = failwith "not implemented in_rei"
+    let in_re_raw _ = failwith "not implemented in_re_raw"
+    let in_re_rawi _ = failwith "not implemented in_re_rawi"
+    let rlen _ = failwith "not implemented rlen"
+    let unsupp _ = failwith "not implemented unsupp"
   end
   in
   (module struct
@@ -2331,51 +2331,54 @@ let try_under2_heuristics env ast =
 ;;
 
 let check_nia env ast =
-  let module Z3 = Smtml.Z3_mappings.Solver in
-  let to_normal_env =
-    Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
-      let _ : Env.t = acc in
-      let open Ast in
-      Env.extend_exn acc (Var (key, I)) (Eia.Const (Z.of_int data)))
-  in
-  (* log "ast1=@[%a@]" Ast.pp_smtlib2 ast; *)
-  let module M = struct
-    include Id_symantics
+  try
+    let module Z3 = Smtml.Z3_mappings.Solver in
+    let to_normal_env =
+      Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
+        let _ : Env.t = acc in
+        let open Ast in
+        Env.extend_exn acc (Var (key, I)) (Eia.Const (Z.of_int data)))
+    in
+    (* log "ast1=@[%a@]" Ast.pp_smtlib2 ast; *)
+    let module M = struct
+      include Id_symantics
 
-    let pow_minus_one t = add [ const 1; mul [ const (-2); mod_ t (Z.of_int 2) ] ]
-  end
-  in
-  let ast = apply_symantics_unsugared (module M) ast in
-  let ast = lower_mod ast in
-  (* log "ast2=@[%a@]" Ast.pp_smtlib2 ast; *)
-  let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
-  log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
-  let solver =
-    Z3.make
-      ~logic:Smtml.Logic.QF_NIA
-      ()
-      ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42))
-  in
-  Z3.reset solver;
-  match Z3.check solver ~assumptions:[ ph ] with
-  | `Sat ->
-    (match Z3.model solver with
-     | None -> assert false
-     | Some m ->
-       let e =
-         Hashtbl.fold
-           (fun k v acc ->
-              let _ : Smtml.Symbol.t = k in
-              match k.name, v with
-              | Smtml.Symbol.Simple s, Smtml.Value.Int n ->
-                Base.Map.Poly.add_exn acc ~key:s ~data:n
-              | _ -> acc)
-           (Smtml.Z3_mappings.values_of_model m)
-           Base.Map.Poly.empty
-       in
-       `Sat (to_normal_env e))
-  | `Unsat -> `Unsat
-  | `Unknown -> `Unknown
+      let pow_minus_one t = add [ const 1; mul [ const (-2); mod_ t (Z.of_int 2) ] ]
+    end
+    in
+    let ast = apply_symantics_unsugared (module M) ast in
+    let ast = lower_mod ast in
+    (* log "ast2=@[%a@]" Ast.pp_smtlib2 ast; *)
+    let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
+    log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
+    let solver =
+      Z3.make
+        ~logic:Smtml.Logic.QF_NIA
+        ()
+        ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42))
+    in
+    Z3.reset solver;
+    match Z3.check solver ~assumptions:[ ph ] with
+    | `Sat ->
+      (match Z3.model solver with
+       | None -> assert false
+       | Some m ->
+         let e =
+           Hashtbl.fold
+             (fun k v acc ->
+                let _ : Smtml.Symbol.t = k in
+                match k.name, v with
+                | Smtml.Symbol.Simple s, Smtml.Value.Int n ->
+                  Base.Map.Poly.add_exn acc ~key:s ~data:n
+                | _ -> acc)
+             (Smtml.Z3_mappings.values_of_model m)
+             Base.Map.Poly.empty
+         in
+         `Sat (to_normal_env e))
+    | `Unsat -> `Unsat
+    | `Unknown -> `Unknown
+  with
+  | _ -> `Unknown
 ;;
 
 let run_under2 env ast =

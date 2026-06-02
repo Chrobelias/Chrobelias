@@ -44,7 +44,7 @@
   > EOF
 
   $ Chro 4.smt2
-  sat (under int)
+  unknown (nfa)
 
   $ cat > 5.smt2 <<-EOF
   > (set-logic ALL)
@@ -62,4 +62,4 @@
   > EOF
 
   $ Chro 5.smt2
-  sat (under int)
+  unknown (nia)
