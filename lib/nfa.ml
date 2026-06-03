@@ -130,6 +130,8 @@ module type ParL = sig
   Usegful when working with automata for LIA-constraints *)
   val combine2 : t -> t -> AstL.t -> t
 
+  val combine_list : t list -> t
+
   val filter_states
     :  state Set.t
     -> bool array
@@ -141,7 +143,7 @@ module type ParL = sig
     :  AstL.t
     -> state list list
     -> AstL.t list
-    -> (t * state) list list
+    -> (t * state list) list
     -> (t * state list) list
 end
 
@@ -772,6 +774,7 @@ module Par = struct
     else land_ [ vec1; vec2 ]
   ;;
 
+  let combine_list vecs = land_ vecs
   let simplify = SimplI.simplify_lia
   let project = AstL.project
   let pp_u = Format.pp_print_int
@@ -1676,7 +1679,15 @@ module Parametric (Label : ParL) = struct
     in
     let successors state visited =
       let transitions =
-        List.mapi (fun n arr -> Array.get arr (List.nth state n)) transitions
+        transitions
+        |> List.mapi (fun n arr -> Array.get arr (List.nth state n))
+        |> Utils.cartesian
+        |> List.map (fun choice ->
+          choice
+          |> List.fold_left
+               (fun (acc_l, acc_state) (l, state) -> l :: acc_l, state :: acc_state)
+               ([], [])
+          |> fun (x, y) -> Label.combine_list x, y)
       in
       let next without =
         transitions |> Label.filter_states_bool_comb ac_cond without extras

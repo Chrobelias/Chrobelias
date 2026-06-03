@@ -51,6 +51,8 @@ module type ParL = sig
   Usegful when working with automata for LIA-constraints *)
   val combine2 : t -> t -> AstL.t -> t
 
+  val combine_list : t list -> t
+
   val filter_states
     :  state Set.t
     -> bool array
@@ -62,7 +64,7 @@ module type ParL = sig
     :  AstL.t
     -> state list list
     -> AstL.t list
-    -> (t * state) list list
+    -> (t * state list) list
     -> (t * state list) list
 end
 

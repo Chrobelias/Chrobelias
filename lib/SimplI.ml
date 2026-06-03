@@ -788,28 +788,15 @@ let debug_printfln ppf =
   else Format.ifprintf Format.std_formatter ppf
 ;;
 
-let get_state name = name |> Base.String.chop_prefix_exn ~prefix:"P" |> Base.Int.of_string
+let get_state_exn name =
+  name |> Base.String.chop_prefix_exn ~prefix:"P" |> Base.Int.of_string
+;;
+
 let pred_name state = "P" ^ Int.to_string state
 
-let get_states base extra asts =
+let get_states_z3 ph get_state =
   let open AstL in
   let open Lia in
-  (* let get_val name =
-    name |> Base.String.chop_prefix_exn ~prefix:"lia" |> Base.Int.of_string
-  in *)
-  let ph =
-    match asts with
-    | [] -> raise Exit
-    | [ (ph, state) ] ->
-      land_ [ deparametrize base (land_ [ ph; extra ]); pred (pred_name state) ]
-    | phs ->
-      deparametrize
-        base
-        (land_
-           [ extra
-           ; lor_ (List.map (fun (ph, state) -> land_ [ ph; pred (pred_name state) ]) phs)
-           ])
-  in
   (* debug_printfln "Composed ast: %a" AstL.pp_smtlib2 ph; *)
   let ph = apply_symnatics (module SMT) ph in
   let module Z3 = Smtml.Z3_mappings.Solver in
@@ -840,9 +827,10 @@ let get_states base extra asts =
            (fun k v acc ->
               let _ : Smtml.Symbol.t = k in
               match k.name, v with
-              | Smtml.Symbol.Simple s, Smtml.Value.True ->
+              | Smtml.Symbol.Simple s, Smtml.Value.True when Option.is_some (get_state s)
+                ->
                 (* debug_printfln "State: %d is taken" (get_state s); *)
-                (land_ digits, get_state s) :: acc
+                (land_ digits, Option.get (get_state s)) :: acc
               | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
               | _ -> acc)
            (Smtml.Z3_mappings.values_of_model m)
@@ -851,4 +839,56 @@ let get_states base extra asts =
     | _ -> failwith "Unknown in Z3"
 ;;
 
-let get_states_bool_comb base extra asts = failwith "Later"
+let get_states base extra asts =
+  let open AstL in
+  let get_state name =
+    match name |> Base.String.chop_prefix ~prefix:"P" with
+    | Some s -> Some (Base.Int.of_string s)
+    | None -> None
+  in
+  (* let get_val name =
+    name |> Base.String.chop_prefix_exn ~prefix:"lia" |> Base.Int.of_string
+  in *)
+  let ph =
+    match asts with
+    | [] -> raise Exit
+    | [ (ph, state) ] ->
+      land_ [ deparametrize base (land_ [ ph; extra ]); pred (pred_name state) ]
+    | phs ->
+      deparametrize
+        base
+        (land_
+           [ extra
+           ; lor_ (List.map (fun (ph, state) -> land_ [ ph; pred (pred_name state) ]) phs)
+           ])
+  in
+  get_states_z3 ph get_state
+;;
+
+let get_states_bool_comb base extra asts = failwith "WIP"
+(* let open AstL in
+  let get_state name =
+    match name |> Base.String.chop_prefix ~prefix:"BC" with
+    | Some s -> Some (Base.Int.of_string s)
+    | None -> None
+  in
+  let pred_name states =
+    List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
+  in
+  let state_pred states =
+    List.map (fun state -> pred (pred_name state)) states |> land_
+  in
+  let ph =
+    match asts with
+    | [] -> raise Exit
+    | [ (ph, states) ] ->
+      land_ [ deparametrize base (land_ [ ph; extra ]); state_pred states ]
+    | phs ->
+      deparametrize
+        base
+        (land_
+           [ extra
+           ; lor_ (List.map (fun (ph, states) -> land_ [ ph; state_pred states ]) phs)
+           ])
+  in
+  get_states_z3 ph get_state *)
