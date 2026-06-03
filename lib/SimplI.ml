@@ -256,7 +256,7 @@ let apply_symantics (type a) (module S : SYM with type ph = a) =
     | Lnot x -> S.not (helper x)
     | True -> S.true_
     | Lia e -> helper_lia e
-    | Pred s -> assert false
+    | Pred s -> S.pred s
     | Exists (vs, ph) -> S.exists vs (helper ph)
   and helper_lia lia =
     match lia with
