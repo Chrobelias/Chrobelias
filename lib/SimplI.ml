@@ -865,19 +865,24 @@ let get_states base extra asts =
   get_states_z3 ph get_state
 ;;
 
-let get_states_bool_comb base extra asts = failwith "WIP"
-(* let open AstL in
+let get_states_bool_comb base extra asts =
+  let open AstL in
+  let bool_map = ref Map.empty in
   let get_state name =
-    match name |> Base.String.chop_prefix ~prefix:"BC" with
-    | Some s -> Some (Base.Int.of_string s)
+    match Map.find !bool_map name with
+    | Some states -> Some states
     | None -> None
-  in
-  let pred_name states =
-    List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
   in
   let state_pred states =
     List.map (fun state -> pred (pred_name state)) states |> land_
   in
+  List.iter
+    (fun (_, states) ->
+       let pred_name states =
+         List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
+       in
+       bool_map := Map.add_exn !bool_map ~key:(pred_name states) ~data:states)
+    asts;
   let ph =
     match asts with
     | [] -> raise Exit
@@ -891,4 +896,5 @@ let get_states_bool_comb base extra asts = failwith "WIP"
            ; lor_ (List.map (fun (ph, states) -> land_ [ ph; state_pred states ]) phs)
            ])
   in
-  get_states_z3 ph get_state *)
+  get_states_z3 ph get_state
+;;
