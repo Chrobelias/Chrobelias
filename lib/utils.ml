@@ -70,6 +70,12 @@ let rec powerset = function
     ps @ with_x
 ;;
 
+let rec cartesian = function
+  | [] -> [ [] ]
+  | [ x ] -> [ x ]
+  | x :: xs -> List.concat_map (fun n -> List.map (fun l -> n :: l) (cartesian xs)) x
+;;
+
 let rec strings_of_len n alpha =
   match n with
   | 0 -> [ "" ]

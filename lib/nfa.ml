@@ -142,7 +142,7 @@ module type ParL = sig
     -> state list list
     -> AstL.t list
     -> (t * state) list list
-    -> (t * state) list list
+    -> (t * state list) list
 end
 
 module type L = sig
@@ -810,8 +810,8 @@ module Par = struct
     in
     let ph = AstL.land_ (phs @ states_ph) in
     try
-      match SimplI.get_states base (AstL.land_ [ ac_cond; ph ]) transitions with
-      | [] -> SimplI.get_states base ph transitions
+      match SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions with
+      | [] -> SimplI.get_states_bool_comb base ph transitions
       | states -> states
     with
     | Exit -> []
@@ -1663,6 +1663,8 @@ module Parametric (Label : ParL) = struct
       , each (fun nfa -> nfa.final)
       , each (fun nfa -> nfa.extra) )
     in
+    (* Acceptance condition: we take a boolean skeleton of our formula and replace the leafs 
+    (corresponding to atomic formulas) with a disjunction of predicates that correspond to final states *)
     let ac_cond =
       AstL.map
         (function
@@ -1672,26 +1674,23 @@ module Parametric (Label : ParL) = struct
           | ast -> ast)
         skel
     in
-    let to_ast node = AstL.land_ (List.map AstL.get_pred node) in
     let successors state visited =
       let transitions =
         List.mapi (fun n arr -> Array.get arr (List.nth state n)) transitions
       in
-      let without = state :: visited in
       let next without =
         transitions |> Label.filter_states_bool_comb ac_cond without extras
       in
       let succ without =
         match next without with
-        | [] -> []
-        | states -> List.fold_left (fun acc sl -> List.map snd sl :: acc) without states
+        | [] -> None
+        | states ->
+          Some (states, List.fold_left (fun acc sl -> snd sl :: acc) without states)
       in
-      Seq.forever (fun () -> succ without) |> Seq.take_while (Fun.negate List.is_empty)
+      Seq.unfold (fun acc -> succ acc) (state :: visited)
     in
-    failwith "I am here..."
-  ;;
-
-  (* let dfs start =
+    let to_ast node = AstL.land_ (List.map AstL.get_pred node) in
+    let dfs start =
       let rec rdfs path visited node =
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
@@ -1709,15 +1708,14 @@ module Parametric (Label : ParL) = struct
       in
       rdfs [] [] start
     in
-    let visited = Array.init (length nfa) (Fun.const false) in
     let inspect state =
       try
-        List.iter (fun state -> visited.(state) <- true) (dfs state);
+        let _ = dfs state in
         None
       with
       | Sat_found path -> Some path
     in
-    match Set.find_map ~f:inspect starts with
+    match List.find_map inspect (starts |> List.map Set.to_list) with
     | Some [] -> Some (List.map (fun _ -> []) vars, 0)
     | Some p ->
       let p = List.rev p in
@@ -1727,7 +1725,8 @@ module Parametric (Label : ParL) = struct
             (fun var -> List.init length (fun i -> Label.get (List.nth p i) var))
             vars
         , length )
-    | None -> None *)
+    | None -> None
+  ;;
 
   let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
 end

@@ -850,3 +850,5 @@ let get_states base extra asts =
     | `Unsat -> []
     | _ -> failwith "Unknown in Z3"
 ;;
+
+let get_states_bool_comb base extra asts = failwith "Later"
