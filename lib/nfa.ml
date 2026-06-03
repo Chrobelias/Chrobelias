@@ -1672,8 +1672,8 @@ module Parametric (Label : ParL) = struct
       AstL.map
         (function
           | Pred s ->
-            let n = AstL.get_atom_num_exn s in
-            AstL.lor_ (List.nth finals n |> Set.to_list |> List.map AstL.get_pred)
+            let nfa, _ = AstL.get_atom_num_exn s in
+            AstL.lor_ (List.nth finals nfa |> Set.to_list |> List.map (AstL.get_pred ~nfa))
           | ast -> ast)
         skel
     in

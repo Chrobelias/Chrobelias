@@ -263,7 +263,10 @@ struct
     let rec get_skeleton_exn m = function
       | Ir.Land irs -> AstL.land_ (List.map (get_skeleton_exn m) irs)
       | Ir.Lor irs -> AstL.lor_ (List.map (get_skeleton_exn m) irs)
-      | _ as ir -> List.find (fun (i, atom) -> Ir.equal atom ir) m |> fst |> AstL.get_pred
+      | _ as ir ->
+        List.find_index (fun (i, atom) -> Ir.equal atom ir) m
+        |> Option.get
+        |> fun i -> AstL.get_pred ~nfa:i (List.nth m i |> fst)
     in
     ( get_skeleton_exn atomics ir
     , atomics |> List.map (fun (i, atom) -> i, to_nfa atom) |> Map.of_alist_exn

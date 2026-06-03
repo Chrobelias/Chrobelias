@@ -468,11 +468,11 @@ let rec lnot = function
 
 let rec exists = function
   | [] -> Fun.id
-  | atoms ->
-    begin function
-      | Exists (atoms', ast) -> exists (atoms @ atoms') ast
-      | ast -> Exists (atoms, ast)
-    end
+  | atoms -> begin
+    function
+    | Exists (atoms', ast) -> exists (atoms @ atoms') ast
+    | ast -> Exists (atoms, ast)
+  end
 ;;
 
 let limpl a b = lor_ [ lnot a; b ]
