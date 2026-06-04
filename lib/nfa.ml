@@ -805,26 +805,27 @@ module Par = struct
   ;;
 
   let filter_states_bool_comb ac_cond visited phs =
+    Debug.printfln "Acc cond: %a" AstL.pp_smtlib2 ac_cond;
     fun transitions ->
-    let states_ph =
-      visited |> List.map (fun sl -> AstL.lnot (AstL.land_ (List.mapi AstL.get_predi sl)))
-    in
-    let ph = AstL.land_ (phs @ states_ph) in
-    (* Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph; *)
-      try
-        match
-          SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions
-        with
-        | [] -> SimplI.get_states_bool_comb base ph transitions
-        | states ->
-          (* List.iter
+      let states_ph =
+        visited |> List.map (fun sl -> AstL.lnot (AstL.pred (SimplI.pred_name2 sl)))
+      in
+      let ph = AstL.land_ (phs @ states_ph) in
+      (* Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph; *)
+        try
+          match
+            SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions
+          with
+          | [] -> SimplI.get_states_bool_comb base ph transitions
+          | states ->
+            (* List.iter
           (fun (_, l) ->
              List.iter (fun x -> Debug.printfln "%d; " x) l;
              Debug.printfln "next;")
           states; *)
-          states
-      with
-      | Exit -> []
+            states
+        with
+        | Exit -> []
   ;;
 
   let get = AstL.get_val
@@ -1677,25 +1678,17 @@ module Parametric (Label : ParL) = struct
       , each (fun nfa -> nfa.final)
       , each (fun nfa -> nfa.extra) )
     in
-    (* Acceptance condition: we take a boolean skeleton of our formula and replace the leafs 
-    (corresponding to atomic formulas) with a disjunction of predicates that correspond to final states *)
     let ac_cond =
       AstL.map
         (function
           | Pred s ->
             let n = AstL.get_atom_num_exn s in
-            AstL.lor_ (List.nth finals n |> Set.to_list |> List.map (AstL.get_predi n))
+            AstL.lor_ (List.nth finals n |> Set.to_list |> List.map (SimplI.get_predi n))
           | ast -> ast)
         skel
     in
     (* Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond; *)
     let successors state visited =
-      Debug.printfln
-        "Nfa length: [%a]"
-        (Format.pp_print_list
-           ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
-           Format.pp_print_int)
-        (List.map Array.length transitions);
       Debug.printfln
         "State: [%a]"
         (Format.pp_print_list
@@ -1704,13 +1697,7 @@ module Parametric (Label : ParL) = struct
         state;
       let transitions =
         transitions
-        |> List.mapi (fun n arr ->
-          Debug.printfln
-            "Index: %d; value = %d; size = %d"
-            n
-            (List.nth state n)
-            (Array.length arr);
-          Array.get arr (List.nth state n))
+        |> List.mapi (fun n arr -> Array.get arr (List.nth state n))
         |> Utils.cartesian2
         |> List.map (fun choice ->
           List.fold_right

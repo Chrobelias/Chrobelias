@@ -797,6 +797,12 @@ let get_state_exn name =
 ;;
 
 let pred_name state = "P" ^ Int.to_string state
+let pred_namei i state = "P" ^ Int.to_string state
+let get_predi n i = AstL.Pred (Format.asprintf "P_%d_%d" n i)
+
+let pred_name2 states =
+  List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
+;;
 
 let get_states_z3 ph get_state =
   let open AstL in
@@ -880,12 +886,7 @@ let get_states_bool_comb base extra asts =
     | Some states -> Some states
     | None -> None
   in
-  let pred_name2 states =
-    List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
-  in
-  let state_pred states =
-    List.map (fun state -> pred (pred_name state)) states |> land_
-  in
+  let state_pred states = List.mapi (fun i state -> get_predi i state) states |> land_ in
   List.iter
     (fun (_, states) ->
        bool_map := Map.add_exn !bool_map ~key:(pred_name2 states) ~data:states)

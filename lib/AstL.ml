@@ -194,7 +194,6 @@ let lor_ = function
 let lia lia = Lia lia
 let pred s = Pred s
 let get_pred ?(s = "Atom") i = Pred (Format.asprintf "%s_%d" s i)
-let get_predi ?(s = "Atom") n i = Pred (Format.asprintf "%s_%d_%d" s n i)
 
 let get_atom_num_exn s =
   s |> Base.String.chop_prefix_exn ~prefix:"Atom_" |> Base.Int.of_string
@@ -216,11 +215,11 @@ let rec lnot = function
 
 let rec exists = function
   | [] -> Fun.id
-  | atoms -> begin
-    function
-    | Exists (atoms', ast) -> exists (atoms @ atoms') ast
-    | ast -> Exists (atoms, ast)
-  end
+  | atoms ->
+    begin function
+      | Exists (atoms', ast) -> exists (atoms @ atoms') ast
+      | ast -> Exists (atoms, ast)
+    end
 ;;
 
 let limpl a b = lor_ [ lnot a; b ]
