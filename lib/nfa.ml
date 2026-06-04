@@ -805,27 +805,26 @@ module Par = struct
   ;;
 
   let filter_states_bool_comb ac_cond visited phs =
-    Debug.printfln "Acc cond: %a" AstL.pp_smtlib2 ac_cond;
     fun transitions ->
-      let states_ph =
-        visited |> List.map (fun sl -> AstL.lnot (AstL.pred (SimplI.pred_name2 sl)))
-      in
-      let ph = AstL.land_ (phs @ states_ph) in
-      (* Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph; *)
-        try
-          match
-            SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions
-          with
-          | [] -> SimplI.get_states_bool_comb base ph transitions
-          | states ->
-            (* List.iter
+    let states_ph =
+      visited |> List.map (fun sl -> AstL.lnot (AstL.pred (SimplI.pred_name2 sl)))
+    in
+    let ph = AstL.land_ (phs @ states_ph) in
+    (* Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph; *)
+      try
+        match
+          SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions
+        with
+        | [] -> SimplI.get_states_bool_comb base ph transitions
+        | states ->
+          (* List.iter
           (fun (_, l) ->
              List.iter (fun x -> Debug.printfln "%d; " x) l;
              Debug.printfln "next;")
           states; *)
-            states
-        with
-        | Exit -> []
+          states
+      with
+      | Exit -> []
   ;;
 
   let get = AstL.get_val
@@ -1687,7 +1686,7 @@ module Parametric (Label : ParL) = struct
           | ast -> ast)
         skel
     in
-    (* Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond; *)
+    Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond;
     let successors state visited =
       Debug.printfln
         "State: [%a]"
