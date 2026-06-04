@@ -197,7 +197,7 @@ let get_pred ?(s = "Atom") i = Pred (Format.asprintf "%s_%d" s i)
 let get_predi ?(s = "Atom") n i = Pred (Format.asprintf "%s_%d_%d" s n i)
 
 let get_atom_num_exn s =
-  s |> Base.String.chop_prefix_exn ~prefix:"Atom" |> Base.Int.of_string
+  s |> Base.String.chop_prefix_exn ~prefix:"Atom_" |> Base.Int.of_string
 ;;
 
 let get_atom_numi_exn s =
