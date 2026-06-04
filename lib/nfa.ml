@@ -1688,10 +1688,18 @@ module Parametric (Label : ParL) = struct
     in
     (* Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond; *)
     let successors state visited =
+      Debug.printfln "State: ";
+      List.iter (fun x -> Debug.printfln "%d; " x) state;
       let transitions =
         transitions
-        |> List.mapi (fun n arr -> Array.get arr (List.nth state n))
-        |> Utils.cartesian
+        |> List.mapi (fun n arr ->
+          Debug.printfln
+            "Index: %d; value = %d; size = %d"
+            n
+            (List.nth state n)
+            (Array.length arr);
+          Array.get arr (List.nth state n))
+        |> Utils.cartesian2
         |> List.map (fun choice ->
           choice
           |> List.fold_left
@@ -1748,7 +1756,7 @@ module Parametric (Label : ParL) = struct
       with
       | Sat_found path -> Some path
     in
-    match List.find_map inspect (starts |> List.map Set.to_list |> Utils.cartesian) with
+    match List.find_map inspect (starts |> List.map Set.to_list |> Utils.cartesian2) with
     | Some [] -> Some (List.map (fun _ -> []) vars, 0)
     | Some p ->
       let p = List.rev p in
