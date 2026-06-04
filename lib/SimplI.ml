@@ -768,7 +768,11 @@ let check_sat ?(base = 10) ast =
     let ph = apply_symnatics (module SMT) ph in
     let module Z3 = Smtml.Z3_mappings.Solver in
     let solver =
-      Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, Config.config.seed)) ()
+      Z3.make
+        ~params:
+          Smtml.Params.(
+            default () $ (Timeout, 200000) $ (Random_seed, Config.config.seed))
+        ()
     in
     Z3.reset solver;
     Z3.check solver ~assumptions:[ ph ]
@@ -801,7 +805,10 @@ let get_states_z3 ph get_state =
   let ph = apply_symnatics (module SMT) ph in
   let module Z3 = Smtml.Z3_mappings.Solver in
   let solver =
-    Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000)  $ (Random_seed, Config.config.seed)) ()
+    Z3.make
+      ~params:
+        Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, Config.config.seed))
+      ()
   in
   Z3.reset solver;
   (* debug_printfln "Running Z3..."; *)
@@ -874,7 +881,7 @@ let get_states_bool_comb base extra asts =
     | None -> None
   in
   let pred_name2 states =
-    "P" ^ List.fold_left (fun acc i -> Int.to_string i ^ "_" ^ acc) "" states
+    List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
   in
   let state_pred states =
     List.map (fun state -> pred (pred_name state)) states |> land_
