@@ -193,9 +193,14 @@ let lor_ = function
 
 let lia lia = Lia lia
 let pred s = Pred s
-let get_pred ~nfa ?(s = "Atom") i = Pred (Format.asprintf "%s%d_%d" s nfa i)
+let get_pred ?(s = "Atom") i = Pred (Format.asprintf "%s_%d" s i)
+let get_predi ?(s = "Atom") n i = Pred (Format.asprintf "%s_%d_%d" s n i)
 
 let get_atom_num_exn s =
+  s |> Base.String.chop_prefix_exn ~prefix:"Atom" |> Base.Int.of_string
+;;
+
+let get_atom_numi_exn s =
   let s = s |> Base.String.chop_prefix_exn ~prefix:"Atom" in
   let s = Base.String.split s ~on:'_' in
   let nfa, s = List.nth s 0, List.nth s 1 in

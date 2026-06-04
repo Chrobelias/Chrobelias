@@ -807,11 +807,10 @@ module Par = struct
   let filter_states_bool_comb ac_cond visited phs =
     fun transitions ->
     let states_ph =
-      visited
-      |> List.map (fun sl ->
-        AstL.lnot (AstL.land_ (List.map (fun x -> AstL.pred (SimplI.pred_name x)) sl)))
+      visited |> List.map (fun sl -> AstL.lnot (AstL.land_ (List.mapi AstL.get_predi sl)))
     in
     let ph = AstL.land_ (phs @ states_ph) in
+    Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph;
     try
       match SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions with
       | [] -> SimplI.get_states_bool_comb base ph transitions
@@ -1399,15 +1398,15 @@ module Parametric (Label : ParL) = struct
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
-        then
-          begin if Set.mem nfa.final node
+        then begin
+          if Set.mem nfa.final node
           then raise (Sat_found path)
           else
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-          end
+        end
         else visited
       in
       rdfs [] [] start
@@ -1417,8 +1416,8 @@ module Parametric (Label : ParL) = struct
         | [] -> visited
         | ((label, state) :: tl as path) :: other ->
           if not (List.mem state visited)
-          then
-            begin if Set.mem nfa.final state
+          then begin
+            if Set.mem nfa.final state
             then raise (Sat_found (List.filter_map fst path))
             else (
               let neighbors =
@@ -1430,7 +1429,7 @@ module Parametric (Label : ParL) = struct
                   else Some ((Some label, state) :: path))
               in
               rbfs (state :: visited) (other @ neighbors))
-            end
+          end
           else rbfs visited other
         | _ -> assert false
       in
@@ -1659,6 +1658,8 @@ module Parametric (Label : ParL) = struct
   let any_path_bool_comb skel (nfas : (int, t) Map.t) vars =
     let exception Sat_found of vv list in
     let nfas' = Map.data nfas in
+    Debug.printfln "Skel: %a" AstL.pp_smtlib2 skel;
+    Map.iter ~f:(fun nfa -> Debug.dump_nfa ~msg:"Next nfa: %s" format_nfa nfa) nfas;
     let each f = nfas' |> List.map f in
     let starts, transitions, finals, extras =
       ( each (fun nfa -> nfa.start)
@@ -1672,11 +1673,12 @@ module Parametric (Label : ParL) = struct
       AstL.map
         (function
           | Pred s ->
-            let nfa, _ = AstL.get_atom_num_exn s in
-            AstL.lor_ (List.nth finals nfa |> Set.to_list |> List.map (AstL.get_pred ~nfa))
+            let n = AstL.get_atom_num_exn s in
+            AstL.lor_ (List.nth finals n |> Set.to_list |> List.map (AstL.get_predi n))
           | ast -> ast)
         skel
     in
+    Format.printf "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond;
     let successors state visited =
       let transitions =
         transitions
@@ -1700,21 +1702,21 @@ module Parametric (Label : ParL) = struct
       in
       Seq.unfold (fun acc -> succ acc) (state :: visited)
     in
-    let to_ast node = AstL.land_ (List.map AstL.get_pred node) in
+    let to_ast node = AstL.land_ (List.mapi AstL.get_predi node) in
     let dfs start =
       let rec rdfs path visited node =
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
-        then
-          begin match SimplI.check_sat (AstL.land_ [ ac_cond; to_ast node ]) with
+        then begin
+          match SimplI.check_sat (AstL.land_ [ ac_cond; to_ast node ]) with
           | `Sat -> raise (Sat_found path)
           | `Unsat | `Unknown ->
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-          end
+        end
         else visited
       in
       rdfs [] [] start
