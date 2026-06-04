@@ -810,13 +810,21 @@ module Par = struct
       visited |> List.map (fun sl -> AstL.lnot (AstL.land_ (List.mapi AstL.get_predi sl)))
     in
     let ph = AstL.land_ (phs @ states_ph) in
-    Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph;
-    try
-      match SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions with
-      | [] -> SimplI.get_states_bool_comb base ph transitions
-      | states -> states
-    with
-    | Exit -> []
+    (* Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph; *)
+      try
+        match
+          SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions
+        with
+        | [] -> SimplI.get_states_bool_comb base ph transitions
+        | states ->
+          (* List.iter
+          (fun (_, l) ->
+             List.iter (fun x -> Debug.printfln "%d; " x) l;
+             Debug.printfln "next;")
+          states; *)
+          states
+      with
+      | Exit -> []
   ;;
 
   let get = AstL.get_val
@@ -1658,8 +1666,8 @@ module Parametric (Label : ParL) = struct
   let any_path_bool_comb skel (nfas : (int, t) Map.t) vars =
     let exception Sat_found of vv list in
     let nfas' = Map.data nfas in
-    Debug.printfln "Skel: %a" AstL.pp_smtlib2 skel;
-    Map.iter ~f:(fun nfa -> Debug.dump_nfa ~msg:"Next nfa: %s" format_nfa nfa) nfas;
+    (* Debug.printfln "Skel: %a" AstL.pp_smtlib2 skel;
+    Map.iter ~f:(fun nfa -> Debug.dump_nfa ~msg:"Next nfa: %s" format_nfa nfa) nfas; *)
     let each f = nfas' |> List.map f in
     let starts, transitions, finals, extras =
       ( each (fun nfa -> nfa.start)
@@ -1678,7 +1686,7 @@ module Parametric (Label : ParL) = struct
           | ast -> ast)
         skel
     in
-    Format.printf "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond;
+    (* Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond; *)
     let successors state visited =
       let transitions =
         transitions
@@ -1714,21 +1722,21 @@ module Parametric (Label : ParL) = struct
     in
     let dfs start =
       let rec rdfs path visited node =
-        Debug.printfln "Node: ";
-        List.iter (fun x -> Debug.printfln "%d; " x) node;
+        (* Debug.printfln "Node: ";
+        List.iter (fun x -> Debug.printfln "%d; " x) node; *)
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
-        then begin
-          Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node);
-          match SimplI.check_sat (AstL.land_ [ ac_cond; to_ast node ]) with
+        then
+          (* Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
+          begin match SimplI.check_sat (AstL.land_ [ ac_cond; to_ast node ]) with
           | `Sat -> raise (Sat_found path)
           | `Unsat | `Unknown ->
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-        end
+          end
         else visited
       in
       rdfs [] [] start

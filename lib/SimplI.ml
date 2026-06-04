@@ -873,28 +873,37 @@ let get_states_bool_comb base extra asts =
     | Some states -> Some states
     | None -> None
   in
+  let pred_name2 states =
+    List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
+  in
   let state_pred states =
     List.map (fun state -> pred (pred_name state)) states |> land_
   in
   List.iter
     (fun (_, states) ->
-       let pred_name states =
-         List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
-       in
-       bool_map := Map.add_exn !bool_map ~key:(pred_name states) ~data:states)
+       bool_map := Map.add_exn !bool_map ~key:(pred_name2 states) ~data:states)
     asts;
   let ph =
     match asts with
     | [] -> raise Exit
     | [ (ph, states) ] ->
-      land_ [ deparametrize base (land_ [ ph; extra ]); state_pred states ]
+      land_
+        [ deparametrize base (land_ [ ph; extra ])
+        ; state_pred states
+        ; Pred (pred_name2 states)
+        ]
     | phs ->
       deparametrize
         base
         (land_
            [ extra
-           ; lor_ (List.map (fun (ph, states) -> land_ [ ph; state_pred states ]) phs)
+           ; lor_
+               (List.map
+                  (fun (ph, states) ->
+                     land_ [ ph; state_pred states; Pred (pred_name2 states) ])
+                  phs)
            ])
   in
+  (* debug_printfln "Ph to Z3: %a" AstL.pp_smtlib2 ph; *)
   get_states_z3 ph get_state
 ;;

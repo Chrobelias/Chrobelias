@@ -118,6 +118,21 @@ let%expect_test "cartesian_test"  =
     |}]
 ;;
 
+let cartesian2 lss =
+  List.fold_right
+    (fun xs acc ->
+       List.fold_left
+         (fun nested_acc x ->
+            List.fold_left
+              (fun inner_acc combo -> (x :: combo) :: inner_acc)
+              nested_acc
+              acc)
+         []
+         xs)
+    lss
+    [ [] ]
+;;
+
 let rec strings_of_len n alpha =
   match n with
   | 0 -> [ "" ]

@@ -12,5 +12,6 @@ val to_bits : Z.t -> bool list
 val log : ('a, Format.formatter, unit) format -> 'a
 val powerset : 'a list -> 'a list list
 val cartesian : 'a list list -> 'a list list
+val cartesian2 : 'a list list -> 'a list list
 val strings_of_len : int -> string list -> string list
 val with_extra_char : char Set.t -> char list
