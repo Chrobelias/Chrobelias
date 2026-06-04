@@ -72,8 +72,50 @@ let rec powerset = function
 
 let rec cartesian = function
   | [] -> [ [] ]
-  | [ x ] -> [ x ]
   | x :: xs -> List.concat_map (fun n -> List.map (fun l -> n :: l) (cartesian xs)) x
+;;
+
+let%expect_test "cartesian_test"  =
+  let v = cartesian [ [1; 2; 3]; [4; 5]; [6] ] in
+  Format.printf "1: %d \n%!" (List.length v);
+  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  Format.printf "\n%!";
+  let v = cartesian [ [1]; [4]; [7] ] in
+  Format.printf "2: %d \n%!" (List.length v);
+  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  Format.printf "\n%!";
+  let v = cartesian [ [1]; [4]; [] ] in
+  Format.printf "3: %d \n%!" (List.length v);
+  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  Format.printf "\n%!";
+  let v = cartesian [ [1] ] in
+  Format.printf "4: %d \n%!" (List.length v);
+  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  Format.printf "\n%!";
+  let v = cartesian [ [] ] in
+  Format.printf "5: %d \n%!" (List.length v);
+  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  Format.printf "\n%!";
+  [%expect
+    {|
+    1: 6
+    1 4 6
+    1 5 6
+    2 4 6
+    2 5 6
+    3 4 6
+    3 5 6
+
+    2: 1
+    1 4 7
+
+    3: 0
+
+    4: 1
+    1
+
+    5: 0
+    |}]
 ;;
 
 let rec strings_of_len n alpha =
