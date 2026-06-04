@@ -1398,15 +1398,15 @@ module Parametric (Label : ParL) = struct
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
-        then begin
-          if Set.mem nfa.final node
+        then
+          begin if Set.mem nfa.final node
           then raise (Sat_found path)
           else
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-        end
+          end
         else visited
       in
       rdfs [] [] start
@@ -1416,8 +1416,8 @@ module Parametric (Label : ParL) = struct
         | [] -> visited
         | ((label, state) :: tl as path) :: other ->
           if not (List.mem state visited)
-          then begin
-            if Set.mem nfa.final state
+          then
+            begin if Set.mem nfa.final state
             then raise (Sat_found (List.filter_map fst path))
             else (
               let neighbors =
@@ -1429,7 +1429,7 @@ module Parametric (Label : ParL) = struct
                   else Some ((Some label, state) :: path))
               in
               rbfs (state :: visited) (other @ neighbors))
-          end
+            end
           else rbfs visited other
         | _ -> assert false
       in
@@ -1702,13 +1702,25 @@ module Parametric (Label : ParL) = struct
       in
       Seq.unfold (fun acc -> succ acc) (state :: visited)
     in
-    let to_ast node = AstL.land_ (List.mapi AstL.get_predi node) in
+    let to_ast node =
+      let is_final = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
+      AstL.map
+        (function
+          | Pred s ->
+            let n = AstL.get_atom_num_exn s in
+            if List.nth is_final n then AstL.true_ else AstL.false_
+          | ast -> ast)
+        skel
+    in
     let dfs start =
       let rec rdfs path visited node =
+        Debug.printfln "Node: ";
+        List.iter (fun x -> Debug.printfln "%d; " x) node;
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
         then begin
+          Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node);
           match SimplI.check_sat (AstL.land_ [ ac_cond; to_ast node ]) with
           | `Sat -> raise (Sat_found path)
           | `Unsat | `Unknown ->
@@ -1728,7 +1740,7 @@ module Parametric (Label : ParL) = struct
       with
       | Sat_found path -> Some path
     in
-    match List.find_map inspect (starts |> List.map Set.to_list) with
+    match List.find_map inspect (starts |> List.map Set.to_list |> Utils.cartesian) with
     | Some [] -> Some (List.map (fun _ -> []) vars, 0)
     | Some p ->
       let p = List.rev p in

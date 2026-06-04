@@ -27,7 +27,7 @@ depends: [
   "ppx_expect"
   "ppx_inline_test"
   "mdx"
-  "ocamlformat" {dev & = "0.28.1"}
+  "ocamlformat" {dev & = "0.29.0"}
   "odoc" {with-doc}
 ]
 build: [
