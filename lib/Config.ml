@@ -29,6 +29,7 @@ type config =
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
   ; mutable check_model : bool
+  ; mutable seed : int
   }
 
 let config =
@@ -62,6 +63,7 @@ let config =
   ; with_check_sat = false
   ; with_info = true
   ; check_model = false
+  ; seed = Sys.time () |> Int.of_float
   }
 ;;
 
@@ -202,6 +204,9 @@ Basic options:
     ; ( "-under-all"
       , Arg.Unit (fun () -> config.under_str_all <- true)
       , "  \tApply string underapproximation for each string variable" )
+    ; ( "--seed"
+      , Arg.Int (fun v -> config.seed <- v)
+      , "\tSpecify a seed for backend solver RNG" )
       (* ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
       , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )

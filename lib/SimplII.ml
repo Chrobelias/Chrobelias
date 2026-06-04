@@ -2331,7 +2331,7 @@ let check_nia env ast =
     Z3.make
       ~logic:Smtml.Logic.QF_NIA
       ()
-      ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42))
+      ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, Config.config.seed))
   in
   Z3.reset solver;
   match Z3.check solver ~assumptions:[ ph ] with

@@ -269,7 +269,7 @@ let check bound ast =
            (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
            let solver =
              Z3.make
-               ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42))
+               ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, Config.config.seed))
                ()
            in
            Z3.reset solver;

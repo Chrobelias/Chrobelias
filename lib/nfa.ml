@@ -1688,8 +1688,8 @@ module Parametric (Label : ParL) = struct
     in
     (* Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond; *)
     let successors state visited =
-      Debug.printfln "State: ";
-      List.iter (fun x -> Debug.printfln "%d; " x) state;
+      Debug.printfln "Nfa length: [%a]" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) (List.map Array.length transitions);
+      Debug.printfln "State: [%a]" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) state;
       let transitions =
         transitions
         |> List.mapi (fun n arr ->
