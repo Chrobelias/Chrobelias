@@ -5,6 +5,7 @@
 
 module Map = Base.Map.Poly
 
+let () = Printexc.record_backtrace true
 let () = Lib.Config.parse_args ()
 let log = Lib.Debug.printfln
 let answer_guess = ref None
@@ -362,8 +363,8 @@ let rec check_sat ?(verbose = false) tys ast : rez =
            | `Unsat -> Unsat "nfa"
            | `Unknown _ir -> Unknown (ast, e)))
     | Error s ->
-      if !used_under2 |> not then report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
-      (* Unknown (ast, e) *) exit 0
+      report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
+      exit 0
   in
   let check_eia_sat ?(light = false) ast e =
     let can_be_unk = ref false in
@@ -812,7 +813,13 @@ let () =
          let rez = check_sat ~verbose:true state.tys ast in
          if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
-       | _ -> state)
+       | exn ->
+         Format.printf "unknown\n%!";
+         Format.eprintf
+           "(swallowed: %s)\n%s"
+           (Printexc.to_string exn)
+           (Printexc.get_backtrace ());
+         state)
     | Smtml.Ast.Get_model ->
       if config.no_model = true
       then (
@@ -863,6 +870,13 @@ let () =
     | Lib.Fe.UnsupportedException _ when Lib.Config.is_quiet () ->
       Format.eprintf "\027[31mFronted error\027[0m\n%!";
       exit 1
+    | exn ->
+      Format.printf "unknown\n%!";
+      Format.eprintf
+        "(toplevel-swallowed: %s)\n%s"
+        (Printexc.to_string exn)
+        (Printexc.get_backtrace ());
+      exit 0
   in
   ()
 ;;

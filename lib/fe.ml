@@ -356,7 +356,7 @@ and _to_ir tys orig_expr =
                              eia)
                       | ast -> ast)
                     acc
-                | exception _ -> failwith "Unexpected construction in let-in binding"
+                | exception _ -> failf "Unexpected construction in let-in binding"
               end
               | ast' ->
                 Ast.map
@@ -364,7 +364,7 @@ and _to_ir tys orig_expr =
                     | Ast.Pred symbol' when symbol = symbol' -> ast'
                     | ast -> ast)
                   acc)
-           | _ -> failwith "Unexpected construction in let-in binding")
+           | _ -> failf "Unexpected construction in let-in binding")
         ast
         bindings
     end
