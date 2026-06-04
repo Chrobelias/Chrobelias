@@ -1666,6 +1666,8 @@ module Parametric (Label : ParL) = struct
   let any_path_bool_comb skel (nfas : (int, t) Map.t) vars =
     let exception Sat_found of vv list in
     let nfas' = Map.data nfas in
+    Debug.printfln "Nfas:";
+    List.iter (fun nfa -> Debug.dump_nfa ~msg:"> nfa: %s" format_nfa nfa) nfas';
     (* Debug.printfln "Skel: %a" AstL.pp_smtlib2 skel;
     Map.iter ~f:(fun nfa -> Debug.dump_nfa ~msg:"Next nfa: %s" format_nfa nfa) nfas; *)
     let each f = nfas' |> List.map f in
@@ -1688,8 +1690,18 @@ module Parametric (Label : ParL) = struct
     in
     (* Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond; *)
     let successors state visited =
-      Debug.printfln "Nfa length: [%a]" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) (List.map Array.length transitions);
-      Debug.printfln "State: [%a]" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) state;
+      Debug.printfln
+        "Nfa length: [%a]"
+        (Format.pp_print_list
+           ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+           Format.pp_print_int)
+        (List.map Array.length transitions);
+      Debug.printfln
+        "State: [%a]"
+        (Format.pp_print_list
+           ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+           Format.pp_print_int)
+        state;
       let transitions =
         transitions
         |> List.mapi (fun n arr ->
@@ -1701,10 +1713,10 @@ module Parametric (Label : ParL) = struct
           Array.get arr (List.nth state n))
         |> Utils.cartesian2
         |> List.map (fun choice ->
-          choice
-          |> List.fold_left
-               (fun (acc_l, acc_state) (l, state) -> l :: acc_l, state :: acc_state)
-               ([], [])
+          List.fold_right
+            (fun (l, state) (acc_l, acc_state) -> l :: acc_l, state :: acc_state)
+            choice
+            ([], [])
           |> fun (x, y) -> Label.combine_list x, y)
       in
       let next without =
