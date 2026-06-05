@@ -797,7 +797,6 @@ let get_state_exn name =
 ;;
 
 let pred_name state = "P" ^ Int.to_string state
-let pred_namei i state = "P" ^ Int.to_string state
 let get_predi n i = AstL.Pred (Format.asprintf "P_%d_%d" n i)
 
 let pred_name2 states =
@@ -878,8 +877,16 @@ let get_states base extra asts =
   get_states_z3 ph get_state
 ;;
 
+(* The function takes on input 
+1) [base]: an integer;
+2) [extra]: LIA formulas for the terms on the edges, e.g., t1=2x+3y-1; other constraints restricting 
+the Boolean variables that correspond to states
+3) [asts]: a list of transitions, pairs (ph, states), where states is a list of ints, 
+i.e., states of the nfas in the Boolean combination *)
 let get_states_bool_comb base extra asts =
   let open AstL in
+  (* The map [bool_map] is used to retreive the list of states from a Z3 result; 
+  there is one Boolean variable for each next state = (list of states of nfas for atomic constraints) *)
   let bool_map = ref Map.empty in
   let get_state name =
     match Map.find !bool_map name with
@@ -897,8 +904,10 @@ let get_states_bool_comb base extra asts =
     | [ (ph, states) ] ->
       land_
         [ deparametrize base (land_ [ ph; extra ])
-        ; state_pred states
+        ; state_pred states (*Here we add propositional variables for each state *)
         ; Pred (pred_name2 states)
+          (*And one propositional variables to understand which 
+        "state as list" was chosen *)
         ]
     | phs ->
       deparametrize
@@ -912,6 +921,7 @@ let get_states_bool_comb base extra asts =
                   phs)
            ])
   in
+  (* Uncomment the line below to see the formula that goes to Z3 *)
   (* debug_printfln "Ph to Z3: %a" AstL.pp_smtlib2 ph; *)
   get_states_z3 ph get_state
 ;;

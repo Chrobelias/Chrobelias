@@ -204,9 +204,6 @@ Basic options:
     ; ( "-under-all"
       , Arg.Unit (fun () -> config.under_str_all <- true)
       , "  \tApply string underapproximation for each string variable" )
-    ; ( "--seed"
-      , Arg.Int (fun v -> config.seed <- v)
-      , "\tSpecify a seed for backend solver RNG" )
       (* ; ( "-flat"
       , Arg.Int (fun n -> under2_config.flat <- n)
       , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )
@@ -245,9 +242,9 @@ Basic options:
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness" )
-    ; ( "--bool-comb-sat"
+    ; ( "--bool-comb"
       , Arg.Unit (fun () -> config.bool_comb_sat <- true)
-      , "Disable automatic boolean combinations" )
+      , "\tCheck-sat without performing set operations over automata" )
       (* ; "--err-check", Arg.Unit (fun () -> config.error_check <- true), "\t"
     ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t" *)
       (* ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
@@ -274,6 +271,7 @@ Basic options:
     ; ( "--dpresimpl"
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , "\tDump AST simplifications" )
+    ; "--seed", Arg.Int (fun v -> config.seed <- v), "<n>\tSpecify a seed for Z3"
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )

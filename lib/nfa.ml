@@ -804,7 +804,7 @@ module Par = struct
     | Exit -> []
   ;;
 
-  let filter_states_bool_comb ac_cond visited phs =
+  let filter_states_bool_comb accept_cond visited phs =
     fun transitions ->
     let states_ph =
       visited |> List.map (fun sl -> AstL.lnot (AstL.pred (SimplI.pred_name2 sl)))
@@ -813,7 +813,7 @@ module Par = struct
     (* Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph; *)
       try
         match
-          SimplI.get_states_bool_comb base (AstL.land_ [ ac_cond; ph ]) transitions
+          SimplI.get_states_bool_comb base (AstL.land_ [ accept_cond; ph ]) transitions
         with
         | [] -> SimplI.get_states_bool_comb base ph transitions
         | states ->
@@ -1406,15 +1406,15 @@ module Parametric (Label : ParL) = struct
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
-        then
-          begin if Set.mem nfa.final node
+        then begin
+          if Set.mem nfa.final node
           then raise (Sat_found path)
           else
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-          end
+        end
         else visited
       in
       rdfs [] [] start
@@ -1424,8 +1424,8 @@ module Parametric (Label : ParL) = struct
         | [] -> visited
         | ((label, state) :: tl as path) :: other ->
           if not (List.mem state visited)
-          then
-            begin if Set.mem nfa.final state
+          then begin
+            if Set.mem nfa.final state
             then raise (Sat_found (List.filter_map fst path))
             else (
               let neighbors =
@@ -1437,7 +1437,7 @@ module Parametric (Label : ParL) = struct
                   else Some ((Some label, state) :: path))
               in
               rbfs (state :: visited) (other @ neighbors))
-            end
+          end
           else rbfs visited other
         | _ -> assert false
       in
@@ -1663,6 +1663,10 @@ module Parametric (Label : ParL) = struct
     }
   ;;
 
+  (* This function takes on input 
+  1) [skel]: a Boolean skeleton, where leafs have names Atom_i; 
+  2) [nfas]: a map from i to nfa that correspond to atomic formulas;
+  3) [vars] -- here, only a list of numbers of vars *)
   let any_path_bool_comb skel (nfas : (int, t) Map.t) vars =
     let exception Sat_found of vv list in
     let nfas' = Map.data nfas in
@@ -1677,7 +1681,11 @@ module Parametric (Label : ParL) = struct
       , each (fun nfa -> nfa.final)
       , each (fun nfa -> nfa.extra) )
     in
-    let ac_cond =
+    (* Here I compose the acceptance condition: take [skel] and map each 
+    leaf = a Boolean variable Atom_i to a disjunction of 
+    Boolean variables P_i_n final states of the i-th nfa in [nfas]; 
+    n is the number of the state *)
+    let accept_cond =
       AstL.map
         (function
           | Pred s ->
@@ -1686,7 +1694,7 @@ module Parametric (Label : ParL) = struct
           | ast -> ast)
         skel
     in
-    Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 ac_cond;
+    Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 accept_cond;
     let successors state visited =
       Debug.printfln
         "State: [%a]"
@@ -1706,7 +1714,7 @@ module Parametric (Label : ParL) = struct
           |> fun (x, y) -> Label.combine_list x, y)
       in
       let next without =
-        transitions |> Label.filter_states_bool_comb ac_cond without extras
+        transitions |> Label.filter_states_bool_comb accept_cond without extras
       in
       let succ without =
         match next without with
@@ -1716,7 +1724,7 @@ module Parametric (Label : ParL) = struct
       in
       Seq.unfold (fun acc -> succ acc) (state :: visited)
     in
-    let to_ast node =
+    let is_final node =
       let is_final = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
       AstL.map
         (function
@@ -1733,16 +1741,16 @@ module Parametric (Label : ParL) = struct
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
-        then
-          (* Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
-          begin match SimplI.check_sat (AstL.land_ [ ac_cond; to_ast node ]) with
+        then (* Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
+          begin
+          match SimplI.check_sat (is_final node) with
           | `Sat -> raise (Sat_found path)
           | `Unsat | `Unknown ->
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-          end
+        end
         else visited
       in
       rdfs [] [] start
