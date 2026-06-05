@@ -1702,6 +1702,12 @@ module Parametric (Label : ParL) = struct
            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
            Format.pp_print_int)
         state;
+      (*What happens below: we have a list of labelled graphs. 
+      I want to exatract all the successors of [state]=(state_0,...,state_n) from these graphs. 
+      I geather the list of lists of successors of state_0, ..., state_n; then consider the cartesian 
+      product of these lists to obtain a list of new 'states', the successors. 
+      The formulas on the labels are combined = we take the conjunction of them using the function 
+      [Label.combine_list]. *)
       let transitions =
         transitions
         |> List.mapi (fun n arr -> Array.get arr (List.nth state n))
@@ -1724,6 +1730,8 @@ module Parametric (Label : ParL) = struct
       in
       Seq.unfold (fun acc -> succ acc) (state :: visited)
     in
+    (* Takes [skel] and [node] and constructs a formula with respect to the fact that the states in 
+    [node] = (state_0,...,state_n) make the acceptance condition true or not *)
     let is_final node =
       let is_final = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
       AstL.map
