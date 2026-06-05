@@ -140,7 +140,7 @@ module type ParL = sig
     -> (t * state) list
 
   val filter_states_bool_comb
-    :  AstL.t
+    :  (state list -> bool)
     -> state list list
     -> AstL.t list
     -> (t * state list) list
@@ -804,18 +804,21 @@ module Par = struct
     | Exit -> []
   ;;
 
-  let filter_states_bool_comb accept_cond visited phs =
+  let filter_states_bool_comb is_final visited phs =
     fun transitions ->
-    let states_ph =
-      visited |> List.map (fun sl -> AstL.lnot (AstL.pred (SimplI.pred_name2 sl)))
+    let active_transitions =
+      List.filter (fun (_, state) -> not (List.mem state visited)) transitions
     in
-    let ph = AstL.land_ (phs @ states_ph) in
     (* Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph; *)
       try
         match
-          SimplI.get_states_bool_comb base (AstL.land_ [ accept_cond; ph ]) transitions
+          active_transitions
+          |> List.filter (fun (_, state) -> is_final state)
+          |> function
+          | [] -> []
+          | asts -> SimplI.get_states_bool_comb base (AstL.land_ phs) asts
         with
-        | [] -> SimplI.get_states_bool_comb base ph transitions
+        | [] -> SimplI.get_states_bool_comb base (AstL.land_ phs) active_transitions
         | states ->
           (* List.iter
           (fun (_, l) ->
@@ -1696,23 +1699,6 @@ module Parametric (Label : ParL) = struct
       | `Sat -> true
       | `Unsat | `Unknown -> false
     in
-    let final_states =
-      transitions
-      |> List.map (fun graph -> List.init (Array.length graph) Fun.id)
-      |> Utils.cartesian2
-      |> List.filter is_final
-    in
-    let non_final_states =
-      transitions
-      |> List.map (fun graph -> List.init (Array.length graph) Fun.id)
-      |> Utils.cartesian2
-      |> List.filter (fun state -> not (is_final state))
-    in
-    let accept_cond =
-      non_final_states
-      |> List.map (fun state -> AstL.lnot (AstL.Pred (SimplI.pred_name2 state)))
-      |> AstL.land_
-    in
     let successors state visited =
       Debug.printfln
         "State: [%a]"
@@ -1738,7 +1724,7 @@ module Parametric (Label : ParL) = struct
           |> fun (x, y) -> Label.combine_list x, y)
       in
       let next without =
-        transitions |> Label.filter_states_bool_comb accept_cond without extras
+        transitions |> Label.filter_states_bool_comb is_final without extras
       in
       let succ without =
         match next without with
@@ -1756,7 +1742,7 @@ module Parametric (Label : ParL) = struct
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
         then (* Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
-          if List.mem node final_states
+          if is_final node
           then raise (Sat_found path)
           else
             Seq.fold_left
