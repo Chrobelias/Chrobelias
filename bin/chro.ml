@@ -260,7 +260,6 @@ let calculate_model tys model regexes env =
       trace_log "%s -> " key;
       Lib.Debug.dump_nfa ~msg:"%s" NfaS.format_nfa data)
     regexes;
-  trace_log "\n%!";
   let real_model =
     try model_from_parts_regexes_env tys model regexes env with
     | _ -> raise Too_long_model
@@ -351,12 +350,12 @@ let rec check_sat ?(verbose = false) tys ast : rez =
        | _ ->
          if light
          then (
-           trace_log "Unknown in Lightweight solving ...\n%!";
+           trace_log "Unknown in Lightweight solving ...";
            Unknown (ast, e))
          else (
            if config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
            if config.stop_after = `Simpl then exit 0;
-           trace_log "Starting NFA Solver ...\n%!";
+           trace_log "Starting NFA Solver ...";
            match Lib.Solver.check_sat ir with
            | `Sat get_model -> sat "nfa" ast e get_model Map.empty
            | `Unsat -> Unsat "nfa"
@@ -436,7 +435,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
         let asts_nat = Lib.Ast.to_nat ast in
         trace_log "To IN gives %d asts..." (List.length asts_nat);
         let check ast =
-          trace_log "Over IN: %a\n" Lib.Ast.pp_smtlib2 ast;
+          trace_log "Over IN: %a" Lib.Ast.pp_smtlib2 ast;
           match check_nfa_sat ~light ast e with
           | Sat (s, ast, env, get_model, regexes) -> Some (s, ast, env, get_model, regexes)
           | Unknown _ ->
@@ -456,7 +455,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     trace_log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
     let f ast_n_regex =
       let ast, e, post, regex = ast_n_regex in
-      trace_log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+      trace_log "Arithmetized: %a" Lib.Ast.pp_smtlib2 ast;
       match check_eia_sat ~light ast e with
       | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, post, regex)
       | Unknown _ ->
@@ -557,7 +556,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
                 if !Lib.Config.bounded_unsat
                 then (
                   trace_log
-                    "Can't decide with bres=%d and bstates=%d\n%!"
+                    "Can't decide with bres=%d and bstates=%d"
                     config.bound_res
                     config.bound_states;
                   raise Lics_Underapprox_unsuccessful)
@@ -594,6 +593,7 @@ let check_model
       (ast : Lib.Ast.t)
       (model : (Lib.Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t)
   =
+  trace_log "check_model starts...";
   let ast =
     Map.fold
       ~init:ast
@@ -613,7 +613,7 @@ let check_model
       model
   in
   let _ = set_guess `Unknown in
-  trace_log "Checking model correctness;\n  ast=%a\n%!" Lib.Ast.pp_smtlib2 ast;
+  trace_log "Checking model correctness;\n  ast=%a" Lib.Ast.pp_smtlib2 ast;
   try
     match check_sat tys ast with
     | Sat _ -> ()
@@ -664,7 +664,7 @@ let () =
           let attempt, len =
             if Option.is_some len then 2, Option.get len else 1, Lib.Config.huge_path ()
           in
-          trace_log "model is TOO big after %d attempt\n%!" attempt;
+          trace_log "model is TOO big after %d attempt" attempt;
           let shrinked_ast =
             Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
               match key, data with
@@ -681,7 +681,7 @@ let () =
               | _ -> acc)
             |> Lib.Ast.land_
           in
-          trace_log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
+          trace_log "Shrinked AST: @[%a@]" Lib.Ast.pp_smtlib2 shrinked_ast;
           Lib.Config.config.under_approx <- -1;
           try
             match check_sat tys shrinked_ast with

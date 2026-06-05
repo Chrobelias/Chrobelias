@@ -1305,9 +1305,9 @@ let shrink_variables ast =
   let ast2 = apply_symantics_unsugared (module Sy) ast in
   if Set.length (Ast.get_lin_vars ast2) < Set.length (Ast.get_lin_vars ast)
   then (
-    trace_log "Post-simplification: @[%a@]\n" Ast.pp_smtlib2 ast2;
+    trace_log "Post-simplification: @[%a@]" Ast.pp_smtlib2 ast2;
     let info2 = apply_symantics (module Who_in_exponents) ast in
-    trace_log "@[<v 2>@[New info:@]@ @[%a@]@]\n" Info.pp_hum info2;
+    trace_log "@[<v 2>@[New info:@]@ @[%a@]@]" Info.pp_hum info2;
     ast2)
   else ast
 ;;
@@ -2087,7 +2087,7 @@ let basic_simplify step ?multiple (env : Env.t) ast =
   trace_log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
   let alpha = alpha_with_extra_char ast in
   trace_log
-    "Alphabet with extra char: %a\n%!"
+    "Alphabet with extra char: %a%!"
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
     alpha;
   let rec loop step (env : Env.t) ast =
@@ -2114,7 +2114,7 @@ let basic_simplify step ?multiple (env : Env.t) ast =
       trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
       loop next_step env ast2
     | false, true ->
-      trace_log "fixed-point\n";
+      trace_log "fixed-point";
       (match ast2 with
        | Ast.True -> raise (Sat ("presimpl", env))
        | Ast.Lnot Ast.True -> raise Unsat
@@ -2126,9 +2126,9 @@ let basic_simplify step ?multiple (env : Env.t) ast =
 ;;
 
 let run_basic_simplify ?(env = Env.empty) ast =
-  trace_log "Basic simplifications:\n%!";
+  trace_log "Basic simplifications...";
   let ast = lower_mod ast in
-  let __ _ = trace_log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
+  let __ _ = trace_log "After strlen lowering:@,@[%a@]" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
   then (
     match basic_simplify [ 1 ] env ast with
@@ -2226,7 +2226,7 @@ let try_under2_heuristics env ast =
   let ast : Ast.t = apply_symantics_unsugared (module Rewrite) ast in
   let under2vars = find_vars_for_under2 ast in
   trace_log
-    "vars_for_under2: %a\n%!"
+    "vars_for_under2: %a%!"
     Format.(pp_print_list pp_print_string)
     (Base.Set.to_list under2vars);
   trace_log "@[%a@]" (Env.pp ~title:"env = ") env;
@@ -2239,7 +2239,7 @@ let try_under2_heuristics env ast =
     | 0 ->
       let all_as = get_range () in
       trace_log
-        "all as: @[%a@]\n%!"
+        "all as: @[%a@]%!"
         Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
         all_as;
       Base.Set.Poly.fold
@@ -2256,7 +2256,7 @@ let try_under2_heuristics env ast =
     | 1 ->
       let all_as = get_range () in
       trace_log
-        "all as: @[%a@]\n%!"
+        "all as: @[%a@]%!"
         Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
         all_as;
       Base.Set.Poly.fold
@@ -2327,7 +2327,7 @@ let check_nia env ast =
   let ast = lower_mod ast in
   (* trace_log "ast2=@[%a@]" Ast.pp_smtlib2 ast; *)
   let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
-  trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
+  trace_log "Into Z3 goes: @[%a@]" Smtml.Expr.pp ph;
   let solver =
     Z3.make
       ~logic:Smtml.Logic.QF_NIA
@@ -2370,8 +2370,11 @@ let run_under2 env ast =
            (match check_errors ast with
             | [] -> Some ast
             | errors ->
-              trace_log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
-              trace_log "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
+              trace_log 
+                "Bad AST: @[%a]@\n@[<v>%a@]" 
+                Ast.pp_smtlib2 ast 
+                (Format.pp_print_list pp_error)
+                errors;
               None))
       asts
   in
@@ -3342,7 +3345,7 @@ let simpl bound ast =
       let ast_spec = flatten var_info ast_spec in
       let ast_spec = apply_symantics (module Symantics) ast_spec in
       let __ () =
-        trace_log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec
+        trace_log "step: %a. flattened ast = %a" pp_step step Ast.pp_smtlib2 ast_spec
       in
       (match check_errors ast_spec with
        | [] ->
@@ -3358,8 +3361,11 @@ let simpl bound ast =
             raise (Underapprox_fired env)
           | `Unsat | `Unknown -> `Unknown)
        | errors ->
-         trace_log "%d errors found" (List.length errors);
-         Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
+          trace_log 
+            "%d errors found@\n@[<v>%a@]" 
+            (List.length errors)
+            (Format.pp_print_list pp_error) 
+            errors;
          `Errors)
   in
   let loop (env : Env.t) ast =
@@ -3415,11 +3421,11 @@ let simpl bound ast =
                     (match check_errors ast with
                      | [] -> Some ast
                      | errors ->
-                       trace_log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
-                       Format.printf
-                         "@[<v>%a@]\n%!"
-                         (Format.pp_print_list pp_error)
-                         errors;
+                        trace_log 
+                          "Bad AST: @[%a]@\n@[<v>%a@]" 
+                          Ast.pp_smtlib2 ast
+                          (Format.pp_print_list pp_error) 
+                          errors;
                        None))
                asts
            in

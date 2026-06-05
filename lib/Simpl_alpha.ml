@@ -1,4 +1,6 @@
-let trace_log = Debug.trace "simpl_alpha"
+(* SPDX-License-Identifier: MIT *)
+(* Copyright 2024-2025, Chrobelias. *)
+let trace_log = Debug.trace "simpl"
 
 type subst = (string, string, Base.String.comparator_witness) Base.Map.t
 
@@ -128,7 +130,7 @@ let alpha_compare =
     | _ :: _, [] -> 1
     | [], [] -> 0
   and helper_polyn subst l r =
-    trace_log "  subst = %a" pp_subst subst;
+    trace_log "subst = %a" pp_subst subst;
     let _ : (atom, Z.t) Map.t = l in
     let normalize subst m =
       let _ : (atom, Z.t) Map.t = m in

@@ -16,7 +16,7 @@ let trace tracer_option (ppf : _ format) =
   if is_traced tracer_option
   then
     Format.kasprintf
-      (fun s -> Format.printf "[+%s]\n%s\n%!" tracer_option s)
+      (fun s -> Format.printf "[+%s]\n  %s\n%!" tracer_option s)
       ppf
   else Format.ifprintf Format.std_formatter ppf
 ;;

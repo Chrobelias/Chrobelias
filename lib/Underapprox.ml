@@ -274,7 +274,7 @@ let check bound ast =
                ()
            in
            Z3.reset solver;
-           let __ _ = trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
+           let __ _ = trace_log "Into Z3 goes: @[%a@]" Smtml.Expr.pp ph in
            match Z3.check solver ~assumptions:[ ph ] with
            | `Sat when omit_z3_model -> raise (Early env)
            | `Sat ->

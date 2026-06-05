@@ -122,7 +122,7 @@ let check ast =
   let _repr = apply_symnatics (module Symantics) ast in
   let whole = _repr :: formulas_of_cache () in
   Format.pp_print_flush Format.std_formatter ();
-  trace_log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
+  trace_log "@[whole: @[<v>%a@]@]" (Format.pp_print_list Smtml.Expr.pp) whole;
   let module Z3 = Smtml.Z3_mappings.Solver in
   (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
   let solver =
@@ -131,17 +131,17 @@ let check ast =
   Z3.reset solver;
   match Z3.check solver ~assumptions:whole with
   | `Unsat ->
-    trace_log "Early Unsat in %s\n%!" __FILE__;
+    trace_log "Early Unsat in %s" __FILE__;
     `Unsat
   | `Unknown ->
-    trace_log "Unknown in %s%!" __FILE__;
+    trace_log "Unknown in %s" __FILE__;
     `Unknown ast
   | `Sat ->
-    trace_log "Early SAT in %s ~~> Unknown\n%!" __FILE__;
+    trace_log "Early SAT in %s ~~> Unknown" __FILE__;
     (match Smtml.Z3_mappings.Solver.model solver with
     | Some m ->
       let m = Smtml.Z3_mappings.values_of_model m in
-      trace_log "%a\n%!" (Smtml.Model.pp ~no_values:false) m
+      trace_log "%a" (Smtml.Model.pp ~no_values:false) m
     | None -> ());
     `Unknown ast    (*AM: @Mikhail, please double-check I didn't insert a bug here.*)
 ;;

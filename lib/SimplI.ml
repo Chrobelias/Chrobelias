@@ -673,7 +673,7 @@ let basic_simplify step ?multiple env ast =
       trace_log "iter(%a)= @[%a@]" pp_step next_step AstL.pp_smtlib2 ast2;
       loop next_step env ast2
     | false, true ->
-      trace_log "fixed-point\n";
+      trace_log "fixed-point";
       ast2, env2
   in
   loop step env ast

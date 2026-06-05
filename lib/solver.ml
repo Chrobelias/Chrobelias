@@ -174,7 +174,7 @@ struct
            List.map
              (fun ir ->
                 let nfa = eval ir in
-                trace_log "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
+                trace_log "Nfa for %a has %d nodes" Ir.pp ir (Nfa.length nfa);
                 nfa |> do_if_lsb Nfa.reverse, ir)
              irs
            |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
@@ -183,7 +183,7 @@ struct
            | (hd, _) :: [] -> hd
            | (hd, ir) :: (hd', ir') :: tl ->
              trace_log
-               "Intersecting\n  [%d (%a)]\n  [%d (%a)]\n%!"
+               "Intersecting\n  [%d (%a)]\n  [%d (%a)]"
                (Nfa.length hd)
                Ir.pp
                ir
@@ -205,7 +205,7 @@ struct
          in
          eval_and nfas
          |> fun nfa ->
-         trace_log "Intersect result %d \n%!" (Nfa.length nfa);
+         trace_log "Intersect result %d" (Nfa.length nfa);
          nfa |> do_if_lsb Nfa.reverse
        | Ir.Lor (hd :: tl) ->
          List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
@@ -233,7 +233,7 @@ struct
            ()
        | _ -> failwith "Unexpected constraint")
       |> fun nfa ->
-      trace_log "Done %a\n%!" Ir.pp ir;
+      trace_log "Done %a" Ir.pp ir;
       Debug.dump_nfa
         ~msg:"Evaluated %s"
         ~pp_vars:
@@ -296,6 +296,7 @@ struct
   (* Alessio, here essentially everything starts. 
   The formula from the input has been transformed into [ir] *)
   let get_model_nfa ir () =
+    trace_log "Entered get_model_nfa";
     (* free_vars have type Ir.atom (only variables in LIA case; 
     can be exponentiated variables in EIA) *)
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
@@ -383,7 +384,7 @@ struct
            List.map
              (fun ir ->
                 let nfa = eval ir in
-                trace_log "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
+                trace_log "Nfa for %a has %d nodes" Ir.pp ir (Nfa.length nfa);
                 nfa |> do_if_lsb Nfa.reverse, ir)
              irs
            |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
@@ -392,7 +393,7 @@ struct
            | (hd, _) :: [] -> hd
            | (hd, ir) :: (hd', ir') :: tl ->
              trace_log
-               "Intersecting\n  [%d (%a)]\n  [%d (%a)]\n%!"
+               "Intersecting\n  [%d (%a)]\n  [%d (%a)]"
                (Nfa.length hd)
                Ir.pp
                ir
