@@ -56,12 +56,6 @@ let to_bits n =
   helper [] n
 ;;
 
-let log ppf =
-  match Sys.getenv "CHRO_DEBUG" with
-  | exception Not_found -> Format.ifprintf Format.std_formatter ppf
-  | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
-;;
-
 let rec powerset = function
   | [] -> [ [] ]
   | x :: xs ->

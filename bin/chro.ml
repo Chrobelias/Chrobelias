@@ -1,12 +1,12 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
+let trace_log fmt = Lib.Debug.trace "chro" fmt
 
 (* let () = Memtrace.trace_if_requested ~context:"my program" () *)
 
 module Map = Base.Map.Poly
 
 let () = Lib.Config.parse_args ()
-let log = Lib.Debug.printfln
 let answer_guess = ref None
 let sat_found = ref false
 let set_guess v = answer_guess := Some v
@@ -257,10 +257,10 @@ let calculate_model tys model regexes env =
   let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
   Map.iteri
     ~f:(fun ~key ~data ->
-      Lib.Debug.printf "%s -> " key;
+      trace_log "%s -> " key;
       Lib.Debug.dump_nfa ~msg:"%s" NfaS.format_nfa data)
     regexes;
-  Lib.Debug.printf "\n%!";
+  trace_log "\n%!";
   let real_model =
     try model_from_parts_regexes_env tys model regexes env with
     | _ -> raise Too_long_model
@@ -312,7 +312,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       | `Sat _, Some `Unsat ->
         Printf.eprintf "(error: check annotation that says 'unsat')\n%!"
     in
-    let () = if Lib.Debug.flag () then () else check_answer () in
+    let () = if Lib.Debug.is_traced "chro" then () else check_answer () in
     if verbose
     then (
       match rez with
@@ -351,12 +351,12 @@ let rec check_sat ?(verbose = false) tys ast : rez =
        | _ ->
          if light
          then (
-           log "Unknown in Lightweight solving ...\n%!";
+           trace_log "Unknown in Lightweight solving ...\n%!";
            Unknown (ast, e))
          else (
            if config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
            if config.stop_after = `Simpl then exit 0;
-           log "Starting NFA Solver ...\n%!";
+           trace_log "Starting NFA Solver ...\n%!";
            match Lib.Solver.check_sat ir with
            | `Sat get_model -> sat "nfa" ast e get_model Map.empty
            | `Unsat -> Unsat "nfa"
@@ -416,10 +416,8 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       match Lib.SimplII.has_unsupported_nonlinearity ast with
       | Result.Ok () -> unknown ast e
       | Error terms ->
-        log "@[<v 2>";
-        log "@[Non linear arithmetic between@]@,";
-        List.iteri (fun i -> log "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
-        log "@]@,";
+        trace_log "@[Non linear arithmetic between@]@,";
+        List.iteri (fun i -> trace_log "@[%d) %a@]@," i Lib.Ast.pp_term_smtlib2) terms;
         if config.logic = `Eia
         then (
           match Lib.SimplII.check_nia e ast with
@@ -436,9 +434,9 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       then check_nfa_sat ~light ast e
       else (
         let asts_nat = Lib.Ast.to_nat ast in
-        log "To IN gives %d asts..." (List.length asts_nat);
+        trace_log "To IN gives %d asts..." (List.length asts_nat);
         let check ast =
-          log "Over IN: %a\n" Lib.Ast.pp_smtlib2 ast;
+          trace_log "Over IN: %a\n" Lib.Ast.pp_smtlib2 ast;
           match check_nfa_sat ~light ast e with
           | Sat (s, ast, env, get_model, regexes) -> Some (s, ast, env, get_model, regexes)
           | Unknown _ ->
@@ -455,10 +453,10 @@ let rec check_sat ?(verbose = false) tys ast : rez =
     let unsat_reason = ref "presimpl str" in
     let can_be_unk = ref false in
     let asts_n_regexes = Lib.SimplII.arithmetize ast env in
-    log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
+    trace_log "Arithmetization gives %d asts..." (List.length asts_n_regexes);
     let f ast_n_regex =
       let ast, e, post, regex = ast_n_regex in
-      log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
+      trace_log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
       match check_eia_sat ~light ast e with
       | Sat (s, ast, env, get_model, _) -> Some (s, ast, env, get_model, post, regex)
       | Unknown _ ->
@@ -558,7 +556,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
               | None, true ->
                 if !Lib.Config.bounded_unsat
                 then (
-                  log
+                  trace_log
                     "Can't decide with bres=%d and bstates=%d\n%!"
                     config.bound_res
                     config.bound_states;
@@ -615,7 +613,7 @@ let check_model
       model
   in
   let _ = set_guess `Unknown in
-  log "Checking model correctness;\n  ast=%a\n%!" Lib.Ast.pp_smtlib2 ast;
+  trace_log "Checking model correctness;\n  ast=%a\n%!" Lib.Ast.pp_smtlib2 ast;
   try
     match check_sat tys ast with
     | Sat _ -> ()
@@ -666,7 +664,7 @@ let () =
           let attempt, len =
             if Option.is_some len then 2, Option.get len else 1, Lib.Config.huge_path ()
           in
-          log "model is TOO big after %d attempt\n%!" attempt;
+          trace_log "model is TOO big after %d attempt\n%!" attempt;
           let shrinked_ast =
             Map.fold ~init:[ ast ] state.tys ~f:(fun ~key ~data acc ->
               match key, data with
@@ -683,7 +681,7 @@ let () =
               | _ -> acc)
             |> Lib.Ast.land_
           in
-          log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
+          trace_log "Shrinked AST: @[%a@]\n%!" Lib.Ast.pp_smtlib2 shrinked_ast;
           Lib.Config.config.under_approx <- -1;
           try
             match check_sat tys shrinked_ast with

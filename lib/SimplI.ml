@@ -1,4 +1,7 @@
-let log = Utils.log
+(* SPDX-License-Identifier: MIT *)
+(* Copyright 2024-2025, Chrobelias. *)
+let trace_log fmt = Debug.trace "simpl" fmt
+
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -651,28 +654,26 @@ let pp_step fmt step =
 ;;
 
 let basic_simplify step ?multiple env ast =
-  let log =
-    if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
-  in
-  log "iter(%a)= @[%a@]" pp_step step AstL.pp_smtlib2 ast;
+  (* AM: here I have removed another trace logger *)
+  trace_log "iter(%a)= @[%a@]" pp_step step AstL.pp_smtlib2 ast;
   let rec loop step env ast =
     let (module Symantics) = make_main_symantics env in
     let ast2 = apply_symantics (module Symantics) ast in
     let env2, ast2 = eq_propagation env ast2 in
-    let __ _ = log "env2 = %a" (pp ~title:"") env2 in
-    let __ () = log "ast2 = @[%a@]" AstL.pp_smtlib2 ast2 in
+    let __ _ = trace_log "env2 = %a" (pp ~title:"") env2 in
+    let __ () = trace_log "ast2 = @[%a@]" AstL.pp_smtlib2 ast2 in
     let next_step = next step in
     match length env2 > length env, AstL.equal ast ast2 with
     | true, equal ->
-      let () = log "%a" (pp ~title:"Something ready to substitute") env2 in
-      let __ () = log "ast2 = @[%a@]" AstL.pp_smtlib2 ast2 in
-      if not equal then log "iter(%a)= @[%a@]" pp_step next_step AstL.pp_smtlib2 ast2;
+      let () = trace_log "%a" (pp ~title:"Something ready to substitute") env2 in
+      let __ () = trace_log "ast2 = @[%a@]" AstL.pp_smtlib2 ast2 in
+      if not equal then trace_log "iter(%a)= @[%a@]" pp_step next_step AstL.pp_smtlib2 ast2;
       loop next_step (merge_exn env2 env) ast2
     | false, false ->
-      log "iter(%a)= @[%a@]" pp_step next_step AstL.pp_smtlib2 ast2;
+      trace_log "iter(%a)= @[%a@]" pp_step next_step AstL.pp_smtlib2 ast2;
       loop next_step env ast2
     | false, true ->
-      log "fixed-point\n";
+      trace_log "fixed-point\n";
       ast2, env2
   in
   loop step env ast

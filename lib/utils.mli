@@ -9,7 +9,6 @@ val pow : base:int -> int -> int
 val powz : base:Z.t -> Z.t -> Z.t
 val div_rem : Z.t -> Z.t -> Z.t * Z.t
 val to_bits : Z.t -> bool list
-val log : ('a, Format.formatter, unit) format -> 'a
 val powerset : 'a list -> 'a list list
 val cartesian : 'a list list -> 'a list list
 val cartesian2 : 'a list list -> 'a list list

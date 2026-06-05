@@ -1,14 +1,13 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
 
-val flag : unit -> bool
-val printf : ('a, Format.formatter, unit) format -> 'a
-val printfln : ('a, Format.formatter, unit) format -> 'a
-val printflics : ('a, Format.formatter, unit) format -> 'a
+val is_traced : string -> bool
+val trace : string -> ('a, Format.formatter, unit, unit) format4 -> 'a
 
 val dump_nfa
   :  ?msg:(string -> unit, Format.formatter, unit) format
-  -> ?vars:(Ir.atom * int) list
+  -> ?pp_vars:(Format.formatter -> 'b -> unit)
+  -> ?vars:'b
   -> (Format.formatter -> 'a -> unit)
   -> 'a
   -> unit

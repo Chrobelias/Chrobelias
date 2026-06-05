@@ -1,9 +1,10 @@
-(** Middle-end *)
+(* SPDX-License-Identifier: MIT *)
+(* Copyright 2024-2025, Chrobelias. *)
+let trace_log fmt = Debug.trace "me" fmt
 
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
-let log = Utils.log
 let failf fmt = Format.kasprintf Result.error fmt
 
 exception Unsupported_constraint of string
@@ -440,7 +441,7 @@ and helper : 'a. 'a Ast.Eia.term -> _ =
 
 and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
   fun eia ->
-  (* log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
+  (* trace_log "%s: %a" __FUNCTION__ Ast.Eia.pp eia; *)
     match eia with
     | Eq (Ast.Eia.Atom (Ast.Var (v, _)), Ast.Eia.Len2 (Atom (Ast.Var (v', _))), I) ->
       return (Ir.slen (Ir.var v) (Ir.var v'))
@@ -471,14 +472,14 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let* rhs = helper rhs in
       let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in
       let ans = Ir.land_ (Ir.eq poly c :: sups) in
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | Eq (lhs, rhs, S) ->
       (* let* a, sup_a = of_str_atom lhs in
       let* b, sup_b = of_str_atom rhs in
       let sup = sup_a @ sup_b in
       let ans = Ir.land_ (Ir.seq a b :: sup) in *)
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       (* return ans *)
       failwith "unexpected due to Arithmetization"
     | Neq (lhs, rhs, I) ->
@@ -486,17 +487,17 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
       let* rhs = helper rhs in
       let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in
       let ans = Ir.land_ (Ir.neq poly c :: sups) in
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | Neq (lhs, rhs, S) ->
       failwith "unexpected due to Arithmetization"
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
     | Leq (lhs, rhs) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in
       let poly, c, sups = Symantics.prj (Symantics.minus lhs rhs) in
       let ans = Ir.land_ (Ir.leq poly c :: sups) in
-      (* log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
+      (* trace_log "%a ~~> %a" Ast.Eia.pp eia Ir.pp ans; *)
       return ans
     | InRe (str, Ast.S, re) ->
       let* str, sup = of_str_atom str in

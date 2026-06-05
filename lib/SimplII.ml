@@ -1,6 +1,7 @@
+(* SPDX-License-Identifier: MIT *)
+(* Copyright 2024-2025, Chrobelias. *)
 [@@@warning "+unused-value-declaration"]
-
-let log = Utils.log
+let trace_log fmt = Debug.trace "simpl" fmt
 
 module NfaS = Nfa.Lsb (Nfa.Str)
 
@@ -1150,7 +1151,7 @@ let propagate_exponents ast =
     | exception Not_found -> key
     | t when Eia.eq_term rhs t -> key
     | t ->
-      log "%s: %a -> %a" __FUNCTION__ Ast.pp_term_smtlib2 key Ast.pp_term_smtlib2 t;
+      trace_log "%s: %a -> %a" __FUNCTION__ Ast.pp_term_smtlib2 key Ast.pp_term_smtlib2 t;
       t
   in
   let on_eia = function
@@ -1304,9 +1305,9 @@ let shrink_variables ast =
   let ast2 = apply_symantics_unsugared (module Sy) ast in
   if Set.length (Ast.get_lin_vars ast2) < Set.length (Ast.get_lin_vars ast)
   then (
-    log "Post-simplification: @[%a@]\n" Ast.pp_smtlib2 ast2;
+    trace_log "Post-simplification: @[%a@]\n" Ast.pp_smtlib2 ast2;
     let info2 = apply_symantics (module Who_in_exponents) ast in
-    log "@[<v 2>@[New info:@]@ @[%a@]@]\n" Info.pp_hum info2;
+    trace_log "@[<v 2>@[New info:@]@ @[%a@]@]\n" Info.pp_hum info2;
     ast2)
   else ast
 ;;
@@ -2080,12 +2081,12 @@ let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
 
 let basic_simplify step ?multiple (env : Env.t) ast =
-  let log =
+  (*AM: removed the following trace logger: let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
-  in
-  log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
+  in *)
+  trace_log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
   let alpha = alpha_with_extra_char ast in
-  log
+  trace_log
     "Alphabet with extra char: %a\n%!"
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
     alpha;
@@ -2096,24 +2097,24 @@ let basic_simplify step ?multiple (env : Env.t) ast =
     (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
     (* let ast2 = ast2 |> propagate_exponents |> shrink_variables in *)
     let ast2 = propagate_exponents ast2 in
-    let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
+    let __ _ = trace_log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
     let env2, ast2 = eq_propagation var_info ?multiple env ast2 in
-    let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
-    let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
+    let __ _ = trace_log "env2 = %a" (Env.pp ~title:"") env2 in
+    let __ () = trace_log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     let next_step = next step in
     match Env.length env2 > Env.length env, Ast.safe_eq ast ast2 with
     | true, equal ->
-      let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
-      let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
-      if not equal then log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
+      let () = trace_log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
+      let __ () = trace_log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
+      if not equal then trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
       loop next_step (Env.merge_exn env2 env) ast2
     | false, false ->
-      log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
+      trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
       loop next_step env ast2
     | false, true ->
-      log "fixed-point\n";
+      trace_log "fixed-point\n";
       (match ast2 with
        | Ast.True -> raise (Sat ("presimpl", env))
        | Ast.Lnot Ast.True -> raise Unsat
@@ -2125,9 +2126,9 @@ let basic_simplify step ?multiple (env : Env.t) ast =
 ;;
 
 let run_basic_simplify ?(env = Env.empty) ast =
-  log "Basic simplifications:\n%!";
+  trace_log "Basic simplifications:\n%!";
   let ast = lower_mod ast in
-  let __ _ = log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
+  let __ _ = trace_log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
   then (
     match basic_simplify [ 1 ] env ast with
@@ -2224,12 +2225,12 @@ let try_under2_heuristics env ast =
   let env = !temp_env in
   let ast : Ast.t = apply_symantics_unsugared (module Rewrite) ast in
   let under2vars = find_vars_for_under2 ast in
-  log
+  trace_log
     "vars_for_under2: %a\n%!"
     Format.(pp_print_list pp_print_string)
     (Base.Set.to_list under2vars);
-  log "@[%a@]" (Env.pp ~title:"env = ") env;
-  log "ast = @[%a@]" Ast.pp_smtlib2 ast;
+  trace_log "@[%a@]" (Env.pp ~title:"env = ") env;
+  trace_log "ast = @[%a@]" Ast.pp_smtlib2 ast;
   let ( let* ) xs f = List.concat_map f xs in
   let _k = 0 in
   let envs =
@@ -2237,7 +2238,7 @@ let try_under2_heuristics env ast =
     | n when n < 0 -> failwith "bad config"
     | 0 ->
       let all_as = get_range () in
-      log
+      trace_log
         "all as: @[%a@]\n%!"
         Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
         all_as;
@@ -2254,7 +2255,7 @@ let try_under2_heuristics env ast =
         under2vars
     | 1 ->
       let all_as = get_range () in
-      log
+      trace_log
         "all as: @[%a@]\n%!"
         Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_int)
         all_as;
@@ -2324,9 +2325,9 @@ let check_nia env ast =
   in
   let ast = apply_symantics_unsugared (module M) ast in
   let ast = lower_mod ast in
-  (* log "ast2=@[%a@]" Ast.pp_smtlib2 ast; *)
+  (* trace_log "ast2=@[%a@]" Ast.pp_smtlib2 ast; *)
   let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
-  log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
+  trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
   let solver =
     Z3.make
       ~logic:Smtml.Logic.QF_NIA
@@ -2369,8 +2370,8 @@ let run_under2 env ast =
            (match check_errors ast with
             | [] -> Some ast
             | errors ->
-              log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
-              Debug.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
+              trace_log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
+              trace_log "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
               None))
       asts
   in
@@ -2419,7 +2420,7 @@ let try_under_concats vars alpha len env ast =
             ~exact
             count
         in
-        log
+        trace_log
           "Strings for %s:\n %a\n%!"
           name
           Format.(
@@ -2439,7 +2440,7 @@ let try_under_concats vars alpha len env ast =
       (fun e ->
          let (module Symantics) = make_main_symantics e in
          (* Debug.printf "AST: %a\n%!" Ast.pp_smtlib2 ast;
-         log "@[%a@]" (Env.pp ~title:"env = ") e; *)
+         trace_log "@[%a@]" (Env.pp ~title:"env = ") e; *)
          e, apply_symantics (module Symantics) ast)
       envs)
 ;;
@@ -2495,7 +2496,6 @@ let split_concats { Info.all; _ } =
       let rec helper lhs rhs nfa =
         Debug.dump_nfa ~msg:"Before splitting: %s" NfaS.format_nfa nfa;
         let nfas : (NfaS.t * NfaS.t) list = NfaS.split nfa in
-        Debug.printf "==================================================\n%!";
         match lhs, rhs with
         | x, Ast.Eia.Str_const y ->
           Debug.dump_nfa ~msg:"Before splitting derivative %s" NfaS.format_nfa nfa;
@@ -2950,7 +2950,7 @@ let arithmetize ast env =
                    term))
     in
     let arithmetize_in_re s nfa =
-      log "Arithmetizing regex ...";
+      trace_log "Arithmetizing regex ...";
       Debug.dump_nfa ~msg:"for NFA %s" NfaS.format_nfa nfa;
       let strlens = strlens s in
       let csds =
@@ -3331,7 +3331,7 @@ let simpl bound ast =
       var_info.Info.exp
   in
   let on_env step env =
-    (* log "step: %a. env = %a\n" pp_step step Env.pp env; *)
+    (* trace_log "step: %a. env = %a\n" pp_step step Env.pp env; *)
     let (module Symantics) = make_main_symantics env in
     let ast_spec = apply_symantics (module Symantics) ast in
     match basic_simplify step env ast_spec with
@@ -3342,7 +3342,7 @@ let simpl bound ast =
       let ast_spec = flatten var_info ast_spec in
       let ast_spec = apply_symantics (module Symantics) ast_spec in
       let __ () =
-        log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec
+        trace_log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec
       in
       (match check_errors ast_spec with
        | [] ->
@@ -3358,7 +3358,7 @@ let simpl bound ast =
             raise (Underapprox_fired env)
           | `Unsat | `Unknown -> `Unknown)
        | errors ->
-         log "%d errors found" (List.length errors);
+         trace_log "%d errors found" (List.length errors);
          Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
          `Errors)
   in
@@ -3401,7 +3401,7 @@ let simpl bound ast =
            (* Underapprox II *)
            (* TODO(Kakadu): enrich environment  *)
            let env = Env.empty in
-           log "%s %d" __FILE__ __LINE__;
+           trace_log "%s %d" __FILE__ __LINE__;
            let asts = try_under2_heuristics env ast in
            let asts =
              List.filter_map
@@ -3415,7 +3415,7 @@ let simpl bound ast =
                     (match check_errors ast with
                      | [] -> Some ast
                      | errors ->
-                       log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
+                       trace_log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
                        Format.printf
                          "@[<v>%a@]\n%!"
                          (Format.pp_print_list pp_error)

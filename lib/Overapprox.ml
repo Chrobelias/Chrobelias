@@ -1,4 +1,6 @@
-let log = Debug.printfln
+(* SPDX-License-Identifier: MIT *)
+(* Copyright 2024-2025, Chrobelias. *)
+let trace_log fmt = Debug.trace "overapprox" fmt
 
 module type Smtml_symantics = sig
   include FT_SIG.z_term with type term := Smtml.Expr.t
@@ -116,17 +118,11 @@ let apply_symnatics (module S : Smtml_symantics) =
 ;;
 
 let check ast =
-  let tracing_on =
-    match Sys.getenv "CHRO_TRACE_OPT" with
-    | exception Not_found -> false
-    | "1" -> true
-    | _ -> false
-  in
   cache := Base.Map.empty (module Base.String);
   let _repr = apply_symnatics (module Symantics) ast in
   let whole = _repr :: formulas_of_cache () in
   Format.pp_print_flush Format.std_formatter ();
-  log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
+  trace_log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
   let module Z3 = Smtml.Z3_mappings.Solver in
   (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
   let solver =
@@ -135,24 +131,19 @@ let check ast =
   Z3.reset solver;
   match Z3.check solver ~assumptions:whole with
   | `Unsat ->
-    if tracing_on then Format.printf "Early Unsat in %s\n%!" __FILE__;
+    trace_log "Early Unsat in %s\n%!" __FILE__;
     `Unsat
   | `Unknown ->
-    log "Can't decide in %s%!" __FILE__;
-    if tracing_on then Format.printf "`Unknown  in %s\n%!" __FILE__;
+    trace_log "Unknown in %s%!" __FILE__;
     `Unknown ast
-  | `Sat when tracing_on ->
-    Format.printf "Early SAT in %s ~~> Unknown\n%!" __FILE__;
-    let () =
-      match Smtml.Z3_mappings.Solver.model solver with
-      | Some m ->
-        let m = Smtml.Z3_mappings.values_of_model m in
-        Format.printf "%a\n%!" (Smtml.Model.pp ~no_values:false) m;
-        ()
-      | None -> ()
-    in
-    `Unknown ast
-  | `Sat -> `Unknown ast
+  | `Sat ->
+    trace_log "Early SAT in %s ~~> Unknown\n%!" __FILE__;
+    (match Smtml.Z3_mappings.Solver.model solver with
+    | Some m ->
+      let m = Smtml.Z3_mappings.values_of_model m in
+      trace_log "%a\n%!" (Smtml.Model.pp ~no_values:false) m
+    | None -> ());
+    `Unknown ast    (*AM: @Mikhail, please double-check I didn't insert a bug here.*)
 ;;
 
 let check ast =

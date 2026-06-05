@@ -1,3 +1,5 @@
+let trace_log = Debug.trace "simpl_alpha"
+
 type subst = (string, string, Base.String.comparator_witness) Base.Map.t
 
 let rec walk s name =
@@ -126,7 +128,7 @@ let alpha_compare =
     | _ :: _, [] -> 1
     | [], [] -> 0
   and helper_polyn subst l r =
-    Debug.printfln "  subst = %a" pp_subst subst;
+    trace_log "  subst = %a" pp_subst subst;
     let _ : (atom, Z.t) Map.t = l in
     let normalize subst m =
       let _ : (atom, Z.t) Map.t = m in

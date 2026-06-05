@@ -1,26 +1,28 @@
 let nfa_cnt = ref 0
-let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
 
-let printf ppf =
-  if flag ()
-  then Format.kasprintf (Format.printf "%s%!") ppf
+let tracers =
+  lazy
+    (Sys.getenv_opt "CHRO_TRACE"
+     |> Option.map (String.split_on_char ':')
+     |> Option.value ~default:[])
+;;
+
+let is_traced s =
+  let l = Lazy.force tracers in
+  List.mem "ANY" l || List.mem s l
+;;
+
+let trace tracer_option (ppf : _ format) =
+  if is_traced tracer_option
+  then
+    Format.kasprintf
+      (fun s -> Format.printf "[+%s]\n%s\n%!" tracer_option s)
+      ppf
   else Format.ifprintf Format.std_formatter ppf
 ;;
 
-let printflics ppf =
-  if flag () || Config.config.dump_lics
-  then Format.kasprintf (Format.printf "%s%!") ppf
-  else Format.ifprintf Format.std_formatter ppf
-;;
-
-let printfln ppf =
-  if flag ()
-  then Format.kasprintf (Format.printf "%s\n%!") ppf
-  else Format.ifprintf Format.std_formatter ppf
-;;
-
-let dump_nfa ?msg ?vars format_nfa nfa =
-  if flag ()
+let dump_nfa ?msg ?pp_vars ?vars format_nfa nfa =
+  if is_traced "nfa"
   then (
     let ( !< ) a = Format.sprintf a in
     let name =
@@ -39,17 +41,10 @@ let dump_nfa ?msg ?vars format_nfa nfa =
     close_out oc;
     let __ () = Sys.command command |> ignore in
     (match msg with
-     | Some msg -> printfln msg svg_file
+     | Some msg -> Format.kasprintf (Format.printf "%s\n%!") msg svg_file
      | None -> ());
-    match vars with
-    | Some vars ->
-      printf
-        "@[%a@]\n%!"
-        (Format.pp_print_list
-           ~pp_sep:(fun fmt () -> Format.fprintf fmt "\n")
-           (fun fmt (a, b) ->
-              (*Format.fprintf fmt "%d -> %a" b Ir.pp_poly_atom (a :> Ir.poly_atom))*)
-              Format.fprintf fmt "%d -> %a" b Ir.pp_atom a))
-        vars
-    | None -> ())
+    match pp_vars, vars with
+    | Some pp, Some vars ->
+      Format.printf "@[%a@]\n%!" pp vars
+    | _ -> ())
 ;;

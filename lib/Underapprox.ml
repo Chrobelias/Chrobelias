@@ -1,3 +1,8 @@
+(* SPDX-License-Identifier: MIT *)
+(* Copyright 2024-2025, Chrobelias. *)
+let trace_log fmt = Debug.trace "underapprox" fmt
+
+
 module type SYM0 = sig
   type term
   type ph
@@ -175,8 +180,6 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
   fun x -> S.prj (helper x)
 ;;
 
-let log = Debug.printfln
-
 (* Needed for tests, because Z3 gives a model "non-deterministically" *)
 let omit_z3_model =
   match Sys.getenv_opt "CHRO_OMIT_Z3_MODEL" with
@@ -239,11 +242,9 @@ let check bound ast =
         then s_bound
         else Config.config.under_approx)
     in
-    log "Bound for underapproximation: %d\n" bound;
-    log "Interesting: %s\n" (String.concat " " interestring_vars);
-    log
-      "Expecting %d choices ...\n%!"
-      (Utils.pow ~base:bound (List.length interestring_vars));
+    trace_log "Bound for underapproximation: %d" bound;
+    trace_log "Interesting: %s" (String.concat " " interestring_vars);
+    trace_log "Expecting %d choices ..." (Utils.pow ~base:bound (List.length interestring_vars));
     let all_choices =
       let ( let* ) xs f = List.concat_map f xs in
       let choice1 = List.init (bound + 1) Fun.id in
@@ -273,7 +274,7 @@ let check bound ast =
                ()
            in
            Z3.reset solver;
-           let __ _ = log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
+           let __ _ = trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
            match Z3.check solver ~assumptions:[ ph ] with
            | `Sat when omit_z3_model -> raise (Early env)
            | `Sat ->
@@ -302,12 +303,12 @@ let check bound ast =
         let extend v = Ast.eia (Ast.Eia.lt b (Ast.Eia.atom (Ast.Var (v, I)))) in
         Ast.land_ (ast :: List.map extend vars)
       in
-      log "Can't decide in %s" __FILE__;
+      trace_log "Can't decide in %s" __FILE__;
       `Unknown newast
     with
     | Early env ->
-      log "%s gives early Sat." __FILE__;
-      (* log "env = %a" pp_env env; *)
+      trace_log "%s gives early Sat." __FILE__;
+      (* trace_log "env = %a" pp_env env; *)
       `Sat ("under int", to_normal_env env)
     | Early_Unsat -> `Unsat "nia"
   with
