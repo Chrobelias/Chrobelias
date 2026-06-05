@@ -1358,7 +1358,7 @@ let%test_module _ =
   end)
 ;;
 
-exception Unsat
+exception Unsat of Ast.t
 exception Sat of string * Env.t
 
 module ZTM = Map.Make (struct
@@ -2303,12 +2303,12 @@ end
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
 
-let basic_simplify step ?multiple (env : Env.t) ast =
+let basic_simplify step ?multiple (env : Env.t) orig_ast =
   let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
   in
-  log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 ast;
-  let alpha = alpha_with_extra_char ast in
+  log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 orig_ast;
+  let alpha = alpha_with_extra_char orig_ast in
   log
     "Alphabet with extra char: %a\n%!"
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
@@ -2340,11 +2340,31 @@ let basic_simplify step ?multiple (env : Env.t) ast =
       log "fixed-point\n";
       (match ast2 with
        | Ast.True -> raise (Sat ("presimpl", env))
-       | Ast.Lnot Ast.True -> raise Unsat
+       | Ast.Lnot Ast.True when Ast.is_conjunct orig_ast |> not ->
+         raise (Unsat (Ast.land_ (Env.to_eqs env)))
+       | Ast.Lnot Ast.True -> begin
+         let clauses =
+           match orig_ast with
+           | Ast.Land clauses -> clauses
+           | x -> [ x ]
+         in
+         let (module Sym) = make_main_symantics env in
+         let contra_clause =
+           List.find_map
+             (fun ast ->
+                match apply_symantics (module Sym) ast with
+                | Ast.Lnot Ast.True -> Option.some ast
+                | _ -> Option.none)
+             clauses
+         in
+         match contra_clause with
+         | Some clause -> raise (Unsat (Ast.land_ (clause :: Env.to_eqs env)))
+         | None -> raise (Unsat orig_ast)
+         end
        | _ -> ast2, env, var_info, step)
   in
-  try `Unknown (loop step env ast) with
-  | Unsat -> `Unsat
+  try `Unknown (loop step env orig_ast) with
+  | Unsat core -> `Unsat core
   | Sat (_, env) -> `Sat env
 ;;
 
@@ -2594,7 +2614,7 @@ let run_under2 env ast =
     List.filter_map
       (fun ast ->
          match basic_simplify [ 1 ] env ast with
-         | `Unsat -> None
+         | `Unsat _ -> None
          | `Sat env -> raise_notrace (Underapprox_fired env)
          | `Unknown (ast, _, _, _) ->
            let var_info = apply_symantics (module Who_in_exponents) ast in
@@ -2819,7 +2839,7 @@ let under_str env alpha vars ast =
         (* log "After rewriting via concats:\n%!"; *)
         let var_info = apply_symantics (module Who_in_exponents) ast in
         match basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info) with
-        | `Unsat -> None
+        | `Unsat _ -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast |> over_concat_len, env))
     in
@@ -2957,7 +2977,7 @@ let run_string_simplify ast =
   let module Set = Base.Set.Poly in
   match basic_simplify [ 1 ] Env.empty ast with
   | `Sat env -> `Sat env
-  | `Unsat -> `Unsat ast
+  | `Unsat unsat_core -> `Unsat unsat_core
   | `Unknown (ast', e, _, _) ->
     let vars =
       if Config.config.under_str_all
@@ -2979,7 +2999,7 @@ let run_string_simplify ast =
          basic_simplify [ 0 ] e (ast' |> rewrite_via_concat var_info |> over_concat_len)
        with
        | `Sat env -> `Sat env
-       | `Unsat -> `Unsat ast'
+       | `Unsat core -> `Unsat core
        | `Unknown (ast, env, _, _) -> `Unknown (ast, env, approxed_asts))
 ;;
 
@@ -2991,10 +3011,63 @@ let run_basic_simplify ?(env = Env.empty) ast =
   then (
     match basic_simplify [ 1 ] env ast with
     | `Sat env -> `Sat env
-    | `Unsat -> `Unsat ast
+    | `Unsat core -> `Unsat core
     | `Unknown (ast, e, _, _) ->
       `Unknown (ast |> shrink_variables |> flatten Info.empty, e))
   else `Unknown (ast, Env.empty)
+;;
+
+let%test_module "unsat core" =
+  (module struct
+    let wrap f =
+      let ast = Ast.land_ (f (make_main_symantics Env.empty)) in
+      match run_basic_simplify ast with
+      | `Sat _ -> Format.printf "sat\n%!"
+      | `Unsat core -> Format.printf "unsat (core = %a)\n%!" Ast.pp_smtlib2 core
+      | `Unknown _ -> Format.printf "unknown\n%!"
+    ;;
+
+    let%expect_test "basic" =
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ eqz (var "x") (const 3)
+        ; eqz (var "x") (const 5)
+        ; leq (add [ var "x"; var "y"; var "z" ]) (const 100)
+        ]);
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ eqz (var "x") (const 3)
+        ; eqz (var "x") (const 5)
+        ; eqz (var "x") (const 8)
+        ; eqz (var "x") (const 15)
+        ; eqz (var "x") (const 25)
+        ; leq (add [ var "x"; var "y"; var "z" ]) (const 100)
+        ]);
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ eqz (var "x") (const 100); leq (var "x") (const 5) ]);
+      (* wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ leq (var "w") (const 15)
+        ; eqz (var "x") (const 10)
+        ; eqz (add [var "x"; var "y"]) (const 20)
+        ; eqz (var "y") (const 11)
+        ; eqz (var "z") (const 30)
+        ; leq (var "x") (const 50)
+        ]); FIXME: poor simplificator *)
+      [%expect {|
+        unsat (core = (and
+                        (= (+ (- 3) x) 0)
+                        (= x 5)))
+        unsat (core = (and
+                        (= (+ (- 3) x) 0)
+                        (= x 25)))
+        unsat (core = (and
+                        (<= (+ (- 5) x) 0)
+                        (= x 100)))
+        |}]
+    ;;
+  end)
 ;;
 
 let theory_lemmas map =
@@ -3007,7 +3080,7 @@ let theory_lemmas map =
     cartesian_product phs phs
     |> List.filter_map (fun (x, y) ->
       match basic_simplify [ 0 ] Env.empty (Ast.land_ [ x; y ]) with
-      | `Unsat -> Some (Ast.land_ [ Base.Map.find_exn map x; Base.Map.find_exn map y ])
+      | `Unsat _ -> Some (Ast.land_ [ Base.Map.find_exn map x; Base.Map.find_exn map y ])
       | _ -> None)
   in
   Ast.land_ (List.map Ast.lnot variants)
@@ -3702,7 +3775,7 @@ let simpl bound ast =
     let (module Symantics) = make_main_symantics env in
     let ast_spec = apply_symantics (module Symantics) ast in
     match basic_simplify step env ast_spec with
-    | `Unsat -> `Unknown
+    | `Unsat _ -> `Unknown
     | `Sat env -> raise (Underapprox_fired env)
     | `Unknown (ast, env, _info, step) ->
       let var_info = apply_symantics (module Who_in_exponents) ast_spec in
@@ -3731,7 +3804,7 @@ let simpl bound ast =
   in
   let loop (env : Env.t) ast =
     match basic_simplify [ 1 ] env ast with
-    | `Unsat -> raise Unsat
+    | `Unsat core -> raise (Unsat core)
     | `Sat env -> raise (Sat ("", env))
     | `Unknown (ast, env, _, _) when bound <= 0 -> ast, env
     | `Unknown (ast, env, _var_info, step) ->
@@ -3774,7 +3847,7 @@ let simpl bound ast =
              List.filter_map
                (fun ast ->
                   match basic_simplify [ 1 ] env ast with
-                  | `Unsat -> None
+                  | `Unsat _ -> None
                   | `Sat env -> raise (Underapprox_fired env)
                   | `Unknown (ast, _, _, _) ->
                     let var_info = apply_symantics (module Who_in_exponents) ast in
@@ -3792,7 +3865,7 @@ let simpl bound ast =
            in
            `Underapprox asts
        with
-       | Unsat -> `Unsat
+       | Unsat _ -> `Unsat
        | Underapprox_fired env -> `Sat ("underappox2", env)
        | Sat (reason, env) -> `Sat (reason, env)
        | Error (ast, errs) -> `Error (ast, errs))
