@@ -1406,15 +1406,15 @@ module Parametric (Label : ParL) = struct
         (* Debug.printfln "\nVisited states list: ";
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
-        then begin
-          if Set.mem nfa.final node
+        then
+          begin if Set.mem nfa.final node
           then raise (Sat_found path)
           else
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-        end
+          end
         else visited
       in
       rdfs [] [] start
@@ -1424,8 +1424,8 @@ module Parametric (Label : ParL) = struct
         | [] -> visited
         | ((label, state) :: tl as path) :: other ->
           if not (List.mem state visited)
-          then begin
-            if Set.mem nfa.final state
+          then
+            begin if Set.mem nfa.final state
             then raise (Sat_found (List.filter_map fst path))
             else (
               let neighbors =
@@ -1437,7 +1437,7 @@ module Parametric (Label : ParL) = struct
                   else Some ((Some label, state) :: path))
               in
               rbfs (state :: visited) (other @ neighbors))
-          end
+            end
           else rbfs visited other
         | _ -> assert false
       in
@@ -1742,15 +1742,14 @@ module Parametric (Label : ParL) = struct
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
         then (* Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
-          begin
-          match SimplI.check_sat (is_final node) with
+          begin match SimplI.check_sat (is_final node) with
           | `Sat -> raise (Sat_found path)
           | `Unsat | `Unknown ->
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-        end
+          end
         else visited
       in
       rdfs [] [] start
