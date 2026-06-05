@@ -6,7 +6,7 @@ module Set = Base.Set.Poly
 (* the state that should be stored. So let's stick with simpler stuff now. *)
 type atom =
   | Var of string
-  | Pow2 of string
+  | Pow of string
 [@@deriving variants]
 
 let eq_atom : atom -> atom -> bool = Stdlib.( = )
@@ -20,21 +20,21 @@ let internal_name () =
 
 let name = function
   | Var name -> name
-  | Pow2 name -> Format.asprintf "%a" Z.pp_print (Config.base ()) ^ name
+  | Pow name -> Z.to_string Config.config.enc_base ^ name
 ;;
 
 let internal () = var (internal_name ())
 
 let internal_pow () =
   let name = internal_name () in
-  let r = pow2 name in
+  let r = pow name in
   let log_r = var name in
   r, log_r
 ;;
 
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var
-  | Pow2 var -> Format.fprintf fmt "pow2(%s)" var
+  | Pow var -> Format.fprintf fmt "pow%s(%s)" (Z.to_string Config.config.enc_base) var
 ;;
 
 type rel =
@@ -330,7 +330,7 @@ let pp_model_smtlib2 ppf m =
     match key, data with
     | Var v, `Int z -> fprintf ppf "  @[(define-fun %s () Int\n    %a)@]" v Z.pp_print z
     | Var v, `Str s -> fprintf ppf "  @[(define-fun %s () String\n    \"%s\")@]" v s
-    | Pow2 _, _ -> failwith "Unsupported. Exponenetials in the model");
+    | Pow _, _ -> failwith "Unsupported. Exponenetials in the model");
   fprintf ppf "\n)@]"
 ;;
 
@@ -474,17 +474,17 @@ let log ppf =
 ;;
 
 let as_var = function
-  | Pow2 v -> var v
+  | Pow v -> var v
   | Var v -> var v
 ;;
 
 let get_exp = function
-  | Pow2 v -> var v
+  | Pow v -> var v
   | Var _ -> failwith "Expected exponent, found var"
 ;;
 
 let is_exp = function
-  | Pow2 _ -> true
+  | Pow _ -> true
   | Var _ -> false
 ;;
 
@@ -507,7 +507,7 @@ let collect_vars ir =
            (Map.keys term
             |> List.concat_map (function
               | Var _ as ir -> [ ir ]
-              | Pow2 a as ir -> [ ir; var a ])
+              | Pow a as ir -> [ ir; var a ])
             |> Set.of_list)
        | _ -> acc)
     Set.empty
@@ -542,7 +542,7 @@ let collect_atoms ir =
            (Map.keys term
             |> List.concat_map (function
               | Var _ as ir -> [ ir ]
-              | Pow2 _ as ir -> [ ir ])
+              | Pow _ as ir -> [ ir ])
             |> Set.of_list)
        | _ -> acc)
     Set.empty
@@ -567,7 +567,7 @@ let collect_free_atoms ir =
            (Map.keys term
             |> List.concat_map (function
               | Var _ as ir -> [ ir ]
-              | Pow2 _ as ir -> [ ir ])
+              | Pow _ as ir -> [ ir ])
             |> Set.of_list)
        | _ -> acc)
     Set.empty

@@ -55,7 +55,7 @@ let make_sym (env : env) onvar bound =
       | Some c -> constz (Z.of_int c)
     ;;
 
-    let pow2var s = pow (constz (Config.base ())) (var s)
+    let pow2var s = pow (constz Config.config.enc_base) (var s)
     let prj = Fun.id
 
     let exists vars x =

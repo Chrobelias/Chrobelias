@@ -1,5 +1,6 @@
 type config =
-  { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
+  { mutable enc_base : (Z.t[@printer Z.pp_print])
+  ; mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bool_comb_sat : bool
   ; mutable bound_res : int
   ; mutable bound_states : int
@@ -31,9 +32,11 @@ type config =
   ; mutable check_model : bool
   ; mutable seed : int
   }
+[@@deriving show]
 
 let config =
-  { antiprenex_mode = `All
+  { enc_base = Z.of_int 10
+  ; antiprenex_mode = `All
   ; bool_comb_sat = false
   ; bound_res = -1
   ; bound_states = -1
@@ -103,12 +106,6 @@ let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
 
-let base () =
-  if config.logic = `Str || config.logic = `StrBv || config.logic = `Par
-  then Z.of_int 10
-  else Z.of_int 2
-;;
-
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
 
 let max_longest_path =
@@ -148,7 +145,10 @@ Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "-bound"
+    [ ( "-base" (*AM: string because it seems we want arbitrarily large bases*)
+      , Arg.String (fun n -> config.enc_base <- Z.of_string n)
+      , "\tSet the encoding base for integer representation" )
+    ; ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
       , "\tUpper bound for integer underapproximation (negative disables)" )
     ; ( "-bres"

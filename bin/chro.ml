@@ -6,7 +6,11 @@ let trace_log fmt = Lib.Debug.trace "chro" fmt
 
 module Map = Base.Map.Poly
 
-let () = Lib.Config.parse_args ()
+let () = 
+  Lib.Config.parse_args ();
+  trace_log "Starting Chrobelias with config: %a" Lib.Config.pp_config Lib.Config.config
+;;
+
 let answer_guess = ref None
 let sat_found = ref false
 let set_guess v = answer_guess := Some v
@@ -51,7 +55,7 @@ let lift ?(unsat_info = "") ast = function
 ;;
 
 let logBaseZ n =
-  let base = Lib.Config.base () in
+  let base = Lib.Config.config.enc_base in
   let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base) in
   helper Z.minus_one n
 ;;
@@ -68,7 +72,7 @@ let join_int_model _tys prefix m =
     let shrink_ir_model =
       Base.Map.Poly.map_keys_exn m ~f:(function
         | Ir.Var s -> Ast.Any_atom (Ast.var s Ast.I)
-        | Ir.Pow2 _ -> assert false)
+        | Ir.Pow _ -> assert false)
     in
     Env.enrich prefix shrink_ir_model
   in
@@ -150,11 +154,11 @@ let rec model_from_parts_regexes_env tys model regexes env' =
       | `Int eia -> begin
         match key with
         | Lib.Ir.Var _ -> data
-        | Pow2 _ -> `Int (logBaseZ eia)
+        | Lib.Ir.Pow _ -> `Int (logBaseZ eia)
       end)
     |> Map.map_keys_exn ~f:(function
       | Lib.Ir.Var _ as v -> v
-      | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
+      | Lib.Ir.Pow v -> Lib.Ir.Var v)
   in
   let model = join_int_model tys env' model in
   (*New code goes here *)
@@ -173,7 +177,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
         let data =
           match data with
           | `Int c ->
-            if c > Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ()))
+            if c > Z.(pow (Lib.Config.config.enc_base) (Lib.Config.huge_const ()))
             then raise Too_long_model
             else (
               try Z.to_int c with
@@ -632,7 +636,7 @@ type state =
 
 let () =
   Smtml.Expr.use_eval := false;
-  let f =
+  let smt_f =
     match Fpath.of_string config.input_file with
     | Result.Error (`Msg msg) ->
       Format.eprintf "%s\n%!" msg;
@@ -676,7 +680,7 @@ let () =
                   eia
                     (Eia.leq
                        (Atom (Var (v, I)))
-                       (Const Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ())))))
+                       (Const Z.(pow (Lib.Config.config.enc_base) (Lib.Config.huge_const ())))))
                 :: acc
               | _ -> acc)
             |> Lib.Ast.land_
@@ -830,7 +834,7 @@ let () =
       List.fold_left
         exec
         { asserts = []; prev = None; last_result = None; tys = Map.empty }
-        f
+        smt_f
     with
     | Lib.Fe.UnsupportedException _ when Lib.Config.is_quiet () ->
       Format.eprintf "\027[31mFronted error\027[0m\n%!";

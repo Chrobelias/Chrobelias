@@ -533,8 +533,8 @@ struct
   ;;
 
   let to_exp = function
-    | Ir.Pow2 _ -> failwith "Expected var"
-    | Ir.Var var -> Ir.pow2 var
+    | Ir.Var var -> Ir.pow var
+    | _ -> failwith "Expected var"
   ;;
 
   let decide_order vars =
@@ -979,7 +979,7 @@ struct
                         |> List.map (fun x ->
                           let over_x =
                             Map.of_alist_exn
-                              [ x, Z.minus_one; (get_exp x, Z.(Config.base () - one)) ]
+                              [ x, Z.minus_one; (get_exp x, Z.(Config.config.enc_base - one)) ]
                           in
                           Nfa.to_nat (NfaCollection.leq powered_vars over_x Z.minus_one))
                        )
@@ -1018,12 +1018,12 @@ struct
     let rec helper mapVals len order past_order parts =
       let len_of_var = function
         | Ir.Var var -> Map.find_exn mapVals var |> Extra.nat_model_to_int |> logBaseZ
-        | Ir.Pow2 var -> Map.find_exn mapVals var |> Extra.nat_model_to_int |> Z.to_int
+        | Ir.Pow var -> Map.find_exn mapVals var |> Extra.nat_model_to_int |> Z.to_int
       in
       match order with
       | [] -> Result.Ok mapVals
       | (Ir.Var _ as v) :: tl -> helper mapVals len tl (v :: past_order) parts
-      | (Ir.Pow2 var as exp) :: tl ->
+      | (Ir.Pow var as exp) :: tl ->
         (match parts with
          | [] ->
            failwith
@@ -1033,7 +1033,7 @@ struct
              past_order
              |> List.find (function
                | Ir.Var var2 when var2 = var -> true
-               | Ir.Pow2 _ -> true
+               | Ir.Pow _ -> true
                | _ -> false)
            in
            trace_log
@@ -1104,7 +1104,7 @@ struct
         let free_atoms = Ir.collect_free_atoms ir in
         fun k ->
           match k with
-          | Ir.Pow2 _ -> decide good (get_exp k)
+          | Ir.Pow _ -> decide good (get_exp k)
           | Ir.Var _ ->
             if light
             then Map.mem map k
@@ -1122,7 +1122,7 @@ struct
                 Z.mul
                   v
                   (match k with
-                   | Ir.Pow2 x -> pow2z (get_val map (Var x))
+                   | Ir.Pow x -> pow2z (get_val map (Var x))
                    | Ir.Var _ -> get_val map k))
               |> Base.Sequence.fold ~init:c ~f:Z.( - )
             in
@@ -1627,7 +1627,7 @@ let check_sat ir
                   let v =
                     match k with
                     | Ir.Var _ -> v
-                    | Pow2 _ ->
+                    | Ir.Pow _ ->
                       let logBase =
                         match Config.config.mode with
                         | `Lsb -> Lsb.logBaseZ
@@ -1639,7 +1639,7 @@ let check_sat ir
                 | Some `Str ->
                   failwith "there is something strange: there is string variable in EIA")
               |> Map.map_keys_exn ~f:(function
-                | Ir.Pow2 k as atom -> get_exp atom
+                | Ir.Pow k as atom -> get_exp atom
                 | atom -> atom) (*|> filter_internal*))
          in
          `Sat f)

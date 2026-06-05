@@ -242,7 +242,7 @@ module Id_symantics :
   let pow_minus_one t = pow (const (-1)) t
 
   let pow2var c =
-    Ast.Eia.pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var c I))
+    Ast.Eia.pow (Ast.Eia.const (Config.config.enc_base)) (Ast.Eia.atom (Ast.var c I))
   ;;
 
   let unsupp s = Ast.Unsupp s
@@ -259,7 +259,7 @@ let apply_term_symantics
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Const base, p) when base = Z.minus_one -> S.pow_minus_one (helperT p)
-    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Config.base () ->
+    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Config.config.enc_base ->
       S.pow (S.constz base) (S.var x)
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
@@ -559,7 +559,7 @@ let make_main_symantics ?alpha ?agressive env =
 
     let str_len2 = function
       | Ast.Eia.Str_const s ->
-        Id_symantics.constz Z.(pow (Config.base ()) (String.length s) - one)
+        Id_symantics.constz Z.(pow (Config.config.enc_base) (String.length s) - one)
       | s -> Id_symantics.str_len2 s
     ;;
 
@@ -570,7 +570,7 @@ let make_main_symantics ?alpha ?agressive env =
           [ Ast.Eia.mul
               [ Id_symantics.iofs lhs
               ; Ast.Eia.pow
-                  (Id_symantics.constz (Config.base ()))
+                  (Id_symantics.constz (Config.config.enc_base))
                   (Id_symantics.constz (Z.of_int (String.length s)))
               ]
           ; Id_symantics.constz (Z.of_string s)
@@ -691,7 +691,7 @@ let make_main_symantics ?alpha ?agressive env =
       | c, [ h ] when Z.equal c Z.one -> h
       | c, xs when Z.equal c Z.one -> Ast.Eia.mul (List.sort compare_term xs)
       | c, [ Pow ((Const base_ as base), Add [ Const v1; v ]) ]
-        when Z.(equal c (Config.base ())) && base_ = Config.base () && v1 = Z.minus_one ->
+        when Z.(equal c (Config.config.enc_base)) && base_ = Config.config.enc_base && v1 = Z.minus_one ->
         pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
       | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)
@@ -1209,10 +1209,10 @@ let find_vars_for_under2 ast =
     (*function*)
     | Ast.Eia.Mul [ Atom (Var (v, _)); Pow (Const base, _) ]
     | Ast.Eia.Mul [ Pow (Const base, _); Atom (Var (v, _)) ]
-      when Z.(equal (Config.base ()) base) -> S.add acc v
+      when Z.(equal (Config.config.enc_base) base) -> S.add acc v
     | Mul [ Const _; Atom (Var (v, I)); Pow (Const base, _) ]
-      when Z.(equal (Config.base ()) base) -> S.add acc v
-    | Mul [ Atom (Var (v, _)); Pow (Const base, _) ] when Z.(equal (Config.base ()) base)
+      when Z.(equal (Config.config.enc_base) base) -> S.add acc v
+    | Mul [ Atom (Var (v, _)); Pow (Const base, _) ] when Z.(equal (Config.config.enc_base) base)
       -> S.add acc v
     | Mul [ Atom (Var (v1, _)); Atom (Var (v2, _)) ] -> S.add (S.add acc v1) v2
     | t ->
@@ -1242,11 +1242,11 @@ let%expect_test _ =
   in
   test
     TS.(
-      add [ pow (constz (Config.base ())) (var "x"); mul [ const 2; var "y" ] ] = var "z");
+      add [ pow (constz (Config.config.enc_base)) (var "x"); mul [ const 2; var "y" ] ] = var "z");
   [%expect ""];
-  test TS.(mul [ pow (constz (Config.base ())) (var "x"); var "y" ] = var "z");
+  test TS.(mul [ pow (constz (Config.config.enc_base)) (var "x"); var "y" ] = var "z");
   [%expect "y"];
-  test TS.(mul [ var "y"; pow (constz (Config.base ())) (var "x") ] = var "z");
+  test TS.(mul [ var "y"; pow (constz (Config.config.enc_base)) (var "x") ] = var "z");
   [%expect "y"];
   ()
 ;;
@@ -1274,7 +1274,7 @@ let shrink_variables ast =
     ;;
 
     let leq l r =
-      let base = constz (Config.base ()) in
+      let base = constz (Config.config.enc_base) in
       let open Eia in
       (* Format.printf "TRACE: @[%a@]\n%!" Ast.pp_smtlib2 (Id_symantics.leq l r); *)
         match l, r with
@@ -1482,7 +1482,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     (*let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)*)
     let pow_minus_one t = pow (constz Z.minus_one) t
     let exists vars x = failwith "tbd"
-    let pow2var s = pow (constz (Config.base ())) (var s)
+    let pow2var s = pow (constz (Config.config.enc_base)) (var s)
     let str_len2 _ = failwith "not implemented"
     let pp_str = Smtml.Expr.pp
     let const c = constz (Z.of_int c)
@@ -2644,7 +2644,7 @@ let arithmetize ast env =
   let module Set = Base.Set.Poly in
   (*let exception StrVar_In_Arithmetize in*)
   let strlens s = String.concat "" [ "strlen"; s ] in
-  let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
+  let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.config.enc_base)) in
   (* let in_stoi2 v = Ast.in_stoi2 v ast in *)
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
@@ -2910,7 +2910,7 @@ let arithmetize ast env =
               let phs = leq (Ast.Eia.const Z.zero) v :: phs in
               let phs =
                 leq (pow_base v) term'
-                :: lt term' (Mul [ const (Config.base ()); pow_base v ])
+                :: lt term' (Mul [ const (Config.config.enc_base); pow_base v ])
                 :: phs
               in
               v, phs

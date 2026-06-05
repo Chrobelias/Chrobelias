@@ -271,7 +271,7 @@ module Bv = struct
   let eos_with_mask mask = Z.zero, bv_of_list mask
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    assert (base = Config.config.enc_base);
     Z.shift_left Z.one c, bv_of_list mask
   ;;
 
@@ -509,7 +509,7 @@ module StrBv = struct
   ;;
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    assert (base = Config.config.enc_base);
     let len = max (List.fold_left max 0 mask) c + 1 in
     ( bv_init len (fun i ->
         if not (List.mem i mask) then u_null else if i = c then u_one else u_zero)
@@ -651,7 +651,7 @@ module Str = struct
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let full_alpha =
-      Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1)
+      Char.code '0' -- (Char.code '0' + Z.to_int (Config.config.enc_base) - 1)
       |> List.map Char.chr
     in
     let full_alpha = Option.value ~default:full_alpha alpha in
@@ -695,7 +695,7 @@ module Str = struct
   ;;
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    assert (base = Config.config.enc_base);
     let len = max (List.fold_left max 0 mask) c + 1 in
     Array.init len (fun i ->
       if not (List.mem i mask) then u_null else if i = c then '1' else '0')
@@ -2004,7 +2004,7 @@ struct
                     if
                       !flag
                       || Label.alphabet
-                         |> List.take (Z.to_int (Config.base ()))
+                         |> List.take (Z.to_int (Config.config.enc_base))
                          |> List.for_all (fun c -> Set.mem symbols c)
                     then label1'
                     else label1)

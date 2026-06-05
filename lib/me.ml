@@ -13,7 +13,7 @@ let return = Result.ok
 let ( let* ) = Result.bind
 
 let as_var = function
-  | Ir.Pow2 var -> Ir.var var
+  | Ir.Pow var -> Ir.var var
   | Ir.Var var -> Ir.var var
 ;;
 
@@ -223,7 +223,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let rec pow ~base exp =
-    let two = Config.base () in
+    let two = Config.config.enc_base in
     let four = Z.(two * two) in
     match base, exp with
     | Poly (base_poly, base, base_sups), _ when Map.is_empty base_poly && base = four ->
@@ -243,7 +243,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
          in
          let merged_sups, var =
            match Map.min_elt_exn exp_map with
-           | Var s, coeff when Q.(coeff = one) -> merged_sups, Ir.pow2 s
+           | Var s, coeff when Q.(coeff = one) -> merged_sups, Ir.pow s
            | Var s, coeff ->
              let newv : string = Ir.internal_name () in
              ( Ir.eq
@@ -251,15 +251,15 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
                     [ Ir.Var newv, Z.minus_one; Ir.var s, Q.to_bigint coeff ])
                  Z.zero
                :: merged_sups
-             , Ir.pow2 newv )
-           | Pow2 s, coeff when exp_c = Z.zero ->
+             , Ir.pow newv )
+           | Pow s, coeff when exp_c = Z.zero ->
              let newv : string = Ir.internal_name () in
              ( Ir.eq
                  (Map.of_alist_exn
-                    [ Ir.Var newv, Z.minus_one; Pow2 s, Q.to_bigint coeff ])
+                    [ Ir.Var newv, Z.minus_one; Pow s, Q.to_bigint coeff ])
                  Z.zero
                :: merged_sups
-             , Ir.pow2 newv )
+             , Ir.pow newv )
            | x ->
              raise
                (Unsupported_constraint
@@ -282,12 +282,12 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
            Ir.eq mapa c
          in
          (* Debug.printfln "new variable %a for " Ir.pp_atom var; *)
-         Poly (Map.singleton (Ir.pow2 var) coeff, Z.zero, (sup1 :: base_sups) @ exp_sups))
+         Poly (Map.singleton (Ir.pow var) coeff, Z.zero, (sup1 :: base_sups) @ exp_sups))
     | Poly (base_poly, c, base_sups), Symbol (exp_symbol, exp_sups)
       when Map.length base_poly = 0 && c = two ->
       let poly =
         match exp_symbol with
-        | Var v -> Map.singleton (Ir.pow2 v) Q.one
+        | Var v -> Map.singleton (Ir.pow v) Q.one
         | _ -> failwith "unreachable"
       in
       let sups = base_sups @ exp_sups in
@@ -297,7 +297,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
         (Format.asprintf
            "only the same base %a is supported in exponents (got %a)"
            Z.pp_print
-           (Config.base ())
+           (Config.config.enc_base)
            Ir.pp_atom
            a)
     | Poly (base_poly, base_c, base_sups), _ ->
@@ -305,7 +305,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
         (Format.asprintf
            "only the same base %a is supported in exponents (got %a)"
            Z.pp_print
-           (Config.base ())
+           (Config.config.enc_base)
            Z.pp_print
            base_c)
   ;;
@@ -316,7 +316,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
       let u = Ir.internal () in
       Symbol (u, [ Ir.slen u (Ir.var v) ])
     | Ast.Eia.Str_const s ->
-      Poly (Map.empty, Z.(pow (Config.base ()) (String.length s) - one), [])
+      Poly (Map.empty, Z.(pow (Config.config.enc_base) (String.length s) - one), [])
     | _ -> failwith "unreachable"
   ;;
 
@@ -616,12 +616,12 @@ let ir_of_ast env ast =
 let rec eia_of_ir : Ir.t -> Ast.t =
   let ir_atom_to_eia_term = function
     | Ir.Var s -> Ast.Eia.atom (Ast.var s I)
-    | Ir.Pow2 s ->
-      Ast.Eia.pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var s I))
+    | Ir.Pow s ->
+      Ast.Eia.pow (Ast.Eia.const (Config.config.enc_base)) (Ast.Eia.atom (Ast.var s I))
   in
   let ir_atom_to_atom = function
     | Ir.Var s -> Ast.Any_atom (Ast.Var (s, I))
-    | Ir.Pow2 _ -> failwith "only vars are supported to be converted back in AST"
+    | Ir.Pow _ -> failwith "only vars are supported to be converted back in AST"
   in
   function
   | True -> Ast.true_

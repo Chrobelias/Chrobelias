@@ -105,16 +105,16 @@ let alpha_compare =
          (match unify subst r1 r2 with
           | None -> String.compare r1 r2
           | Some _ -> String.compare r1 r2))
-    | Exists (Var _ :: [], _), Exists (Pow2 _ :: [], _)
-    | Stoi (Var _, Var _), Stoi (Pow2 _, _)
-    | Stoi (Var _, Var _), Stoi (Var _, Pow2 _)
-    | SLen (Var _, Var _), SLen (Pow2 _, _)
-    | SLen (Var _, Var _), SLen (Var _, Pow2 _) -> raise (Exit (-1))
-    | Stoi (Pow2 _, _), Stoi (_, _)
-    | Stoi (Var _, Pow2 _), Stoi (_, _)
-    | SLen (Pow2 _, _), SLen (_, _)
-    | SLen (Var _, Pow2 _), SLen (_, _) -> 1
-    | Exists (Pow2 _ :: [], _), Exists (_ :: [], _) -> 1
+    | Exists (Var _ :: [], _), Exists (Pow _ :: [], _)
+    | Stoi (Var _, Var _), Stoi (Pow _, _)
+    | Stoi (Var _, Var _), Stoi (Var _, Pow _)
+    | SLen (Var _, Var _), SLen (Pow _, _)
+    | SLen (Var _, Var _), SLen (Var _, Pow _) -> raise (Exit (-1))
+    | Stoi (Pow _, _), Stoi (_, _)
+    | Stoi (Var _, Pow _), Stoi (_, _)
+    | SLen (Pow _, _), SLen (_, _)
+    | SLen (Var _, Pow _), SLen (_, _) -> 1
+    | Exists (Pow _ :: [], _), Exists (_ :: [], _) -> 1
     | Exists ([], _), Exists (_, _) | Exists (_, _), Exists ([], _) ->
       (* TODO(Kakadu): change representation c *)
       failwith "Should not happen"
