@@ -1681,20 +1681,38 @@ module Parametric (Label : ParL) = struct
       , each (fun nfa -> nfa.final)
       , each (fun nfa -> nfa.extra) )
     in
-    (* Here I compose the acceptance condition: take [skel] and map each 
-    leaf = a Boolean variable Atom_i to a disjunction of 
-    Boolean variables P_i_n final states of the i-th nfa in [nfas]; 
-    n is the number of the state *)
-    let accept_cond =
-      AstL.map
-        (function
-          | Pred s ->
-            let n = AstL.get_atom_num_exn s in
-            AstL.lor_ (List.nth finals n |> Set.to_list |> List.map (SimplI.get_predi n))
-          | ast -> ast)
-        skel
+    let is_final node =
+      let bl = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
+      let ph =
+        AstL.map
+          (function
+            | Pred s ->
+              let n = AstL.get_atom_num_exn s in
+              if List.nth bl n then AstL.true_ else AstL.false_
+            | ast -> ast)
+          skel
+      in
+      match SimplI.check_sat ph with
+      | `Sat -> true
+      | `Unsat | `Unknown -> false
     in
-    Debug.printfln "Acc cond: %a\n%!" AstL.pp_smtlib2 accept_cond;
+    let final_states =
+      transitions
+      |> List.map (fun graph -> List.init (Array.length graph) Fun.id)
+      |> Utils.cartesian2
+      |> List.filter is_final
+    in
+    let non_final_states =
+      transitions
+      |> List.map (fun graph -> List.init (Array.length graph) Fun.id)
+      |> Utils.cartesian2
+      |> List.filter (fun state -> not (is_final state))
+    in
+    let accept_cond =
+      non_final_states
+      |> List.map (fun state -> AstL.lnot (AstL.Pred (SimplI.pred_name2 state)))
+      |> AstL.land_
+    in
     let successors state visited =
       Debug.printfln
         "State: [%a]"
@@ -1730,18 +1748,6 @@ module Parametric (Label : ParL) = struct
       in
       Seq.unfold (fun acc -> succ acc) (state :: visited)
     in
-    (* Takes [skel] and [node] and constructs a formula with respect to the fact that the states in 
-    [node] = (state_0,...,state_n) make the acceptance condition true or not *)
-    let is_final node =
-      let is_final = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
-      AstL.map
-        (function
-          | Pred s ->
-            let n = AstL.get_atom_num_exn s in
-            if List.nth is_final n then AstL.true_ else AstL.false_
-          | ast -> ast)
-        skel
-    in
     let dfs start =
       let rec rdfs path visited node =
         (* Debug.printfln "Node: ";
@@ -1750,14 +1756,13 @@ module Parametric (Label : ParL) = struct
         List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
         if not (List.mem node visited)
         then (* Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
-          begin match SimplI.check_sat (is_final node) with
-          | `Sat -> raise (Sat_found path)
-          | `Unsat | `Unknown ->
+          if List.mem node final_states
+          then raise (Sat_found path)
+          else
             Seq.fold_left
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-          end
         else visited
       in
       rdfs [] [] start

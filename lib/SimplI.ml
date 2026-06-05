@@ -800,7 +800,7 @@ let pred_name state = "P" ^ Int.to_string state
 let get_predi n i = AstL.Pred (Format.asprintf "P_%d_%d" n i)
 
 let pred_name2 states =
-  List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "P" states
+  List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "PP" states
 ;;
 
 let get_states_z3 ph get_state =
@@ -841,7 +841,7 @@ let get_states_z3 ph get_state =
               match k.name, v with
               | Smtml.Symbol.Simple s, Smtml.Value.True when Option.is_some (get_state s)
                 ->
-                (* debug_printfln "State: %d is taken" (get_state s); *)
+                (* debug_printfln "State: %s is taken" s; *)
                 (land_ digits, Option.get (get_state s)) :: acc
               | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
               | _ -> acc)
