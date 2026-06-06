@@ -2,7 +2,6 @@
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "simpl" fmt
 
-
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
   aux j []
@@ -667,7 +666,8 @@ let basic_simplify step ?multiple env ast =
     | true, equal ->
       let () = trace_log "%a" (pp ~title:"Something ready to substitute") env2 in
       let __ () = trace_log "ast2 = @[%a@]" AstL.pp_smtlib2 ast2 in
-      if not equal then trace_log "iter(%a)= @[%a@]" pp_step next_step AstL.pp_smtlib2 ast2;
+      if not equal
+      then trace_log "iter(%a)= @[%a@]" pp_step next_step AstL.pp_smtlib2 ast2;
       loop next_step (merge_exn env2 env) ast2
     | false, false ->
       trace_log "iter(%a)= @[%a@]" pp_step next_step AstL.pp_smtlib2 ast2;
@@ -745,7 +745,7 @@ let apply_symnatics (module S : Smtml_symantics) =
 
 let deparametrize base ast =
   let open AstL in
-  let base_eq = Lia (Eq (get_par 0, Lia.const (Z.of_int base))) in
+  let base_eq = Lia (Eq (get_par 0, Lia.const base)) in
   let digits_neq =
     let open Lia in
     ast
@@ -753,14 +753,14 @@ let deparametrize base ast =
     |> List.map (fun var ->
       land_
         [ Lia (leq (const Z.zero) (atom (int_var var)))
-        ; Lia (leq (atom (int_var var)) (const (Z.of_int (base - 1))))
+        ; Lia (leq (atom (int_var var)) (const Z.(base - one)))
         ])
     |> land_
   in
   land_ [ base_eq; digits_neq; ast ]
 ;;
 
-let check_sat ?(base = 10) ast =
+let check_sat ?(base = Config.config.enc_base) ast =
   let open AstL in
   match ast |> deparametrize base |> basic_simplify [ 0 ] empty |> fst with
   | ph when AstL.equal ph true_ -> `Sat

@@ -391,8 +391,7 @@ module MsbPar = struct
   type t = Nfa.t
   type v = Par.u
 
-  let basei = 10
-  let base = Z.of_int basei
+  let base = Config.config.enc_base
 
   (** returns an nfa recognizing every integer base [base]*)
   let n () =

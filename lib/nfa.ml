@@ -750,7 +750,7 @@ module Par = struct
   open AstL
 
   (** Used in [run nfa] below to check existence of transitions *)
-  let base = 10
+  let base = Config.config.enc_base
 
   let const c = Lia.Const (Z.of_int c)
   let eq lhs rhs = Lia (Eq (lhs, rhs))
