@@ -452,6 +452,7 @@ module MsbPar = struct
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
   let eq vars term c =
+    trace_log "Base in Boigelot-eq: %a" Z.pp_print base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
     let term =
@@ -538,6 +539,7 @@ module MsbPar = struct
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
   let leq vars term c =
+    trace_log "Base in Boigelot-leq: %a" Z.pp_print base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
     let term =

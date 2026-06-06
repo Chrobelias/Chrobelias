@@ -8,6 +8,7 @@ module Map = Base.Map.Poly
 module Sequence = Base.Sequence
 
 let config = Config.config
+let trace_log fmt = Debug.trace "nfa" fmt
 
 exception Too_big_nfa
 
@@ -651,7 +652,7 @@ module Str = struct
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let full_alpha =
-      Char.code '0' -- (Char.code '0' + Z.to_int (Config.config.enc_base) - 1)
+      Char.code '0' -- (Char.code '0' + Z.to_int Config.config.enc_base - 1)
       |> List.map Char.chr
     in
     let full_alpha = Option.value ~default:full_alpha alpha in
@@ -816,7 +817,9 @@ module Par = struct
           |> List.filter (fun (_, state) -> is_final state)
           |> function
           | [] -> []
-          | asts -> SimplI.get_states_bool_comb base (AstL.land_ phs) asts
+          | asts ->
+            trace_log "Base in filter_states: %a" Z.pp_print base;
+            SimplI.get_states_bool_comb base (AstL.land_ phs) asts
         with
         | [] -> SimplI.get_states_bool_comb base (AstL.land_ phs) active_transitions
         | states ->
@@ -2004,7 +2007,7 @@ struct
                     if
                       !flag
                       || Label.alphabet
-                         |> List.take (Z.to_int (Config.config.enc_base))
+                         |> List.take (Z.to_int Config.config.enc_base)
                          |> List.for_all (fun c -> Set.mem symbols c)
                     then label1'
                     else label1)
