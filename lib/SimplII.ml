@@ -3118,7 +3118,7 @@ let run_string_simplify ast =
            (ast' |> rewrite_via_concat var_info (*|> over_concat_len*))
        with
        | `Sat env -> `Sat env
-       | `Unsat -> `Unsat ast'
+       | `Unsat core -> `Unsat core
        | `Unknown (ast, env, _, _) -> `Unknown (ast, env, approxed_asts)))
   |> fun res -> res
 ;;
@@ -3187,7 +3187,38 @@ let%test_module "unsat core" =
                         (= x 100)))
         |}]
     ;;
+    let%expect_test "strings" =
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ eq_str (str_var "x") (str_const "Quentin")
+        ; eq_str (str_var "y") (str_var "z")
+        ; eqz (iofs (str_var "z")) (const 15)
+        ; in_re (str_var "x") (Regex.symbol ("Tarantino" |> String.to_seq |> List.of_seq))
+        ]);
+      (* wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ leq (var "w") (const 15)
+        ; eqz (var "x") (const 10)
+        ; eqz (add [var "x"; var "y"]) (const 20)
+        ; eqz (var "y") (const 11)
+        ; eqz (var "z") (const 30)
+        ; leq (var "x") (const 50)
+        ]); FIXME: poor simplificator *)
+      [%expect {|
+        unsat (core = (and
+                        (= (+ (- 3) x) 0)
+                        (= x 5)))
+        unsat (core = (and
+                        (= (+ (- 3) x) 0)
+                        (= x 25)))
+        unsat (core = (and
+                        (<= (+ (- 5) x) 0)
+                        (= x 100)))
+        |}]
+    ;;
+
   end)
+
 ;;
 
 let theory_lemmas map =
@@ -3772,18 +3803,29 @@ let arithmetize str_vars ast env =
   let (module Symantics) = make_main_symantics ~alpha env in
   (*Format.printf "STR_VARS %a\n%!" (Format.pp_print_list Format.pp_print_string) str_vars;
   Format.printf "1 -> %a\n%!" Ast.pp_smtlib2 ast;*)
+  let with_empty_cases ast =
+    let open Ast in
+    let open Ast.Eia in
+    let important_vars = get_stoi_conc_vars ast in
+    Utils.powerset important_vars
+    |> List.map (fun empty_vars ->
+      List.map (fun var -> eia (Eq (Atom (Var (var, S)), str_const "", S))) empty_vars)
+    |> List.map (fun ast' -> land_ (ast :: ast'))
+  in
+
   let asts_n_regexes =
     ast
     |> split_concats
+    |> with_empty_cases
+    |> List.concat_map Ast.to_dnf
     (*|> fun ast -> 
   Format.printf "2 -> %a\n%!" Ast.pp_smtlib2 ast; ast*)
-    (*|> with_empty_cases*)
-    |> fun ast -> ast |> apply_symantics (module Symantics) |> fold_regexes str_vars
+    |> List.map (fun ast -> ast |> apply_symantics (module Symantics) |> fold_regexes str_vars)
     (*|> fun ((ast, _) as res) -> 
   Format.printf "3 -> %a\n%!" Ast.pp_smtlib2 ast; res*)
   in
   asts_n_regexes
-  |> fun (ast, regexes) ->
+  |> List.concat_map (fun (ast, regexes) ->
   arithmetize var_info str_vars ast
   |> Ast.to_dnf
   |> List.map (fun ast' ->
@@ -3797,7 +3839,7 @@ let arithmetize str_vars ast env =
         regexes
         regexes'
     in
-    ast', env, regexes)
+    ast', env, regexes))
 ;;
 
 (*|> split_concats var_info*)

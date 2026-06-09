@@ -647,7 +647,7 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
       "These atomic formulas are unsupported: %a\n%!"
       (Format.pp_print_list Lib.Ast.pp_smtlib2)
       unsupported_atomic_formulas;
-    let ast = land_ (Lib.SimplII.split_concats ast :: split_vars) in
+    let ast = land_ (ast :: split_vars) in
     log "After string approximations: %a\n%!" pp_smtlib2 ast;
     if config.stop_after == `Pre_dpll
     then unknown ast Lib.Env.empty
