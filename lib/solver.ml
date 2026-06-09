@@ -90,12 +90,6 @@ struct
          if Nfa.run nfa then NfaCollection.n () else NfaCollection.z ()
        | Ir.SReg (atom, reg) -> Eval.eval_sreg vars atom reg
        | Ir.SRegRaw (atom, reg) -> Eval.eval_sregraw vars atom reg
-       | Ir.SLen (atom, atom') ->
-         NfaCollection.strlen
-           ~alpha:None
-           ~dest:(Map.find_exn vars atom')
-           ~src:(Map.find_exn vars atom)
-           ()
        | _ -> failwith "Unexpected constraint")
       |> fun nfa ->
       trace_log "Done %a" Ir.pp ir;

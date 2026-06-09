@@ -68,59 +68,28 @@ module type ParL = sig
     -> (t * state list) list
 end
 
+module Par : sig
+  include ParL with type u = int and type t = AstL.t
+end
+
 module type L = sig
   include BasicL
 
   val base : Z.t
   val alphabet : u List.t
   val u_zero : u
+  val u_one : u
   val u_null : u
   val u_eos : u
   val is_any_at : int -> t -> bool
-  val truncate : int -> t -> t
-  val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
-  val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
-  val zero_with_mask : int list -> t
   val eos_with_mask : int list -> t
-  val singleton_with_mask : int -> int list -> t
-  val one_with_mask : int list -> t
   val alpha : t -> u Set.t
-end
-
-module Par : sig
-  include ParL with type u = int and type t = AstL.t
-end
-
-module Bv : sig
-  include L with type u = bool
 end
 
 module Str : sig
   include L with type u = char and type t = char array
-
-  val u_null : u
-  val u_eos : u
-  val u_one : u
-  val is_end_char : u -> bool
-  val is_eos_at : int -> t -> bool
-  val is_any_at : int -> t -> bool
-  val is_zero_at : int -> t -> bool
-  val is_one_at : int -> t -> bool
-end
-
-module StrBv : sig
-  include L with type u = Z.t and type t = Z.t * Z.t
-
-  val u_null : u
-  val u_eos : u
-  val u_one : u
-  val is_end_char : u -> bool
-  val is_eos_at : int -> t -> bool
-  val is_any_at : int -> t -> bool
-  val is_zero_at : int -> t -> bool
-  val is_one_at : int -> t -> bool
 end
 
 (** A modle type representing automata and basic operations for / over them. *)
@@ -229,59 +198,27 @@ module type Type = sig
 
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
-  val any_n_paths : t -> ?len:int -> int -> v list list
-  val any_n_paths_range : t -> ?len:int -> int -> v list list
-  val all_paths_of_len : t -> int -> v list list
-  val shrink : t -> t
-  val truncate : int -> t -> t
-  val reenumerate : (int, int) Map.t -> t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
-  val to_nat : t -> u
-  val of_nat : u -> t
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
-  val find_c_d' : t -> (int * int) Seq.t
-  val split : t -> (t * t) list
-  val equal_start_and_final : t -> t -> bool
   val alpha : t -> v Set.t
   val deriv : t -> v list -> u
-  val deriv_final : t -> v list -> u
-end
-
-module type NatType = sig
-  include Type
-
-  val chrobak : t -> (int * int) Seq.t
-
-  val get_chrobaks_sub_nfas
-    :  t
-    -> res:deg
-    -> temp:deg
-    -> vars:int list
-    -> no_model:bool
-    -> (t * (int * int) Seq.t * (int -> (v list list * int) option)) Seq.t
-
-  val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
 end
 
 module Lsb (Label : L) : sig
   type t
 
-  include NatType with type v = Label.u and type u = t and type t := t
+  include Type with type v = Label.u and type u = t and type t := t
 
-  val filter_map : t -> (Label.t * int -> (Label.t * int) option) -> t
   val path_of_len2 : t -> var:int -> len:int -> v list option
 end
 
-module MsbNat (Label : L) : sig
-  include NatType with type v = Label.u
-end
-
 module Msb (Label : L) : sig
-  include Type with type u = MsbNat(Label).t and type v = Label.u
+  type t
 
-  val filter_map : t -> (Label.t * int -> (Label.t * int) option) -> t
+  include Type with type v = Label.u and type u = t and type t := t
+
   val of_lsb : Lsb(Label).t -> t
 end
 

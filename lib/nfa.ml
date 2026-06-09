@@ -12,59 +12,8 @@ let trace_log fmt = Debug.trace "nfa" fmt
 
 exception Too_big_nfa
 
-module Debug = struct
-  let nfa_cnt = ref 0
-  let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
-
-  let fmt =
-    if flag ()
-    then Format.formatter_of_out_channel Stdio.stderr
-    else
-      Format.formatter_of_out_functions
-        { out_string = (fun _ _ _ -> ())
-        ; out_flush = (fun _ -> ())
-        ; out_newline = (fun _ -> ())
-        ; out_spaces = (fun _ -> ())
-        ; out_indent = (fun _ -> ())
-        }
-  ;;
-
-  let _printf str = Format.fprintf fmt (str ^^ "%!")
-  let printfln str = Format.fprintf fmt (str ^^ "\n%!")
-
-  let dump_nfa ?msg ?vars format_nfa nfa =
-    if flag ()
-    then (
-      let ( !< ) a = Format.sprintf a in
-      let name =
-        nfa_cnt := !nfa_cnt + 1;
-        Format.sprintf "%d" !nfa_cnt
-      in
-      let subdir = string_of_int (Unix.getpid ()) in
-      let supdir = "debugs" in
-      Sys.command (!<{|mkdir -p "%s"/"%s"|} supdir subdir) |> ignore;
-      let dir = !<"%s/%s" supdir subdir in
-      let dot_file = !<"%s/n%s.dot" dir name in
-      let svg_file = !<"%s/n%s.svg" dir name in
-      let oc = open_out dot_file in
-      let command = Format.sprintf {|dot -Tsvg "%s" > "%s"|} dot_file svg_file in
-      Format.asprintf "%a" format_nfa nfa |> Printf.fprintf oc "%s";
-      close_out oc;
-      Sys.command command |> ignore;
-      match msg with
-      | Some msg -> printfln msg svg_file
-      | None -> ())
-  ;;
-end
-
-let _pow2 n = List.init n (Fun.const 2) |> List.fold_left ( * ) 1
-
 type deg = int
 type state = int
-
-(* TODO(Kakadu): Gosha, could you add Sets with Int keys
-where it's acceptable, to reduce amount of calls to polymorhos compare *)
-(* module State_set = Base.Set.M (Base.Int) *)
 
 let ( let* ) = Option.bind
 let return = Option.some
@@ -79,14 +28,6 @@ let cartesian_product l1 l2 =
     ~f:(fun x a -> Set.fold ~f:(fun y b -> Set.add y (a, b)) ~init:x l2)
     ~init:Set.empty
     l1
-;;
-
-let rec pow a = function
-  | 0 -> 1
-  | 1 -> a
-  | n ->
-    let b = pow a (n / 2) in
-    b * b * if n mod 2 = 0 then 1 else a
 ;;
 
 (** A modle type representing labels and basic operations over them. *)
@@ -154,412 +95,14 @@ module type L = sig
   val base : Z.t
   val alphabet : u List.t
   val u_zero : u
+  val u_one : u
   val u_null : u
   val u_eos : u
   val is_any_at : int -> t -> bool
-  val truncate : int -> t -> t
-  val is_zero_soft : t -> bool
   val variations : ?alpha:u list -> t -> t list
-  val reenumerate : (int, int) Map.t -> t -> t
   val zero : int -> t
-  val zero_with_mask : int list -> t
   val eos_with_mask : int list -> t
-  val singleton_with_mask : int -> int list -> t
-  val one_with_mask : int list -> t
   val alpha : t -> u Set.t
-end
-
-module Bv = struct
-  type t = Z.t * Z.t
-  type u = bool
-
-  let base = Z.of_int 2
-
-  (* ----------------- Auxiliary functions ----------------- *)
-  let bv_get v i = Z.logand v (Z.shift_left Z.one i) |> Z.equal Z.zero |> not
-
-  let bv_init deg f =
-    List.fold_left
-      (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
-      Z.zero
-      (0 -- (deg - 1))
-  ;;
-
-  let bv_of_list = List.fold_left (fun acc v -> Z.logor acc (Z.shift_left Z.one v)) Z.zero
-
-  let stretch vec mask_list deg =
-    let m =
-      mask_list
-      |> List.mapi (fun i k -> k, Set.singleton i)
-      |> Map.of_alist_reduce ~f:Set.union
-    in
-    let ok =
-      0 -- deg
-      |> List.for_all (fun j ->
-        let js = Map.find m j |> Option.value ~default:Set.empty in
-        Set.for_all ~f:(fun j -> bv_get vec j) js
-        || Set.for_all ~f:(fun j -> bv_get vec j |> not) js)
-    in
-    match ok with
-    | true ->
-      bv_init deg (fun i ->
-        (let* js = Map.find m i in
-         let* j = Set.nth js 0 in
-         let v = bv_get vec j in
-         match v with
-         | true -> Option.some true
-         | false -> Option.none)
-        |> Option.is_some)
-      |> return
-    | false -> Option.none
-  ;;
-
-  let bv_len v = if Z.equal v Z.zero then 0 else Z.log2 v + 1
-
-  let bv_to_list =
-    let rec aux acc z =
-      if Z.equal z Z.zero
-      then acc
-      else (
-        let v = Z.log2 z in
-        aux (v :: acc) (Z.sub z (Z.shift_left Z.one v)))
-    in
-    aux []
-  ;;
-
-  (* ----------------- Implementaton of the interface ----------------- *)
-  let u_zero = false
-  let u_null = false
-  let u_eos = false
-  let get (vec, _mask) = bv_get vec
-
-  let equal (vec1, mask1) (vec2, mask2) =
-    let mask = Z.logand mask1 mask2 in
-    Z.equal (Z.logand vec1 mask) (Z.logand vec2 mask)
-  ;;
-
-  let combine (vec1, mask1) (vec2, mask2) =
-    Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
-  ;;
-
-  let simplify = Fun.id
-
-  let project proj (vec, mask) =
-    let proj = bv_of_list proj in
-    vec, Z.sub mask (Z.logand mask proj)
-  ;;
-
-  let truncate len (vec, mask) =
-    let proj = Z.sub (Z.shift_left Z.one len) Z.one in
-    vec, Z.logand mask proj
-  ;;
-
-  let is_zero (vec, mask) = Z.logand vec mask |> Z.equal Z.zero
-  let is_zero_soft = is_zero
-
-  let variations ?alpha:_ (_, mask) =
-    let mask_list = mask |> bv_to_list in
-    let length = bv_len mask in
-    Iter.int_range ~start:0 ~stop:(pow 2 (List.length mask_list) - 1)
-    |> Iter.map Z.of_int
-    |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
-    |> Iter.map (fun x -> x, mask)
-    |> Iter.to_list
-  ;;
-
-  let zero _deg = Z.zero, Z.zero
-  let zero_with_mask mask = Z.zero, bv_of_list mask
-  let eos_with_mask mask = Z.zero, bv_of_list mask
-
-  let singleton_with_mask c mask =
-    assert (base = Config.config.enc_base);
-    Z.shift_left Z.one c, bv_of_list mask
-  ;;
-
-  let one_with_mask mask = bv_of_list mask, bv_of_list mask
-
-  let pp ppf (vec, mask) =
-    let mask_len = bv_len mask in
-    let vec =
-      Bitv.of_list_with_length (bv_to_list vec |> List.filter (( > ) mask_len)) mask_len
-      |> Bitv.L.to_string
-      |> String.to_seq
-    in
-    let mask =
-      Bitv.of_list_with_length (bv_to_list mask |> List.filter (( > ) mask_len)) mask_len
-      |> Bitv.L.to_string
-      |> String.to_seq
-    in
-    Seq.zip vec mask
-    |> Seq.map (function
-      | _, '0' -> '_'
-      | x, _ -> x)
-    |> String.of_seq
-    |> Format.fprintf ppf "(%s)"
-  ;;
-
-  let pp_u fmt = function
-    | true -> Format.fprintf fmt "1"
-    | false -> Format.fprintf fmt "0"
-  ;;
-
-  let reenumerate map (vec, mask) =
-    let length =
-      max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1)
-    in
-    let vec =
-      bv_init length (fun i ->
-        match Map.find map i with
-        | Some j -> bv_get vec j
-        | None -> false)
-    in
-    let mask =
-      bv_init length (fun i ->
-        match Map.find map i with
-        | Some j -> bv_get mask j
-        | None -> false)
-    in
-    vec, mask
-  ;;
-
-  let of_list l =
-    let label = List.map snd l in
-    let vars = List.map fst l in
-    let bv = bv_init (List.length l) (fun i -> List.nth label i) in
-    let deg = List.fold_left max 0 vars + 1 in
-    let vec = stretch bv vars deg |> Option.get in
-    let mask = bv_of_list vars in
-    vec, mask
-  ;;
-
-  let alpha _ = [ true; false ] |> Set.of_list
-  let alphabet = [ true; false ]
-  let is_any_at i (_, mask) = bv_get mask i = false
-end
-
-module StrBv = struct
-  type t = Z.t * Z.t
-  type u = Z.t
-
-  let base = Z.of_int 10
-  let basei = Z.to_int base
-
-  let u_zero, u_one, u_null, u_eos =
-    Z.one, Z.of_int 2, Z.zero, Z.(pow (of_int 2) basei - one)
-  ;;
-
-  let is_end_char c = c = u_eos || c = u_null
-  let bv_len v = if Z.equal v Z.zero then 0 else (Z.log2 v + 1) / basei
-
-  let rec compose = function
-    | [] -> u_null
-    | x :: xs -> Z.(x + Z.shift_left (compose xs) basei)
-  ;;
-
-  let rec decompose s = function
-    | _ when s = 0 -> []
-    | x ->
-      Z.(x mod Z.shift_left Z.one basei)
-      :: decompose (s - 1) (Z.shift_right_trunc x basei)
-  ;;
-
-  let bv_get v i =
-    Z.shift_right
-      (Z.logand
-         v
-         (Z.sub (Z.shift_left Z.one (basei * (i + 1))) (Z.shift_left Z.one (basei * i))))
-      (basei * i)
-  ;;
-
-  let get (vec, mask) i =
-    match bv_get mask i with
-    | c when c = u_eos -> bv_get vec i
-    | c when c = u_null -> u_null
-    | c ->
-      failwith
-        (Format.asprintf "expected 0b111...111 or 0b0000...000 but found %a" Z.pp_print c)
-  ;;
-
-  let is_any_at i label = get label i = u_null
-  let is_zero_at i label = get label i = u_zero
-  let is_one_at i label = get label i = u_one
-  let is_eos_at i label = get label i = u_eos
-
-  let bv_init deg f =
-    List.fold_left
-      (fun acc v -> Z.logor acc (Z.shift_left (f v) (v * basei)))
-      Z.zero
-      (0 -- (deg - 1))
-  ;;
-
-  let bv_of_list =
-    List.fold_left (fun acc v -> Z.logor acc (Z.shift_left u_eos (v * basei))) Z.zero
-  ;;
-
-  let equal (vec1, mask1) (vec2, mask2) =
-    let mask = Z.logand mask1 mask2 in
-    Z.equal (Z.logand vec1 mask) (Z.logand vec2 mask)
-  ;;
-
-  let combine (vec1, mask1) (vec2, mask2) =
-    Z.logor (Z.logand vec1 mask1) (Z.logand vec2 mask2), Z.logor mask1 mask2
-  ;;
-
-  let simplify = Fun.id
-
-  let project proj (vec, mask) =
-    let proj = bv_of_list proj in
-    vec, Z.sub mask (Z.logand mask proj)
-  ;;
-
-  let truncate len (vec, mask) =
-    let proj = Z.sub (Z.shift_left Z.one len) Z.one in
-    vec, Z.logand mask proj
-  ;;
-
-  let is_zero (vec, mask) =
-    let vec = Z.logand vec mask in
-    0 -- bv_len mask
-    |> List.for_all (fun i ->
-      let c = bv_get vec i in
-      c = u_eos || c = u_null)
-  ;;
-
-  let is_zero_soft (vec, mask) =
-    let vec = Z.logand vec mask in
-    0 -- bv_len vec
-    |> List.for_all (fun i ->
-      let c = bv_get vec i in
-      c = u_eos || c = u_null || c = u_zero)
-  ;;
-
-  let stretch vec mask_list deg =
-    let m =
-      mask_list
-      |> List.mapi (fun i k -> k, Set.singleton i)
-      |> Map.of_alist_reduce ~f:Set.union
-    in
-    bv_init deg (fun i ->
-      (let* js = Map.find m i in
-       let* j = Set.nth js 0 in
-       let v = bv_get vec j in
-       Option.some v)
-      |> Option.value ~default:u_null)
-    |> return
-  ;;
-
-  let variations ?alpha:_ (_, mask) =
-    let full_alpha = 0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x) in
-    let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
-    let rec powerset = function
-      | 0 -> []
-      | 1 -> alpha
-      | i ->
-        let open Base.List.Let_syntax in
-        let ( let* ) = ( >>= ) in
-        let* s = powerset (i - 1) in
-        List.map (fun a -> a @ s) alpha
-    in
-    let length = bv_len mask in
-    let mask_list = decompose length mask in
-    let mask_list =
-      List.filter_map
-        (fun (i, v) -> if v = Z.zero then Option.none else Option.some i)
-        (List.mapi (fun i v -> i, v) mask_list)
-    in
-    match mask_list with
-    | [] -> [ u_null, mask ]
-    | _ ->
-      powerset (List.length mask_list)
-      |> Iter.of_list
-      |> Iter.map compose
-      |> Iter.map (fun x -> stretch x mask_list length |> Option.get)
-      |> Iter.map (fun x -> x, mask)
-      |> Iter.to_list
-  ;;
-
-  let reenumerate map (vec, mask) =
-    let length =
-      max (bv_len mask) ((map |> Map.keys |> List.fold_left max min_int) + 1)
-    in
-    let vec =
-      bv_init length (fun i ->
-        match Map.find map i with
-        | Some j -> bv_get vec j
-        | None -> u_null)
-    in
-    let mask =
-      bv_init length (fun i ->
-        match Map.find map i with
-        | Some j -> bv_get mask j
-        | None -> Z.zero)
-    in
-    vec, mask
-  ;;
-
-  let zero deg = Z.zero, Z.zero
-
-  let zero_with_mask mask =
-    let len = List.fold_left max 0 mask + 1 in
-    bv_init len (fun i -> if List.mem i mask then u_zero else u_null), bv_of_list mask
-  ;;
-
-  let eos_with_mask mask =
-    let len = List.fold_left max 0 mask + 1 in
-    bv_init len (fun i -> if List.mem i mask then u_eos else u_null), bv_of_list mask
-  ;;
-
-  let singleton_with_mask c mask =
-    assert (base = Config.config.enc_base);
-    let len = max (List.fold_left max 0 mask) c + 1 in
-    ( bv_init len (fun i ->
-        if not (List.mem i mask) then u_null else if i = c then u_one else u_zero)
-    , bv_of_list mask )
-  ;;
-
-  let one_with_mask mask =
-    let len = List.fold_left max 0 mask + 1 in
-    bv_init len (fun i -> if List.mem i mask then u_one else u_null), bv_of_list mask
-  ;;
-
-  let pp_u ppf = function
-    | z when z = u_null -> Format.pp_print_char ppf '_'
-    | z when z = u_eos -> Format.pp_print_char ppf '$'
-    | z -> Format.pp_print_int ppf (Z.log2 z)
-  ;;
-
-  let pp ppf (vec, mask) =
-    let mask_len = bv_len mask in
-    let vec = decompose mask_len vec in
-    let mask = decompose mask_len mask in
-    List.combine vec mask
-    |> List.map (function
-      | _, y when y = u_null -> "_"
-      | x, _ when x = u_null -> "#"
-      | x, _ when x = u_eos -> "$"
-      | x, _ -> Int.to_string (Z.log2 x))
-    |> List.fold_left (fun acc x -> acc ^ x) ""
-    |> Format.fprintf ppf "(%s)"
-  ;;
-
-  let of_list l =
-    let label = List.map snd l in
-    let vars = List.map fst l in
-    let bv = bv_init (List.length l) (fun i -> List.nth label i) in
-    let deg = List.fold_left max 0 vars + 1 in
-    let vec = stretch bv vars deg |> Option.get in
-    let mask = bv_of_list vars in
-    vec, mask
-  ;;
-
-  let alpha _ =
-    (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
-    |> Set.of_list
-  ;;
-
-  let alphabet =
-    (0 -- (basei - 1) |> List.map (fun x -> Z.shift_left Z.one x)) @ [ u_null; u_eos ]
-  ;;
 end
 
 module Str = struct
@@ -570,18 +113,13 @@ module Str = struct
   let basei = Z.to_int base
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
-  let is_end_char c = c = u_eos || c = u_null
   let unsafe_get = Array.get
   let get label i = if Array.length label <= i then u_null else Array.get label i
-  let is_eos_at i label = get label i = u_eos
 
   let is_any_at i label =
     let res = get label i = u_null in
     res
   ;;
-
-  let is_zero_at i label = get label i = u_zero
-  let is_one_at i label = get label i = u_one
 
   let equal vec1 vec2 =
     let len = Int.min (Array.length vec1) (Array.length vec2) in
@@ -616,17 +154,7 @@ module Str = struct
       if List.mem i proj then u_null else unsafe_get vec i)
   ;;
 
-  let truncate len vec =
-    Array.init (Array.length vec) (fun i -> if i < len then unsafe_get vec i else u_null)
-  ;;
-
   let is_zero vec = Array.for_all (fun v -> Char.equal v u_eos || Char.equal v u_null) vec
-
-  let is_zero_soft vec =
-    Array.for_all
-      (fun v -> Char.equal v u_eos || Char.equal v u_null || Char.equal v '0')
-      vec
-  ;;
 
   let stretch vec mask_list deg =
     let m =
@@ -685,26 +213,9 @@ module Str = struct
 
   let zero deg = Array.init deg (fun _i -> u_null)
 
-  let zero_with_mask mask =
-    let len = List.fold_left max 0 mask + 1 in
-    Array.init len (fun i -> if List.mem i mask then '0' else u_null)
-  ;;
-
   let eos_with_mask mask =
     let len = List.fold_left max 0 mask + 1 in
     Array.init len (fun i -> if List.mem i mask then u_eos else u_null)
-  ;;
-
-  let singleton_with_mask c mask =
-    assert (base = Config.config.enc_base);
-    let len = max (List.fold_left max 0 mask) c + 1 in
-    Array.init len (fun i ->
-      if not (List.mem i mask) then u_null else if i = c then '1' else '0')
-  ;;
-
-  let one_with_mask mask =
-    let len = List.fold_left max 0 mask + 1 in
-    Array.init len (fun i -> if List.mem i mask then '1' else u_null)
   ;;
 
   let pp_u = Format.pp_print_char
@@ -717,19 +228,6 @@ module Str = struct
       | x -> x)
     |> String.of_seq
     |> Format.fprintf ppf "(%s)"
-  ;;
-
-  let reenumerate map vec =
-    let len =
-      max (Array.length vec) ((map |> Map.keys |> List.fold_left max min_int) + 1)
-    in
-    let vec =
-      Array.init len (fun i ->
-        match Map.find map i with
-        | Some j -> unsafe_get vec j
-        | None -> u_null)
-    in
-    vec
   ;;
 
   let of_list l =
@@ -852,152 +350,6 @@ module Graph (Label : BasicL) = struct
     rev_graph
   ;;
 
-  let reachable_in_range (graph : t) first last (init : state Set.t) =
-    assert (0 <= first);
-    assert (first <= last);
-    let diff = last - first + 1 in
-    let step =
-      let mem = ref Map.empty in
-      fun cur ->
-        match Map.find !mem cur with
-        | Some x -> x
-        | None ->
-          let ans =
-            cur
-            |> Set.to_sequence
-            |> Sequence.concat_map ~f:(fun state ->
-              graph.(state) |> Sequence.of_list |> Sequence.map ~f:snd)
-            |> Set.of_sequence
-          in
-          mem := Map.add_exn !mem ~key:cur ~data:ans;
-          ans
-    in
-    let rec helper n cur =
-      match n with
-      | 0 -> [ cur ], 1
-      | n ->
-        assert (n > 0);
-        let states = step cur in
-        let next, amount = helper (n - 1) states in
-        if amount < diff then cur :: next, amount + 1 else next, amount
-    in
-    helper last init |> fst
-  ;;
-
-  let rec _reachable (graph : t) (start : state Set.t) : state Set.t =
-    let next =
-      start
-      |> Set.to_sequence
-      |> Sequence.concat_map ~f:(fun i -> graph.(i) |> List.map snd |> Sequence.of_list)
-      |> Set.of_sequence
-    in
-    let next = Set.diff next start in
-    if Set.is_empty next then start else _reachable graph (Set.union start next)
-  ;;
-
-  let find_strongly_connected_components (graph : t) =
-    let s = Stack.create () in
-    let rev_graph = reverse graph in
-    let visited = Array.make (verticies graph) false in
-    let dfs1 v =
-      let rec dfs1 v =
-        if visited.(v) |> not
-        then (
-          visited.(v) <- true;
-          let us = graph.(v) |> List.map snd in
-          List.iter (fun u -> if visited.(u) |> not then dfs1 u else ()) us;
-          Stack.push v s)
-      in
-      dfs1 v
-    in
-    Array.iteri (fun v _ -> dfs1 v) graph;
-    let visited = Array.make (verticies graph) false in
-    let rec dfs2 v =
-      if visited.(v) |> not
-      then (
-        visited.(v) <- true;
-        let us = rev_graph.(v) |> List.map snd in
-        v
-        :: (List.map (fun u -> if visited.(u) |> not then dfs2 u else []) us
-            |> List.concat))
-      else []
-    in
-    Stack.to_seq s
-    |> Seq.filter_map (fun v ->
-      if visited.(v) |> not then Option.some (dfs2 v) else Option.none)
-    |> List.of_seq
-  ;;
-
-  let union_list (graphs : t list) : t =
-    match graphs with
-    | [] -> Array.init 0 (Fun.const [])
-    | hd :: tl ->
-      let len = Array.length hd in
-      tl |> List.iter (fun graph -> assert (Array.length graph = len));
-      let res = Array.init len (Fun.const []) in
-      0 -- pred len
-      |> List.iter (fun i ->
-        res.(i) <- graphs |> List.concat_map (fun graph -> graph.(i)));
-      res
-  ;;
-
-  let find_shortest_cycle (graph : t) (vertex : state) : int =
-    let rec helper acc visited cur =
-      if Set.is_empty cur
-      then 0
-      else (
-        let acc = acc + 1 in
-        let next =
-          cur
-          |> Set.to_list
-          |> List.concat_map (fun x -> graph.(x) |> List.map snd)
-          |> Set.of_list
-        in
-        if Set.mem next vertex
-        then acc
-        else (
-          let visited = Set.union visited cur in
-          helper acc visited (Set.diff next visited)))
-    in
-    helper 0 Set.empty (Set.singleton vertex)
-  ;;
-
-  let find_important_verticies graph =
-    let bound x = x in
-    find_strongly_connected_components graph
-    |> List.concat_map (fun vs ->
-      let list = vs |> bound |> List.map (fun v -> v, find_shortest_cycle graph v) in
-      let min = list |> List.map snd |> List.fold_left Int.min (verticies graph) in
-      list |> List.find_all (fun (_, len) -> len = min))
-  ;;
-
-  let all_paths (graph : t) start =
-    let rec helper visited front =
-      if List.is_empty front
-      then visited
-      else (
-        let visited =
-          Map.fold2
-            visited
-            (Map.of_alist_reduce ~f:Fun.const front)
-            ~init:Map.empty
-            ~f:(fun ~key ~data ->
-              match data with
-              | `Left data | `Right data -> Map.add_exn ~key ~data
-              | `Both _ -> failwith "Unreachable")
-        in
-        let next =
-          front
-          |> List.concat_map (fun (i, path) ->
-            graph.(i)
-            |> List.filter (fun (lbl, dst) -> not (Map.mem visited dst))
-            |> List.map (fun (lbl, dst) -> dst, lbl :: path))
-        in
-        helper visited next)
-    in
-    start |> Map.to_alist |> helper Map.empty
-  ;;
-
   let all_paths_of_len graph =
     let rec helper cur = function
       | 0 -> cur
@@ -1017,50 +369,6 @@ module Graph (Label : BasicL) = struct
     helper
   ;;
 end
-
-let%expect_test "Reachable in range smoke test" =
-  let module Graph = Graph (Bv) in
-  let reachable_in_range = Graph.reachable_in_range in
-  let print x =
-    Format.printf
-      "%a\n"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-         (Format.pp_print_list
-            ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ")
-            Format.pp_print_int))
-      (List.map Set.to_list x)
-  in
-  let graph =
-    [| [ 1; 2 ]; [ 0 ]; [] |] |> Array.map (List.map (fun x -> (Z.zero, Z.zero), x))
-  in
-  print (reachable_in_range graph 0 0 (Set.singleton 0));
-  print (reachable_in_range graph 0 1 (Set.singleton 0));
-  print (reachable_in_range graph 2 3 (Set.singleton 1));
-  [%expect
-    {|
-    0
-    0; 1, 2
-    1, 2; 0
-    |}]
-;;
-
-let%expect_test "Important verticies smoke test" =
-  let module Graph = Graph (Bv) in
-  let find_important_verticies = Graph.find_important_verticies in
-  let print =
-    Format.printf
-      "%a\n"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-         (fun fmt (a, b) -> Format.fprintf fmt "%d, %d" a b))
-  in
-  let graph =
-    [| [ 1; 2 ]; [ 0 ]; [] |] |> Array.map (List.map (fun x -> (Z.zero, Z.zero), x))
-  in
-  print (find_important_verticies graph);
-  [%expect {|0, 2; 1, 2; 2, 0|}]
-;;
 
 (** A modle type representing automata and basic operations for / over them. *)
 module type BasicType = sig
@@ -1144,40 +452,12 @@ module type Type = sig
 
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
-  val any_n_paths : t -> ?len:int -> int -> v list list
-  val any_n_paths_range : t -> ?len:int -> int -> v list list
-  val all_paths_of_len : t -> int -> v list list
-  val shrink : t -> t
-  val truncate : int -> t -> t
-  val reenumerate : (int, int) Map.t -> t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
-  val to_nat : t -> u
-  val of_nat : u -> t
   val of_regex : v list Regex.t -> t
   val remove_unreachable_from_final : t -> t
-  val find_c_d' : t -> (int * int) Seq.t
-  val split : t -> (t * t) list
-  val equal_start_and_final : t -> t -> bool
   val alpha : t -> v Set.t
   val deriv : t -> v list -> u
-  val deriv_final : t -> v list -> u
-end
-
-module type NatType = sig
-  include Type
-
-  val chrobak : t -> (int * int) Seq.t
-
-  val get_chrobaks_sub_nfas
-    :  t
-    -> res:deg
-    -> temp:deg
-    -> vars:int list
-    -> no_model:bool
-    -> (t * (int * int) Seq.t * (int -> (v list list * int) option)) Seq.t
-
-  val combine_model_pieces : v list list * int -> v list list * int -> v list list * int
 end
 
 type ('a, 'b) nfa_t =
@@ -1955,65 +1235,6 @@ struct
     fprintf ppf "}"
   ;;
 
-  let shrink (nfa : t) =
-    let rec remove_duplicates l =
-      let rec contains l (label', state') =
-        match l with
-        | [] -> false
-        | (label, state) :: xs ->
-          (Label.equal label label' && state = state') || contains xs (label', state')
-      in
-      match l with
-      | [] -> []
-      | x :: xs ->
-        let acc = remove_duplicates xs in
-        if contains acc x then acc else x :: acc
-    in
-    let shrink delta =
-      if List.is_empty delta
-      then delta
-      else
-        delta
-        |> List.map (fun (label1, q1) ->
-          ( 0 -- nfa.deg
-            |> List.fold_left
-                 (fun acc i ->
-                    let label1 = acc in
-                    let symbol1 = Label.get label1 i in
-                    let label1' = Label.project [ i ] label1 in
-                    let flag = ref false in
-                    let symbols =
-                      List.fold_left
-                        (fun acc (label2, q2) ->
-                           if q1 = q2 && Label.equal label2 label1'
-                           then
-                             if Label.is_any_at i label2
-                             then (
-                               flag := true;
-                               acc)
-                             else (
-                               let symbol2 = Label.get label2 i in
-                               Set.add acc symbol2)
-                           else acc)
-                        (Set.singleton symbol1)
-                        delta
-                    in
-                    if
-                      !flag
-                      || Label.alphabet
-                         |> List.take (Z.to_int Config.config.enc_base)
-                         |> List.for_all (fun c -> Set.mem symbols c)
-                    then label1'
-                    else label1)
-                 label1
-          , q1 ))
-        |> remove_duplicates
-    in
-    let transitions' = Array.map shrink nfa.transitions in
-    let result = { nfa with transitions = transitions' } in
-    result
-  ;;
-
   let intersect nfa1 nfa2 =
     let counter = ref 0 in
     let visited = Array.make_matrix (length nfa1) (length nfa2) (-1) in
@@ -2101,21 +1322,6 @@ struct
       List.for_all (fun (label, _) -> Label.is_zero label) delta)
   ;;
 
-  let reenumerate map nfa =
-    let transitions =
-      nfa.transitions
-      |> Array.map (fun delta ->
-        List.map (fun (label, q') -> Label.reenumerate map label, q') delta)
-    in
-    { start = nfa.start
-    ; final = nfa.final
-    ; transitions
-    ; is_dfa = nfa.is_dfa
-    ; deg = Map.keys map |> List.fold_left max min_int
-    ; extra = ()
-    }
-  ;;
-
   let project to_remove nfa =
     let transitions =
       Array.mapi
@@ -2128,23 +1334,6 @@ struct
     ; start = nfa.start
     ; transitions
     ; deg = nfa.deg
-    ; is_dfa = false
-    ; extra = ()
-    }
-    |> Invariants.update_invariants
-  ;;
-
-  let truncate l nfa =
-    let transitions = nfa.transitions in
-    Array.iteri
-      (fun q delta ->
-         let truncate (label, q') = Label.truncate l label, q' in
-         Array.set transitions q (List.map truncate delta))
-      transitions;
-    { final = nfa.final
-    ; start = nfa.start
-    ; transitions
-    ; deg = l
     ; is_dfa = false
     ; extra = ()
     }
@@ -2284,96 +1473,6 @@ struct
     }
   ;;
 
-  let find_c_d nfa (imp : (int, int) Map.t) =
-    assert (Set.length nfa.start = 1);
-    let n = max 2 (length nfa) in
-    let m = n * n in
-    let t =
-      Graph.reachable_in_range (Graph.reverse nfa.transitions) 0 (m - n - 1) nfa.final
-      |> Array.of_list
-    in
-    let s = Graph.reachable_in_range nfa.transitions 0 m nfa.start in
-    let r1 =
-      s
-      |> List.mapi (fun i set -> if Set.are_disjoint nfa.final set then None else Some i)
-      |> List.filter_map Fun.id
-      |> Set.of_list
-    in
-    let states = List.nth s (n - 1) in
-    let states =
-      states
-      |> Set.to_sequence
-      |> Sequence.filter_map ~f:(fun state ->
-        Map.find imp state |> Option.map (fun d -> state, d))
-    in
-    let r2 =
-      states
-      |> Sequence.filter ~f:(fun (_, d) -> (n * n) - n - d >= 0)
-      |> Sequence.concat_map ~f:(fun (state, d) ->
-        let first = (n * n) - n - d in
-        (* assert (first >= 0); *)
-        let last = (n * n) - n - 1 in
-        first -- last
-        |> List.filter (fun i -> Set.mem t.(i) state)
-        |> List.map (fun c -> c + n - 1, d)
-        |> Sequence.of_list)
-      |> Sequence.map ~f:(fun (c, d) ->
-        let rec helper c = if Set.mem r1 (c - d) then helper (c - d) else c in
-        helper c, d)
-      |> Sequence.to_list
-    in
-    let r1 =
-      r1
-      |> Set.to_list
-      |> List.filter (fun c ->
-        not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
-      |> List.map (fun c -> c, 0)
-    in
-    r2 @ r1 |> Set.of_list |> Set.to_sequence |> Sequence.to_seq
-  ;;
-
-  let find_c_d' nfa =
-    find_c_d nfa (Set.to_list nfa.start |> List.map (fun a -> a, 0) |> Map.of_alist_exn)
-  ;;
-
-  let split (nfa : t) =
-    let length = length nfa in
-    let states =
-      Graph.reachable_in_range nfa.transitions 0 (length * length) nfa.start
-      |> List.fold_left (fun acc x -> Set.union acc x) Set.empty
-    in
-    states
-    |> Set.to_list
-    |> List.map (fun state ->
-      let nfa' =
-        { is_dfa = false
-        ; deg = nfa.deg
-        ; transitions = nfa.transitions
-        ; start = nfa.start
-        ; final = Set.singleton state
-        ; extra = ()
-        }
-        |> remove_unreachable_from_final
-      in
-      let nfa'' =
-        { is_dfa = false
-        ; deg = nfa.deg
-        ; transitions = nfa.transitions
-        ; start = Set.singleton state
-        ; final = nfa.final
-        ; extra = ()
-        }
-        |> remove_unreachable_from_start
-      in
-      (* Debug.dump_nfa ~msg:"ONE %s" format_nfa nfa';
-      Debug.dump_nfa ~msg:"TWO %s" format_nfa nfa''; *)
-      nfa'', nfa')
-  ;;
-
-  let equal_start_and_final nfa nfa' =
-    Set.equal nfa.start nfa'.start && Set.equal nfa.final nfa'.final
-  ;;
-
   let of_regex (r : Label.u list Regex.t) =
     let rec traverse visited = function
       | s when Set.is_empty s -> []
@@ -2422,26 +1521,6 @@ struct
   let any_path ?nozero (nfa : t) vars =
     let transitions = nfa.transitions in
     let nozero = nozero |> Option.value ~default:false in
-    (*let q =
-      let visited = Array.make (length nfa) false in
-      let rec dfs len q =
-        if visited.(q)
-        then None
-        else if Set.mem nfa.final q && (nozero |> not || len > 0)
-        then Some ([], q, len)
-        else (
-          if nozero |> not || len > 0 then visited.(q) <- true;
-          let delta = Array.get transitions q in
-          let qs = delta |> List.map snd in
-          match List.find_map (fun q -> dfs (len + 1) q) qs with
-          | Some (path, q', len) ->
-            Some (List.find (fun (_, q'') -> q' = q'') delta :: path, q, len)
-          | None ->
-            visited.(q) <- false;
-            None)
-      in
-      nfa.start |> Set.to_list |> List.find_map (dfs 0)
-    in*)
     let p =
       let frontier = Queue.create () in
       let visited = Array.init (length nfa) (Fun.const false) in
@@ -2487,58 +1566,6 @@ struct
         , length )
     | None -> None
   ;;
-
-  let any_n_paths_helper (nfa : t) ?len ?n sign =
-    let transitions = nfa.transitions in
-    let p =
-      let frontier = Queue.create () in
-      let visited = Array.init (length nfa) (Fun.const false) in
-      let rec bfs cool_paths =
-        let cool_paths_cnt = Set.length cool_paths in
-        match Queue.take_opt frontier with
-        | None -> cool_paths
-        | Some _ when Option.is_some n && cool_paths_cnt >= Option.get n -> cool_paths
-        | Some path when Option.is_some len && List.length path = Option.get len + 1 ->
-          bfs cool_paths
-        | Some path
-          when Option.is_some n
-               && List.length path > Array.length nfa.transitions * Option.get n ->
-          bfs cool_paths
-        | Some ((_, hd) :: _ as path) ->
-          visited.(hd) <- true;
-          let new_paths =
-            Array.get transitions hd |> List.map (fun part -> part :: path)
-          in
-          let cool_paths' =
-            List.filter (fun path' -> Set.mem nfa.final (List.hd path' |> snd)) new_paths
-            |> List.map (fun path' ->
-              path'
-              |> List.map (fun (label, q') -> label)
-              |> List.drop_while Label.is_zero_soft
-              |> List.map (fun label -> Label.get label 0))
-            |> List.filter (fun path' ->
-              Option.is_none len || sign (List.length path') (Option.get len + 1))
-          in
-          let cool_paths = Set.union cool_paths (cool_paths' |> Set.of_list) in
-          List.iter (fun path' -> Queue.add path' frontier) new_paths;
-          bfs cool_paths
-        | Some [] -> failwith ""
-      in
-      Set.iter ~f:(fun q -> Queue.add [ Label.zero nfa.deg, q ] frontier) nfa.start;
-      bfs Set.empty
-    in
-    p |> Set.to_list
-  ;;
-
-  let any_n_paths (nfa : t) ?len n = any_n_paths_helper nfa ?len ~n (fun x y -> x = y)
-
-  let any_n_paths_range (nfa : t) ?len n =
-    any_n_paths_helper nfa ?len ~n (fun x y -> x <= y)
-  ;;
-
-  (* let any_path_list nfas vars = failwith "Unimplemented"
-  let run_bool_comb skel nfas = any_path_list nfas [] |> Option.is_some *)
-  let all_paths_of_len (nfa : t) len = any_n_paths_helper nfa ~len (fun x y -> x = y)
 
   let re_accepts path nfa =
     let dfa =
@@ -2596,26 +1623,6 @@ struct
     |> to_dfa ~alpha:(nfa |> alpha |> Set.to_list)
     |> remove_unreachable_from_final
   ;;
-
-  let deriv_final : t -> v list -> t =
-    fun nfa vs ->
-    let nfa = reverse nfa in
-    let result =
-      deriv_helper nfa vs
-      |> reverse
-      |> to_dfa ~alpha:(nfa |> alpha |> Set.to_list)
-      |> remove_unreachable_from_final
-    in
-    let transitions =
-      Array.mapi
-        (fun state x ->
-           if Set.mem result.final state
-           then (Label.eos_with_mask [ 0 ], state) :: x
-           else x)
-        result.transitions
-    in
-    { result with transitions }
-  ;;
 end
 
 module Lsb (Label : L) = struct
@@ -2657,234 +1664,10 @@ module Lsb (Label : L) = struct
 
   type u = t
 
-  let zero_any_path = any_path ~nozero:false
   let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
   let any_path_bool_comb skel nfas vars = failwith "Unimplemented"
   let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
-
-  let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
-    let zero_lbl = Label.zero_with_mask [ res; temp ] in
-    let res_lbl = Label.singleton_with_mask res [ res; temp ] in
-    let pow_lbl = Label.singleton_with_mask temp [ res; temp ] in
-    let one_lbl = Label.one_with_mask [ res; temp ] in
-    let reversed_transitions = nfa.transitions |> Graph.reverse in
-    let end_transitions =
-      reversed_transitions
-      |> Array.mapi (fun src list ->
-        if Set.mem nfa.final src
-        then list |> List.filter (fun (lbl, _) -> Label.equal lbl res_lbl)
-        else [])
-    in
-    let pre_final =
-      end_transitions |> Array.to_list |> List.concat |> List.map snd |> Set.of_list
-    in
-    let zero_transitions, states =
-      let all_zero_transitions =
-        reversed_transitions
-        |> Array.map (List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl))
-      in
-      let rec helper acc visited cur =
-        if Set.is_empty cur
-        then acc, visited
-        else (
-          let next_transitions =
-            all_zero_transitions
-            |> Base.Array.mapi ~f:(fun i x -> if Set.mem cur i then x else [])
-          in
-          next_transitions
-          |> Base.Array.iteri ~f:(fun i list -> acc.(i) <- list @ acc.(i));
-          let visited = Set.union visited cur in
-          let next =
-            Set.diff
-              (next_transitions
-               |> Array.to_list
-               |> List.concat_map (List.map snd)
-               |> Set.of_list)
-              visited
-          in
-          helper acc visited next)
-      in
-      helper (Array.map (Fun.const []) all_zero_transitions) Set.empty pre_final
-    in
-    let start =
-      states
-      |> Set.filter ~f:(fun i ->
-        reversed_transitions.(i)
-        |> List.filter (fun (lbl, _) -> Label.equal lbl pow_lbl)
-        |> List.is_empty
-        |> not)
-    in
-    let start_final =
-      nfa.final
-      |> Set.filter ~f:(fun i ->
-        reversed_transitions.(i)
-        |> List.filter (fun (lbl, _) -> Label.equal lbl one_lbl)
-        |> List.is_empty
-        |> not)
-    in
-    let start = Set.union start start_final in
-    let transitions =
-      Graph.union_list [ end_transitions; zero_transitions ] |> Graph.reverse
-    in
-    let result =
-      { transitions; final = nfa.final; start; deg = nfa.deg; is_dfa = false; extra = () }
-    in
-    result
-  ;;
-
-  let chrobak nfa =
-    Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa nfa;
-    let important =
-      Graph.find_important_verticies nfa.transitions
-      |> List.filter (fun (_, b) -> b <> 0)
-      |> Map.of_alist_exn
-    in
-    trace_log
-      "important verticies: [%a]"
-      (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
-         Format.fprintf fmt "(%d: %d)" a b))
-      (Map.to_alist important);
-    let result = find_c_d nfa important in
-    (* Debug.printf "Chrobak output: "; *)
-    (* Debug.printf *)
-    (*   "%a\n" *)
-    (*   (Format.pp_print_list *)
-    (*      ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ") *)
-    (*      (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b)) *)
-    (*   result; *)
-    result
-  ;;
-
-  let path_of_len2 (nfa : t) ~var ~len : v list option =
-    let start =
-      nfa.start |> Set.to_list |> List.map (fun x -> x, []) |> Map.of_alist_exn
-    in
-    let paths = Graph.all_paths_of_len nfa.transitions start len in
-    let paths = Map.filteri paths ~f:(fun ~key ~data:_ -> Set.mem nfa.final key) in
-    if Map.is_empty paths
-    then Option.none
-    else (
-      let path = Map.nth_exn paths 0 |> snd in
-      let path = path |> List.map (fun l -> Label.get l var) in
-      Option.some path)
-  ;;
-
-  let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
-    trace_log "path_of_len entrance: len=%d%!" total_len;
-    Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
-    let exp_lbl = Label.singleton_with_mask exp [ exp ] in
-    let transitions = nfa.transitions in
-    let zero_transitions =
-      transitions
-      |> Array.map (List.filter (fun (lbl, dst) -> not (Label.equal exp_lbl lbl)))
-    in
-    let start =
-      nfa.start |> Set.to_list |> List.map (fun x -> x, []) |> Map.of_alist_exn
-    in
-    let intermediate =
-      if total_len = 0
-      then start
-      else Graph.all_paths_of_len zero_transitions start (pred total_len)
-    in
-    trace_log "path_of_len intermediate results:";
-    trace_log
-      "%a"
-      (Format.pp_print_list ~pp_sep:Format.pp_print_newline (fun fmt (a, b) ->
-         Format.fprintf
-           fmt
-           "%d -> [%a]"
-           a
-           (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
-           b))
-      (Map.to_alist intermediate);
-    let find_answer map = nfa.final |> Set.to_list |> List.find_map (Map.find map) in
-    (if total_len = 0
-     then intermediate
-     else
-       intermediate
-       |> Map.to_sequence
-       |> Sequence.concat_map ~f:(fun (state, path) ->
-         transitions.(state)
-         |> Sequence.of_list
-         |> Sequence.filter ~f:(fun (lbl, _) -> Label.equal exp_lbl lbl)
-         |> Sequence.map ~f:(fun (lbl, state) -> state, lbl :: path))
-       |> Map.of_sequence_reduce ~f:Fun.const
-       |> Graph.all_paths zero_transitions)
-    |> find_answer
-    |> Option.map (fun p ->
-      let len = List.length p in
-      let p = List.rev p in
-      trace_log
-        "path_of_len: found path of len %d: [%a]"
-        len
-        (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
-        p;
-      ( vars |> List.map (fun var -> List.init len (fun i -> Label.get (List.nth p i) var))
-      , len ))
-  ;;
-
-  let get_chrobaks_sub_nfas nfa ~res ~temp ~vars ~no_model =
-    let temp_lbl = Label.singleton_with_mask temp [ temp ] in
-    let exp_nfa = get_exponent_sub_nfa nfa ~res ~temp in
-    exp_nfa.start
-    |> Set.to_sequence
-    |> Sequence.to_seq
-    |> Seq.filter_map (fun mid ->
-      let* path = zero_any_path { nfa with start = Set.singleton mid } vars in
-      let chrobak_nfa =
-        { exp_nfa with start = Set.singleton mid } |> remove_unreachable_from_start
-      in
-      let nfa =
-        { nfa with
-          final = Set.singleton mid
-        ; transitions =
-            nfa.transitions
-            |> Array.map
-                 (List.filter (fun (lbl, fin) -> fin <> mid || Label.equal lbl temp_lbl))
-        }
-      in
-      trace_log "Calculating chrobak for var %d" res;
-      Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
-      Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
-      let model_piece =
-        if no_model then fun _ -> Some ([], 0) else path_of_len chrobak_nfa ~vars ~exp:res
-      in
-      return (nfa, chrobak chrobak_nfa, model_piece))
-  ;;
-
-  let to_nat (nfa : t) : u = nfa
-  let of_nat (nfa : u) : t = nfa
-
-  let combine_model_pieces (model, len1) (model2, len2) =
-    (*let len = max len1 len2 in
-      let model = List.init len (fun i -> List.nth_opt model i |> Option.value ~default:[]) in
-      let model2 = List.init len (fun i -> List.nth_opt model2 i |> Option.value ~default:[]) in*)
-    let len = max (List.length model) (List.length model2) in
-    let model =
-      List.init len (fun i ->
-        List.nth_opt model i
-        |> Option.value ~default:(List.init len1 (Fun.const Label.u_zero)))
-    in
-    let model2 =
-      List.init len (fun i ->
-        List.nth_opt model2 i
-        |> Option.value ~default:(List.init len2 (Fun.const Label.u_zero)))
-    in
-    Base.List.zip_exn model model2 |> List.map (fun (x, y) -> x @ y), len1 + len2
-  ;;
-
-  (*let len = max (List.length model) (List.length model2) in
-      (List.init len (fun i ->
-        let x = List.nth_opt model i |> Option.value ~default:[ Label.u_zero ] in
-        let y = List.nth_opt model2 i |> Option.value ~default:[ Label.u_zero ] in *)
-  (* ) *)
-
-  let filter_map (nfa : t) (f : Label.t * int -> (Label.t * int) option) =
-    { nfa with
-      transitions = nfa.transitions |> Array.map (fun delta -> List.filter_map f delta)
-    }
-  ;;
 
   let minimize nfa =
     nfa
@@ -2908,346 +1691,25 @@ module Lsb (Label : L) = struct
   ;;
 
   let minimize_not_very_strong nfa =
-    match
-      ( length nfa > Config.config.good_for_minimize
-      , length nfa < Config.config.good_for_shrinking )
-    with
-    | true, false -> nfa |> minimize
-    | true, true -> nfa |> minimize |> shrink
-    | false, other -> nfa |> minimize_strong |> shrink
+    if length nfa > Config.config.good_for_minimize
+    then nfa |> minimize
+    else nfa |> minimize_strong
+  ;;
+
+  let path_of_len2 (nfa : t) ~var ~len : v list option =
+    let start =
+      nfa.start |> Set.to_list |> List.map (fun x -> x, []) |> Map.of_alist_exn
+    in
+    let paths = Graph.all_paths_of_len nfa.transitions start len in
+    let paths = Map.filteri paths ~f:(fun ~key ~data:_ -> Set.mem nfa.final key) in
+    if Map.is_empty paths
+    then Option.none
+    else (
+      let path = Map.nth_exn paths 0 |> snd in
+      let path = path |> List.map (fun l -> Label.get l var) in
+      Option.some path)
   ;;
 end
-
-module MsbNat (Label : L) = struct
-  include
-    Make
-      (Label)
-      (struct
-        let update_invariants nfa =
-          let filter = fun (lbl, _) -> Label.is_zero lbl in
-          let rec helper front visited =
-            if Set.is_empty front
-            then visited
-            else (
-              let next =
-                front
-                |> Set.to_sequence
-                |> Sequence.concat_map ~f:(fun state ->
-                  nfa.transitions.(state)
-                  |> Sequence.of_list
-                  |> Sequence.filter ~f:filter
-                  |> Sequence.map ~f:snd
-                  |> Sequence.filter ~f:(fun state -> not (Set.mem visited state)))
-                |> Set.of_sequence
-              in
-              let visited = Set.union visited front in
-              helper next visited)
-          in
-          let front = nfa.start in
-          { nfa with start = helper front Set.empty }
-        ;;
-      end)
-
-  module Lsb = Lsb (Label)
-
-  type u = t
-
-  let minimize nfa =
-    nfa
-    |> fun nfa ->
-    { nfa with
-      transitions =
-        nfa.transitions |> Array.map (fun delta -> Set.of_list delta |> Set.to_list)
-    }
-    |> remove_unreachable_from_final
-    |> remove_unreachable_from_start
-  ;;
-
-  let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa |> minimize
-
-  let minimize_not_very_strong nfa =
-    match
-      ( length nfa > Config.config.good_for_minimize
-      , length nfa < Config.config.good_for_shrinking )
-    with
-    | true, false -> nfa |> minimize
-    | true, true -> nfa |> minimize |> shrink
-    | false, other -> nfa |> minimize_strong |> shrink
-  ;;
-
-  let any_path = any_path ~nozero:false
-  let run nfa = any_path nfa [] |> Option.is_some
-  let any_path_bool_comb skel nfas vars = failwith "Unimplemented"
-  let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
-
-  let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
-    (*Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;*)
-    let zero_lbl = Label.zero_with_mask [ res; temp ] in
-    let res_lbl = Label.singleton_with_mask res [ res; temp ] in
-    let pow_lbl = Label.singleton_with_mask temp [ res; temp ] in
-    let one_lbl = Label.one_with_mask [ res; temp ] in
-    let all_zero_transitions =
-      nfa.transitions
-      |> Array.map (List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl))
-    in
-    let find_reachable transitions start =
-      let rec helper acc visited cur =
-        if Set.is_empty cur
-        then acc, visited
-        else (
-          let next_transitions =
-            transitions |> Base.Array.mapi ~f:(fun i x -> if Set.mem cur i then x else [])
-          in
-          next_transitions
-          |> Base.Array.iteri ~f:(fun i list -> acc.(i) <- list @ acc.(i));
-          let visited = Set.union visited cur in
-          let next =
-            Set.diff
-              (next_transitions
-               |> Array.to_list
-               |> List.concat_map (List.map snd)
-               |> Set.of_list)
-              visited
-          in
-          helper acc visited next)
-      in
-      helper (Array.map (Fun.const []) transitions) Set.empty start
-    in
-    let before_transitions, pre_start = find_reachable all_zero_transitions nfa.start in
-    let end_transitions =
-      nfa.transitions
-      |> Array.mapi (fun src list ->
-        if Set.mem pre_start src
-        then list |> List.filter (fun (lbl, _) -> Label.equal lbl res_lbl)
-        else [])
-    in
-    let pre_final =
-      end_transitions |> Array.to_list |> List.concat |> List.map snd |> Set.of_list
-    in
-    let zero_transitions, states = find_reachable all_zero_transitions pre_final in
-    let start_transitions =
-      nfa.transitions
-      |> Array.mapi (fun src list ->
-        if Set.mem states src
-        then list |> List.filter (fun (lbl, _) -> Label.equal lbl pow_lbl)
-        else [])
-    in
-    let start =
-      start_transitions
-      |> Array.to_list
-      |> List.mapi (fun src list -> list |> List.map (fun (lbl, dst) -> dst, (src, lbl)))
-      |> List.concat
-    in
-    let start_final_transitions =
-      nfa.transitions
-      |> Array.mapi (fun src list ->
-        if Set.mem nfa.start src
-        then list |> List.filter (fun (lbl, _) -> Label.equal lbl one_lbl)
-        else [])
-    in
-    let start_final =
-      start_final_transitions
-      |> Array.to_list
-      |> List.mapi (fun src list -> list |> List.map (fun (lbl, dst) -> dst, (src, lbl)))
-      |> List.concat
-    in
-    let start = List.concat [ start; start_final ] |> Map.of_alist_multi in
-    let transitions =
-      Graph.union_list [ start_transitions; start_final_transitions; zero_transitions ]
-      |> Graph.reverse
-    in
-    let result =
-      { transitions
-      ; final = Set.union pre_final (start_final |> List.map fst |> Set.of_list)
-      ; start = Set.empty
-      ; deg = nfa.deg
-      ; is_dfa = false
-      ; extra = ()
-      }
-    in
-    let path_nfa =
-      { transitions =
-          Graph.union_list [ zero_transitions; end_transitions; before_transitions ]
-      ; start = nfa.start
-      ; final = Set.empty
-      ; deg = nfa.deg
-      ; is_dfa = false
-      ; extra = ()
-      }
-    in
-    (*Debug.dump_nfa ~msg:"Exponent sub_nfa output: %s" format_nfa result;*)
-    result, start, path_nfa
-  ;;
-
-  let chrobak nfa =
-    Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa nfa;
-    let important =
-      Graph.find_important_verticies nfa.transitions
-      |> List.filter (fun (_, b) -> b <> 0)
-      |> Map.of_alist_exn
-    in
-    trace_log
-      "important verticies: [%a]"
-      (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
-         Format.fprintf fmt "(%d: %d)" a b))
-      (Map.to_alist important);
-    let result = find_c_d nfa important in
-    trace_log "Chrobak output: ";
-    trace_log
-      "%a\n"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-         (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
-      (result |> List.of_seq);
-    result
-  ;;
-
-  let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
-    trace_log "path_of_len entrance: len=%d" total_len;
-    Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
-    let exp_lbl = Label.singleton_with_mask exp [ exp ] in
-    let transitions = nfa.transitions in
-    let intermediate =
-      nfa.start
-      |> Set.to_list
-      |> List.map (fun x -> x, [])
-      |> Map.of_alist_exn
-      |> Graph.all_paths
-           (transitions
-            |> Array.map (List.filter (fun (lbl, dst) -> not (Label.equal exp_lbl lbl))))
-    in
-    trace_log "path_of_len intermediate results:";
-    trace_log
-      "%a"
-      (Format.pp_print_list ~pp_sep:Format.pp_print_newline (fun fmt (a, b) ->
-         Format.fprintf
-           fmt
-           "%d -> [%a]"
-           a
-           (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
-           b))
-      (Map.to_alist intermediate);
-    let find_answer map = nfa.final |> Set.to_list |> List.find_map (Map.find map) in
-    (if total_len = 0
-     then find_answer intermediate
-     else (
-       let intermediate =
-         intermediate
-         |> Map.to_sequence
-         |> Sequence.concat_map ~f:(fun (state, path) ->
-           transitions.(state)
-           |> Sequence.of_list
-           |> Sequence.filter ~f:(fun (lbl, _) -> Label.equal exp_lbl lbl)
-           |> Sequence.map ~f:(fun (lbl, state) -> state, lbl :: path))
-         |> Map.of_sequence_reduce ~f:Fun.const
-       in
-       Graph.all_paths_of_len transitions intermediate (pred total_len) |> find_answer))
-    |> Option.map (fun p ->
-      let p = List.rev p in
-      let len = List.length p in
-      trace_log
-        "path_of_len: found path of len %d: [%a]"
-        len
-        (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
-        p;
-      ( vars |> List.map (fun var -> List.init len (fun i -> Label.get (List.nth p i) var))
-      , len ))
-  ;;
-
-  let get_chrobaks_sub_nfas nfa ~res ~temp ~vars ~no_model =
-    match nfa.start |> Set.find ~f:(Fun.const true) with
-    | None -> Seq.empty
-    | Some nfa_start ->
-      let exp_nfa, start, path_nfa = get_exponent_sub_nfa nfa ~res ~temp in
-      Debug.dump_nfa ~msg:"exp_nfa: %s" format_nfa exp_nfa;
-      start
-      |> Map.to_sequence
-      |> Sequence.to_seq
-      |> Seq.filter_map (fun (mid, lbls) ->
-        let chrobak_nfa =
-          { exp_nfa with start = Set.singleton mid } |> remove_unreachable_from_start
-        in
-        let* path =
-          any_path { path_nfa with final = lbls |> List.map fst |> Set.of_list } vars
-        in
-        let transitions = Array.copy nfa.transitions in
-        transitions.(nfa_start) <- lbls |> List.map (fun (_, lbl) -> lbl, mid);
-        let nfa =
-          { nfa with start = Set.singleton nfa_start; transitions }
-          |> remove_unreachable_from_start
-        in
-        trace_log "Calculating chrobak for var %d" res;
-        Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
-        Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
-        Debug.dump_nfa ~msg:"Corresponding path_nfa: %s" format_nfa path_nfa;
-        let model_piece =
-          if no_model
-          then fun _ -> Some ([], 0)
-          else
-            path_of_len
-              { path_nfa with final = lbls |> List.map fst |> Set.of_list }
-              ~vars
-              ~exp:res
-        in
-        return (nfa, chrobak chrobak_nfa, model_piece))
-  ;;
-
-  (*let to_nat (nfa : t) : u =
-    let zero_lbl = bv_init nfa.deg (Fun.const false), bv_init nfa.deg (Fun.const true) in
-    let start =
-      nfa.start
-      |> Set.to_list
-      |> List.concat_map (fun state ->
-        nfa.transitions.(state)
-        |> List.filter (fun (lbl, _) -> Label.equal lbl zero_lbl)
-        |> List.map snd)
-      |> Set.of_list
-    in
-    { nfa with start }
-  ;;*)
-  let to_nat (nfa : t) : u = nfa
-  let of_nat (nfa : u) : t = nfa
-
-  let combine_model_pieces (model, len1) (model2, len2) : v list list * int =
-    let len = max (List.length model) (List.length model2) in
-    let model =
-      List.init len (fun i ->
-        List.nth_opt model i
-        |> Option.value ~default:(List.init len1 (Fun.const Label.u_zero)))
-    in
-    let model2 =
-      List.init len (fun i ->
-        List.nth_opt model2 i
-        |> Option.value ~default:(List.init len2 (Fun.const Label.u_zero)))
-    in
-    Base.List.zip_exn model model2 |> List.map (fun (x, y) -> y @ x), len1 + len2
-  ;;
-end
-
-let%expect_test "find_c_d smoke test" =
-  let module MsbNat = MsbNat (Bv) in
-  let find_c_d = MsbNat.find_c_d in
-  let print =
-    Format.printf
-      "%a\n"
-      (Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
-         (fun fmt (a, b) -> Format.fprintf fmt "%d, %d" a b))
-  in
-  let nfa =
-    { transitions =
-        [| [ 1; 2 ]; [ 0 ]; [] |] |> Array.map (List.map (fun x -> (Z.zero, Z.zero), x))
-    ; start = Set.singleton 0
-    ; final = Set.singleton 2
-    ; deg = 0
-    ; is_dfa = false
-    ; extra = ()
-    }
-  in
-  let imp = Map.of_alist_exn [ 0, 2; 1, 2 ] in
-  print (find_c_d nfa imp |> List.of_seq);
-  [%expect {|1, 2|}]
-;;
 
 module Msb (Label : L) = struct
   include
@@ -3292,9 +1754,7 @@ module Msb (Label : L) = struct
         ;;
       end)
 
-  module MsbNat = MsbNat (Label)
-
-  type u = MsbNat.t
+  type u = t
 
   let minimize nfa =
     nfa
@@ -3310,13 +1770,9 @@ module Msb (Label : L) = struct
   let minimize_strong nfa = nfa |> reverse |> to_dfa |> reverse |> to_dfa |> minimize
 
   let minimize_not_very_strong nfa =
-    match
-      ( length nfa > Config.config.good_for_minimize
-      , length nfa < Config.config.good_for_shrinking )
-    with
-    | true, false -> nfa |> minimize
-    | true, true -> nfa |> minimize |> shrink
-    | false, other -> nfa |> minimize_strong |> shrink
+    if length nfa > Config.config.good_for_minimize
+    then nfa |> minimize
+    else nfa |> minimize_strong
   ;;
 
   let any_path nfa =
@@ -3327,53 +1783,6 @@ module Msb (Label : L) = struct
   let run nfa = any_path nfa [] |> Option.is_some
   let any_path_bool_comb skel nfas vars = failwith "Unimplemented"
   let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
-
-  let to_nat (nfa : t) : u =
-    let start =
-      nfa.start
-      |> Set.to_sequence
-      |> Sequence.concat_map ~f:(fun state ->
-        nfa.transitions.(state)
-        |> Sequence.of_list
-        |> Sequence.filter ~f:(fun (lbl, _) -> lbl |> Label.is_zero_soft)
-        |> Sequence.map ~f:snd)
-      |> Set.of_sequence
-    in
-    { transitions = nfa.transitions
-    ; final = nfa.final
-    ; start
-    ; deg = nfa.deg
-    ; is_dfa = nfa.is_dfa
-    ; extra = ()
-    }
-    |> fun nfa ->
-    Debug.dump_nfa ~msg:"after to_nat nfa %s" MsbNat.format_nfa nfa;
-    nfa
-  ;;
-
-  let of_nat (nfa : u) : t =
-    let start = length nfa in
-    let transitions' =
-      Array.append
-        nfa.transitions
-        (Set.map ~f:(fun start' -> Label.eos_with_mask [ 0 ], start') nfa.start
-         |> Set.to_list
-         |> fun x -> [ Label.eos_with_mask [ 0 ], start ] @ x |> fun x -> [| x |])
-    in
-    { start = Set.singleton start
-    ; is_dfa = false
-    ; final = nfa.final
-    ; transitions = transitions'
-    ; deg = nfa.deg
-    ; extra = ()
-    }
-  ;;
-
-  let filter_map (nfa : t) (f : Label.t * int -> (Label.t * int) option) =
-    { nfa with
-      transitions = nfa.transitions |> Array.map (fun delta -> List.filter_map f delta)
-    }
-  ;;
 
   let of_lsb (nfa : Lsb(Label).t) : t =
     let nfa = minimize_not_very_strong nfa in

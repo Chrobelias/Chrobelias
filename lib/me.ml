@@ -255,8 +255,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
            | Pow s, coeff when exp_c = Z.zero ->
              let newv : string = Ir.internal_name () in
              ( Ir.eq
-                 (Map.of_alist_exn
-                    [ Ir.Var newv, Z.minus_one; Pow s, Q.to_bigint coeff ])
+                 (Map.of_alist_exn [ Ir.Var newv, Z.minus_one; Pow s, Q.to_bigint coeff ])
                  Z.zero
                :: merged_sups
              , Ir.pow newv )
@@ -297,7 +296,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
         (Format.asprintf
            "only the same base %a is supported in exponents (got %a)"
            Z.pp_print
-           (Config.config.enc_base)
+           Config.config.enc_base
            Ir.pp_atom
            a)
     | Poly (base_poly, base_c, base_sups), _ ->
@@ -305,7 +304,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
         (Format.asprintf
            "only the same base %a is supported in exponents (got %a)"
            Z.pp_print
-           (Config.config.enc_base)
+           Config.config.enc_base
            Z.pp_print
            base_c)
   ;;
@@ -316,7 +315,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
       let u = Ir.internal () in
       Symbol (u, [ Ir.slen u (Ir.var v) ])
     | Ast.Eia.Str_const s ->
-      Poly (Map.empty, Z.(pow (Config.config.enc_base) (String.length s) - one), [])
+      Poly (Map.empty, Z.(pow Config.config.enc_base (String.length s) - one), [])
     | _ -> failwith "unreachable"
   ;;
 
@@ -332,25 +331,6 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let iofs = stoi
-
-  (*let sofi : Z.t Ast.Eia.term -> _ = function
-    | Ast.Eia.Atom (Var (v, _)) -> Symbol (Ir.var v, [])
-    | Ast.Eia.Const n ->
-      (* TODO(Kakadu): Goshan, please double check three lines below *)
-      let u = Ir.internal () in
-      let re = str_to_re (Format.asprintf "%a" Z.pp_print n) in
-      Symbol (u, [ Ir.sreg u re ])
-    | v -> failwith (Format.asprintf "TBD: %a %s %d" Ast.Eia.pp_term v __FILE__ __LINE__)
-  ;;*)
-  (*let u = Ir.internal () in
-    let v =
-      match v with
-      | Ast.Eia.Atom (Var v) -> v
-      | _ ->
-        Format.eprintf "term = %a\n%!" Ast.Eia.pp_term v;
-        failwith (Format.asprintf "TBD: %s %d" __FILE__ __LINE__)
-    in
-    Symbol (u, [ Ir.stoi u (Ir.var v) ]) *)
 end
 
 let is_int (type a) : a Ast.Eia.term -> bool = function
@@ -617,7 +597,7 @@ let rec eia_of_ir : Ir.t -> Ast.t =
   let ir_atom_to_eia_term = function
     | Ir.Var s -> Ast.Eia.atom (Ast.var s I)
     | Ir.Pow s ->
-      Ast.Eia.pow (Ast.Eia.const (Config.config.enc_base)) (Ast.Eia.atom (Ast.var s I))
+      Ast.Eia.pow (Ast.Eia.const Config.config.enc_base) (Ast.Eia.atom (Ast.var s I))
   in
   let ir_atom_to_atom = function
     | Ir.Var s -> Ast.Any_atom (Ast.Var (s, I))

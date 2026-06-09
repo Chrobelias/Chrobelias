@@ -14,9 +14,7 @@ type kv = KV : 'a Ast.atom * 'a Ast.Eia.term -> kv
 
 type t =
   { env : Z.t Ast.Eia.term SM.t (** Integer equalities *)
-  ; str_env : string Ast.Eia.term SM.t
-    (* TODO(Kakadu): Maybe we don't need two environments... *)
-    (** string equalities *)
+  ; str_env : string Ast.Eia.term SM.t (** string equalities *)
   ; cstrts : kv list (* string constraints multimap *)
   }
 
@@ -389,16 +387,16 @@ let filter_mapi
   fold
     ~f:(fun ~key ~data acc ->
       match data with
-      | Ast.TT (Ast.S, str) -> begin
-        match fstr key str with
+      | Ast.TT (Ast.S, str) ->
+        begin match fstr key str with
         | Some v -> extend_string_exn acc key str
         | None -> acc
-      end
-      | Ast.TT (Ast.I, int) -> begin
-        match fint key int with
+        end
+      | Ast.TT (Ast.I, int) ->
+        begin match fint key int with
         | Some v -> extend_int_exn acc key int
         | None -> acc
-      end)
+        end)
     ~init:empty
     env
 ;;

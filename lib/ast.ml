@@ -1,5 +1,5 @@
 (* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
+(* Copyright 2024-2026, Chrobelias. *)
 let compare_string = String.compare
 let compare_int = Int.compare
 let compare_list f = Base.List.compare f
@@ -468,11 +468,11 @@ let rec lnot = function
 
 let rec exists = function
   | [] -> Fun.id
-  | atoms -> begin
-    function
-    | Exists (atoms', ast) -> exists (atoms @ atoms') ast
-    | ast -> Exists (atoms, ast)
-  end
+  | atoms ->
+    begin function
+      | Exists (atoms', ast) -> exists (atoms @ atoms') ast
+      | ast -> Exists (atoms, ast)
+    end
 ;;
 
 let limpl a b = lor_ [ lnot a; b ]
@@ -783,10 +783,8 @@ let rec equal ast ast' =
 
 let safe_eq ast ast' =
   match ast, ast' with
-  | Eia (Eia.InReRaw (atom, S, lhs)), Eia (Eia.InReRaw (atom', S, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
-  | Eia (Eia.InReRaw (atom, I, lhs)), Eia (Eia.InReRaw (atom', I, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
+  | Eia (Eia.InReRaw (atom, S, lhs)), Eia (Eia.InReRaw (atom', S, rhs)) -> atom = atom'
+  | Eia (Eia.InReRaw (atom, I, lhs)), Eia (Eia.InReRaw (atom', I, rhs)) -> atom = atom'
   | smth ->
     (match Stdlib.(ast = ast') with
      | exception _ -> true
