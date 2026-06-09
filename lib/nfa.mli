@@ -285,6 +285,4 @@ module Msb (Label : L) : sig
   val of_lsb : Lsb(Label).t -> t
 end
 
-val convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t
-val convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t
 val convert_nfa_msb_par : (string, int) Map.t -> Msb(Str).t -> Parametric(Par).t

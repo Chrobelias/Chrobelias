@@ -2,24 +2,8 @@ type relop =
   | Leq
   | Eq
 
-type error
-
-exception Str_Underapprox_fired of Env.t
-
-val has_unsupported_nonlinearity : Ast.t -> (unit, Z.t Ast.Eia.term list) Result.t
 val subst : Env.t -> Ast.t -> Ast.t
 val subst_term : Env.t -> 'a Ast.Eia.term -> 'a Ast.Eia.term
-
-(** Independent pre-simplifications. Not necessary for the solver. **)
-val simpl
-  :  int
-  -> Ast.t
-  -> [> `Unknown of Ast.t
-     | `Sat of string * Env.t
-     | `Unsat
-     | `Error of Ast.t * error list
-     | `Underapprox of Ast.t list
-     ]
 
 val arithmetize
   :  Ast.t
@@ -30,39 +14,7 @@ val arithmetize
      * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
        list
 
-val run_string_simplify
-  :  Ast.t
-  -> [ `Sat of string * Env.t
-     | `Unsat
-     | `Unknown of Ast.t * Env.t * (Ast.t * Env.t) list Seq.t
-     ]
-
 val run_basic_simplify
   :  ?env:Env.t
   -> Ast.t
   -> [ `Sat of string * Env.t | `Unsat | `Unknown of Ast.t * Env.t ]
-
-val run_under2 : Env.t -> Ast.t -> [ `Sat | `Underapprox of Ast.t list ]
-val check_nia : Env.t -> Ast.t -> [> `Sat of Env.t | `Unknown | `Unsat ]
-val pp_error : Format.formatter -> error -> unit
-
-(* val rewrite_len : Ast.t -> Ast.t *)
-
-(** Underapproximation 2 related functions *)
-
-(* TODO(Kakadu): Hash-consing of AST without loss of pattern matching *)
-
-(* TODO(Kakadu): More simplifications
-  - algebraic: 8x + y + x ~~> 9x + y
-  - bound analysis: (and (<= x 5) (<= x 10)) ~~> (<= x 5)
-*)
-
-(* TODO: Under/over-approximations.
-   Simplification function should return a list of approximated ASTs *)
-
-(* TODO: monotonicity  *)
-(* TODO: alpha-equivalence *)
-(* TODO: Zarith (issue #89) *)
-(* TODO: Chineese Underapprox (issue #92)
-    (50 <= 2^x <= 150) ~~> (= x 6) \/ (= x 7)
-*)

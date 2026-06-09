@@ -13,9 +13,6 @@
   Nfa
   NfaCollection
   Ir
-  Simpl_alpha
-  Overapprox
-  Underapprox
   Regex
   Solver
   Debug

@@ -11,8 +11,3 @@ val check_sat
      | `Unsat
      | `Unknown of Ir.t
      ]
-
-exception Too_long_model
-
-(* TODO(Kakadu): Move somewhere else... *)
-val is_internal : string -> bool

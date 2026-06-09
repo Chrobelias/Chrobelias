@@ -810,7 +810,7 @@ module Par = struct
     let active_transitions =
       List.filter (fun (_, state) -> not (List.mem state visited)) transitions
     in
-    (* Debug.printfln "Ph: %a" AstL.pp_smtlib2 ph; *)
+    (* trace_log "Ph: %a" AstL.pp_smtlib2 ph; *)
       try
         match
           active_transitions
@@ -818,15 +818,15 @@ module Par = struct
           |> function
           | [] -> []
           | asts ->
-            trace_log "Base in filter_states: %a" Z.pp_print base;
+            (* trace_log "Base in filter_states: %a" Z.pp_print base; *)
             SimplI.get_states_bool_comb base (AstL.land_ phs) asts
         with
         | [] -> SimplI.get_states_bool_comb base (AstL.land_ phs) active_transitions
         | states ->
           (* List.iter
           (fun (_, l) ->
-             List.iter (fun x -> Debug.printfln "%d; " x) l;
-             Debug.printfln "next;")
+             List.iter (fun x -> trace_log "%d; " x) l;
+             trace_log "next;")
           states; *)
           states
       with
@@ -963,13 +963,7 @@ module Graph (Label : BasicL) = struct
   ;;
 
   let find_important_verticies graph =
-    let bound x =
-      if config.bound_states > 0
-      then (
-        Config.bounded_unsat := true;
-        List.take config.bound_states x)
-      else x
-    in
+    let bound x = x in
     find_strongly_connected_components graph
     |> List.concat_map (fun vs ->
       let list = vs |> bound |> List.map (fun v -> v, find_shortest_cycle graph v) in
@@ -1409,8 +1403,8 @@ module Parametric (Label : ParL) = struct
     in
     let dfs start =
       let rec rdfs path visited node =
-        (* Debug.printfln "\nVisited states list: ";
-        List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
+        (* trace_log "\nVisited states list: ";
+        List.iter (fun x -> trace_log "%d; " x) visited; *)
         if not (List.mem node visited)
         then
           begin if Set.mem nfa.final node
@@ -1676,9 +1670,9 @@ module Parametric (Label : ParL) = struct
   let any_path_bool_comb skel (nfas : (int, t) Map.t) vars =
     let exception Sat_found of vv list in
     let nfas' = Map.data nfas in
-    Debug.printfln "Nfas:";
+    trace_log "Nfas:";
     List.iter (fun nfa -> Debug.dump_nfa ~msg:"> nfa: %s" format_nfa nfa) nfas';
-    (* Debug.printfln "Skel: %a" AstL.pp_smtlib2 skel;
+    (* trace_log "Skel: %a" AstL.pp_smtlib2 skel;
     Map.iter ~f:(fun nfa -> Debug.dump_nfa ~msg:"Next nfa: %s" format_nfa nfa) nfas; *)
     let each f = nfas' |> List.map f in
     let starts, transitions, finals, extras =
@@ -1703,7 +1697,7 @@ module Parametric (Label : ParL) = struct
       | `Unsat | `Unknown -> false
     in
     let successors state visited =
-      Debug.printfln
+      trace_log
         "State: [%a]"
         (Format.pp_print_list
            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
@@ -1739,12 +1733,12 @@ module Parametric (Label : ParL) = struct
     in
     let dfs start =
       let rec rdfs path visited node =
-        (* Debug.printfln "Node: ";
-        List.iter (fun x -> Debug.printfln "%d; " x) node; *)
-        (* Debug.printfln "\nVisited states list: ";
-        List.iter (fun x -> Debug.printfln "%d; " x) visited; *)
+        (* trace_log "Node: ";
+        List.iter (fun x -> trace_log "%d; " x) node; *)
+        (* trace_log "\nVisited states list: ";
+        List.iter (fun x -> trace_log "%d; " x) visited; *)
         if not (List.mem node visited)
-        then (* Debug.printfln "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
+        then (* trace_log "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
           if is_final node
           then raise (Sat_found path)
           else
@@ -2292,13 +2286,7 @@ struct
 
   let find_c_d nfa (imp : (int, int) Map.t) =
     assert (Set.length nfa.start = 1);
-    let n =
-      if config.bound_states > 2 && config.bound_states < length nfa
-      then (
-        Config.bounded_unsat := true;
-        max 2 config.bound_states)
-      else max 2 (length nfa)
-    in
+    let n = max 2 (length nfa) in
     let m = n * n in
     let t =
       Graph.reachable_in_range (Graph.reverse nfa.transitions) 0 (m - n - 1) nfa.final
@@ -2752,7 +2740,7 @@ module Lsb (Label : L) = struct
       |> List.filter (fun (_, b) -> b <> 0)
       |> Map.of_alist_exn
     in
-    Debug.printfln
+    trace_log
       "important verticies: [%a]"
       (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
          Format.fprintf fmt "(%d: %d)" a b))
@@ -2783,7 +2771,7 @@ module Lsb (Label : L) = struct
   ;;
 
   let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
-    Debug.printfln "path_of_len entrance: len=%d%!" total_len;
+    trace_log "path_of_len entrance: len=%d%!" total_len;
     Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
     let exp_lbl = Label.singleton_with_mask exp [ exp ] in
     let transitions = nfa.transitions in
@@ -2799,8 +2787,8 @@ module Lsb (Label : L) = struct
       then start
       else Graph.all_paths_of_len zero_transitions start (pred total_len)
     in
-    Debug.printfln "path_of_len intermediate results:";
-    Debug.printfln
+    trace_log "path_of_len intermediate results:";
+    trace_log
       "%a"
       (Format.pp_print_list ~pp_sep:Format.pp_print_newline (fun fmt (a, b) ->
          Format.fprintf
@@ -2827,7 +2815,7 @@ module Lsb (Label : L) = struct
     |> Option.map (fun p ->
       let len = List.length p in
       let p = List.rev p in
-      Debug.printfln
+      trace_log
         "path_of_len: found path of len %d: [%a]"
         len
         (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
@@ -2856,7 +2844,7 @@ module Lsb (Label : L) = struct
                  (List.filter (fun (lbl, fin) -> fin <> mid || Label.equal lbl temp_lbl))
         }
       in
-      Debug.printfln "Calculating chrobak for var %d" res;
+      trace_log "Calculating chrobak for var %d" res;
       Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
       Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
       let model_piece =
@@ -3098,14 +3086,14 @@ module MsbNat (Label : L) = struct
       |> List.filter (fun (_, b) -> b <> 0)
       |> Map.of_alist_exn
     in
-    Debug.printfln
+    trace_log
       "important verticies: [%a]"
       (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
     let result = find_c_d nfa important in
-    Debug.printfln "Chrobak output: ";
-    Debug.printfln
+    trace_log "Chrobak output: ";
+    trace_log
       "%a\n"
       (Format.pp_print_list
          ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
@@ -3115,7 +3103,7 @@ module MsbNat (Label : L) = struct
   ;;
 
   let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
-    Debug.printfln "path_of_len entrance: len=%d" total_len;
+    trace_log "path_of_len entrance: len=%d" total_len;
     Debug.dump_nfa ~msg:"path_of_len nfa: %s" format_nfa nfa;
     let exp_lbl = Label.singleton_with_mask exp [ exp ] in
     let transitions = nfa.transitions in
@@ -3128,8 +3116,8 @@ module MsbNat (Label : L) = struct
            (transitions
             |> Array.map (List.filter (fun (lbl, dst) -> not (Label.equal exp_lbl lbl))))
     in
-    Debug.printfln "path_of_len intermediate results:";
-    Debug.printfln
+    trace_log "path_of_len intermediate results:";
+    trace_log
       "%a"
       (Format.pp_print_list ~pp_sep:Format.pp_print_newline (fun fmt (a, b) ->
          Format.fprintf
@@ -3157,7 +3145,7 @@ module MsbNat (Label : L) = struct
     |> Option.map (fun p ->
       let p = List.rev p in
       let len = List.length p in
-      Debug.printfln
+      trace_log
         "path_of_len: found path of len %d: [%a]"
         len
         (Format.pp_print_list ~pp_sep:Format.pp_print_space Label.pp)
@@ -3188,7 +3176,7 @@ module MsbNat (Label : L) = struct
           { nfa with start = Set.singleton nfa_start; transitions }
           |> remove_unreachable_from_start
         in
-        Debug.printfln "Calculating chrobak for var %d" res;
+        trace_log "Calculating chrobak for var %d" res;
         Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa chrobak_nfa;
         Debug.dump_nfa ~msg:"Corresponding nfa: %s" format_nfa nfa;
         Debug.dump_nfa ~msg:"Corresponding path_nfa: %s" format_nfa path_nfa;
@@ -3406,43 +3394,6 @@ module Msb (Label : L) = struct
     }
   ;;
 end
-
-let strbv_of_str (str : Str.t) =
-  ( StrBv.bv_init (Array.length str) (fun i ->
-      match Str.get str i with
-      | c when c = Str.u_eos -> StrBv.u_eos
-      | c when c = Str.u_null -> StrBv.u_null
-      | '0' .. '9' as c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0')
-      | _ -> StrBv.u_null)
-  , StrBv.bv_init (Array.length str) (fun i ->
-      match Str.get str i with
-      | c when c = Str.u_null -> StrBv.u_null
-      | c -> StrBv.u_eos) )
-;;
-
-let convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t =
-  fun nfa ->
-  { start = nfa.start
-  ; is_dfa = nfa.is_dfa
-  ; deg = nfa.deg
-  ; final = nfa.final
-  ; extra = ()
-  ; transitions =
-      Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
-  }
-;;
-
-let convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t =
-  fun nfa ->
-  { start = nfa.start
-  ; is_dfa = nfa.is_dfa
-  ; deg = nfa.deg
-  ; final = nfa.final
-  ; extra = ()
-  ; transitions =
-      Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
-  }
-;;
 
 let astl_of_str is_sign vars (str : Str.t) =
   Map.fold

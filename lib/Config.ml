@@ -49,11 +49,11 @@ let config =
   ; good_for_minimize = 15
   ; good_for_shrinking = 20
   ; input_file = ""
-  ; logic = `Eia
+  ; logic = `Par
   ; mode = `Msb
   ; no_model = false
   ; no_str_bv = false
-  ; over_approx = true
+  ; over_approx = false
   ; over_approx_early = false
   ; over_nfa = false
   ; path_search = `Dfs
@@ -61,7 +61,7 @@ let config =
   ; quiet = false
   ; simpl_alpha = false
   ; simpl_mono = true
-  ; under_approx = 2
+  ; under_approx = -1
   ; under_str_all = false
   ; with_check_sat = false
   ; with_info = true
@@ -70,25 +70,6 @@ let config =
   }
 ;;
 
-let is_quiet () = config.quiet
-
-type under2_config =
-  { mutable amin : int
-  ; mutable amax : int
-  ; mutable flat : int [@warning "-69"]
-  }
-
-type under_str_config =
-  { mutable max_len : int
-  ; mutable max_cnt : int
-  }
-
-type huge_const_config =
-  { mutable const : int
-  ; mutable const_model : int
-  ; mutable path : int
-  }
-
 type string_config =
   { zero : char
   ; one : char
@@ -96,26 +77,7 @@ type string_config =
   ; eos : char
   }
 
-let huge_const_config = { const = 20; const_model = 120; path = 10000 }
-let huge_const () = huge_const_config.const
-let huge_path () = huge_const_config.path
-let huge_const_for_model () = huge_const_config.const_model
-let under2_config = { amin = 5; amax = 11; flat = -1 }
-let under_str_config = { max_len = -1; max_cnt = -1 }
-let get_flat () = under2_config.flat
-let is_under2_enabled () = get_flat () >= 0
-let bounded_unsat = ref false
-
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
-
-let max_longest_path =
-  match Sys.getenv_opt "CHRO_LONGEST_PATH" with
-  | None -> huge_path ()
-  | Some s ->
-    (match int_of_string_opt s with
-     | Some n -> n
-     | None -> exit 1)
-;;
 
 let max_nfa_size =
   match Sys.getenv_opt "CHRO_NFA_SIZE" with
@@ -126,20 +88,11 @@ let max_nfa_size =
      | None -> exit 1)
 ;;
 
-let max_under_const =
-  match Sys.getenv_opt "CHRO_MAX_UNDER" with
-  | None -> 5000
-  | Some s ->
-    (match int_of_string_opt s with
-     | Some n -> n
-     | None -> exit 1)
-;;
-
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let usage_msg =
-    {|Chrobak normal form-based Exponential Linear Integer Arithmetic Solver.
-Usage: chro [options] <file.smt2>
+    {|Parametric Linear Integer Arithmetic Solver.
+Usage: par [options] <file.smt2>
 
 Basic options:
 |}
@@ -148,129 +101,18 @@ Basic options:
     [ ( "-base" (*AM: string because it seems we want arbitrarily large bases*)
       , Arg.String (fun n -> config.enc_base <- Z.of_string n)
       , "\tSet the encoding base for integer representation" )
-    ; ( "-bound"
-      , Arg.Int (fun n -> config.under_approx <- n)
-      , "\tUpper bound for integer underapproximation (negative disables)" )
-    ; ( "-bres"
-      , Arg.Int (fun n -> config.bound_res <- n)
-      , "<n>\tMaximal residue used in the NFA Solver" )
-    ; ( "-bstates"
-      , Arg.Int (fun n -> config.bound_states <- n)
-      , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
-    ; ( "-huge-c"
-      , Arg.Int (fun n -> huge_const_config.const <- n)
-      , Printf.sprintf
-          "<n> \tAdmit integer constants with at most <n> digits (DEFAULT n=%d)"
-          (huge_const ()) )
-    ; ( "-huge"
-      , Arg.Int (fun n -> huge_const_config.path <- n)
-      , Printf.sprintf
-          "<n> \tSearch a model with at most <n> symbols (DEFAULT n=%d)"
-          (huge_path ()) )
-    ; ( "-lsb"
-      , Arg.Unit (fun () -> config.mode <- `Lsb)
-      , "  \tUse least-significant-bit first representation" )
-    ; ( "-no-model"
-      , Arg.Unit (fun () -> config.no_model <- true)
-      , "\tDisable model generation subroutines" )
-      (* ; ( "-no-over"
-      , Arg.Unit (fun () -> config.over_approx <- false)
-      , "\tDisable simple Z3 overapprox" ) *)
-    ; ( "-no-str-under"
-      , Arg.Unit
-          (fun () ->
-            under_str_config.max_cnt <- -1;
-            under_str_config.max_len <- -1)
-      , "Disable string underapproximations in concats" )
-    ; ( "-par"
-      , Arg.Unit
-          (fun () ->
-            config.logic <- `Par;
-            config.over_approx <- false;
-            config.under_approx <- -1)
-      , "  \tRun in parametric mode (All Z3 LIA approximations are disabled)" )
-    ; ( "-sbcnt"
-      , Arg.Int (fun n -> under_str_config.max_cnt <- n)
-      , "<n>\tUnderapproximate strings in concats via first <n> words w.r.t. regexes \
-         (DEFAULT n=32)" )
-    ; ( "-sblen"
-      , Arg.Int (fun n -> under_str_config.max_len <- n)
-      , "<n>\tUnderapproximate strings in concats via words of length at most <n> \
-         (DEFAULT n=32)" )
-    ; "-over", Arg.Unit (fun () -> config.over_approx <- true), "\tSimple Z3 overapprox"
-      (* ; ( "-over-early"
-      , Arg.Unit (fun () -> config.over_approx_early <- true)
-      , "\tSimple overapprox before underapprox II" ) *)
-    ; ( "-under-all"
-      , Arg.Unit (fun () -> config.under_str_all <- true)
-      , "  \tApply string underapproximation for each string variable" )
-      (* ; ( "-flat"
-      , Arg.Int (fun n -> under2_config.flat <- n)
-      , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )
-    ; ( "-amin"
-      , Arg.Int (fun n -> under2_config.amin <- n)
-      , "<n> \tLower bound for the least significant bits in underapprox II. n >= 0" )
-    ; ( "-amax"
-      , Arg.Int (fun n -> under2_config.amax <- n)
-      , "<n> \tUpper bound for the least significant bits in underapprox II. n >= 0" ) *)
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
-    ; ( "-q"
-      , Arg.Unit (fun () -> config.quiet <- true)
-      , "   \tPrint 'unknown' instead of Exceptions\t" )
-    ; ( "--apren"
-      , Arg.String
-          (function
-            | "push-reg" | "push_reg" -> config.antiprenex_mode <- `Push_re
-            | "all" -> config.antiprenex_mode <- `All
-            | "no" | "disable" -> config.antiprenex_mode <- `Disable
-            | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tAntiprenex mode [all; push-reg; disable]" )
-    ; "-base10", Arg.Unit (fun () -> config.logic <- `StrBv), "\tSwitch to base 10 EIA\t"
     ; ( "--bfs"
       , Arg.Unit (fun () -> config.path_search <- `Bfs)
       , "\tSwitch to bfs in parametric check_sat\t" )
-    ; ( "--stop-after"
-      , Arg.String
-          (function
-            | "simpl" -> config.stop_after <- `Simpl
-            | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
-              config.stop_after <- `Pre_simplify
-            | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tStop after step [presimpl; simpl]" )
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness" )
     ; ( "--bool-comb"
       , Arg.Unit (fun () -> config.bool_comb_sat <- true)
       , "\tCheck-sat without performing set operations over automata" )
-      (* ; "--err-check", Arg.Unit (fun () -> config.error_check <- true), "\t"
-    ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t" *)
-      (* ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
-    ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t" *)
-    ; ( "--info"
-      , Arg.Unit (fun () -> config.with_info <- true)
-      , "\tDisplay (un)sat decision step" )
-    ; ( "--no-str-bv"
-      , Arg.Unit (fun () -> config.no_str_bv <- true)
-      , "\tSwitch labels encoding in nfa to 'char's" )
-      (* ; ( "--no-alpha"
-      , Arg.Unit (fun () -> config.simpl_alpha <- false)
-      , "\tDon't try simplifications based on alpha-equivalence" )
-    ; ( "--alpha"
-      , Arg.Unit (fun () -> config.simpl_alpha <- true)
-      , "\tDO simplifications based on alpha-equivalence" ) *)
-    ; ( "--over-nfa"
-      , Arg.Unit (fun () -> config.over_nfa <- true)
-      , "\tOverapproximate orderings within the NFA Solver" )
-      (* ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t" *)
-    ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
-    ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
-    ; "--dlics", Arg.Unit (fun () -> config.dump_lics <- true), "  \tDump LICS steps"
-    ; ( "--dpresimpl"
-      , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
-      , "\tDump AST simplifications" )
     ; "--seed", Arg.Int (fun v -> config.seed <- v), "<n>\tSpecify a seed for Z3"
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))

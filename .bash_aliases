@@ -1,1 +1,1 @@
-alias chro='./_build/default/bin/chro.exe'
+alias par='./_build/default/bin/chro.exe'
