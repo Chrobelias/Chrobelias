@@ -7,7 +7,6 @@ module Sequence = Base.Sequence
 exception Too_big_nfa
 
 type state = int
-type deg = int
 
 (** A modle type representing labels and basic operations over them. *)
 module type BasicL = sig
@@ -75,7 +74,6 @@ end
 module type L = sig
   include BasicL
 
-  val base : Z.t
   val alphabet : u List.t
   val u_zero : u
   val u_one : u
@@ -94,6 +92,7 @@ end
 
 (** A modle type representing automata and basic operations for / over them. *)
 module type BasicType = sig
+
   (** The type [v] represents labels of automata. *)
   type v
 

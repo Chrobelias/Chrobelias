@@ -7,12 +7,13 @@ module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 module Sequence = Base.Sequence
 
-let config = Config.config
 let trace_log fmt = Debug.trace "nfa" fmt
+
+let _config = Config.config
+let _base = Config.config.enc_base
 
 exception Too_big_nfa
 
-type deg = int
 type state = int
 
 let ( let* ) = Option.bind
@@ -92,7 +93,6 @@ end
 module type L = sig
   include BasicL
 
-  val base : Z.t
   val alphabet : u List.t
   val u_zero : u
   val u_one : u
@@ -109,8 +109,6 @@ module Str = struct
   type t = char array
   type u = char
 
-  let base = Z.of_int 10
-  let basei = Z.to_int base
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let unsafe_get = Array.get
@@ -172,7 +170,7 @@ module Str = struct
   ;;
 
   let alphabet =
-    (Char.code '0' -- (Char.code '0' + basei - 1) |> List.map Char.chr)
+    (Char.code '0' -- (Char.code '0' + _base - 1) |> List.map Char.chr)
     @ [ u_eos; u_null ]
   ;;
 
@@ -180,7 +178,7 @@ module Str = struct
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let full_alpha =
-      Char.code '0' -- (Char.code '0' + Z.to_int Config.config.enc_base - 1)
+      Char.code '0' -- (Char.code '0' + _base - 1)
       |> List.map Char.chr
     in
     let full_alpha = Option.value ~default:full_alpha alpha in
@@ -249,7 +247,7 @@ module Par = struct
   open AstL
 
   (** Used in [run nfa] below to check existence of transitions *)
-  let base = Config.config.enc_base
+  let _base = Config.config.enc_base
 
   let const c = Lia.Const (Z.of_int c)
   let eq lhs rhs = Lia (Eq (lhs, rhs))
@@ -295,9 +293,9 @@ module Par = struct
         |> List.filter (fun (_, state) -> Set.mem final state)
         |> function
         | [] -> []
-        | asts -> SimplI.get_states base ph asts
+        | asts -> SimplI.get_states ph asts
       with
-      | [] -> active_transitions |> SimplI.get_states base ph
+      | [] -> active_transitions |> SimplI.get_states ph
       | states -> states
     with
     | Exit -> []
@@ -317,9 +315,9 @@ module Par = struct
           | [] -> []
           | asts ->
             (* trace_log "Base in filter_states: %a" Z.pp_print base; *)
-            SimplI.get_states_bool_comb base (AstL.land_ phs) asts
+            SimplI.get_states_bool_comb (AstL.land_ phs) asts
         with
-        | [] -> SimplI.get_states_bool_comb base (AstL.land_ phs) active_transitions
+        | [] -> SimplI.get_states_bool_comb (AstL.land_ phs) active_transitions
         | states ->
           (* List.iter
           (fun (_, l) ->
@@ -464,7 +462,7 @@ type ('a, 'b) nfa_t =
   { transitions : 'a
   ; final : state Set.t
   ; start : state Set.t
-  ; deg : deg
+  ; deg : int
   ; is_dfa : bool
   ; extra : 'b
   }
@@ -725,7 +723,7 @@ module Parametric (Label : ParL) = struct
     in
     let visited = Array.init (length nfa) (Fun.const false) in
     let inspect state =
-      let serach = if config.path_search = `Bfs then bfs else dfs in
+      let serach = if _config.path_search = `Bfs then bfs else dfs in
       try
         List.iter (fun state -> visited.(state) <- true) (serach state);
         None

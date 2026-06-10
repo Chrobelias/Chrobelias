@@ -2,6 +2,9 @@
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "simpl" fmt
 
+let _config = Config.config
+let _base = Config.config.enc_base
+
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
   aux j []
@@ -743,9 +746,9 @@ let apply_symnatics (module S : Smtml_symantics) =
   fun x -> helper x
 ;;
 
-let deparametrize base ast =
+let deparametrize ast =
   let open AstL in
-  let base_eq = Lia (Eq (get_par 0, Lia.const base)) in
+  let base_eq = Lia (Eq (get_par 0, Lia.const (Z.of_int _base))) in
   let digits_neq =
     let open Lia in
     ast
@@ -753,7 +756,7 @@ let deparametrize base ast =
     |> List.map (fun var ->
       land_
         [ Lia (leq (const Z.zero) (atom (int_var var)))
-        ; Lia (leq (atom (int_var var)) (const Z.(base - one)))
+        ; Lia (leq (atom (int_var var)) (const (Z.of_int (_base - 1))))
         ])
     |> land_
   in
@@ -762,7 +765,7 @@ let deparametrize base ast =
 
 let check_sat ?(base = Config.config.enc_base) ast =
   let open AstL in
-  match ast |> deparametrize base |> basic_simplify [ 0 ] empty |> fst with
+  match ast |> deparametrize |> basic_simplify [ 0 ] empty |> fst with
   | ph when AstL.equal ph true_ -> `Sat
   | ph when AstL.equal ph false_ -> `Unsat
   | ph ->
@@ -852,7 +855,7 @@ let get_states_z3 ph get_state =
     | _ -> failwith "Unknown in Z3"
 ;;
 
-let get_states base extra asts =
+let get_states extra asts =
   let open AstL in
   let get_state name =
     match name |> Base.String.chop_prefix ~prefix:"P" with
@@ -866,10 +869,9 @@ let get_states base extra asts =
     match asts with
     | [] -> raise Exit
     | [ (ph, state) ] ->
-      land_ [ deparametrize base (land_ [ ph; extra ]); pred (pred_name state) ]
+      land_ [ deparametrize (land_ [ ph; extra ]); pred (pred_name state) ]
     | phs ->
       deparametrize
-        base
         (land_
            [ extra
            ; lor_ (List.map (fun (ph, state) -> land_ [ ph; pred (pred_name state) ]) phs)
@@ -884,7 +886,7 @@ let get_states base extra asts =
 the Boolean variables that correspond to states
 3) [asts]: a list of transitions, pairs (ph, states), where states is a list of ints, 
 i.e., states of the nfas in the Boolean combination *)
-let get_states_bool_comb base extra asts =
+let get_states_bool_comb extra asts =
   let open AstL in
   (* The map [bool_map] is used to retreive the list of states from a Z3 result; 
   there is one Boolean variable for each next state = (list of states of nfas for atomic constraints) *)
@@ -904,7 +906,7 @@ let get_states_bool_comb base extra asts =
     | [] -> raise Exit
     | [ (ph, states) ] ->
       land_
-        [ deparametrize base (land_ [ ph; extra ])
+        [ deparametrize (land_ [ ph; extra ])
         ; state_pred states (*Here we add propositional variables for each state *)
         ; Pred (pred_name2 states)
           (*And one propositional variables to understand which 
@@ -912,7 +914,6 @@ let get_states_bool_comb base extra asts =
         ]
     | phs ->
       deparametrize
-        base
         (land_
            [ extra
            ; lor_

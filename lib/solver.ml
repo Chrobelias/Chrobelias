@@ -2,12 +2,13 @@
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "solver" fmt
 
+let _config = Config.config
+let _base = Config.config.enc_base
+
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 
-let do_if_lsb f = if Config.config.mode = `Lsb then f else Fun.id
-
-open Config
+let do_if_lsb f = if _config.mode = `Lsb then f else Fun.id
 
 let level = ref 0
 
@@ -27,7 +28,7 @@ struct
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
     let rec eval ir =
-      if Config.config.dump_ir
+      if _config.dump_ir
       then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
       level := !level + 1;
       (match ir with
@@ -331,7 +332,7 @@ let check_sat ir
       in
       trace_log "Running parametric MSB mode";
       let int_to_char = function
-        | c when 0 <= c && c <= 9 -> Char.chr (Char.code '0' + c)
+        | c when 0 <= c && c <= _base - 1 -> Char.chr (Char.code '0' + c)
         | _ -> failwith "Unexpected symbol"
       in
       wrap MsbPar.check_sat int_to_char

@@ -2,6 +2,9 @@
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "me" fmt
 
+let _config = Config.config
+let _base = Config.config.enc_base
+
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
@@ -223,22 +226,22 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let rec pow ~base exp =
-    let two = Config.config.enc_base in
-    let four = Z.(two * two) in
+    let base_Z = Z.of_int _base in
+    let base_squared = Z.(base_Z * base_Z) in (*AM: I don't know what is happening here *)
     match base, exp with
-    | Poly (base_poly, base, base_sups), _ when Map.is_empty base_poly && base = four ->
-      pow ~base:(Poly (base_poly, two, base_sups)) (mul (poly_of_const two) exp)
+    | Poly (base_poly, base, base_sups), _ when Map.is_empty base_poly && base = base_squared ->
+      pow ~base:(Poly (base_poly, base_Z, base_sups)) (mul (poly_of_const base_Z) exp)
     | Poly (base_poly, base, base_sups), Poly (exp_map, exp_c, exp_sups)
-      when Map.is_empty base_poly && base = two ->
+      when Map.is_empty base_poly && base = base_Z ->
       let merged_sups = base_sups @ exp_sups in
       (match Map.length exp_map with
-       | 0 -> Poly (base_poly, Utils.powz ~base:two exp_c, base_sups @ exp_sups)
+       | 0 -> Poly (base_poly, Utils.powz ~base:base_Z exp_c, base_sups @ exp_sups)
        | 1 ->
          let coeff =
            if Z.(exp_c > zero)
-           then Q.of_bigint (Utils.powz ~base:two exp_c)
+           then Q.of_bigint (Utils.powz ~base:base_Z exp_c)
            else (
-             let c = Utils.powz ~base:two Z.(-exp_c) in
+             let c = Utils.powz ~base:base_Z Z.(-exp_c) in
              Q.(one / of_bigint c))
          in
          let merged_sups, var =
@@ -269,9 +272,9 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
          let var = Ir.internal_name () in
          let coeff =
            if Z.(exp_c > zero)
-           then Q.of_bigint (Utils.powz ~base:two exp_c)
+           then Q.of_bigint (Utils.powz ~base:base_Z exp_c)
            else (
-             let c = Utils.powz ~base:two Z.(-exp_c) in
+             let c = Utils.powz ~base:base_Z Z.(-exp_c) in
              Q.(one / of_bigint c))
          in
          let sup1 =
@@ -283,7 +286,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
          (* Debug.printfln "new variable %a for " Ir.pp_atom var; *)
          Poly (Map.singleton (Ir.pow var) coeff, Z.zero, (sup1 :: base_sups) @ exp_sups))
     | Poly (base_poly, c, base_sups), Symbol (exp_symbol, exp_sups)
-      when Map.length base_poly = 0 && c = two ->
+      when Map.length base_poly = 0 && c = base_Z ->
       let poly =
         match exp_symbol with
         | Var v -> Map.singleton (Ir.pow v) Q.one
@@ -296,7 +299,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
         (Format.asprintf
            "only the same base %a is supported in exponents (got %a)"
            Z.pp_print
-           Config.config.enc_base
+           base_Z
            Ir.pp_atom
            a)
     | Poly (base_poly, base_c, base_sups), _ ->
@@ -304,7 +307,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
         (Format.asprintf
            "only the same base %a is supported in exponents (got %a)"
            Z.pp_print
-           Config.config.enc_base
+           base_Z
            Z.pp_print
            base_c)
   ;;
@@ -315,7 +318,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
       let u = Ir.internal () in
       Symbol (u, [ Ir.slen u (Ir.var v) ])
     | Ast.Eia.Str_const s ->
-      Poly (Map.empty, Z.(pow Config.config.enc_base (String.length s) - one), [])
+      Poly (Map.empty, Z.(pow (Z.of_int _base) (String.length s) - one), [])
     | _ -> failwith "unreachable"
   ;;
 
@@ -597,7 +600,7 @@ let rec eia_of_ir : Ir.t -> Ast.t =
   let ir_atom_to_eia_term = function
     | Ir.Var s -> Ast.Eia.atom (Ast.var s I)
     | Ir.Pow s ->
-      Ast.Eia.pow (Ast.Eia.const Config.config.enc_base) (Ast.Eia.atom (Ast.var s I))
+      Ast.Eia.pow (Ast.Eia.const (Z.of_int _base)) (Ast.Eia.atom (Ast.var s I))
   in
   let ir_atom_to_atom = function
     | Ir.Var s -> Ast.Any_atom (Ast.Var (s, I))

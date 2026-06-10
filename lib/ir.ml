@@ -20,7 +20,7 @@ let internal_name () =
 
 let name = function
   | Var name -> name
-  | Pow name -> Z.to_string Config.config.enc_base ^ name
+  | Pow name -> string_of_int Config.config.enc_base ^ name
 ;;
 
 let internal () = var (internal_name ())
@@ -34,7 +34,7 @@ let internal_pow () =
 
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var
-  | Pow var -> Format.fprintf fmt "pow%s(%s)" (Z.to_string Config.config.enc_base) var
+  | Pow var -> Format.fprintf fmt "pow%s(%s)" (string_of_int Config.config.enc_base) var
 ;;
 
 type rel =

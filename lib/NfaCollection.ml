@@ -2,6 +2,9 @@
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "nfa_collection" fmt
 
+let _config = Config.config
+let _base = Config.config.enc_base
+
 module Map = Nfa.Map
 module Set = Base.Set.Poly
 
@@ -17,7 +20,6 @@ module type Type = sig
   val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val neq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
-  val base : Z.t
 end
 
 let gcd a b = Z.gcd a b
@@ -42,9 +44,7 @@ module LsbStr = struct
 
   let o = Str.u_zero
   let i = Str.u_one
-  let base = Str.base
-  let basei = Z.to_int base
-  let alphabet = Str.alphabet |> List.to_seq |> Seq.take basei |> List.of_seq
+  let alphabet = Str.alphabet |> List.to_seq |> Seq.take _base |> List.of_seq
   let () = assert (List.nth alphabet 0 = Str.u_zero)
   let itoc i = List.nth alphabet i
 
@@ -64,18 +64,17 @@ module LsbStr = struct
   ;;
 
   let powerset term =
-    let base = basei in
     let rec helper = function
       | [] -> []
       | [ x ] ->
         ([ Str.u_eos ], [ Z.zero ])
-        :: (0 -- (base - 1) |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
+        :: (0 -- (_base - 1) |> List.map (fun c -> [ itoc c ], [ Z.(x * of_int c) ]))
       | hd :: tl ->
         let open Base.List.Let_syntax in
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
         (Str.u_eos :: n, Z.zero :: thing)
-        :: (0 -- (base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
+        :: (0 -- (_base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
     in
     term
     |> List.map snd
@@ -107,8 +106,8 @@ module LsbStr = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod base = zero))
-              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base))
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (Z.of_int _base) = zero))
+              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / Z.of_int _base))
             in
             states := Set.add !states hd;
             transitions := t @ !transitions;
@@ -163,9 +162,9 @@ module LsbStr = struct
               |> List.map (fun (bits, sum) ->
                 ( hd
                 , bits
-                , match Z.((hd - sum) mod base) with
-                  | i when Z.(zero <= i) && i < base -> Z.((hd - sum) / base)
-                  | i when Z.(-base < i && i < zero) -> Z.(((hd - sum) / base) - one)
+                , match Z.((hd - sum) mod Z.of_int _base) with
+                  | i when Z.(zero <= i) && i < Z.of_int _base -> Z.((hd - sum) / Z.of_int _base)
+                  | i when Z.(-Z.of_int _base < i && i < zero) -> Z.(((hd - sum) / Z.of_int _base) - one)
                   | _ -> failwith "Should be unreachable" ))
             in
             states := Set.add !states hd;
@@ -200,9 +199,7 @@ module MsbPar = struct
   type t = Nfa.t
   type v = Par.u
 
-  let base = Config.config.enc_base
-
-  (** returns an nfa recognizing every integer base [base]*)
+  (** returns an nfa recognizing every integer base [_base]*)
   let n () =
     Nfa.create_nfa ~transitions:[ 0, [], 0 ] ~start:[ 0 ] ~final:[ 0 ] ~vars:[] ~deg:1
   ;;
@@ -224,7 +221,7 @@ module MsbPar = struct
             (* (const Z.(v' * base)
              ::  *)
             (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)) *)
-         (const Z.(v - (v' * base))))
+         (const Z.(v - (v' * Z.of_int _base))))
   ;;
 
   let get_extra t' term =
@@ -247,12 +244,12 @@ module MsbPar = struct
                (* (const Z.(v * (base - one))
                 ::  *)
                (List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term)) *)
-            (const Z.(v * (one - base))))
+            (const Z.(v * (one - Z.of_int _base))))
        :: List.map
             (fun (var, _) ->
                lor_
                  [ Lia (eq (get var) (const Z.zero))
-                 ; Lia (eq (get var) (const Z.(base - one)))
+                 ; Lia (eq (get var) (const Z.(Z.of_int _base - one)))
                  ])
             term)
   ;;
@@ -261,7 +258,7 @@ module MsbPar = struct
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
   let eq vars term c =
-    trace_log "Base in Boigelot-eq: %a" Z.pp_print base;
+    trace_log "Base in Boigelot-eq: %d" _base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
     let term =
@@ -281,17 +278,17 @@ module MsbPar = struct
             (fun (p, n) (_, a) -> if Z.(a > zero) then Z.(p + a), n else p, Z.(n + a))
             (Z.zero, Z.zero)
             term
-          |> both (fun x -> Z.(state - (x * (base - one))))
+          |> both (fun x -> Z.(state - (x * (Z.of_int _base - one))))
         in
         let lb =
-          if Z.(lower mod (base * gcd_) = zero)
-          then div_ lower base
-          else Z.((div_ lower (base * gcd_) + one) * gcd_)
+          if Z.(lower mod (Z.of_int _base * gcd_) = zero)
+          then div_ lower (Z.of_int _base)
+          else Z.((div_ lower (Z.of_int _base * gcd_) + one) * gcd_)
         in
         let ub =
-          if Z.(upper mod (base * gcd_) = zero)
-          then div_ upper base
-          else Z.(div_ upper (base * gcd_) * gcd_)
+          if Z.(upper mod (Z.of_int _base * gcd_) = zero)
+          then div_ upper (Z.of_int _base)
+          else Z.(div_ upper (Z.of_int _base * gcd_) * gcd_)
         in
         get_list lb ub gcd_
         |> List.map (fun prev -> prev, get_label t' prev eq state, state)
@@ -368,8 +365,8 @@ module MsbPar = struct
             (fun (p, n) (_, a) -> if Z.(a > zero) then Z.(p + a), n else p, Z.(n + a))
             (Z.zero, Z.zero)
             term
-          |> both (fun x -> Z.(state - (x * (base - one))))
-          |> both (fun x -> Z.(div_ x (base * gcd_) * gcd_))
+          |> both (fun x -> Z.(state - (x * (Z.of_int _base - one))))
+          |> both (fun x -> Z.(div_ x (Z.of_int _base * gcd_) * gcd_))
         in
         get_list lb ub gcd_
         |> List.map (fun prev ->

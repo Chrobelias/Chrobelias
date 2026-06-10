@@ -1,5 +1,5 @@
 type config =
-  { mutable enc_base : (Z.t[@printer Z.pp_print])
+  { mutable enc_base : int
   ; mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bool_comb_sat : bool
   ; mutable bound_res : int
@@ -35,7 +35,7 @@ type config =
 [@@deriving show]
 
 let config =
-  { enc_base = Z.of_int 10
+  { enc_base = 10
   ; antiprenex_mode = `All
   ; bool_comb_sat = false
   ; bound_res = -1
@@ -98,10 +98,10 @@ Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "-base" (*AM: string because it seems we want arbitrarily large bases*)
-      , Arg.String (fun n -> config.enc_base <- Z.of_string n)
+    [ ( "--base" (*AM: string because it seems we want arbitrarily large bases*)
+      , Arg.String (fun n -> config.enc_base <- int_of_string n)
       , "\tSet the encoding base for integer representation" )
-    ; ( "-help"
+    ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
     ; ( "--bfs"
@@ -110,9 +110,9 @@ Basic options:
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness" )
-    ; ( "--bool-comb"
+    ; ( "--lazy-operations"
       , Arg.Unit (fun () -> config.bool_comb_sat <- true)
-      , "\tCheck-sat without performing set operations over automata" )
+      , "\tCheck satisfiability without performing Boolean operations over automata, whenever possible" )
     ; "--seed", Arg.Int (fun v -> config.seed <- v), "<n>\tSpecify a seed for Z3"
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))

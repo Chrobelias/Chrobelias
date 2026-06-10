@@ -4,6 +4,9 @@
 
 let trace_log fmt = Debug.trace "simpl" fmt
 
+let _config = Config.config
+let _base = Config.config.enc_base
+
 module NfaS = Nfa.Lsb (Nfa.Str)
 
 type relop =
@@ -144,7 +147,7 @@ module Id_symantics :
   let pow_minus_one t = pow (const (-1)) t
 
   let pow2var c =
-    Ast.Eia.pow (Ast.Eia.const Config.config.enc_base) (Ast.Eia.atom (Ast.var c I))
+    Ast.Eia.pow (Ast.Eia.const (Z.of_int _base)) (Ast.Eia.atom (Ast.var c I))
   ;;
 
   let unsupp s = Ast.Unsupp s
@@ -161,9 +164,9 @@ let apply_term_symantics
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Const base, p) when base = Z.minus_one -> S.pow_minus_one (helperT p)
-    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Config.config.enc_base ->
+    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Z.of_int _base ->
       S.pow (S.constz base) (S.var x)
-    | Pow (base, p) -> S.pow (helperT base) (helperT p)
+    | Pow (base, p) -> S.pow (helperT base) (helperT p) (* AM: not sure what is happening here. Is an error raised later? *)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
     | Bwor (l, r) -> S.bw FT_SIG.Bwor (helperT l) (helperT r)
     | Bwxor (l, r) -> S.bw FT_SIG.Bwxor (helperT l) (helperT r)
@@ -461,7 +464,7 @@ let make_main_symantics ?alpha ?agressive env =
 
     let str_len2 = function
       | Ast.Eia.Str_const s ->
-        Id_symantics.constz Z.(pow Config.config.enc_base (String.length s) - one)
+        Id_symantics.constz Z.(pow (Z.of_int _base) (String.length s) - one)
       | s -> Id_symantics.str_len2 s
     ;;
 
@@ -472,7 +475,7 @@ let make_main_symantics ?alpha ?agressive env =
           [ Ast.Eia.mul
               [ Id_symantics.iofs lhs
               ; Ast.Eia.pow
-                  (Id_symantics.constz Config.config.enc_base)
+                  (Id_symantics.constz (Z.of_int _base))
                   (Id_symantics.constz (Z.of_int (String.length s)))
               ]
           ; Id_symantics.constz (Z.of_string s)
@@ -593,8 +596,8 @@ let make_main_symantics ?alpha ?agressive env =
       | c, [ h ] when Z.equal c Z.one -> h
       | c, xs when Z.equal c Z.one -> Ast.Eia.mul (List.sort compare_term xs)
       | c, [ Pow ((Const base_ as base), Add [ Const v1; v ]) ]
-        when Z.(equal c Config.config.enc_base)
-             && base_ = Config.config.enc_base
+        when Z.(equal c (Z.of_int _base))
+             && Z.equal base_ (Z.of_int _base)
              && v1 = Z.minus_one -> pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
       | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)

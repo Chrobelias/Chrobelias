@@ -14,7 +14,9 @@ let () =
 let answer_guess = ref None
 let sat_found = ref false
 let set_guess v = answer_guess := Some v
-let config = Lib.Config.config
+
+let _config = Lib.Config.config
+let _base = Lib.Config.config.enc_base
 
 let () =
   Sys.set_signal
@@ -55,8 +57,7 @@ let lift ?(unsat_info = "") ast = function
 ;;
 
 let logBaseZ n =
-  let base = Lib.Config.config.enc_base in
-  let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base) in
+  let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / Z.of_int _base) in
   helper Z.minus_one n
 ;;
 
@@ -191,8 +192,8 @@ let calculate_model tys model regexes env =
 let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
 
 let check_sat ?(verbose = false) _ ast : rez =
-  if config.logic = `Eia && Lib.Ast.is_str ast
-  then config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
+  if _config.logic = `Eia && Lib.Ast.is_str ast
+  then _config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
   let report_result2 rez =
     let check_answer () =
       Format.printf "%!";
@@ -213,11 +214,11 @@ let check_sat ?(verbose = false) _ ast : rez =
     then (
       match rez with
       | `Sat s ->
-        if config.with_info
+        if _config.with_info
         then Format.printf "sat (%s)\n%!" s
         else Format.printf "sat\n%!"
       | `Unsat s ->
-        if config.with_info
+        if _config.with_info
         then Format.printf "unsat (%s)\n%!" s
         else Format.printf "unsat\n%!"
       | `Unknown s ->
@@ -228,7 +229,7 @@ let check_sat ?(verbose = false) _ ast : rez =
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
       let ir = ir |> Lib.Ir.simpl |> Lib.Ir.simpl_ineq in
-      let ir = if config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in
+      let ir = if _config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in
       (match ir with
        | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
        | Lnot True -> Unsat "simpl"
@@ -238,8 +239,8 @@ let check_sat ?(verbose = false) _ ast : rez =
            trace_log "Unknown in Lightweight solving ...";
            Unknown (ast, e))
          else (
-           if config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
-           if config.stop_after = `Simpl then exit 0;
+           if _config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
+           if _config.stop_after = `Simpl then exit 0;
            trace_log "Starting NFA Solver ...";
            match Lib.Solver.check_sat ir with
            | `Sat get_model -> sat "nfa" ast e get_model Map.empty
@@ -252,19 +253,19 @@ let check_sat ?(verbose = false) _ ast : rez =
     let apporx_rez =
       unknown ast e
       <+> (fun ast e ->
-      if not config.pre_simpl
+      if not _config.pre_simpl
       then unknown ast e
       else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
       <+> (fun ast e ->
       let light_str = if light then "Lightweight run:\n" else "" in
-      if config.dump_pre_simpl
+      if _config.dump_pre_simpl
       then Format.printf "@[%s%a@]\n%!" light_str Lib.Ast.pp_smtlib2 ast;
       unknown ast e)
-      <+> fun ast e -> if config.stop_after = `Pre_simplify then exit 0 else unknown ast e
+      <+> fun ast e -> if _config.stop_after = `Pre_simplify then exit 0 else unknown ast e
     in
     match apporx_rez with
     | Unknown (ast, e) ->
-      if config.mode = `Msb
+      if _config.mode = `Msb
       then check_nfa_sat ~light ast e
       else (
         let asts_nat = Lib.Ast.to_nat ast in
@@ -303,7 +304,7 @@ let check_sat ?(verbose = false) _ ast : rez =
     report_result2 (`Unknown "too big nfa during the computations");
     unknown ast Lib.Env.empty
   | s ->
-    if config.quiet == true
+    if _config.quiet == true
     then (
       report_result2 (`Unknown "");
       unknown ast Lib.Env.empty)
@@ -355,7 +356,7 @@ type state =
 let () =
   Smtml.Expr.use_eval := false;
   let smt_f =
-    match Fpath.of_string config.input_file with
+    match Fpath.of_string _config.input_file with
     | Result.Error (`Msg msg) ->
       Format.eprintf "%s\n%!" msg;
       exit 1
@@ -409,17 +410,17 @@ let () =
       in
       { state with tys }
     | Smtml.Ast.Set_logic (Smtml.Logic.QF_S | Smtml.Logic.QF_SLIA) ->
-      config.logic
+      _config.logic
       <- (if Lib.Config.config.logic = `Par
           then `Par
           else if Lib.Config.config.no_str_bv
           then `Str
           else `StrBv);
-      (* config.under_approx <- 0; *)
-      config.over_approx <- false;
-      config.simpl_alpha <- false;
-      config.simpl_mono <- true;
-      (* config.pre_simpl <- false; *)
+      (* _config.under_approx <- 0; *)
+      _config.over_approx <- false;
+      _config.simpl_alpha <- false;
+      _config.simpl_mono <- true;
+      (* _config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
       { asserts = []; prev = Some state; last_result = None; tys = Map.empty }
@@ -429,7 +430,7 @@ let () =
       | None -> failwith "Nothing to pop"
       end
     | Smtml.Ast.Check_sat exprs ->
-      config.with_check_sat <- true;
+      _config.with_check_sat <- true;
       let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs in
       let rec get_ast { asserts; prev; _ } =
         match prev with
@@ -445,7 +446,7 @@ let () =
       if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
-      if config.no_model = true
+      if _config.no_model = true
       then (
         Format.printf "no-model mode\n%!";
         state)
