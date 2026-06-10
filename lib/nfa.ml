@@ -10,7 +10,7 @@ module Sequence = Base.Sequence
 let trace_log fmt = Debug.trace "nfa" fmt
 
 let _config = Config.config
-let _base = Config.config.enc_base
+let _base = _config.enc_base
 
 exception Too_big_nfa
 

@@ -3,7 +3,7 @@
 let trace_log fmt = Debug.trace "solver" fmt
 
 let _config = Config.config
-let _base = Config.config.enc_base
+let _base = _config.enc_base
 
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly

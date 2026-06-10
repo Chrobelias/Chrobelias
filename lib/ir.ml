@@ -1,6 +1,9 @@
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
+let _config = Config.config
+let _base = _config.enc_base
+
 (* TODO: the perfect implementation should differentiate between atoms in *)
 (* different theories. But it requires a lot more complex parsing due to *)
 (* the state that should be stored. So let's stick with simpler stuff now. *)
@@ -20,7 +23,7 @@ let internal_name () =
 
 let name = function
   | Var name -> name
-  | Pow name -> string_of_int Config.config.enc_base ^ name
+  | Pow name -> string_of_int _base ^ name
 ;;
 
 let internal () = var (internal_name ())
@@ -34,7 +37,7 @@ let internal_pow () =
 
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var
-  | Pow var -> Format.fprintf fmt "pow%s(%s)" (string_of_int Config.config.enc_base) var
+  | Pow var -> Format.fprintf fmt "pow%s(%s)" (string_of_int _base) var
 ;;
 
 type rel =
@@ -606,7 +609,7 @@ let collect_atomics =
 
 let antiprenex =
   fun ir ->
-  if Config.config.antiprenex_mode = `Disable
+  if _config.antiprenex_mode = `Disable
   then ir
   else
     map
@@ -651,7 +654,7 @@ let antiprenex =
                       (fun (i, s) ->
                          if
                            Set.mem s atom
-                           || (Config.config.antiprenex_mode = `Push_re
+                           || (_config.antiprenex_mode = `Push_re
                                && List.nth irs i
                                   |> function
                                   | SRegRaw _ -> true

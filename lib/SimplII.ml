@@ -5,7 +5,7 @@
 let trace_log fmt = Debug.trace "simpl" fmt
 
 let _config = Config.config
-let _base = Config.config.enc_base
+let _base = _config.enc_base
 
 module NfaS = Nfa.Lsb (Nfa.Str)
 

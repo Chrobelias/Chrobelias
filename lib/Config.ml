@@ -98,8 +98,8 @@ Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "--base" (*AM: string because it seems we want arbitrarily large bases*)
-      , Arg.String (fun n -> config.enc_base <- int_of_string n)
+    [ ( "--base" 
+      , Arg.Int (fun n -> config.enc_base <- n)
       , "\tSet the encoding base for integer representation" )
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
@@ -127,3 +127,5 @@ Basic options:
        else Printf.eprintf "File %S doesn't exist\n" s)
     usage_msg
 ;;
+
+let () = parse_args ()

@@ -3,7 +3,7 @@
 let trace_log fmt = Debug.trace "nfa_collection" fmt
 
 let _config = Config.config
-let _base = Config.config.enc_base
+let _base = _config.enc_base
 
 module Map = Nfa.Map
 module Set = Base.Set.Poly
@@ -345,7 +345,7 @@ module MsbPar = struct
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
   let leq vars term c =
-    (* trace_log "Base in Boigelot-leq: %a" Z.pp_print base; *)
+    trace_log "Base in Boigelot-leq: %d" _base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
     let term =

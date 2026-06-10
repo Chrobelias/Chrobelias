@@ -6,10 +6,7 @@ let trace_log fmt = Lib.Debug.trace "chro" fmt
 
 module Map = Base.Map.Poly
 
-let () =
-  Lib.Config.parse_args ();
-  trace_log "Starting Chrobelias with config: %a" Lib.Config.pp_config Lib.Config.config
-;;
+let () = trace_log "Starting Chrobelias with config: %a" Lib.Config.pp_config Lib.Config.config ;;
 
 let answer_guess = ref None
 let sat_found = ref false

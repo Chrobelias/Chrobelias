@@ -3,7 +3,7 @@
 let trace_log fmt = Debug.trace "simpl" fmt
 
 let _config = Config.config
-let _base = Config.config.enc_base
+let _base = _config.enc_base
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
