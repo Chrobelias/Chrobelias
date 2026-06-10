@@ -5,6 +5,12 @@ let trace_log fmt = Debug.trace "simpl" fmt
 let _config = Config.config
 let _base = _config.enc_base
 
+module Z3 = Smtml.Z3_mappings.Solver
+
+let _z3_solver = Z3.make ~params:
+    Smtml.Params.(default () $ (Random_seed, Config.config.seed))
+      ()
+
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
   aux j []
@@ -770,16 +776,10 @@ let check_sat ?(base = Config.config.enc_base) ast =
   | ph when AstL.equal ph false_ -> `Unsat
   | ph ->
     let ph = apply_symnatics (module SMT) ph in
-    let module Z3 = Smtml.Z3_mappings.Solver in
-    let solver =
-      Z3.make
-        ~params:
-          Smtml.Params.(
-            default () $ (Timeout, 200000) $ (Random_seed, Config.config.seed))
-        ()
-    in
-    Z3.reset solver;
-    Z3.check solver ~assumptions:[ ph ]
+    Z3.push _z3_solver;
+    let res = Z3.check _z3_solver ~assumptions:[ ph ] in
+    Z3.pop _z3_solver 1;
+    res
 ;;
 
 let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
@@ -812,18 +812,12 @@ let get_states_z3 ph get_state =
   let open Lia in
   (* debug_printfln "Composed ast: %a" AstL.pp_smtlib2 ph; *)
   let ph = apply_symnatics (module SMT) ph in
-  let module Z3 = Smtml.Z3_mappings.Solver in
-  let solver =
-    Z3.make
-      ~params:
-        Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, Config.config.seed))
-      ()
-  in
-  Z3.reset solver;
+  Z3.push _z3_solver;
   (* debug_printfln "Running Z3..."; *)
-    match Z3.check solver ~assumptions:[ ph ] with
+  let result =
+    match Z3.check _z3_solver ~assumptions:[ ph ] with
     | `Sat ->
-      (match Z3.model solver with
+      (match Z3.model _z3_solver with
        | None -> assert false
        | Some m ->
          let digits =
@@ -853,6 +847,9 @@ let get_states_z3 ph get_state =
            [])
     | `Unsat -> []
     | _ -> failwith "Unknown in Z3"
+  in
+  Z3.pop _z3_solver 1;
+  result
 ;;
 
 let get_states extra asts =
