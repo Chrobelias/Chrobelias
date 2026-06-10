@@ -776,10 +776,10 @@ let check_sat ?(base = Config.config.enc_base) ast =
   | ph when AstL.equal ph false_ -> `Unsat
   | ph ->
     let ph = apply_symnatics (module SMT) ph in
-    Z3.push _z3_solver;
-    let res = Z3.check _z3_solver ~assumptions:[ ph ] in
-    Z3.pop _z3_solver 1;
-    res
+    Z3.check _z3_solver ~assumptions:[ ph ] 
+    (*AM: if I understand smtml correctly, in this way we are populating 
+      the state of the solver with additional lemmas, while only adding ph 
+      temporarily. My hope is that we will check often similar formulas *)
 ;;
 
 let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
