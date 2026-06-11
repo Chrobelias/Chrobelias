@@ -168,14 +168,16 @@ module Str = struct
   ;;
 
   let alphabet =
-    (Char.code '0' -- (Char.code '0' + _base - 1) |> List.map Char.chr)
+    (Char.code '0' -- (Char.code '0' + min 10 _base - 1) |> List.map Char.chr)
     @ [ u_eos; u_null ]
   ;;
 
   (* FIXME: this should support different bases and symbols. *)
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
-    let full_alpha = Char.code '0' -- (Char.code '0' + _base - 1) |> List.map Char.chr in
+    let full_alpha =
+      Char.code '0' -- (Char.code '0' + min 10 _base - 1) |> List.map Char.chr
+    in
     let full_alpha = Option.value ~default:full_alpha alpha in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
