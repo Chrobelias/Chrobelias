@@ -814,7 +814,7 @@ let get_states_z3 ph get_state =
   (* debug_printfln "Composed ast: %a" AstL.pp_smtlib2 ph; *)
   let ph = apply_symnatics (module SMT) ph in
   Z3.push _z3_solver;
-  (* debug_printfln "Running Z3..."; *)
+  Debug.trace "Z3" "Getting a solution with Z3";
   let result =
     match Z3.check _z3_solver ~assumptions:[ ph ] with
     | `Sat ->
