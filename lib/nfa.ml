@@ -943,29 +943,20 @@ module Parametric (Label : ParL) = struct
       , each (fun nfa -> nfa.extra) )
     in
     let visited_nodes = ref [] in
-    let is_final_memo = ref Map.empty in
     let is_final node =
-      (*AM: is_final is memoized since it can call Z3 *)
-        match Map.find !is_final_memo node with
-        | Some b -> b
-        | None ->
-          let bl = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
-          let ph =
-            AstL.map
-              (function
-                | Pred s ->
-                  let n = AstL.get_atom_num_exn s in
-                  if List.nth bl n then AstL.true_ else AstL.false_
-                | ast -> ast)
-              skel
-          in
-          let b =
-            match SimplI.check_sat ph with
-            | `Sat -> true
-            | `Unsat | `Unknown -> false
-          in
-          is_final_memo := Map.add_exn !is_final_memo ~key:node ~data:b;
-          b
+        let bl = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
+        let ph =
+          AstL.map
+            (function
+              | Pred s ->
+                let n = AstL.get_atom_num_exn s in
+                if List.nth bl n then AstL.true_ else AstL.false_
+              | ast -> ast)
+            skel
+        in
+        match SimplI.check_sat ph with
+          | `Sat -> true
+          | `Unsat | `Unknown -> false
     in
     let successors state =
       (*What happens below: we have a list of labelled graphs. 
