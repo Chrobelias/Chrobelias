@@ -82,7 +82,7 @@ module type ParL = sig
     -> (t * state) list
 
   val filter_states_bool_comb
-    :  (state list -> bool)
+    :  (int -> state list -> bool)
     -> AstL.t list
     -> (t * state list) list
     -> (t * state list) list
@@ -298,20 +298,27 @@ module Par = struct
     | Exit -> []
   ;;
 
-  let filter_states_bool_comb is_final phs active_transitions =
+  let filter_states_bool_comb is_final_mod phs active_transitions =
     let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) in
-    match active_transitions with
-    | [] -> []
-    | _ ->
-      let final_transitions =
-        List.filter (fun (_, state) -> is_final state) active_transitions
-      in
-      (try
-         match final_transitions with
-         | [] -> get_states active_transitions
-         | _ -> get_states final_transitions
-       with
-       | Exit -> [])
+    let none_if_empty l = if List.is_empty l then None else Some l in
+    let handler n =
+      try
+        active_transitions
+        |> List.filter (fun (_, state) -> is_final_mod n state)
+        |> get_states
+        |> none_if_empty
+      with
+      | Exit -> None
+    in
+    if List.is_empty active_transitions
+    then []
+    else (
+      try
+        match List.find_map handler (0 -- _config.search_depth) with
+        | None -> get_states active_transitions
+        | Some states -> states
+      with
+      | Exit -> [])
   ;;
 
   let get = AstL.get_val
@@ -578,7 +585,7 @@ module Parametric (Label : ParL) = struct
     { (create_nfa2 ~transitions ~start ~final ~vars ~deg) with extra = ph; is_dfa }
   ;;
 
-  let project_verticies nfa verticies =
+  let remove_verticies nfa verticies =
     let map_new_old =
       verticies
       |> Set.to_sequence
@@ -623,7 +630,7 @@ module Parametric (Label : ParL) = struct
           let qs = (delta |> List.map snd) @ tl in
           bfs reachable qs)
     in
-    bfs Set.empty (nfa.start |> Set.to_list) |> project_verticies nfa
+    bfs Set.empty (nfa.start |> Set.to_list) |> remove_verticies nfa
   ;;
 
   let remove_unreachable_from_final nfa =
@@ -643,7 +650,27 @@ module Parametric (Label : ParL) = struct
     in
     if Set.is_empty nfa.final
     then create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
-    else bfs Set.empty (nfa.final |> Set.to_list) |> project_verticies nfa
+    else bfs Set.empty (nfa.final |> Set.to_list) |> remove_verticies nfa
+  ;;
+
+  let assign_weights nfa =
+    let reversed_transitions = nfa.transitions |> Graph.reverse in
+    let huge = length nfa in
+    let weights = Array.make (length nfa) huge in
+    let rec bfs states weight =
+      List.iter (fun state -> weights.(state) <- min weights.(state) weight) states;
+      let next =
+        states
+        |> List.concat_map (fun state ->
+          Array.get reversed_transitions state |> List.map snd)
+        |> List.filter (fun state -> weights.(state) = huge)
+      in
+      match next with
+      | [] -> ()
+      | next -> bfs next (weight + 1)
+    in
+    bfs (nfa.final |> Set.to_list) 0;
+    weights |> Array.to_list
   ;;
 
   let any_path ?nozero (nfa : t) vars =
@@ -945,20 +972,27 @@ module Parametric (Label : ParL) = struct
       , each (fun nfa -> nfa.extra) )
     in
     let visited_nodes = ref [] in
-    let is_final node =
-        let bl = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
-        let ph =
-          AstL.map
-            (function
-              | Pred s ->
-                let n = AstL.get_atom_num_exn s in
-                if List.nth bl n then AstL.true_ else AstL.false_
-              | ast -> ast)
-            skel
-        in
-        match SimplI.check_sat ph with
-          | `Sat -> true
-          | `Unsat | `Unknown -> false
+    let weigted_states = each assign_weights in
+    let finals_mod n =
+      weigted_states
+      |> List.map (List.mapi (fun i weight -> if weight = n then Some i else None))
+      |> List.map (List.filter_map Fun.id)
+    in
+    let is_final_mod n node =
+      let finals = finals_mod n in
+      let bl = List.mapi (fun n final -> List.mem (List.nth node n) final) finals in
+      let ph =
+        AstL.map
+          (function
+            | Pred s ->
+              let n = AstL.get_atom_num_exn s in
+              if List.nth bl n then AstL.true_ else AstL.false_
+            | ast -> ast)
+          skel
+      in
+      match SimplI.check_sat ph with
+      | `Sat -> true
+      | `Unsat | `Unknown -> false
     in
     let successors state =
       (*What happens below: we have a list of labelled graphs. 
@@ -984,7 +1018,7 @@ module Parametric (Label : ParL) = struct
         let active_transitions =
           List.filter (fun (_, state) -> not (List.mem state !visited_nodes)) transitions
         in
-        Label.filter_states_bool_comb is_final extras active_transitions
+        Label.filter_states_bool_comb is_final_mod extras active_transitions
       in
       let succ =
         fun () ->
@@ -1023,7 +1057,7 @@ module Parametric (Label : ParL) = struct
         List.iter (fun x -> trace_log "%d; " x) !visited_nodes; *)
         if not (List.mem node !visited_nodes)
         then (* trace_log "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
-          if is_final node
+          if is_final_mod 0 node
           then raise (Sat_found path)
           else begin
             visited_nodes := node :: !visited_nodes;
@@ -1076,7 +1110,7 @@ struct
 
   let length = length
 
-  let project_verticies nfa verticies =
+  let remove_verticies nfa verticies =
     let map_new_old =
       verticies
       |> Set.to_sequence
@@ -1121,7 +1155,7 @@ struct
           let qs = (delta |> List.map snd) @ tl in
           bfs reachable qs)
     in
-    bfs Set.empty (nfa.start |> Set.to_list) |> project_verticies nfa
+    bfs Set.empty (nfa.start |> Set.to_list) |> remove_verticies nfa
   ;;
 
   let remove_unreachable_from_final nfa =
@@ -1139,7 +1173,7 @@ struct
           let qs = (delta |> List.map snd) @ tl in
           bfs reachable qs)
     in
-    bfs Set.empty (nfa.final |> Set.to_list) |> project_verticies nfa
+    bfs Set.empty (nfa.final |> Set.to_list) |> remove_verticies nfa
   ;;
 
   let create_nfa

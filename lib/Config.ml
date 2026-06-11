@@ -1,5 +1,6 @@
 type config =
   { mutable enc_base : int
+  ; mutable search_depth : int
   ; mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bool_comb_sat : bool
   ; mutable bound_res : int
@@ -36,6 +37,7 @@ type config =
 
 let config =
   { enc_base = 10
+  ; search_depth = 0
   ; antiprenex_mode = `All
   ; bool_comb_sat = false
   ; bound_res = -1
@@ -98,21 +100,25 @@ Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "--base" 
-      , Arg.Int (fun n -> config.enc_base <- n)
-      , "\tSet the encoding base for integer representation" )
-    ; ( "--help"
+    [ ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
+    ; ( "--base"
+      , Arg.Int (fun n -> config.enc_base <- n)
+      , "\tSet the encoding base for integer representation" )
     ; ( "--bfs"
       , Arg.Unit (fun () -> config.path_search <- `Bfs)
       , "\tSwitch to bfs in parametric check_sat\t" )
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness" )
-    ; ( "--lazy-operations"
+    ; ( "--depth"
+      , Arg.Int (fun n -> config.search_depth <- n)
+      , "\tNeighbours depth in DFS search" )
+    ; ( "--lazy"
       , Arg.Unit (fun () -> config.bool_comb_sat <- true)
-      , "\tCheck satisfiability without performing Boolean operations over automata, whenever possible" )
+      , "\tCheck satisfiability without performing Boolean operations over automata, \
+         whenever possible" )
     ; "--seed", Arg.Int (fun v -> config.seed <- v), "<n>\tSpecify a seed for Z3"
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))

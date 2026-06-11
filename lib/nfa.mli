@@ -60,7 +60,7 @@ module type ParL = sig
     -> (t * state) list
 
   val filter_states_bool_comb
-    :  (state list -> bool)
+    :  (int -> state list -> bool)
     -> AstL.t list
     -> (t * state list) list
     -> (t * state list) list
@@ -91,7 +91,6 @@ end
 
 (** A modle type representing automata and basic operations for / over them. *)
 module type BasicType = sig
-
   (** The type [v] represents labels of automata. *)
   type v
 
