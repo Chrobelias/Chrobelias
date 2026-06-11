@@ -5,7 +5,7 @@
 (declare-fun E () Int)
 ;(assert (str.in_re A (re.++ (str.to_re "12345") (re.* (re.range "0" "9"))(str.to_re "6789"))))
 ;(assert (str.in_re C (re.+ (str.to_re "1"))))
-(assert (<= 10 C))
+(assert (<= 0 C))
 (assert (>= 1 (+ (* 4 A) (* (- 1) B) (* 3 E))))
 (assert (<= 8 (+ (* 3 C) (* (- 2) B) (* 1 E))))
 (assert (>= 3 (+ (* 4 C) (* (- 1) B) (* (- 2) E))))
