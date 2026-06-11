@@ -635,8 +635,7 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
         eia (Eia.leq (Eia.iofs (Eia.Atom (Lib.Ast.var var S))) (Const Z.minus_one))
       in
       (*let empty var = eia (Eia.Eq (Atom (Var (var, S)), Lib.Ast.Eia.str_const "", S)) in*)
-      get_str_vars ast
-      |> List.filter (fun v -> in_stoi v ast)
+      Lib.Ast.get_stoi_vars ast
       |> List.map (fun var -> lor_ [ non_num var; lnot (non_num var) (*; empty var*) ])
     in
     let ast, unsupported_atomic_formulas =
@@ -1002,11 +1001,11 @@ let () =
          let rez = check_sat ~verbose:true state.tys ast in
          if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
-       | ex ->
+       (*| ex ->
          Format.printf
            "(warning: error during checking sat %s)\n%!"
            (Printexc.to_string ex);
-         state)
+         state*))
     | Smtml.Ast.Get_model ->
       if config.no_model = true
       then (

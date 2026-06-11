@@ -1101,8 +1101,8 @@ let make_main_symantics ?alpha ?agressive env =
       match l, r with
       | Ast.Eia.Str_const l, Ast.Eia.Str_const r ->
         if l <> r then Ast.true_ else Ast.false_
-      (*| (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
-        Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha) FIXME *)
+      | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
+        Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha) (* FIXME *)
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
@@ -2102,8 +2102,8 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       env, ast
     | PropLen (s, len) ->
       let many_words = 10 in
-      let unfold_nfa_with_fixed_len len nfa =
-        try
+      let unfold_nfa_with_fixed_len _len _nfa =
+        (*try
           let len = Z.to_int len in
           let words =
             NfaS.all_paths_of_len nfa len ~limit:many_words
@@ -2113,7 +2113,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
           in
           Option.some words
         with
-        | _ -> None
+        | _ ->*) None
       in
       let words_into_disjunction ?default words =
         if Option.is_some default && List.length words > many_words
@@ -3386,8 +3386,9 @@ let arithmetize str_vars ast env =
   in
   let fold_regexes str_vars ast =
     let open Ast in
+    let vars_arising_in_str_vars = Ast.get_stoi_vars ast in
     let extra =
-      Ast.get_stoi_conc_vars ast
+      vars_arising_in_str_vars
       |> List.map (fun var ->
         if List.mem var str_vars then var, Regex.nondigit else var, Regex.digit)
       |> List.map (fun (var, regex) ->
@@ -3411,7 +3412,11 @@ let arithmetize str_vars ast env =
     in
     let phs =
       if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) model_regexes
-      then [ Ast.false_ ]
+      then
+        (let var, nfa = Map.to_alist model_regexes |> List.find (fun (key, data) -> NfaS.run data |> not) in
+        Debug.printfln "find contradicting regex for %s" var;
+        Debug.dump_nfa ~msg:"re: %s" NfaS.format_nfa nfa;
+        [ Ast.false_ ])
       else
         Map.fold
           ~init:[]
@@ -3448,7 +3453,11 @@ let arithmetize str_vars ast env =
     in
     let phs =
       if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) regexes
-      then [ Ast.false_ ]
+      then
+        (let var, nfa = Map.to_alist regexes |> List.find (fun (key, data) -> NfaS.run data |> not) in
+        Debug.printfln "find contradicting regex for %s" var;
+        Debug.dump_nfa ~msg:"re: %s" NfaS.format_nfa nfa;
+        [ Ast.false_ ])
       else
         Map.fold
           ~init:[]
@@ -3585,7 +3594,11 @@ let arithmetize str_vars ast env =
      let in_stoi v = Ast.in_stoi v ast in
      let _in_regex v = Map.mem (collect_regexes ast) v in
      let open Ast.Eia in
-     let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in
+     (* Previously, Chrobelias tried to approximate concatenation of pure-digit
+        strings $a ++ b$ as $a \times 10^(str.len b) + b$. However, the further
+        multiplication approximations are extremely slow. For now the behavior is disabled *)
+     (*let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in*)
+     let may_be_in_str_vars = in_stoi in
      let rec arithmetize_term : 'a. string list -> 'a term -> Z.t term * Ast.Eia.t list =
        fun (type a) : (string list -> a term -> Z.t term * Ast.Eia.t list) -> function
          | str_vars ->
@@ -3628,7 +3641,11 @@ let arithmetize str_vars ast env =
                  :: phs
                in
                v, phs
-             | Str_const s -> const (Z.of_string s), []
+             | Str_const s -> begin try
+               const (Z.of_string s), []
+             with
+             | Invalid_argument v -> let () = Format.printf "something is wrong %s" s in failwith v
+             end
              | Atom (Var (v, S)) -> atomi v, []
              | (Concat _ | At (_, _) | Substr (_, _, _)) as term ->
                failwith
@@ -3738,13 +3755,13 @@ let arithmetize str_vars ast env =
              v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
          in
          let nfa =
-           if not (in_stoi_or_concat s)
+           if not (may_be_in_str_vars s)
            then nfa
            else if List.mem s str_vars
            then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
            else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
          in
-         (match in_stoi_or_concat s, List.mem s str_vars with
+         (match may_be_in_str_vars s, List.mem s str_vars with
           | true, false ->
             Ast.land_
               (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia))
@@ -3816,16 +3833,22 @@ let arithmetize str_vars ast env =
   let asts_n_regexes =
     ast
     |> split_concats
-    |> with_empty_cases
-    |> List.concat_map Ast.to_dnf
-    (*|> fun ast -> 
-  Format.printf "2 -> %a\n%!" Ast.pp_smtlib2 ast; ast*)
-    |> List.map (fun ast -> ast |> apply_symantics (module Symantics) |> fold_regexes str_vars)
-    (*|> fun ((ast, _) as res) -> 
-  Format.printf "3 -> %a\n%!" Ast.pp_smtlib2 ast; res*)
+    |> Ast.to_dnf
+    (*|> List.map (fun ast ->
+  Format.printf "2 -> %a\n%!" Ast.pp_smtlib2 ast; ast)*)
+    |> List.concat_map with_empty_cases
+    |> List.map (apply_symantics (module Symantics))
+    |> List.filter_map (fun ast ->
+      match basic_simplify [ 0 ] env ast with
+      | `Unsat _ -> None
+      | `Sat env -> Some (Ast.true_, env)
+      | `Unknown (ast, env, _, _) -> Some (ast, env))
+    |> List.map (fun (ast, env) -> fold_regexes str_vars ast, env)
+    |> List.map (fun (((ast, regexes), env)) ->
+        (*Format.printf "3 -> %a\n%!" Ast.pp_smtlib2 ast; *)(ast, regexes, env))
   in
   asts_n_regexes
-  |> List.concat_map (fun (ast, regexes) ->
+  |> List.concat_map (fun (ast, regexes, env) ->
   arithmetize var_info str_vars ast
   |> Ast.to_dnf
   |> List.map (fun ast' ->

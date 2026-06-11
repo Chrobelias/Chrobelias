@@ -646,7 +646,10 @@ let land_ =
     match asts with
     | [] -> true_
     | [ ast ] -> ast
-    | asts when List.exists (( = ) (Lnot True)) asts -> Lnot True
+    | asts when List.exists (( = ) (Lnot True)) asts ->
+        Debug.printfln "Collapsing %a due to %a" (Format.pp_print_list pp_smtlib2) asts pp_smtlib2 (List.find ((=) (Lnot True)) asts);
+        (*let () = failwith "bad" in*)
+        Lnot True
     | asts ->
       let asts =
         List.concat_map
@@ -1122,6 +1125,9 @@ let in_stoi2 v ast =
 let get_stoi_conc_vars ast =
   ast |> get_str_vars |> List.filter (fun v -> in_stoi v ast || in_concat v ast)
 ;;
+let get_stoi_vars ast =
+  ast |> get_str_vars |> List.filter (fun v -> in_stoi v ast)
+;;
 
 let get_len name ast =
   fold
@@ -1165,7 +1171,8 @@ let rec equal ast ast' =
     List.length asts = List.length asts' && List.for_all2 equal asts asts'
   | Exists (atoms, ast), Exists (atoms', ast') -> equal ast ast' && atoms = atoms'
   | Pred name, Pred name' -> name = name'
-  | Unsupp _, Unsupp _ -> true
+  | Unsupp (`Msg s1), Unsupp (`Msg s2) -> s1 = s2
+  | Unsupp (`Check _), Unsupp (`Check _) -> true
   | Eia eia, Eia eia' -> safe_eq_eia (Eia eia) (Eia eia')
   | _, _ -> false
 ;;
