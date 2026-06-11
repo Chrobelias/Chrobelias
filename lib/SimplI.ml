@@ -776,6 +776,7 @@ let check_sat ?(base = Config.config.enc_base) ast =
   | ph when AstL.equal ph false_ -> `Unsat
   | ph ->
     let ph = apply_symnatics (module SMT) ph in
+    Debug.trace "Z3" "Checking satisfiability with Z3";
     Z3.check _z3_solver ~assumptions:[ ph ] 
     (*AM: if I understand smtml correctly, in this way we are populating 
       the state of the solver with additional lemmas, while only adding ph 

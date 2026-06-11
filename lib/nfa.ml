@@ -950,7 +950,7 @@ module Parametric (Label : ParL) = struct
     let visited_nodes = ref [] in
     let is_final_memo = ref Map.empty in 
     let is_final node =
-      (*AM: is_final is memoized since it calls Z3 *)
+      (*AM: is_final is memoized since it can call Z3 *)
       match Map.find !is_final_memo node with 
       | Some b -> b 
       | None ->
