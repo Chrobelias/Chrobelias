@@ -1,7 +1,6 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "solver" fmt
-
 let _config = Config.config
 let _base = _config.enc_base
 
@@ -9,7 +8,6 @@ module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 
 let do_if_lsb f = if _config.mode = `Lsb then f else Fun.id
-
 let level = ref 0
 
 module NfaS = Nfa.Lsb (Nfa.Str)
@@ -28,8 +26,7 @@ struct
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
     let rec eval ir =
-      if _config.dump_ir
-      then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
+      if _config.dump_ir then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
       level := !level + 1;
       (match ir with
        | Ir.Unsupp s -> NfaCollection.n ()
@@ -239,76 +236,6 @@ module MsbPar =
       ;;
     end)
 
-let aux_of_path
-      (type a)
-      (module Label : Nfa.L with type u = a)
-      ?(mode : [ `Lsb | `Msb ] option)
-      ?(no_sign = false)
-      number
-  : [ `Plus | `Minus ] * a List.t
-  =
-  let mode = Option.value mode ~default:Config.config.mode in
-  let sign, number =
-    match mode, no_sign with
-    | `Lsb, true -> `Plus, List.rev number
-    | `Lsb, false ->
-      let number = List.rev number in
-      begin match number with
-      | hd :: tl when hd = Label.u_zero || hd = Label.u_eos -> `Plus, tl
-      | hd :: tl -> `Minus, tl
-      | _ -> assert false
-      end
-    | `Msb, true -> `Plus, number
-    | `Msb, false ->
-      begin match number with
-      | hd :: tl when hd = Label.u_zero || hd = Label.u_eos -> `Plus, tl
-      | hd :: tl -> `Minus, tl
-      | _ -> assert false
-      end
-  in
-  let number =
-    number
-    |> List.drop_while (fun c -> c = Label.u_eos)
-    |> List.map (fun c -> if c = Label.u_null || c = Label.u_eos then Label.u_zero else c)
-  in
-  sign, number
-;;
-
-let string_of_path
-      (type a)
-      (module Label : Nfa.L with type u = a)
-      ?(mode : [ `Lsb | `Msb ] option)
-      (f : a List.t -> string)
-      path
-  =
-  let sign, path = aux_of_path (module Label) ?mode ~no_sign:true path in
-  match sign with
-  | `Plus -> f path
-  | _ -> assert false
-;;
-
-let int_of_path
-      (type a)
-      (module Label : Nfa.L with type u = a)
-      ?(mode : [ `Lsb | `Msb ] option)
-      (f : a List.t -> Z.t)
-      ?(negate_symbol : (a -> a) option)
-      path
-  =
-  let sign, path =
-    aux_of_path (module Label) ?mode ~no_sign:(negate_symbol |> Option.is_none) path
-  in
-  match sign with
-  | `Plus -> f path
-  | `Minus ->
-    let negate_symbol = Option.get negate_symbol in
-    path |> List.map negate_symbol |> f |> fun x -> Z.(-x - one)
-;;
-
-let string_of_char_list p = p |> List.to_seq |> String.of_seq
-let z_of_char_list p = p |> List.to_seq |> String.of_seq |> Z.of_string
-let ( let* ) = Result.bind
-
 let check_sat ir
   : [ `Sat of
         (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long | `No_model ]) Result.t
@@ -317,27 +244,28 @@ let check_sat ir
     ]
   =
   let chack_par_sat ir =
-    let checker =
-      let wrap f to_char =
-        fun ir ->
-        match f ir with
-        | `Sat model ->
-          `Sat
-            (fun () ->
-              let* model = model () in
-              let model = Map.map ~f:(List.map to_char) model in
-              Result.ok model)
-        | `Unknown -> `Unknown
-        | `Unsat -> `Unsat
-      in
-      trace_log "Running parametric MSB mode";
-      let int_to_char = function
-        | c when 0 <= c && c <= _base - 1 -> Char.chr (Char.code '0' + c)
-        | _ -> failwith "Unexpected symbol"
-      in
-      wrap MsbPar.check_sat int_to_char
+    trace_log "Running parametric MSB mode";
+    let ( let* ) = Result.bind in
+    let int_of_path2 =
+      let base = Z.of_int _base in
+      function
+      | 0 :: ds ->
+        ds
+        |> List.drop_while (fun x -> x = 0)
+        |> List.fold_left (fun sum x -> Z.((base * sum) + of_int x)) Z.zero
+      | d :: ds when d = _base - 1 ->
+        ds
+        |> List.drop_while (fun x -> x = _base - 1)
+        |> List.fold_left
+             (fun (sum, _pow) x -> Z.((base * sum) + of_int x), Z.(base * _pow))
+             (Z.zero, Z.one)
+        |> fun (num, _pow) -> Z.(num - _pow)
+      | _ -> failwith "Unexpected symbols in int_of_path"
     in
-    match checker ir with
+    let str_of_path2 p =
+      p |> List.drop 1 |> List.fold_left (fun acc c -> acc ^ Int.to_string c) ""
+    in
+    match MsbPar.check_sat ir with
     | `Sat model ->
       `Sat
         (fun tys ->
@@ -348,22 +276,12 @@ let check_sat ir
                 let ty = Map.find tys k |> Option.value ~default:`Int in
                 match ty with
                 | `Int ->
-                  let char_negate c =
-                    Char.chr (Char.code '0' + (Char.code '9' - Char.code c))
-                  in
-                  begin try
-                    `Int
-                      (int_of_path
-                         (module Nfa.Str)
-                         z_of_char_list
-                         ~negate_symbol:char_negate
-                         v)
-                  with
+                  begin try `Int (int_of_path2 v) with
                   | Invalid_argument ex as exp ->
                     Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
-                    `Str (v |> string_of_path (module Nfa.Str) string_of_char_list)
+                    `Str (str_of_path2 v)
                   end
-                | `Str -> `Str (v |> string_of_path (module Nfa.Str) string_of_char_list))
+                | `Str -> `Str (str_of_path2 v))
               model
           in
           Result.ok main_model)
