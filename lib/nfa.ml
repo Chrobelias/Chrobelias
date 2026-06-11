@@ -84,10 +84,9 @@ module type ParL = sig
 
   val filter_states_bool_comb
     :  (state list -> bool)
-    -> state list Set.t
     -> AstL.t list
     -> (t * state list) list
-    -> (t * state list) Set.t
+    -> (t * state list) list
 end
 
 module type L = sig
@@ -301,24 +300,21 @@ module Par = struct
     | Exit -> []
   ;;
 
-  let filter_states_bool_comb is_final visited phs transitions =
+  let filter_states_bool_comb is_final phs active_transitions =
     let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) 
     in
-    let active_transitions =
-      List.filter (fun (_, state) -> not (Set.mem visited state)) transitions
-    in
     match active_transitions with 
-      | [] -> Set.empty
+      | [] -> []
       | _ ->
         let final_transitions = 
           List.filter (fun (_, state) -> is_final state) active_transitions
         in
         try
           match final_transitions with 
-            | [] -> Set.of_list (get_states active_transitions)
-            | _ -> Set.of_list (get_states final_transitions)
+            | [] -> get_states active_transitions
+            | _ -> get_states final_transitions
         with
-        | Exit -> Set.empty
+        | Exit -> []
   ;;
 
   let get = AstL.get_val
@@ -951,7 +947,7 @@ module Parametric (Label : ParL) = struct
       , each (fun nfa -> nfa.final)
       , each (fun nfa -> nfa.extra) )
     in
-    let visited_nodes = ref Set.empty in
+    let visited_nodes = ref [] in
     let is_final_memo = ref Map.empty in 
     let is_final node =
       (*AM: is_final is memoized since it calls Z3 *)
@@ -996,18 +992,28 @@ module Parametric (Label : ParL) = struct
       in
       let next = fun () -> 
         trace_log "next called";
-        Label.filter_states_bool_comb is_final (!visited_nodes) extras transitions
+        let active_transitions =
+          List.filter (fun (_, state) -> not (List.mem state (!visited_nodes))) transitions
+        in
+        Label.filter_states_bool_comb is_final extras active_transitions
       in
       let succ = fun () ->
         match next () with
-        | s when Set.is_empty s -> 
+        | [] -> 
             trace_log "No successors found for state [%a]"
             (Format.pp_print_list
               ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
               Format.pp_print_int)
             state;
             None
-        | states -> Some (states, ())
+        | states -> 
+          trace_log "Successors found for state [%a]: %d"
+            (Format.pp_print_list
+              ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+              Format.pp_print_int)
+            state
+            (List.length states);
+          Some (states, ())
       in
       Seq.unfold (fun acc -> succ acc) ()
     in
@@ -1023,15 +1029,16 @@ module Parametric (Label : ParL) = struct
         List.iter (fun x -> trace_log "%d; " x) node; *)
         (* trace_log "\nVisited states list: ";
         List.iter (fun x -> trace_log "%d; " x) !visited_nodes; *)
-        if not (Set.mem !visited_nodes node)
+        if not (List.mem node !visited_nodes)
         then (* trace_log "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
           if is_final node
           then raise (Sat_found path)
           else begin
-            visited_nodes := Set.add !visited_nodes node;
+            visited_nodes := node :: !visited_nodes;
             Seq.iter (fun batch ->
-              Set.iter batch ~f:(fun (label, next_node) ->
-                  rdfs (label :: path) next_node))
+              List.iter (fun (label, next_node) ->
+                  rdfs (label :: path) next_node)
+                batch)
             (successors node)
           end
         else (trace_log "node already visited"; ())
