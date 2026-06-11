@@ -967,12 +967,6 @@ module Parametric (Label : ParL) = struct
       | `Unsat | `Unknown -> false
     in
     let successors state visited =
-      trace_log
-        "State: [%a]"
-        (Format.pp_print_list
-           ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
-           Format.pp_print_int)
-        state;
       (*What happens below: we have a list of labelled graphs. 
       I want to exatract all the successors of [state]=(state_0,...,state_n) from these graphs. 
       I geather the list of lists of successors of state_0, ..., state_n; then consider the cartesian 
@@ -990,18 +984,38 @@ module Parametric (Label : ParL) = struct
             ([], [])
           |> fun (x, y) -> Label.combine_list x, y)
       in
-      let next without = Label.filter_states_bool_comb is_final without extras transitions
+      let next without = 
+        trace_log "next called";
+        Label.filter_states_bool_comb is_final without extras transitions
       in
       let succ without =
         match next without with
-        | [] -> None
-        | states ->
-          Some (states, List.fold_left (fun acc sl -> snd sl :: acc) without states)
+        | [] -> 
+            trace_log "No successors found for state [%a]"
+            (Format.pp_print_list
+              ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+              Format.pp_print_int)
+            state;
+            None
+        | states -> 
+            trace_log "Successors found for state [%a]: %d"
+            (Format.pp_print_list
+              ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+              Format.pp_print_int)
+            state
+            (List.length states);
+            Some (states, List.fold_left (fun acc sl -> snd sl :: acc) without states)
       in
       Seq.unfold (fun acc -> succ acc) (state :: visited)
     in
     let dfs start =
       let rec rdfs path visited node =
+        trace_log
+          "rDFS on node [%a]"
+          (Format.pp_print_list
+            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+            Format.pp_print_int)
+          node;
         (* trace_log "Node: ";
         List.iter (fun x -> trace_log "%d; " x) node; *)
         (* trace_log "\nVisited states list: ";
@@ -1015,7 +1029,7 @@ module Parametric (Label : ParL) = struct
               (List.fold_left (fun acc x -> rdfs (fst x :: path) acc (snd x)))
               (node :: visited)
               (successors node visited)
-        else visited
+        else (trace_log "node already visited"; visited)
       in
       rdfs [] [] start
     in
