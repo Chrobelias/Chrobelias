@@ -8,7 +8,6 @@ module Map = Base.Map.Poly
 module Sequence = Base.Sequence
 
 let trace_log fmt = Debug.trace "nfa" fmt
-
 let _config = Config.config
 let _base = _config.enc_base
 
@@ -176,10 +175,7 @@ module Str = struct
   (* FIXME: this should support different bases and symbols. *)
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
-    let full_alpha =
-      Char.code '0' -- (Char.code '0' + _base - 1)
-      |> List.map Char.chr
-    in
+    let full_alpha = Char.code '0' -- (Char.code '0' + _base - 1) |> List.map Char.chr in
     let full_alpha = Option.value ~default:full_alpha alpha in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
@@ -301,20 +297,19 @@ module Par = struct
   ;;
 
   let filter_states_bool_comb is_final phs active_transitions =
-    let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) 
-    in
-    match active_transitions with 
-      | [] -> []
-      | _ ->
-        let final_transitions = 
-          List.filter (fun (_, state) -> is_final state) active_transitions
-        in
-        try
-          match final_transitions with 
-            | [] -> get_states active_transitions
-            | _ -> get_states final_transitions
-        with
-        | Exit -> []
+    let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) in
+    match active_transitions with
+    | [] -> []
+    | _ ->
+      let final_transitions =
+        List.filter (fun (_, state) -> is_final state) active_transitions
+      in
+      (try
+         match final_transitions with
+         | [] -> get_states active_transitions
+         | _ -> get_states final_transitions
+       with
+       | Exit -> [])
   ;;
 
   let get = AstL.get_val
@@ -948,29 +943,29 @@ module Parametric (Label : ParL) = struct
       , each (fun nfa -> nfa.extra) )
     in
     let visited_nodes = ref [] in
-    let is_final_memo = ref Map.empty in 
+    let is_final_memo = ref Map.empty in
     let is_final node =
       (*AM: is_final is memoized since it can call Z3 *)
-      match Map.find !is_final_memo node with 
-      | Some b -> b 
-      | None ->
-        let bl = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
-        let ph =
-          AstL.map
-            (function
-              | Pred s ->
-                let n = AstL.get_atom_num_exn s in
-                if List.nth bl n then AstL.true_ else AstL.false_
-              | ast -> ast)
-            skel
-        in
-        let b = 
-          match SimplI.check_sat ph with
-          | `Sat -> true
-          | `Unsat | `Unknown -> false
-        in
-        is_final_memo := Map.add_exn !is_final_memo ~key:node ~data:b;
-        b
+        match Map.find !is_final_memo node with
+        | Some b -> b
+        | None ->
+          let bl = List.mapi (fun n final -> Set.mem final (List.nth node n)) finals in
+          let ph =
+            AstL.map
+              (function
+                | Pred s ->
+                  let n = AstL.get_atom_num_exn s in
+                  if List.nth bl n then AstL.true_ else AstL.false_
+                | ast -> ast)
+              skel
+          in
+          let b =
+            match SimplI.check_sat ph with
+            | `Sat -> true
+            | `Unsat | `Unknown -> false
+          in
+          is_final_memo := Map.add_exn !is_final_memo ~key:node ~data:b;
+          b
     in
     let successors state =
       (*What happens below: we have a list of labelled graphs. 
@@ -990,40 +985,44 @@ module Parametric (Label : ParL) = struct
             ([], [])
           |> fun (x, y) -> Label.combine_list x, y)
       in
-      let next = fun () -> 
+      let next =
+        fun () ->
         trace_log "next called";
         let active_transitions =
-          List.filter (fun (_, state) -> not (List.mem state (!visited_nodes))) transitions
+          List.filter (fun (_, state) -> not (List.mem state !visited_nodes)) transitions
         in
         Label.filter_states_bool_comb is_final extras active_transitions
       in
-      let succ = fun () ->
+      let succ =
+        fun () ->
         match next () with
-        | [] -> 
-            trace_log "No successors found for state [%a]"
+        | [] ->
+          (* trace_log
+            "No successors found for state [%a]"
+            (Format.pp_print_list
+               ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+               Format.pp_print_int)
+            state; *)
+          None
+        | states ->
+          (* trace_log "Successors found for state [%a]: %d"
             (Format.pp_print_list
               ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
               Format.pp_print_int)
-            state;
-            None
-        | states -> 
-          trace_log "Successors found for state [%a]: %d"
-            (Format.pp_print_list
-              ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
-              Format.pp_print_int)
-            state
-            (List.length states);
+            state 
+          List.length states; *)
           Some (states, ())
       in
       Seq.unfold (fun acc -> succ acc) ()
     in
     let dfs start =
       let rec rdfs path node =
+        trace_log "Visited count = %d" (List.length !visited_nodes);
         trace_log
           "rDFS on node [%a]"
           (Format.pp_print_list
-            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
-            Format.pp_print_int)
+             ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+             Format.pp_print_int)
           node;
         (* trace_log "Node: ";
         List.iter (fun x -> trace_log "%d; " x) node; *)
@@ -1035,13 +1034,16 @@ module Parametric (Label : ParL) = struct
           then raise (Sat_found path)
           else begin
             visited_nodes := node :: !visited_nodes;
-            Seq.iter (fun batch ->
-              List.iter (fun (label, next_node) ->
-                  rdfs (label :: path) next_node)
-                batch)
-            (successors node)
+            Seq.iter
+              (fun batch ->
+                 List.iter
+                   (fun (label, next_node) -> rdfs (label :: path) next_node)
+                   batch)
+              (successors node)
           end
-        else (trace_log "node already visited"; ())
+        else (
+          trace_log "node already visited";
+          ())
       in
       rdfs [] start
     in
