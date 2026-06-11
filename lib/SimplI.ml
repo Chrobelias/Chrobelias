@@ -814,9 +814,13 @@ let get_states_z3 ph get_state =
   (* debug_printfln "Composed ast: %a" AstL.pp_smtlib2 ph; *)
   let ph = apply_symnatics (module SMT) ph in
   Z3.push _z3_solver;
-  Debug.trace "Z3" "Getting a solution with Z3";
+  Debug.trace "Z3" "Getting a solution with Z3...";
+  let t0 = Unix.gettimeofday () in
+  let z3_result = Z3.check _z3_solver ~assumptions:[ ph ] in 
+  let elapsed = Unix.gettimeofday () -. t0 in
+  Debug.trace "Z3" "...it took %.3f ms" (elapsed *. 1000.);
   let result =
-    match Z3.check _z3_solver ~assumptions:[ ph ] with
+    match z3_result with
     | `Sat ->
       (match Z3.model _z3_solver with
        | None -> assert false
