@@ -78,27 +78,27 @@ let join_int_model prefix m =
   (* log "prefix.length = %d" (Env.length prefix); *)
   let rec seek prefix key =
     match Env.lookup_int key prefix with
-    | Some eia -> begin
-      match SimplII.subst_term prefix eia with
+    | Some eia ->
+      begin match SimplII.subst_term prefix eia with
       | Ast.Eia.Const c -> Option.some (`Int c)
       | Ast.Eia.Str_const s -> Option.some (`Str s)
       | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
       | Ast.Eia.Len (Ast.Eia.Atom (Var (v, _))) -> seek prefix ("strlen" ^ v)
       | _ -> None
-    end
+      end
     (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
     (* | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term) *)
-    | None -> begin
-      match Env.lookup_string key prefix with
-      | Some str -> begin
-        match SimplII.subst_term prefix str with
+    | None ->
+      begin match Env.lookup_string key prefix with
+      | Some str ->
+        begin match SimplII.subst_term prefix str with
         | Ast.Eia.Const c -> Option.some (`Int c)
         | Ast.Eia.Str_const s -> Option.some (`Str s)
         | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
         | _ -> None
-      end
+        end
       | None -> None
-    end
+      end
   in
   let rec saturate env =
     let env' : Env.t =
@@ -429,7 +429,7 @@ let dpll check_sat ?(verbose = false) ?(light = false) =
           if light
           then unknown Ast.true_ Lib.Env.empty
           else dpll unsat_core_contra_sat_ast solver
-      end
+        end
       | `Unsat ->
         log "DPLL: Bool unsat found\n%!";
         if !can_be_unk
@@ -585,16 +585,16 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
           let exception
             Sat_found of
               (Lib.Model.tys -> (Lib.Model.t, [ `Too_long | `No_model ]) Result.t)
-          in
+            in
           (try
              let f ast =
                let ir = Lib.Me.ir_of_ast e ast in
                match ir with
-               | Ok ir -> begin
-                 match Lib.Solver.check_sat ir with
+               | Ok ir ->
+                 begin match Lib.Solver.check_sat ir with
                  | `Sat e -> raise (Sat_found e)
                  | _ -> Result.ok ()
-               end
+                 end
                | Error s -> Result.error s
              in
              let _results = List.map f asts in
@@ -710,7 +710,7 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
                       | Result.Error _ ->
                         can_be_unk := true;
                         unknown ast Lib.Env.empty)
-                  end
+                    end
                   | Unknown _ as rez -> rez
                   | Unsat _ as rez -> unsat_or_unknown rez))
             (Unsat ("", ast))
@@ -969,11 +969,11 @@ let () =
       state
     | Smtml.Ast.Push _ ->
       { asserts = []; prev = Some state; last_result = None; tys = Map.empty }
-    | Smtml.Ast.Pop _ -> begin
-      match prev with
+    | Smtml.Ast.Pop _ ->
+      begin match prev with
       | Some state -> state
       | None -> failwith "Nothing to pop"
-    end
+      end
     | Smtml.Ast.Check_sat exprs ->
       config.with_check_sat <- true;
       let expr_irs = List.map (Lib.Fe.to_ast state.tys) exprs in
@@ -1001,7 +1001,7 @@ let () =
          let rez = check_sat ~verbose:true state.tys ast in
          if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
-       (*| ex ->
+         (*| ex ->
          Format.printf
            "(warning: error during checking sat %s)\n%!"
            (Printexc.to_string ex);
@@ -1028,7 +1028,7 @@ let () =
     | Smtml.Ast.Assert expr -> begin
       let ast = expr |> Lib.Fe.to_ast state.tys in
       { state with asserts = ast :: state.asserts }
-    end
+      end
     | Smtml.Ast.Set_info e ->
       let open Smtml in
       (match Expr.view e with

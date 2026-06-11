@@ -647,9 +647,14 @@ let land_ =
     | [] -> true_
     | [ ast ] -> ast
     | asts when List.exists (( = ) (Lnot True)) asts ->
-        Debug.printfln "Collapsing %a due to %a" (Format.pp_print_list pp_smtlib2) asts pp_smtlib2 (List.find ((=) (Lnot True)) asts);
-        (*let () = failwith "bad" in*)
-        Lnot True
+      Debug.printfln
+        "Collapsing %a due to %a"
+        (Format.pp_print_list pp_smtlib2)
+        asts
+        pp_smtlib2
+        (List.find (( = ) (Lnot True)) asts);
+      (*let () = failwith "bad" in*)
+      Lnot True
     | asts ->
       let asts =
         List.concat_map
@@ -719,11 +724,11 @@ let pred s = Pred s
 
 let rec exists = function
   | [] -> Fun.id
-  | atoms -> begin
-    function
-    | Exists (atoms', ast) -> exists (atoms @ atoms') ast
-    | ast -> Exists (atoms, ast)
-  end
+  | atoms ->
+    begin function
+      | Exists (atoms', ast) -> exists (atoms @ atoms') ast
+      | ast -> Exists (atoms, ast)
+    end
 ;;
 
 let limpl a b = lor_ [ lnot a; b ]
@@ -955,11 +960,11 @@ let rec in_strlen v ast =
   in
   match ast with
   | True | Pred _ -> false
-  | Eia eia -> begin
-    match eia with
+  | Eia eia ->
+    begin match eia with
     | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
     | _ -> in_strlen_eia v eia
-  end
+    end
   | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
   | Land asts | Lor asts ->
     List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
@@ -969,11 +974,11 @@ let rec in_strlen v ast =
 let rec in_chrob_len v ast =
   match ast with
   | True | Pred _ -> false
-  | Eia eia -> begin
-    match eia with
+  | Eia eia ->
+    begin match eia with
     | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
     | _ -> false
-  end
+    end
   | Lnot ast' | Exists (_, ast') -> in_chrob_len v ast'
   | Land asts | Lor asts ->
     List.fold_left (fun acc ast -> acc || in_chrob_len v ast) false asts
@@ -1125,9 +1130,8 @@ let in_stoi2 v ast =
 let get_stoi_conc_vars ast =
   ast |> get_str_vars |> List.filter (fun v -> in_stoi v ast || in_concat v ast)
 ;;
-let get_stoi_vars ast =
-  ast |> get_str_vars |> List.filter (fun v -> in_stoi v ast)
-;;
+
+let get_stoi_vars ast = ast |> get_str_vars |> List.filter (fun v -> in_stoi v ast)
 
 let get_len name ast =
   fold

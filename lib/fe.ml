@@ -36,11 +36,11 @@ let rec to_string orig_expr : string Ast.Eia.term * Ast.t =
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
     return (Ast.Eia.Atom (Ast.str_var var)) empty
-  | Expr.Val v -> begin
-    match v with
+  | Expr.Val v ->
+    begin match v with
     | Str s -> return Ast.Eia.(Str_const s) empty
     | _ -> failf (Format.asprintf "unable to handle %a as string" Expr.pp orig_expr)
-  end
+    end
   | Expr.Naryop (_, Ty.Naryop.Concat, ls) ->
     (* VERIFY ME ?? *)
     let ls = List.map to_string ls in
@@ -150,11 +150,11 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
   let neg eia_term = Ast.Eia.mul [ Ast.Eia.const Z.minus_one; eia_term ] in
   let expr = Expr.view orig_expr in
   match expr with
-  | Expr.Val v -> begin
-    match v with
+  | Expr.Val v ->
+    begin match v with
     | Int d -> return (Ast.Eia.const (Z.of_int d)) empty
     | _ -> failf (Format.asprintf "unable to handle %a as integer term" Expr.pp orig_expr)
-  end
+    end
   | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.String_to_int, expr) ->
     let* str, phs = to_string expr in
@@ -316,13 +316,13 @@ and to_ast tys orig_expr : Ast.t =
   try
     match expr with
     (* Constants. *)
-    | Expr.Val v -> begin
-      match v with
+    | Expr.Val v ->
+      begin match v with
       | True -> Ast.True
       | False -> Ast.lnot Ast.true_
       | _ ->
         failf (Format.asprintf "unable to handle %a as boolean term" Expr.pp orig_expr)
-    end
+      end
     (* Variables. *)
     | Expr.Symbol symbol -> Ast.pred (Symbol.to_string symbol)
     (* Yes, probably this stuff is kinda over-engineered. *)
@@ -351,7 +351,7 @@ and to_ast tys orig_expr : Ast.t =
       let lhs = to_ast tys lhs in
       let rhs = to_ast tys rhs in
       Ast.lor_ [ lhs; rhs ]
-    end
+      end
     | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) ->
       let a : Ast.t list =
         List.fold_left
@@ -450,8 +450,8 @@ and to_ast tys orig_expr : Ast.t =
            | Expr.App (symbol, [ expr ]) ->
              let symbol = Symbol.to_string symbol in
              (match expr |> to_ast tys with
-              | (exception _) | Unsupp _ -> begin
-                match to_eia_term expr with
+              | (exception _) | Unsupp _ ->
+                begin match to_eia_term expr with
                 | eia', asts ->
                   let ast =
                     Ast.map
@@ -470,7 +470,7 @@ and to_ast tys orig_expr : Ast.t =
                   in
                   Ast.land_ [ ast; asts ]
                 | exception _ -> failwith "Unexpected construction in let-in binding"
-              end
+                end
               | ast' ->
                 Ast.map
                   (function
@@ -480,7 +480,7 @@ and to_ast tys orig_expr : Ast.t =
            | _ -> failwith "Unexpected construction in let-in binding")
         ast
         bindings
-    end
+      end
     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
   with
   | UnsupportedException m -> Ast.Unsupp (`Msg m)

@@ -9,7 +9,8 @@ let pp ppf m =
   let i = ref 0 in
   (* Mutability only for pretty-printing *)
   Map.iteri m ~f:(fun ~key ~data ->
-    if not (String.starts_with ~prefix:"%" key) then begin
+    if not (String.starts_with ~prefix:"%" key)
+    then begin
       if !i <> 0 then fprintf ppf "@ " else incr i;
       match data with
       | `Int z -> fprintf ppf "  @[(define-fun %s () Int\n    %a)@]" key Z.pp_print z
