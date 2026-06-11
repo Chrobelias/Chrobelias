@@ -301,8 +301,7 @@ module Par = struct
     | Exit -> []
   ;;
 
-  let filter_states_bool_comb is_final visited phs =
-    fun transitions ->
+  let filter_states_bool_comb is_final visited phs transitions =
     let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) 
     in
     let active_transitions =
@@ -946,7 +945,7 @@ module Parametric (Label : ParL) = struct
     (* trace_log "Skel: %a" AstL.pp_smtlib2 skel;
     Map.iter ~f:(fun nfa -> Debug.dump_nfa ~msg:"Next nfa: %s" format_nfa nfa) nfas; *)
     let each f = nfas' |> List.map f in
-    let starts, transitions, finals, extras =
+    let starts, nfa_transitions, finals, extras =
       ( each (fun nfa -> nfa.start)
       , each (fun nfa -> nfa.transitions)
       , each (fun nfa -> nfa.final)
@@ -981,7 +980,7 @@ module Parametric (Label : ParL) = struct
       The formulas on the labels are combined = we take the conjunction of them using the function 
       [Label.combine_list]. *)
       let transitions =
-        transitions
+        nfa_transitions
         |> List.mapi (fun n arr -> Array.get arr (List.nth state n))
         |> Utils.cartesian2
         |> List.map (fun choice ->
@@ -991,8 +990,7 @@ module Parametric (Label : ParL) = struct
             ([], [])
           |> fun (x, y) -> Label.combine_list x, y)
       in
-      let next without =
-        transitions |> Label.filter_states_bool_comb is_final without extras
+      let next without = Label.filter_states_bool_comb is_final without extras transitions
       in
       let succ without =
         match next without with
