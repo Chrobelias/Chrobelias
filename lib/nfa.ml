@@ -303,30 +303,23 @@ module Par = struct
 
   let filter_states_bool_comb is_final visited phs =
     fun transitions ->
+    let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) 
+    in
     let active_transitions =
       List.filter (fun (_, state) -> not (List.mem state visited)) transitions
     in
-    (* trace_log "Ph: %a" AstL.pp_smtlib2 ph; *)
-      try
-        match
-          active_transitions
-          |> List.filter (fun (_, state) -> is_final state)
-          |> function
-          | [] -> []
-          | asts ->
-            (* trace_log "Base in filter_states: %a" Z.pp_print base; *)
-            SimplI.get_states_bool_comb (AstL.land_ phs) asts
+    match active_transitions with 
+      | [] -> [] 
+      | _ ->
+        let final_transitions = 
+          List.filter (fun (_, state) -> is_final state) active_transitions
+        in
+        try
+          match final_transitions with 
+            | [] -> get_states active_transitions
+            | _ -> get_states final_transitions
         with
-        | [] -> SimplI.get_states_bool_comb (AstL.land_ phs) active_transitions
-        | states ->
-          (* List.iter
-          (fun (_, l) ->
-             List.iter (fun x -> trace_log "%d; " x) l;
-             trace_log "next;")
-          states; *)
-          states
-      with
-      | Exit -> []
+        | Exit -> []
   ;;
 
   let get = AstL.get_val
