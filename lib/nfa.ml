@@ -310,7 +310,13 @@ module Par = struct
 
   let filter_states_bool_comb is_final phs active_transitions =
     let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) in
-    let none_if_empty l = if List.is_empty l then None else Some l in
+    let none_if_empty l =
+      if List.is_empty l
+      then (
+        trace_log "Z3 gave an empty list";
+        None)
+      else Some l
+    in
     let op_to_str op = if op 0 1 then "<=" else "=" in
     let handler op n =
       trace_log "In handler of filter_states_bool_comb";
@@ -335,8 +341,8 @@ module Par = struct
       trace_log "No active transitions";
       [])
     else (
-      (* trace_log "Next states are";
-      active_transitions
+      trace_log "There are %d next states" (List.length active_transitions);
+      (*active_transitions
       |> List.map snd
       |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state); *)
         try
