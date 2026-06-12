@@ -1015,11 +1015,5 @@ let get_states_bool_comb extra asts =
   in
   (* Uncomment the line below to see the formula that goes to Z3 *)
   (* debug_printfln "Ph to Z3: %a" AstL.pp_smtlib2 ph; *)
-  (* get_states_z3 ph get_state *)
-  let result = get_states_manually ph get_state in
-  Debug.trace
-    "S"
-    "<><><><><><><><><><><><><><><> SIZE: %d <><><><><><><><><><><><><><><>"
-    (List.length result);
-  result
+  get_states_z3 ph get_state
 ;;
