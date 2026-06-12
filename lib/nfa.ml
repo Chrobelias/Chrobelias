@@ -1002,7 +1002,7 @@ module Parametric (Label : ParL) = struct
     Map.iter ~f:(fun nfa -> Debug.dump_nfa ~msg:"Next nfa: %s" format_nfa nfa) nfas; *)
     let each f = nfas' |> List.map f in
     let starts, nfa_transitions, finals, extras =
-      ( each (fun nfa -> nfa.start)
+      ( each (fun nfa -> nfa.start) |> List.map Set.to_list |> Utils.cartesian2
       , each (fun nfa -> nfa.transitions)
       , each (fun nfa -> nfa.final)
       , each (fun nfa -> nfa.extra) )
@@ -1056,6 +1056,19 @@ module Parametric (Label : ParL) = struct
         let active_transitions =
           List.filter (fun (_, state) -> not (List.mem state !visited_nodes)) transitions
         in
+        (* let extras =
+          if List.mem state starts
+          then extras
+          else (
+            trace_log "I am here...";
+            AstL.lor_
+              (List.map
+                 (fun var ->
+                    AstL.lia (AstL.Lia.geq (AstL.get var) (AstL.Lia.const Z.one)))
+                 vars)
+            :: extras)
+        in
+        trace_log "extras: %a" AstL.pp_smtlib2 (AstL.land_ extras); *)
         Label.filter_states_bool_comb is_final extras active_transitions
       in
       let succ =
@@ -1119,7 +1132,7 @@ module Parametric (Label : ParL) = struct
       with
       | Sat_found path -> Some path
     in
-    match List.find_map inspect (starts |> List.map Set.to_list |> Utils.cartesian2) with
+    match List.find_map inspect starts with
     | Some [] -> Some (List.map (fun _ -> []) vars, 0)
     | Some p ->
       let p = List.rev p in

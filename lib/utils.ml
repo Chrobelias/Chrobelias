@@ -69,26 +69,66 @@ let rec cartesian = function
   | x :: xs -> List.concat_map (fun n -> List.map (fun l -> n :: l) (cartesian xs)) x
 ;;
 
-let%expect_test "cartesian_test"  =
-  let v = cartesian [ [1; 2; 3]; [4; 5]; [6] ] in
+let%expect_test "cartesian_test" =
+  let v = cartesian [ [ 1; 2; 3 ]; [ 4; 5 ]; [ 6 ] ] in
   Format.printf "1: %d \n%!" (List.length v);
-  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  List.iter
+    (fun v' ->
+       Format.printf
+         "%a\n%!"
+         (Format.pp_print_list
+            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+            Format.pp_print_int)
+         v')
+    v;
   Format.printf "\n%!";
-  let v = cartesian [ [1]; [4]; [7] ] in
+  let v = cartesian [ [ 1 ]; [ 4 ]; [ 7 ] ] in
   Format.printf "2: %d \n%!" (List.length v);
-  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  List.iter
+    (fun v' ->
+       Format.printf
+         "%a\n%!"
+         (Format.pp_print_list
+            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+            Format.pp_print_int)
+         v')
+    v;
   Format.printf "\n%!";
-  let v = cartesian [ [1]; [4]; [] ] in
+  let v = cartesian [ [ 1 ]; [ 4 ]; [] ] in
   Format.printf "3: %d \n%!" (List.length v);
-  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  List.iter
+    (fun v' ->
+       Format.printf
+         "%a\n%!"
+         (Format.pp_print_list
+            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+            Format.pp_print_int)
+         v')
+    v;
   Format.printf "\n%!";
-  let v = cartesian [ [1] ] in
+  let v = cartesian [ [ 1 ] ] in
   Format.printf "4: %d \n%!" (List.length v);
-  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  List.iter
+    (fun v' ->
+       Format.printf
+         "%a\n%!"
+         (Format.pp_print_list
+            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+            Format.pp_print_int)
+         v')
+    v;
   Format.printf "\n%!";
   let v = cartesian [ [] ] in
   Format.printf "5: %d \n%!" (List.length v);
-  List.iter (fun v' -> Format.printf "%a\n%!" (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") Format.pp_print_int) v') v;
+  List.iter
+    (fun v' ->
+       Format.printf
+         "%a\n%!"
+         (Format.pp_print_list
+            ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+            Format.pp_print_int)
+         v')
+    v;
   Format.printf "\n%!";
   [%expect
     {|
@@ -145,4 +185,17 @@ let with_extra_char alpha =
     |> Option.value ~default:Set.empty
   in
   Set.union alpha extra_char |> Set.to_list
+;;
+
+let find_map_n n f lst =
+  let rec aux acc count = function
+    | _ when count <= 0 -> List.rev acc
+    | [] -> List.rev acc
+    | x :: tl ->
+      let res = f x in
+      if Option.is_some res
+      then aux (Option.get res :: acc) (count - 1) tl
+      else aux acc count tl
+  in
+  aux [] n lst
 ;;

@@ -6,12 +6,13 @@ let trace_log fmt = Lib.Debug.trace "chro" fmt
 
 module Map = Base.Map.Poly
 
-let () = trace_log "Starting Chrobelias with config: %a" Lib.Config.pp_config Lib.Config.config ;;
+let () =
+  trace_log "Starting Chrobelias with config: %a" Lib.Config.pp_config Lib.Config.config
+;;
 
 let answer_guess = ref None
 let sat_found = ref false
 let set_guess v = answer_guess := Some v
-
 let _config = Lib.Config.config
 let _base = Lib.Config.config.enc_base
 
@@ -54,7 +55,9 @@ let lift ?(unsat_info = "") ast = function
 ;;
 
 let logBaseZ n =
-  let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / Z.of_int _base) in
+  let rec helper acc n =
+    if n = Z.zero then acc else helper Z.(acc + one) Z.(n / Z.of_int _base)
+  in
   helper Z.minus_one n
 ;;
 
@@ -225,24 +228,24 @@ let check_sat ?(verbose = false) _ ast : rez =
   let check_nfa_sat ?(light = false) ast e =
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
-      let ir = ir |> Lib.Ir.simpl |> Lib.Ir.simpl_ineq in
-      let ir = if _config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in
-      (match ir with
-       | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
-       | Lnot True -> Unsat "simpl"
-       | _ ->
-         if light
-         then (
-           trace_log "Unknown in Lightweight solving ...";
-           Unknown (ast, e))
-         else (
-           if _config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
-           if _config.stop_after = `Simpl then exit 0;
-           trace_log "Starting NFA Solver ...";
-           match Lib.Solver.check_sat ir with
-           | `Sat get_model -> sat "nfa" ast e get_model Map.empty
-           | `Unsat -> Unsat "nfa"
-           | `Unknown _ir -> Unknown (ast, e)))
+      (* let ir = ir |> Lib.Ir.simpl |> Lib.Ir.simpl_ineq in
+      let ir = if _config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in *)
+        (match ir with
+         | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
+         | Lnot True -> Unsat "simpl"
+         | _ ->
+           if light
+           then (
+             trace_log "Unknown in Lightweight solving ...";
+             Unknown (ast, e))
+           else (
+             if _config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
+             if _config.stop_after = `Simpl then exit 0;
+             trace_log "Starting NFA Solver ...";
+             match Lib.Solver.check_sat ir with
+             | `Sat get_model -> sat "nfa" ast e get_model Map.empty
+             | `Unsat -> Unsat "nfa"
+             | `Unknown _ir -> Unknown (ast, e)))
     | Error _ -> failwith "Unexpected error"
   in
   let check_eia_sat ?(light = false) ast e =
@@ -258,7 +261,8 @@ let check_sat ?(verbose = false) _ ast : rez =
       if _config.dump_pre_simpl
       then Format.printf "@[%s%a@]\n%!" light_str Lib.Ast.pp_smtlib2 ast;
       unknown ast e)
-      <+> fun ast e -> if _config.stop_after = `Pre_simplify then exit 0 else unknown ast e
+      <+> fun ast e ->
+      if _config.stop_after = `Pre_simplify then exit 0 else unknown ast e
     in
     match apporx_rez with
     | Unknown (ast, e) ->

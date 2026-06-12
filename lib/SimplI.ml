@@ -768,7 +768,7 @@ let deparametrize ast =
   land_ [ base_eq; digits_neq; ast ]
 ;;
 
-let check_sat ?(base = Config.config.enc_base) ast =
+let check_sat ?(base = _base) ast =
   let open AstL in
   match ast |> deparametrize |> basic_simplify [ 0 ] empty |> fst with
   | ph when AstL.equal ph true_ -> `Sat
@@ -777,6 +777,42 @@ let check_sat ?(base = Config.config.enc_base) ast =
     let ph = apply_symnatics (module SMT) ph in
     Debug.trace "Z3" "Checking satisfiability with Z3";
     Z3.check _z3_solver ~assumptions:[ ph ]
+;;
+
+let check_sat_with_bool ?(base = _base) ast f =
+  let open AstL in
+  match ast |> basic_simplify [ 0 ] empty |> fst with
+  | ph when AstL.equal ph true_ -> failwith "Something strange..."
+  | ph when AstL.equal ph false_ ->
+    Debug.trace "S" "UNSAT in Simplifier";
+    `Unsat
+  | ph ->
+    let ph = apply_symnatics (module SMT) ph in
+    (match Z3.check _z3_solver ~assumptions:[ ph ] with
+     | `Sat ->
+       Debug.trace
+         "S"
+         "<<<<<<<<<<<<<<<<<<<<<<<<<< SAT in Z3 >>>>>>>>>>>>>>>>>>>>>>>>>>\n%!";
+       let result =
+         match Z3.model _z3_solver with
+         | None -> assert false
+         | Some m ->
+           Hashtbl.fold
+             (fun k v acc ->
+                let _ : Smtml.Symbol.t = k in
+                match k.name, v with
+                | Smtml.Symbol.Simple s, Smtml.Value.True when Option.is_some (f s) ->
+                  Option.get (f s) :: acc
+                | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
+                | _ -> acc)
+             (Smtml.Z3_mappings.values_of_model m)
+             []
+       in
+       `Sat (List.hd result)
+     | `Unsat ->
+       Debug.trace "S" "UNSAT in Z3";
+       `Unsat
+     | _ -> failwith "Unknown in Z3")
 ;;
 
 (*AM: if I understand smtml correctly, in this way we are populating 
@@ -815,16 +851,23 @@ let pp_z3_model_only_true_bools fmt model =
   let bindings =
     Smtml.Model.get_bindings model
     |> List.filter (fun (_, v) ->
-         Smtml.Value.type_of v <> Smtml.Ty.Ty_bool
-         || v = Smtml.Value.True)
+      Smtml.Value.type_of v <> Smtml.Ty.Ty_bool || v = Smtml.Value.True)
   in
-  Fmt.pf fmt "(model@\n  @[<v>%a@])"
+  Fmt.pf
+    fmt
+    "(model@\n  @[<v>%a@])"
     (Fmt.list
        ~sep:(fun fmt () -> Fmt.pf fmt "@\n")
        (fun fmt (sym, v) ->
-         Fmt.pf fmt "(%a %a %a)"
-           Smtml.Symbol.pp sym Smtml.Ty.pp (Smtml.Symbol.type_of sym)
-           Smtml.Value.pp v))
+          Fmt.pf
+            fmt
+            "(%a %a %a)"
+            Smtml.Symbol.pp
+            sym
+            Smtml.Ty.pp
+            (Smtml.Symbol.type_of sym)
+            Smtml.Value.pp
+            v))
     bindings
 ;;
 
@@ -838,14 +881,25 @@ let get_states_z3 ph get_state =
   let t0 = Unix.gettimeofday () in
   let z3_result = Z3.check _z3_solver ~assumptions:[ ph ] in
   let elapsed = Unix.gettimeofday () -. t0 in
-  Debug.trace "Z3" "...it took %.3f ms. The result is %s" (elapsed *. 1000.) (match z3_result with `Sat -> "Sat" | `Unsat -> "Unsat" | _ -> "Unknown");
+  Debug.trace
+    "Z3"
+    "...it took %.3f ms. The result is %s"
+    (elapsed *. 1000.)
+    (match z3_result with
+     | `Sat -> "Sat"
+     | `Unsat -> "Unsat"
+     | _ -> "Unknown");
   let result =
     match z3_result with
     | `Sat ->
       (match Z3.model _z3_solver with
        | None -> assert false
        | Some m ->
-         Debug.trace "Z3" "Model from Z3: %a" pp_z3_model_only_true_bools (Smtml.Z3_mappings.values_of_model m);
+         Debug.trace
+           "Z3"
+           "Model from Z3: %a"
+           pp_z3_model_only_true_bools
+           (Smtml.Z3_mappings.values_of_model m);
          let digits =
            Hashtbl.fold
              (fun k v acc ->
@@ -877,6 +931,23 @@ let get_states_z3 ph get_state =
   Z3.pop _z3_solver 1;
   result
 ;;
+
+let get_states_manually ph get_state =
+  let open AstL in
+  let open Lia in
+  let vars = AstL.get_vars ph in
+  let digit_eq n value =
+    Lia (Lia.eq (atom (int_var (List.nth vars n))) (const (Z.of_int value)))
+  in
+  Utils.cartesian2 (List.map (fun var -> 0 -- _base) vars)
+  |> Utils.find_map_n 10 (fun option ->
+    let result = AstL.land_ (List.mapi (fun n value -> digit_eq n value) option) in
+    match check_sat_with_bool (AstL.land_ [ result; ph ]) get_state with
+    | `Sat states -> Some (result, states)
+    | _ -> None)
+;;
+
+(* |> fun x -> if Option.is_some x then [ Option.get x ] else [] *)
 
 let get_states extra asts =
   let open AstL in
@@ -944,5 +1015,11 @@ let get_states_bool_comb extra asts =
   in
   (* Uncomment the line below to see the formula that goes to Z3 *)
   (* debug_printfln "Ph to Z3: %a" AstL.pp_smtlib2 ph; *)
-  get_states_z3 ph get_state
+  (* get_states_z3 ph get_state *)
+  let result = get_states_manually ph get_state in
+  Debug.trace
+    "S"
+    "<><><><><><><><><><><><><><><> SIZE: %d <><><><><><><><><><><><><><><>"
+    (List.length result);
+  result
 ;;
