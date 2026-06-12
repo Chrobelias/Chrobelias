@@ -30,6 +30,16 @@ let cartesian_product l1 l2 =
     l1
 ;;
 
+let trace_list ?(name = "State") l =
+  trace_log
+    "%s [%a]"
+    name
+    (Format.pp_print_list
+       ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+       Format.pp_print_int)
+    l
+;;
+
 (** A modle type representing labels and basic operations over them. *)
 module type BasicL = sig
   (** The type [u] represents digits. *)
@@ -302,9 +312,26 @@ module Par = struct
     let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) in
     let none_if_empty l = if List.is_empty l then None else Some l in
     let handler n =
+      trace_log "In handler of filter_states_bool_comb";
       try
         active_transitions
+        |> (fun x ->
+        if List.is_empty x
+        then trace_log "No active transitions"
+        else trace_log "Next states are";
+        x
+        |> List.map snd
+        |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state);
+        x)
         |> List.filter (fun (_, state) -> is_final_mod n state)
+        |> (fun x ->
+        if List.is_empty x
+        then trace_log "Empty for %d" n
+        else trace_log "Depth %d states are" n;
+        x
+        |> List.map snd
+        |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state);
+        x)
         |> get_states
         |> none_if_empty
       with
@@ -654,6 +681,7 @@ module Parametric (Label : ParL) = struct
   ;;
 
   let assign_weights nfa =
+    trace_log "In assign_weights";
     let reversed_transitions = nfa.transitions |> Graph.reverse in
     let huge = length nfa in
     let weights = Array.make (length nfa) huge in
@@ -973,6 +1001,8 @@ module Parametric (Label : ParL) = struct
     in
     let visited_nodes = ref [] in
     let weigted_states = each assign_weights in
+    trace_log "States have the following weights%!";
+    List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state) weigted_states;
     let finals_mod n =
       weigted_states
       |> List.map (List.mapi (fun i weight -> if weight = n then Some i else None))
