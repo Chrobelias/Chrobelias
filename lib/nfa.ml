@@ -92,7 +92,7 @@ module type ParL = sig
     -> (t * state) list
 
   val filter_states_bool_comb
-    :  (int -> state list -> bool)
+    :  ((int -> int -> bool) -> int -> state list -> bool)
     -> AstL.t list
     -> (t * state list) list
     -> (t * state list) list
@@ -308,29 +308,22 @@ module Par = struct
     | Exit -> []
   ;;
 
-  let filter_states_bool_comb is_final_mod phs active_transitions =
+  let filter_states_bool_comb is_final phs active_transitions =
     let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) in
     let none_if_empty l = if List.is_empty l then None else Some l in
-    let handler n =
+    let op_to_str op = if op 0 1 then "<=" else "=" in
+    let handler op n =
       trace_log "In handler of filter_states_bool_comb";
       try
         active_transitions
+        |> List.filter (fun (_, state) -> is_final op n state)
         |> (fun x ->
         if List.is_empty x
-        then trace_log "No active transitions"
-        else trace_log "Next states are";
-        x
+        then trace_log "Empty for %s %d" (op_to_str op) n
+        else trace_log "Depth %s %d: %d states" (op_to_str op) n (List.length x);
+        (* x
         |> List.map snd
-        |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state);
-        x)
-        |> List.filter (fun (_, state) -> is_final_mod n state)
-        |> (fun x ->
-        if List.is_empty x
-        then trace_log "Empty for %d" n
-        else trace_log "Depth %d states are" n;
-        x
-        |> List.map snd
-        |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state);
+        |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state); *)
         x)
         |> get_states
         |> none_if_empty
@@ -338,14 +331,23 @@ module Par = struct
       | Exit -> None
     in
     if List.is_empty active_transitions
-    then []
+    then (
+      trace_log "No active transitions";
+      [])
     else (
-      try
-        match List.find_map handler (0 -- _config.search_depth) with
-        | None -> get_states active_transitions
-        | Some states -> states
-      with
-      | Exit -> [])
+      (* trace_log "Next states are";
+      active_transitions
+      |> List.map snd
+      |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state); *)
+        try
+          match List.find_map (handler ( = )) (0 -- _config.search_depth) with
+          | None ->
+            (match List.find_map (handler ( <= )) (1 -- _config.search_depth) with
+             | None -> get_states active_transitions
+             | Some states -> states)
+          | Some states -> states
+        with
+        | Exit -> [])
   ;;
 
   let get = AstL.get_val
@@ -1003,13 +1005,13 @@ module Parametric (Label : ParL) = struct
     let weigted_states = each assign_weights in
     trace_log "States have the following weights%!";
     List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state) weigted_states;
-    let finals_mod n =
+    let finals op n =
       weigted_states
-      |> List.map (List.mapi (fun i weight -> if weight = n then Some i else None))
+      |> List.map (List.mapi (fun i weight -> if op weight n then Some i else None))
       |> List.map (List.filter_map Fun.id)
     in
-    let is_final_mod n node =
-      let finals = finals_mod n in
+    let is_final op n node =
+      let finals = finals op n in
       let bl = List.mapi (fun n final -> List.mem (List.nth node n) final) finals in
       let ph =
         AstL.map
@@ -1048,7 +1050,7 @@ module Parametric (Label : ParL) = struct
         let active_transitions =
           List.filter (fun (_, state) -> not (List.mem state !visited_nodes)) transitions
         in
-        Label.filter_states_bool_comb is_final_mod extras active_transitions
+        Label.filter_states_bool_comb is_final extras active_transitions
       in
       let succ =
         fun () ->
@@ -1087,7 +1089,7 @@ module Parametric (Label : ParL) = struct
         List.iter (fun x -> trace_log "%d; " x) !visited_nodes; *)
         if not (List.mem node !visited_nodes)
         then (* trace_log "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
-          if is_final_mod 0 node
+          if is_final ( = ) 0 node
           then raise (Sat_found path)
           else begin
             visited_nodes := node :: !visited_nodes;

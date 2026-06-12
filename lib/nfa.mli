@@ -60,7 +60,7 @@ module type ParL = sig
     -> (t * state) list
 
   val filter_states_bool_comb
-    :  (int -> state list -> bool)
+    :  ((int -> int -> bool) -> int -> state list -> bool)
     -> AstL.t list
     -> (t * state list) list
     -> (t * state list) list
