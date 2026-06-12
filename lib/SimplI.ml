@@ -808,6 +808,26 @@ let pred_name2 states =
   List.fold_left (fun acc i -> acc ^ "_" ^ Int.to_string i) "PP" states
 ;;
 
+(* Some auxiliary debug funtion, perhaps remove in the future. 
+   It prints the Z3 model but where all Boolean values assigned to 
+   False are not shown *)
+let pp_z3_model_only_true_bools fmt model =
+  let bindings =
+    Smtml.Model.get_bindings model
+    |> List.filter (fun (_, v) ->
+         Smtml.Value.type_of v <> Smtml.Ty.Ty_bool
+         || v = Smtml.Value.True)
+  in
+  Fmt.pf fmt "(model@\n  @[<v>%a@])"
+    (Fmt.list
+       ~sep:(fun fmt () -> Fmt.pf fmt "@\n")
+       (fun fmt (sym, v) ->
+         Fmt.pf fmt "(%a %a %a)"
+           Smtml.Symbol.pp sym Smtml.Ty.pp (Smtml.Symbol.type_of sym)
+           Smtml.Value.pp v))
+    bindings
+;;
+
 let get_states_z3 ph get_state =
   let open AstL in
   let open Lia in
@@ -818,13 +838,14 @@ let get_states_z3 ph get_state =
   let t0 = Unix.gettimeofday () in
   let z3_result = Z3.check _z3_solver ~assumptions:[ ph ] in 
   let elapsed = Unix.gettimeofday () -. t0 in
-  Debug.trace "Z3" "...it took %.3f ms" (elapsed *. 1000.);
+  Debug.trace "Z3" "...it took %.3f ms. The result is %s" (elapsed *. 1000.) (match z3_result with `Sat -> "Sat" | `Unsat -> "Unsat" | _ -> "Unknown");
   let result =
     match z3_result with
     | `Sat ->
       (match Z3.model _z3_solver with
        | None -> assert false
        | Some m ->
+         Debug.trace "Z3" "Model from Z3: %a" pp_z3_model_only_true_bools (Smtml.Z3_mappings.values_of_model m);
          let digits =
            Hashtbl.fold
              (fun k v acc ->
