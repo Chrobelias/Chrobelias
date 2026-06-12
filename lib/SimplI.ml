@@ -1,15 +1,14 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "simpl" fmt
-
 let _config = Config.config
 let _base = _config.enc_base
 
 module Z3 = Smtml.Z3_mappings.Solver
 
-let _z3_solver = Z3.make ~params:
-    Smtml.Params.(default () $ (Random_seed, Config.config.seed))
-      ()
+let _z3_solver =
+  Z3.make ~params:Smtml.Params.(default () $ (Random_seed, Config.config.seed)) ()
+;;
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -777,11 +776,12 @@ let check_sat ?(base = Config.config.enc_base) ast =
   | ph ->
     let ph = apply_symnatics (module SMT) ph in
     Debug.trace "Z3" "Checking satisfiability with Z3";
-    Z3.check _z3_solver ~assumptions:[ ph ] 
-    (*AM: if I understand smtml correctly, in this way we are populating 
+    Z3.check _z3_solver ~assumptions:[ ph ]
+;;
+
+(*AM: if I understand smtml correctly, in this way we are populating 
       the state of the solver with additional lemmas, while only adding ph 
       temporarily. My hope is that we will check often similar formulas *)
-;;
 
 let flag () = Sys.getenv_opt "CHRO_DEBUG" |> Option.is_some
 
@@ -811,12 +811,12 @@ let pred_name2 states =
 let get_states_z3 ph get_state =
   let open AstL in
   let open Lia in
-  (* debug_printfln "Composed ast: %a" AstL.pp_smtlib2 ph; *)
+  (* Debug.trace "Z3" "Composed ast: %a" AstL.pp_smtlib2 ph; *)
   let ph = apply_symnatics (module SMT) ph in
   Z3.push _z3_solver;
   Debug.trace "Z3" "Getting a solution with Z3...";
   let t0 = Unix.gettimeofday () in
-  let z3_result = Z3.check _z3_solver ~assumptions:[ ph ] in 
+  let z3_result = Z3.check _z3_solver ~assumptions:[ ph ] in
   let elapsed = Unix.gettimeofday () -. t0 in
   Debug.trace "Z3" "...it took %.3f ms" (elapsed *. 1000.);
   let result =
@@ -832,7 +832,7 @@ let get_states_z3 ph get_state =
                 match k.name, v with
                 | Smtml.Symbol.Simple s, Smtml.Value.Int n
                   when String.starts_with ~prefix:"lia" s ->
-                  (* debug_printfln "var%d = %d;" (get_val s) n; *)
+                  Debug.trace "Z3" "%s = %d;" s n;
                   Lia (Lia.eq (atom (int_var s)) (const (Z.of_int n))) :: acc
                 | _ -> acc)
              (Smtml.Z3_mappings.values_of_model m)
@@ -898,7 +898,6 @@ let get_states_bool_comb extra asts =
     | Some states -> Some states
     | None -> None
   in
-  let state_pred states = List.mapi (fun i state -> get_predi i state) states |> land_ in
   List.iter
     (fun (_, states) ->
        bool_map := Map.add_exn !bool_map ~key:(pred_name2 states) ~data:states)
@@ -909,7 +908,7 @@ let get_states_bool_comb extra asts =
     | [ (ph, states) ] ->
       land_
         [ deparametrize (land_ [ ph; extra ])
-        ; state_pred states (*Here we add propositional variables for each state *)
+          (*Here we add propositional variables for each state *)
         ; Pred (pred_name2 states)
           (*And one propositional variables to understand which 
         "state as list" was chosen *)
@@ -919,10 +918,7 @@ let get_states_bool_comb extra asts =
         (land_
            [ extra
            ; lor_
-               (List.map
-                  (fun (ph, states) ->
-                     land_ [ ph; state_pred states; Pred (pred_name2 states) ])
-                  phs)
+               (List.map (fun (ph, states) -> land_ [ ph; Pred (pred_name2 states) ]) phs)
            ])
   in
   (* Uncomment the line below to see the formula that goes to Z3 *)
