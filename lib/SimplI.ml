@@ -992,7 +992,8 @@ let get_states_bool_comb extra asts =
   in
   List.iter
     (fun (_, states) ->
-       bool_map := Map.add_exn !bool_map ~key:(pred_name2 states) ~data:states)
+       if not (Map.mem !bool_map (pred_name2 states))
+       then bool_map := Map.add_exn !bool_map ~key:(pred_name2 states) ~data:states)
     asts;
   let ph =
     match asts with

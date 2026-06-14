@@ -333,6 +333,7 @@ let rec equal ir ir' =
   | Reg (reg, atoms), Reg (reg', atoms') -> List.equal ( = ) atoms atoms' && reg = reg'
   | Rel (rel, term, c), Rel (rel', term', c') ->
     rel = rel' && c = c' && Map.equal ( = ) term term'
+  | V (var, exp), V (var', exp') -> var = var' && exp = exp'
   | Lnot ir, Lnot ir' -> equal ir ir'
   | Land irs, Land irs' | Lor irs, Lor irs' ->
     List.length irs = List.length irs' && List.for_all2 equal irs irs'
@@ -419,6 +420,7 @@ let collect_vars ir =
   fold
     (fun acc -> function
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | V (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
@@ -473,6 +475,7 @@ let collect_atomics =
   fold
     (fun acc -> function
        | Rel _ as ir -> Set.add acc ir
+       | V _ as buchi -> Set.add acc buchi
        | SReg (atom, _) as ir -> Set.add acc ir
        | SRegRaw (atom, _) as ir -> Set.add acc ir
        | _ -> acc)

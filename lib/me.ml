@@ -361,7 +361,7 @@ and of_rlia2 : Ast.RLia.t -> (Ir.t, string) result =
         else begin
           let e = Ir.internal () in
           let poly_e = Map.add_exn poly ~key:e ~data:Z.minus_one in
-          e, Ir.eq poly_e c :: sups
+          e, Ir.eq poly_e Z.(-c) :: sups
         end
       in
       let e, sups = flatten expr in

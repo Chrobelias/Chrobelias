@@ -1,7 +1,6 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "nfa_collection" fmt
-
 let _config = Config.config
 let _base = _config.enc_base
 
@@ -17,6 +16,7 @@ module type Type = sig
   val n : unit -> t
   val z : unit -> t
   val power_of_base : int -> t
+  val buchi : int -> int -> t
   val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val neq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
@@ -63,6 +63,8 @@ module LsbStr = struct
       ~deg:(exp + 1)
   ;;
 
+  let buchi var exp = failwith "Unimplemented"
+
   let powerset term =
     let rec helper = function
       | [] -> []
@@ -74,7 +76,8 @@ module LsbStr = struct
         let ( let* ) = ( >>= ) in
         let* n, thing = helper tl in
         (Str.u_eos :: n, Z.zero :: thing)
-        :: (0 -- (_base - 1) |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
+        :: (0 -- (_base - 1)
+            |> List.map (fun c -> itoc c :: n, Z.(hd * of_int c) :: thing))
     in
     term
     |> List.map snd
@@ -106,7 +109,7 @@ module LsbStr = struct
           else begin
             let t =
               thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (Z.of_int _base) = zero))
+              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod Z.of_int _base = zero))
               |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / Z.of_int _base))
             in
             states := Set.add !states hd;
@@ -163,8 +166,10 @@ module LsbStr = struct
                 ( hd
                 , bits
                 , match Z.((hd - sum) mod Z.of_int _base) with
-                  | i when Z.(zero <= i) && i < Z.of_int _base -> Z.((hd - sum) / Z.of_int _base)
-                  | i when Z.(-Z.of_int _base < i && i < zero) -> Z.(((hd - sum) / Z.of_int _base) - one)
+                  | i when Z.(zero <= i) && i < Z.of_int _base ->
+                    Z.((hd - sum) / Z.of_int _base)
+                  | i when Z.(-Z.of_int _base < i && i < zero) ->
+                    Z.(((hd - sum) / Z.of_int _base) - one)
                   | _ -> failwith "Should be unreachable" ))
             in
             states := Set.add !states hd;
@@ -210,6 +215,22 @@ module MsbPar = struct
 
   (** [power_of_base exp] returns an nfa recognizing Pow([exp]). *)
   let power_of_base exp = failwith "TODO"
+
+  let buchi var exp =
+    Nfa.create_nfa
+      ~transitions:
+        [ 2, [ 0; 0 ], 1
+        ; 2, [ _base - 1; 0 ], 1
+        ; 1, [ 0; 0 ], 1
+        ; 1, [ _base - 1; 0 ], 1
+        ; 1, [ 1; 1 ], 0
+        ; 0, [ 0; 0 ], 0
+        ]
+      ~start:[ 2 ]
+      ~final:[ 0 ]
+      ~vars:[ var; exp ]
+      ~deg:(max var exp + 1)
+  ;;
 
   let get_label t' v' op v =
     let open AstL.Lia in

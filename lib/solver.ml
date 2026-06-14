@@ -79,7 +79,8 @@ struct
          | Ir.Leq -> NfaCollection.leq vars term c
          | Ir.Neq -> NfaCollection.neq vars term c
          end
-       | Ir.V (var, pow) -> failwith "TODO"
+       | Ir.V (var, pow) ->
+         NfaCollection.buchi (Map.find_exn vars var) (Map.find_exn vars pow)
        | Ir.Exists (atoms, ir) ->
          let nfa =
            eval ir
@@ -123,7 +124,8 @@ struct
         | Ir.Leq -> NfaCollection.leq vars term c
         | Ir.Neq -> NfaCollection.neq vars term c
         end
-      | Ir.V (var, pow) -> failwith "TODO"
+      | Ir.V (var, pow) ->
+        NfaCollection.buchi (Map.find_exn vars var) (Map.find_exn vars pow)
       | Ir.SReg (atom, reg) -> Eval.eval_sreg vars atom reg
       | Ir.SRegRaw (atom, reg) -> Eval.eval_sregraw vars atom reg
       | _ -> failwith "Unexpected constraint"
