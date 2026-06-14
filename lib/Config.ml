@@ -95,32 +95,30 @@ let parse_args () =
   let usage_msg =
     {|Parametric Linear Integer Arithmetic Solver.
 Usage: par [options] <file.smt2>
-
-Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "-help"
-      , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tDisplay this list of options\n\nMiscellaneous:\n" )
-    ; ( "--base"
+    [ ( "--base"
       , Arg.Int (fun n -> config.enc_base <- n)
-      , "\tSet the encoding base for integer representation" )
-    ; ( "--bfs"
+      , "<n>\tSet the encoding base for integer representation" )
+      (* ; ( "--bfs"
       , Arg.Unit (fun () -> config.path_search <- `Bfs)
-      , "\tSwitch to bfs in parametric check_sat\t" )
+      , "\tSwitch to bfs in parametric check_sat\t" ) *)
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness" )
     ; ( "--depth"
       , Arg.Int (fun n -> config.search_depth <- n)
-      , "\tNeighbours depth in DFS search" )
+      , "<n>\tNeighbours depth in DFS search" )
     ; ( "--lazy"
       , Arg.Unit (fun () -> config.bool_comb_sat <- true)
       , "\tCheck satisfiability without performing Boolean operations over automata, \
          whenever possible" )
     ; "--seed", Arg.Int (fun v -> config.seed <- v), "<n>\tSpecify a seed for Z3"
     ; ( "--help"
+      , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
+      , "\tDisplay this list of options" )
+    ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )
     ]
