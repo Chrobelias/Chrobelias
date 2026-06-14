@@ -633,7 +633,7 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
       let non_num var =
         eia (Eia.leq (Eia.iofs (Eia.Atom (Lib.Ast.var var S))) (Const Z.minus_one))
       in
-      Lib.Ast.get_stoi_vars ast
+      Lib.Ast.get_stoi_conc_vars ast
       |> List.map (fun var -> lor_ [ non_num var; lnot (non_num var) (*; empty var*) ])
     in
     let ast, unsupported_atomic_formulas =

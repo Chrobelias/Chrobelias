@@ -3458,7 +3458,7 @@ let arithmetize str_vars ast env =
         let var, nfa =
           Map.to_alist regexes |> List.find (fun (key, data) -> NfaS.run data |> not)
         in
-        Debug.printfln "find contradicting regex for %s" var;
+        Debug.printfln "find contradicting (integer) regex for %s" var;
         Debug.dump_nfa ~msg:"re: %s" NfaS.format_nfa nfa;
         [ Ast.false_ ])
       else
