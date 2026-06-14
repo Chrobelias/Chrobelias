@@ -4,15 +4,6 @@ let log = Utils.log
 
 module NfaS = Nfa.Lsb (Nfa.Str)
 
-(* module Term_map = Map.Make (struct
-    type t =
-      [ `Eia of Ast.Eia.term
-      | `Str of Ast.Str.term
-      ]
-
-    let compare = Stdlib.compare
-  end) *)
-
 type error =
   | Non_linear_arith : Z.t Ast.Eia.term list -> error
   | Non_linear_string : string Ast.Eia.term list -> error
@@ -532,7 +523,7 @@ let apply_symantics_unsugared (type a) (module S : SYM with type ph = a) =
   apply_symantics (module M)
 ;;
 
-let make_main_symantics ?alpha ?agressive env =
+let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
   let _ : Env.t = env in
   let module Set = Base.Set.Poly in
   let module Main_symantics_ = struct
@@ -1064,6 +1055,9 @@ let make_main_symantics ?alpha ?agressive env =
         | _ -> eq_str (concat lhs) (concat rhs)
       in
       let trim = trim Eq in
+      let if_with_nielsen res =
+        if with_nielsen then res else Id_symantics.eq_str lhs rhs
+      in
       match lhs, rhs with
       | Sofi (Atom (Var _) as l), Sofi (Atom (Var _) as r) -> Eia (Eq (l, r, I))
       | Str_const c1, Str_const c2 -> if String.equal c1 c2 then Ast.true_ else Ast.false_
@@ -1087,12 +1081,12 @@ let make_main_symantics ?alpha ?agressive env =
       | Concat llhs, Str_const _ ->
         (match llhs with
          | Str_const _ :: _ -> trim llhs [ rhs ]
-         | _ -> nielsen llhs [ rhs ])
+         | _ -> if_with_nielsen (nielsen llhs [ rhs ]))
       | Str_const _, Concat lrhs ->
         (match lrhs with
          | Str_const _ :: _ -> trim [ lhs ] lrhs
-         | _ -> nielsen [ lhs ] lrhs)
-      | Concat llhs, Concat lrhs -> nielsen llhs lrhs
+         | _ -> if_with_nielsen (nielsen [ lhs ] lrhs))
+      | Concat llhs, Concat lrhs -> if_with_nielsen (nielsen llhs lrhs)
       | _ -> Id_symantics.eq_str lhs rhs
     ;;
 
@@ -2382,7 +2376,7 @@ end
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
 
-let basic_simplify step ?multiple (env : Env.t) orig_ast =
+let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast =
   let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
   in
@@ -2393,7 +2387,7 @@ let basic_simplify step ?multiple (env : Env.t) orig_ast =
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
     alpha;
   let rec loop step (env : Env.t) ast =
-    let (module Symantics) = make_main_symantics ~alpha env in
+    let (module Symantics) = make_main_symantics ~alpha ~with_nielsen env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
     (* log "Ast after main_symantics: @[%a@]" Ast.pp_smtlib2 ast2; *)
@@ -2427,7 +2421,7 @@ let basic_simplify step ?multiple (env : Env.t) orig_ast =
            | Ast.Land clauses -> clauses
            | x -> [ x ]
          in
-         let (module Sym) = make_main_symantics env in
+         let (module Sym) = make_main_symantics ~with_nielsen env in
          let contra_clause =
            List.find_map
              (fun ast ->
@@ -3095,7 +3089,7 @@ let extract_and_filter_unsupported_atomic_formulas ast =
 
 let run_string_simplify ast =
   (let module Set = Base.Set.Poly in
-   match basic_simplify [ 1 ] Env.empty ast (*|> over_concat_len*) with
+   match basic_simplify [ 1 ] ~with_nielsen:false Env.empty ast with
    | `Sat env -> `Sat env
    | `Unsat unsat_core -> `Unsat unsat_core
    | `Unknown (ast', e, _, _) ->
@@ -3389,11 +3383,10 @@ let arithmetize str_vars ast env =
     | Ast.Eia (InReRaw (Ast.Eia.Atom (Ast.Var (s, I)), Ast.I, _)) -> true
     | _ -> false
   in
-  let fold_regexes str_vars ast =
+  let fold_regexes ?(str_vars = []) ast =
     let open Ast in
-    let vars_arising_in_str_vars = Ast.get_stoi_vars ast in
     let extra =
-      vars_arising_in_str_vars
+      Ast.get_stoi_conc_vars ast
       |> List.map (fun var ->
         if List.mem var str_vars then var, Regex.nondigit else var, Regex.digit)
       |> List.map (fun (var, regex) ->
@@ -3521,28 +3514,8 @@ let arithmetize str_vars ast env =
                | _ -> acc)
             false
         in
-        let contains_non_digit_strconst =
-          let is_nondigit s =
-            String.to_seq s |> Seq.exists (Fun.negate Base.Char.is_digit)
-          in
-          Ast.Eia.fold_term
-            (fun acc el -> acc)
-            (fun acc el ->
-               match el with
-               | Ast.Eia.Str_const s -> is_nondigit s || acc
-               | Ast.Eia.Concat xs ->
-                 List.exists
-                   (function
-                     | Ast.Eia.Str_const s -> is_nondigit s || acc
-                     | _ -> false)
-                   xs
-                 || acc
-               | _ -> acc)
-            false
-        in
         function
-        | s when contains_var str_vars s || contains_non_digit_strconst s ->
-          Id_symantics.constz Z.minus_one
+        | s when contains_var str_vars s -> Id_symantics.constz Z.minus_one
         | s -> Id_symantics.iofs s
       ;;
     end
@@ -3602,13 +3575,11 @@ let arithmetize str_vars ast env =
   let arithmetize var_info str_vars ast =
     let (module M) = make_main_symantics Env.empty in
     let in_stoi v = Ast.in_stoi v ast in
-    let _in_regex v = Map.mem (collect_regexes ast) v in
     let open Ast.Eia in
     (* Previously, Chrobelias tried to approximate concatenation of pure-digit
         strings $a ++ b$ as $a \times 10^(str.len b) + b$. However, the further
         multiplication approximations are extremely slow. For now the behavior is disabled *)
     (*let in_stoi_or_concat v = Ast.in_stoi v ast || Ast.in_concat v ast in*)
-    let may_be_in_str_vars = in_stoi in
     let rec arithmetize_term : 'a. string list -> 'a term -> Z.t term * Ast.Eia.t list =
       fun (type a) : (string list -> a term -> Z.t term * Ast.Eia.t list) -> function
         | str_vars ->
@@ -3766,13 +3737,13 @@ let arithmetize str_vars ast env =
             v, Ast.Eia.eq (atomi v) non_var Ast.I :: phs
         in
         let nfa =
-          if not (may_be_in_str_vars s)
+          if not (in_stoi s)
           then nfa
           else if List.mem s str_vars
           then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
           else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
         in
-        (match may_be_in_str_vars s, List.mem s str_vars with
+        (match in_stoi s, List.mem s str_vars with
          | true, false ->
            Ast.land_
              (Ast.Eia (Ast.Eia.inreraw (atomi s) Ast.I nfa) :: (phs |> List.map Ast.eia))
@@ -3839,24 +3810,23 @@ let arithmetize str_vars ast env =
       List.map (fun var -> eia (Eq (Atom (Var (var, S)), str_const "", S))) empty_vars)
     |> List.map (fun ast' -> land_ (ast :: ast'))
   in
-  let asts_n_regexes =
-    ast
-    |> split_concats
-    |> Ast.to_dnf
-    (*|> List.map (fun ast ->
+  ast
+  |> split_concats
+  |> Ast.to_dnf
+  (*|> List.map (fun ast ->
   Format.printf "2 -> %a\n%!" Ast.pp_smtlib2 ast; ast)*)
-    |> List.concat_map with_empty_cases
-    |> List.map (apply_symantics (module Symantics))
-    |> List.filter_map (fun ast ->
-      match basic_simplify [ 0 ] env ast with
-      | `Unsat _ -> None
-      | `Sat env -> Some (Ast.true_, env)
-      | `Unknown (ast, env, _, _) -> Some (ast, env))
-    |> List.map (fun (ast, env) -> fold_regexes str_vars ast, env)
-    |> List.map (fun ((ast, regexes), env) ->
-      (*Format.printf "3 -> %a\n%!" Ast.pp_smtlib2 ast; *) ast, regexes, env)
-  in
-  asts_n_regexes
+  |> List.concat_map with_empty_cases
+  |> List.map (apply_symantics (module Symantics))
+  |> List.filter_map (fun ast ->
+    match basic_simplify [ 0 ] env ast with
+    | `Unsat _ -> None
+    | `Sat env -> Some (Ast.true_, env)
+    | `Unknown (ast, env, _, _) -> Some (ast, env))
+  |> List.concat_map (fun (ast, env) ->
+    List.map (fun ast -> ast, env) (ast |> split_concats |> Ast.to_dnf))
+  |> List.map (fun (ast, env) -> fold_regexes ~str_vars ast, env)
+  |> List.map (fun ((ast, regexes), env) ->
+    (*Format.printf "3 -> %a\n%!" Ast.pp_smtlib2 ast; *) ast, regexes, env)
   |> List.concat_map (fun (ast, regexes, env) ->
     arithmetize var_info str_vars ast
     |> Ast.to_dnf
@@ -3873,51 +3843,6 @@ let arithmetize str_vars ast env =
       in
       ast', env, regexes))
 ;;
-
-(*|> split_concats var_info*)
-
-(*|> fun (a, b) -> 
-
-        (log "BEFORE UNFOLDED %a\n%!" Ast.pp_smtlib2 a);
-      unfold_neq var_info a b |> fun (a, a') -> 
-
-        (log "UNFOLDED %a\n%!" Ast.pp_smtlib2 a);
-      a, env, a', b*)
-
-(* let distribute xs =
-  let open Ast in
-  List.fold_left
-    (fun acc -> function
-       | Eia.Add ys -> List.concat_map (fun zs -> List.map (fun h -> h :: zs) ys) acc
-       | other -> List.map (fun x -> other :: x) acc)
-    ([ [] ] : _ list list)
-    xs
-;; *)
-
-(* let test_distr xs =
-  let (module Main_symantics) = make_main_symantics Env.empty in
-  let ans = distribute xs |> List.map Main_symantics.mul |> Main_symantics.add in
-  Debug.printf "@[%a@]\n%!" Ast.pp_term_smtlib2 ans
-;; *)
-
-(* Outdated tests*)
-(* let%expect_test _ =
-  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ] ];
-  [%expect "(+ (* 5 x) (* 5 y))"]
-;;
-
-let%expect_test _ =
-  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; var "u" ] ];
-  [%expect "(+ (* 5 u x) (* 5 u y) (* 5 x z) (* 5 y z))"]
-;;
-
-let%expect_test _ =
-  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; const 2 ] ];
-  [%expect "(+ (* 5 x z) (* 5 y z) (* 10 x) (* 10 y))"]
-;; *)
 
 let leq_simpl l r =
   let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
@@ -3942,19 +3867,6 @@ let%expect_test " -2x <= -1" =
   leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-1));
   [%expect "(<= (* (- 2) x) (- 1))"]
 ;;
-
-(* let tracing_on =
-  match Sys.getenv "CHRO_TRACE_OPT" with
-  | exception Not_found -> false
-  | "1" -> true
-  | _ -> false
-;; *)
-
-(* let log ppf =
-  if tracing_on
-  then Format.kasprintf (Format.printf "%s%!") ppf
-  else Format.ifprintf Format.std_formatter ppf
-;; *)
 
 let simpl bound ast =
   let prepare_choices env var_info =

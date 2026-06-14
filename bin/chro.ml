@@ -628,24 +628,24 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
   let check_string_sat ?(light = false) env ast =
     let open Lib.Ast in
     let can_be_unk = ref false in
-    (* let in_stoi_or_concat v = in_stoi v ast || in_concat v ast in *)
     let ast = Lib.SimplII.unfold_neq ast in
     let split_vars =
       let non_num var =
         eia (Eia.leq (Eia.iofs (Eia.Atom (Lib.Ast.var var S))) (Const Z.minus_one))
       in
-      (*let empty var = eia (Eia.Eq (Atom (Var (var, S)), Lib.Ast.Eia.str_const "", S)) in*)
       Lib.Ast.get_stoi_vars ast
       |> List.map (fun var -> lor_ [ non_num var; lnot (non_num var) (*; empty var*) ])
     in
     let ast, unsupported_atomic_formulas =
       Lib.SimplII.extract_and_filter_unsupported_atomic_formulas ast
     in
-    log "Filtered unknown: %a\n%!" Lib.Ast.pp_smtlib2 ast;
-    log
-      "These atomic formulas are unsupported: %a\n%!"
-      (Format.pp_print_list Lib.Ast.pp_smtlib2)
-      unsupported_atomic_formulas;
+    (* log "Filtered unknown: %a\n%!" Lib.Ast.pp_smtlib2 ast; *)
+    if not (List.is_empty unsupported_atomic_formulas)
+    then
+      log
+        "These atomic formulas are unsupported: %a\n%!"
+        (Format.pp_print_list Lib.Ast.pp_smtlib2)
+        unsupported_atomic_formulas;
     let ast = land_ (ast :: split_vars) in
     log "After string approximations: %a\n%!" pp_smtlib2 ast;
     if config.stop_after == `Pre_dpll
@@ -847,7 +847,7 @@ let check_model tys (ast : Lib.Ast.t) (model : Lib.Model.t) =
 
 type state =
   { asserts : Lib.Ast.t list
-  ; prev : state option (* TODO: where is the stack? *)
+  ; prev : state option
   ; last_result : rez option
   ; tys : Lib.Model.tys
   }
