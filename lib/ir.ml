@@ -7,10 +7,7 @@ let _base = _config.enc_base
 (* TODO: the perfect implementation should differentiate between atoms in *)
 (* different theories. But it requires a lot more complex parsing due to *)
 (* the state that should be stored. So let's stick with simpler stuff now. *)
-type atom =
-  | Var of string
-  | Pow of string
-[@@deriving variants]
+type atom = Var of string [@@deriving variants]
 
 let eq_atom : atom -> atom -> bool = Stdlib.( = )
 let internalc = ref 0
@@ -23,21 +20,12 @@ let internal_name () =
 
 let name = function
   | Var name -> name
-  | Pow name -> string_of_int _base ^ name
 ;;
 
 let internal () = var (internal_name ())
 
-let internal_pow () =
-  let name = internal_name () in
-  let r = pow name in
-  let log_r = var name in
-  r, log_r
-;;
-
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var
-  | Pow var -> Format.fprintf fmt "pow%s(%s)" (string_of_int _base) var
 ;;
 
 type rel =
@@ -83,13 +71,9 @@ type t =
   | Reg of bool list Regex.t * atom list
   | SReg of atom * char list Regex.t
   | SRegRaw of atom * NfaS.t
-  | SPrefixOf of atom * atom
-  | SSuffixOf of atom * atom
-  | SContains of atom * atom
-  | SLen of atom * atom
   | Stoi of atom * atom
-  | Itos of atom * atom
   | Rel of rel * polynom * Z.t
+  | V of atom * atom
   (* Logical operations. *)
   | Lnot of t
   | Land of t list
@@ -101,13 +85,9 @@ let true_ = True
 let reg a b = Reg (a, b)
 let sreg a b = SReg (a, b)
 let sregraw a b = SRegRaw (a, b)
-let sprefixof a b = SPrefixOf (a, b)
-let ssuffixof a b = SSuffixOf (a, b)
-let scontains a b = SContains (a, b)
-let slen a b = SLen (a, b)
 let stoi a b = Stoi (a, b)
-let itos a b = Itos (a, b)
 let rel a b c = Rel (a, b, c)
+let v a b = V (a, b)
 
 let land_ = function
   | [] -> true_
@@ -149,12 +129,6 @@ let rec lnot = function
 
 let rec pp fmt = function
   | True -> Format.fprintf fmt "true"
-  | SPrefixOf (atom, atom') ->
-    Format.fprintf fmt "(str.prefixof %a %a)" pp_atom atom pp_atom atom'
-  | SSuffixOf (atom, atom') ->
-    Format.fprintf fmt "(str.suffixof %a %a)" pp_atom atom pp_atom atom'
-  | SContains (atom, atom') ->
-    Format.fprintf fmt "(str.contains %a %a)" pp_atom atom pp_atom atom'
   | SReg (atom, re) ->
     Format.fprintf
       fmt
@@ -165,12 +139,8 @@ let rec pp fmt = function
          Format.fprintf ppf "%a" (Format.pp_print_list Format.pp_print_char) bv))
       re (* TODO: print regex *)
   | SRegRaw (atom, re) -> Format.fprintf fmt "(str.in.re.raw %a)" pp_atom atom
-  | SLen (atom, atom') ->
-    Format.fprintf fmt "@[(chrob.len %a %a)@]" pp_atom atom pp_atom atom'
   | Stoi (atom, atom') ->
-    Format.fprintf fmt "@[(= %a (chrob.to.int %a))@]" pp_atom atom pp_atom atom'
-  | Itos (atom, atom') ->
-    Format.fprintf fmt "@[(= %a (chrob.from.int %a))@]" pp_atom atom pp_atom atom'
+    Format.fprintf fmt "@[(= %a (str.to.int %a))@]" pp_atom atom pp_atom atom'
   | Rel (rel, term, c) ->
     Format.fprintf
       fmt
@@ -197,6 +167,7 @@ let rec pp fmt = function
       regex
       (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ") pp_atom)
       atoms
+  | V (expr, pow) -> Format.fprintf fmt "(int.v (%a, %a))" pp_atom expr pp_atom pow
   | Lnot ir -> Format.fprintf fmt "~%a" pp ir
   | Land irs ->
     Format.fprintf
@@ -240,7 +211,25 @@ let pp_smtlib2 ppf ir =
     bv_init length (fun i -> List.nth p i) |> Z.to_int
   in
   let pp_sym ppf bv = Format.fprintf ppf "%d" (z_of_list_msb bv) in
-  let rec helper ppf = function
+  let rec helper ppf =
+    let pp_map ppf mapa =
+      let one =
+        fun ~key ~data ->
+        match data with
+        | data when data = Z.one -> fprintf ppf "%a@ " pp_atom key
+        | data when data > Z.zero -> fprintf ppf "(* %a %a)@ " Z.pp_print data pp_atom key
+        | _ -> fprintf ppf "(* (- %a) %a)@ " Z.pp_print (Z.( ~- ) data) pp_atom key
+      in
+      if Map.length mapa = 1
+      then (
+        let v, coeff = Map.min_elt_exn mapa in
+        one ~key:v ~data:coeff)
+      else (
+        fprintf ppf "@[(+ ";
+        Map.iteri mapa ~f:one;
+        fprintf ppf ")@]@ ")
+    in
+    function
     | True -> fprintf ppf "T"
     | Exists (atoms, rhs) ->
       fprintf
@@ -250,21 +239,7 @@ let pp_smtlib2 ppf ir =
         atoms
         helper
         rhs
-      (* fprintf ppf "@[<v 2>";
-      fprintf
-        ppf
-        "@[(exists (%a)@ @]@ @[%a@])@]@ "
-        (Format.pp_print_list ~pp_sep:pp_print_space pp_atom)
-        atoms
-        helper
-        rhs;
-      (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
-      fprintf ppf ")@]" *)
-    | ( SLen _ | Stoi _ | SReg _ | SRegRaw _
-      | SPrefixOf (_, _)
-      | SContains (_, _)
-      | SSuffixOf (_, _)
-      | Itos (_, _) ) as ir -> Format.fprintf ppf "%a" pp ir
+    | (Stoi _ | SReg _ | SRegRaw _) as ir -> Format.fprintf ppf "%a" pp ir
     | Land [ x ] ->
       (* TODO: should be eliminated in simplifier *)
       helper ppf x
@@ -277,24 +252,6 @@ let pp_smtlib2 ppf ir =
       List.iter (helper ppf) xs;
       fprintf ppf "@]"
     | Rel (op, poly, rhs) ->
-      let pp_map ppf mapa =
-        let one =
-          fun ~key ~data ->
-          match data with
-          | data when data = Z.one -> fprintf ppf "%a@ " pp_atom key
-          | data when data > Z.zero ->
-            fprintf ppf "(* %a %a)@ " Z.pp_print data pp_atom key
-          | _ -> fprintf ppf "(* (- %a) %a)@ " Z.pp_print (Z.( ~- ) data) pp_atom key
-        in
-        if Map.length mapa = 1
-        then (
-          let v, coeff = Map.min_elt_exn mapa in
-          one ~key:v ~data:coeff)
-        else (
-          fprintf ppf "@[(+ ";
-          Map.iteri mapa ~f:one;
-          fprintf ppf ")@]@ ")
-      in
       fprintf
         ppf
         "@[(%s %a %a)@]@ "
@@ -307,6 +264,7 @@ let pp_smtlib2 ppf ir =
         Z.pp_print
         rhs
     | Lnot ph -> fprintf ppf "@[(not %a)@]" helper ph
+    | V (poly, pow) -> fprintf ppf "@[(str.v %a %a)@]" pp_atom poly pp_atom pow
     | Reg (r, atoms) ->
       fprintf ppf "@[(%a" (Regex.pp pp_sym) r;
       (* List.iter (fprintf ppf " %a" pp_atom) atoms; *)
@@ -327,13 +285,11 @@ let pp_model_smtlib2 ppf m =
   let open Format in
   fprintf ppf "@[<hv 1>@[(@]\n ";
   let i = ref 0 in
-  (* Mutability only for pretty-printing *)
   Map.iteri m ~f:(fun ~key ~data ->
     if !i <> 0 then fprintf ppf "@ " else incr i;
     match key, data with
     | Var v, `Int z -> fprintf ppf "  @[(define-fun %s () Int\n    %a)@]" v Z.pp_print z
-    | Var v, `Str s -> fprintf ppf "  @[(define-fun %s () String\n    \"%s\")@]" v s
-    | Pow _, _ -> failwith "Unsupported. Exponenetials in the model");
+    | Var v, `Str s -> fprintf ppf "  @[(define-fun %s () String\n    \"%s\")@]" v s);
   fprintf ppf "\n)@]"
 ;;
 
@@ -384,12 +340,6 @@ let rec equal ir ir' =
     List.equal ( = ) atoms atoms' && equal ir ir'
   | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
   | SRegRaw (atom, regex), SRegRaw (atom', regex') -> atom = atom' && regex = regex'
-  | SPrefixOf (atom, atom'), SPrefixOf (atom'', atom''')
-  | SContains (atom, atom'), SContains (atom'', atom''')
-  | SSuffixOf (atom, atom'), SSuffixOf (atom'', atom''')
-  | SLen (atom, atom'), SLen (atom'', atom''')
-  | Stoi (atom, atom'), Stoi (atom'', atom''')
-  | Itos (atom, atom'), Itos (atom'', atom''') -> atom = atom'' && atom' = atom'''
   | _, _ -> false
 ;;
 
@@ -397,13 +347,11 @@ let rec map2 f fleaf ir =
   match ir with
   | True -> fleaf ir
   | Rel (_, _, _) -> fleaf ir
+  | V (_, _) -> fleaf ir
   | Reg (_, _) -> fleaf ir
   | SReg (_, _) -> fleaf ir
   | SRegRaw (_, _) -> fleaf ir
-  | SLen (_, _) -> fleaf ir
   | Stoi (_, _) -> fleaf ir
-  | Itos (_, _) -> fleaf ir
-  | SPrefixOf (_, _) | SSuffixOf (_, _) | SContains (_, _) -> fleaf ir
   | Lnot ir' -> f (lnot (map2 f fleaf ir'))
   | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
   | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
@@ -417,13 +365,11 @@ let rec fold f acc ir =
   match ir with
   | True -> f acc ir
   | Rel _ -> f acc ir
+  | V (_, _) -> f acc ir
   | Reg (_, _) -> f acc ir
   | SReg (_, _) -> f acc ir
   | SRegRaw (_, _) -> f acc ir
-  | SLen (_, _) -> f acc ir
   | Stoi (_, _) -> f acc ir
-  | Itos (_, _) -> f acc ir
-  | SPrefixOf (_, _) | SContains (_, _) | SSuffixOf (_, _) -> f acc ir
   | Lnot ir' -> f (fold f acc ir') ir
   | Land irs -> f (List.fold_left (fold f) acc irs) ir
   | Lor irs -> f (List.fold_left (fold f) acc irs) ir
@@ -463,54 +409,24 @@ let pp_bound ppf = function
   | Bot, x, y -> Format.fprintf ppf ">= %d/%d" x y
 ;;
 
-type verdict =
-  | Skip
-  | Stop
-  | Pos
-  | Neg (* varible is in linear combination with [negative] coeff *)
-  | Bound of bound
-
 let log ppf =
   match Sys.getenv "CHRO_DEBUG" with
   | exception Not_found -> Format.ifprintf Format.std_formatter ppf
   | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
 ;;
 
-let as_var = function
-  | Pow v -> var v
-  | Var v -> var v
-;;
-
-let get_exp = function
-  | Pow v -> var v
-  | Var _ -> failwith "Expected exponent, found var"
-;;
-
-let is_exp = function
-  | Pow _ -> true
-  | Var _ -> false
-;;
-
 let collect_vars ir =
   fold
     (fun acc -> function
-       (*| Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
-       | Reg (_, atoms) -> Set.union acc (atoms |> List.map as_var |> Set.of_list)
+       | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
-       | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | SPrefixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | SContains (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Rel (_, term, _) ->
          Set.union
            acc
            (Map.keys term
-            |> List.concat_map (function
-              | Var _ as ir -> [ ir ]
-              | Pow a as ir -> [ ir; var a ])
+            |> List.concat_map (function Var _ as ir -> [ ir ])
             |> Set.of_list)
        | _ -> acc)
     Set.empty
@@ -520,38 +436,6 @@ let collect_vars ir =
   |> Map.of_alist_exn
 ;;
 
-let collect_model_vars ir =
-  ir
-  |> collect_vars
-  |> Map.filter_keys ~f:(fun x -> not (Base.String.is_prefix (name x) ~prefix:"%"))
-  |> Map.filter_keys ~f:(fun x -> not (Base.String.is_prefix (name x) ~prefix:"2"))
-;;
-
-let collect_atoms ir =
-  fold
-    (fun acc -> function
-       (*| Exists (atoms, _) -> Set.union acc (Set.of_list atoms)*)
-       | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
-       | SReg (atom, _) -> Set.add acc atom
-       | SRegRaw (atom, _) -> Set.add acc atom
-       | SLen (atom, atom')
-       | Stoi (atom, atom')
-       | SPrefixOf (atom, atom')
-       | SContains (atom, atom')
-       | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
-       | Rel (_, term, _) ->
-         Set.union
-           acc
-           (Map.keys term
-            |> List.concat_map (function
-              | Var _ as ir -> [ ir ]
-              | Pow _ as ir -> [ ir ])
-            |> Set.of_list)
-       | _ -> acc)
-    Set.empty
-    ir
-;;
-
 let collect_free_atoms ir =
   fold
     (fun acc -> function
@@ -559,18 +443,12 @@ let collect_free_atoms ir =
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
-       | SLen (atom, atom')
-       | Stoi (atom, atom')
-       | SPrefixOf (atom, atom')
-       | SContains (atom, atom')
-       | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Rel (_, term, _) ->
          Set.union
            acc
            (Map.keys term
-            |> List.concat_map (function
-              | Var _ as ir -> [ ir ]
-              | Pow _ as ir -> [ ir ])
+            |> List.concat_map (function Var _ as ir -> [ ir ])
             |> Set.of_list)
        | _ -> acc)
     Set.empty
@@ -580,16 +458,10 @@ let collect_free_atoms ir =
 let collect_free (ir : t) =
   fold
     (fun acc -> function
-       | Rel (_, term, _) ->
-         term |> Map.keys |> List.map as_var |> Set.of_list |> Set.union acc
+       | Rel (_, term, _) -> term |> Map.keys |> Set.of_list |> Set.union acc
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
-       | SLen (atom, atom')
-       | Stoi (atom, atom')
-       | Itos (atom, atom')
-       | SPrefixOf (atom, atom')
-       | SContains (atom, atom')
-       | SSuffixOf (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | Exists (xs, ir) -> Set.diff acc (Set.of_list xs)
        | _ -> acc)
@@ -618,21 +490,6 @@ let antiprenex =
         | Exists (atoms, Exists (atoms', ir)) ->
           exists (Base.List.dedup_and_sort ~compare (atoms @ atoms')) ir
         | Exists ((a :: b :: tl as atoms), Land irs) as orig_ir ->
-          let atoms =
-            (*List.filter
-              (fun atom ->
-                 not
-                   (for_some
-                      (function
-                        | SReg (atom', _)
-                        | SLen (atom', _)
-                        | Stoi (atom', _)
-                        | SEq (atom', _)
-                          when atom = atom' -> true
-                        | _ -> false)
-                      ir))*)
-            atoms
-          in
           let atoms_set = Set.of_list atoms in
           if atoms_set |> Set.is_empty
           then orig_ir
@@ -691,9 +548,6 @@ let antiprenex =
       ir
 ;;
 
-(* let simpl1 ir = 
-  let simp_equalities = function 
-  | Rel (Eq, term, c) when Map.for_all ~f:(fun v -> Z.(equal v zero)) term && c = Z.zero *)
 let simpl ir =
   ir
   |> map (function
@@ -868,141 +722,6 @@ let simpl_ineq ir =
       | ir -> ir)
     ir
   |> simpl_ineq
-;;
-
-(** Habermehl's 2024 monotonicity simplification  *)
-let simpl_monotonicty ir =
-  let is_bounded qvar ir =
-    match ir with
-    | Rel (Leq, map, rhs) when Map.length map = 1 ->
-      let var, coeff = Map.min_elt_exn map in
-      if var = Var qvar
-      then Bound (if coeff > Z.zero then Top, rhs, coeff else Bot, rhs, coeff)
-      else Skip
-    | Rel (Leq, map, _) ->
-      (match Map.find map (Var qvar) with
-       | None -> Skip
-       | Some c when Z.(c > zero) -> Pos
-       | _ -> Neg)
-    | _ when is_used_atom qvar ir -> Stop
-    | _ -> Skip
-  in
-  match ir with
-  | Exists (atoms, rhs) ->
-    let vars, other_atoms =
-      List.fold_left
-        (fun (vars, other) atom ->
-           match atom with
-           | Var v -> v :: vars, other
-           | o -> vars, o :: other)
-        ([], [])
-        atoms
-    in
-    if vars <> [] then log "Vars: %s" ([%show: string list] vars);
-    if other_atoms <> [] then log "Other: %s" ([%show: atom list] other_atoms);
-    let rewrite_rel v new_value ir =
-      let ans =
-        match ir with
-        | Rel (r, mapa, rhs) ->
-          let coeff = Map.find_exn mapa (Var v) in
-          Rel (r, Map.remove mapa (Var v), Z.(rhs - (coeff * new_value)))
-        | ir -> ir
-      in
-      log "%a ~~> %a using %s=%a" pp ir pp ans v Z.pp_print new_value;
-      ans
-    in
-    let rec loop ~progress ivars ovars conjs ~sk =
-      let _ : string list = ovars in
-      match ivars with
-      | [] -> sk progress ovars conjs
-      | v :: ivars ->
-        let exception Stop in
-        (* log "Check %s" v; *)
-          (try
-             let verdict =
-               List.fold_left
-                 (fun (bounds, pos, neg, skipped) c ->
-                    match is_bounded v c with
-                    | Bound x -> x :: bounds, pos, neg, skipped
-                    | Pos -> bounds, c :: pos, neg, skipped
-                    | Neg -> bounds, pos, c :: neg, skipped
-                    | Skip -> bounds, pos, neg, c :: skipped
-                    | Stop -> raise Stop)
-                 ([], [], [], [])
-                 conjs
-             in
-             let verdict =
-               let bounds, pos, negs, rest = verdict in
-               let min, max =
-                 List.fold_left
-                   (fun acc b ->
-                      match acc, b with
-                      | (low, None), (Top, b, a) -> low, Some Z.(b / a)
-                      | (None, high), (Bot, b, a) -> Some Z.(b / a), high
-                      | (low, Some m), (Top, b, a) -> low, Some (min m Z.(b / a))
-                      | (Some m, high), (Bot, b, a) -> Some (max m Z.(b / a)), high)
-                   (None, None)
-                   bounds
-               in
-               min, max, pos, negs, rest
-             in
-             match verdict with
-             | None, None, _, _, _ ->
-               log "Var %s is not monotonic\n%!" v;
-               loop ~progress ivars (v :: ovars) conjs ~sk
-             | None, Some _, _ :: _, _, other | Some _, None, _, _ :: _, other ->
-               (* Can't simplify  *)
-               log "Can't simplify %s: bad polarity" v;
-               loop ~progress ivars (v :: ovars) conjs ~sk
-             | None, Some high, [], negs, other ->
-               log "Simplifying %s..." v;
-               let negs = List.map (rewrite_rel v high) negs in
-               loop ~progress:true ivars ovars (negs @ other) ~sk
-             | Some low, None, pos, [], other ->
-               log "Simplifying %s..." v;
-               let pos = List.map (rewrite_rel v low) pos in
-               loop ~progress:true ivars ovars (pos @ other) ~sk
-             | Some low, Some high, pos, negs, other ->
-               log "Simplifying %s..." v;
-               let pos = List.map (rewrite_rel v low) pos in
-               let negs = List.map (rewrite_rel v high) negs in
-               loop ~progress:true ivars ovars (pos @ negs @ other) ~sk
-           with
-           | Stop ->
-             log "Var %s can't be interesting: used somewhere" v;
-             loop ~progress ivars (v :: ovars) conjs ~sk)
-    in
-    let rhs =
-      match rhs with
-      | Land xs -> xs
-      | x -> [ x ]
-    in
-    let rec fixpoint stage vars other_vars rhs =
-      loop ~progress:false vars [] rhs ~sk:(fun progress ovars rhs ->
-        match progress, ovars with
-        | false, _ | _, [] -> Exists (List.map var ovars @ other_atoms, Land rhs)
-        | true, ovars ->
-          log
-            "After stage %d there %d variables: %s"
-            stage
-            (List.length ovars)
-            (String.concat " " ovars);
-          fixpoint (Int.add stage 1) ovars [] rhs)
-    in
-    fixpoint 0 vars [] rhs
-  | _ -> ir
-;;
-
-let get_partial_model ir =
-  fold
-    (fun list -> function
-       | Rel (Eq, term, c) when Map.length term = 1 ->
-         let var, coeff = Map.min_elt_exn term in
-         let value = Z.(c / coeff) in
-         (var, value) :: list
-       | _ -> list)
-    []
-    ir
 ;;
 
 let is_reg = function

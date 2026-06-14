@@ -79,6 +79,7 @@ struct
          | Ir.Leq -> NfaCollection.leq vars term c
          | Ir.Neq -> NfaCollection.neq vars term c
          end
+       | Ir.V (var, pow) -> failwith "TODO"
        | Ir.Exists (atoms, ir) ->
          let nfa =
            eval ir
@@ -122,6 +123,7 @@ struct
         | Ir.Leq -> NfaCollection.leq vars term c
         | Ir.Neq -> NfaCollection.neq vars term c
         end
+      | Ir.V (var, pow) -> failwith "TODO"
       | Ir.SReg (atom, reg) -> Eval.eval_sreg vars atom reg
       | Ir.SRegRaw (atom, reg) -> Eval.eval_sregraw vars atom reg
       | _ -> failwith "Unexpected constraint"
@@ -157,6 +159,7 @@ struct
     (* free_vars have type Ir.atom (only variables in LIA case; 
     can be exponentiated variables in EIA) *)
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
+    trace_log "Ir: %a" Ir.pp ir;
     if
       Config.config.bool_comb_sat
       (* We use complex acceptance condition for a list of nfas *)

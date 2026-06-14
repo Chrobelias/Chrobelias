@@ -10,17 +10,17 @@ end
 
 let _failf fmt = Format.kasprintf failwith fmt
 
-type kv = KV : 'a Ast.atom * 'a Ast.Eia.term -> kv
+type kv = KV : 'a Ast.atom * 'a Ast.RLia.term -> kv
 
 type t =
-  { env : Z.t Ast.Eia.term SM.t (** Integer equalities *)
-  ; str_env : string Ast.Eia.term SM.t (** string equalities *)
+  { env : Z.t Ast.RLia.term SM.t (** Integer equalities *)
+  ; str_env : string Ast.RLia.term SM.t (** string equalities *)
   ; cstrts : kv list (* string constraints multimap *)
   }
 
 let pp ?(title = "") : Format.formatter -> t -> unit =
   let open Format in
-  let pp_kv ppf key (type a) (data : a Ast.Eia.term) =
+  let pp_kv ppf key (type a) (data : a Ast.RLia.term) =
     fprintf ppf "@[%s -> @[%a@];@]@ " key Ast.pp_term_smtlib2 data
   in
   fun ppf e ->
@@ -47,30 +47,30 @@ let pp ?(title = "") : Format.formatter -> t -> unit =
 [@@ocaml.warning "-32"]
 ;;
 
-type 'a term = 'a Ast.Eia.term
+type 'a term = 'a Ast.RLia.term
 
 let walk : 'a. t -> 'a term -> 'a term =
   fun e ->
   let fz = function
-    | Ast.Eia.Atom (Ast.Var (s, I)) as orig ->
+    | Ast.RLia.Atom (Ast.Var (s, I)) as orig ->
       (match SM.find_exn e.env s with
        | exception Not_found -> orig
        | t -> t)
     | t -> t
   in
   let fs = function
-    | Ast.Eia.Atom (Ast.Var (s, S)) as orig ->
+    | Ast.RLia.Atom (Ast.Var (s, S)) as orig ->
       (match SM.find_exn e.str_env s with
        | exception Not_found -> orig
        | t -> t)
     | t -> t
   in
-  Ast.Eia.map_term fz fs
+  Ast.RLia.map_term fz fs
 ;;
 
 let equal (env : t) (env' : t) =
-  SM.equal Ast.Eia.equal env.env env'.env
-  && SM.equal Ast.Eia.equal env.str_env env'.str_env
+  SM.equal Ast.RLia.equal env.env env'.env
+  && SM.equal Ast.RLia.equal env.str_env env'.str_env
   && env.cstrts = env'.cstrts
 ;;
 
@@ -79,25 +79,19 @@ let equal (env : t) (env' : t) =
 exception Occurs
 
 let occurs_var_exn =
-  let rec helper : 'a. t -> string -> 'a Ast.Eia.term -> unit =
-    fun (type a) env v (term : a Ast.Eia.term) ->
-    let _ : _ Ast.Eia.term = term in
-    let rec fz () =
+  let rec helper : 'a. t -> string -> 'a Ast.RLia.term -> unit =
+    fun (type a) env v (term : a Ast.RLia.term) ->
+    let _ : _ Ast.RLia.term = term in
+    let fz () =
       let open Ast in
       function
-      | Eia.Atom (Var (v2, I)) when String.equal v v2 -> raise Occurs
-      | Eia.Atom (Var (v2, I)) ->
-        (* TODO: take into account string constriants too *)
-          (match SM.find env.env v2 with
-           | None -> ()
-           | Some t -> helper env v t)
+      | RLia.Atom (Var (v2, I)) when String.equal v v2 -> raise Occurs
+      | RLia.Atom (Var (v2, I)) ->
+        (match SM.find env.env v2 with
+         | None -> ()
+         | Some t -> helper env v t)
       | Const _ -> ()
-      | Eia.Add xs | Eia.Mul xs -> List.iter (helper env v) xs
-      | Eia.Pow (l, r) ->
-        helper env v l;
-        helper env v r
-      | Iofs x | Len x -> fs () x
-      | Len2 (Atom (Ast.Var (v2, S))) -> if String.equal v v2 then raise Occurs
+      | RLia.Add xs | RLia.Mul xs -> List.iter (helper env v) xs
       | x ->
         Format.kasprintf
           failwith
@@ -107,17 +101,12 @@ let occurs_var_exn =
     and fs () =
       let open Ast in
       function
-      | Eia.Atom (Var (v2, S)) when String.equal v v2 -> raise Occurs
-      | Eia.Atom (Var (v2, S)) ->
-        (* TODO: take into account string constriants too *)
-          (match SM.find env.env v2 with
-           | None -> ()
-           | Some t -> helper env v t)
-      | Ast.Eia.Str_const _ -> ()
-      | Eia.Sofi x -> helper env v x
-      | Eia.Concat (Eia.Atom (Var (v2, _)), _) when String.equal v v2 -> raise Occurs
-      | Eia.Concat (_, Eia.Atom (Var (v2, _))) when String.equal v v2 -> raise Occurs
-      | Eia.Concat (_, _) -> ()
+      | RLia.Atom (Var (v2, S)) when String.equal v v2 -> raise Occurs
+      | RLia.Atom (Var (v2, S)) ->
+        (match SM.find env.env v2 with
+         | None -> ()
+         | Some t -> helper env v t)
+      | Ast.RLia.Str_const _ -> ()
       | x ->
         Format.kasprintf
           failwith
@@ -126,7 +115,7 @@ let occurs_var_exn =
           x
           v
     in
-    Ast.Eia.fold_term fz fs () term
+    Ast.RLia.fold_term fz fs () term
   in
   helper
 ;;
@@ -160,7 +149,7 @@ let extend_int_exn e vname data =
     let data = walk e data in
     if occurs_var e vname data then raise Occurs;
     (*match data with
-    | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
+    | Ast.RLia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
     | _ -> *)
     { e with env = SM.add_exn e.env ~key:vname ~data }
 ;;
@@ -172,7 +161,7 @@ let set_int_exn e vname data =
     let data = walk e data in
     if occurs_var e vname data then raise Occurs;
     (*match data with
-    | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
+    | Ast.RLia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
     | _ -> *)
     { e with env = SM.add_exn e.env ~key:vname ~data }
 ;;
@@ -185,7 +174,7 @@ let set_string_exn e vname data =
     let data = walk e data in
     if occurs_var e vname data then raise Occurs;
     (*match data with
-    | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
+    | Ast.RLia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
     | _ -> *)
     { e with str_env = SM.add_exn e.str_env ~key:vname ~data }
 ;;
@@ -199,7 +188,7 @@ let extend_string_exn e vname data =
   let data = walk e data in
   if occurs_var e vname data then raise Occurs;
   (*match data with
-  | Ast.Eia.Sofi _ -> add_cstrt e (Ast.Var (vname, S)) data
+  | Ast.RLia.Sofi _ -> add_cstrt e (Ast.Var (vname, S)) data
   | _ -> *)
   { e with str_env = SM.add_exn e.str_env ~key:vname ~data }
 ;;
@@ -229,14 +218,14 @@ let definite_length { env; str_env; cstrts } =
   let env =
     SM.filter
       (fun _ -> function
-         | Ast.Eia.Const _ -> true
+         | Ast.RLia.Const _ -> true
          | _ -> false)
       env
   in
   let str_env =
     SM.filter
       (fun _ -> function
-         | Ast.Eia.Str_const _ -> true
+         | Ast.RLia.Str_const _ -> true
          | _ -> false)
       str_env
   in
@@ -244,8 +233,6 @@ let definite_length { env; str_env; cstrts } =
 [@@warning "-32"]
 ;;
 
-(* let lookup k { env; _ } = SM.find env k *)
-(* let lookup_exn k { env; _ } = SM.find_exn env k *)
 let is_absent_key k e = (not (SM.mem e.env k)) && not (SM.mem e.str_env k)
 
 let fold { env; str_env; _ } ~init ~f =
@@ -253,27 +240,17 @@ let fold { env; str_env; _ } ~init ~f =
   SM.fold (fun key data acc -> f ~key ~data:(Ast.TT (S, data)) acc) str_env init
 ;;
 
-(* let filter_mapi ~f { env; _ } : (string, _) Base.Map.Poly.t =
-  SM.fold
-    (fun key data acc ->
-       match f ~key ~data with
-       | None -> acc
-       | Some x -> Base.Map.Poly.add_exn acc ~key ~data:x)
-    env
-    Base.Map.Poly.empty
-;; *)
-
 let merge
   :  sf:
        (key:string
-        -> data1:string Ast.Eia.term
-        -> data2:string Ast.Eia.term
-        -> string Ast.Eia.term)
+        -> data1:string Ast.RLia.term
+        -> data2:string Ast.RLia.term
+        -> string Ast.RLia.term)
   -> zf:
        (key:string
-        -> data1:Z.t Ast.Eia.term
-        -> data2:Z.t Ast.Eia.term
-        -> Z.t Ast.Eia.term)
+        -> data1:Z.t Ast.RLia.term
+        -> data2:Z.t Ast.RLia.term
+        -> Z.t Ast.RLia.term)
   -> t
   -> t
   -> t
@@ -299,25 +276,25 @@ let merge_exn =
         (Format.asprintf
            "We tried to subtitute a %s varible by two different terms: %a %a"
            key
-           Ast.Eia.pp_term
+           Ast.RLia.pp_term
            v1
-           Ast.Eia.pp_term
+           Ast.RLia.pp_term
            v2))
     ~zf:(fun ~key ~data1:v1 ~data2:v2 ->
       failwith
         (Format.asprintf
            "We tried to subtitute a %s varible by two different terms: %a %a"
            key
-           Ast.Eia.pp_term
+           Ast.RLia.pp_term
            v1
-           Ast.Eia.pp_term
+           Ast.RLia.pp_term
            v2))
 ;;
 
 let to_eqs : t -> Ast.t list =
   fun { env; str_env; cstrts } ->
   let mk_eq typ v rhs =
-    Ast.Eia (Ast.Eia.Eq (Ast.Eia.Atom (Ast.Var (v, typ)), rhs, typ))
+    Ast.RLia (Ast.RLia.Eq (Ast.RLia.Atom (Ast.Var (v, typ)), rhs, typ))
   in
   (* if SM.is_empty cstrts
   then ()
@@ -380,8 +357,8 @@ let lookup_string name { str_env = e; _ } = SM.find_opt name e
 let lookup_string_exn name { str_env = e; _ } = SM.find_exn e name
 
 let filter_mapi
-      ~(fstr : string -> string Ast.Eia.term -> string Ast.Eia.term option)
-      ~(fint : string -> Z.t Ast.Eia.term -> Z.t Ast.Eia.term option)
+      ~(fstr : string -> string Ast.RLia.term -> string Ast.RLia.term option)
+      ~(fint : string -> Z.t Ast.RLia.term -> Z.t Ast.RLia.term option)
       env
   =
   fold

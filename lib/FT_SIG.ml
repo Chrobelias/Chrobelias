@@ -10,8 +10,6 @@ module type str_term = sig
   (** String terms *)
 
   val iofs : str -> term
-  val sofi : term -> str
-  val str_len : str -> term
   val str_const : string -> str
   val str_var : string -> str
 end
@@ -34,8 +32,6 @@ module type z_term = sig
   include z_lin_term with type term := term
 
   (** More Arithmetic *)
-
-  val pow : term -> term -> term
   val bw : sup_binop -> term -> term -> term
 end
 
@@ -55,15 +51,22 @@ module type z_ph = sig
   val lt : term -> term -> ph
 end
 
+module type z_extra = sig
+  type ph
+  type term
+
+  include z_ph with type ph := ph and type term := term
+
+  val v : term -> term -> ph
+end
+
 module type s_ph = sig
   type ph
   type str
   type term
 
-  include z_ph with type ph := ph and type term := term
+  include z_extra with type ph := ph and type term := term
 
-  val eq_str : str -> str -> ph
-  val neq_str : str -> str -> ph
   val in_re : str -> char list Regex.t -> ph
 end
 
@@ -71,7 +74,6 @@ module type s_extra = sig
   type term
   type ph
 
-  val ( ** ) : term -> term -> term
   val ( <= ) : term -> term -> ph
   val ( < ) : term -> term -> ph
   val ( = ) : term -> term -> ph
@@ -82,9 +84,6 @@ module Sugar (S : sig
     type term
     type ph
 
-    val pow : term -> term -> term
-
-    (* val constz : Z.t -> term *)
     val eqz : term -> term -> ph
     val leq : term -> term -> ph
     val lt : term -> term -> ph
@@ -94,7 +93,6 @@ struct
   let ( = ) = S.eqz
   let ( < ) = S.lt
   let ( <= ) = S.leq
-  let ( ** ) b e = S.pow b e
   let ( <> ) = S.neqz
 end
 
@@ -116,8 +114,6 @@ end = struct
   type str = Expr.t
   type ph = term
 
-  let str_len _ = failwith "not implemented"
-  let sofi _ = failwith "not implemented"
   let iofs _ = failwith "not implemented"
   let str_const _ = failwith "not implemented"
   let str_var _ = failwith "not implemented"
@@ -131,7 +127,6 @@ end = struct
   ;;
 
   let mod_ _ _ = failwith "not implemented"
-  let pow base p = Expr.binop Ty.Ty_int Ty.Binop.Pow base p
 
   let add = function
     | [] ->
@@ -172,14 +167,12 @@ end = struct
 
   (* let exists vars x = Smtml.Expr.exists (List.map var vars) x *)
   let eqz l r = Smtml.(Expr.relop Ty.Ty_bool Ty.Relop.Eq l r)
-  let eq_str _ _ = failwith "tbd"
   let neqz l r = Smtml.(Expr.relop Ty.Ty_bool Ty.Relop.Ne l r)
-  let neq_str _ _ = failwith "tbd"
   let leq l r = Smtml.(Expr.relop Ty.Ty_int Ty.Relop.Le l r)
   let lt l r = Smtml.(Expr.relop Ty.Ty_int Ty.Relop.Lt l r)
   let ( = ) = eqz
   let ( < ) = lt
   let ( <= ) = leq
-  let ( ** ) b e = pow b e
   let ( <> ) = neqz
+  let v _ _ = failwith "not implemented"
 end

@@ -1,6 +1,6 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
-let trace_log fmt = Lib.Debug.trace "chro" fmt
+let trace_log fmt = Lib.Debug.trace "par" fmt
 
 (* let () = Memtrace.trace_if_requested ~context:"my program" () *)
 
@@ -54,27 +54,17 @@ let lift ?(unsat_info = "") ast = function
   | `Sat (s, e) -> Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
 ;;
 
-let logBaseZ n =
-  let rec helper acc n =
-    if n = Z.zero then acc else helper Z.(acc + one) Z.(n / Z.of_int _base)
-  in
-  helper Z.minus_one n
-;;
-
 let rec model_from_parts_regexes_env tys model regexes env' =
   let model =
     model
     |> Map.mapi ~f:(fun ~key ~data ->
       match data with
       | `Str str -> `Str str
-      | `Int eia ->
+      | `Int _ ->
         begin match key with
         | Lib.Ir.Var _ -> data
-        | Lib.Ir.Pow _ -> `Int (logBaseZ eia)
         end)
-    |> Map.map_keys_exn ~f:(function
-      | Lib.Ir.Var _ as v -> v
-      | Lib.Ir.Pow v -> Lib.Ir.Var v)
+    |> Map.map_keys_exn ~f:(function Lib.Ir.Var _ as v -> v)
   in
   (*New code goes here *)
   let var = Lib.Ir.var in
@@ -139,8 +129,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
             `Str str
           | `Int d -> `Int d
         in
-        Some (var key, result)
-      | _ -> Some (key, data))
+        Some (var key, result))
     |> Map.of_alist_exn
   in
   let real_model = aux raw_model in
@@ -192,8 +181,6 @@ let calculate_model tys model regexes env =
 let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
 
 let check_sat ?(verbose = false) _ ast : rez =
-  if _config.logic = `Eia && Lib.Ast.is_str ast
-  then _config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
   let report_result2 rez =
     let check_answer () =
       Format.printf "%!";
@@ -209,7 +196,7 @@ let check_sat ?(verbose = false) _ ast : rez =
       | `Sat _, Some `Unsat ->
         Printf.eprintf "(error: check annotation that says 'unsat')\n%!"
     in
-    let () = if Lib.Debug.is_traced "chro" then () else check_answer () in
+    let () = if Lib.Debug.is_traced "par" then () else check_answer () in
     if verbose
     then (
       match rez with
@@ -225,64 +212,37 @@ let check_sat ?(verbose = false) _ ast : rez =
         Format.printf "unknown %s\n%!" (if s <> "" then "(" ^ s ^ ")" else ""))
     else ()
   in
-  let check_nfa_sat ?(light = false) ast e =
+  let check_nfa_sat ast e =
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
-      (* let ir = ir |> Lib.Ir.simpl |> Lib.Ir.simpl_ineq in
-      let ir = if _config.simpl_mono then Lib.Ir.simpl_monotonicty ir else ir in *)
-        (match ir with
-         | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
-         | Lnot True -> Unsat "simpl"
-         | _ ->
-           if light
-           then (
-             trace_log "Unknown in Lightweight solving ...";
-             Unknown (ast, e))
-           else (
-             if _config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
-             if _config.stop_after = `Simpl then exit 0;
-             trace_log "Starting NFA Solver ...";
-             match Lib.Solver.check_sat ir with
-             | `Sat get_model -> sat "nfa" ast e get_model Map.empty
-             | `Unsat -> Unsat "nfa"
-             | `Unknown _ir -> Unknown (ast, e)))
+      (match ir with
+       | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
+       | Lnot True -> Unsat "simpl"
+       | _ ->
+         if _config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
+         if _config.stop_after = `Simpl then exit 0;
+         trace_log "Starting NFA Solver ...";
+         (match Lib.Solver.check_sat ir with
+          | `Sat get_model -> sat "nfa" ast e get_model Map.empty
+          | `Unsat -> Unsat "nfa"
+          | `Unknown _ir -> Unknown (ast, e)))
     | Error _ -> failwith "Unexpected error"
   in
-  let check_eia_sat ?(light = false) ast e =
-    let can_be_unk = ref false in
+  let check_rlia_sat ast e =
     let apporx_rez =
       unknown ast e
       <+> (fun ast e ->
       if not _config.pre_simpl
       then unknown ast e
       else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
-      <+> (fun ast e ->
-      let light_str = if light then "Lightweight run:\n" else "" in
-      if _config.dump_pre_simpl
-      then Format.printf "@[%s%a@]\n%!" light_str Lib.Ast.pp_smtlib2 ast;
-      unknown ast e)
       <+> fun ast e ->
       if _config.stop_after = `Pre_simplify then exit 0 else unknown ast e
     in
     match apporx_rez with
     | Unknown (ast, e) ->
       if _config.mode = `Msb
-      then check_nfa_sat ~light ast e
-      else (
-        let asts_nat = Lib.Ast.to_nat ast in
-        trace_log "To IN gives %d asts..." (List.length asts_nat);
-        let check ast =
-          trace_log "Over IN: %a" Lib.Ast.pp_smtlib2 ast;
-          match check_nfa_sat ~light ast e with
-          | Sat (s, ast, env, get_model, regexes) -> Some (s, ast, env, get_model, regexes)
-          | Unknown _ ->
-            can_be_unk := true;
-            None
-          | Unsat _ -> None
-        in
-        match List.find_map check asts_nat with
-        | Some (s, ast, env, get_model, regexes) -> Sat (s, ast, env, get_model, regexes)
-        | None -> if !can_be_unk then unknown ast Lib.Env.empty else Unsat "nfa")
+      then check_nfa_sat ast e
+      else failwith "Only msb mode supported"
     | _ -> apporx_rez
   in
   let handle =
@@ -297,7 +257,7 @@ let check_sat ?(verbose = false) _ ast : rez =
     | Unknown _ -> f ()
   in
   try
-    handle (check_eia_sat ast Lib.Env.empty) (fun () ->
+    handle (check_rlia_sat ast Lib.Env.empty) (fun () ->
       report_result2 (`Unknown "nfa");
       unknown ast Lib.Env.empty)
   with
@@ -325,13 +285,12 @@ let check_model
         let key =
           match key with
           | Lib.Ir.Var s -> s
-          | _ -> assert false
         in
         let open Lib.Ast in
         let ast' =
           match data with
-          | `Int c -> eia (Eia.eq (Eia.atom (var key I)) (Lib.Ast.Eia.const c) I)
-          | `Str c -> eia (Eia.eq (Eia.atom (var key S)) (Lib.Ast.Eia.str_const c) S)
+          | `Int c -> RLia (RLia.eq (RLia.atom (var key I)) (Lib.Ast.RLia.const c) I)
+          | `Str c -> RLia (RLia.eq (RLia.atom (var key S)) (Lib.Ast.RLia.str_const c) S)
         in
         Lib.Ast.land_ [ ast'; ast ])
       model

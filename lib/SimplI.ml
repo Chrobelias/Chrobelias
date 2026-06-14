@@ -550,7 +550,7 @@ let make_main_symantics env =
     let neqz l r =
       match l, r with
       | AstL.Lia.Const l, AstL.Lia.Const r -> if l <> r then AstL.true_ else AstL.false_
-      | eiat1, eiat2 when AstL.Lia.eq_term eiat1 eiat2 -> AstL.false_
+      | rliat1, rliat2 when AstL.Lia.eq_term rliat1 rliat2 -> AstL.false_
       | _ -> Id_symantics.neqz l r
     ;;
   end
