@@ -177,7 +177,7 @@ struct
         Some (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
       | None -> None)
     else (
-      (* Classic parametric solving: with intersections and unions *)
+      (* Classic Symbolic solving: with intersections and unions *)
       let nfa, vars = ir |> eval in
       match Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) with
       | Some (model, _) ->
@@ -201,7 +201,9 @@ struct
     let sat_if_no_unsupp arg = if had_unsupp then `Unknown else `Sat arg in
     let free_vars = Ir.collect_free ir in
     let ir' =
-      if Config.config.logic = `Par then ir else Ir.exists (free_vars |> Set.to_list) ir
+      match Config.config.logic with
+      | `Par | `Sym -> ir
+      | _ -> Ir.exists (free_vars |> Set.to_list) ir
     in
     Debug.trace "LICS" "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
     match get_model_nfa ir' () with
@@ -210,32 +212,32 @@ struct
   ;;
 end
 
-module MsbPar =
+module MsbSym =
   Basic
-    (Nfa.Parametric (Nfa.Par)) (NfaCollection.MsbPar)
+    (Nfa.Symbolic (Nfa.Sym)) (NfaCollection.MsbSym)
     (struct
       module NfaO = Nfa
-      module Par = Nfa.Par
+      module Sym = Nfa.Sym
       module NfaMsb = Nfa.Msb (Str)
-      module NfaPar = Nfa.Parametric (Par)
+      module NfaSym = Nfa.Symbolic (Sym)
 
       let eval_sreg (vars : (Ir.atom, int) Map.t) atom reg =
         let nfa = reg |> NfaS.of_regex |> NfaMsb.of_lsb |> NfaMsb.minimize_strong in
         let reenum = Map.find_exn vars atom in
         let nfa =
           nfa
-          |> NfaO.convert_nfa_msb_par (Map.singleton (Format.asprintf "lia%d" reenum) 0)
+          |> NfaO.convert_nfa_msb_sym (Map.singleton (Format.asprintf "lia%d" reenum) 0)
         in
         nfa
       ;;
 
-      let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> NfaPar.t =
+      let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> NfaSym.t =
         fun vars atom reg ->
         let nfa = NfaMsb.of_lsb reg |> NfaMsb.minimize_strong in
         let reenum = Map.find_exn vars atom in
         let nfa =
           nfa
-          |> NfaO.convert_nfa_msb_par (Map.singleton (Format.asprintf "lin%d" reenum) 0)
+          |> NfaO.convert_nfa_msb_sym (Map.singleton (Format.asprintf "lin%d" reenum) 0)
         in
         nfa
       ;;
@@ -248,8 +250,8 @@ let check_sat ir
     | `Unknown of Ir.t
     ]
   =
-  let chack_par_sat ir =
-    trace_log "Running parametric MSB mode";
+  let chack_sym_sat ir =
+    trace_log "Running Symbolic MSB mode";
     let ( let* ) = Result.bind in
     let int_of_path2 =
       let base = Z.of_int _base in
@@ -270,12 +272,12 @@ let check_sat ir
     let str_of_path2 p =
       p |> List.drop 1 |> List.fold_left (fun acc c -> acc ^ Int.to_string c) ""
     in
-    match MsbPar.check_sat ir with
+    match MsbSym.check_sat ir with
     | `Sat model ->
       `Sat
         (fun tys ->
           let* model = model () in
-          let main_model =
+          let main_model = 
             Map.mapi
               ~f:(fun ~key:k ~data:v ->
                 let ty = Map.find tys k |> Option.value ~default:`Int in
@@ -294,6 +296,7 @@ let check_sat ir
     | `Unknown -> `Unknown ir
   in
   match Config.config.logic with
-  | `Par -> chack_par_sat ir
+  | `Sym -> chack_sym_sat ir
+  | `Par -> failwith "Soon..."
   | _ -> failwith "Later..."
 ;;

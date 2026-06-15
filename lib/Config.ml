@@ -1,74 +1,58 @@
 type config =
   { mutable enc_base : int
+  ; mutable check_sat_range : bool
+  ; mutable base_min : int
+  ; mutable base_max : int
   ; mutable search_depth : int
   ; mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bool_comb_sat : bool
-  ; mutable bound_res : int
-  ; mutable bound_states : int
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
-  ; mutable dump_lics : bool
   ; mutable error_check : bool
   ; mutable good_for_minimize : int
-  ; mutable good_for_shrinking : int
   ; mutable input_file : string
-  ; mutable logic : [ `Eia | `Str | `StrBv | `Par ]
+  ; mutable logic : [ `Eia | `Str | `StrBv | `Par | `Sym ]
   ; mutable mode : [ `Msb | `Lsb ]
-  ; mutable no_model : bool
-  ; mutable no_str_bv : bool
   ; mutable over_approx : bool
-  ; mutable over_approx_early : bool
-  ; mutable over_nfa : bool
   ; mutable path_search : [ `Dfs | `Bfs ]
   ; mutable pre_simpl : bool
   ; mutable quiet : bool
-  ; mutable simpl_alpha : bool
-  ; mutable simpl_mono : bool
   ; mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
   ; mutable under_approx : int
-  ; mutable under_str_all : bool
-  ; mutable with_check_sat : bool
-  ; mutable with_info : bool
   ; mutable check_model : bool
   ; mutable seed : int
+  ; mutable with_check_sat : bool
+  ; mutable with_info : bool
   }
 [@@deriving show]
 
 let config =
   { enc_base = 10
+  ; check_sat_range = false
+  ; base_min = 2
+  ; base_max = 10
   ; search_depth = 0
   ; antiprenex_mode = `All
   ; bool_comb_sat = false
-  ; bound_res = -1
-  ; bound_states = -1
   ; stop_after = `Solving
-  ; dump_lics = false
   ; dump_pre_simpl = false
   ; dump_simpl = false
   ; dump_ir = false
   ; error_check = true
   ; good_for_minimize = 15
-  ; good_for_shrinking = 20
   ; input_file = ""
-  ; logic = `Par
+  ; logic = `Sym
   ; mode = `Msb
-  ; no_model = false
-  ; no_str_bv = false
   ; over_approx = false
-  ; over_approx_early = false
-  ; over_nfa = false
   ; path_search = `Dfs
   ; pre_simpl = true
   ; quiet = false
-  ; simpl_alpha = false
-  ; simpl_mono = true
   ; under_approx = -1
-  ; under_str_all = false
-  ; with_check_sat = false
-  ; with_info = true
   ; check_model = false
   ; seed = Sys.time () |> Int.of_float
+  ; with_check_sat = false
+  ; with_info = false
   }
 ;;
 
@@ -93,14 +77,34 @@ let max_nfa_size =
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let usage_msg =
-    {|Parametric Linear Integer Arithmetic Solver.
+    {|Parametric Symbolic Büchi Arithmetic Solver.
 Usage: par [options] <file.smt2>
+
+Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "--base"
+    [ ( "-base"
       , Arg.Int (fun n -> config.enc_base <- n)
       , "<n>\tSet the encoding base for integer representation" )
+    ; ( "-bmin"
+      , Arg.Int (fun n -> config.base_min <- n)
+      , "<n>\tSet the minimal encoding base for parametric check-sat (DEFAULT VALUE: 2)" )
+    ; ( "-bmax"
+      , Arg.Int (fun n -> config.base_max <- n)
+      , "<n>\tSet the maximal encoding base for parametric check-sat (DEFAULT VALUE: 10)"
+      )
+    ; ( "-lazy"
+      , Arg.Unit (fun () -> config.bool_comb_sat <- true)
+      , "\tCheck satisfiability without performing Boolean operations over automata, \
+         whenever possible" )
+    ; ( "-range"
+      , Arg.Unit (fun n -> config.logic <- `Par)
+      , "\tCheck satisfiability for all bases in [bmin; bmax] and return the first base \
+         whith 'unsat'" )
+    ; ( "-help"
+      , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
+      , "\tDisplay this list of options\n\nMiscellaneous:\n" )
       (* ; ( "--bfs"
       , Arg.Unit (fun () -> config.path_search <- `Bfs)
       , "\tSwitch to bfs in parametric check_sat\t" ) *)
@@ -109,16 +113,9 @@ Usage: par [options] <file.smt2>
       , "Сalculate a model and check its correctness" )
     ; ( "--depth"
       , Arg.Int (fun n -> config.search_depth <- n)
-      , "<n>\tNeighbours depth in DFS search" )
-    ; ( "--lazy"
-      , Arg.Unit (fun () -> config.bool_comb_sat <- true)
-      , "\tCheck satisfiability without performing Boolean operations over automata, \
-         whenever possible" )
+      , "<n>\tSet the maximal neighbours depth in DFS search" )
     ; "--seed", Arg.Int (fun v -> config.seed <- v), "<n>\tSpecify a seed for Z3"
     ; ( "--help"
-      , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tDisplay this list of options" )
-    ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )
     ]

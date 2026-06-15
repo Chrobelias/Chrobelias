@@ -22,7 +22,7 @@ module type BasicL = sig
   (** [is_zero l] returns [true] if labels [l] are equal to some ``good'' element, which is called zero*)
   val is_zero : t -> bool
 
-  (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
+  (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the Symbolic world = conjunction of labels*)
   val combine : t -> t -> t
 
   val simplify : t -> t
@@ -43,7 +43,11 @@ module type BasicL = sig
   val get : t -> int -> u
 end
 
-module type ParL = sig
+(* module Par : sig
+  include BasicL with type u = int and type t = AstL.t
+end *)
+
+module type SymL = sig
   include BasicL
 
   (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
@@ -53,21 +57,23 @@ module type ParL = sig
   val combine_list : t list -> t
 
   val filter_states
-    :  state Set.t
+    :  ?base:int
+    -> state Set.t
     -> bool array
     -> AstL.t
     -> (t * state) list
     -> (t * state) list
 
   val filter_states_bool_comb
-    :  ((int -> int -> bool) -> int -> state list -> bool)
+    :  ?base:int
+    -> ((int -> int -> bool) -> int -> state list -> bool)
     -> AstL.t list
     -> (t * state list) list
     -> (t * state list) list
 end
 
-module Par : sig
-  include ParL with type u = int and type t = AstL.t
+module Sym : sig
+  include SymL with type u = int and type t = AstL.t
 end
 
 module type L = sig
@@ -125,13 +131,14 @@ module type BasicType = sig
     -> t
 
   (** [run a] returns [true] if the automaton [a] recognizes a non-emty language, otherwise [false]. *)
-  val run : t -> bool
+  val run : ?base:int -> t -> bool
 
-  val any_path : t -> int list -> (v list list * int) option
-  val run_bool_comb : AstL.t -> (int, t) Map.t -> bool
+  val any_path : ?base:int -> t -> int list -> (v list list * int) option
+  val run_bool_comb : ?base:int -> AstL.t -> (int, t) Map.t -> bool
 
   val any_path_bool_comb
-    :  AstL.t
+    :  ?base:int
+    -> AstL.t
     -> (int, t) Map.t
     -> int list
     -> (v list list * int) option
@@ -164,10 +171,10 @@ module type BasicType = sig
   val format_nfa : Format.formatter -> t -> unit
 end
 
-module Parametric (Label : ParL) : sig
-  include BasicType with type v = Label.u
+module type SymbolicType = sig
+  include BasicType
 
-  type vv = Label.t
+  type vv
 
   val create_nfa2
     :  transitions:(state * vv * state) list
@@ -186,6 +193,25 @@ module Parametric (Label : ParL) : sig
     -> is_dfa:bool
     -> ph:AstL.t
     -> t
+end
+
+module Symbolic (Label : SymL) : sig
+  include SymbolicType with type v = Label.u and type vv = Label.t
+end
+
+module Parametric (Label : SymL) : sig
+  include SymbolicType with type v = Label.u and type vv = Label.t
+
+  val run2 : base:int -> t -> bool
+  val any_path2 : base:int -> t -> int list -> (v list list * int) option
+  val run_bool_comb2 : base:int -> AstL.t -> (int, t) Map.t -> bool
+
+  val any_path_bool_comb2
+    :  base:int
+    -> AstL.t
+    -> (int, t) Map.t
+    -> int list
+    -> (v list list * int) option
 end
 
 module type Type = sig
@@ -219,4 +245,5 @@ module Msb (Label : L) : sig
   val of_lsb : Lsb(Label).t -> t
 end
 
-val convert_nfa_msb_par : (string, int) Map.t -> Msb(Str).t -> Parametric(Par).t
+val convert_nfa_msb_sym : (string, int) Map.t -> Msb(Str).t -> Symbolic(Sym).t
+(* val convert_nfa_msb_par : (string, int) Map.t -> Msb(Str).t -> Parametric(Sym).t *)

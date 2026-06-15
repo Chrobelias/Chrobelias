@@ -1,6 +1,3 @@
-(* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
-
 type varpos = int
 
 module Map = Base.Map.Poly
@@ -22,6 +19,10 @@ module LsbStr : sig
   include Type with type t = Nfa.Lsb(Nfa.Str).t and type v = Nfa.Str.u
 end
 
+module MsbSym : sig
+  include Type with type t = Nfa.Symbolic(Nfa.Sym).t and type v = Nfa.Sym.u
+end
+
 module MsbPar : sig
-  include Type with type t = Nfa.Parametric(Nfa.Par).t and type v = Nfa.Par.u
+  include Type with type t = Nfa.Parametric(Nfa.Sym).t and type v = Nfa.Sym.u
 end

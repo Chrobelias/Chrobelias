@@ -54,7 +54,7 @@ module type BasicL = sig
   (** [is_zero l] returns [true] if labels [l] are equal to some ``good'' element, which is called zero*)
   val is_zero : t -> bool
 
-  (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the parametric world = conjunction of labels*)
+  (** [combine l1 l2] returns a combination of labels [l1] and [l2] provided that they can be combined. In the symametric world = conjunction of labels*)
   val combine : t -> t -> t
 
   val simplify : t -> t
@@ -75,7 +75,7 @@ module type BasicL = sig
   val get : t -> int -> u
 end
 
-module type ParL = sig
+module type SymL = sig
   include BasicL
 
   (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
@@ -85,14 +85,16 @@ module type ParL = sig
   val combine_list : t list -> t
 
   val filter_states
-    :  state Set.t
+    :  ?base:int
+    -> state Set.t
     -> bool array
     -> AstL.t
     -> (t * state) list
     -> (t * state) list
 
   val filter_states_bool_comb
-    :  ((int -> int -> bool) -> int -> state list -> bool)
+    :  ?base:int
+    -> ((int -> int -> bool) -> int -> state list -> bool)
     -> AstL.t list
     -> (t * state list) list
     -> (t * state list) list
@@ -182,7 +184,6 @@ module Str = struct
     @ [ u_eos; u_null ]
   ;;
 
-  (* FIXME: this should support different bases and symbols. *)
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let full_alpha =
@@ -247,24 +248,16 @@ module Str = struct
   let alpha s = Array.to_list s |> Set.of_list
 end
 
-module Par = struct
+module Sym = struct
   type u = int
   type t = AstL.t
 
   open AstL
 
-  (** Used in [run nfa] below to check existence of transitions *)
-  let _base = Config.config.enc_base
-
   let const c = Lia.Const (Z.of_int c)
   let eq lhs rhs = Lia (Eq (lhs, rhs))
   let equal = AstL.equal
   let is_zero label = if Lia.equal label AstL.false_ then false else true
-  (* else (
-      match SimplI.check_sat base label with
-      | `Sat ->
-        true
-      | _ -> false) *)
 
   let combine vec1 vec2 =
     if AstL.is_trivial vec1 || AstL.is_trivial vec2
@@ -289,7 +282,7 @@ module Par = struct
     |> SimplI.simplify_lia
   ;;
 
-  let filter_states final visited ph =
+  let filter_states ?(base = _base) final visited ph =
     fun transitions ->
     try
       let active_transitions =
@@ -300,16 +293,16 @@ module Par = struct
         |> List.filter (fun (_, state) -> Set.mem final state)
         |> function
         | [] -> []
-        | asts -> SimplI.get_states ph asts
+        | asts -> SimplI.get_states ~base ph asts
       with
-      | [] -> active_transitions |> SimplI.get_states ph
+      | [] -> active_transitions |> SimplI.get_states ~base ph
       | states -> states
     with
     | Exit -> []
   ;;
 
-  let filter_states_bool_comb is_final phs active_transitions =
-    let get_states = SimplI.get_states_bool_comb (AstL.land_ phs) in
+  let filter_states_bool_comb ?(base = _base) is_final phs active_transitions =
+    let get_states = SimplI.get_states_bool_comb ~base (AstL.land_ phs) in
     let none_if_empty l =
       if List.is_empty l
       then (
@@ -327,9 +320,6 @@ module Par = struct
         if List.is_empty x
         then trace_log "Empty for %s %d" (op_to_str op) n
         else trace_log "Depth %s %d: %d states" (op_to_str op) n (List.length x);
-        (* x
-        |> List.map snd
-        |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state); *)
         x)
         |> get_states
         |> none_if_empty
@@ -342,18 +332,15 @@ module Par = struct
       [])
     else (
       trace_log "There are %d next states" (List.length active_transitions);
-      (*active_transitions
-      |> List.map snd
-      |> List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state); *)
-        try
-          match List.find_map (handler ( = )) (0 -- _config.search_depth) with
-          | None ->
-            (match List.find_map (handler ( <= )) (1 -- _config.search_depth) with
-             | None -> get_states active_transitions
-             | Some states -> states)
-          | Some states -> states
-        with
-        | Exit -> [])
+      try
+        match List.find_map (handler ( = )) (0 -- _config.search_depth) with
+        | None ->
+          (match List.find_map (handler ( <= )) (1 -- _config.search_depth) with
+           | None -> get_states active_transitions
+           | Some states -> states)
+        | Some states -> states
+      with
+      | Exit -> [])
   ;;
 
   let get = AstL.get_val
@@ -431,13 +418,14 @@ module type BasicType = sig
     -> t
 
   (** [run a] returns [true] if the automaton [a] recognizes a non-emty language, otherwise [false]. *)
-  val run : t -> bool
+  val run : ?base:int -> t -> bool
 
-  val any_path : t -> int list -> (v list list * int) option
-  val run_bool_comb : AstL.t -> (int, t) Map.t -> bool
+  val any_path : ?base:int -> t -> int list -> (v list list * int) option
+  val run_bool_comb : ?base:int -> AstL.t -> (int, t) Map.t -> bool
 
   val any_path_bool_comb
-    :  AstL.t
+    :  ?base:int
+    -> AstL.t
     -> (int, t) Map.t
     -> int list
     -> (v list list * int) option
@@ -470,6 +458,30 @@ module type BasicType = sig
   val format_nfa : Format.formatter -> t -> unit
 end
 
+module type SymbolicType = sig
+  include BasicType
+
+  type vv
+
+  val create_nfa2
+    :  transitions:(state * vv * state) list
+    -> start:state list
+    -> final:state list
+    -> vars:int list
+    -> deg:int
+    -> t
+
+  val create_nfa3
+    :  transitions:(state * vv * state) list
+    -> start:state list
+    -> final:state list
+    -> vars:int list
+    -> deg:int
+    -> is_dfa:bool
+    -> ph:AstL.t
+    -> t
+end
+
 module type Type = sig
   include BasicType
 
@@ -497,7 +509,7 @@ type ('a, 'b) nfa_t =
 let length nfa = Array.length nfa.transitions
 let states nfa = 0 -- (length nfa - 1) |> Set.of_list
 
-module Parametric (Label : ParL) = struct
+module Symbolic (Label : SymL) = struct
   module Graph = Graph (Label)
 
   type t = (Graph.t, AstL.t) nfa_t
@@ -689,7 +701,6 @@ module Parametric (Label : ParL) = struct
   ;;
 
   let assign_weights nfa =
-    trace_log "In assign_weights";
     let reversed_transitions = nfa.transitions |> Graph.reverse in
     let huge = length nfa in
     let weights = Array.make (length nfa) huge in
@@ -709,7 +720,7 @@ module Parametric (Label : ParL) = struct
     weights |> Array.to_list
   ;;
 
-  let any_path ?nozero (nfa : t) vars =
+  let any_path ?(base = _base) ?nozero (nfa : t) vars =
     let exception Sat_found of vv list in
     let transitions = nfa.transitions in
     let successors state visited =
@@ -717,7 +728,9 @@ module Parametric (Label : ParL) = struct
       let without = Array.init (length nfa) (Fun.const false) in
       List.iter (fun state -> without.(state) <- true) visited;
       without.(state) <- true;
-      let next without = transitions |> Label.filter_states nfa.final without nfa.extra in
+      let next without =
+        transitions |> Label.filter_states ~base nfa.final without nfa.extra
+      in
       let succ without =
         match next without with
         | [] -> []
@@ -791,8 +804,8 @@ module Parametric (Label : ParL) = struct
     | None -> None
   ;;
 
-  let any_path = any_path ~nozero:false
-  let run nfa = any_path nfa [] |> Option.is_some
+  let any_path ?(base = _base) = any_path ~base ~nozero:false
+  let run ?(base = _base) nfa = any_path ~base nfa [] |> Option.is_some
 
   let format_nfa ppf nfa =
     let format_state ppf state = fprintf ppf "%d" state in
@@ -993,7 +1006,7 @@ module Parametric (Label : ParL) = struct
   1) [skel]: a Boolean skeleton, where leafs have names Atom_i; 
   2) [nfas]: a map from i to nfa that correspond to atomic formulas;
   3) [vars] -- here, only a list of numbers of vars *)
-  let any_path_bool_comb skel (nfas : (int, t) Map.t) vars =
+  let any_path_bool_comb ?(base = _base) skel (nfas : (int, t) Map.t) vars =
     let exception Sat_found of vv list in
     let nfas' = Map.data nfas in
     trace_log "Nfas:";
@@ -1056,20 +1069,7 @@ module Parametric (Label : ParL) = struct
         let active_transitions =
           List.filter (fun (_, state) -> not (List.mem state !visited_nodes)) transitions
         in
-        (* let extras =
-          if List.mem state starts
-          then extras
-          else (
-            trace_log "I am here...";
-            AstL.lor_
-              (List.map
-                 (fun var ->
-                    AstL.lia (AstL.Lia.geq (AstL.get var) (AstL.Lia.const Z.one)))
-                 vars)
-            :: extras)
-        in
-        trace_log "extras: %a" AstL.pp_smtlib2 (AstL.land_ extras); *)
-        Label.filter_states_bool_comb is_final extras active_transitions
+        Label.filter_states_bool_comb ~base is_final extras active_transitions
       in
       let succ =
         fun () ->
@@ -1145,7 +1145,29 @@ module Parametric (Label : ParL) = struct
     | None -> None
   ;;
 
-  let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
+  let run_bool_comb ?(base = _base) skel nfas =
+    any_path_bool_comb ~base skel nfas [] |> Option.is_some
+  ;;
+end
+
+module Parametric (Label : SymL) = struct
+  include Symbolic (Label : SymL)
+
+  let any_path2 ~base = any_path ~base
+  let run_bool_comb2 ~base = run_bool_comb ~base
+  let run2 ~base = run ~base
+  let any_path_bool_comb2 ~base = any_path_bool_comb ~base
+  let any_path ?base params = failwith "Undefined in Parametric nfa without fixed base"
+
+  let run_bool_comb ?base params =
+    failwith "Undefined in Parametric nfa without fixed base"
+  ;;
+
+  let run ?base nfa = failwith "Undefined in Parametric nfa without fixed base"
+
+  let any_path_bool_comb ?base params =
+    failwith "Undefined in Parametric nfa without fixed base"
+  ;;
 end
 
 module Make
@@ -1760,9 +1782,9 @@ module Lsb (Label : L) = struct
   type u = t
 
   let any_path = any_path ~nozero:false
-  let run nfa = any_path nfa [] |> Option.is_some
-  let any_path_bool_comb skel nfas vars = failwith "Unimplemented"
-  let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
+  let run ?base nfa = any_path nfa [] |> Option.is_some
+  let any_path_bool_comb ?base skel nfas vars = failwith "Unimplemented"
+  let run_bool_comb ?base skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
 
   let minimize nfa =
     nfa
@@ -1875,9 +1897,9 @@ module Msb (Label : L) = struct
     any_path ~nozero:true nfa
   ;;
 
-  let run nfa = any_path nfa [] |> Option.is_some
-  let any_path_bool_comb skel nfas vars = failwith "Unimplemented"
-  let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
+  let run ?base nfa = any_path nfa [] |> Option.is_some
+  let any_path_bool_comb ?base skel nfas vars = failwith "Unimplemented"
+  let run_bool_comb ?base skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
 
   let of_lsb (nfa : Lsb(Label).t) : t =
     let nfa = minimize_not_very_strong nfa in
@@ -1921,7 +1943,7 @@ let astl_of_str is_sign vars (str : Str.t) =
   |> SimplI.simplify_lia
 ;;
 
-let convert_nfa_msb_par vars : Msb(Str).t -> Parametric(Par).t =
+let convert_nfa_msb_sym vars : Msb(Str).t -> Symbolic(Sym).t =
   fun nfa ->
   { start = nfa.start
   ; is_dfa = nfa.is_dfa

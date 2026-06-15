@@ -370,17 +370,8 @@ let () =
       in
       { state with tys }
     | Smtml.Ast.Set_logic (Smtml.Logic.QF_S | Smtml.Logic.QF_SLIA) ->
-      _config.logic
-      <- (if Lib.Config.config.logic = `Par
-          then `Par
-          else if Lib.Config.config.no_str_bv
-          then `Str
-          else `StrBv);
       (* _config.under_approx <- 0; *)
       _config.over_approx <- false;
-      _config.simpl_alpha <- false;
-      _config.simpl_mono <- true;
-      (* _config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
       { asserts = []; prev = Some state; last_result = None; tys = Map.empty }
@@ -406,24 +397,19 @@ let () =
       if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
       { state with last_result = Some rez }
     | Smtml.Ast.Get_model ->
-      if _config.no_model = true
-      then (
-        Format.printf "no-model mode\n%!";
-        state)
-      else (
-        let rec get_ast { asserts; prev; _ } =
-          match prev with
-          | Some state -> asserts @ get_ast state
-          | None -> asserts
-        in
-        let ast = Lib.Ast.land_ (get_ast state) in
-        let rez =
-          match state.last_result with
-          | Some r -> r
-          | None -> check_sat state.tys ast
-        in
-        get_model ast rez;
-        state)
+      let rec get_ast { asserts; prev; _ } =
+        match prev with
+        | Some state -> asserts @ get_ast state
+        | None -> asserts
+      in
+      let ast = Lib.Ast.land_ (get_ast state) in
+      let rez =
+        match state.last_result with
+        | Some r -> r
+        | None -> check_sat state.tys ast
+      in
+      get_model ast rez;
+      state
     | Smtml.Ast.Assert expr -> begin
       let ast = expr |> Lib.Fe._to_ir state.tys in
       { state with asserts = ast :: state.asserts }
