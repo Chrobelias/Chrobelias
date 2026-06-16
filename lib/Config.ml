@@ -30,7 +30,7 @@ type config =
 let config =
   { enc_base = 10
   ; check_sat_range = false
-  ; base_min = 2
+  ; base_min = 10
   ; base_max = 10
   ; search_depth = 0
   ; antiprenex_mode = `All
@@ -78,8 +78,8 @@ let max_nfa_size =
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let usage_msg =
-    {|Parametric Symbolic Büchi Arithmetic Solver.
-Usage: par [options] <file.smt2>
+    {|Parametric Symbolic Büchi Arithmetic Solver in defferent bases.
+Usage: parsym [options] <file.smt2>
 
 Basic options:
 |}
@@ -87,10 +87,11 @@ Basic options:
   let rec spec_list =
     [ ( "-base"
       , Arg.Int (fun n -> config.enc_base <- n)
-      , "<n>\tSet the encoding base for integer representation" )
+      , "<n>\tSet the encoding base for integer representation (DEFAULT VALUE: 10)" )
     ; ( "-bmin"
       , Arg.Int (fun n -> config.base_min <- n)
-      , "<n>\tSet the minimal encoding base for parametric check-sat (DEFAULT VALUE: 2)" )
+      , "<n>\tSet the minimal encoding base for parametric check-sat (DEFAULT VALUE: 10)"
+      )
     ; ( "-bmax"
       , Arg.Int (fun n -> config.base_max <- n)
       , "<n>\tSet the maximal encoding base for parametric check-sat (DEFAULT VALUE: 10)"
@@ -99,10 +100,10 @@ Basic options:
       , Arg.Unit (fun () -> config.bool_comb_sat <- true)
       , "\tCheck satisfiability without performing Boolean operations over automata, \
          whenever possible" )
-    ; ( "-range"
+    ; ( "-par"
       , Arg.Unit (fun n -> config.logic <- `Par)
-      , "\tCheck satisfiability for all bases in [bmin; bmax] and return the first base \
-         whith 'unsat'" )
+      , "\t\tCheck satisfiability for all bases in [bmin; bmax] using parametric \
+         symbolic automata" )
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )

@@ -1,6 +1,6 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2025, Chrobelias. *)
-let trace_log fmt = Lib.Debug.trace "par" fmt
+let trace_log fmt = Lib.Debug.trace "parsym" fmt
 
 (* let () = Memtrace.trace_if_requested ~context:"my program" () *)
 
@@ -335,10 +335,10 @@ let () =
             (merge_tys state')
         | None -> state.tys
       in
-      let printf = if not noprint then Format.printf else fun _ -> () in
+      (* let printf = if not noprint then Format.printf else fun _ -> () in *)
       let print_model = if not noprint then print_model else fun _ -> () in
       match rez with
-      | Unknown _ | Unsat _ -> printf "no model"
+      | Unknown _ | Unsat _ -> () (*printf "no model"*)
       | Sat (_, _, env, get_model, regexes) ->
         sat_found := true;
         let tys = merge_tys state in
@@ -351,7 +351,8 @@ let () =
               if Lib.Config.config.check_model then check_model tys ast model else ())
           with
           | Result.Ok () -> ()
-          | Result.Error `No_model -> Format.printf "no model mode\n%!"
+          | Result.Error `No_model -> ()
+          (* | Result.Error `No_model -> Format.printf "no model mode\n%!" *)
         in
         ()
     in

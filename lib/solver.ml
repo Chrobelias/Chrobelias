@@ -4,10 +4,10 @@ let trace_log fmt = Debug.trace "solver" fmt
 let _config = Config.config
 let _base = _config.enc_base
 
-(* let ( -- ) i j =
+let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
   aux j []
-;; *)
+;;
 
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
@@ -29,6 +29,7 @@ module Basic
          -> 'a list
          -> ('a, Nfa.v list) Map.t option
 
+       val handler : Nfa.t -> ('a, int) Map.t -> 'a list -> ('a, Nfa.v list) Map.t option
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
        val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
      end) =
@@ -182,10 +183,7 @@ struct
     else (
       (* Classic Symbolic solving: with intersections and unions *)
       let nfa, vars = ir |> eval in
-      match Nfa.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) with
-      | Some (model, _) ->
-        Some (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
-      | None -> None)
+      Eval.handler nfa vars free_vars)
   ;;
 
   let check_sat ir
@@ -210,7 +208,10 @@ struct
     in
     Debug.trace "LICS" "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
     match get_model_nfa ir' () with
-    | Some model -> sat_if_no_unsupp (fun () -> Result.Ok model)
+    | Some model ->
+      if Map.is_empty model
+      then `Sat (fun () -> Result.error `No_model)
+      else sat_if_no_unsupp (fun () -> Result.Ok model)
     | None -> `Unsat
   ;;
 end
@@ -257,6 +258,14 @@ module MsbSym =
             (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
         | None -> None
       ;;
+
+      let handler nfa vars free_vars =
+        match NfaSym.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) with
+        | Some (model, _) ->
+          Some
+            (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
+        | None -> None
+      ;;
     end)
 
 module MsbPar = struct
@@ -291,20 +300,6 @@ module MsbPar = struct
         ;;
 
         let bool_comb_handler skel nfas vars free_vars =
-          match
-            NfaPar.any_path_bool_comb2
-              ~base:_config.enc_base
-              skel
-              nfas
-              (List.map (fun v -> Map.find_exn vars v) free_vars)
-          with
-          | Some (model, _) ->
-            Some
-              (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
-          | None -> None
-        ;;
-
-        (* let bool_comb_handler skel nfas vars free_vars =
           _config.base_min -- _config.base_max
           |> List.find_map (fun base ->
             match
@@ -315,12 +310,30 @@ module MsbPar = struct
                 (List.map (fun v -> Map.find_exn vars v) free_vars)
             with
             | Some (model, _) ->
-              Some
-                (model
-                 |> List.mapi (fun i v -> List.nth free_vars i, v)
-                 |> Map.of_alist_exn)
-            | None -> None)
-        ;; *)
+              Format.printf "'sat' for base = %d\n%!" base;
+              None
+            | None ->
+              Format.printf "'unsat' for base = %d\n%!" base;
+              None)
+        ;;
+
+        let handler nfa vars free_vars =
+          _config.base_min -- _config.base_max
+          |> List.filter_map (fun base ->
+            match
+              NfaPar.any_path2
+                ~base
+                nfa
+                (List.map (fun v -> Map.find_exn vars v) free_vars)
+            with
+            | Some (model, _) ->
+              Format.printf "'sat' for base = %d\n%!" base;
+              None
+            | None ->
+              Format.printf "'unsat' for base = %d\n%!" base;
+              Some ())
+          |> fun l -> if List.is_empty l then Some Map.empty else None
+        ;;
       end)
 
   include MsbPar
@@ -354,11 +367,23 @@ let check_sat ir
   let chack_sym_sat ir =
     trace_log "Running Symbolic MSB mode";
     let ( let* ) = Result.bind in
-    match MsbSym.check_sat ir with
-    | `Sat model ->
+    _config.base_min -- _config.base_max
+    |> List.filter_map (fun base ->
+      Config.config.enc_base <- base;
+      match MsbSym.check_sat ir with
+      | `Sat model ->
+        Format.printf "'sat' for base = %d\n%!" base;
+        None
+      | `Unsat ->
+        Format.printf "'unsat' for base = %d\n%!" base;
+        Some ()
+      | `Unknown -> failwith "Unexpected 'unknown' in chack_sym_sat")
+    |> fun l ->
+    if List.is_empty l
+    then
       `Sat
         (fun tys ->
-          let* model = model () in
+          let* model = Result.Error `No_model in
           let main_model =
             Map.mapi
               ~f:(fun ~key:k ~data:v ->
@@ -374,8 +399,7 @@ let check_sat ir
               model
           in
           Result.ok main_model)
-    | `Unsat -> `Unsat
-    | `Unknown -> `Unknown ir
+    else `Unsat
   in
   let chack_par_sat ir =
     trace_log "Running Parametric MSB mode";

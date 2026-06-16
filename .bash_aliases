@@ -1,1 +1,1 @@
-alias par='./_build/default/bin/chro.exe'
+alias parsym='./_build/default/bin/parsym.exe'

@@ -2,24 +2,19 @@
 
 (using directory-targets 0.1)
 
-(name Chrobelias)
+(name ParSym)
 
 (generate_opam_files true)
 
-(source
- (github Chrobelias/Chrobelias))
+(authors "Mikhail Starchak, Alessio Mansutti")
 
-(authors
- "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev, Mikhail Starchak")
-
-(maintainers
- "Georgiy Belyanin, Timofey Frolov, Dmitry Kosarev, Mikhail Starchak")
+(maintainers "Mikhail Starchak, Alessio Mansutti")
 
 (license MIT)
 
 (package
- (name Chrobelias)
- (synopsis "Chrobak normal form in exp-linear integer arithmetic solver")
+ (name ParSym)
+ (synopsis "Parametric Symbolic Büchi Arithmetic Solver in defferent bases")
  (depends
   ocaml
   dune
