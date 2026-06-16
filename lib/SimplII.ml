@@ -2123,26 +2123,56 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
           |> Ast.lor_
       in
       let ast =
-        Ast.map
-          (function
-            | Eia (Eia.InRe (Eia.Atom (Var (s', S)), S, re)) as orig when s = s' ->
-              unfold_nfa_with_fixed_len len (NfaS.of_regex re)
-              |> Option.map words_into_disjunction
-              |> Option.value ~default:orig
-            | Eia (Eia.InReRaw (Eia.Atom (Var (s', S)), S, nfa)) as orig when s = s' ->
-              unfold_nfa_with_fixed_len len nfa
-              |> Option.map words_into_disjunction
-              |> Option.value ~default:orig
-            | Eia (Eia.InRe (Eia.Atom (Var (s', I)), I, re)) as orig when s = s' ->
-              unfold_nfa_with_fixed_len len (NfaS.of_regex re)
-              |> Option.map words_into_disjunction
-              |> Option.value ~default:orig
-            | Eia (Eia.InReRaw (Eia.Atom (Var (s', I)), I, nfa)) as orig when s = s' ->
-              unfold_nfa_with_fixed_len len nfa
-              |> Option.map words_into_disjunction
-              |> Option.value ~default:orig
-            | el -> el)
-          ast
+        let removed_orig = ref false in
+        let ast =
+          Ast.map
+            (function
+              | Eia (Eia.InRe (Eia.Atom (Var (s', S)), S, re)) as orig when s = s' ->
+                unfold_nfa_with_fixed_len len (NfaS.of_regex re)
+                |> Option.map words_into_disjunction
+                |> Option.value ~default:orig
+              | Eia (Eia.InReRaw (Eia.Atom (Var (s', S)), S, nfa)) as orig when s = s' ->
+                unfold_nfa_with_fixed_len len nfa
+                |> Option.map words_into_disjunction
+                |> Option.value ~default:orig
+              | Eia (Eia.InRe (Eia.Atom (Var (s', I)), I, re)) as orig when s = s' ->
+                unfold_nfa_with_fixed_len len (NfaS.of_regex re)
+                |> Option.map words_into_disjunction
+                |> Option.value ~default:orig
+              | Eia (Eia.InReRaw (Eia.Atom (Var (s', I)), I, nfa)) as orig when s = s' ->
+                unfold_nfa_with_fixed_len len nfa
+                |> Option.map words_into_disjunction
+                |> Option.value ~default:orig
+              | Eia eia ->
+                Eia.map2
+                  Fun.id
+                  (function
+                    | Eia.Len (Ast.Eia.Atom (Ast.Var (s', S))) when s = s' ->
+                      removed_orig := true;
+                      Ast.Eia.const len
+                    | eia -> eia)
+                  Fun.id
+                  eia
+                |> Ast.eia
+              | el -> el)
+            ast
+        in
+        let (module Sym) = make_main_symantics Env.empty in
+        let ast = apply_symantics (module Sym) ast in
+        if !removed_orig
+        then begin
+          let module Sym = Id_symantics in
+          let orig =
+            Sym.eqz
+              (Sym.add
+                 [ Sym.constz len
+                 ; Sym.mul [ Sym.constz Z.minus_one; Sym.str_len (Sym.str_var s) ]
+                 ])
+              (Sym.constz Z.zero)
+          in
+          Ast.land_ [ ast; orig ]
+        end
+        else ast
       in
       env, ast
     | PropAndPreserve (term, rhs, Ast.S) ->
