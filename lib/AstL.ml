@@ -378,6 +378,7 @@ let project vars ast =
 let get i = Lia.Atom (Var (get_var_name i))
 let get_par i = Lia.Atom (Var (get_par_name i))
 let length ast = ast |> get_vars |> List.length
+let get_max_digit = Lia.add [ get_par 0; Lia.const Z.minus_one ]
 
 let rec map f = function
   | True as ast -> f ast

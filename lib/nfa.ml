@@ -1966,3 +1966,27 @@ let convert_nfa_msb_sym vars : Msb(Str).t -> Symbolic(Sym).t =
   ; extra = AstL.true_
   }
 ;;
+
+let convert_nfa_msb_par vars : Msb(Str).t -> Parametric(Sym).t =
+  fun nfa ->
+  { start = nfa.start
+  ; is_dfa = nfa.is_dfa
+  ; deg = nfa.deg
+  ; final = nfa.final
+  ; transitions =
+      (let f =
+         fun i x ->
+         x
+         |> List.map (fun (label, q') -> q', astl_of_str (Set.mem nfa.start i) vars label)
+         |> Map.of_alist_multi
+         |> Map.filter_map ~f:(fun ts ->
+           match SimplI.simplify_lia (AstL.lor_ ts) with
+           | ph when AstL.equal ph AstL.false_ -> None
+           | ph -> Some ph)
+         |> Map.to_alist
+         |> List.map (fun (x, y) -> y, x)
+       in
+       Array.mapi f nfa.transitions)
+  ; extra = AstL.true_
+  }
+;;

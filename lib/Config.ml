@@ -64,6 +64,7 @@ type string_config =
   }
 
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
+let base = "base"
 
 let max_nfa_size =
   match Sys.getenv_opt "CHRO_NFA_SIZE" with

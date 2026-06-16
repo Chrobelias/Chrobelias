@@ -246,4 +246,4 @@ module Msb (Label : L) : sig
 end
 
 val convert_nfa_msb_sym : (string, int) Map.t -> Msb(Str).t -> Symbolic(Sym).t
-(* val convert_nfa_msb_par : (string, int) Map.t -> Msb(Str).t -> Parametric(Sym).t *)
+val convert_nfa_msb_par : (string, int) Map.t -> Msb(Str).t -> Parametric(Sym).t

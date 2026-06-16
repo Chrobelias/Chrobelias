@@ -4,6 +4,11 @@ let trace_log fmt = Debug.trace "solver" fmt
 let _config = Config.config
 let _base = _config.enc_base
 
+(* let ( -- ) i j =
+  let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+  aux j []
+;; *)
+
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 
@@ -17,6 +22,13 @@ module Basic
     (Nfa : Nfa.BasicType)
     (NfaCollection : NfaCollection.Type with type t = Nfa.t and type v = Nfa.v)
     (Eval : sig
+       val bool_comb_handler
+         :  AstL.t
+         -> (int, Nfa.t) Map.t
+         -> ('a, int) Map.t
+         -> 'a list
+         -> ('a, Nfa.v list) Map.t option
+
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
        val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
      end) =
@@ -154,12 +166,11 @@ struct
       v
   ;;
 
-  (* Alessio, here essentially everything starts. 
+  (* Here essentially everything starts. 
   The formula from the input has been transformed into [ir] *)
   let get_model_nfa ir () =
     trace_log "Entered get_model_nfa";
-    (* free_vars have type Ir.atom (only variables in LIA case; 
-    can be exponentiated variables in EIA) *)
+    (* free_vars have type Ir.atom (only variables in LIA case) *)
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
     trace_log "Ir: %a" Ir.pp ir;
     if
@@ -167,15 +178,7 @@ struct
       (* We use complex acceptance condition for a list of nfas *)
     then (
       let skel, nfas, vars = ir |> eval_bool_comb in
-      match
-        Nfa.any_path_bool_comb
-          skel
-          nfas
-          (List.map (fun v -> Map.find_exn vars v) free_vars)
-      with
-      | Some (model, _) ->
-        Some (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
-      | None -> None)
+      Eval.bool_comb_handler skel nfas vars free_vars)
     else (
       (* Classic Symbolic solving: with intersections and unions *)
       let nfa, vars = ir |> eval in
@@ -186,7 +189,7 @@ struct
   ;;
 
   let check_sat ir
-    : [ `Sat of unit -> ((Ir.atom, Nfa.v list) Map.t, [ `Too_long | `No_model ]) Result.t
+    : [ `Sat of unit -> ((Ir.atom, Nfa.v list) Map.t, [ `No_model ]) Result.t
       | `Unsat
       | `Unknown
       ]
@@ -241,54 +244,159 @@ module MsbSym =
         in
         nfa
       ;;
+
+      let bool_comb_handler skel nfas vars free_vars =
+        match
+          NfaSym.any_path_bool_comb
+            skel
+            nfas
+            (List.map (fun v -> Map.find_exn vars v) free_vars)
+        with
+        | Some (model, _) ->
+          Some
+            (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
+        | None -> None
+      ;;
     end)
 
+module MsbPar = struct
+  module MsbPar =
+    Basic
+      (Nfa.Parametric (Nfa.Sym)) (NfaCollection.MsbPar)
+      (struct
+        module NfaO = Nfa
+        module Sym = Nfa.Sym
+        module NfaMsb = Nfa.Msb (Str)
+        module NfaPar = Nfa.Parametric (Sym)
+
+        let eval_sreg (vars : (Ir.atom, int) Map.t) atom reg =
+          let nfa = reg |> NfaS.of_regex |> NfaMsb.of_lsb |> NfaMsb.minimize_strong in
+          let reenum = Map.find_exn vars atom in
+          let nfa =
+            nfa
+            |> NfaO.convert_nfa_msb_par (Map.singleton (Format.asprintf "lia%d" reenum) 0)
+          in
+          nfa
+        ;;
+
+        let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.u -> NfaPar.t =
+          fun vars atom reg ->
+          let nfa = NfaMsb.of_lsb reg |> NfaMsb.minimize_strong in
+          let reenum = Map.find_exn vars atom in
+          let nfa =
+            nfa
+            |> NfaO.convert_nfa_msb_par (Map.singleton (Format.asprintf "lin%d" reenum) 0)
+          in
+          nfa
+        ;;
+
+        let bool_comb_handler skel nfas vars free_vars =
+          match
+            NfaPar.any_path_bool_comb2
+              ~base:_config.enc_base
+              skel
+              nfas
+              (List.map (fun v -> Map.find_exn vars v) free_vars)
+          with
+          | Some (model, _) ->
+            Some
+              (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
+          | None -> None
+        ;;
+
+        (* let bool_comb_handler skel nfas vars free_vars =
+          _config.base_min -- _config.base_max
+          |> List.find_map (fun base ->
+            match
+              NfaPar.any_path_bool_comb2
+                ~base
+                skel
+                nfas
+                (List.map (fun v -> Map.find_exn vars v) free_vars)
+            with
+            | Some (model, _) ->
+              Some
+                (model
+                 |> List.mapi (fun i v -> List.nth free_vars i, v)
+                 |> Map.of_alist_exn)
+            | None -> None)
+        ;; *)
+      end)
+
+  include MsbPar
+end
+
 let check_sat ir
-  : [ `Sat of
-        (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `Too_long | `No_model ]) Result.t
+  : [ `Sat of (Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `No_model ]) Result.t
     | `Unsat
     | `Unknown of Ir.t
     ]
   =
+  let int_of_path =
+    let base = Z.of_int _base in
+    function
+    | 0 :: ds ->
+      ds
+      |> List.drop_while (fun x -> x = 0)
+      |> List.fold_left (fun sum x -> Z.((base * sum) + of_int x)) Z.zero
+    | d :: ds when d = _base - 1 ->
+      ds
+      |> List.drop_while (fun x -> x = _base - 1)
+      |> List.fold_left
+           (fun (sum, _pow) x -> Z.((base * sum) + of_int x), Z.(base * _pow))
+           (Z.zero, Z.one)
+      |> fun (num, _pow) -> Z.(num - _pow)
+    | _ -> failwith "Unexpected symbols in int_of_path"
+  in
+  let str_of_path p =
+    p |> List.drop 1 |> List.fold_left (fun acc c -> acc ^ Int.to_string c) ""
+  in
   let chack_sym_sat ir =
     trace_log "Running Symbolic MSB mode";
     let ( let* ) = Result.bind in
-    let int_of_path2 =
-      let base = Z.of_int _base in
-      function
-      | 0 :: ds ->
-        ds
-        |> List.drop_while (fun x -> x = 0)
-        |> List.fold_left (fun sum x -> Z.((base * sum) + of_int x)) Z.zero
-      | d :: ds when d = _base - 1 ->
-        ds
-        |> List.drop_while (fun x -> x = _base - 1)
-        |> List.fold_left
-             (fun (sum, _pow) x -> Z.((base * sum) + of_int x), Z.(base * _pow))
-             (Z.zero, Z.one)
-        |> fun (num, _pow) -> Z.(num - _pow)
-      | _ -> failwith "Unexpected symbols in int_of_path"
-    in
-    let str_of_path2 p =
-      p |> List.drop 1 |> List.fold_left (fun acc c -> acc ^ Int.to_string c) ""
-    in
     match MsbSym.check_sat ir with
     | `Sat model ->
       `Sat
         (fun tys ->
           let* model = model () in
-          let main_model = 
+          let main_model =
             Map.mapi
               ~f:(fun ~key:k ~data:v ->
                 let ty = Map.find tys k |> Option.value ~default:`Int in
                 match ty with
                 | `Int ->
-                  begin try `Int (int_of_path2 v) with
+                  begin try `Int (int_of_path v) with
                   | Invalid_argument ex as exp ->
                     Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
-                    `Str (str_of_path2 v)
+                    `Str (str_of_path v)
                   end
-                | `Str -> `Str (str_of_path2 v))
+                | `Str -> `Str (str_of_path v))
+              model
+          in
+          Result.ok main_model)
+    | `Unsat -> `Unsat
+    | `Unknown -> `Unknown ir
+  in
+  let chack_par_sat ir =
+    trace_log "Running Parametric MSB mode";
+    let ( let* ) = Result.bind in
+    match MsbPar.check_sat ir with
+    | `Sat model ->
+      `Sat
+        (fun tys ->
+          let* model = model () in
+          let main_model =
+            Map.mapi
+              ~f:(fun ~key:k ~data:v ->
+                let ty = Map.find tys k |> Option.value ~default:`Int in
+                match ty with
+                | `Int ->
+                  begin try `Int (int_of_path v) with
+                  | Invalid_argument ex as exp ->
+                    Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
+                    `Str (str_of_path v)
+                  end
+                | `Str -> `Str (str_of_path v))
               model
           in
           Result.ok main_model)
@@ -297,6 +405,6 @@ let check_sat ir
   in
   match Config.config.logic with
   | `Sym -> chack_sym_sat ir
-  | `Par -> failwith "Soon..."
+  | `Par -> chack_par_sat ir
   | _ -> failwith "Later..."
 ;;

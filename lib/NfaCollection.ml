@@ -460,14 +460,18 @@ module MsbPar = struct
   let power_of_base exp = failwith "TODO"
 
   let buchi var exp =
-    Nfa.create_nfa
+    let open AstL in
+    let open AstL.Lia in
+    let get_const v value = Lia (eq (get v) value) in
+    let get_label d1 d2 = land_ [ get_const var d1; get_const exp d2 ] in
+    Nfa.create_nfa2
       ~transitions:
-        [ 2, [ 0; 0 ], 1
-        ; 2, [ _base - 1; 0 ], 1
-        ; 1, [ 0; 0 ], 1
-        ; 1, [ _base - 1; 0 ], 1
-        ; 1, [ 1; 1 ], 0
-        ; 0, [ 0; 0 ], 0
+        [ 2, get_label (const Z.zero) (const Z.zero), 1
+        ; 2, get_label get_max_digit (const Z.zero), 1
+        ; 1, get_label (const Z.zero) (const Z.zero), 1
+        ; 1, get_label get_max_digit (const Z.zero), 1
+        ; 1, get_label (const Z.one) (const Z.one), 0
+        ; 0, get_label (const Z.zero) (const Z.zero), 0
         ]
       ~start:[ 2 ]
       ~final:[ 0 ]
@@ -476,8 +480,9 @@ module MsbPar = struct
   ;;
 
   let get_label t' v' op v =
+    let open AstL in
     let open AstL.Lia in
-    AstL.Lia
+    Lia
       (op
          (Atom t')
          (* (add
@@ -485,12 +490,13 @@ module MsbPar = struct
             (* (const Z.(v' * base)
              ::  *)
             (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)) *)
-         (const Z.(v - (v' * Z.of_int _base))))
+         (add [ const v; mul [ const Z.(-v'); get_par 0 ] ]))
   ;;
 
   let get_extra t' term =
+    let open AstL in
     let open AstL.Lia in
-    AstL.Lia
+    Lia
       (eq
          (Atom t')
          (add (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)))
@@ -508,13 +514,11 @@ module MsbPar = struct
                (* (const Z.(v * (base - one))
                 ::  *)
                (List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term)) *)
-            (const Z.(v * (one - Z.of_int _base))))
+            (mul [ const Z.(-v); get_max_digit ]))
        :: List.map
             (fun (var, _) ->
                lor_
-                 [ Lia (eq (get var) (const Z.zero))
-                 ; Lia (eq (get var) (const Z.(Z.of_int _base - one)))
-                 ])
+                 [ Lia (eq (get var) (const Z.zero)); Lia (eq (get var) get_max_digit) ])
             term)
   ;;
 
@@ -522,7 +526,6 @@ module MsbPar = struct
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
   let eq vars term c =
-    trace_log "Base in Boigelot-eq: %d" _base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
     let term =
@@ -542,17 +545,17 @@ module MsbPar = struct
             (fun (p, n) (_, a) -> if Z.(a > zero) then Z.(p + a), n else p, Z.(n + a))
             (Z.zero, Z.zero)
             term
-          |> both (fun x -> Z.(state - (x * (Z.of_int _base - one))))
+          |> both (fun x -> Z.(state - x))
         in
         let lb =
-          if Z.(lower mod (Z.of_int _base * gcd_) = zero)
-          then div_ lower (Z.of_int _base)
-          else Z.((div_ lower (Z.of_int _base * gcd_) + one) * gcd_)
+          if Z.(lower mod gcd_ = zero)
+          then div_ lower (Z.of_int 2)
+          else Z.((div_ lower (Z.of_int 2 * gcd_) + one) * gcd_)
         in
         let ub =
-          if Z.(upper mod (Z.of_int _base * gcd_) = zero)
-          then div_ upper (Z.of_int _base)
-          else Z.(div_ upper (Z.of_int _base * gcd_) * gcd_)
+          if Z.(upper mod gcd_ = zero)
+          then div_ upper (Z.of_int 2)
+          else Z.(div_ upper (Z.of_int 2 * gcd_) * gcd_)
         in
         get_list lb ub gcd_
         |> List.map (fun prev -> prev, get_label t' prev eq state, state)
@@ -609,7 +612,6 @@ module MsbPar = struct
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
   let leq vars term c =
-    trace_log "Base in Boigelot-leq: %d" _base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
     let term =
@@ -629,8 +631,8 @@ module MsbPar = struct
             (fun (p, n) (_, a) -> if Z.(a > zero) then Z.(p + a), n else p, Z.(n + a))
             (Z.zero, Z.zero)
             term
-          |> both (fun x -> Z.(state - (x * (Z.of_int _base - one))))
-          |> both (fun x -> Z.(div_ x (Z.of_int _base * gcd_) * gcd_))
+          |> both (fun x -> Z.(state - x))
+          |> both (fun x -> Z.(div_ x (Z.(of_int 2) * gcd_) * gcd_))
         in
         get_list lb ub gcd_
         |> List.map (fun prev ->

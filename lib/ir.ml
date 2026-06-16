@@ -23,6 +23,7 @@ let name = function
 ;;
 
 let internal () = var (internal_name ())
+let parameter = var "par"
 
 let pp_atom fmt = function
   | Var var -> Format.fprintf fmt "%s" var

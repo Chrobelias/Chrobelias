@@ -32,8 +32,7 @@ type rez =
       string
       * Lib.Ast.t
       * Lib.Env.t
-      * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
-         -> (Lib.Ir.model, [ `Too_long | `No_model ]) Result.t)
+      * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> (Lib.Ir.model, [ `No_model ]) Result.t)
       * (string, Lib.Nfa.Lsb(Lib.Nfa.Str).u) Base.Map.Poly.t
   | Unknown of Lib.Ast.t * Lib.Env.t
   | Unsat of string
@@ -353,7 +352,6 @@ let () =
           with
           | Result.Ok () -> ()
           | Result.Error `No_model -> Format.printf "no model mode\n%!"
-          | _ -> failwith "Unexpected error"
         in
         ()
     in
