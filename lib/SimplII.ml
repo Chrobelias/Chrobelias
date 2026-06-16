@@ -2123,7 +2123,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
           |> Ast.lor_
       in
       let ast =
-        let removed_orig = ref false in
+        (*let removed_orig = ref false in*)
         let ast =
           Ast.map
             (function
@@ -2143,7 +2143,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
                 unfold_nfa_with_fixed_len len nfa
                 |> Option.map words_into_disjunction
                 |> Option.value ~default:orig
-              | Eia eia ->
+              (*| Eia eia ->
                 Eia.map2
                   Fun.id
                   (function
@@ -2153,11 +2153,11 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
                     | eia -> eia)
                   Fun.id
                   eia
-                |> Ast.eia
+                |> Ast.eia*)
               | el -> el)
             ast
         in
-        let (module Sym) = make_main_symantics Env.empty in
+        (*let (module Sym) = make_main_symantics Env.empty in
         let ast = apply_symantics (module Sym) ast in
         if !removed_orig
         then begin
@@ -2172,7 +2172,8 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
           in
           Ast.land_ [ ast; orig ]
         end
-        else ast
+        else*)
+        ast
       in
       env, ast
     | PropAndPreserve (term, rhs, Ast.S) ->
@@ -2416,7 +2417,7 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
     "Alphabet with extra char: %a\n%!"
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
     alpha;
-  let rec loop step (env : Env.t) ast =
+  let rec loop ?(soft = false) step (env : Env.t) ast =
     let (module Symantics) = make_main_symantics ~alpha ~with_nielsen env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
@@ -2426,7 +2427,7 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
     let __ _ = log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
-    let env2, ast2 = eq_propagation var_info ?multiple env ast2 in
+    let env2, ast2 = eq_propagation var_info ~soft ?multiple env ast2 in
     let __ _ = log "env2 = %a" (Env.pp ~title:"") env2 in
     let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     let next_step = next step in
@@ -2435,11 +2436,12 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
       let () = log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       let __ () = log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
       if not equal then log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
-      loop next_step (Env.merge_exn env2 env) ast2
+      loop ~soft next_step (Env.merge_exn env2 env) ast2
     | false, false ->
       log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
-      loop next_step env ast2
+      loop ~soft next_step env ast2
     | false, true ->
+      log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
       log "fixed-point\n";
       (match ast2 with
        | Ast.True -> raise (Sat ("presimpl", env))
@@ -2466,7 +2468,61 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
          end
        | _ -> ast2, env, var_info, step)
   in
-  try `Unknown (loop step env orig_ast) with
+  let strlen_prefix = "@strlen" in
+  let stoi_prefix = "@stoi" in
+  let strlens s = String.concat "" [ strlen_prefix; s ] in
+  let strleni s =
+    String.sub
+      s
+      (String.length strlen_prefix)
+      (String.length s - String.length strlen_prefix)
+  in
+  let stois s = String.concat "" [ stoi_prefix; s ] in
+  let stoii s =
+    String.sub s (String.length stoi_prefix) (String.length s - String.length stoi_prefix)
+  in
+  let light_arithmetize =
+    Ast.map (function
+      | Eia eia ->
+        Ast.eia
+          (Ast.Eia.map2
+             Fun.id
+             (function
+               | Ast.Eia.Len (Atom (Var (vn, S))) ->
+                 Ast.Eia.atom (Ast.var (strlens vn) Ast.I)
+               | Ast.Eia.Iofs (Atom (Var (vn, S))) ->
+                 Ast.Eia.atom (Ast.var (stois vn) Ast.I)
+               | eia -> eia)
+             Fun.id
+             eia)
+      | ast -> ast)
+  in
+  let light_dearithmetize =
+    Ast.map (function
+      | Eia eia ->
+        Ast.eia
+          (Ast.Eia.map2
+             Fun.id
+             (function
+               | Ast.Eia.Atom (Var (vn, I))
+                 when String.starts_with ~prefix:strlen_prefix vn ->
+                 Ast.Eia.Len (Ast.Eia.atom (Ast.var (strleni vn) Ast.S))
+               | Ast.Eia.Atom (Var (vn, I)) when String.starts_with ~prefix:stoi_prefix vn
+                 -> Ast.Eia.Iofs (Ast.Eia.atom (Ast.var (stoii vn) Ast.S))
+               | eia -> eia)
+             Fun.id
+             eia)
+      | ast -> ast)
+  in
+  try
+    begin
+      let ast, env, info, smth = loop step env orig_ast in
+      let ast = light_arithmetize ast in
+      let _env, ast = eq_propagation info ~soft:true ~multiple:true env ast in
+      let ast = light_dearithmetize ast in
+      `Unknown (ast, env, info, smth)
+    end
+  with
   | Unsat core -> `Unsat core
   | Sat (_, env) -> `Sat env
 ;;

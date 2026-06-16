@@ -363,6 +363,8 @@ let cast_to_int (type a) : a Ast.Eia.term -> Z.t Ast.Eia.term option = function
   | _ -> None
 ;;
 
+let orig_ast = ref Ast.true_
+
 [@@@ocaml.warnerror "-8"]
 
 let rec of_str_atom = function
@@ -429,9 +431,11 @@ and helper : 'a. 'a Ast.Eia.term -> _ =
   | Len v as el ->
     failwith
       (Format.asprintf
-         "Lengths should have been rewritten into chrob.len, found %a"
+         "Lengths should have been rewritten into chrob.len, found %a in %a"
          Ast.Eia.pp_term
-         el)
+         el
+         Ast.pp_smtlib2
+         !orig_ast)
   | Len2 v -> return (Symantics.len2 v)
   | other -> raise (Unsupported_constraint (Format.asprintf "%a" Ast.Eia.pp_term other))
 (* Format.eprintf "%s fails on '%a'\n%!" __FUNCTION__ Ast.Eia.pp_term other; *)
@@ -609,6 +613,7 @@ let ir_of_ast env ast =
   let ast = Ast.land_ ast in*)
   (* let ast = SimplII.rewrite_len ast in *)
   let* ir =
+    orig_ast := ast;
     try ast |> ir_of_ast with
     | Failure s -> Result.error s
   in
