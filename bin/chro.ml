@@ -217,6 +217,22 @@ let rec model_from_parts_regexes_env tys model regexes env' =
     |> Map.of_alist_exn
   in
   let real_model = aux raw_model in
+  let real_model =
+    Map.fold
+      ~init:real_model
+      ~f:(fun ~key:var ~data:re acc ->
+        let strlenvar = String.concat "" [ prefix; var ] in
+        if
+          (not (Map.mem acc var))
+          && (not (Map.mem acc strlenvar))
+          && Lib.Env.is_absent_key var env'
+          && Lib.Env.is_absent_key strlenvar env'
+        then (
+          let path = NfaS.any_path re [ 0 ] |> Option.get |> fun (l, _) -> List.nth l 0 in
+          Map.add_exn ~key:var ~data:(`Str (List.to_seq path |> String.of_seq)) real_model)
+        else acc)
+      regexes
+  in
   let env = Lib.Env.enrich2 env' real_model in
   (* New code ends here *)
   let real_model =
