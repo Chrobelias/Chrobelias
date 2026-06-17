@@ -296,7 +296,7 @@ let () =
       (* let printf = if not noprint then Format.printf else fun _ -> () in *)
       let print_model = if not noprint then print_model else fun _ -> () in
       match rez with
-      | Unknown _ | Unsat _ -> () (*printf "no model"*)
+      | Unknown _ | Unsat _ -> Format.printf "no model\n%!"
       | Sat (_, _, env, get_model, regexes) ->
         sat_found := true;
         let tys = merge_tys state in

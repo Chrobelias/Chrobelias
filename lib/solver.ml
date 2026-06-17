@@ -341,7 +341,6 @@ module MsbPar = struct
                 (List.map (fun v -> Map.find_exn vars v) free_vars)
             with
             | Some (model, _) ->
-              Format.printf "model length = %d" (List.length model);
               do_if_range (fun () -> Format.printf "'sat' for base = %d\n%!" base);
               Some
                 (model
