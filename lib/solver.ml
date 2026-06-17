@@ -9,6 +9,8 @@ let ( -- ) i j =
   aux j []
 ;;
 
+let do_if_range f = if _config.base_min < _config.base_max then f () else ()
+
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 
@@ -27,9 +29,14 @@ module Basic
          -> (int, Nfa.t) Map.t
          -> ('a, int) Map.t
          -> 'a list
-         -> ('a, Nfa.v list) Map.t option
+         -> ('a, Nfa.v list) Map.t option list
 
-       val handler : Nfa.t -> ('a, int) Map.t -> 'a list -> ('a, Nfa.v list) Map.t option
+       val handler
+         :  Nfa.t
+         -> ('a, int) Map.t
+         -> 'a list
+         -> ('a, Nfa.v list) Map.t option list
+
        val eval_sreg : (Ir.atom, int) Map.t -> Ir.atom -> char list Regex.t -> Nfa.t
        val eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaS.t -> Nfa.t
      end) =
@@ -169,7 +176,7 @@ struct
 
   (* Here essentially everything starts. 
   The formula from the input has been transformed into [ir] *)
-  let get_model_nfa ir () =
+  let get_model_nfa ir =
     trace_log "Entered get_model_nfa";
     (* free_vars have type Ir.atom (only variables in LIA case) *)
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
@@ -191,6 +198,7 @@ struct
       | `Unsat
       | `Unknown
       ]
+        list
     =
     let had_unsupp =
       Ir.for_some
@@ -206,13 +214,14 @@ struct
       | `Par | `Sym -> ir
       | _ -> Ir.exists (free_vars |> Set.to_list) ir
     in
-    Debug.trace "LICS" "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
-    match get_model_nfa ir' () with
-    | Some model ->
-      if Map.is_empty model
-      then `Sat (fun () -> Result.error `No_model)
-      else sat_if_no_unsupp (fun () -> Result.Ok model)
-    | None -> `Unsat
+    ir'
+    |> get_model_nfa
+    |> List.map (function
+      | Some model ->
+        if Map.is_empty model
+        then `Sat (fun () -> Result.error `No_model)
+        else sat_if_no_unsupp (fun () -> Result.Ok model)
+      | None -> `Unsat)
   ;;
 end
 
@@ -254,17 +263,19 @@ module MsbSym =
             (List.map (fun v -> Map.find_exn vars v) free_vars)
         with
         | Some (model, _) ->
-          Some
-            (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
-        | None -> None
+          [ Some
+              (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
+          ]
+        | None -> [ None ]
       ;;
 
       let handler nfa vars free_vars =
         match NfaSym.any_path nfa (List.map (fun v -> Map.find_exn vars v) free_vars) with
         | Some (model, _) ->
-          Some
-            (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
-        | None -> None
+          [ Some
+              (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
+          ]
+        | None -> [ None ]
       ;;
     end)
 
@@ -301,7 +312,7 @@ module MsbPar = struct
 
         let bool_comb_handler skel nfas vars free_vars =
           _config.base_min -- _config.base_max
-          |> List.find_map (fun base ->
+          |> List.map (fun base ->
             match
               NfaPar.any_path_bool_comb2
                 ~base
@@ -310,16 +321,19 @@ module MsbPar = struct
                 (List.map (fun v -> Map.find_exn vars v) free_vars)
             with
             | Some (model, _) ->
-              Format.printf "'sat' for base = %d\n%!" base;
-              None
+              do_if_range (fun () -> Format.printf "'sat' for base = %d\n%!" base);
+              Some
+                (model
+                 |> List.mapi (fun i v -> List.nth free_vars i, v)
+                 |> Map.of_alist_exn)
             | None ->
-              Format.printf "'unsat' for base = %d\n%!" base;
+              do_if_range (fun () -> Format.printf "'unsat' for base = %d\n%!" base);
               None)
         ;;
 
         let handler nfa vars free_vars =
           _config.base_min -- _config.base_max
-          |> List.filter_map (fun base ->
+          |> List.map (fun base ->
             match
               NfaPar.any_path2
                 ~base
@@ -327,12 +341,15 @@ module MsbPar = struct
                 (List.map (fun v -> Map.find_exn vars v) free_vars)
             with
             | Some (model, _) ->
-              Format.printf "'sat' for base = %d\n%!" base;
-              None
+              Format.printf "model length = %d" (List.length model);
+              do_if_range (fun () -> Format.printf "'sat' for base = %d\n%!" base);
+              Some
+                (model
+                 |> List.mapi (fun i v -> List.nth free_vars i, v)
+                 |> Map.of_alist_exn)
             | None ->
-              Format.printf "'unsat' for base = %d\n%!" base;
-              Some ())
-          |> fun l -> if List.is_empty l then Some Map.empty else None
+              do_if_range (fun () -> Format.printf "'unsat' for base = %d\n%!" base);
+              None)
         ;;
       end)
 
@@ -344,6 +361,7 @@ let check_sat ir
     | `Unsat
     | `Unknown of Ir.t
     ]
+      list
   =
   let int_of_path =
     let base = Z.of_int _base in
@@ -368,64 +386,65 @@ let check_sat ir
     trace_log "Running Symbolic MSB mode";
     let ( let* ) = Result.bind in
     _config.base_min -- _config.base_max
-    |> List.filter_map (fun base ->
+    |> List.concat_map (fun base ->
       Config.config.enc_base <- base;
-      match MsbSym.check_sat ir with
-      | `Sat model ->
-        Format.printf "'sat' for base = %d\n%!" base;
-        None
-      | `Unsat ->
-        Format.printf "'unsat' for base = %d\n%!" base;
-        Some ()
-      | `Unknown -> failwith "Unexpected 'unknown' in chack_sym_sat")
-    |> fun l ->
-    if List.is_empty l
-    then
-      `Sat
-        (fun tys ->
-          let* model = Result.Error `No_model in
-          let main_model =
-            Map.mapi
-              ~f:(fun ~key:k ~data:v ->
-                let ty = Map.find tys k |> Option.value ~default:`Int in
-                match ty with
-                | `Int ->
-                  begin try `Int (int_of_path v) with
-                  | Invalid_argument ex as exp ->
-                    Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
-                    `Str (str_of_path v)
-                  end
-                | `Str -> `Str (str_of_path v))
-              model
-          in
-          Result.ok main_model)
-    else `Unsat
+      ir
+      |> MsbSym.check_sat
+      |> List.map (function
+        | `Sat model ->
+          do_if_range (fun () -> Format.printf "'sat' for base = %d\n%!" base);
+          `Sat
+            (fun tys ->
+              let* model = model () in
+              let main_model =
+                Map.mapi
+                  ~f:(fun ~key:k ~data:v ->
+                    let ty = Map.find tys k |> Option.value ~default:`Int in
+                    match ty with
+                    | `Int ->
+                      begin try `Int (int_of_path v) with
+                      | Invalid_argument ex as exp ->
+                        Format.printf
+                          "Something is wrong: %s\n%!"
+                          (Printexc.to_string exp);
+                        `Str (str_of_path v)
+                      end
+                    | `Str -> `Str (str_of_path v))
+                  model
+              in
+              Result.ok main_model)
+        | `Unsat ->
+          do_if_range (fun () -> Format.printf "'unsat' for base = %d\n%!" base);
+          `Unsat
+        | `Unknown -> failwith "Unexpected 'unknown' in chack_sym_sat"))
   in
   let chack_par_sat ir =
     trace_log "Running Parametric MSB mode";
     let ( let* ) = Result.bind in
-    match MsbPar.check_sat ir with
-    | `Sat model ->
-      `Sat
-        (fun tys ->
-          let* model = model () in
-          let main_model =
-            Map.mapi
-              ~f:(fun ~key:k ~data:v ->
-                let ty = Map.find tys k |> Option.value ~default:`Int in
-                match ty with
-                | `Int ->
-                  begin try `Int (int_of_path v) with
-                  | Invalid_argument ex as exp ->
-                    Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
-                    `Str (str_of_path v)
-                  end
-                | `Str -> `Str (str_of_path v))
-              model
-          in
-          Result.ok main_model)
-    | `Unsat -> `Unsat
-    | `Unknown -> `Unknown ir
+    ir
+    |> MsbPar.check_sat
+    |> List.map (function
+      | `Sat model ->
+        `Sat
+          (fun tys ->
+            let* model = model () in
+            let main_model =
+              Map.mapi
+                ~f:(fun ~key:k ~data:v ->
+                  let ty = Map.find tys k |> Option.value ~default:`Int in
+                  match ty with
+                  | `Int ->
+                    begin try `Int (int_of_path v) with
+                    | Invalid_argument ex as exp ->
+                      Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
+                      `Str (str_of_path v)
+                    end
+                  | `Str -> `Str (str_of_path v))
+                model
+            in
+            Result.ok main_model)
+      | `Unsat -> `Unsat
+      | `Unknown -> `Unknown ir)
   in
   match Config.config.logic with
   | `Sym -> chack_sym_sat ir

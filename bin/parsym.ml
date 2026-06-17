@@ -179,96 +179,50 @@ let calculate_model tys model regexes env =
 
 let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
 
-let check_sat ?(verbose = false) _ ast : rez =
-  let report_result2 rez =
-    let check_answer () =
-      Format.printf "%!";
-      Format.eprintf "%!";
-      match rez, !answer_guess with
-      | _, None | _, Some `Unknown | `Unsat _, Some `Unsat | `Sat _, Some `Sat -> ()
-      | `Unknown _, Some `Sat ->
-        Printf.eprintf "(warning: check annotation that says 'sat')\n%!"
-      | `Unknown _, Some `Unsat ->
-        Printf.eprintf "(warning:  check annotation that says 'unsat')\n%!"
-      | `Unsat _, Some `Sat ->
-        Printf.eprintf "(error: check annotation that says 'sat')\n%!"
-      | `Sat _, Some `Unsat ->
-        Printf.eprintf "(error: check annotation that says 'unsat')\n%!"
-    in
-    let () = if Lib.Debug.is_traced "par" then () else check_answer () in
-    if verbose
-    then (
-      match rez with
-      | `Sat s ->
-        if _config.with_info
-        then Format.printf "sat (%s)\n%!" s
-        else Format.printf "sat\n%!"
-      | `Unsat s ->
-        if _config.with_info
-        then Format.printf "unsat (%s)\n%!" s
-        else Format.printf "unsat\n%!"
-      | `Unknown s ->
-        Format.printf "unknown %s\n%!" (if s <> "" then "(" ^ s ^ ")" else ""))
-    else ()
-  in
+let check_sat _ ast : rez list =
   let check_nfa_sat ast e =
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
       (match ir with
-       | True -> sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty
-       | Lnot True -> Unsat "simpl"
+       | True -> [ sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty ]
+       | Lnot True -> [ Unsat "simpl" ]
        | _ ->
          if _config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
          if _config.stop_after = `Simpl then exit 0;
          trace_log "Starting NFA Solver ...";
-         (match Lib.Solver.check_sat ir with
-          | `Sat get_model -> sat "nfa" ast e get_model Map.empty
-          | `Unsat -> Unsat "nfa"
-          | `Unknown _ir -> Unknown (ast, e)))
+         ir
+         |> Lib.Solver.check_sat
+         |> List.map (function
+           | `Sat get_model -> sat "nfa" ast e get_model Map.empty
+           | `Unsat -> Unsat "nfa"
+           | `Unknown _ir -> Unknown (ast, e)))
     | Error _ -> failwith "Unexpected error"
   in
-  let check_rlia_sat ast e =
-    let apporx_rez =
-      unknown ast e
-      <+> (fun ast e ->
-      if not _config.pre_simpl
-      then unknown ast e
-      else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
-      <+> fun ast e ->
-      if _config.stop_after = `Pre_simplify then exit 0 else unknown ast e
-    in
+  let apporx_rez =
+    unknown ast Lib.Env.empty
+    <+> (fun ast e ->
+    if not _config.pre_simpl
+    then unknown ast e
+    else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
+    <+> fun ast e -> if _config.stop_after = `Pre_simplify then exit 0 else unknown ast e
+  in
+  let results =
     match apporx_rez with
     | Unknown (ast, e) ->
       if _config.mode = `Msb
       then check_nfa_sat ast e
       else failwith "Only msb mode supported"
-    | _ -> apporx_rez
+    | _ -> [ apporx_rez ]
   in
-  let handle =
-    fun result f ->
-    match result with
-    | Sat (s, _, _, _, _) as rez ->
-      report_result2 (`Sat s);
-      rez
-    | Unsat s as rez ->
-      report_result2 (`Unsat s);
-      rez
-    | Unknown _ -> f ()
-  in
-  try
-    handle (check_rlia_sat ast Lib.Env.empty) (fun () ->
-      report_result2 (`Unknown "nfa");
-      unknown ast Lib.Env.empty)
-  with
-  | Lib.Nfa.Too_big_nfa ->
-    report_result2 (`Unknown "too big nfa during the computations");
-    unknown ast Lib.Env.empty
-  | s ->
-    if _config.quiet == true
-    then (
-      report_result2 (`Unknown "");
-      unknown ast Lib.Env.empty)
-    else raise s
+  if
+    List.exists
+      (function
+        | Unsat _ -> true
+        | _ -> false)
+      results
+  then Format.printf "unsat\n%!"
+  else Format.printf "sat\n%!";
+  results
 ;;
 
 let check_model
@@ -277,38 +231,42 @@ let check_model
       (model : (Lib.Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t)
   =
   trace_log "check_model starts...";
-  let ast =
-    Map.fold
-      ~init:ast
-      ~f:(fun ~key ~data ast ->
-        let key =
-          match key with
-          | Lib.Ir.Var s -> s
-        in
-        let open Lib.Ast in
-        let ast' =
-          match data with
-          | `Int c -> RLia (RLia.eq (RLia.atom (var key I)) (Lib.Ast.RLia.const c) I)
-          | `Str c -> RLia (RLia.eq (RLia.atom (var key S)) (Lib.Ast.RLia.str_const c) S)
-        in
-        Lib.Ast.land_ [ ast'; ast ])
-      model
-  in
-  let _ = set_guess `Unknown in
-  trace_log "Checking model correctness;\n  ast=%a" Lib.Ast.pp_smtlib2 ast;
-  try
-    match check_sat tys ast with
-    | Sat _ -> ()
-    | Unsat _ -> Printf.eprintf "(error: model check has failed, incorrect model)\n%!"
-    | Unknown _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
-  with
-  | _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
+  if Lib.Config.config.base_min <> Lib.Config.config.base_min
+  then Format.printf "Specify a base to check, not a range"
+  else (
+    let ast =
+      Map.fold
+        ~init:ast
+        ~f:(fun ~key ~data ast ->
+          let key =
+            match key with
+            | Lib.Ir.Var s -> s
+          in
+          let open Lib.Ast in
+          let ast' =
+            match data with
+            | `Int c -> RLia (RLia.eq (RLia.atom (var key I)) (Lib.Ast.RLia.const c) I)
+            | `Str c ->
+              RLia (RLia.eq (RLia.atom (var key S)) (Lib.Ast.RLia.str_const c) S)
+          in
+          Lib.Ast.land_ [ ast'; ast ])
+        model
+    in
+    let _ = set_guess `Unknown in
+    trace_log "Checking model correctness;\n  ast=%a" Lib.Ast.pp_smtlib2 ast;
+    try
+      match check_sat tys ast |> List.hd with
+      | Sat _ -> ()
+      | Unsat _ -> Printf.eprintf "(error: model check has failed, incorrect model)\n%!"
+      | Unknown _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!"
+    with
+    | _ -> Printf.eprintf "(warning: the correctness of model is unknown)\n%!")
 ;;
 
 type state =
   { asserts : Lib.Ast.t list
   ; prev : state option
-  ; last_result : rez option
+  ; last_result : rez list option
   ; tys : (Lib.Ir.atom, [ `Str | `Int ]) Map.t
   }
 
@@ -392,9 +350,8 @@ let () =
         Lib.Ast.land_
           (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
       in
-      let rez = check_sat ~verbose:true state.tys ast in
-      if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
-      { state with last_result = Some rez }
+      let rezs = check_sat state.tys ast in
+      { state with last_result = Some rezs }
     | Smtml.Ast.Get_model ->
       let rec get_ast { asserts; prev; _ } =
         match prev with
@@ -402,12 +359,20 @@ let () =
         | None -> asserts
       in
       let ast = Lib.Ast.land_ (get_ast state) in
-      let rez =
+      let rezs =
         match state.last_result with
         | Some r -> r
         | None -> check_sat state.tys ast
       in
-      get_model ast rez;
+      if List.length rezs > 1
+      then (
+        Format.printf "\nmodels for each base:\n%!";
+        List.iteri
+          (fun i rez ->
+             Format.printf "base %d: \n%!" (_config.base_min + i);
+             get_model ast rez)
+          rezs)
+      else get_model ast (List.hd rezs);
       state
     | Smtml.Ast.Assert expr -> begin
       let ast = expr |> Lib.Fe._to_ir state.tys in

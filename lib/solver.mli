@@ -9,3 +9,4 @@ val check_sat
      | `Unsat
      | `Unknown of Ir.t
      ]
+       list
