@@ -163,17 +163,6 @@ struct
     , vars )
   ;;
 
-  let cache = ref Map.empty
-
-  let eval ir =
-    match Map.find !cache ir with
-    | Some v -> v
-    | None ->
-      let v = eval ir in
-      cache := Map.add_exn !cache ~key:ir ~data:v;
-      v
-  ;;
-
   (* Here essentially everything starts. 
   The formula from the input has been transformed into [ir] *)
   let get_model_nfa ir =
@@ -321,13 +310,13 @@ module MsbPar = struct
                 (List.map (fun v -> Map.find_exn vars v) free_vars)
             with
             | Some (model, _) ->
-              do_if_range (fun () -> Format.printf "'sat' for base = %d\n%!" base);
+              do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
               Some
                 (model
                  |> List.mapi (fun i v -> List.nth free_vars i, v)
                  |> Map.of_alist_exn)
             | None ->
-              do_if_range (fun () -> Format.printf "'unsat' for base = %d\n%!" base);
+              do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
               None)
         ;;
 
@@ -341,13 +330,13 @@ module MsbPar = struct
                 (List.map (fun v -> Map.find_exn vars v) free_vars)
             with
             | Some (model, _) ->
-              do_if_range (fun () -> Format.printf "'sat' for base = %d\n%!" base);
+              do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
               Some
                 (model
                  |> List.mapi (fun i v -> List.nth free_vars i, v)
                  |> Map.of_alist_exn)
             | None ->
-              do_if_range (fun () -> Format.printf "'unsat' for base = %d\n%!" base);
+              do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
               None)
         ;;
       end)
@@ -391,7 +380,7 @@ let check_sat ir
       |> MsbSym.check_sat
       |> List.map (function
         | `Sat model ->
-          do_if_range (fun () -> Format.printf "'sat' for base = %d\n%!" base);
+          do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
           `Sat
             (fun tys ->
               let* model = model () in
@@ -413,7 +402,7 @@ let check_sat ir
               in
               Result.ok main_model)
         | `Unsat ->
-          do_if_range (fun () -> Format.printf "'unsat' for base = %d\n%!" base);
+          do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
           `Unsat
         | `Unknown -> failwith "Unexpected 'unknown' in chack_sym_sat"))
   in

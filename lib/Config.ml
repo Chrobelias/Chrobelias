@@ -86,7 +86,11 @@ Basic options:
   in
   let rec spec_list =
     [ ( "-base"
-      , Arg.Int (fun n -> config.enc_base <- n)
+      , Arg.Int
+          (fun n ->
+            config.enc_base <- n;
+            config.base_min <- n;
+            config.base_max <- n)
       , "<n>\tSet the encoding base for integer representation (DEFAULT VALUE: 10)" )
     ; ( "-bmin"
       , Arg.Int (fun n -> config.base_min <- n)
@@ -112,7 +116,7 @@ Basic options:
       , "\tSwitch to bfs in parametric check_sat\t" ) *)
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
-      , "Сalculate a model and check its correctness" )
+      , "Сalculate a model and check its correctness (BASE 10)" )
     ; ( "--depth"
       , Arg.Int (fun n -> config.search_depth <- n)
       , "<n>\tSet the maximal neighbours depth in DFS search" )

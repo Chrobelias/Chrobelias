@@ -217,6 +217,8 @@ module MsbSym = struct
   let buchi var exp =
     let open AstL in
     let open AstL.Lia in
+    let _base = _config.enc_base in
+    trace_log "Base in symbolic Buchi: %d" _base;
     let get_const v value = Lia (eq (get v) value) in
     let get_label d1 d2 = land_ [ get_const var d1; get_const exp d2 ] in
     Nfa.create_nfa2
@@ -281,6 +283,7 @@ module MsbSym = struct
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
   let eq vars term c =
+    let _base = _config.enc_base in
     trace_log "Base in Boigelot-eq: %d" _base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
@@ -368,6 +371,7 @@ module MsbSym = struct
   Here, [term] is a list of [Z.t] coefficients and [vars] is a list of variables 
   (having the same length). *)
   let leq vars term c =
+    let _base = _config.enc_base in
     trace_log "Base in Boigelot-leq: %d" _base;
     let open AstL.Lia in
     let t' = AstL.genpar () in

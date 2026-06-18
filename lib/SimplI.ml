@@ -751,8 +751,10 @@ let apply_symnatics (module S : Smtml_symantics) =
   fun x -> helper x
 ;;
 
-let deparametrize ?(base = _base) ast =
+let deparametrize ?base ast =
   let open AstL in
+  let base = if Option.is_none base then _config.enc_base else Option.get base in
+  Debug.trace "Base" "Base in deparametrize: %d%!" base;
   let base_eq = Lia (Eq (get_par 0, Lia.const (Z.of_int base))) in
   let digits_neq =
     let open Lia in
@@ -768,8 +770,9 @@ let deparametrize ?(base = _base) ast =
   land_ [ base_eq; digits_neq; ast ]
 ;;
 
-let check_sat ?(base = _base) ast =
+let check_sat ?base ast =
   let open AstL in
+  let base = if Option.is_none base then _config.enc_base else Option.get base in
   match ast |> deparametrize ~base |> basic_simplify [ 0 ] empty |> fst with
   | ph when AstL.equal ph true_ -> `Sat
   | ph when AstL.equal ph false_ -> `Unsat
@@ -777,42 +780,6 @@ let check_sat ?(base = _base) ast =
     let ph = apply_symnatics (module SMT) ph in
     Debug.trace "Z3" "Checking satisfiability with Z3";
     Z3.check _z3_solver ~assumptions:[ ph ]
-;;
-
-let check_sat_with_bool ?(base = _base) ast f =
-  let open AstL in
-  match ast |> basic_simplify [ 0 ] empty |> fst with
-  | ph when AstL.equal ph true_ -> failwith "Something strange..."
-  | ph when AstL.equal ph false_ ->
-    Debug.trace "S" "UNSAT in Simplifier";
-    `Unsat
-  | ph ->
-    let ph = apply_symnatics (module SMT) ph in
-    (match Z3.check _z3_solver ~assumptions:[ ph ] with
-     | `Sat ->
-       Debug.trace
-         "S"
-         "<<<<<<<<<<<<<<<<<<<<<<<<<< SAT in Z3 >>>>>>>>>>>>>>>>>>>>>>>>>>\n%!";
-       let result =
-         match Z3.model _z3_solver with
-         | None -> assert false
-         | Some m ->
-           Hashtbl.fold
-             (fun k v acc ->
-                let _ : Smtml.Symbol.t = k in
-                match k.name, v with
-                | Smtml.Symbol.Simple s, Smtml.Value.True when Option.is_some (f s) ->
-                  Option.get (f s) :: acc
-                | Smtml.Symbol.Simple s, Smtml.Value.False -> acc
-                | _ -> acc)
-             (Smtml.Z3_mappings.values_of_model m)
-             []
-       in
-       `Sat (List.hd result)
-     | `Unsat ->
-       Debug.trace "S" "UNSAT in Z3";
-       `Unsat
-     | _ -> failwith "Unknown in Z3")
 ;;
 
 (*AM: if I understand smtml correctly, in this way we are populating 
@@ -932,25 +899,11 @@ let get_states_z3 ph get_state =
   result
 ;;
 
-let get_states_manually ph get_state =
-  let open AstL in
-  let open Lia in
-  let vars = AstL.get_vars ph in
-  let digit_eq n value =
-    Lia (Lia.eq (atom (int_var (List.nth vars n))) (const (Z.of_int value)))
-  in
-  Utils.cartesian2 (List.map (fun var -> 0 -- _base) vars)
-  |> Utils.find_map_n 10 (fun option ->
-    let result = AstL.land_ (List.mapi (fun n value -> digit_eq n value) option) in
-    match check_sat_with_bool (AstL.land_ [ result; ph ]) get_state with
-    | `Sat states -> Some (result, states)
-    | _ -> None)
-;;
-
 (* |> fun x -> if Option.is_some x then [ Option.get x ] else [] *)
 
-let get_states ?(base = _base) extra asts =
+let get_states ?base extra asts =
   let open AstL in
+  let base = if Option.is_none base then _config.enc_base else Option.get base in
   let get_state name =
     match name |> Base.String.chop_prefix ~prefix:"P" with
     | Some s -> Some (Base.Int.of_string s)
@@ -981,8 +934,9 @@ let get_states ?(base = _base) extra asts =
 the Boolean variables that correspond to states
 3) [asts]: a list of transitions, pairs (ph, states), where states is a list of ints, 
 i.e., states of the nfas in the Boolean combination *)
-let get_states_bool_comb ?(base = _base) extra asts =
+let get_states_bool_comb ?base extra asts =
   let open AstL in
+  let base = if Option.is_none base then _config.enc_base else Option.get base in
   (* The map [bool_map] is used to retreive the list of states from a Z3 result; 
   there is one Boolean variable for each next state = (list of states of nfas for atomic constraints) *)
   let bool_map = ref Map.empty in
