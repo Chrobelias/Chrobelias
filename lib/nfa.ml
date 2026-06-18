@@ -9,7 +9,6 @@ module Sequence = Base.Sequence
 
 let trace_log fmt = Debug.trace "nfa" fmt
 let _config = Config.config
-let _base = _config.enc_base
 
 exception Too_big_nfa
 
@@ -180,14 +179,14 @@ module Str = struct
   ;;
 
   let alphabet =
-    (Char.code '0' -- (Char.code '0' + min 10 _base - 1) |> List.map Char.chr)
+    (Char.code '0' -- (Char.code '0' + min 10 _config.enc_base - 1) |> List.map Char.chr)
     @ [ u_eos; u_null ]
   ;;
 
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let full_alpha =
-      Char.code '0' -- (Char.code '0' + min 10 _base - 1) |> List.map Char.chr
+      Char.code '0' -- (Char.code '0' + min 10 _config.enc_base - 1) |> List.map Char.chr
     in
     let full_alpha = Option.value ~default:full_alpha alpha in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
@@ -282,7 +281,7 @@ module Sym = struct
     |> SimplI.simplify_lia
   ;;
 
-  let filter_states ?(base = _base) final visited ph =
+  let filter_states ?(base = _config.enc_base) final visited ph =
     fun transitions ->
     try
       let active_transitions =
@@ -301,7 +300,7 @@ module Sym = struct
     | Exit -> []
   ;;
 
-  let filter_states_bool_comb ?(base = _base) is_final phs active_transitions =
+  let filter_states_bool_comb ?(base = _config.enc_base) is_final phs active_transitions =
     let get_states = SimplI.get_states_bool_comb ~base (AstL.land_ phs) in
     let none_if_empty l =
       if List.is_empty l
@@ -720,7 +719,7 @@ module Symbolic (Label : SymL) = struct
     weights |> Array.to_list
   ;;
 
-  let any_path ?(base = _base) ?nozero (nfa : t) vars =
+  let any_path ?(base = _config.enc_base) ?nozero (nfa : t) vars =
     let exception Sat_found of vv list in
     let transitions = nfa.transitions in
     let successors state visited =
@@ -804,8 +803,8 @@ module Symbolic (Label : SymL) = struct
     | None -> None
   ;;
 
-  let any_path ?(base = _base) = any_path ~base ~nozero:false
-  let run ?(base = _base) nfa = any_path ~base nfa [] |> Option.is_some
+  let any_path ?(base = _config.enc_base) = any_path ~base ~nozero:false
+  let run ?(base = _config.enc_base) nfa = any_path ~base nfa [] |> Option.is_some
 
   let format_nfa ppf nfa =
     let format_state ppf state = fprintf ppf "%d" state in
@@ -1006,7 +1005,7 @@ module Symbolic (Label : SymL) = struct
   1) [skel]: a Boolean skeleton, where leafs have names Atom_i; 
   2) [nfas]: a map from i to nfa that correspond to atomic formulas;
   3) [vars] -- here, only a list of numbers of vars *)
-  let any_path_bool_comb ?(base = _base) skel (nfas : (int, t) Map.t) vars =
+  let any_path_bool_comb ?(base = _config.enc_base) skel (nfas : (int, t) Map.t) vars =
     let exception Sat_found of vv list in
     let nfas' = Map.data nfas in
     trace_log "Nfas:";
@@ -1145,7 +1144,7 @@ module Symbolic (Label : SymL) = struct
     | None -> None
   ;;
 
-  let run_bool_comb ?(base = _base) skel nfas =
+  let run_bool_comb ?(base = _config.enc_base) skel nfas =
     any_path_bool_comb ~base skel nfas [] |> Option.is_some
   ;;
 end

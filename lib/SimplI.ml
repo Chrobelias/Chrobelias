@@ -751,9 +751,8 @@ let apply_symnatics (module S : Smtml_symantics) =
   fun x -> helper x
 ;;
 
-let deparametrize ?base ast =
+let deparametrize ?(base = _config.enc_base) ast =
   let open AstL in
-  let base = if Option.is_none base then _config.enc_base else Option.get base in
   Debug.trace "Base" "Base in deparametrize: %d%!" base;
   let base_eq = Lia (Eq (get_par 0, Lia.const (Z.of_int base))) in
   let digits_neq =
@@ -770,9 +769,8 @@ let deparametrize ?base ast =
   land_ [ base_eq; digits_neq; ast ]
 ;;
 
-let check_sat ?base ast =
+let check_sat ?(base = _config.enc_base) ast =
   let open AstL in
-  let base = if Option.is_none base then _config.enc_base else Option.get base in
   match ast |> deparametrize ~base |> basic_simplify [ 0 ] empty |> fst with
   | ph when AstL.equal ph true_ -> `Sat
   | ph when AstL.equal ph false_ -> `Unsat
@@ -901,9 +899,8 @@ let get_states_z3 ph get_state =
 
 (* |> fun x -> if Option.is_some x then [ Option.get x ] else [] *)
 
-let get_states ?base extra asts =
+let get_states ?(base = _config.enc_base) extra asts =
   let open AstL in
-  let base = if Option.is_none base then _config.enc_base else Option.get base in
   let get_state name =
     match name |> Base.String.chop_prefix ~prefix:"P" with
     | Some s -> Some (Base.Int.of_string s)
@@ -934,9 +931,8 @@ let get_states ?base extra asts =
 the Boolean variables that correspond to states
 3) [asts]: a list of transitions, pairs (ph, states), where states is a list of ints, 
 i.e., states of the nfas in the Boolean combination *)
-let get_states_bool_comb ?base extra asts =
+let get_states_bool_comb ?(base = _config.enc_base) extra asts =
   let open AstL in
-  let base = if Option.is_none base then _config.enc_base else Option.get base in
   (* The map [bool_map] is used to retreive the list of states from a Z3 result; 
   there is one Boolean variable for each next state = (list of states of nfas for atomic constraints) *)
   let bool_map = ref Map.empty in

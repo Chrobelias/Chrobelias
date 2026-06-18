@@ -351,18 +351,19 @@ let check_sat ir
     ]
       list
   =
-  let int_of_path =
-    let base = Z.of_int _base in
+  let int_of_path base =
+    let baseZ = Z.of_int base in
+    trace_log "Base in int_of_path: %a" Z.pp_print baseZ;
     function
     | 0 :: ds ->
       ds
       |> List.drop_while (fun x -> x = 0)
-      |> List.fold_left (fun sum x -> Z.((base * sum) + of_int x)) Z.zero
-    | d :: ds when d = _base - 1 ->
+      |> List.fold_left (fun sum x -> Z.((baseZ * sum) + of_int x)) Z.zero
+    | d :: ds when d = base - 1 ->
       ds
-      |> List.drop_while (fun x -> x = _base - 1)
+      |> List.drop_while (fun x -> x = base - 1)
       |> List.fold_left
-           (fun (sum, _pow) x -> Z.((base * sum) + of_int x), Z.(base * _pow))
+           (fun (sum, _pow) x -> Z.((baseZ * sum) + of_int x), Z.(baseZ * _pow))
            (Z.zero, Z.one)
       |> fun (num, _pow) -> Z.(num - _pow)
     | _ -> failwith "Unexpected symbols in int_of_path"
@@ -390,7 +391,7 @@ let check_sat ir
                     let ty = Map.find tys k |> Option.value ~default:`Int in
                     match ty with
                     | `Int ->
-                      begin try `Int (int_of_path v) with
+                      begin try `Int (int_of_path base v) with
                       | Invalid_argument ex as exp ->
                         Format.printf
                           "Something is wrong: %s\n%!"
@@ -411,7 +412,7 @@ let check_sat ir
     let ( let* ) = Result.bind in
     ir
     |> MsbPar.check_sat
-    |> List.map (function
+    |> List.mapi (fun i -> function
       | `Sat model ->
         `Sat
           (fun tys ->
@@ -422,7 +423,7 @@ let check_sat ir
                   let ty = Map.find tys k |> Option.value ~default:`Int in
                   match ty with
                   | `Int ->
-                    begin try `Int (int_of_path v) with
+                    begin try `Int (int_of_path (i + _config.enc_base) v) with
                     | Invalid_argument ex as exp ->
                       Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
                       `Str (str_of_path v)
