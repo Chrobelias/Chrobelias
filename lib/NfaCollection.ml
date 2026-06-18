@@ -236,7 +236,7 @@ module MsbSym = struct
       ~deg:(max var exp + 1)
   ;;
 
-  let get_label t' v' op v =
+  let get_label base t' v' op v =
     let open AstL.Lia in
     AstL.Lia
       (op
@@ -246,7 +246,7 @@ module MsbSym = struct
             (* (const Z.(v' * base)
              ::  *)
             (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)) *)
-         (const Z.(v - (v' * Z.of_int _base))))
+         (const Z.(v - (v' * Z.of_int base))))
   ;;
 
   let get_extra t' term =
@@ -257,7 +257,7 @@ module MsbSym = struct
          (add (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)))
   ;;
 
-  let get_sign_label t' v term op =
+  let get_sign_label base t' v term op =
     let open AstL in
     let open AstL.Lia in
     land_
@@ -269,12 +269,12 @@ module MsbSym = struct
                (* (const Z.(v * (base - one))
                 ::  *)
                (List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term)) *)
-            (const Z.(v * (one - Z.of_int _base))))
+            (const Z.(v * (one - Z.of_int base))))
        :: List.map
             (fun (var, _) ->
                lor_
                  [ Lia (eq (get var) (const Z.zero))
-                 ; Lia (eq (get var) (const Z.(Z.of_int _base - one)))
+                 ; Lia (eq (get var) (const Z.(Z.of_int base - one)))
                  ])
             term)
   ;;
@@ -317,7 +317,7 @@ module MsbSym = struct
           else Z.(div_ upper (Z.of_int _base * gcd_) * gcd_)
         in
         get_list lb ub gcd_
-        |> List.map (fun prev -> prev, get_label t' prev eq state, state)
+        |> List.map (fun prev -> prev, get_label _base t' prev eq state, state)
       in
       let rec lp front =
         match front with
@@ -347,8 +347,8 @@ module MsbSym = struct
          |> List.filter_map (fun sum ->
            match Map.find states Z.(sum / minus_one) with
            | None -> None
-           | Some idv -> Some (start, get_sign_label t' Z.(sum / minus_one) term eq, idv))
-        )
+           | Some idv ->
+             Some (start, get_sign_label _base t' Z.(sum / minus_one) term eq, idv)))
         @ transitions
       in
       Nfa.create_nfa3
@@ -399,7 +399,9 @@ module MsbSym = struct
         |> List.map (fun prev ->
           ( prev
           , AstL.land_
-              [ get_label t' prev leq state; get_label t' Z.(prev + gcd_) geq state ]
+              [ get_label _base t' prev leq state
+              ; get_label _base t' Z.(prev + gcd_) geq state
+              ]
           , state ))
       in
       let rec lp front =
@@ -432,7 +434,7 @@ module MsbSym = struct
          Map.to_alist states
          |> List.filter_map (fun (v, idv) ->
            if List.exists (fun sum -> Z.(sum / minus_one <= v)) sums
-           then Some (start, get_sign_label t' v term geq, idv)
+           then Some (start, get_sign_label _base t' v term geq, idv)
            else None))
         @ transitions
       in
