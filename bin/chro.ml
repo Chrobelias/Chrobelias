@@ -675,8 +675,8 @@ let rec check_sat ?(verbose = false) ?(light = false) (tys : Lib.Model.tys) ast 
         | `Unknown (ast, env) ->
           let orig_ast = ast in
           let arithmetized_asts = Lib.SimplII.arithmetize str_vars ast env in
-          log "Arithmetization gave %d asts\n" (List.length arithmetized_asts);
-          List.fold_left
+          log "Arithmetization done\n";
+          Seq.fold_left
             (fun acc (ast, e, regexes) ->
                log "Arithmetized: %a\n" Lib.Ast.pp_smtlib2 ast;
                match acc with

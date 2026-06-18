@@ -539,6 +539,19 @@ module Eia = struct
       term
   ;;
 
+  let collect_vars (type a) (term : a term) =
+    let module Set = Base.Set.Poly in
+    fold_term
+      (fun acc -> function
+         | Atom (Var (x, I)) -> Set.add acc x
+         | _ -> acc)
+      (fun acc -> function
+         | Atom (Var (x, S)) -> Set.add acc x
+         | _ -> acc)
+      Set.empty
+      term
+  ;;
+
   let pp fmt = function
     | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
     | Neq (term, term', _) ->
@@ -882,6 +895,21 @@ let rec to_dnf ast =
     | Land (x :: xs) -> List.fold_left cartesian (to_dnf x) (List.map to_dnf xs)
     | Lor xs -> List.concat (List.map to_dnf xs)
     | other -> [ other ])
+;;
+
+let rec to_dnf_seq ast =
+  let cartesian l1 l2 =
+    Seq.concat (Seq.map (fun e1 -> Seq.map (fun e2 -> land_ [ e1; e2 ]) l2) l1)
+  in
+  if is_conjunct ast
+  then Seq.return ast
+  else (
+    match ast with
+    | Land [ x ] -> to_dnf_seq x
+    | Land (x :: xs) ->
+      Seq.fold_left cartesian (to_dnf_seq x) (Seq.map to_dnf_seq (List.to_seq xs))
+    | Lor xs -> Seq.concat (Seq.map to_dnf_seq (List.to_seq xs))
+    | other -> Seq.return other)
 ;;
 
 let rec in_eia_term f v ast =

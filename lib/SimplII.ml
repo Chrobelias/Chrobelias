@@ -2198,15 +2198,28 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
   in
   match ast with
   | Land xs ->
-    let had_prop = ref false in
+    let module Set = Base.Set.Poly in
     let actions =
       List.fold_left
         (fun acc h ->
            match (helper info ast env) h with
            | Noprop -> acc
-           | Prop _ as smth when !had_prop |> not ->
-             had_prop := true;
-             [ smth ]
+           | Prop (vn, _) as smth
+             when List.for_all
+                    (function
+                      | Prop (vn', TT (Ast.I, rhs)) ->
+                        vn <> vn' && not (Set.mem (Ast.Eia.collect_vars rhs) vn)
+                      | Prop (vn', TT (Ast.S, rhs)) ->
+                        vn <> vn' && not (Set.mem (Ast.Eia.collect_vars rhs) vn)
+                      | PropAndPreserve (lhs, rhs, Ast.I) ->
+                        (not (Set.mem (Ast.Eia.collect_vars lhs) vn))
+                        && not (Set.mem (Ast.Eia.collect_vars rhs) vn)
+                      | PropAndPreserve (lhs, rhs, Ast.S) ->
+                        (not (Set.mem (Ast.Eia.collect_vars lhs) vn))
+                        && not (Set.mem (Ast.Eia.collect_vars rhs) vn)
+                      | PropLen (vn', _) -> vn <> vn'
+                      | Noprop -> true)
+                    acc -> smth :: acc
            | Prop _ -> acc
            | (PropAndPreserve _ | PropLen _) as smth -> smth :: acc)
         []
@@ -2409,7 +2422,7 @@ let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
 
 let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast =
   let log =
-    if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
+    if step = [] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
   in
   log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 orig_ast;
   let alpha = alpha_with_extra_char orig_ast in
@@ -3891,32 +3904,32 @@ let arithmetize str_vars ast env =
     let open Ast in
     let open Ast.Eia in
     let important_vars = get_stoi_conc_vars ast in
-    Utils.powerset important_vars
-    |> List.map (fun empty_vars ->
+    Utils.powerset_seq important_vars
+    |> Seq.map (fun empty_vars ->
       List.map (fun var -> eia (Eq (Atom (Var (var, S)), str_const "", S))) empty_vars)
-    |> List.map (fun ast' -> land_ (ast :: ast'))
+    |> Seq.map (fun ast' -> land_ (ast :: ast'))
   in
   ast
   |> split_concats
-  |> Ast.to_dnf
+  |> Ast.to_dnf_seq
   (*|> List.map (fun ast ->
   Format.printf "2 -> %a\n%!" Ast.pp_smtlib2 ast; ast)*)
-  |> List.concat_map with_empty_cases
-  |> List.map (apply_symantics (module Symantics))
-  |> List.filter_map (fun ast ->
+  |> Seq.concat_map with_empty_cases
+  |> Seq.map (apply_symantics (module Symantics))
+  |> Seq.filter_map (fun ast ->
     match basic_simplify [ 0 ] env ast with
     | `Unsat _ -> None
     | `Sat env -> Some (Ast.true_, env)
     | `Unknown (ast, env, _, _) -> Some (ast, env))
-  |> List.concat_map (fun (ast, env) ->
-    List.map (fun ast -> ast, env) (ast |> split_concats |> Ast.to_dnf))
-  |> List.map (fun (ast, env) -> fold_regexes ~str_vars ast, env)
-  |> List.map (fun ((ast, regexes), env) ->
+  |> Seq.concat_map (fun (ast, env) ->
+    Seq.map (fun ast -> ast, env) (ast |> split_concats |> Ast.to_dnf_seq))
+  |> Seq.map (fun (ast, env) -> fold_regexes ~str_vars ast, env)
+  |> Seq.map (fun ((ast, regexes), env) ->
     (*Format.printf "3 -> %a\n%!" Ast.pp_smtlib2 ast; *) ast, regexes, env)
-  |> List.concat_map (fun (ast, regexes, env) ->
+  |> Seq.concat_map (fun (ast, regexes, env) ->
     arithmetize var_info str_vars ast
-    |> Ast.to_dnf
-    |> List.map (fun ast' ->
+    |> Ast.to_dnf_seq
+    |> Seq.map (fun ast' ->
       let ast', regexes' = fold_regexes_i ast' in
       let regexes =
         Map.merge
