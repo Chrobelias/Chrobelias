@@ -53,134 +53,65 @@ let lift ?(unsat_info = "") ast = function
   | `Sat (s, e) -> Sat (s, ast, e, (fun _ -> Result.Ok Map.empty), Map.empty)
 ;;
 
-let rec model_from_parts_regexes_env tys model regexes env' =
-  let model =
-    model
-    |> Map.mapi ~f:(fun ~key ~data ->
-      match data with
-      | `Str str -> `Str str
-      | `Int _ ->
-        begin match key with
-        | Lib.Ir.Var _ -> data
-        end)
-    |> Map.map_keys_exn ~f:(function Lib.Ir.Var _ as v -> v)
+let join_int_model prefix m =
+  let open Lib in
+  let prefix =
+    let shrink_ir_model =
+      Base.Map.Poly.map_keys_exn m ~f:(fun s -> Ast.Any_atom (Ast.var s Ast.I))
+    in
+    Env.enrich prefix shrink_ir_model
   in
-  (*New code goes here *)
-  let var = Lib.Ir.var in
-  let raw_model = model in
-  let prefix = "strlen" in
-  let prefix_len = String.length prefix in
-  let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
-  let module NfaC = Lib.NfaCollection in
-  let aux raw_model =
-    Map.to_alist raw_model
-    |> List.filter_map (fun (key, data) ->
-      match key with
-      | Lib.Ir.Var key when String.starts_with ~prefix key ->
-        let real_var = String.sub key prefix_len (String.length key - prefix_len) in
-        let data =
-          match data with
-          | `Int c -> Z.to_int c
-          | _ -> assert false
-        in
-        begin if not (Map.mem raw_model (var real_var))
-        then
-          if Map.mem regexes real_var
-          then (
-            let regexes = Map.find_exn regexes real_var in
-            let nfa = regexes in
-            let path =
-              NfaS.path_of_len2 ~var:0 ~len:data nfa
-              |> Option.value ~default:(List.init data (fun _ -> '0'))
-            in
-            Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
-          else Some (var real_var, `Str (String.init data (fun _ -> '0')))
-        else None
+  let rec seek prefix key =
+    match Env.lookup_int key prefix with
+    | Some eia ->
+      begin match SimplII.subst_term prefix eia with
+      | Ast.RLia.Const c -> Option.some (`Int c)
+      | Ast.RLia.Str_const s -> Option.some (`Str s)
+      | Ast.RLia.Atom (Var (v, _)) -> seek prefix v
+      | _ -> None
+      end
+    | None ->
+      begin match Env.lookup_string key prefix with
+      | Some str ->
+        begin match SimplII.subst_term prefix str with
+        | Ast.RLia.Const c -> Option.some (`Int c)
+        | Ast.RLia.Str_const s -> Option.some (`Str s)
+        | Ast.RLia.Atom (Var (v, _)) -> seek prefix v
+        | _ -> None
         end
-      | Lib.Ir.Var key ->
-        let data' =
-          match data with
-          | `Str c -> `Str c
-          | `Int d ->
-            (match Map.find tys (Lib.Ir.Var key) with
-             | Some `Str -> `Str (Z.to_string d)
-             | Some `Int | None -> `Int d)
-        in
-        let result =
-          match data' with
-          | `Str str ->
-            let len_var = String.concat "" [ prefix; key ] in
-            let len =
-              match Map.find raw_model (var len_var) with
-              | Some (`Int len) -> Z.to_int len
-              | _ -> String.length str
-            in
-            let str =
-              if len = 0
-              then ""
-              else if len > String.length str
-              then
-                String.concat
-                  ""
-                  [ String.init (len - String.length str) (fun _ -> '0'); str ]
-              else str
-            in
-            `Str str
-          | `Int d -> `Int d
-        in
-        Some (var key, result))
-    |> Map.of_alist_exn
+      | None -> None
+      end
   in
-  let real_model = aux raw_model in
-  let env = Lib.Env.enrich2 env' real_model in
-  (* New code ends here *)
-  let real_model =
-    Map.fold
-      ~f:(fun ~key ~data acc ->
-        if Map.mem acc key
-        then acc
-        else (
-          match data with
-          | `Int -> Map.add_exn acc ~key ~data:(`Int Z.zero)
-          | `Str -> Map.add_exn acc ~key ~data:(`Str "")))
-      ~init:real_model
-      tys
+  let module Set = Base.Set.Poly in
+  let unknown_vars =
+    let open Ast in
+    let open Ast.RLia in
+    Env.fold
+      ~init:Set.empty
+      ~f:(fun ~key:_ ~data:tt acc ->
+        match tt with
+        | TT (I, eia) -> Set.union acc (get_vars (RLia (eq (const Z.zero) eia I)))
+        | TT (S, _) -> acc)
+      prefix
   in
-  if Lib.Env.definite_length env' <> Lib.Env.definite_length env
-  then model_from_parts_regexes_env tys model regexes env
-  else real_model
-;;
-
-let calculate_model tys model regexes env =
-  (* Lib.Debug.printf "Calculating the model\n%!";
-  Lib.Debug.printf "NFA model:\n  %a\n%!" Lib.Ir.pp_model_smtlib2 model;
-  Lib.Debug.printf "Env      :\n  %a\n%!" (Lib.Env.pp ~title:"") env;
-  Lib.Debug.printf "Regexes: :\n"; *)
-  let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
-  Map.iteri
-    ~f:(fun ~key ~data ->
-      trace_log "%s -> " key;
-      Lib.Debug.dump_nfa ~msg:"%s" NfaS.format_nfa data)
-    regexes;
-  let real_model =
-    try model_from_parts_regexes_env tys model regexes env with
-    | _ -> failwith "Too long model?"
+  let prefix =
+    Set.fold unknown_vars ~init:prefix ~f:(fun acc var ->
+      if Env.is_absent_key var acc
+      then Env.extend_int_exn acc var (Ast.RLia.const Z.zero)
+      else acc)
   in
-  let real_model =
-    Map.filteri
-      ~f:(fun ~key ~data:_ ->
-        match key with
-        | Var v when String.starts_with ~prefix:"%" v -> false
-        | _ -> true)
-      real_model
-  in
-  real_model
+  Env.fold prefix ~init:m ~f:(fun ~key ~data:_ acc ->
+    match seek prefix key with
+    | Some value -> Map.set acc ~key ~data:value
+    | None -> acc)
+  |> Map.map_keys_exn ~f:(fun name -> Ir.var name)
 ;;
 
 let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
 
 let check_sat _ ast : rez list =
   let check_nfa_sat ast e =
+    trace_log "Env      :\n  %a\n%!" (Lib.Env.pp ~title:"") e;
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
       (match ir with
@@ -297,14 +228,18 @@ let () =
       let print_model = if not noprint then print_model else fun _ -> () in
       match rez with
       | Unknown _ | Unsat _ -> Format.printf "no model\n%!"
-      | Sat (_, _, env, get_model, regexes) ->
+      | Sat (_, _, env, get_model, _) ->
         sat_found := true;
         let tys = merge_tys state in
         let () =
           match
             get_model tys
             |> Result.map (fun model ->
-              let model = calculate_model tys model regexes env in
+              let model =
+                model
+                |> Map.map_keys_exn ~f:(fun var -> Lib.Ir.name var)
+                |> join_int_model env
+              in
               print_model model;
               if Lib.Config.config.check_model then check_model tys ast model else ())
           with

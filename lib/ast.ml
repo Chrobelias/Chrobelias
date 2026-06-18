@@ -488,6 +488,26 @@ let collect_all ast =
   |> fun (a, b) -> remove_dups a, remove_dups b
 ;;
 
+let get_vars ast =
+  let module Set = Base.Set.Poly in
+  fold
+    (fun acc ast ->
+       match ast with
+       | RLia rlia ->
+         RLia.fold2
+           (fun vars -> function
+              | Atom (Var (x, I)) -> Set.add vars x
+              | _ -> vars)
+           (fun vars -> function
+              | Atom (Var (x, S)) -> Set.add vars x
+              | _ -> vars)
+           acc
+           rlia
+       | _ -> acc)
+    Set.empty
+    ast
+;;
+
 let get_str_vars ast = ast |> collect_all |> fun (x, y) -> x
 let get_int_vars ast = ast |> collect_all |> fun (x, y) -> y
 
