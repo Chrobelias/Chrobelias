@@ -423,7 +423,7 @@ let check_sat ir
                   let ty = Map.find tys k |> Option.value ~default:`Int in
                   match ty with
                   | `Int ->
-                    begin try `Int (int_of_path (i + _config.enc_base) v) with
+                    begin try `Int (int_of_path (i + _config.base_min) v) with
                     | Invalid_argument ex as exp ->
                       Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
                       `Str (str_of_path v)
