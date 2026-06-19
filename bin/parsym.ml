@@ -114,6 +114,7 @@ let check_sat _ ast : rez list =
     trace_log "Env      :\n  %a\n%!" (Lib.Env.pp ~title:"") e;
     match Lib.Me.ir_of_ast e ast with
     | Ok ir ->
+      let ir = ir |> Lib.Ir.simpl in
       (match ir with
        | True -> [ sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty ]
        | Lnot True -> [ Unsat "simpl" ]

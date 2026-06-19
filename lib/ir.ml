@@ -571,6 +571,10 @@ let simpl ir =
         let term' = Map.map ~f:(fun coeff -> Z.(coeff / gcd_)) term in
         Rel (Eq, term', Z.(c / gcd_)))
       else false_
+    | Rel (Leq, term, c) ->
+      let gcd_ = List.fold_left Z.gcd Z.zero (Map.data term) in
+      let term' = Map.map ~f:(fun coeff -> Z.(coeff / gcd_)) term in
+      Rel (Leq, term', Z.(c / gcd_))
     | ir -> ir)
   |> map (function
     | Lor [] -> false_

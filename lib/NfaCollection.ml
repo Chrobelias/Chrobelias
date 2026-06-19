@@ -512,7 +512,7 @@ module MsbPar = struct
          (add (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)))
   ;;
 
-  let get_sign_label t' v term op =
+  let get_sign_label_par t' v term op =
     let open AstL in
     let open AstL.Lia in
     land_
@@ -524,7 +524,7 @@ module MsbPar = struct
                (* (const Z.(v * (base - one))
                 ::  *)
                (List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term)) *)
-            (mul [ const Z.(-v); get_max_digit ]))
+            (mul [ const v; add [ get_par 0; const Z.minus_one ] ]))
        :: List.map
             (fun (var, _) ->
                lor_
@@ -590,16 +590,8 @@ module MsbPar = struct
       let idx c = Map.find states c |> Option.get in
       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
       let transitions =
-        (term
-         |> List.map snd
-         |> Utils.powerset
-         |> List.map (fun x -> Base.List.sum (module Z) ~f:Fun.id x)
-         |> Base.List.dedup_and_sort ~compare:Z.compare
-         |> List.filter_map (fun sum ->
-           match Map.find states Z.(sum / minus_one) with
-           | None -> None
-           | Some idv -> Some (start, get_sign_label t' Z.(sum / minus_one) term eq, idv))
-        )
+        (Map.to_alist states
+         |> List.map (fun (v, idv) -> start, get_sign_label_par t' v term eq, idv))
         @ transitions
       in
       Nfa.create_nfa3
@@ -671,18 +663,8 @@ module MsbPar = struct
       let idx c = Map.find states c |> Option.get in
       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
       let transitions =
-        (let sums =
-           term
-           |> List.map snd
-           |> Utils.powerset
-           |> List.map (fun x -> Base.List.sum (module Z) ~f:Fun.id x)
-           |> Base.List.dedup_and_sort ~compare:Z.compare
-         in
-         Map.to_alist states
-         |> List.filter_map (fun (v, idv) ->
-           if List.exists (fun sum -> Z.(sum / minus_one <= v)) sums
-           then Some (start, get_sign_label t' v term geq, idv)
-           else None))
+        (Map.to_alist states
+         |> List.map (fun (v, idv) -> start, get_sign_label_par t' v term leq, idv))
         @ transitions
       in
       Nfa.create_nfa3
