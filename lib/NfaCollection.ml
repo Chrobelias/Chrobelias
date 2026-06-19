@@ -218,7 +218,7 @@ module MsbSym = struct
     let open AstL in
     let open AstL.Lia in
     let _base = _config.enc_base in
-    trace_log "Base in symbolic Buchi: %d" _base;
+    (* trace_log "Base in symbolic Buchi: %d" _base; *)
     let get_const v value = Lia (eq (get v) value) in
     let get_label d1 d2 = land_ [ get_const var d1; get_const exp d2 ] in
     Nfa.create_nfa2
@@ -284,7 +284,6 @@ module MsbSym = struct
   (having the same length). *)
   let eq vars term c =
     let _base = _config.enc_base in
-    trace_log "Base in Boigelot-eq: %d" _base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
     let term =
@@ -316,6 +315,11 @@ module MsbSym = struct
           then div_ upper (Z.of_int _base)
           else Z.(div_ upper (Z.of_int _base * gcd_) * gcd_)
         in
+        trace_log
+          "lb and up for the state %d are %d and %d"
+          (Z.to_int state)
+          (Z.to_int lb)
+          (Z.to_int ub);
         get_list lb ub gcd_
         |> List.map (fun prev -> prev, get_label _base t' prev eq state, state)
       in
@@ -372,7 +376,6 @@ module MsbSym = struct
   (having the same length). *)
   let leq vars term c =
     let _base = _config.enc_base in
-    trace_log "Base in Boigelot-leq: %d" _base;
     let open AstL.Lia in
     let t' = AstL.genpar () in
     let term =
@@ -395,6 +398,11 @@ module MsbSym = struct
           |> both (fun x -> Z.(state - (x * (Z.of_int _base - one))))
           |> both (fun x -> Z.(div_ x (Z.of_int _base * gcd_) * gcd_))
         in
+        trace_log
+          "lb and up for the state %d are %d and %d"
+          (Z.to_int state)
+          (Z.to_int lb)
+          (Z.to_int ub);
         get_list lb ub gcd_
         |> List.map (fun prev ->
           ( prev
@@ -621,6 +629,11 @@ module MsbPar = struct
         in
         let lb = if Z.(state < zero) then Z.(div_ state (of_int 2) - ap) else Z.(-ap) in
         let ub = if Z.(state < zero) then Z.(-an) else Z.(div_ state (of_int 2) - an) in
+        trace_log
+          "lb and up for the state %d are %d and %d"
+          (Z.to_int state)
+          (Z.to_int lb)
+          (Z.to_int ub);
         get_list lb ub gcd_
         |> List.map (fun prev ->
           ( prev
