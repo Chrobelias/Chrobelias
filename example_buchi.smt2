@@ -4,6 +4,6 @@
 (assert (int.v (+ 4 (* 2 A)) B))
 (assert (>= A 10))
 (assert (>= B 100))
-;(assert (>= 1 (+ (* 4 A) (* (- 1) B) (* 3 E))))
+(assert (>= 1 (+ (* 4 A) (* (- 1) B) (* 3 E))))
 (check-sat)
-;(get-model)
+(get-model)

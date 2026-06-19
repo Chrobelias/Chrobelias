@@ -552,8 +552,17 @@ module MsbPar = struct
             (Z.zero, Z.zero)
             term
         in
-        let lb = if Z.(state < zero) then Z.(div_ state (of_int 2) - ap) else Z.(-ap) in
-        let ub = if Z.(state < zero) then Z.(-an) else Z.(div_ state (of_int 2) - an) in
+        let bmin, bmax = Z.of_int _config.base_min, Z.of_int _config.base_max in
+        let lb =
+          if Z.(state < zero)
+          then Z.(div_ state bmin - div_ (ap * (bmax - one)) bmax)
+          else Z.(div_ state bmax - div_ (ap * (bmax - one)) bmax)
+        in
+        let ub =
+          if Z.(state < zero)
+          then Z.(div_ state bmax - div_ (an * (bmin - one)) bmin)
+          else Z.(div_ state bmin - div_ (an * (bmin - one)) bmin - one)
+        in
         trace_log
           "lb and up for the state %d are %d and %d"
           (Z.to_int state)
@@ -627,8 +636,17 @@ module MsbPar = struct
             (Z.zero, Z.zero)
             term
         in
-        let lb = if Z.(state < zero) then Z.(div_ state (of_int 2) - ap) else Z.(-ap) in
-        let ub = if Z.(state < zero) then Z.(-an) else Z.(div_ state (of_int 2) - an) in
+        let bmin, bmax = Z.of_int _config.base_min, Z.of_int _config.base_max in
+        let lb =
+          if Z.(state < zero)
+          then Z.(div_ state bmin - div_ (ap * (bmax - one)) bmax)
+          else Z.(div_ state bmax - div_ (ap * (bmax - one)) bmax)
+        in
+        let ub =
+          if Z.(state < zero)
+          then Z.(div_ state bmax - div_ (an * (bmin - one)) bmin)
+          else Z.(div_ state bmin - div_ (an * (bmin - one)) bmin - one)
+        in
         trace_log
           "lb and up for the state %d are %d and %d"
           (Z.to_int state)
