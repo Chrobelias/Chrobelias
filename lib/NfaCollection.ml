@@ -508,7 +508,10 @@ module MsbPar = struct
     let open AstL in
     let open AstL.Lia in
     land_
-      (Lia (op (Atom t') (mul [ const v; add [ get_par 0; const Z.minus_one ] ]))
+      (Lia
+         (op
+            (Atom t')
+            (mul [ const v; add [ const Z.one; mul [ get_par 0; const Z.minus_one ] ] ]))
        :: List.map
             (fun (var, _) ->
                lor_
@@ -646,7 +649,7 @@ module MsbPar = struct
       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
       let transitions =
         (Map.to_alist states
-         |> List.map (fun (v, idv) -> start, get_sign_label_par t' v term leq, idv))
+         |> List.map (fun (v, idv) -> start, get_sign_label_par t' v term geq, idv))
         @ transitions
       in
       Nfa.create_nfa3
