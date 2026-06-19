@@ -531,26 +531,18 @@ module MsbPar = struct
     if gcd_ = Z.zero
     then if Z.(zero = c) then n () else z ()
     else (
+      assert (Z.(gcd_ = one));
       let states = ref Set.empty in
       let transitions = ref [] in
       let get_incoming state =
-        let lower, upper =
+        let ap, an =
           List.fold_left
             (fun (p, n) (_, a) -> if Z.(a > zero) then Z.(p + a), n else p, Z.(n + a))
             (Z.zero, Z.zero)
             term
-          |> both (fun x -> Z.(state - x))
         in
-        let lb =
-          if Z.(lower mod gcd_ = zero)
-          then div_ lower (Z.of_int 2)
-          else Z.((div_ lower (Z.of_int 2 * gcd_) + one) * gcd_)
-        in
-        let ub =
-          if Z.(upper mod gcd_ = zero)
-          then max (div_ upper (Z.of_int 2)) Z.zero
-          else max Z.(div_ upper (Z.of_int 2 * gcd_) * gcd_) Z.zero
-        in
+        let lb = if Z.(state < zero) then Z.(div_ state (of_int 2) - ap) else Z.(-ap) in
+        let ub = if Z.(state < zero) then Z.(-an) else Z.(div_ state (of_int 2) - an) in
         trace_log
           "lb and up for the state %d are %d and %d"
           (Z.to_int state)
@@ -614,18 +606,18 @@ module MsbPar = struct
     if Z.(gcd_ = zero)
     then if Z.(zero <= c) then n () else z ()
     else (
+      assert (Z.(gcd_ = one));
       let states = ref Set.empty in
       let transitions = ref [] in
       let get_incoming state =
-        let lb, ub =
+        let ap, an =
           List.fold_left
             (fun (p, n) (_, a) -> if Z.(a > zero) then Z.(p + a), n else p, Z.(n + a))
             (Z.zero, Z.zero)
             term
-          |> both (fun x -> Z.(state - x))
-          |> both (fun x -> Z.(div_ x (Z.(of_int 2) * gcd_) * gcd_))
-          |> fun (x, y) -> x, max y Z.zero
         in
+        let lb = if Z.(state < zero) then Z.(div_ state (of_int 2) - ap) else Z.(-ap) in
+        let ub = if Z.(state < zero) then Z.(-an) else Z.(div_ state (of_int 2) - an) in
         get_list lb ub gcd_
         |> List.map (fun prev ->
           ( prev
