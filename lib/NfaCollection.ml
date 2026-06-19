@@ -492,15 +492,7 @@ module MsbPar = struct
   let get_label t' v' op v =
     let open AstL in
     let open AstL.Lia in
-    Lia
-      (op
-         (Atom t')
-         (* (add
-            (* (mul [ const v'; AstL.get_par 0 ] *)
-            (* (const Z.(v' * base)
-             ::  *)
-            (List.map (fun (var, coeff) -> mul [ const coeff; AstL.get var ]) term)) *)
-         (add [ const v; mul [ const Z.(-v'); get_par 0 ] ]))
+    Lia (op (Atom t') (add [ const v; mul [ const Z.(-v'); get_par 0 ] ]))
   ;;
 
   let get_extra t' term =
@@ -516,15 +508,7 @@ module MsbPar = struct
     let open AstL in
     let open AstL.Lia in
     land_
-      (Lia
-         (op
-            (Atom t')
-            (* (add
-               (* (mul [ const v; add [ get_par 0; const Z.minus_one ] ] *)
-               (* (const Z.(v * (base - one))
-                ::  *)
-               (List.map (fun (var, coeff) -> mul [ const coeff; get var ]) term)) *)
-            (mul [ const v; add [ get_par 0; const Z.minus_one ] ]))
+      (Lia (op (Atom t') (mul [ const v; add [ get_par 0; const Z.minus_one ] ]))
        :: List.map
             (fun (var, _) ->
                lor_
@@ -564,9 +548,14 @@ module MsbPar = struct
         in
         let ub =
           if Z.(upper mod gcd_ = zero)
-          then div_ upper (Z.of_int 2)
-          else Z.(div_ upper (Z.of_int 2 * gcd_) * gcd_)
+          then max (div_ upper (Z.of_int 2)) Z.zero
+          else max Z.(div_ upper (Z.of_int 2 * gcd_) * gcd_) Z.zero
         in
+        trace_log
+          "lb and up for the state %d are %d and %d"
+          (Z.to_int state)
+          (Z.to_int lb)
+          (Z.to_int ub);
         get_list lb ub gcd_
         |> List.map (fun prev -> prev, get_label t' prev eq state, state)
       in
@@ -635,6 +624,7 @@ module MsbPar = struct
             term
           |> both (fun x -> Z.(state - x))
           |> both (fun x -> Z.(div_ x (Z.(of_int 2) * gcd_) * gcd_))
+          |> fun (x, y) -> x, max y Z.zero
         in
         get_list lb ub gcd_
         |> List.map (fun prev ->
