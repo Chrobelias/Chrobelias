@@ -927,7 +927,7 @@ module Symbolic (Label : SymL) = struct
     ; transitions
     ; deg
     ; is_dfa = false
-    ; extra = AstL.lor_ [ nfa1.extra; nfa2.extra ]
+    ; extra = AstL.land_ [ nfa1.extra; nfa2.extra ]
     }
   ;;
 
