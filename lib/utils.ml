@@ -41,6 +41,9 @@ let div_rem a b =
   | _ -> Z.div_rem a b
 ;;
 
+let div_floor a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
+let div_ceil a b = if Z.(a mod b <= zero) then Z.(a / b) else Z.((a / b) + one)
+
 let to_bits n =
   let last_bit n =
     match Z.(n mod of_int 2) with

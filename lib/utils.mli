@@ -15,3 +15,5 @@ val cartesian2 : 'a list list -> 'a list list
 val strings_of_len : int -> string list -> string list
 val with_extra_char : char Set.t -> char list
 val find_map_n : int -> ('a -> 'b option) -> 'a list -> 'b list
+val div_floor : Z.t -> Z.t -> Z.t
+val div_ceil : Z.t -> Z.t -> Z.t

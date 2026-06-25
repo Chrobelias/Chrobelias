@@ -23,7 +23,8 @@ end
 let gcd a b = Z.gcd a b
 (*if a < zero || b < zero then gcd (abs a) (abs b) else if b = zero then a else gcd b (a mod b)*)
 
-let div_ a b = if Z.(a mod b >= zero) then Z.(a / b) else Z.((a / b) - one)
+let div_floor = Utils.div_floor
+(* let div_ceil = Utils.div_ceil *)
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -32,6 +33,7 @@ let ( -- ) i j =
 
 let both f (a, b) = f a, f b
 let rec get_list lb ub step = if lb > ub then [] else lb :: get_list Z.(lb + step) ub step
+let add_range lb ub s = get_list lb ub Z.one |> List.fold_left Set.add s
 
 module LsbStr = struct
   module Str = Nfa.Str
@@ -306,13 +308,13 @@ module MsbSym = struct
         in
         let lb =
           if Z.(lower mod (Z.of_int _base * gcd_) = zero)
-          then div_ lower (Z.of_int _base)
-          else Z.((div_ lower (Z.of_int _base * gcd_) + one) * gcd_)
+          then div_floor lower (Z.of_int _base)
+          else Z.((div_floor lower (Z.of_int _base * gcd_) + one) * gcd_)
         in
         let ub =
           if Z.(upper mod (Z.of_int _base * gcd_) = zero)
-          then div_ upper (Z.of_int _base)
-          else Z.(div_ upper (Z.of_int _base * gcd_) * gcd_)
+          then div_floor upper (Z.of_int _base)
+          else Z.(div_floor upper (Z.of_int _base * gcd_) * gcd_)
         in
         trace_log
           "lb and up for the state %d are %d and %d"
@@ -395,7 +397,7 @@ module MsbSym = struct
             (Z.zero, Z.zero)
             term
           |> both (fun x -> Z.(state - (x * (Z.of_int _base - one))))
-          |> both (fun x -> Z.(div_ x (Z.of_int _base * gcd_) * gcd_))
+          |> both (fun x -> Z.(div_floor x (Z.of_int _base * gcd_) * gcd_))
         in
         trace_log
           "lb and up for the state %d are %d and %d"
@@ -550,23 +552,12 @@ module MsbPar = struct
             (Z.zero, Z.zero)
             term
         in
-        let bmin, bmax = Z.of_int _config.base_min, Z.of_int _config.base_max in
-        let lb =
-          if Z.(state < zero)
-          then Z.(div_ state bmin - div_ (ap * (bmax - one)) bmax)
-          else Z.(div_ state bmax - div_ (ap * (bmax - one)) bmax)
-        in
-        let ub =
-          if Z.(state < zero)
-          then Z.(div_ state bmax - div_ (an * (bmin - one)) bmin)
-          else Z.(div_ state bmin - div_ (an * (bmin - one)) bmin - one)
-        in
-        trace_log
-          "lb and up for the state %d are %d and %d"
-          (Z.to_int state)
-          (Z.to_int lb)
-          (Z.to_int ub);
-        get_list lb ub gcd_
+        _config.base_min -- _config.base_max
+        |> List.map (fun base ->
+          ( div_floor Z.(state - ((of_int base - one) * ap)) (Z.of_int base)
+          , div_floor Z.(state - ((of_int base - one) * an)) (Z.of_int base) ))
+        |> List.fold_left (fun acc (lb, ub) -> add_range lb ub acc) Set.empty
+        |> Set.to_list
         |> List.map (fun prev -> prev, get_label t' prev eq state, state)
       in
       let rec lp front =
@@ -634,23 +625,12 @@ module MsbPar = struct
             (Z.zero, Z.zero)
             term
         in
-        let bmin, bmax = Z.of_int _config.base_min, Z.of_int _config.base_max in
-        let lb =
-          if Z.(state < zero)
-          then Z.(div_ state bmin - div_ (ap * (bmax - one)) bmax)
-          else Z.(div_ state bmax - div_ (ap * (bmax - one)) bmax)
-        in
-        let ub =
-          if Z.(state < zero)
-          then Z.(div_ state bmax - div_ (an * (bmin - one)) bmin)
-          else Z.(div_ state bmin - div_ (an * (bmin - one)) bmin - one)
-        in
-        trace_log
-          "lb and up for the state %d are %d and %d"
-          (Z.to_int state)
-          (Z.to_int lb)
-          (Z.to_int ub);
-        get_list lb ub gcd_
+        _config.base_min -- _config.base_max
+        |> List.map (fun base ->
+          ( div_floor Z.(state - ((of_int base - one) * ap)) (Z.of_int base)
+          , div_floor Z.(state - ((of_int base - one) * an)) (Z.of_int base) ))
+        |> List.fold_left (fun acc (lb, ub) -> add_range lb ub acc) Set.empty
+        |> Set.to_list
         |> List.map (fun prev ->
           ( prev
           , AstL.land_

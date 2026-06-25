@@ -264,12 +264,7 @@ module Sym = struct
     else land_ [ vec1; vec2 ]
   ;;
 
-  let combine2 vec1 vec2 ph =
-    if AstL.is_trivial vec1 || AstL.is_trivial vec2
-    then land_ [ vec1; vec2; ph ] |> SimplI.simplify_lia
-    else land_ [ vec1; vec2 ]
-  ;;
-
+  let combine2 vec1 vec2 ph = land_ [ vec1; vec2 ]
   let combine_list vecs = land_ vecs
   let simplify = SimplI.simplify_lia
   let project = AstL.project
