@@ -444,6 +444,7 @@ let collect_free_atoms ir =
     (fun acc -> function
        | Exists (atoms, _) -> Set.diff acc (Set.of_list atoms)
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | V (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
@@ -462,6 +463,7 @@ let collect_free (ir : t) =
   fold
     (fun acc -> function
        | Rel (_, term, _) -> term |> Map.keys |> Set.of_list |> Set.union acc
+       | V (atom, atom') -> Set.add (Set.add acc atom) atom'
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'

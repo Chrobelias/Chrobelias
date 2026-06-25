@@ -104,6 +104,7 @@ let join_int_model prefix m =
     match seek prefix key with
     | Some value -> Map.set acc ~key ~data:value
     | None -> acc)
+  |> Map.filter_keys ~f:(fun key -> not (String.starts_with ~prefix:"%" key))
   |> Map.map_keys_exn ~f:(fun name -> Ir.var name)
 ;;
 
