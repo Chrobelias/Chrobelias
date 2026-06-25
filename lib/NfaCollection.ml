@@ -24,7 +24,7 @@ let gcd a b = Z.gcd a b
 (*if a < zero || b < zero then gcd (abs a) (abs b) else if b = zero then a else gcd b (a mod b)*)
 
 let div_floor = Utils.div_floor
-(* let div_ceil = Utils.div_ceil *)
+let div_ceil = Utils.div_ceil
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -554,9 +554,12 @@ module MsbPar = struct
         in
         _config.base_min -- _config.base_max
         |> List.map (fun base ->
-          ( div_floor Z.(state - ((of_int base - one) * ap)) (Z.of_int base)
+          ( div_ceil Z.(state - ((of_int base - one) * ap)) (Z.of_int base)
           , div_floor Z.(state - ((of_int base - one) * an)) (Z.of_int base) ))
         |> List.fold_left (fun acc (lb, ub) -> add_range lb ub acc) Set.empty
+        |> Set.map ~f:(fun elem ->
+          trace_log "%a; " Z.pp_print elem;
+          elem)
         |> Set.to_list
         |> List.map (fun prev -> prev, get_label t' prev eq state, state)
       in

@@ -3,7 +3,7 @@
 (declare-fun B () Int)
 (assert (int.v (+ 4 (* 2 A)) B))
 (assert (>= A 10))
-(assert (>= B 100))
 (assert (>= 1 (+ (* 4 A) (* (- 1) B) (* 3 E))))
+(assert (<= 8 (+ (* 3 C) (* (- 2) B) (* 1 E))))
 (check-sat)
 (get-model)
