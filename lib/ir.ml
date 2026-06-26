@@ -1,6 +1,7 @@
 module Map = Base.Map.Poly
 module Set = Base.Set.Poly
 
+let trace_log fmt = Debug.trace "ir" fmt
 let _config = Config.config
 let _base = _config.enc_base
 
@@ -571,12 +572,14 @@ let simpl ir =
       if Z.(c mod gcd_ = zero)
       then (
         let term' = Map.map ~f:(fun coeff -> Z.(coeff / gcd_)) term in
-        Rel (Eq, term', Z.(c / gcd_)))
+        Rel (Eq, term', Utils.div_floor c gcd_))
       else false_
     | Rel (Leq, term, c) ->
+      trace_log "Term: %a; const: %a" pp_polynom term Z.pp_print c;
       let gcd_ = List.fold_left Z.gcd Z.zero (Map.data term) in
       let term' = Map.map ~f:(fun coeff -> Z.(coeff / gcd_)) term in
-      Rel (Leq, term', Z.(c / gcd_))
+      trace_log "Term': %a; const: %a" pp_polynom term' Z.pp_print c;
+      Rel (Leq, term', Utils.div_floor c gcd_)
     | ir -> ir)
   |> map (function
     | Lor [] -> false_

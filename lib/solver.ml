@@ -75,8 +75,10 @@ struct
                ir';
              let nfa =
                Nfa.intersect hd hd'
-               (* |> fun nfa ->
-               if Ir.is_reg ir || Ir.is_reg ir' then Nfa.minimize nfa else nfa *)
+               |> fun nfa ->
+               if Nfa.length nfa <= _config.good_for_minimize
+               then Nfa.minimize nfa
+               else nfa
              in
              let ir = Ir.land_ [ ir; ir' ] in
              let nfas =
