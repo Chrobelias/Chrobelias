@@ -390,26 +390,69 @@ let make_main_symantics ?alpha ?agressive env =
       | _ -> ofop l r
     ;;
 
-    let lt l r = relop Leq (add [ const 1; l ]) r
-    let leq = relop Leq
+    let cancel_left op lhs rhs =
+      let open Ast.RLia in
+      let simplify divisor =
+        let divide_by d = function
+          | Mul (Const lc :: ltl) -> Mul (Const Z.(lc / d) :: ltl)
+          | Const lc -> Const Z.(lc / d)
+          | lt when Z.(d = one) -> lt
+          | other -> failwith "Unexpected divison in linear term"
+        in
+        function
+        | [] -> constz Z.zero
+        | [ atom ] -> divide_by divisor atom
+        | atoms -> Add (List.map (divide_by divisor) atoms)
+      in
+      let gcd atoms =
+        let rec gcd acc = function
+          | Mul (Const lc :: ltl) :: other -> Z.gcd lc (gcd acc other)
+          | Const lc :: other -> Z.gcd lc (gcd acc other)
+          | _ :: other -> Z.one
+          | [] -> acc
+        in
+        gcd Z.zero atoms
+      in
+      let lhs' = List.filter (fun x -> Bool.not (List.mem x rhs)) lhs in
+      let rhs' = List.filter (fun x -> Bool.not (List.mem x lhs)) rhs in
+      let d = Z.gcd (gcd lhs') (gcd rhs') in
+      op (simplify d lhs') (simplify d rhs')
+    ;;
 
     let eqz l r =
       let open Ast.RLia in
       match l, r with
+      | l, r when eq_term l r -> true_
+      | Add lhs, Add rhs -> cancel_left (relop Eq) lhs rhs
+      | lhs, Add rhs -> cancel_left (relop Eq) [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left (relop Eq) lhs [ rhs ]
       | Mul (Const lc :: ltl), Mul (Const rc :: rtl) ->
         let gcd1 = Z.gcd lc rc in
         if Z.(equal gcd1 one)
         then relop Eq l r
         else
           relop Eq (mul (constz Z.(lc / gcd1) :: ltl)) (mul (constz Z.(rc / gcd1) :: rtl))
-      | l, r when eq_term l r -> true_
       | _ -> relop Eq l r
     ;;
+
+    let leq l r =
+      let open Ast.RLia in
+      match l, r with
+      | Add lhs, Add rhs -> cancel_left (relop Leq) lhs rhs
+      | lhs, Add rhs -> cancel_left (relop Leq) [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left (relop Leq) lhs [ rhs ]
+      | _ -> relop Leq l r
+    ;;
+
+    let lt l r = leq (add [ const 1; l ]) r
 
     let neqz l r =
       match l, r with
       | Ast.RLia.Const l, Ast.RLia.Const r -> if l <> r then Ast.true_ else Ast.false_
-      | rliat1, rliat2 when Ast.RLia.eq_term rliat1 rliat2 -> Ast.false_
+      | eiat1, eiat2 when Ast.RLia.eq_term eiat1 eiat2 -> Ast.false_
+      | Add lhs, Add rhs -> cancel_left Id_symantics.neqz lhs rhs
+      | lhs, Add rhs -> cancel_left Id_symantics.neqz [ lhs ] rhs
+      | Add lhs, rhs -> cancel_left Id_symantics.neqz lhs [ rhs ]
       | _ -> Id_symantics.neqz l r
     ;;
 

@@ -79,7 +79,7 @@ module type SymL = sig
 
   (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
   Usegful when working with automata for LIA-constraints *)
-  val combine2 : t -> t -> AstL.t -> t
+  val combine2 : AstL.t -> t -> t -> t
 
   val combine_list : t list -> t
 
@@ -264,7 +264,15 @@ module Sym = struct
     else land_ [ vec1; vec2 ]
   ;;
 
-  let combine2 vec1 vec2 ph = land_ [ vec1; vec2 ]
+  let combine2 ph vec1 vec2 =
+    if AstL.is_trivial vec1 || AstL.is_trivial vec2
+    then
+      land_ [ vec1; vec2; ph ]
+      |> SimplI.simplify_lia
+      |> fun x -> if AstL.equal x AstL.false_ then AstL.false_ else land_ [ vec1; vec2 ]
+    else land_ [ vec1; vec2 ]
+  ;;
+
   let combine_list vecs = land_ vecs
   let simplify = SimplI.simplify_lia
   let project = AstL.project
@@ -511,6 +519,40 @@ module Symbolic (Label : SymL) = struct
   type vv = Label.t
 
   let length = length
+
+  let format_nfa ppf nfa =
+    let format_state ppf state = fprintf ppf "%d" state in
+    let start_final = Set.inter nfa.start nfa.final in
+    let start = Set.diff nfa.start start_final in
+    let final = Set.diff nfa.final start_final in
+    fprintf ppf "digraph {\n";
+    if Bool.not (AstL.equal nfa.extra AstL.true_)
+    then fprintf ppf "NodeL [label=\"%a\", shape=box];\n" AstL.pp_smtlib2 nfa.extra;
+    fprintf ppf "node [shape=circle]\n";
+    Set.iter final ~f:(fprintf ppf "\"%a\" [shape=doublecircle]\n" format_state);
+    Set.iter start ~f:(fprintf ppf "\"%a\" [shape=octagon]\n" format_state);
+    Set.iter start_final ~f:(fprintf ppf "\"%a\" [shape=doubleoctagon]\n" format_state);
+    Array.iteri
+      (fun q delta ->
+         delta
+         |> List.map (fun (label, q') -> q', label)
+         |> Map.of_alist_multi
+         |> Map.iteri ~f:(fun ~key:q' ~data:labels ->
+           fprintf
+             ppf
+             "\"%a\" -> \"%a\" [label=\"%a\"]\n"
+             format_state
+             q
+             format_state
+             q'
+             (Format.pp_print_list
+                ~pp_sep:(fun ppf () -> Format.fprintf ppf "\n")
+                Label.pp)
+             labels))
+      nfa.transitions;
+    fprintf ppf "}"
+  ;;
+
   let wrap = fun nfa -> { nfa with extra = AstL.true_ }
 
   let create_nfa
@@ -626,7 +668,7 @@ module Symbolic (Label : SymL) = struct
     { (create_nfa2 ~transitions ~start ~final ~vars ~deg) with extra = ph; is_dfa }
   ;;
 
-  let remove_verticies nfa verticies =
+  let project_verticies nfa verticies =
     let map_new_old =
       verticies
       |> Set.to_sequence
@@ -671,7 +713,7 @@ module Symbolic (Label : SymL) = struct
           let qs = (delta |> List.map snd) @ tl in
           bfs reachable qs)
     in
-    bfs Set.empty (nfa.start |> Set.to_list) |> remove_verticies nfa
+    bfs Set.empty (nfa.start |> Set.to_list) |> project_verticies nfa
   ;;
 
   let remove_unreachable_from_final nfa =
@@ -691,7 +733,7 @@ module Symbolic (Label : SymL) = struct
     in
     if Set.is_empty nfa.final
     then create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
-    else bfs Set.empty (nfa.final |> Set.to_list) |> remove_verticies nfa
+    else bfs Set.empty (nfa.final |> Set.to_list) |> project_verticies nfa
   ;;
 
   let assign_weights nfa =
@@ -801,41 +843,19 @@ module Symbolic (Label : SymL) = struct
   let any_path ?(base = _config.enc_base) = any_path ~base ~nozero:false
   let run ?(base = _config.enc_base) nfa = any_path ~base nfa [] |> Option.is_some
 
-  let format_nfa ppf nfa =
-    let format_state ppf state = fprintf ppf "%d" state in
-    let start_final = Set.inter nfa.start nfa.final in
-    let start = Set.diff nfa.start start_final in
-    let final = Set.diff nfa.final start_final in
-    fprintf ppf "digraph {\n";
-    if Bool.not (AstL.equal nfa.extra AstL.true_)
-    then fprintf ppf "NodeL [label=\"%a\", shape=box];\n" AstL.pp_smtlib2 nfa.extra;
-    fprintf ppf "node [shape=circle]\n";
-    Set.iter final ~f:(fprintf ppf "\"%a\" [shape=doublecircle]\n" format_state);
-    Set.iter start ~f:(fprintf ppf "\"%a\" [shape=octagon]\n" format_state);
-    Set.iter start_final ~f:(fprintf ppf "\"%a\" [shape=doubleoctagon]\n" format_state);
-    Array.iteri
-      (fun q delta ->
-         delta
-         |> List.map (fun (label, q') -> q', label)
-         |> Map.of_alist_multi
-         |> Map.iteri ~f:(fun ~key:q' ~data:labels ->
-           fprintf
-             ppf
-             "\"%a\" -> \"%a\" [label=\"%a\"]\n"
-             format_state
-             q
-             format_state
-             q'
-             (Format.pp_print_list
-                ~pp_sep:(fun ppf () -> Format.fprintf ppf "\n")
-                Label.pp)
-             labels))
-      nfa.transitions;
-    fprintf ppf "}"
-  ;;
-
   let intersect nfa1 nfa2 =
     let counter = ref 0 in
+    let combine =
+      if length nfa1 * length nfa1 <= _config.good_for_minimize
+      then Label.combine2 (AstL.land_ [ nfa1.extra; nfa2.extra ])
+      else Label.combine
+    in
+    (* trace_log
+      "estra1 = %a; extra2 = %a"
+      AstL.pp_smtlib2
+      nfa1.extra
+      AstL.pp_smtlib2
+      nfa2.extra; *)
     let visited = Array.make_matrix (length nfa1) (length nfa2) (-1) in
     let q (q1, q2) = visited.(q1).(q2) in
     let is_visited (q1, q2) = q (q1, q2) <> -1 in
@@ -858,9 +878,7 @@ module Symbolic (Label : SymL) = struct
             (fun acc_delta (label1, q1') ->
                List.fold_left
                  (fun acc_delta (label2, q2') ->
-                    let label =
-                      Label.combine2 label1 label2 (AstL.land_ [ nfa1.extra; nfa2.extra ])
-                    in
+                    let label = combine label1 label2 in
                     if Label.is_zero label
                     then (
                       let is_visited = is_visited (q1', q2') in
@@ -927,9 +945,12 @@ module Symbolic (Label : SymL) = struct
   ;;
 
   let invert ?alpha nfa =
+    trace_log "In invert";
+    trace_list ~name:"finals" (Set.to_list nfa.final);
     let dfa = if nfa.is_dfa then nfa else failwith "Unimplemented" in
     let states = states dfa in
-    let final = Set.diff states dfa.final in
+    let final = states |> Set.diff dfa.final in
+    trace_list ~name:"finals" (Set.to_list final);
     { final
     ; start = dfa.start
     ; transitions = dfa.transitions
@@ -1177,7 +1198,38 @@ struct
 
   let length = length
 
-  let remove_verticies nfa verticies =
+  let format_nfa ppf nfa =
+    let format_state ppf state = fprintf ppf "%d" state in
+    let start_final = Set.inter nfa.start nfa.final in
+    let start = Set.diff nfa.start start_final in
+    let final = Set.diff nfa.final start_final in
+    fprintf ppf "digraph {\n";
+    fprintf ppf "node [shape=circle]\n";
+    Set.iter final ~f:(fprintf ppf "\"%a\" [shape=doublecircle]\n" format_state);
+    Set.iter start ~f:(fprintf ppf "\"%a\" [shape=octagon]\n" format_state);
+    Set.iter start_final ~f:(fprintf ppf "\"%a\" [shape=doubleoctagon]\n" format_state);
+    Array.iteri
+      (fun q delta ->
+         delta
+         |> List.map (fun (label, q') -> q', label)
+         |> Map.of_alist_multi
+         |> Map.iteri ~f:(fun ~key:q' ~data:labels ->
+           fprintf
+             ppf
+             "\"%a\" -> \"%a\" [label=\"%a\"]\n"
+             format_state
+             q
+             format_state
+             q'
+             (Format.pp_print_list
+                ~pp_sep:(fun ppf () -> Format.fprintf ppf "\n")
+                Label.pp)
+             labels))
+      nfa.transitions;
+    fprintf ppf "}"
+  ;;
+
+  let project_verticies nfa verticies =
     let map_new_old =
       verticies
       |> Set.to_sequence
@@ -1222,7 +1274,7 @@ struct
           let qs = (delta |> List.map snd) @ tl in
           bfs reachable qs)
     in
-    bfs Set.empty (nfa.start |> Set.to_list) |> remove_verticies nfa
+    bfs Set.empty (nfa.start |> Set.to_list) |> project_verticies nfa
   ;;
 
   let remove_unreachable_from_final nfa =
@@ -1240,7 +1292,7 @@ struct
           let qs = (delta |> List.map snd) @ tl in
           bfs reachable qs)
     in
-    bfs Set.empty (nfa.final |> Set.to_list) |> remove_verticies nfa
+    bfs Set.empty (nfa.final |> Set.to_list) |> project_verticies nfa
   ;;
 
   let create_nfa
@@ -1313,37 +1365,6 @@ struct
     ; is_dfa = true
     ; extra = ()
     }
-  ;;
-
-  let format_nfa ppf nfa =
-    let format_state ppf state = fprintf ppf "%d" state in
-    let start_final = Set.inter nfa.start nfa.final in
-    let start = Set.diff nfa.start start_final in
-    let final = Set.diff nfa.final start_final in
-    fprintf ppf "digraph {\n";
-    fprintf ppf "node [shape=circle]\n";
-    Set.iter final ~f:(fprintf ppf "\"%a\" [shape=doublecircle]\n" format_state);
-    Set.iter start ~f:(fprintf ppf "\"%a\" [shape=octagon]\n" format_state);
-    Set.iter start_final ~f:(fprintf ppf "\"%a\" [shape=doubleoctagon]\n" format_state);
-    Array.iteri
-      (fun q delta ->
-         delta
-         |> List.map (fun (label, q') -> q', label)
-         |> Map.of_alist_multi
-         |> Map.iteri ~f:(fun ~key:q' ~data:labels ->
-           fprintf
-             ppf
-             "\"%a\" -> \"%a\" [label=\"%a\"]\n"
-             format_state
-             q
-             format_state
-             q'
-             (Format.pp_print_list
-                ~pp_sep:(fun ppf () -> Format.fprintf ppf "\n")
-                Label.pp)
-             labels))
-      nfa.transitions;
-    fprintf ppf "}"
   ;;
 
   let intersect nfa1 nfa2 =

@@ -52,7 +52,7 @@ module type SymL = sig
 
   (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
   Usegful when working with automata for LIA-constraints *)
-  val combine2 : t -> t -> AstL.t -> t
+  val combine2 : AstL.t -> t -> t -> t
 
   val combine_list : t list -> t
 
