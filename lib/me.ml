@@ -351,8 +351,6 @@ and of_rlia2 : Ast.RLia.t -> (Ir.t, string) result =
       let ir = Ir.sreg lhs re in
       ir :: sups |> Ir.land_ |> return
     | V (rlia, pow) ->
-      let* expr = helper rlia in
-      let* pow = helper pow in
       let flatten expr =
         let poly, c, sups = Symantics.prj expr in
         let e = as_atom (poly, c) in
@@ -364,10 +362,18 @@ and of_rlia2 : Ast.RLia.t -> (Ir.t, string) result =
           e, Ir.eq poly_e Z.(-c) :: sups
         end
       in
-      let e, sups = flatten expr in
-      let p, sups' = flatten pow in
-      let sups = sups @ sups' in
-      return (Ir.land_ (Ir.v e p :: sups))
+      if AstL.Lia.equal rlia pow
+      then
+        let* expr = helper rlia in
+        let e, sups = flatten expr in
+        return (Ir.land_ (Ir.v e e :: sups))
+      else
+        let* expr = helper rlia in
+        let* pow = helper pow in
+        let e, sups = flatten expr in
+        let p, sups' = flatten pow in
+        let sups = sups @ sups' in
+        return (Ir.land_ (Ir.v e p :: sups))
 ;;
 
 let ir_of_ast env ast =
