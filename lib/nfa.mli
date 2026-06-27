@@ -50,11 +50,15 @@ end *)
 module type SymL = sig
   include BasicL
 
+  val top : t
+  val bot : t
+
   (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
   Usegful when working with automata for LIA-constraints *)
   val combine2 : AstL.t -> t -> t -> t
 
   val combine_list : t list -> t
+  val negate : t -> t
 
   val filter_states
     :  ?base:int

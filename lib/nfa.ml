@@ -77,11 +77,15 @@ end
 module type SymL = sig
   include BasicL
 
+  val top : t
+  val bot : t
+
   (** [combine2 l1 l2 ph] the same as [combine l1 l2] but also uses a LIA-formula [ph] which binds [l1] and [l2]. 
   Usegful when working with automata for LIA-constraints *)
   val combine2 : AstL.t -> t -> t -> t
 
   val combine_list : t list -> t
+  val negate : t -> t
 
   val filter_states
     :  ?base:int
@@ -253,6 +257,8 @@ module Sym = struct
 
   open AstL
 
+  let top = AstL.true_
+  let bot = AstL.false_
   let const c = Lia.Const (Z.of_int c)
   let eq lhs rhs = Lia (Eq (lhs, rhs))
   let equal = AstL.equal
@@ -273,6 +279,7 @@ module Sym = struct
     else land_ [ vec1; vec2 ]
   ;;
 
+  let negate = AstL.lnot
   let combine_list vecs = land_ vecs
   let simplify = SimplI.simplify_lia
   let project = AstL.project
@@ -946,18 +953,29 @@ module Symbolic (Label : SymL) = struct
 
   let invert ?alpha nfa =
     trace_log "In invert";
-    trace_list ~name:"finals" (Set.to_list nfa.final);
     let dfa = if nfa.is_dfa then nfa else failwith "Unimplemented" in
-    let states = states dfa in
-    let final = states |> Set.diff dfa.final in
-    trace_list ~name:"finals" (Set.to_list final);
+    let transitions =
+      Array.append
+        [| [ Label.top, 0 ] |]
+        (Array.mapi
+           (fun state trans ->
+              (Label.combine_list (List.map (fun (l, _) -> Label.negate l) trans), 0)
+              :: List.map (fun (l, s) -> l, s + 1) trans)
+           nfa.transitions)
+    in
+    let final =
+      Set.diff (Set.of_list (0 -- (dfa.deg - 1))) dfa.final
+      |> Set.map ~f:(fun state -> state + 1)
+      |> fun set -> Set.add set 0
+    in
     { final
-    ; start = dfa.start
-    ; transitions = dfa.transitions
-    ; deg = dfa.deg
+    ; start = Set.map dfa.start ~f:(fun state -> state + 1)
+    ; transitions
+    ; deg = dfa.deg + 1
     ; is_dfa = true
     ; extra = dfa.extra
     }
+    |> remove_unreachable_from_final
   ;;
 
   let is_graph nfa =
