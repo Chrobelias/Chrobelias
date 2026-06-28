@@ -726,6 +726,8 @@ module Symbolic (Label : SymL) = struct
   ;;
 
   let remove_unreachable_from_final nfa =
+    trace_log "In remove_unreachable_from_final";
+    Debug.dump_nfa ~msg:"> nfa before removal: %s" format_nfa nfa;
     let reversed_transitions = nfa.transitions |> Graph.reverse in
     let visited = Array.make (length nfa) false in
     let rec bfs reachable = function
@@ -967,23 +969,20 @@ module Symbolic (Label : SymL) = struct
         [| [ Label.top, 0 ] |]
         (Array.mapi
            (fun state trans ->
-              if state = dfa.deg - 1
+              if state = length dfa - 1
               then (to_zero_sign trans, 0) :: List.map (fun (l, s) -> l, s + 1) trans
               else (to_zero trans, 0) :: List.map (fun (l, s) -> l, s + 1) trans)
            nfa.transitions)
     in
     let final =
-      Set.diff (Set.of_list (0 -- (dfa.deg - 2))) dfa.final
-      |> Set.map ~f:(fun state ->
-        trace_log "%d; " state;
-        state)
+      Set.diff (Set.of_list (0 -- (length dfa - 2))) dfa.final
       |> Set.map ~f:(fun state -> state + 1)
       |> fun set -> Set.add set 0
     in
     { final
     ; start = Set.map dfa.start ~f:(fun state -> state + 1)
     ; transitions
-    ; deg = dfa.deg + 1
+    ; deg = dfa.deg
     ; is_dfa = true
     ; extra = dfa.extra
     }
