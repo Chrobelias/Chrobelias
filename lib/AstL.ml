@@ -108,15 +108,6 @@ module Lia = struct
     | Leq _ as lia -> f lia
   ;;
 
-  let collect_lin_exp term =
-    fold_term
-      (fun lin -> function
-         | Atom (Var x) -> x :: lin
-         | _ -> lin)
-      []
-      term
-  ;;
-
   let pp fmt = function
     | Eq (term, term') -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
     | Neq (term, term') ->
@@ -358,6 +349,18 @@ let get_vars ast =
     []
     ast
   |> remove_dups
+;;
+
+let get_sign_digits base ast =
+  let vars = get_vars ast in
+  List.map
+    (fun var ->
+       lor_
+         [ Lia (Eq (Atom (Var var), Const Z.zero))
+         ; Lia (Eq (Atom (Var var), Const Z.(Z.of_int base - one)))
+         ])
+    vars
+  |> land_
 ;;
 
 let get_val ast var =

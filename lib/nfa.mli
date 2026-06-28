@@ -59,6 +59,7 @@ module type SymL = sig
 
   val combine_list : t list -> t
   val negate : t -> t
+  val get_sign_digits : ?base:int -> t -> t
 
   val filter_states
     :  ?base:int

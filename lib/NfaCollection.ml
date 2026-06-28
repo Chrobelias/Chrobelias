@@ -225,8 +225,12 @@ module MsbSym = struct
     let get_label d1 d2 = land_ [ get_const var d1; get_const exp d2 ] in
     Nfa.create_nfa2
       ~transitions:
-        [ 2, get_label (const Z.zero) (const Z.zero), 1
-        ; 2, get_label (const Z.(of_int _base - one)) (const Z.zero), 1
+        [ ( 2
+          , lor_
+              [ get_label (const Z.zero) (const Z.zero)
+              ; get_label (const Z.(of_int _base - one)) (const Z.zero)
+              ]
+          , 1 )
         ; 1, get_const exp (const Z.zero), 1
         ; 1, land_ [ Lia (geq (get var) (const Z.one)); get_const exp (const Z.one) ], 0
         ; 0, get_label (const Z.zero) (const Z.zero), 0
@@ -485,8 +489,12 @@ module MsbPar = struct
     let get_label d1 d2 = land_ [ get_const var d1; get_const exp d2 ] in
     Nfa.create_nfa2
       ~transitions:
-        [ 2, get_label (const Z.zero) (const Z.zero), 1
-        ; 2, get_label get_max_digit (const Z.zero), 1
+        [ ( 2
+          , lor_
+              [ get_label (const Z.zero) (const Z.zero)
+              ; get_label get_max_digit (const Z.zero)
+              ]
+          , 1 )
         ; 1, get_const exp (const Z.zero), 1
         ; 1, land_ [ Lia (geq (get var) (const Z.one)); get_const exp (const Z.one) ], 0
         ; 0, get_label (const Z.zero) (const Z.zero), 0

@@ -368,6 +368,7 @@ let check_sat ir
            (fun (sum, _pow) x -> Z.((baseZ * sum) + of_int x), Z.(baseZ * _pow))
            (Z.zero, Z.one)
       |> fun (num, _pow) -> Z.(num - _pow)
+    | [] -> failwith "Empty list of symbols in int_of_path"
     | _ -> failwith "Unexpected symbols in int_of_path"
   in
   let str_of_path p =
