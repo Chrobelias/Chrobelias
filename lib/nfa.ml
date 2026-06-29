@@ -725,11 +725,27 @@ module Symbolic (Label : SymL) = struct
     bfs Set.empty (nfa.start |> Set.to_list) |> project_verticies nfa
   ;;
 
-  let remove_unreachable_from_final nfa =
-    trace_log "In remove_unreachable_from_final";
-    Debug.dump_nfa ~msg:"> nfa before removal: %s" format_nfa nfa;
-    let reversed_transitions = nfa.transitions |> Graph.reverse in
-    let visited = Array.make (length nfa) false in
+  (** [backward_bfs nfa start_states] does a BFS following transitions in
+      reverse from [start_states], returning the set of reachable states.
+      Unlike [Graph.reverse], this scans forward transitions on-the-fly
+      and uses a Hashtbl for predecessor lookup, avoiding a full copy
+      of the transitions array. *)
+  let backward_bfs nfa start_states =
+    let len = length nfa in
+    let targets = Hashtbl.create len in
+    (* Build predecessor index: for each edge src--label-->dst,
+       record (label, src) as a predecessor of dst. *)
+    Array.iteri
+      (fun src delta ->
+        List.iter (fun (label, dst) ->
+          if Hashtbl.mem targets dst
+          then
+            let bucket = Hashtbl.find targets dst in
+            Hashtbl.replace targets dst ((label, src) :: bucket)
+          else Hashtbl.add targets dst [ label, src ])
+          delta)
+      nfa.transitions;
+    let visited = Array.make len false in
     let rec bfs reachable = function
       | [] -> reachable
       | q :: tl ->
@@ -738,25 +754,48 @@ module Symbolic (Label : SymL) = struct
         else (
           visited.(q) <- true;
           let reachable = Set.add reachable q in
-          let delta = Array.get reversed_transitions q in
-          let qs = (delta |> List.map snd) @ tl in
+          let qs =
+            match Hashtbl.find targets q with
+            | preds -> List.map snd preds @ tl
+            | exception Not_found -> tl
+          in
           bfs reachable qs)
     in
+    bfs Set.empty (start_states |> Set.to_list)
+  ;;
+
+  let remove_unreachable_from_final nfa =
+    trace_log "In remove_unreachable_from_final";
+    Debug.dump_nfa ~msg:"> nfa before removal: %s" format_nfa nfa;
     if Set.is_empty nfa.final
     then create_nfa ~transitions:[] ~start:[ 0 ] ~final:[] ~vars:[] ~deg:1
-    else bfs Set.empty (nfa.final |> Set.to_list) |> project_verticies nfa
+    else backward_bfs nfa nfa.final |> project_verticies nfa
   ;;
 
   let assign_weights nfa =
-    let reversed_transitions = nfa.transitions |> Graph.reverse in
-    let huge = length nfa in
-    let weights = Array.make (length nfa) huge in
+    let len = length nfa in
+    let targets = Hashtbl.create len in
+    (* Build predecessor index once and reuse for the weight BFS *)
+    Array.iteri
+      (fun src delta ->
+        List.iter (fun (label, dst) ->
+          if Hashtbl.mem targets dst
+          then
+            let bucket = Hashtbl.find targets dst in
+            Hashtbl.replace targets dst (src :: bucket)
+          else Hashtbl.add targets dst [ src ])
+          delta)
+      nfa.transitions;
+    let huge = len in
+    let weights = Array.make len huge in
     let rec bfs states weight =
       List.iter (fun state -> weights.(state) <- min weights.(state) weight) states;
       let next =
         states
         |> List.concat_map (fun state ->
-          Array.get reversed_transitions state |> List.map snd)
+          match Hashtbl.find targets state with
+          | preds -> preds
+          | exception Not_found -> [])
         |> List.filter (fun state -> weights.(state) = huge)
       in
       match next with
@@ -861,19 +900,17 @@ module Symbolic (Label : SymL) = struct
       then Label.combine2 (AstL.land_ [ nfa1.extra; nfa2.extra ])
       else Label.combine
     in
-    (* trace_log
-      "estra1 = %a; extra2 = %a"
-      AstL.pp_smtlib2
-      nfa1.extra
-      AstL.pp_smtlib2
-      nfa2.extra; *)
-    let visited = Array.make_matrix (length nfa1) (length nfa2) (-1) in
-    let q (q1, q2) = visited.(q1).(q2) in
-    let is_visited (q1, q2) = q (q1, q2) <> -1 in
+    (* Use a Hashtbl for visited state pairs instead of a dense 2D array.
+       A dense matrix of size |nfa1|×|nfa2| wastes memory when most state
+       pairs are unreachable (the common case for sparse NFAs). *)
+    let visited = Hashtbl.create (min (length nfa1) (length nfa2) * 4) in
+    let pair (q1, q2) = (q1 lsl 16) lor q2 in
+    let q (q1, q2) = Hashtbl.find visited (pair (q1, q2)) in
+    let is_visited (q1, q2) = Hashtbl.mem visited (pair (q1, q2)) in
     let visit (q1, q2) =
       if is_visited (q1, q2) |> not
       then (
-        visited.(q1).(q2) <- !counter;
+        Hashtbl.add visited (pair (q1, q2)) !counter;
         counter
         := if !counter >= Config.max_nfa_size then raise Too_big_nfa else !counter + 1)
     in
@@ -1064,7 +1101,9 @@ module Symbolic (Label : SymL) = struct
       , each (fun nfa -> nfa.final)
       , each (fun nfa -> nfa.extra) )
     in
-    let visited_nodes = ref [] in
+    let visited_nodes = Hashtbl.create 1024 in
+    let is_visited node = Hashtbl.mem visited_nodes node in
+    let mark_visited node = Hashtbl.add visited_nodes node () in
     let weigted_states = each assign_weights in
     trace_log "States have the following weights%!";
     List.iteri (fun i state -> trace_list ~name:(Int.to_string i) state) weigted_states;
@@ -1111,7 +1150,7 @@ module Symbolic (Label : SymL) = struct
         fun () ->
         trace_log "next called";
         let active_transitions =
-          List.filter (fun (_, state) -> not (List.mem state !visited_nodes)) transitions
+          List.filter (fun (_, state) -> not (is_visited state)) transitions
         in
         Label.filter_states_bool_comb ~base is_final extras active_transitions
       in
@@ -1139,23 +1178,19 @@ module Symbolic (Label : SymL) = struct
     in
     let dfs start =
       let rec rdfs path node =
-        trace_log "Visited count = %d" (List.length !visited_nodes);
+        trace_log "Visited count = %d" (Hashtbl.length visited_nodes);
         trace_log
           "rDFS on node [%a]"
           (Format.pp_print_list
              ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
              Format.pp_print_int)
           node;
-        (* trace_log "Node: ";
-        List.iter (fun x -> trace_log "%d; " x) node; *)
-        (* trace_log "\nVisited states list: ";
-        List.iter (fun x -> trace_log "%d; " x) !visited_nodes; *)
-        if not (List.mem node !visited_nodes)
-        then (* trace_log "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
+        if not (is_visited node)
+        then
           if is_final ( = ) 0 node
           then raise (Sat_found path)
           else begin
-            visited_nodes := node :: !visited_nodes;
+            mark_visited node;
             Seq.iter
               (fun batch ->
                  List.iter
@@ -1307,8 +1342,20 @@ struct
   ;;
 
   let remove_unreachable_from_final nfa =
-    let reversed_transitions = nfa.transitions |> Graph.reverse in
-    let visited = Array.make (length nfa) false in
+    let len = length nfa in
+    let targets = Hashtbl.create len in
+    (* Build predecessor index without allocating a full reverse copy *)
+    Array.iteri
+      (fun src delta ->
+        List.iter (fun (label, dst) ->
+          if Hashtbl.mem targets dst
+          then
+            let bucket = Hashtbl.find targets dst in
+            Hashtbl.replace targets dst ((label, src) :: bucket)
+          else Hashtbl.add targets dst [ label, src ])
+          delta)
+      nfa.transitions;
+    let visited = Array.make len false in
     let rec bfs reachable = function
       | [] -> reachable
       | q :: tl ->
@@ -1317,8 +1364,11 @@ struct
         else (
           visited.(q) <- true;
           let reachable = Set.add reachable q in
-          let delta = Array.get reversed_transitions q in
-          let qs = (delta |> List.map snd) @ tl in
+          let qs =
+            match Hashtbl.find targets q with
+            | preds -> List.map snd preds @ tl
+            | exception Not_found -> tl
+          in
           bfs reachable qs)
     in
     bfs Set.empty (nfa.final |> Set.to_list) |> project_verticies nfa
@@ -1398,13 +1448,15 @@ struct
 
   let intersect nfa1 nfa2 =
     let counter = ref 0 in
-    let visited = Array.make_matrix (length nfa1) (length nfa2) (-1) in
-    let q (q1, q2) = visited.(q1).(q2) in
-    let is_visited (q1, q2) = q (q1, q2) <> -1 in
+    (* Use a Hashtbl for visited state pairs instead of a dense 2D array. *)
+    let visited = Hashtbl.create (min (length nfa1) (length nfa2) * 4) in
+    let pair (q1, q2) = (q1 lsl 16) lor q2 in
+    let q (q1, q2) = Hashtbl.find visited (pair (q1, q2)) in
+    let is_visited (q1, q2) = Hashtbl.mem visited (pair (q1, q2)) in
     let visit (q1, q2) =
       if is_visited (q1, q2) |> not
       then (
-        visited.(q1).(q2) <- !counter;
+        Hashtbl.add visited (pair (q1, q2)) !counter;
         counter
         := if !counter >= Config.max_nfa_size then raise Too_big_nfa else !counter + 1)
     in

@@ -397,6 +397,20 @@ let is_used_atom (v : string) inside =
 let for_all f ir = fold (fun acc ir -> f ir |> ( && ) acc) true ir
 let for_some f ir = fold (fun acc ir -> f ir |> ( || ) acc) false ir
 
+(** Approximate size of an IR formula, used to sort conjuncts so that smaller
+    (fewer-state) NFAs are intersected first, reducing peak memory. *)
+let approx_size ir =
+  fold
+    (fun acc -> function
+       | True -> acc + 1
+       | Rel (_, term, _) -> acc + Map.length term
+       | V _ | Reg _ | SReg _ | SRegRaw _ | Stoi _ -> acc + 3
+       | Lnot _ | Land _ | Lor _ | Exists _ -> acc + 1
+       | Unsupp _ -> acc + 1)
+    0
+    ir
+;;
+
 [@@@ocaml.warnerror "-26"]
 
 type from =

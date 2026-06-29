@@ -53,42 +53,43 @@ struct
        | Ir.True -> NfaCollection.n ()
        | Ir.Lnot ir -> eval ir |> Nfa.invert
        | Ir.Land irs ->
-         let nfas =
-           List.map
-             (fun ir ->
-                let nfa = eval ir in
-                trace_log "Nfa for %a has %d nodes" Ir.pp ir (Nfa.length nfa);
-                nfa |> do_if_lsb Nfa.reverse, ir)
-             irs
-           |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
+         (* Evaluate and intersect incrementally: compute one NFA at a time,
+            intersect it with the accumulator, then force a GC to free the
+            consumed NFA before moving to the next. This avoids keeping all
+            leaf NFAs in memory simultaneously.
+            Sort by estimated complexity (term count) to intersect smaller
+            NFAs first. *)
+         let irs =
+           irs
+           |> List.sort (fun a b -> Ir.approx_size a - Ir.approx_size b)
          in
-         let rec eval_and = function
-           | (hd, _) :: [] -> hd
-           | (hd, ir) :: (hd', ir') :: tl ->
-             trace_log
-               "Intersecting\n  [%d (%a)]\n  [%d (%a)]"
-               (Nfa.length hd)
-               Ir.pp
-               ir
-               (Nfa.length hd')
-               Ir.pp
-               ir';
-             let nfa =
-               Nfa.intersect hd hd'
-               |> fun nfa ->
-               if Nfa.length nfa <= _config.good_for_minimize
-               then Nfa.minimize nfa
-               else nfa
-             in
-             let ir = Ir.land_ [ ir; ir' ] in
-             let nfas =
-               (nfa, ir) :: tl
-               |> List.sort (fun (nfa1, _) (nfa2, _) -> Nfa.length nfa1 - Nfa.length nfa2)
-             in
-             eval_and nfas
-           | [] -> NfaCollection.n ()
+         let intersect_and_free acc_nfa ir =
+           let nfa = eval ir in
+           trace_log "Nfa for %a has %d nodes" Ir.pp ir (Nfa.length nfa);
+           let nfa = nfa |> do_if_lsb Nfa.reverse in
+           trace_log
+             "Intersecting\n  [%d]\n  [%d (%a)]"
+             (Nfa.length acc_nfa)
+             (Nfa.length nfa)
+             Ir.pp
+             ir;
+           let result =
+             Nfa.intersect acc_nfa nfa
+             |> fun nfa ->
+             if Nfa.length nfa <= _config.good_for_minimize
+             then Nfa.minimize nfa
+             else nfa
+           in
+           (* Force a full major GC to immediately free the large arrays
+              of the consumed NFA (and the leaf NFA we just computed).
+              Without this, major-heap arrays from previous iterations
+              accumulate until the GC threshold is reached. *)
+           Gc.full_major ();
+           result
          in
-         eval_and nfas
+         (match irs with
+          | [] -> NfaCollection.n ()
+          | first :: rest -> List.fold_left intersect_and_free (eval first |> do_if_lsb Nfa.reverse) rest)
          |> fun nfa ->
          trace_log "Intersect result %d" (Nfa.length nfa);
          nfa |> do_if_lsb Nfa.reverse
@@ -162,7 +163,15 @@ struct
       | _ as ir -> List.find (fun (i, atom) -> Ir.equal atom ir) m |> fst |> AstL.get_pred
     in
     ( get_skeleton_exn atomics ir
-    , atomics |> List.map (fun (i, atom) -> i, to_nfa atom) |> Map.of_alist_exn
+    , ( atomics
+        |> List.map (fun (i, atom) -> i, to_nfa atom)
+        |> Map.of_alist_exn
+        |> fun nfas ->
+           (* After building all atomic NFAs (which live in the major heap),
+              force a full GC to free any intermediate NFAs created during
+              evaluation. Without this, all leaf NFAs coexist in memory. *)
+           Gc.full_major ();
+           nfas )
     , vars )
   ;;
 
@@ -381,35 +390,40 @@ let check_sat ir
     _config.base_min -- _config.base_max
     |> List.concat_map (fun base ->
       Config.config.enc_base <- base;
-      ir
-      |> MsbSym.check_sat
-      |> List.map (function
-        | `Sat model ->
-          do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
-          `Sat
-            (fun tys ->
-              let* model = model () in
-              let main_model =
-                Map.mapi
-                  ~f:(fun ~key:k ~data:v ->
-                    let ty = Map.find tys k |> Option.value ~default:`Int in
-                    match ty with
-                    | `Int ->
-                      begin try `Int (int_of_path base v) with
-                      | Invalid_argument ex as exp ->
-                        Format.printf
-                          "Something is wrong: %s\n%!"
-                          (Printexc.to_string exp);
-                        `Str (str_of_path v)
-                      end
-                    | `Str -> `Str (str_of_path v))
-                  model
-              in
-              Result.ok main_model)
-        | `Unsat ->
-          do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
-          `Unsat
-        | `Unknown -> failwith "Unexpected 'unknown' in chack_sym_sat"))
+      let result =
+        ir
+        |> MsbSym.check_sat
+        |> List.map (function
+          | `Sat model ->
+            do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
+            `Sat
+              (fun tys ->
+                let* model = model () in
+                let main_model =
+                  Map.mapi
+                    ~f:(fun ~key:k ~data:v ->
+                      let ty = Map.find tys k |> Option.value ~default:`Int in
+                      match ty with
+                      | `Int ->
+                        begin try `Int (int_of_path base v) with
+                        | Invalid_argument ex as exp ->
+                          Format.printf
+                            "Something is wrong: %s\n%!"
+                            (Printexc.to_string exp);
+                          `Str (str_of_path v)
+                        end
+                      | `Str -> `Str (str_of_path v))
+                    model
+                in
+                Result.ok main_model)
+          | `Unsat ->
+            do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
+            `Unsat
+          | `Unknown -> failwith "Unexpected 'unknown' in chack_sym_sat")
+      in
+      (* Free the large NFA arrays from this base before processing the next *)
+      Gc.full_major ();
+      result)
   in
   let chack_par_sat ir =
     trace_log "Running Parametric MSB mode";

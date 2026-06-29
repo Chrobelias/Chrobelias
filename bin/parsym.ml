@@ -2,6 +2,18 @@
 (* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Lib.Debug.trace "parsym" fmt
 
+(* Tune GC for Chrobelias's workload: large short-lived arrays (NFA transitions)
+   are allocated in the major heap. More aggressive major collections prevent
+   memory blowup from uncollected NFA arrays lingering between operations. *)
+let () =
+  Gc.set
+    { (Gc.get ()) with
+      Gc.minor_heap_size = 8_388_608  (* 8 MB — fewer minor GCs *)
+    ; Gc.space_overhead = 120         (* Trigger major GC earlier (default: 80) *)
+    ; Gc.allocation_policy = 2        (* Best-fit to reduce fragmentation *)
+    }
+;;
+
 (* let () = Memtrace.trace_if_requested ~context:"my program" () *)
 
 module Map = Base.Map.Poly
