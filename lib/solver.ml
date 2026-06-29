@@ -173,8 +173,9 @@ struct
     (* free_vars have type Ir.atom (only variables in LIA case) *)
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
     trace_log "Ir: %a" Ir.pp ir;
+    trace_log "Ir approx size = %d" (Ir.approx_size ir);
     if
-      Config.config.bool_comb_sat
+      _config.bool_comb_sat || Ir.approx_size ir >= _config.huge_for_inter
       (* We use complex acceptance condition for a list of nfas *)
     then (
       let skel, nfas, vars = ir |> eval_bool_comb in
