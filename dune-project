@@ -25,6 +25,11 @@
   ppx_regexp
   ppx_deriving
   ppx_variants_conv
+  sexplib
+  lwt
+  dune-glob
+  extunix
+  cohttp-lwt-unix
   smtml
   ounit2
   z3

@@ -366,7 +366,30 @@ let make_main_symantics ?alpha ?agressive env =
          | xs -> Ast.land_ xs)
     ;;
 
-    let lor_ x = Ast.Lor x
+    let lor_ xs =
+      let flat =
+        List.concat_map
+          (function
+            | Ast.Lor xs -> xs
+            | x -> [ x ])
+          xs
+      in
+      let compare_ast l r =
+        match l, r with
+        | Ast.True, Ast.True -> 0
+        | True, _ -> -1
+        | _, True -> 1
+        | Lnot _, _ -> -1
+        | _, Lnot _ -> 1
+        | _ -> Ast.compare l r
+      in
+      let flat = Base.List.dedup_and_sort ~compare:compare_ast flat in
+      match flat with
+      | [] -> Id_symantics.true_
+      | [ h ] -> h
+      | True :: _ -> Id_symantics.true_
+      | xs -> Ast.lor_ xs
+    ;;
 
     let relop op l r =
       let ofop =
@@ -411,7 +434,7 @@ let make_main_symantics ?alpha ?agressive env =
           | _ :: other -> Z.one
           | [] -> acc
         in
-        gcd Z.zero atoms
+        max Z.one (gcd Z.zero atoms)
       in
       let lhs' = List.filter (fun x -> Bool.not (List.mem x rhs)) lhs in
       let rhs' = List.filter (fun x -> Bool.not (List.mem x lhs)) rhs in
@@ -978,6 +1001,15 @@ end
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
 
+let subst env ast =
+  let (module S : SYM_SUGAR_AST) = make_main_symantics ~agressive:true env in
+  let rec loop ast =
+    let ast2 = apply_symantics_unsugared (module S) ast in
+    if Ast.equal ast ast2 then ast else loop ast2
+  in
+  loop ast
+;;
+
 let basic_simplify step ?multiple (env : Env.t) ast =
   (*AM: removed the following trace logger: let log =
     if step = [ 0 ] then fun ppf -> Format.ifprintf Format.std_formatter ppf else log
@@ -1026,5 +1058,5 @@ let run_basic_simplify ?(env = Env.empty) ast =
     | `Sat env -> `Sat ("presimpl int", env)
     | `Unsat -> `Unsat
     | `Unknown (ast, e, _) -> `Unknown (ast, e))
-  else `Unknown (ast, Env.empty)
+  else `Unknown (subst Env.empty ast, Env.empty)
 ;;

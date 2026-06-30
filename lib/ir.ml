@@ -486,6 +486,31 @@ let collect_atomics =
     Set.empty
 ;;
 
+(** Approximate size of an IR formula, used to sort conjuncts so that smaller
+    (fewer-state) NFAs are intersected first, reducing peak memory. *)
+
+let approx_size ir =
+  let rec helper = function
+    | True -> 1
+    | Rel (_, term, b) ->
+      let a_norm =
+        term
+        |> Map.data
+        |> List.fold_left (fun acc a -> Z.(acc + abs a)) Z.zero
+        |> Z.to_int
+      in
+      let b_log = if Z.(b = zero) then 1 else Z.(log2 (abs b)) + 1 in
+      int_of_float (sqrt (float_of_int (a_norm * b_log))) + a_norm
+    | V _ | Reg _ | SReg _ | SRegRaw _ | Stoi _ -> 3
+    | Lnot ir -> helper ir + 1
+    | Land irs -> List.fold_left (fun acc ir -> acc * helper ir) 1 irs
+    | Lor irs -> List.fold_left (fun acc ir -> acc + helper ir) 1 irs
+    | Exists (_, ir) -> 1 + helper ir
+    | Unsupp _ -> 1
+  in
+  helper ir
+;;
+
 let antiprenex =
   fun ir ->
   if _config.antiprenex_mode = `Disable

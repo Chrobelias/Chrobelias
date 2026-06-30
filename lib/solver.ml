@@ -158,6 +158,7 @@ struct
     let rec get_skeleton_exn m = function
       | Ir.Land irs -> AstL.land_ (List.map (get_skeleton_exn m) irs)
       | Ir.Lor irs -> AstL.lor_ (List.map (get_skeleton_exn m) irs)
+      | Ir.Lnot ir -> AstL.lnot (get_skeleton_exn m ir)
       | _ as ir -> List.find (fun (i, atom) -> Ir.equal atom ir) m |> fst |> AstL.get_pred
     in
     ( get_skeleton_exn atomics ir
@@ -172,8 +173,9 @@ struct
     (* free_vars have type Ir.atom (only variables in LIA case) *)
     let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
     trace_log "Ir: %a" Ir.pp ir;
+    trace_log "Ir approx size = %d" (Ir.approx_size ir);
     if
-      Config.config.bool_comb_sat
+      _config.bool_comb_sat || Ir.approx_size ir >= _config.huge_for_inter
       (* We use complex acceptance condition for a list of nfas *)
     then (
       let skel, nfas, vars = ir |> eval_bool_comb in
@@ -368,6 +370,7 @@ let check_sat ir
            (fun (sum, _pow) x -> Z.((baseZ * sum) + of_int x), Z.(baseZ * _pow))
            (Z.zero, Z.one)
       |> fun (num, _pow) -> Z.(num - _pow)
+    | [] -> failwith "Empty list of symbols in int_of_path"
     | _ -> failwith "Unexpected symbols in int_of_path"
   in
   let str_of_path p =

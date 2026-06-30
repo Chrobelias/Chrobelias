@@ -11,6 +11,7 @@ type config =
   ; mutable dump_ir : bool
   ; mutable error_check : bool
   ; mutable good_for_minimize : int
+  ; mutable huge_for_inter : int
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str | `StrBv | `Par | `Sym ]
   ; mutable mode : [ `Msb | `Lsb ]
@@ -32,7 +33,7 @@ let config =
   ; check_sat_range = false
   ; base_min = 10
   ; base_max = 10
-  ; search_depth = 0
+  ; search_depth = 5
   ; antiprenex_mode = `All
   ; bool_comb_sat = false
   ; stop_after = `Solving
@@ -41,6 +42,7 @@ let config =
   ; dump_ir = false
   ; error_check = true
   ; good_for_minimize = 15
+  ; huge_for_inter = 6000
   ; input_file = ""
   ; logic = `Sym
   ; mode = `Msb
@@ -117,6 +119,10 @@ Basic options:
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness (BASE 10)" )
+    ; ( "--active"
+      , Arg.Int (fun n -> config.huge_for_inter <- n)
+      , "<n>\tSet the maximal (approximate) number of states for the 'active' mode \
+         (DEFAULT VALUE: 6000)" )
     ; ( "--depth"
       , Arg.Int (fun n -> config.search_depth <- n)
       , "<n>\tSet the maximal neighbours depth in DFS search" )

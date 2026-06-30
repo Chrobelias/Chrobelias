@@ -41,7 +41,7 @@ cd Chrobelias
 git submodule update --init --recursive
 
 # Installing smtml dependencies.
-opam install vendor/smtml --deps-only --with-test --with-dev-setup
+opam install vendor/smtml --deps-only --with-test
 
 # Installing ChrobELIAS dependencies.
 opam install . --deps-only --with-test

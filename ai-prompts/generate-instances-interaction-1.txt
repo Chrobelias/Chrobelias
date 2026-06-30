@@ -1,0 +1,46 @@
+I have a tool to solve quantifier free Buchi arithmetic. The formulas are given in input in SMT-LIB format. 
+The syntax is the same as QF_LIA: we allow addition +, multiplication by constants (e.g., (* 3 x)), equality =, inequality <=. 
+In addition, we also have a binary predicate int.v for the Buchi predicate (int.v x y) = y is the largest power of 2 dividing x. 
+The base "2" of int.v can be changed via command line. In this way, we can solve the same formula over different bases.
+Quantifiers are not allowed.
+
+I would like you to compile for me a set of instances for this logic. They must be in SMT-LIB format, with (set-logic QF_SLIA) 
+at the beginning of the file. To start, give me a first instance, so that I can see if you understood the task.
+
+[AI gives the first instance. It contains mod]
+
+The example has a problem: it features "mod". We only allow addition, <=, =, int.v, and multiplication when the first argument is a constant, for instance (* 3 x). Give another example. 
+
+[AI gives the second instance. It is good! The AI asks if it can mix bases, writing v.int for base 2 and 3 in a single file]
+
+What you did is correct. You cannot mix bases, We only have a single binary predicate int.v, and no way to specify the base in the SMT-LIB file. However, we will try to solve these formulas "in parallel" for multiple bases: some formula will be sat in one base and unsat in another base, that's what makes them interesting. Give me another example.
+
+[AI gives a third instance, then declares it is not interesting and gives a fourth instance]
+
+Both these examples are correct. I now want you to came up with 30 example, with the following features:
+- number of variables between 1 and 6
+- number of additions between 1 and 6 
+- v.int should be present at least once in each instance. 
+You should write an .smt2 file for each example, and let me download the results. Reports in comments, inside the .smt2 files, your reasoning to create the example. You can also write a completely random example, in that case do write "random example" in comments.
+
+[AI prepares 20 instances, then I reached credit limit, with no output. After credit resets:] 
+
+Can you at least give me the 20 instances you created? You did not answer. 
+
+[AI gives the 20 instances. They all look good but do not use multiplication by constants]
+
+Please, generate more difficult examples. Recall that you can write multiplication by a constant, e.g. (* 4 x). 
+Hence, write instances with interesting coefficients, and more variables. Remember to use int.v in every instance.
+
+[AI gives the remaining 10 examples. They now contain multiplication, but no Boolean connectives, only conjunctions]
+
+None of these examples features Boolean connectives other than "and". We also allow for "or", "not" and "=>". 
+Please, write further examples featuring a more rich Boolean structure. 
+
+[AI generates examples 31-50.]
+
+Now prepare 20 new instances featuring more inequalities. Use only just 1-2 Boolean connectives. 
+I want relatively higher integers.
+
+[AI generates examples 51-70.]
+

@@ -86,6 +86,7 @@ module type SymL = sig
 
   val combine_list : t list -> t
   val negate : t -> t
+  val get_sign_digits : ?base:int -> t -> t
 
   val filter_states
     :  ?base:int
@@ -281,6 +282,7 @@ module Sym = struct
 
   let negate = AstL.lnot
   let combine_list vecs = land_ vecs
+  let get_sign_digits ?(base = _config.enc_base) = AstL.get_sign_digits base
   let simplify = SimplI.simplify_lia
   let project = AstL.project
   let pp_u = Format.pp_print_int
@@ -724,6 +726,8 @@ module Symbolic (Label : SymL) = struct
   ;;
 
   let remove_unreachable_from_final nfa =
+    trace_log "In remove_unreachable_from_final";
+    Debug.dump_nfa ~msg:"> nfa before removal: %s" format_nfa nfa;
     let reversed_transitions = nfa.transitions |> Graph.reverse in
     let visited = Array.make (length nfa) false in
     let rec bfs reachable = function
@@ -953,25 +957,32 @@ module Symbolic (Label : SymL) = struct
 
   let invert ?alpha nfa =
     trace_log "In invert";
+    Debug.dump_nfa ~msg:"> nfa before invert: %s" format_nfa nfa;
     let dfa = if nfa.is_dfa then nfa else failwith "Unimplemented" in
+    let to_zero t = Label.combine_list (List.map (fun (l, _) -> Label.negate l) t) in
+    let to_zero_sign t =
+      let label = to_zero t in
+      Label.combine (Label.get_sign_digits label) label |> Label.simplify
+    in
     let transitions =
       Array.append
         [| [ Label.top, 0 ] |]
         (Array.mapi
            (fun state trans ->
-              (Label.combine_list (List.map (fun (l, _) -> Label.negate l) trans), 0)
-              :: List.map (fun (l, s) -> l, s + 1) trans)
+              if state = length dfa - 1
+              then (to_zero_sign trans, 0) :: List.map (fun (l, s) -> l, s + 1) trans
+              else (to_zero trans, 0) :: List.map (fun (l, s) -> l, s + 1) trans)
            nfa.transitions)
     in
     let final =
-      Set.diff (Set.of_list (0 -- (dfa.deg - 1))) dfa.final
+      Set.diff (Set.of_list (0 -- (length dfa - 2))) dfa.final
       |> Set.map ~f:(fun state -> state + 1)
       |> fun set -> Set.add set 0
     in
     { final
     ; start = Set.map dfa.start ~f:(fun state -> state + 1)
     ; transitions
-    ; deg = dfa.deg + 1
+    ; deg = dfa.deg
     ; is_dfa = true
     ; extra = dfa.extra
     }

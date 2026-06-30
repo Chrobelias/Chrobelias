@@ -507,7 +507,7 @@ let make_main_symantics env =
           | _ :: other -> Z.one
           | [] -> acc
         in
-        gcd Z.zero atoms
+        max Z.one (gcd Z.zero atoms)
       in
       let lhs' = List.filter (fun x -> Bool.not (List.mem x rhs)) lhs in
       let rhs' = List.filter (fun x -> Bool.not (List.mem x lhs)) rhs in
