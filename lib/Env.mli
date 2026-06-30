@@ -1,6 +1,7 @@
 type t
 
 exception Occurs
+exception BadArg
 
 val empty : t
 val merge_exn : t -> t -> t

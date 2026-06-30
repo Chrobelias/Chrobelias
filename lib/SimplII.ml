@@ -617,7 +617,7 @@ let eq_propagation : ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t =
   in
   let safe_extend_exn env v rhs =
     try Some (extend_exn env v rhs) with
-    | Env.Occurs -> None
+    | Env.Occurs | Env.BadArg -> None
   in
   let fold_and_filter multiple f acc xs =
     let acc = ref acc in

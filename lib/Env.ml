@@ -77,6 +77,7 @@ let equal (env : t) (env' : t) =
 (* let is_absent_key k map = not (SM.mem map k) *)
 
 exception Occurs
+exception BadArg
 
 let occurs_var_exn =
   let rec helper : 'a. t -> string -> 'a Ast.RLia.term -> unit =
@@ -92,12 +93,12 @@ let occurs_var_exn =
          | Some t -> helper env v t)
       | Const _ -> ()
       | RLia.Add xs | RLia.Mul xs -> List.iter (helper env v) xs
-      | x ->
-        Format.kasprintf
+      | x -> raise BadArg
+    (* Format.kasprintf
           failwith
           "not implemented in occurs_var: %a"
           Ast.pp_term_smtlib2
-          x
+          x *)
     and fs () =
       let open Ast in
       function
@@ -107,13 +108,13 @@ let occurs_var_exn =
          | None -> ()
          | Some t -> helper env v t)
       | Ast.RLia.Str_const _ -> ()
-      | x ->
-        Format.kasprintf
+      | x -> raise BadArg
+      (* Format.kasprintf
           failwith
           "not implemented in occurs_var: %a; var = %s"
           Ast.pp_term_smtlib2
           x
-          v
+          v *)
     in
     Ast.RLia.fold_term fz fs () term
   in
@@ -125,7 +126,7 @@ let occurs_var env v term =
     occurs_var_exn env v term;
     false
   with
-  | Occurs -> true
+  | Occurs | BadArg -> true
 ;;
 
 let add_cstrt map (type a) (key : a Ast.atom) (data : a term) =
