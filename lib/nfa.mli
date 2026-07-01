@@ -139,14 +139,14 @@ module type BasicType = sig
   val run : ?base:int -> t -> bool
 
   val any_path : ?base:int -> t -> int list -> (v list list * int) option
-  val run_bool_comb : ?base:int -> AstL.t -> (int, t) Map.t -> bool
+  val run_bool_comb : ?base:int -> AstL.t -> (int, t) Map.t -> bool Lwt.t
 
   val any_path_bool_comb
     :  ?base:int
     -> AstL.t
     -> (int, t) Map.t
     -> int list
-    -> (v list list * int) option
+    -> (v list list * int) option Lwt.t
 
   (** [intersect a1 a2] returns an nfa recognizing the intersection of the languages 
   recognizable by [a1] and [a2]. *)
@@ -209,14 +209,14 @@ module Parametric (Label : SymL) : sig
 
   val run2 : base:int -> t -> bool
   val any_path2 : base:int -> t -> int list -> (v list list * int) option
-  val run_bool_comb2 : base:int -> AstL.t -> (int, t) Map.t -> bool
+  val run_bool_comb2 : base:int -> AstL.t -> (int, t) Map.t -> bool Lwt.t
 
   val any_path_bool_comb2
     :  base:int
     -> AstL.t
     -> (int, t) Map.t
     -> int list
-    -> (v list list * int) option
+    -> (v list list * int) option Lwt.t
 end
 
 module type Type = sig

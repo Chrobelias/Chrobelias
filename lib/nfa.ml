@@ -432,14 +432,14 @@ module type BasicType = sig
   val run : ?base:int -> t -> bool
 
   val any_path : ?base:int -> t -> int list -> (v list list * int) option
-  val run_bool_comb : ?base:int -> AstL.t -> (int, t) Map.t -> bool
+  val run_bool_comb : ?base:int -> AstL.t -> (int, t) Map.t -> bool Lwt.t
 
   val any_path_bool_comb
     :  ?base:int
     -> AstL.t
     -> (int, t) Map.t
     -> int list
-    -> (v list list * int) option
+    -> (v list list * int) option Lwt.t
 
   (** [intersect a1 a2] returns an nfa recognizing the intersection of the languages 
   recognizable by [a1] and [a2]. *)
@@ -1046,12 +1046,15 @@ module Symbolic (Label : SymL) = struct
     }
   ;;
 
+  let ( let* ) = Lwt.bind
+  let return = Lwt.return
+
   (* This function takes on input 
   1) [skel]: a Boolean skeleton, where leafs have names Atom_i; 
   2) [nfas]: a map from i to nfa that correspond to atomic formulas;
   3) [vars] -- here, only a list of numbers of vars *)
   let any_path_bool_comb ?(base = _config.enc_base) skel (nfas : (int, t) Map.t) vars =
-    let exception Sat_found of vv list in
+    (*let exception Sat_found of vv list in*)
     let nfas' = Map.data nfas in
     trace_log "Nfas:";
     List.iter (fun nfa -> Debug.dump_nfa ~msg:"> nfa: %s" format_nfa nfa) nfas';
@@ -1153,44 +1156,59 @@ module Symbolic (Label : SymL) = struct
         if not (List.mem node !visited_nodes)
         then (* trace_log "Node to ast: %a" AstL.pp_smtlib2 (to_ast node); *)
           if is_final ( = ) 0 node
-          then raise (Sat_found path)
+          then return (Some path)
           else begin
             visited_nodes := node :: !visited_nodes;
-            Seq.iter
-              (fun batch ->
-                 List.iter
-                   (fun (label, next_node) -> rdfs (label :: path) next_node)
-                   batch)
-              (successors node)
+            Lwt_seq.fold_left_s
+              (fun acc batch ->
+                 match acc with
+                 | Some _ as acc -> return acc
+                 | None ->
+                   Lwt_list.fold_left_s
+                     (fun acc (label, next_node) ->
+                        match acc with
+                        | Some _ as acc -> return acc
+                        | None ->
+                          let* () = Lwt.pause () in
+                          rdfs (label :: path) next_node)
+                     None
+                     batch)
+              None
+              (successors node |> Lwt_seq.of_seq)
           end
         else (
           trace_log "node already visited";
-          ())
+          return None)
       in
       rdfs [] start
     in
-    let inspect state =
-      try
-        let _ = dfs state in
+    let inspect state = dfs state in
+    let* r =
+      Lwt_list.fold_left_s
+        (fun acc a ->
+           match acc with
+           | Some acc -> Lwt.return (Some acc)
+           | None -> inspect a)
         None
-      with
-      | Sat_found path -> Some path
+        starts
     in
-    match List.find_map inspect starts with
-    | Some [] -> Some (List.map (fun _ -> []) vars, 0)
+    match r with
+    | Some [] -> return (Some (List.map (fun _ -> []) vars, 0))
     | Some p ->
       let p = List.rev p in
       let length = List.length p in
-      Some
-        ( List.map
-            (fun var -> List.init length (fun i -> Label.get (List.nth p i) var))
-            vars
-        , length )
-    | None -> None
+      return
+        (Some
+           ( List.map
+               (fun var -> List.init length (fun i -> Label.get (List.nth p i) var))
+               vars
+           , length ))
+    | None -> return None
   ;;
 
   let run_bool_comb ?(base = _config.enc_base) skel nfas =
-    any_path_bool_comb ~base skel nfas [] |> Option.is_some
+    let* r = any_path_bool_comb ~base skel nfas [] in
+    r |> Option.is_some |> Lwt.return
   ;;
 end
 
@@ -1828,7 +1846,10 @@ module Lsb (Label : L) = struct
   let any_path = any_path ~nozero:false
   let run ?base nfa = any_path nfa [] |> Option.is_some
   let any_path_bool_comb ?base skel nfas vars = failwith "Unimplemented"
-  let run_bool_comb ?base skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
+
+  let run_bool_comb ?base skel nfas =
+    any_path_bool_comb skel nfas [] |> Option.is_some |> Lwt.return
+  ;;
 
   let minimize nfa =
     nfa
@@ -1943,7 +1964,10 @@ module Msb (Label : L) = struct
 
   let run ?base nfa = any_path nfa [] |> Option.is_some
   let any_path_bool_comb ?base skel nfas vars = failwith "Unimplemented"
-  let run_bool_comb ?base skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
+
+  let run_bool_comb ?base skel nfas =
+    any_path_bool_comb skel nfas [] |> Option.is_some |> Lwt.return
+  ;;
 
   let of_lsb (nfa : Lsb(Label).t) : t =
     let nfa = minimize_not_very_strong nfa in
