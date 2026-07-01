@@ -12,10 +12,19 @@ let ( -- ) i j =
 
 let do_if_range f = if _config.base_min < _config.base_max then f () else ()
 
-let with_to f =
+(* let with_to f =
   if Option.is_some _config.base_to
   then Utils.with_timeout (Option.get _config.base_to) (fun () -> f)
   else fun () -> f
+;; *)
+
+let with_to2 f =
+  match _config.base_to with
+  | Some timeout ->
+    fun a ->
+      Lwt_main.(
+        run (Lwt_unix.with_timeout (timeout |> Int.to_float) (fun () -> Lwt.return (f a))))
+  | None -> f
 ;;
 
 module Set = Base.Set.Poly
@@ -256,10 +265,8 @@ module MsbSym =
       ;;
 
       let bool_comb_handler skel nfas vars free_vars =
-        let any_path = with_to NfaSym.any_path_bool_comb in
-        match
-          any_path () skel nfas (List.map (fun v -> Map.find_exn vars v) free_vars)
-        with
+        let any_path = with_to2 NfaSym.any_path_bool_comb in
+        match any_path skel nfas (List.map (fun v -> Map.find_exn vars v) free_vars) with
         | Some (model, _) ->
           [ Some
               (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
@@ -311,14 +318,9 @@ module MsbPar = struct
         let bool_comb_handler skel nfas vars free_vars =
           _config.base_min -- _config.base_max
           |> List.map (fun base ->
-            let any_path = with_to NfaPar.any_path_bool_comb2 in
+            let any_path = with_to2 (NfaPar.any_path_bool_comb2 ~base) in
             match
-              any_path
-                ()
-                ~base
-                skel
-                nfas
-                (List.map (fun v -> Map.find_exn vars v) free_vars)
+              any_path skel nfas (List.map (fun v -> Map.find_exn vars v) free_vars)
             with
             | Some (model, _) ->
               do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);

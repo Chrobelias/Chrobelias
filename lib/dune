@@ -22,7 +22,7 @@
   SimplII
   Me
   Utils)
- (libraries base angstrom bitv smtml unix iter zarith)
+ (libraries base angstrom bitv smtml unix iter zarith lwt.unix)
  (inline_tests)
  (preprocess
   (pps
