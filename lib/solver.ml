@@ -1,5 +1,6 @@
 (* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
+(* Copyright 2024-2026, Chrobelias. *)
+
 let trace_log fmt = Debug.trace "solver" fmt
 let _config = Config.config
 let _base = _config.enc_base
@@ -10,6 +11,12 @@ let ( -- ) i j =
 ;;
 
 let do_if_range f = if _config.base_min < _config.base_max then f () else ()
+
+let with_to f =
+  if Option.is_some _config.base_to
+  then Utils.with_timeout (Option.get _config.base_to) (fun () -> f)
+  else fun () -> f
+;;
 
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
@@ -249,11 +256,9 @@ module MsbSym =
       ;;
 
       let bool_comb_handler skel nfas vars free_vars =
+        let any_path = with_to NfaSym.any_path_bool_comb in
         match
-          NfaSym.any_path_bool_comb
-            skel
-            nfas
-            (List.map (fun v -> Map.find_exn vars v) free_vars)
+          any_path () skel nfas (List.map (fun v -> Map.find_exn vars v) free_vars)
         with
         | Some (model, _) ->
           [ Some
@@ -306,8 +311,10 @@ module MsbPar = struct
         let bool_comb_handler skel nfas vars free_vars =
           _config.base_min -- _config.base_max
           |> List.map (fun base ->
+            let any_path = with_to NfaPar.any_path_bool_comb2 in
             match
-              NfaPar.any_path_bool_comb2
+              any_path
+                ()
                 ~base
                 skel
                 nfas

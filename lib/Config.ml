@@ -3,6 +3,7 @@ type config =
   ; mutable check_sat_range : bool
   ; mutable base_min : int
   ; mutable base_max : int
+  ; mutable base_to : int option
   ; mutable search_depth : int
   ; mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bool_comb_sat : bool
@@ -33,6 +34,7 @@ let config =
   ; check_sat_range = false
   ; base_min = 10
   ; base_max = 10
+  ; base_to = None
   ; search_depth = 5
   ; antiprenex_mode = `All
   ; bool_comb_sat = false
@@ -42,7 +44,7 @@ let config =
   ; dump_ir = false
   ; error_check = true
   ; good_for_minimize = 15
-  ; huge_for_inter = 50000
+  ; huge_for_inter = 6000
   ; input_file = ""
   ; logic = `Sym
   ; mode = `Msb
@@ -96,12 +98,13 @@ Basic options:
       , "<n>\tSet the encoding base for integer representation (DEFAULT VALUE: 10)" )
     ; ( "-bmin"
       , Arg.Int (fun n -> config.base_min <- n)
-      , "<n>\tSet the minimal encoding base for parametric check-sat (DEFAULT VALUE: 10)"
-      )
+      , "<n>\tSet the minimal encoding base for check-sat (DEFAULT VALUE: 10)" )
     ; ( "-bmax"
       , Arg.Int (fun n -> config.base_max <- n)
-      , "<n>\tSet the maximal encoding base for parametric check-sat (DEFAULT VALUE: 10)"
-      )
+      , "<n>\tSet the maximal encoding base for check-sat (DEFAULT VALUE: 10)" )
+    ; ( "-bTO"
+      , Arg.Int (fun n -> config.base_to <- Some n)
+      , "<n>\tSet the timeout value for check-sat per base" )
     ; ( "-lazy"
       , Arg.Unit (fun () -> config.bool_comb_sat <- true)
       , "\tCheck satisfiability without performing Boolean operations over automata, \

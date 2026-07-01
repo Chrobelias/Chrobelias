@@ -6,6 +6,8 @@ module Set = Base.Set.Poly
 
 let ( let* ) = Option.bind
 
+exception Timeout
+
 let option_map_to_map_option (map : ('a, 'b option) Map.t) : ('a, 'b) Map.t option =
   Map.fold map ~init:(Some Map.empty) ~f:(fun ~key ~data acc ->
     let* acc = acc in
@@ -201,4 +203,26 @@ let find_map_n n f lst =
       else aux acc count tl
   in
   aux [] n lst
+;;
+
+let with_timeout seconds f x =
+  let handle_sigalrm _ =
+    Format.printf "I am here!!! Raise me!\n%!";
+    raise Timeout
+  in
+  let old_handler = Sys.signal Sys.sigalrm (Sys.Signal_handle handle_sigalrm) in
+  try
+    let _ = Unix.alarm seconds in
+    let result = f x in
+    let _ = Unix.alarm 0 in
+    Sys.set_signal Sys.sigalrm old_handler;
+    result
+  with
+  | Timeout ->
+    Sys.set_signal Sys.sigalrm old_handler;
+    failwith "Function execution exceeded time limit"
+  | exn ->
+    let _ = Unix.alarm 0 in
+    Sys.set_signal Sys.sigalrm old_handler;
+    raise exn
 ;;
