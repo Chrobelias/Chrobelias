@@ -67,7 +67,7 @@ def main(results_dir, output_csv, max_time):
                     break
 
             if time != max_time and output == "timeout":
-                output = "error: " + error_msg
+                output = "unknown"
 
         rows.append([instance, output, time])
 
