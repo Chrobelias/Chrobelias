@@ -119,13 +119,16 @@ Basic options:
       (* ; ( "--bfs"
       , Arg.Unit (fun () -> config.path_search <- `Bfs)
       , "\tSwitch to bfs in parametric check_sat\t" ) *)
-    ; ( "--check-model"
-      , Arg.Unit (fun () -> config.check_model <- true)
-      , "Сalculate a model and check its correctness (BASE 10)" )
     ; ( "--active"
       , Arg.Int (fun n -> config.huge_for_inter <- n)
       , "<n>\tSet the maximal (approximate) number of states for the 'active' mode \
          (DEFAULT VALUE: 6000)" )
+    ; ( "--check-model"
+      , Arg.Unit (fun () -> config.check_model <- true)
+      , "Сalculate a model and check its correctness (BASE 10)" )
+    ; ( "--info"
+      , Arg.Unit (fun () -> config.with_info <- true)
+      , "Print results for each base" )
     ; ( "--depth"
       , Arg.Int (fun n -> config.search_depth <- n)
       , "<n>\tSet the maximal neighbours depth in DFS search" )

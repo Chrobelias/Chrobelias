@@ -1,6 +1,5 @@
 (* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2026, Chrobelias. *)
-
+(* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "solver" fmt
 let _config = Config.config
 let _base = _config.enc_base
@@ -10,15 +9,11 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let do_if_range f = if _config.base_min < _config.base_max then f () else ()
+let do_if_range f =
+  if _config.base_min < _config.base_max && _config.with_info then f () else ()
+;;
 
-(* let with_to f =
-  if Option.is_some _config.base_to
-  then Utils.with_timeout (Option.get _config.base_to) (fun () -> f)
-  else fun () -> f
-;; *)
-
-let with_to2 f =
+let with_to f =
   match _config.base_to with
   | Some timeout ->
     begin try Lwt_main.(run (Lwt_unix.with_timeout (timeout |> Int.to_float) f)) with
@@ -266,7 +261,7 @@ module MsbSym =
 
       let bool_comb_handler skel nfas vars free_vars =
         match
-          with_to2 (fun () ->
+          with_to (fun () ->
             NfaSym.any_path_bool_comb
               skel
               nfas
@@ -324,7 +319,7 @@ module MsbPar = struct
           _config.base_min -- _config.base_max
           |> List.map (fun base ->
             match
-              with_to2 (fun () ->
+              with_to (fun () ->
                 NfaPar.any_path_bool_comb2
                   ~base
                   skel
