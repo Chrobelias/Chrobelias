@@ -19,6 +19,7 @@ type config =
   ; mutable over_approx : bool
   ; mutable path_search : [ `Dfs | `Bfs ]
   ; mutable pre_simpl : bool
+  ; mutable problem : [ `Uni | `Exi ]
   ; mutable quiet : bool
   ; mutable stop_after : [ `Simpl | `Pre_simplify | `Solving ]
   ; mutable under_approx : int
@@ -50,6 +51,7 @@ let config =
   ; mode = `Msb
   ; over_approx = false
   ; path_search = `Dfs
+  ; problem = `Exi
   ; pre_simpl = true
   ; quiet = false
   ; under_approx = -1
@@ -82,7 +84,8 @@ let max_nfa_size =
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let usage_msg =
-    {|Parametric Symbolic Büchi Arithmetic Solver in defferent bases.
+    {|Solver for parametric symbolic quantifier-free Büchi arithmetic with unay regular constraints in defferent bases.
+
 Usage: parsym [options] <file.smt2>
 
 Basic options:
@@ -113,6 +116,13 @@ Basic options:
       , Arg.Unit (fun n -> config.logic <- `Par)
       , "\t\tCheck satisfiability for all bases in [bmin; bmax] using parametric \
          symbolic automata" )
+    ; ( "-problem"
+      , Arg.String
+          (function
+            | "e" | "existence" -> config.problem <- `Exi
+            | "u" | "universality" -> config.problem <- `Uni
+            | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
+      , "\tProblem for the range of bases [e; u] (DEFAULT VALUE: existence)" )
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
@@ -128,7 +138,7 @@ Basic options:
       , "Сalculate a model and check its correctness (BASE 10)" )
     ; ( "--info"
       , Arg.Unit (fun () -> config.with_info <- true)
-      , "Print results for each base" )
+      , "\tPrint results for each base" )
     ; ( "--depth"
       , Arg.Int (fun n -> config.search_depth <- n)
       , "<n>\tSet the maximal neighbours depth in DFS search" )

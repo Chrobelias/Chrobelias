@@ -17,7 +17,7 @@ let with_to f =
   match _config.base_to with
   | Some timeout ->
     begin try Lwt_main.(run (Lwt_unix.with_timeout (timeout |> Int.to_float) f)) with
-    | _ -> None
+    | _ -> raise Utils.Timeout
     end
   | None -> Lwt_main.run (f ())
 ;;
@@ -223,7 +223,7 @@ struct
     |> List.map (function
       | Some model ->
         if Map.is_empty model
-        then `Sat (fun () -> Result.error `No_model)
+        then `Unknown
         else sat_if_no_unsupp (fun () -> Result.Ok model)
       | None -> `Unsat)
   ;;
@@ -260,18 +260,23 @@ module MsbSym =
       ;;
 
       let bool_comb_handler skel nfas vars free_vars =
-        match
-          with_to (fun () ->
-            NfaSym.any_path_bool_comb
-              skel
-              nfas
-              (List.map (fun v -> Map.find_exn vars v) free_vars))
+        try
+          match
+            with_to (fun () ->
+              NfaSym.any_path_bool_comb
+                skel
+                nfas
+                (List.map (fun v -> Map.find_exn vars v) free_vars))
+          with
+          | Some (model, _) ->
+            [ Some
+                (model
+                 |> List.mapi (fun i v -> List.nth free_vars i, v)
+                 |> Map.of_alist_exn)
+            ]
+          | None -> [ None ]
         with
-        | Some (model, _) ->
-          [ Some
-              (model |> List.mapi (fun i v -> List.nth free_vars i, v) |> Map.of_alist_exn)
-          ]
-        | None -> [ None ]
+        | Utils.Timeout -> [ Some Map.empty ]
       ;;
 
       let handler nfa vars free_vars =
@@ -318,23 +323,28 @@ module MsbPar = struct
         let bool_comb_handler skel nfas vars free_vars =
           _config.base_min -- _config.base_max
           |> List.map (fun base ->
-            match
-              with_to (fun () ->
-                NfaPar.any_path_bool_comb2
-                  ~base
-                  skel
-                  nfas
-                  (List.map (fun v -> Map.find_exn vars v) free_vars))
+            try
+              match
+                with_to (fun () ->
+                  NfaPar.any_path_bool_comb2
+                    ~base
+                    skel
+                    nfas
+                    (List.map (fun v -> Map.find_exn vars v) free_vars))
+              with
+              | Some (model, _) ->
+                do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
+                Some
+                  (model
+                   |> List.mapi (fun i v -> List.nth free_vars i, v)
+                   |> Map.of_alist_exn)
+              | None ->
+                do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
+                None
             with
-            | Some (model, _) ->
-              do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
-              Some
-                (model
-                 |> List.mapi (fun i v -> List.nth free_vars i, v)
-                 |> Map.of_alist_exn)
-            | None ->
-              do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
-              None)
+            | Utils.Timeout ->
+              do_if_range (fun () -> Format.printf "base %d: timeout\n%!" base);
+              Some Map.empty)
         ;;
 
         let handler nfa vars free_vars =
@@ -423,7 +433,9 @@ let check_sat ir
         | `Unsat ->
           do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
           `Unsat
-        | `Unknown -> failwith "Unexpected 'unknown' in chack_sym_sat"))
+        | `Unknown ->
+          Format.printf "base %d: timeout\n%!" base;
+          `Unknown ir))
   in
   let chack_par_sat ir =
     trace_log "Running Parametric MSB mode";

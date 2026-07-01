@@ -1161,6 +1161,7 @@ module Symbolic (Label : SymL) = struct
             visited_nodes := node :: !visited_nodes;
             Lwt_seq.fold_left_s
               (fun acc batch ->
+                 let* () = Lwt.pause () in
                  match acc with
                  | Some _ as acc -> return acc
                  | None ->
@@ -1168,9 +1169,7 @@ module Symbolic (Label : SymL) = struct
                      (fun acc (label, next_node) ->
                         match acc with
                         | Some _ as acc -> return acc
-                        | None ->
-                          let* () = Lwt.pause () in
-                          rdfs (label :: path) next_node)
+                        | None -> rdfs (label :: path) next_node)
                      None
                      batch)
               None

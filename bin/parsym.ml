@@ -147,14 +147,20 @@ let check_sat _ ast : rez list =
       else failwith "Only msb mode supported"
     | _ -> [ apporx_rez ]
   in
-  if
-    List.exists
-      (function
-        | Unsat _ -> true
-        | _ -> false)
+  let answers =
+    List.fold_left
+      (fun (s, u, n) ->
+         (function
+           | Sat _ -> s || true, u, n
+           | Unsat _ -> s, u || true, n
+           | Unknown _ -> s, u, n || true))
+      (false, false, false)
       results
-  then Format.printf "unsat\n%!"
-  else Format.printf "sat\n%!";
+  in
+  (match _config.problem, answers with
+   | `Uni, (true, false, false) | `Exi, (true, _, _) -> Format.printf "sat\n%!"
+   | `Uni, (_, false, true) | `Exi, (_, _, true) -> Format.printf "unknown\n%!"
+   | _ -> Format.printf "unsat\n%!");
   results
 ;;
 
