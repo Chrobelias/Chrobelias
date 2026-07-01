@@ -2,12 +2,10 @@
 ; Meaning: RANDOM instance with 6 variables and 5 int.v atoms.
 ; Is there x, y, z, w, u, vv with:
 ;   v(x, y), v(y, z), v(z, w), v(w, u), v(u, vv),
-;   6*x <= 25*vv + z,
-;   vv + u <= y?
+;   6*x <= 25*vv + z?
 ; A full depth-5 iterated valuation chain. The chain x -> y -> z -> w -> u -> vv
 ; must be consistent. This tests deep nesting and is very hard for any base.
 ; The constraint 6x <= 25*vv + z links the top and bottom of the chain.
-; 6 = 2*3, 25 = 5^2 are deliberately chosen to be cross-base.
 
 (set-logic QF_SLIA)
 (declare-fun x () Int)
@@ -25,7 +23,6 @@
     (int.v w u)
     (int.v u vv)
     (<= (* 6 x) (+ (* 25 vv) z))
-    (<= (+ vv u) y)
   )
 )
 (check-sat)
