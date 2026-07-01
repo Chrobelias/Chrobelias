@@ -11,7 +11,7 @@ It will turn out to be helpful, especially to quickly copy-paste commands while 
 
 GNU `screen` is a command that allows you to run multiple separate sessions within a single 
 terminal. For us, its most important feature is the ability to detach from a session, 
-which leaves it running in the background even after we disconnect from the "main" session.  
+which leaves it running in the background even after we disconnect from the "main" session.
 In the context of a remote server, this means we can close the connection to the server 
 while the experiments are still running, and reconnect only at a later time (hopefully 
 to find the results waiting for us).
@@ -21,7 +21,7 @@ Here is a small cheat sheet. All these commands are assumed to be typed from out
 
 - `screen -S session_name` : create a new session 
 - `screen -ls` : print all running sessions 
-- `screen -X -S session_name -p 0 kill` : kills a session 
+- `screen -X -S session_name -p 0 kill` : kill a session 
 - `screen -R session_name` : reattach to a detached session
 
 Once you type `screen -S session_name` (or, later, `screen -R session_name`) you 
@@ -29,7 +29,7 @@ will be catapulted in another terminal. You will need however a way to interact
 with your original terminal, for instance to signal that you want to detach from 
 the current session. This is how you "control" `screen`. Everything starts with 
 by typing the sequence `ctrl+a`. After this, different keys perform different actions.
-For instance, `ctrl+a` followed by `?` (in short, `ctrl+a ?`) brings up the help page,  
+For instance, `ctrl+a` followed by `?` (in short, `ctrl+a ?`) brings up the help page,
 which contains the default keybindings. 
 
 The only keybinding we really need is `ctrl+a d` which detaches you from the session. 
@@ -45,7 +45,7 @@ something like this:
 6. check if the experiments have finished (optional) 
 7. `ctrl+a d` (optional)
 9. `screen -X -S benchmarking -p 0 kill` 
-10. do whathever you need with the results of the experiments
+10. do whatever you need to do with the results of the experiments
 
 ### GNU parallel 
 
@@ -56,15 +56,16 @@ run the experiments. If, for instance, you are evaluating a memory-intensive
 tool, setting it to `100%` might saturate the ram, the swap, and the patience 
 of the IT team that manages the server. 
 
-You must also create a directory, lest call it `results`, to store 
-the results of the computation. After this, using GNU `parallel` is very easy. 
-Just write something like: 
+You must also create a directory, let's call it `results`, to store 
+the results of the computation. For simplicity, let us also assume that you are 
+benchmarking a tool, and that you have a list `list-of-instances.txt` you want to 
+benchmark it on. This is very easy to do with GNU `parallel`. Just write something like: 
 
 `parallel --timeout seconds --jobs ./path-to/cpu-usage --tmpdir ./path-to/results --files "(set -x; command time --format=%e ./path-to/tool path-to/instances/{1}) 2>&1 :::: ./path-to/list-of-instances.txt`
 
 The command is clearly self-explanatory, especially the `::::` part. For you, 
 it most likely suffices to know that the command reads the list of instances from `list-of-instances.txt`
-and instantiate the command `(set -x; ... {1})` by giving to the variable `{1}` the name of one instance.  
+and instantiate the command `(set -x; ... {1})` by giving to the variable `{1}` the name of one instance.
 Each of the resulting commands is sent to a distinct CPU, respecting the constraints given in `cpu-usage`. 
 The results are stored in `results`. A single instance is killed after `seconds` many seconds, and 
 because we use `command time` in the files of the `results` folder you will also see how much time did 
