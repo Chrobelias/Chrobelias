@@ -654,6 +654,47 @@ let simpl ir =
     | ir -> ir)
 ;;
 
+let simpl_divisibility ir =
+  let unique_vars =
+    fold
+      (fun acc -> function
+         | Reg (_, atoms) -> atoms @ acc
+         | V (atom, atom') | Stoi (atom, atom') -> atom :: atom' :: acc
+         | SReg (atom, _) | SRegRaw (atom, _) -> atom :: acc
+         | Rel (_, term, _) -> Map.keys term @ acc
+         | _ -> acc)
+      []
+      ir
+    |> Utils.unique
+  in
+  ir
+  |> map (function
+    | Rel (Eq, term, c) as equality ->
+      let uniques =
+        Map.fold term ~init:[] ~f:(fun ~key ~data acc ->
+          if List.mem key unique_vars then (key, data) :: acc else acc)
+      in
+      (match uniques with
+       | x :: xs -> begin
+         let var, coeff =
+           List.fold_left
+             (fun (x_key, x_coeff) (key, data) ->
+                if data < x_coeff then key, data else x_key, x_coeff)
+             x
+             xs
+         in
+         let term' =
+           term
+           |> Map.mapi ~f:(fun ~key ~data ->
+             if eq_atom key var then data else Z.(data mod coeff))
+           |> Map.filter ~f:(fun coeff -> Z.(coeff <> zero))
+         in
+         Rel (Eq, term', Z.(c mod coeff))
+         end
+       | [] -> equality)
+    | ir -> ir)
+;;
+
 let simpl_ineq ir =
   let simpl_ineq ir =
     let merge lowb uppb =

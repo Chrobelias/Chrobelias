@@ -1,20 +1,20 @@
 (* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
-let trace_log fmt = Lib.Debug.trace "parsym" fmt
+(* Copyright 2026, Parsym. *)
+
+open Lib
+
+let trace_log fmt = Debug.trace "parsym" fmt
 
 (* let () = Memtrace.trace_if_requested ~context:"my program" () *)
 
 module Map = Base.Map.Poly
 
-let () =
-  trace_log "Starting Chrobelias with config: %a" Lib.Config.pp_config Lib.Config.config
-;;
-
+let () = trace_log "Starting Chrobelias with config: %a" Config.pp_config Config.config
 let answer_guess = ref None
 let sat_found = ref false
 let set_guess v = answer_guess := Some v
-let _config = Lib.Config.config
-let _base = Lib.Config.config.enc_base
+let _config = Config.config
+let _base = Config.config.enc_base
 
 let () =
   Sys.set_signal
@@ -30,11 +30,11 @@ let () =
 type rez =
   | Sat of
       string
-      * Lib.Ast.t
-      * Lib.Env.t
-      * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t -> (Lib.Ir.model, [ `No_model ]) Result.t)
-      * (string, Lib.Nfa.Lsb(Lib.Nfa.Str).u) Base.Map.Poly.t
-  | Unknown of Lib.Ast.t * Lib.Env.t
+      * Ast.t
+      * Env.t
+      * ((Ir.atom, [ `Str | `Int ]) Map.t -> (Ir.model, [ `No_model ]) Result.t)
+      * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t
+  | Unknown of Ast.t * Env.t
   | Unsat of string
 
 let unknown ast e = Unknown (ast, e)
@@ -108,23 +108,23 @@ let join_int_model prefix m =
   |> Map.map_keys_exn ~f:(fun name -> Ir.var name)
 ;;
 
-let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
+let print_model model = Format.printf "%s\n%!" (Ir.model_to_str model)
 
 let check_sat _ ast : rez list =
   let check_nfa_sat ast e =
-    trace_log "Env      :\n  %a\n%!" (Lib.Env.pp ~title:"") e;
-    match Lib.Me.ir_of_ast e ast with
+    trace_log "Env      :\n  %a\n%!" (Env.pp ~title:"") e;
+    match Me.ir_of_ast e ast with
     | Ok ir ->
-      let ir = ir |> Lib.Ir.simpl in
+      let ir = ir |> Ir.simpl |> Ir.simpl_divisibility in
       (match ir with
        | True -> [ sat "simpl" ast e (fun _ -> Result.Ok Map.empty) Map.empty ]
        | Lnot True -> [ Unsat "simpl" ]
        | _ ->
-         if _config.dump_simpl then Format.printf "%a\n%!" Lib.Ir.pp_smtlib2 ir;
+         if _config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;
          if _config.stop_after = `Simpl then exit 0;
          trace_log "Starting NFA Solver ...";
          ir
-         |> Lib.Solver.check_sat
+         |> Solver.check_sat
          |> List.map (function
            | `Sat get_model -> sat "nfa" ast e get_model Map.empty
            | `Unsat -> Unsat "nfa"
@@ -132,11 +132,11 @@ let check_sat _ ast : rez list =
     | Error _ -> failwith "Unexpected error"
   in
   let apporx_rez =
-    unknown ast Lib.Env.empty
+    unknown ast Env.empty
     <+> (fun ast e ->
     if not _config.pre_simpl
     then unknown ast e
-    else lift ~unsat_info:"presimpl int" ast (Lib.SimplII.run_basic_simplify ~env:e ast))
+    else lift ~unsat_info:"presimpl int" ast (SimplII.run_basic_simplify ~env:e ast))
     <+> fun ast e -> if _config.stop_after = `Pre_simplify then exit 0 else unknown ast e
   in
   let results =
@@ -166,11 +166,11 @@ let check_sat _ ast : rez list =
 
 let check_model
       tys
-      (ast : Lib.Ast.t)
-      (model : (Lib.Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t)
+      (ast : Ast.t)
+      (model : (Ir.atom, [ `Int of Z.t | `Str of string ]) Map.t)
   =
   trace_log "check_model starts...";
-  if Lib.Config.config.base_min <> Lib.Config.config.base_min
+  if Config.config.base_min <> Config.config.base_min
   then Format.printf "Specify a base to check, not a range"
   else (
     let ast =
@@ -179,20 +179,19 @@ let check_model
         ~f:(fun ~key ~data ast ->
           let key =
             match key with
-            | Lib.Ir.Var s -> s
+            | Ir.Var s -> s
           in
-          let open Lib.Ast in
+          let open Ast in
           let ast' =
             match data with
-            | `Int c -> RLia (RLia.eq (RLia.atom (var key I)) (Lib.Ast.RLia.const c) I)
-            | `Str c ->
-              RLia (RLia.eq (RLia.atom (var key S)) (Lib.Ast.RLia.str_const c) S)
+            | `Int c -> RLia (RLia.eq (RLia.atom (var key I)) (Ast.RLia.const c) I)
+            | `Str c -> RLia (RLia.eq (RLia.atom (var key S)) (Ast.RLia.str_const c) S)
           in
-          Lib.Ast.land_ [ ast'; ast ])
+          Ast.land_ [ ast'; ast ])
         model
     in
     let _ = set_guess `Unknown in
-    trace_log "Checking model correctness;\n  ast=%a" Lib.Ast.pp_smtlib2 ast;
+    trace_log "Checking model correctness;\n  ast=%a" Ast.pp_smtlib2 ast;
     try
       match check_sat tys ast |> List.hd with
       | Sat _ -> ()
@@ -203,10 +202,10 @@ let check_model
 ;;
 
 type state =
-  { asserts : Lib.Ast.t list
+  { asserts : Ast.t list
   ; prev : state option
   ; last_result : rez list option
-  ; tys : (Lib.Ir.atom, [ `Str | `Int ]) Map.t
+  ; tys : (Ir.atom, [ `Str | `Int ]) Map.t
   }
 
 let () =
@@ -245,11 +244,11 @@ let () =
             |> Result.map (fun model ->
               let model =
                 model
-                |> Map.map_keys_exn ~f:(fun var -> Lib.Ir.name var)
+                |> Map.map_keys_exn ~f:(fun var -> Ir.name var)
                 |> join_int_model env
               in
               print_model model;
-              if Lib.Config.config.check_model then check_model tys ast model else ())
+              if Config.config.check_model then check_model tys ast model else ())
           with
           | Result.Ok () -> ()
           | Result.Error `No_model -> ()
@@ -260,7 +259,7 @@ let () =
     function
     | Smtml.Ast.Declare_const { id; sort; _ }
     | Smtml.Ast.Declare_fun { id; sort; args = [] } ->
-      let id = Lib.Ir.var (Smtml.Symbol.to_string id) in
+      let id = Ir.var (Smtml.Symbol.to_string id) in
       let sort = Smtml.Symbol.to_string sort in
       let tys =
         match sort with
@@ -282,7 +281,7 @@ let () =
       end
     | Smtml.Ast.Check_sat exprs ->
       _config.with_check_sat <- true;
-      let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs in
+      let expr_irs = List.map (Fe._to_ir state.tys) exprs in
       let rec get_ast { asserts; prev; _ } =
         match prev with
         | Some state -> asserts @ get_ast state
@@ -290,8 +289,7 @@ let () =
       in
       let all_asserts = expr_irs @ get_ast state in
       let ast =
-        Lib.Ast.land_
-          (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
+        Ast.land_ (if List.is_empty all_asserts then [ Ast.True ] else all_asserts)
       in
       let rezs = check_sat state.tys ast in
       { state with last_result = Some rezs }
@@ -301,7 +299,7 @@ let () =
         | Some state -> asserts @ get_ast state
         | None -> asserts
       in
-      let ast = Lib.Ast.land_ (get_ast state) in
+      let ast = Ast.land_ (get_ast state) in
       let rezs =
         match state.last_result with
         | Some r -> r
@@ -318,7 +316,7 @@ let () =
       else get_model ast (List.hd rezs);
       state
     | Smtml.Ast.Assert expr -> begin
-      let ast = expr |> Lib.Fe._to_ir state.tys in
+      let ast = expr |> Fe._to_ir state.tys in
       { state with asserts = ast :: state.asserts }
       end
     | Smtml.Ast.Set_info e ->
@@ -345,7 +343,7 @@ let () =
         { asserts = []; prev = None; last_result = None; tys = Map.empty }
         smt_f
     with
-    | Lib.Fe.UnsupportedException _ ->
+    | Fe.UnsupportedException _ ->
       Format.eprintf "\027[31mFronted error\027[0m\n%!";
       exit 1
   in

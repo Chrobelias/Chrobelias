@@ -19,4 +19,4 @@ val with_extra_char : char Set.t -> char list
 val find_map_n : int -> ('a -> 'b option) -> 'a list -> 'b list
 val div_floor : Z.t -> Z.t -> Z.t
 val div_ceil : Z.t -> Z.t -> Z.t
-val with_timeout : int -> ('a -> 'b) -> 'a -> 'b
+val unique : 'a list -> 'a list

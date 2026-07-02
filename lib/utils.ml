@@ -205,24 +205,15 @@ let find_map_n n f lst =
   aux [] n lst
 ;;
 
-let with_timeout seconds f x =
-  let handle_sigalrm _ =
-    Format.printf "I am here!!! Raise me!\n%!";
-    raise Timeout
-  in
-  let old_handler = Sys.signal Sys.sigalrm (Sys.Signal_handle handle_sigalrm) in
-  try
-    let _ = Unix.alarm seconds in
-    let result = f x in
-    let _ = Unix.alarm 0 in
-    Sys.set_signal Sys.sigalrm old_handler;
-    result
-  with
-  | Timeout ->
-    Sys.set_signal Sys.sigalrm old_handler;
-    failwith "Function execution exceeded time limit"
-  | exn ->
-    let _ = Unix.alarm 0 in
-    Sys.set_signal Sys.sigalrm old_handler;
-    raise exn
+let unique lst =
+  let counts = Hashtbl.create (List.length lst) in
+  List.iter
+    (fun x ->
+       let count =
+         try Hashtbl.find counts x with
+         | Not_found -> 0
+       in
+       Hashtbl.replace counts x (count + 1))
+    lst;
+  List.filter (fun x -> Hashtbl.find counts x = 1) lst
 ;;
