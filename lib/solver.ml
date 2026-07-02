@@ -3,6 +3,7 @@
 let trace_log fmt = Debug.trace "solver" fmt
 let _config = Config.config
 let _base = _config.enc_base
+let result_found = ref false
 
 let ( -- ) i j =
   let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
@@ -10,7 +11,9 @@ let ( -- ) i j =
 ;;
 
 let do_if_range f =
-  if _config.base_min < _config.base_max && _config.with_info then f () else ()
+  if _config.base_min < _config.base_max && _config.with_info && not !result_found
+  then f ()
+  else ()
 ;;
 
 let with_to f =
@@ -323,48 +326,58 @@ module MsbPar = struct
         let bool_comb_handler skel nfas vars free_vars =
           _config.base_min -- _config.base_max
           |> List.map (fun base ->
-            try
+            if !result_found
+            then Some Map.empty
+            else (
+              try
+                match
+                  with_to (fun () ->
+                    NfaPar.any_path_bool_comb2
+                      ~base
+                      skel
+                      nfas
+                      (List.map (fun v -> Map.find_exn vars v) free_vars))
+                with
+                | Some (model, _) ->
+                  if _config.problem = `Exi then result_found := true;
+                  do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
+                  Some
+                    (model
+                     |> List.mapi (fun i v -> List.nth free_vars i, v)
+                     |> Map.of_alist_exn)
+                | None ->
+                  if _config.problem = `Uni then result_found := true;
+                  do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
+                  None
+              with
+              | Utils.Timeout ->
+                do_if_range (fun () -> Format.printf "base %d: timeout\n%!" base);
+                Some Map.empty))
+        ;;
+
+        let handler nfa vars free_vars =
+          _config.base_min -- _config.base_max
+          |> List.map (fun base ->
+            if !result_found
+            then Some Map.empty
+            else (
               match
-                with_to (fun () ->
-                  NfaPar.any_path_bool_comb2
-                    ~base
-                    skel
-                    nfas
-                    (List.map (fun v -> Map.find_exn vars v) free_vars))
+                NfaPar.any_path2
+                  ~base
+                  nfa
+                  (List.map (fun v -> Map.find_exn vars v) free_vars)
               with
               | Some (model, _) ->
+                if _config.problem = `Exi then result_found := true;
                 do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
                 Some
                   (model
                    |> List.mapi (fun i v -> List.nth free_vars i, v)
                    |> Map.of_alist_exn)
               | None ->
+                if _config.problem = `Uni then result_found := true;
                 do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
-                None
-            with
-            | Utils.Timeout ->
-              do_if_range (fun () -> Format.printf "base %d: timeout\n%!" base);
-              Some Map.empty)
-        ;;
-
-        let handler nfa vars free_vars =
-          _config.base_min -- _config.base_max
-          |> List.map (fun base ->
-            match
-              NfaPar.any_path2
-                ~base
-                nfa
-                (List.map (fun v -> Map.find_exn vars v) free_vars)
-            with
-            | Some (model, _) ->
-              do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
-              Some
-                (model
-                 |> List.mapi (fun i v -> List.nth free_vars i, v)
-                 |> Map.of_alist_exn)
-            | None ->
-              do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
-              None)
+                None))
         ;;
       end)
 
@@ -405,37 +418,42 @@ let check_sat ir
     _config.base_min -- _config.base_max
     |> List.concat_map (fun base ->
       Config.config.enc_base <- base;
-      ir
-      |> MsbSym.check_sat
-      |> List.map (function
-        | `Sat model ->
-          do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
-          `Sat
-            (fun tys ->
-              let* model = model () in
-              let main_model =
-                Map.mapi
-                  ~f:(fun ~key:k ~data:v ->
-                    let ty = Map.find tys k |> Option.value ~default:`Int in
-                    match ty with
-                    | `Int ->
-                      begin try `Int (int_of_path base v) with
-                      | Invalid_argument ex as exp ->
-                        Format.printf
-                          "Something is wrong: %s\n%!"
-                          (Printexc.to_string exp);
-                        `Str (str_of_path v)
-                      end
-                    | `Str -> `Str (str_of_path v))
-                  model
-              in
-              Result.ok main_model)
-        | `Unsat ->
-          do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
-          `Unsat
-        | `Unknown ->
-          Format.printf "base %d: timeout\n%!" base;
-          `Unknown ir))
+      if !result_found
+      then [ `Unknown ir ]
+      else
+        ir
+        |> MsbSym.check_sat
+        |> List.map (function
+          | `Sat model ->
+            if _config.problem = `Exi then result_found := true;
+            do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
+            `Sat
+              (fun tys ->
+                let* model = model () in
+                let main_model =
+                  Map.mapi
+                    ~f:(fun ~key:k ~data:v ->
+                      let ty = Map.find tys k |> Option.value ~default:`Int in
+                      match ty with
+                      | `Int ->
+                        begin try `Int (int_of_path base v) with
+                        | Invalid_argument ex as exp ->
+                          Format.printf
+                            "Something is wrong: %s\n%!"
+                            (Printexc.to_string exp);
+                          `Str (str_of_path v)
+                        end
+                      | `Str -> `Str (str_of_path v))
+                    model
+                in
+                Result.ok main_model)
+          | `Unsat ->
+            if _config.problem = `Uni then result_found := true;
+            do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
+            `Unsat
+          | `Unknown ->
+            do_if_range (fun () -> Format.printf "base %d: timeout\n%!" base);
+            `Unknown ir))
   in
   let chack_par_sat ir =
     trace_log "Running Parametric MSB mode";
