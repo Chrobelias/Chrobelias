@@ -22,6 +22,6 @@
 (assert (= (* 13 A)
            (+ (* 37 (str.to_int t4))
               (+ (* 74 (str.to_int t3))
-                 (+ (* -37 (str.to_int t2))
-                    (* -74 (str.to_int t1)))))))
+                 (+ (* (- 37) (str.to_int t2))
+                    (* (- 74) (str.to_int t1)))))))
 (check-sat)

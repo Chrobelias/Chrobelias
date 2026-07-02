@@ -14,6 +14,6 @@
 (assert (str.in_re t3 (re.++ (re.* (str.to_re "0")) (str.to_re "1000"))))
 (assert (= (* 8 A)
            (+ (* 50 (str.to_int t3))
-              (+ (* -25 (str.to_int t2))
+              (+ (* (- 25) (str.to_int t2))
                  (* 10 (str.to_int t1))))))
 (check-sat)
