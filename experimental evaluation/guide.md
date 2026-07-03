@@ -61,7 +61,7 @@ the results of the computation. For simplicity, let us also assume that you are
 benchmarking a tool, and that you have a list `list-of-instances.txt` you want to 
 benchmark it on. This is very easy to do with GNU `parallel`. Just write something like: 
 
-`parallel --timeout seconds --jobs ./path-to/cpu-usage --tmpdir ./path-to/results --files "(set -x; command time --format=%e ./path-to/tool path-to/instances/{1}) 2>&1 :::: ./path-to/list-of-instances.txt`
+`parallel --timeout seconds --jobs ./path-to/cpu-usage --tmpdir ./path-to/results --files "(set -x; command time --format=%e ./path-to/tool path-to/instances/{1}) 2>&1" :::: ./path-to/list-of-instances.txt`
 
 The command is clearly self-explanatory, especially the `::::` part. For you, 
 it most likely suffices to know that the command reads the list of instances from `list-of-instances.txt`
