@@ -13,7 +13,5 @@
 (assert (int.v B E))
 (assert (<= (str.to_int C) A))
 (assert (<= (str.to_int C) B))
-(assert (<= A B))
-(assert (>= 0 (+ (* 5 A) (* (- 3) B) (* 4 E) (* (- 2) (str.to_int C)))))
-(assert (<= 0 (+ (* (- 4) A) (* 7 E) (* (- 1) (str.to_int C)))))
+(assert (<= A E))
 (check-sat)
