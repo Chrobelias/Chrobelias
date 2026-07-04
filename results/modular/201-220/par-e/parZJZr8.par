@@ -1,0 +1,3 @@
++ command time --format=%e ./_build/default/bin/parsym.exe -problem e -bmin 201 -bmax 220 -par --active 500000 ai-instances/modular/modular_21.smt2
+unsat
+160.68
