@@ -655,6 +655,11 @@ let simpl ir =
 ;;
 
 let simpl_divisibility ir =
+  let short_mod x y =
+    let short x y = if Z.(abs x <= abs y) then x else y in
+    let z = Z.(x mod y) in
+    if Z.(z >= zero) then short z Z.(z - y) else short z Z.(z + y)
+  in
   let unique_vars =
     fold
       (fun acc -> function
@@ -686,10 +691,10 @@ let simpl_divisibility ir =
          let term' =
            term
            |> Map.mapi ~f:(fun ~key ~data ->
-             if eq_atom key var then data else Z.(data mod coeff))
+             if eq_atom key var then data else short_mod data coeff)
            |> Map.filter ~f:(fun coeff -> Z.(coeff <> zero))
          in
-         Rel (Eq, term', Z.(c mod coeff))
+         Rel (Eq, term', short_mod c coeff)
          end
        | [] -> equality)
     | ir -> ir)

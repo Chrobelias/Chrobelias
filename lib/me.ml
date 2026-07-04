@@ -301,9 +301,9 @@ and of_rlia2 : Ast.RLia.t -> (Ir.t, string) result =
   in
   (* trace_log "%s: %a" __FUNCTION__ Ast.RLia.pp rlia; *)
     match rlia with
-    | Eq
+    (* | Eq
         (Ast.RLia.Atom (Ast.Var (v, _)), Ast.RLia.Iofs (Ast.RLia.Atom (Ast.Var (u, _))), I)
-      -> return (Ir.land_ [ Ir.stoi (Ir.var v) (Ir.var u) ])
+      -> return (Ir.land_ [ Ir.stoi (Ir.var v) (Ir.var u) ]) *)
     | Eq (Atom (Var (v, _)), Str_const str, S) ->
       let l = Ir.var v in
       return (Ir.sreg l (Regex.int_to_re str))
