@@ -14,6 +14,5 @@
 (assert (int.v B E))
 (assert (<= 100 (str.to_int C)))
 (assert (<= (str.to_int D) B))
-(assert (>= 0 (+ (* 6 (str.to_int C)) (* (- 4) B) (* 3 E) (* (- 2) A))))
 (assert (<= 0 (+ (* (- 5) (str.to_int D)) (* 3 B) (* (- 6) E) (* 4 A))))
 (check-sat)

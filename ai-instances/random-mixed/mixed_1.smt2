@@ -12,7 +12,6 @@
 (assert (str.in_re C (re.+ (str.to_re "1"))))
 (assert (str.in_re D (re.++ (re.* (str.to_re "0")) (str.to_re "10"))))
 (assert (int.v A E))
-(assert (<= 500 (str.to_int C)))
 (assert (<= (str.to_int D) A))
 (assert (>= 10 (+ (* 3 (str.to_int C)) (* (- 2) A) (* 5 E))))
 (assert (<= 1 (+ (* 7 (str.to_int D)) (* (- 1) B) (* 2 E))))

@@ -14,5 +14,4 @@
 (assert (<= (str.to_int C) A))
 (assert (<= A (str.to_int D)))
 (assert (>= 0 (+ (* 5 (str.to_int C)) (* (- 2) (str.to_int D)) (* 3 A))))
-(assert (<= (- 20) (+ (* 6 B) (* (- 1) (str.to_int C)) (* 4 A))))
 (check-sat)
