@@ -15,4 +15,3 @@
 (assert (>= 0 (+ (* (- 5) (str.to_int C)) (* 3 B) (* 7 A) (* (- 2) E))))
 (assert (<= 0 (+ (* 4 (str.to_int C)) (* (- 6) A) (* 1 E))))
 (check-sat)
-(get-model)
