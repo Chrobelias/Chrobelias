@@ -196,8 +196,13 @@ struct
       Eval.bool_comb_handler skel nfas vars free_vars)
     else (
       (* Classic Symbolic solving: with intersections and unions *)
-      let nfa, vars = ir |> eval in
-      Eval.handler nfa vars free_vars)
+        try
+          let nfa, vars = ir |> eval in
+          Eval.handler nfa vars free_vars
+        with
+        | _ ->
+          let skel, nfas, vars = ir |> eval_bool_comb in
+          Eval.bool_comb_handler skel nfas vars free_vars)
   ;;
 
   let check_sat ir
