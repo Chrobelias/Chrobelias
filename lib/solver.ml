@@ -18,11 +18,7 @@ let do_if_range f =
 
 let with_to f =
   match _config.base_to with
-  | Some timeout ->
-    begin try Lwt_main.(run (Lwt_unix.with_timeout (timeout |> Int.to_float) f)) with
-    | _ -> raise Utils.Timeout
-    end
-  | None -> Lwt_main.run (f ())
+  | Some _ | None -> f
 ;;
 
 module Set = Base.Set.Poly
@@ -270,11 +266,11 @@ module MsbSym =
       let bool_comb_handler skel nfas vars free_vars =
         try
           match
-            with_to (fun () ->
+            with_to
               NfaSym.any_path_bool_comb
-                skel
-                nfas
-                (List.map (fun v -> Map.find_exn vars v) free_vars))
+              skel
+              nfas
+              (List.map (fun v -> Map.find_exn vars v) free_vars)
           with
           | Some (model, _) ->
             [ Some
@@ -336,12 +332,12 @@ module MsbPar = struct
             else (
               try
                 match
-                  with_to (fun () ->
+                  with_to
                     NfaPar.any_path_bool_comb2
-                      ~base
-                      skel
-                      nfas
-                      (List.map (fun v -> Map.find_exn vars v) free_vars))
+                    ~base
+                    skel
+                    nfas
+                    (List.map (fun v -> Map.find_exn vars v) free_vars)
                 with
                 | Some (model, _) ->
                   if _config.problem = `Exi then result_found := true;
