@@ -14,8 +14,8 @@
 (declare-fun y2 () Int)
 (assert
   (and
-    (int.v (- (* 100 a) (* 99 b)) x1)
-    (int.v (+ (* 50 c) (* 50 d)) y1)
+    (int.v (- (* 2 a) (* 3 b)) x1)
+    (int.v (+ (* 5 c) (* 5 d)) y1)
     (<= x1 y1)
     (int.v (+ a (+ b (+ c d))) x2)
     (int.v (+ (- a d) 3) y2)
