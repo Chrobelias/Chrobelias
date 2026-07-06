@@ -25,6 +25,7 @@ type config =
   ; mutable under_approx : int
   ; mutable check_model : bool
   ; mutable seed : int
+  ; mutable seed_attempts : int
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
   }
@@ -57,6 +58,7 @@ let config =
   ; under_approx = -1
   ; check_model = false
   ; seed = 42
+  ; seed_attempts = 10
   ; with_check_sat = false
   ; with_info = false
   }

@@ -264,7 +264,7 @@ module MsbSym =
       ;;
 
       let bool_comb_handler skel nfas vars free_vars =
-        try
+        let check_base () =
           match
             with_to
               NfaSym.any_path_bool_comb
@@ -279,8 +279,20 @@ module MsbSym =
                  |> Map.of_alist_exn)
             ]
           | None -> [ None ]
-        with
-        | Utils.Timeout -> [ Some Map.empty ]
+        in
+        try check_base () with
+        | Utils.Timeout ->
+          let rec loop num =
+            if num > 0
+            then (
+              try check_base () with
+              | Utils.Timeout ->
+                _config.seed <- 20 + Random.int 60;
+                trace_log "Attempt #%d" (11 - num);
+                loop (num - 1))
+            else [ Some Map.empty ]
+          in
+          loop _config.seed_attempts
       ;;
 
       let handler nfa vars free_vars =
@@ -363,7 +375,7 @@ module MsbPar = struct
                   do_if_range (fun () -> Format.printf "base %d: timeout\n%!" base);
                   Some Map.empty)
               in
-              loop 10))
+              loop _config.seed_attempts))
         ;;
 
         let handler nfa vars free_vars =
