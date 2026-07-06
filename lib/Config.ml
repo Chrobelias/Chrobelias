@@ -56,7 +56,7 @@ let config =
   ; quiet = false
   ; under_approx = -1
   ; check_model = false
-  ; seed = Sys.time () |> Int.of_float
+  ; seed = 42
   ; with_check_sat = false
   ; with_info = false
   }
@@ -107,7 +107,7 @@ Basic options:
       , "<n>\tSet the maximal encoding base for check-sat (DEFAULT VALUE: 10)" )
     ; ( "-bTO"
       , Arg.Int (fun n -> config.base_to <- Some n)
-      , "<n>\tSet the timeout value for check-sat per base" )
+      , "<n>\tSet the timeout value for check-sat per Z3 random seed" )
     ; ( "-lazy"
       , Arg.Unit (fun () -> config.bool_comb_sat <- true)
       , "\tCheck satisfiability without performing Boolean operations over automata, \

@@ -11,7 +11,6 @@ let trace_log fmt = Debug.trace "nfa" fmt
 let _config = Config.config
 
 exception Too_big_nfa
-exception Timeout_nfa
 
 type state = int
 
@@ -1142,12 +1141,11 @@ module Symbolic (Label : SymL) = struct
       let start_time = Sys.time () in
       let rec rdfs path node =
         if
-          List.length !visited_nodes mod 100 = 0
-          && Sys.time () -. start_time
-             > Option.value
-                 (Option.map Float.of_int Config.config.base_to)
-                 ~default:Float.infinity
-        then raise Timeout_nfa;
+          Sys.time () -. start_time
+          > Option.value
+              (Option.map Float.of_int Config.config.base_to)
+              ~default:Float.infinity
+        then raise Utils.Timeout;
         trace_log "Visited count = %d" (List.length !visited_nodes);
         trace_log
           "rDFS on node [%a]"

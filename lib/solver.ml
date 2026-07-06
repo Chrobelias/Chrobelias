@@ -325,35 +325,45 @@ module MsbPar = struct
         ;;
 
         let bool_comb_handler skel nfas vars free_vars =
+          let check base =
+            match
+              with_to
+                NfaPar.any_path_bool_comb2
+                ~base
+                skel
+                nfas
+                (List.map (fun v -> Map.find_exn vars v) free_vars)
+            with
+            | Some (model, _) ->
+              if _config.problem = `Exi then result_found := true;
+              do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
+              Some
+                (model
+                 |> List.mapi (fun i v -> List.nth free_vars i, v)
+                 |> Map.of_alist_exn)
+            | None ->
+              if _config.problem = `Uni then result_found := true;
+              do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
+              None
+          in
           _config.base_min -- _config.base_max
           |> List.map (fun base ->
             if !result_found
             then Some Map.empty
             else (
-              try
-                match
-                  with_to
-                    NfaPar.any_path_bool_comb2
-                    ~base
-                    skel
-                    nfas
-                    (List.map (fun v -> Map.find_exn vars v) free_vars)
-                with
-                | Some (model, _) ->
-                  if _config.problem = `Exi then result_found := true;
-                  do_if_range (fun () -> Format.printf "base %d: sat\n%!" base);
-                  Some
-                    (model
-                     |> List.mapi (fun i v -> List.nth free_vars i, v)
-                     |> Map.of_alist_exn)
-                | None ->
-                  if _config.problem = `Uni then result_found := true;
-                  do_if_range (fun () -> Format.printf "base %d: unsat\n%!" base);
-                  None
-              with
-              | Utils.Timeout ->
-                do_if_range (fun () -> Format.printf "base %d: timeout\n%!" base);
-                Some Map.empty))
+              let rec loop num =
+                if num > 0
+                then (
+                  try check base with
+                  | Utils.Timeout ->
+                    _config.seed <- 20 + Random.int 60;
+                    trace_log "Attempt #%d" (11 - num);
+                    loop (num - 1))
+                else (
+                  do_if_range (fun () -> Format.printf "base %d: timeout\n%!" base);
+                  Some Map.empty)
+              in
+              loop 10))
         ;;
 
         let handler nfa vars free_vars =

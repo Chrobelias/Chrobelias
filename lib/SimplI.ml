@@ -7,7 +7,7 @@ let _base = _config.enc_base
 module Z3 = Smtml.Z3_mappings.Solver
 
 let _z3_solver =
-  Z3.make ~params:Smtml.Params.(default () $ (Random_seed, Config.config.seed)) ()
+  Z3.make ~params:Smtml.Params.(default () $ (Random_seed, _config.seed)) ()
 ;;
 
 let ( -- ) i j =
@@ -841,8 +841,8 @@ let get_states_z3 ph get_state =
   let open Lia in
   (* Debug.trace "Z3" "Composed ast: %a" AstL.pp_smtlib2 ph; *)
   let ph = apply_symnatics (module SMT) ph in
-  Z3.push _z3_solver;
   Debug.trace "Z3" "Getting a solution with Z3...";
+  Z3.push _z3_solver;
   let t0 = Unix.gettimeofday () in
   let z3_result = Z3.check _z3_solver ~assumptions:[ ph ] in
   let elapsed = Unix.gettimeofday () -. t0 in
