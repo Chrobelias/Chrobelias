@@ -1,0 +1,1 @@
++ command time --format=%e ./_build/default/bin/parsym.exe -problem u -bmin 2 -bmax 20 -bTO 5 -par --active 500000 ai-instances/divisibility/divisibility_25.smt2

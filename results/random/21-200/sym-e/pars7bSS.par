@@ -1,0 +1,2 @@
++ command time --format=%e ./_build/default/bin/parsym.exe -problem e -bmin 21 -bmax 200 -bTO 60 --active 500000 ai-instances/random/random_05.smt2
+timeout
