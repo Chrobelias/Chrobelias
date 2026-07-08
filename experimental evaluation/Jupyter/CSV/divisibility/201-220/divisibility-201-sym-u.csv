@@ -21,11 +21,11 @@ ai-instances/divisibility/divisibility_01.smt2,sat,0.30
 ai-instances/divisibility/divisibility_05.smt2,sat,0.10
 ai-instances/divisibility/divisibility_04.smt2,sat,9.84
 ai-instances/divisibility/divisibility_23.smt2,sat,317.66
-ai-instances/divisibility/divisibility_28.smt2,timeout,600
 ai-instances/divisibility/divisibility_30.smt2,sat,1.65
 ai-instances/divisibility/divisibility_03.smt2,sat,0.28
+ai-instances/divisibility/divisibility_28.smt2,sat,45.06
 ai-instances/divisibility/divisibility_20.smt2,sat,180.18
-ai-instances/divisibility/divisibility_25.smt2,timeout,600
 ai-instances/divisibility/divisibility_09.smt2,sat,1.24
 ai-instances/divisibility/divisibility_26.smt2,sat,10.90
+ai-instances/divisibility/divisibility_25.smt2,sat,284.57
 ai-instances/divisibility/divisibility_17.smt2,sat,112.14

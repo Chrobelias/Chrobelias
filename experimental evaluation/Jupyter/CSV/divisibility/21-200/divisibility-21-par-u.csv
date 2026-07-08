@@ -6,14 +6,12 @@ ai-instances/divisibility/divisibility_06.smt2,sat,2.11
 ai-instances/divisibility/divisibility_17.smt2,timeout,600
 ai-instances/divisibility/divisibility_23.smt2,timeout,600
 ai-instances/divisibility/divisibility_05.smt2,sat,0.31
-ai-instances/divisibility/divisibility_25.smt2,timeout,600
 ai-instances/divisibility/divisibility_20.smt2,timeout,600
 ai-instances/divisibility/divisibility_24.smt2,sat,377.85
 ai-instances/divisibility/divisibility_13.smt2,sat,125.72
 ai-instances/divisibility/divisibility_01.smt2,sat,0.41
 ai-instances/divisibility/divisibility_29.smt2,sat,296.59
 ai-instances/divisibility/divisibility_26.smt2,sat,239.62
-ai-instances/divisibility/divisibility_28.smt2,timeout,600
 ai-instances/divisibility/divisibility_16.smt2,sat,433.72
 ai-instances/divisibility/divisibility_12.smt2,sat,187.22
 ai-instances/divisibility/divisibility_30.smt2,sat,46.56
@@ -26,6 +24,8 @@ ai-instances/divisibility/divisibility_15.smt2,timeout,600
 ai-instances/divisibility/divisibility_14.smt2,timeout,600
 ai-instances/divisibility/divisibility_27.smt2,sat,311.00
 ai-instances/divisibility/divisibility_07.smt2,sat,0.21
+ai-instances/divisibility/divisibility_25.smt2,timeout,600
 ai-instances/divisibility/divisibility_03.smt2,sat,0.44
 ai-instances/divisibility/divisibility_21.smt2,sat,283.17
+ai-instances/divisibility/divisibility_28.smt2,timeout,600
 ai-instances/divisibility/divisibility_09.smt2,sat,0.77

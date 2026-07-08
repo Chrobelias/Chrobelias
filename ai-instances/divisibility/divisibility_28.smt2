@@ -12,6 +12,8 @@
 (declare-fun y1 () Int)
 (declare-fun x2 () Int)
 (declare-fun y2 () Int)
+(declare-fun x3 () Int)
+(declare-fun y3 () Int)
 (assert
   (and
     (int.v (- (* 9 a) (* 3 b)) x1)
@@ -19,7 +21,10 @@
     (<= x1 y1)
     (int.v (+ a (+ b c)) x2)
     (int.v (- (* 2 a) (* 6 c)) y2)
-    (< x2 y2)
+    (<= x2 y2)
+    (int.v a x3)
+    (int.v b y3)
+    (<= x3 y3)
   )
 )
 (check-sat)

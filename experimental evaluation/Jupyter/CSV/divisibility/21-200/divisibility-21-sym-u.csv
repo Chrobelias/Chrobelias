@@ -1,6 +1,8 @@
 instance,output,time
 ai-instances/divisibility/divisibility_26.smt2,sat,218.89
 ai-instances/divisibility/divisibility_04.smt2,sat,99.56
+ai-instances/divisibility/divisibility_28.smt2,timeout,600
+ai-instances/divisibility/divisibility_25.smt2,timeout,600
 ai-instances/divisibility/divisibility_12.smt2,sat,177.55
 ai-instances/divisibility/divisibility_28.smt2,timeout,600
 ai-instances/divisibility/divisibility_06.smt2,sat,110.09
