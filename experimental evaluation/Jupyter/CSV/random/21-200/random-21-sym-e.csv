@@ -21,11 +21,11 @@ ai-instances/random/random_29.smt2,sat,0.13
 ai-instances/random/random_12.smt2,sat,0.17
 ai-instances/random/random_17.smt2,unsat,406.42
 ai-instances/random/random_25.smt2,unsat,379.18
-ai-instances/random/random_21.smt2,sat,2.28
 ai-instances/random/random_30.smt2,sat,0.31
 ai-instances/random/random_26.smt2,sat,0.03
 ai-instances/random/random_11.smt2,sat,0.15
 ai-instances/random/random_22.smt2,unsat,7.92
+ai-instances/random/random_21.smt2,sat,1.72
 ai-instances/random/random_05.smt2,timeout,600
 ai-instances/random/random_08.smt2,sat,0.24
 ai-instances/random/random_10.smt2,sat,0.04

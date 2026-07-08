@@ -1,7 +1,7 @@
 instance,output,time
+ai-instances/random/random_21.smt2,sat,1.62
 ai-instances/random/random_23.smt2,sat,0.04
 ai-instances/random/random_04.smt2,sat,0.25
-ai-instances/random/random_21.smt2,unknown,239.88
 ai-instances/random/random_14.smt2,sat,0.71
 ai-instances/random/random_22.smt2,unsat,7.89
 ai-instances/random/random_08.smt2,sat,0.10

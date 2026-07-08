@@ -7,7 +7,6 @@ ai-instances/random/random_09.smt2,sat,121.31
 ai-instances/random/random_19.smt2,unsat,26.75
 ai-instances/random/random_20.smt2,sat,0.05
 ai-instances/random/random_05.smt2,unsat,94.25
-ai-instances/random/random_21.smt2,unknown,252.86
 ai-instances/random/random_08.smt2,sat,0.06
 ai-instances/random/random_16.smt2,sat,3.98
 ai-instances/random/random_04.smt2,sat,3.55
@@ -16,6 +15,7 @@ ai-instances/random/random_02.smt2,sat,0.08
 ai-instances/random/random_06.smt2,unsat,94.66
 ai-instances/random/random_23.smt2,sat,0.04
 ai-instances/random/random_12.smt2,sat,0.48
+ai-instances/random/random_21.smt2,sat,32.06
 ai-instances/random/random_03.smt2,sat,35.81
 ai-instances/random/random_13.smt2,sat,0.04
 ai-instances/random/random_01.smt2,unsat,0.07
