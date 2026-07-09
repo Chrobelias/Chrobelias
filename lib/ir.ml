@@ -5,9 +5,6 @@ let trace_log fmt = Debug.trace "ir" fmt
 let _config = Config.config
 let _base = _config.enc_base
 
-(* TODO: the perfect implementation should differentiate between atoms in *)
-(* different theories. But it requires a lot more complex parsing due to *)
-(* the state that should be stored. So let's stick with simpler stuff now. *)
 type atom = Var of string [@@deriving variants]
 
 let eq_atom : atom -> atom -> bool = Stdlib.( = )
@@ -242,9 +239,7 @@ let pp_smtlib2 ppf ir =
         helper
         rhs
     | (Stoi _ | SReg _ | SRegRaw _) as ir -> Format.fprintf ppf "%a" pp ir
-    | Land [ x ] ->
-      (* TODO: should be eliminated in simplifier *)
-      helper ppf x
+    | Land [ x ] -> helper ppf x
     | Land xs ->
       fprintf ppf "@[<v 2>@[(and@]@ ";
       List.iter (fprintf ppf "@[%a@]@ " helper) xs;

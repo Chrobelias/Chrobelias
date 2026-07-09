@@ -1,5 +1,3 @@
-(* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2026, Chrobelias. *)
 module Map = Base.Map.Poly
 
 let compare_string = String.compare

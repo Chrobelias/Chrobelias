@@ -1,15 +1,10 @@
-(* SPDX-License-Identifier: MIT *)
-(* Copyright 2026, Parsym. *)
-
 open Lib
 
 let trace_log fmt = Debug.trace "parsym" fmt
 
-(* let () = Memtrace.trace_if_requested ~context:"my program" () *)
-
 module Map = Base.Map.Poly
 
-let () = trace_log "Starting Chrobelias with config: %a" Config.pp_config Config.config
+let () = trace_log "Starting parsym with config: %a" Config.pp_config Config.config
 let answer_guess = ref None
 let sat_found = ref false
 let set_guess v = answer_guess := Some v
@@ -22,7 +17,7 @@ let () =
     (Sys.Signal_handle
        (fun _ ->
          if !sat_found
-         then print_endline "no short model found (timeout)"
+         then print_endline "no model found (timeout)"
          else print_endline "timeout";
          exit 1))
 ;;

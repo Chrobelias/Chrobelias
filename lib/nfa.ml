@@ -1,7 +1,3 @@
-(* SPDX-License-Identifier: MIT *)
-
-(* Copyright 2024-2025, Chrobelias. *)
-
 open Format
 module Set = Base.Set.Poly
 module Map = Base.Map.Poly
@@ -1576,15 +1572,9 @@ struct
             let delta =
               List.fold_left
                 (fun acc label ->
-                   (* TODO(Kakadu): It looks like we are constructing a set [qs']
-                    and check if it is the same set as [qs]. Maybe we should check presence in [qs] on every addition
-                    to [qs'] and in the end check that every element of [qs] is in [qs']. It will give us a chance for
-                    early exit
-                   *)
                    let qs' =
                      Set.fold
                        ~f:(fun acc q ->
-                         (* Note(Kakadu): I tried to replace acc as list to a set, but it became slower *)
                          let delta = Array.get nfa.transitions q in
                          let q' =
                            List.filter_map
@@ -1592,7 +1582,6 @@ struct
                                 if Label.equal label label' then Some x else None)
                              delta
                          in
-                         (* TODO(Kakadu): appending lists is slow *)
                          List.append q' acc)
                        ~init:[]
                        qs
@@ -1628,7 +1617,6 @@ struct
   ;;
 
   let invert ?alpha nfa =
-    (* We need complete DFA here, to_dfa() makes a complete DFA thus we're using it. *)
     let dfa = nfa |> to_dfa ?alpha in
     let states = states dfa in
     let final = Set.diff states dfa.final in

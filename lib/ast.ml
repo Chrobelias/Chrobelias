@@ -1,5 +1,3 @@
-(* SPDX-License-Identifier: MIT *)
-(* Copyright 2026, RLIA[t]. *)
 let compare_string = String.compare
 let compare_int = Int.compare
 let compare_list f = Base.List.compare f
@@ -534,29 +532,6 @@ let in_stoi v ast =
       rlia
   in
   in_rlia_term in_stoi_rlia v ast
-;;
-
-let in_stoi2 v ast =
-  (* MS: Here, we can add any cases when we do not want to treat to_int as something special*)
-  (* Here, we omit (0 <= str.to_int x) *)
-  let ast' =
-    map
-      (function
-        | RLia (Leq (Const c, Iofs (Atom (Var (_, S))))) when Z.(c = zero) -> True
-        | ph -> ph)
-      ast
-  in
-  let in_stoi_rlia v rlia =
-    RLia.fold2
-      (fun acc el ->
-         match el with
-         | RLia.Iofs (RLia.Atom (Var (s, _))) when s = v -> true
-         | _ -> acc)
-      (fun acc _ -> acc)
-      false
-      rlia
-  in
-  in_rlia_term in_stoi_rlia v ast'
 ;;
 
 let rec equal ast ast' =

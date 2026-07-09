@@ -1,5 +1,3 @@
-(* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "solver" fmt
 let _config = Config.config
 let _base = _config.enc_base

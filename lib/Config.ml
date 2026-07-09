@@ -75,7 +75,7 @@ let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3
 let base = "base"
 
 let max_nfa_size =
-  match Sys.getenv_opt "CHRO_NFA_SIZE" with
+  match Sys.getenv_opt "PBAC_NFA_SIZE" with
   | None -> 1500000
   | Some s ->
     (match int_of_string_opt s with
@@ -134,7 +134,7 @@ Basic options:
     ; ( "--active"
       , Arg.Int (fun n -> config.huge_for_inter <- n)
       , "<n>\tSet the maximal (approximate) number of states for the 'active' mode \
-         (DEFAULT VALUE: 200000)" )
+         (DEFAULT VALUE: 500000)" )
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness (BASE 10)" )

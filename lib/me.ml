@@ -1,5 +1,3 @@
-(* SPDX-License-Identifier: MIT *)
-(* Copyright 2024-2025, Chrobelias. *)
 let trace_log fmt = Debug.trace "me" fmt
 let _config = Config.config
 let _base = _config.enc_base
@@ -14,11 +12,6 @@ exception Unsupported_constraint of string
 let return = Result.ok
 let ( let* ) = Result.bind
 
-(* let as_var = function
-  | Ir.Pow var -> Ir.var var
-  | Ir.Var var -> Ir.var var
-;; *)
-
 let collect_free_ir (ir : Ir.t) =
   Ir.fold
     (fun acc -> function
@@ -31,7 +24,6 @@ let collect_free_ir (ir : Ir.t) =
     ir
 ;;
 
-(** Final-tagless style for building our representation  *)
 module type S = sig
   type t
   type repr
@@ -254,13 +246,13 @@ let rec of_str_atom = function
        let poly, c, sup = ast |> Symantics.prj in
        let poly = Map.add_exn poly ~key:u ~data:Z.minus_one in
        (u, Ir.eq poly c :: sup) |> return
-     | None -> failwith (Format.asprintf "NOT YET IMPLEMENTED %a" Ast.RLia.pp_term ast))
+     | None -> failwith (Format.asprintf "Not implemented %a" Ast.RLia.pp_term ast))
 
 and helper : 'a. 'a Ast.RLia.term -> _ =
   fun (type a) : (a Ast.RLia.term -> _) -> function
   | Ast.RLia.Atom (Var (v, _)) -> return (Symantics.symbol v)
   | Const c -> return (Symantics.poly_of_const c)
-  | Str_const _ -> failf "unimplemented "
+  | Str_const _ -> failf "Not implemented"
   | Add (hd :: tl) ->
     List.fold_left
       (fun acc (x : _ Ast.RLia.term) ->
@@ -409,20 +401,6 @@ let ir_of_ast env ast =
     | Unsupp s -> return (Ir.Unsupp s)
     | Pred s -> failf "Unexpected %s" s
   in
-  (*let ast =
-    Env.fold
-      ~init:[ ast ]
-      ~f:(fun ~key ~data acc ->
-        match data with
-        | Ast.TT (S, (Ast.RLia.Sofi _ as data)) ->
-          Ast.rlia (Ast.RLia.eq (Ast.RLia.atom (Ast.var key S)) data S) :: acc
-        | Ast.TT (I, ((Ast.RLia.Iofs _ | Ast.RLia.Len _ | Ast.RLia.Len2 _) as data)) ->
-          Ast.rlia (Ast.RLia.eq (Ast.RLia.atom (Ast.var key I)) data I) :: acc
-        | _ -> acc)
-      env
-  in
-  let ast = Ast.land_ ast in*)
-  (* let ast = SimplII.rewrite_len ast in *)
   let* ir = ast |> ir_of_ast in
   ir |> return
 ;;

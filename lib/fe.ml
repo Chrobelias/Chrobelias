@@ -7,8 +7,6 @@ exception UnsupportedException of string
 
 let failf fmt = raise (UnsupportedException fmt)
 
-(* let failf fmt = failwith (Format.asprintf fmt) *)
-
 type r =
   | Str of string Ast.RLia.term
   | Int of Z.t Ast.RLia.term
@@ -78,7 +76,6 @@ and to_regex orig_expr =
            (fun acc c -> Regex.mor acc (Regex.symbol [ Char.chr c ]))
            Regex.empty)
   | Expr.Naryop (_ty, Ty.Naryop.Concat, exprs) ->
-    (* String constraints use LSB representation, we intentionally reverse the concat. *)
     List.map to_regex exprs |> List.rev |> List.fold_left Regex.concat Regex.epsilon
   | Expr.Naryop (_ty, Ty.Naryop.Regexp_union, exprs) ->
     List.map to_regex exprs |> List.fold_left Regex.mor Regex.empty
@@ -145,14 +142,9 @@ and to_rlia_term orig_expr : Z.t Ast.RLia.term =
     (match Expr.view rhs with
      | Expr.Val (Int d) -> Ast.RLia.Mod (to_rlia_term lhs, Z.of_int d)
      | _ -> failf (Format.asprintf "expected term, in %a" Expr.pp orig_expr))
-    (* Remainder is needed for example for this test
-    dune b @benchmarks/tests/EXP-solver/flatten/head/test24 --profile=benchmark *)
   | _ -> failf (Format.asprintf "expected term, in %a" Expr.pp orig_expr)
 
 and _to_ir tys orig_expr =
-  (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
-  (* nor the return type. Let's introduce our own method for checking if the return *)
-  (* type of the expr is string. *)
   let is_str tys expr =
     (Expr.ty expr = Ty.Ty_str
      &&
@@ -219,7 +211,6 @@ and _to_ir tys orig_expr =
       end
     (* Variables. *)
     | Expr.Symbol symbol -> Ast.pred (Symbol.to_string symbol)
-    (* Yes, probably this stuff is kinda over-engineered. *)
     (* Logical operations. *)
     (* Not. *)
     | Expr.Unop (_ty, Ty.Unop.Not, expr) -> Ast.lnot (_to_ir tys expr)

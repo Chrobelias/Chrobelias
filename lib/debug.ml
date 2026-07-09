@@ -2,7 +2,7 @@ let nfa_cnt = ref 0
 
 let tracers =
   lazy
-    (Sys.getenv_opt "CHRO_TRACE"
+    (Sys.getenv_opt "PBAC_TRACE"
      |> Option.map (String.split_on_char ':')
      |> Option.value ~default:[])
 ;;
@@ -14,10 +14,7 @@ let is_traced s =
 
 let trace tracer_option (ppf : _ format) =
   if is_traced tracer_option
-  then
-    Format.kasprintf
-      (fun s -> Format.printf "[+%s]\n  %s\n%!" tracer_option s)
-      ppf
+  then Format.kasprintf (fun s -> Format.printf "[+%s]\n  %s\n%!" tracer_option s) ppf
   else Format.ifprintf Format.std_formatter ppf
 ;;
 
@@ -44,7 +41,6 @@ let dump_nfa ?msg ?pp_vars ?vars format_nfa nfa =
      | Some msg -> Format.kasprintf (Format.printf "%s\n%!") msg svg_file
      | None -> ());
     match pp_vars, vars with
-    | Some pp, Some vars ->
-      Format.printf "@[%a@]\n%!" pp vars
+    | Some pp, Some vars -> Format.printf "@[%a@]\n%!" pp vars
     | _ -> ())
 ;;
