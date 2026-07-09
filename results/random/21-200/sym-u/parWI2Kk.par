@@ -1,3 +1,0 @@
-+ command time --format=%e ./_build/default/bin/parsym.exe -problem u -bmin 21 -bmax 200 -bTO 60 --active 500000 ai-instances/random/random_21.smt2
-unsat
-0.44
