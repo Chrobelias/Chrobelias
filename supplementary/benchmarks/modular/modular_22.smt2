@@ -1,0 +1,11 @@
+
+(set-logic QF_SLIA)
+(declare-fun A () Int)
+(declare-fun t2 () String)
+(declare-fun t3 () String)
+(assert (str.in_re t2 (re.++ (re.* (str.to_re "0")) (str.to_re "100"))))
+(assert (str.in_re t3 (re.++ (re.* (str.to_re "0")) (str.to_re "1000"))))
+(assert (= (* 760 A)
+           (+ (* 125 (str.to_int t3))
+              (* (- 8) (str.to_int t2)))))
+(check-sat)

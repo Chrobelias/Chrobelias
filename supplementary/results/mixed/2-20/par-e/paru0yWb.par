@@ -1,0 +1,3 @@
++ command time --format=%e ./_build/default/bin/parsym.exe -problem e -par -bmin 2 -bmax 20 -bTO 60 --active 500000 ai-instances/random-mixed/mixed_17.smt2
+sat
+16.08

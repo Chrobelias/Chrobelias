@@ -1,0 +1,21 @@
+
+(set-logic QF_SLIA)
+(declare-fun a () Int)
+(declare-fun b () Int)
+(declare-fun x1 () Int)
+(declare-fun y1 () Int)
+(declare-fun x2 () Int)
+(declare-fun y2 () Int)
+(declare-fun x3 () Int)
+(declare-fun y3 () Int)
+(assert
+  (and
+    (int.v (* 6 a) x1)
+    (int.v (+ (* 4 b) 3) y1)
+    (<= x1 y1)
+    (int.v (+ (* 2 a) (* 5 b)) x2)
+    (int.v (+ (- (* 7 a) (* 7 b)) 1) y2)
+    (<= x2 y2)
+  )
+)
+(check-sat)

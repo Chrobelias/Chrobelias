@@ -1,0 +1,11 @@
+
+(set-logic QF_SLIA)
+(declare-fun A () Int)
+(declare-fun B () Int)
+(declare-fun C () String)
+(declare-fun E () Int)
+(assert (str.in_re C (re.++ (str.to_re "1") (re.* (re.union (str.to_re "0") (str.to_re "1"))))))
+(assert (>= 0 (+ (* 7 (str.to_int C)) (* (- 4) A) (* 3 B))))
+(assert (<= 0 (+ (* (- 3) (str.to_int C)) (* 5 A) (* (- 2) E))))
+(assert (<= (- 50) (+ (* (- 1) A) (* 6 B) (* (- 3) E))))
+(check-sat)

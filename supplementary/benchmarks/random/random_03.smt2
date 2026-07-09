@@ -1,0 +1,22 @@
+
+(set-logic QF_SLIA)
+(declare-fun x () Int)
+(declare-fun y () Int)
+(declare-fun z () Int)
+(declare-fun w () Int)
+(declare-fun u () Int)
+(declare-fun vv () Int)
+(assert
+  (and
+    (> x 0)
+    (> z 0)
+    (> u 0)
+    (int.v x y)
+    (int.v z w)
+    (int.v u vv)
+    (= (+ x (+ z u)) (* 12 y))
+    (<= w y)
+    (<= vv y)
+  )
+)
+(check-sat)
