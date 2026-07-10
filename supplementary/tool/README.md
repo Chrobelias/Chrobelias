@@ -2,15 +2,17 @@
 
 Supplementary Material for Submission #360
 
-## Executable binary for Linux x86-64
+## Building the tool
 
-You can simply run the statically pre-built `parsym` executable in the current directory `tool`
+### Executable binary for Linux x86-64
+
+If you are on a Linux x86-64 architecture, you should be able to simply run the statically pre-built `parsym` executable in the current directory `tool`. See "Running the tool", below.
 
 ```bash
 ./parsym file.smt2
 ```
 
-## Building
+### Building
 
 To build the project from source files you need first to install dependencies:
 
@@ -24,7 +26,7 @@ opam init --bare
 opam switch create 5.3.0+flambda --packages=ocaml-variants.5.3.0+options,ocaml-option-flambda --yes
 ```
 
-'parsym' is built as follows:
+`parsym` is built as follows:
 
 ```bash
 
@@ -41,4 +43,21 @@ opam install . --deps-only --with-test
 opam exec -- dune build @check @all
 ```
 
-The executable binary is available in the `_build` dir.
+The executable binary will then be available at `_build/default/bin/parsym.exe`.
+
+## Running the tool
+
+First look at the options available, running 
+
+`./<tool> --help` 
+
+where `<tool>` is either `parsym` or `_build/default/bin/parsym.exe`, depending on whether you had to build the tool or not. 
+Several options will appear, depending on what type of problem you want to solve. 
+
+For instance, to solve a Bounded Existence problem, in `par` mode, as described in Section 5 of the paper, run: 
+
+`./<tool> -bmin a -bmin b -par -problem e instance.smt2` 
+
+where `[a..b]` is the range of bases you wish to check, `-par` states the mode (avoid this option to call the tool in `sym` mode), 
+and `-problem e` specifies that `instance.smt2` is an instance of an existence problem (for universality: `-problem u`). 
+
