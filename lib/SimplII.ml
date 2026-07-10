@@ -249,7 +249,7 @@ module Id_symantics :
   let pow_minus_one t = pow (const (-1)) t
 
   let pow2var c =
-    Ast.Eia.pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var c I))
+    Ast.Eia.pow (Ast.Eia.const (Z.of_int Config.config.base)) (Ast.Eia.atom (Ast.var c I))
   ;;
 
   let unsupp s = Ast.Unsupp s
@@ -266,7 +266,7 @@ let apply_term_symantics
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Const base, p) when base = Z.minus_one -> S.pow_minus_one (helperT p)
-    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Config.base () ->
+    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Z.of_int Config.config.base ->
       S.pow (S.constz base) (S.var x)
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
@@ -528,15 +528,15 @@ let make_main_symantics ?alpha ?agressive env =
       | Some (Eia.Sofi _)
       | Some (Eia.Len _)
       | Some (Eia.Len2 _)*)
-      | None -> begin
-        match Env.lookup_string s env with
-        | Some (Str_const c) -> begin
-          match Id_symantics.constz (Z.of_string c) with
+      | None ->
+        begin match Env.lookup_string s env with
+        | Some (Str_const c) ->
+          begin match Id_symantics.constz (Z.of_string c) with
           | exception _ -> Id_symantics.constz Z.minus_one
           | v -> v
-        end
+          end
         | _ -> Eia.Atom (Ast.Var (s, I))
-      end
+        end
       | Some c ->
         (* log "Substuting %s ~~> %a" s Ast.pp_term_smtlib2 c; *)
         c
@@ -545,11 +545,11 @@ let make_main_symantics ?alpha ?agressive env =
     let str_var s : str =
       match Env.lookup_string s env with
       | Some c -> c
-      | None -> begin
-        match Env.lookup_int s env with
+      | None ->
+        begin match Env.lookup_int s env with
         | Some c -> Ast.Eia.sofi c
         | None -> Eia.Atom (Ast.Var (s, S))
-      end
+        end
     ;;
 
     let rec str_len = function
@@ -569,7 +569,7 @@ let make_main_symantics ?alpha ?agressive env =
 
     let str_len2 = function
       | Ast.Eia.Str_const s ->
-        Id_symantics.constz Z.(pow (Config.base ()) (String.length s) - one)
+        Id_symantics.constz Z.(pow (Z.of_int Config.config.base) (String.length s) - one)
       | s -> Id_symantics.str_len2 s
     ;;
 
@@ -582,7 +582,7 @@ let make_main_symantics ?alpha ?agressive env =
           [ Ast.Eia.mul
               [ Id_symantics.iofs lhs
               ; Ast.Eia.pow
-                  (Id_symantics.constz (Config.base ()))
+                  (Id_symantics.constz (Z.of_int Config.config.base))
                   (Id_symantics.str_len rhs)
               ]
           ; Id_symantics.iofs rhs
@@ -593,7 +593,7 @@ let make_main_symantics ?alpha ?agressive env =
           [ Ast.Eia.mul
               [ Id_symantics.iofs lhs
               ; Ast.Eia.pow
-                  (Id_symantics.constz (Config.base ()))
+                  (Id_symantics.constz (Z.of_int Config.config.base))
                   (Id_symantics.constz (Z.of_int (String.length s)))
               ]
           ; Id_symantics.constz (Z.of_string s)
@@ -602,13 +602,13 @@ let make_main_symantics ?alpha ?agressive env =
       | Ast.Eia.Concat (Ast.Eia.Str_const s, rhs) as term
         when String.for_all Base.Char.is_digit s -> Id_symantics.iofs term
       | Ast.Eia.Concat (Ast.Eia.Str_const s, rhs) -> Id_symantics.constz Z.minus_one
-      | Ast.Eia.Str_const s -> begin
-        match s with
+      | Ast.Eia.Str_const s ->
+        begin match s with
         | "" -> Id_symantics.constz Z.minus_one
         | s when String.for_all Base.Char.is_digit s ->
           Id_symantics.constz (Z.of_string s)
         | _ -> Id_symantics.constz Z.minus_one
-      end
+        end
       | s -> Id_symantics.iofs s
     ;;
 
@@ -714,8 +714,9 @@ let make_main_symantics ?alpha ?agressive env =
       | c, [ h ] when Z.equal c Z.one -> h
       | c, xs when Z.equal c Z.one -> Ast.Eia.mul (List.sort compare_term xs)
       | c, [ Pow ((Const base_ as base), Add [ Const v1; v ]) ]
-        when Z.(equal c (Config.base ())) && base_ = Config.base () && v1 = Z.minus_one ->
-        pow base v
+        when Z.(equal c (Z.of_int Config.config.base))
+             && base_ = Z.of_int Config.config.base
+             && v1 = Z.minus_one -> pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
       | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)
 
@@ -991,21 +992,21 @@ let make_main_symantics ?alpha ?agressive env =
     let in_re s re =
       let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
-      | Ast.Eia.Atom (Ast.Var (s, S)) -> begin
-        match Env.lookup_string s env with
+      | Ast.Eia.Atom (Ast.Var (s, S)) ->
+        begin match Env.lookup_string s env with
         | Some (Ast.Eia.Str_const _ as c) -> Ast.eia (Eia.inre c Ast.S re)
-        | Some (Ast.Eia.Const c) -> begin
-          match
+        | Some (Ast.Eia.Const c) ->
+          begin match
             NfaStr.of_regex re
             |> NfaStr.intersect (from_eia_nfa c)
             |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
           with
           | true -> Ast.true_
           | false -> Ast.false_
-        end
+          end
         (* | Some (Ast.Eia.Atom c) -> Ast.str (Str.inre (Eia.Sofi (Atom c)) re) *)
         | None | _ -> Ast.eia (Eia.inre (Eia.Atom (Ast.Var (s, S))) Ast.S re)
-      end
+        end
       | Ast.Eia.Sofi (Const c) ->
         (* v = sofi 4 <=> v="4" | v="04" | v="004" | ... *)
         begin match
@@ -1016,49 +1017,51 @@ let make_main_symantics ?alpha ?agressive env =
         | true -> Ast.true_
         | false -> Ast.false_
         end
-      | Ast.Eia.(Str_const str) -> begin
-        match
+      | Ast.Eia.(Str_const str) ->
+        begin match
           NfaStr.of_regex re
           |> NfaStr.re_accepts (String.to_seq str |> List.of_seq |> List.rev)
         with
         | true -> Ast.true_
         | false -> Ast.false_
-      end
+        end
       | _ -> Id_symantics.in_re s re
     ;;
 
     let in_rei s re =
       let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
-      | Ast.Eia.(Const c) -> begin
-        match NfaStr.of_regex re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run with
+      | Ast.Eia.(Const c) ->
+        begin match
+          NfaStr.of_regex re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run
+        with
         | true -> Ast.true_
         | false -> Ast.false_
-      end
+        end
       | _ -> Id_symantics.in_rei s re
     ;;
 
     let in_re_raw s re =
       let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
-      | Ast.Eia.(Str_const str) -> begin
-        match
+      | Ast.Eia.(Str_const str) ->
+        begin match
           Regex.str_to_re str |> NfaStr.of_regex |> NfaStr.intersect re |> NfaStr.run
         with
         | true -> Ast.true_
         | false -> Ast.false_
-      end
+        end
       | _ -> Id_symantics.in_re_raw s re
     ;;
 
     let in_re_rawi s re =
       let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
-      | Ast.Eia.(Const c) -> begin
-        match re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run with
+      | Ast.Eia.(Const c) ->
+        begin match re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run with
         | true -> Ast.true_
         | false -> Ast.false_
-      end
+        end
       | _ -> Id_symantics.in_re_rawi s re
     ;;
 
@@ -1232,11 +1235,11 @@ let find_vars_for_under2 ast =
     (*function*)
     | Ast.Eia.Mul [ Atom (Var (v, _)); Pow (Const base, _) ]
     | Ast.Eia.Mul [ Pow (Const base, _); Atom (Var (v, _)) ]
-      when Z.(equal (Config.base ()) base) -> S.add acc v
+      when Z.(equal (Z.of_int Config.config.base) base) -> S.add acc v
     | Mul [ Const _; Atom (Var (v, I)); Pow (Const base, _) ]
-      when Z.(equal (Config.base ()) base) -> S.add acc v
-    | Mul [ Atom (Var (v, _)); Pow (Const base, _) ] when Z.(equal (Config.base ()) base)
-      -> S.add acc v
+      when Z.(equal (Z.of_int Config.config.base) base) -> S.add acc v
+    | Mul [ Atom (Var (v, _)); Pow (Const base, _) ]
+      when Z.(equal (Z.of_int Config.config.base) base) -> S.add acc v
     | Mul [ Atom (Var (v1, _)); Atom (Var (v2, _)) ] -> S.add (S.add acc v1) v2
     | t ->
       (* Format.printf "skipping: @[%a@]\n%!" Ast.Eia.pp_term t; *)
@@ -1265,11 +1268,15 @@ let%expect_test _ =
   in
   test
     TS.(
-      add [ pow (constz (Config.base ())) (var "x"); mul [ const 2; var "y" ] ] = var "z");
+      add
+        [ pow (constz (Z.of_int Config.config.base)) (var "x"); mul [ const 2; var "y" ] ]
+      = var "z");
   [%expect ""];
-  test TS.(mul [ pow (constz (Config.base ())) (var "x"); var "y" ] = var "z");
+  test
+    TS.(mul [ pow (constz (Z.of_int Config.config.base)) (var "x"); var "y" ] = var "z");
   [%expect "y"];
-  test TS.(mul [ var "y"; pow (constz (Config.base ())) (var "x") ] = var "z");
+  test
+    TS.(mul [ var "y"; pow (constz (Z.of_int Config.config.base)) (var "x") ] = var "z");
   [%expect "y"];
   ()
 ;;
@@ -1297,7 +1304,7 @@ let shrink_variables ast =
     ;;
 
     let leq l r =
-      let base = constz (Config.base ()) in
+      let base = constz (Z.of_int Config.config.base) in
       let open Eia in
       (* Format.printf "TRACE: @[%a@]\n%!" Ast.pp_smtlib2 (Id_symantics.leq l r); *)
         match l, r with
@@ -1502,10 +1509,10 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let str_contains _ = failwith "not implemented str_contains"
     let str_suffixof _ = failwith "not implemented str_suffixof"
 
-    (*let pow2var s = pow (const Z.(Config.base () |> to_int)) (var s)*)
+    (*let pow2var s = pow (const Z.(Z.of_int Config.config.base |> to_int)) (var s)*)
     let pow_minus_one t = pow (constz Z.minus_one) t
     let exists vars x = failwith "tbd"
-    let pow2var s = pow (constz (Config.base ())) (var s)
+    let pow2var s = pow (constz (Z.of_int Config.config.base)) (var s)
     let str_len2 _ = failwith "not implemented str_len2"
     let pp_str = Smtml.Expr.pp
     let const c = constz (Z.of_int c)
@@ -1593,11 +1600,11 @@ let eq_propagation : Info.t -> ?multiple:bool -> Env.t -> Ast.t -> Env.t * Ast.t
     let rec in_strlen v ast =
       match ast with
       | True | Pred _ -> false
-      | Eia eia -> begin
-        match eia with
+      | Eia eia ->
+        begin match eia with
         | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
         | _ -> in_strlen_eia v eia
-      end
+        end
       | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
       | Land asts | Lor asts ->
         List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
@@ -1972,8 +1979,8 @@ let over_concat ast =
     in
     Ast.fold
       (fun acc -> function
-         | Ast.Eia (Eq (lhs, rhs, S)) -> begin
-           match lhs, rhs with
+         | Ast.Eia (Eq (lhs, rhs, S)) ->
+           begin match lhs, rhs with
            | Concat (Str_const s, rhs'), term | term, Concat (Str_const s, rhs') ->
              collect_consts rhs'
              |> List.map (fun s -> Id_symantics.in_re term (Regex.contains s))
@@ -1985,7 +1992,7 @@ let over_concat ast =
              |> (fun constr -> Id_symantics.in_re term (Regex.suffix s) :: constr)
              |> List.fold_left (fun acc' constr -> constr :: acc') acc
            | _ -> acc
-         end
+           end
          | ast -> acc)
       []
       ast
@@ -2667,7 +2674,7 @@ let arithmetize ast env =
   let module Set = Base.Set.Poly in
   (*let exception StrVar_In_Arithmetize in*)
   let strlens s = String.concat "" [ "strlen"; s ] in
-  let pow_base = Ast.Eia.pow (Ast.Eia.const (Config.base ())) in
+  let pow_base = Ast.Eia.pow (Ast.Eia.const (Z.of_int Config.config.base)) in
   (* let in_stoi2 v = Ast.in_stoi2 v ast in *)
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
   let module NfaL = Nfa.Lsb (Nfa.Str) in
@@ -2933,7 +2940,7 @@ let arithmetize ast env =
               let phs = leq (Ast.Eia.const Z.zero) v :: phs in
               let phs =
                 leq (pow_base v) term'
-                :: lt term' (Mul [ const (Config.base ()); pow_base v ])
+                :: lt term' (Mul [ const (Z.of_int Config.config.base); pow_base v ])
                 :: phs
               in
               v, phs

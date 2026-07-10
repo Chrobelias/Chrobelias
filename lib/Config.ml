@@ -2,6 +2,7 @@ type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bound_res : int
   ; mutable bound_states : int
+  ; mutable base : int
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
@@ -33,6 +34,7 @@ let config =
   { antiprenex_mode = `All
   ; bound_res = -1
   ; bound_states = -1
+  ; base = 2
   ; stop_after = `Solving
   ; dump_lics = false
   ; dump_pre_simpl = false
@@ -96,11 +98,6 @@ let under_str_config = { max_len = 32; max_cnt = 32 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
-
-let base () =
-  if config.logic = `Str || config.logic = `StrBv then Z.of_int 10 else Z.of_int 2
-;;
-
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
 
 let max_longest_path =
@@ -140,7 +137,10 @@ Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "-bound"
+    [ ( "-base"
+      , Arg.Int (fun n -> config.base <- n)
+      , Printf.sprintf "<n>\tSwitch to base <n> EIA (DEFAULT n=%d)\t" config.base )
+    ; ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
       , "\tUpper bound for integer underapproximation (negative disables)" )
     ; ( "-bres"
@@ -214,7 +214,6 @@ Basic options:
             | "no" | "disable" -> config.antiprenex_mode <- `Disable
             | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tAntiprenex mode [all; push-reg; disable]" )
-    ; "-base10", Arg.Unit (fun () -> config.logic <- `StrBv), "\tSwitch to base 10 EIA\t"
     ; ( "--stop-after"
       , Arg.String
           (function
@@ -265,3 +264,5 @@ Basic options:
        else Printf.eprintf "File %S doesn't exist\n" s)
     usage_msg
 ;;
+
+let () = parse_args ()

@@ -71,12 +71,12 @@ let aux_of_path
       | _ -> assert false
       end
     | `Msb, true -> `Plus, number
-    | `Msb, false -> begin
-      match number with
+    | `Msb, false ->
+      begin match number with
       | hd :: tl when hd = Label.u_zero || hd = Label.u_eos -> `Plus, tl
       | hd :: tl -> `Minus, tl
       | _ -> assert false
-    end
+      end
   in
   let number =
     number
@@ -216,8 +216,8 @@ struct
        | Ir.Lor (hd :: tl) ->
          List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
        | Ir.Lor [] -> NfaCollection.z ()
-       | Ir.Rel (rel, term, c) -> begin
-         match rel with
+       | Ir.Rel (rel, term, c) ->
+         begin match rel with
          | Ir.Eq ->
            let nfa = NfaCollection.eq vars term c in
            let nfa =
@@ -269,7 +269,7 @@ struct
                vars
            in
            nfa
-       end
+         end
        | Ir.Reg (reg, atoms) -> Extra.eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->
          let latest_var = Set.equal (Ir.collect_free ir) (Set.of_list atoms) in
@@ -787,7 +787,9 @@ struct
                         |> List.map (fun x ->
                           let over_x =
                             Map.of_alist_exn
-                              [ x, Z.minus_one; (get_exp x, Z.(Config.base () - one)) ]
+                              [ x, Z.minus_one
+                              ; (get_exp x, Z.(of_int Config.config.base - one))
+                              ]
                           in
                           Nfa.to_nat (NfaCollection.leq powered_vars over_x Z.minus_one))
                        )
@@ -1062,11 +1064,11 @@ struct
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
       Debug.printflics "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
       if Config.config.no_model
-      then begin
-        if ir' |> eval |> fst |> Nfa.run
+      then
+        begin if ir' |> eval |> fst |> Nfa.run
         then sat_if_no_unsupp (fun () -> Result.Ok Map.empty)
         else `Unsat
-      end
+        end
       else (
         let model = get_model_nfa ir () in
         match model with
@@ -1446,8 +1448,8 @@ let check_sat ir
               ~f:(fun ~key:k ~data:v ->
                 let ty = Map.find tys k |> Option.value ~default:`Int in
                 match ty with
-                | `Int -> begin
-                  try
+                | `Int ->
+                  begin try
                     `Int
                       (int_of_path
                          (module Nfa.Str)
@@ -1460,7 +1462,7 @@ let check_sat ir
                   | Invalid_argument ex as exp ->
                     Format.printf "Something is wrong: %s\n%!" (Printexc.to_string exp);
                     `Str (v |> string_of_path (module Nfa.Str) string_of_char_list)
-                end
+                  end
                 | `Str -> `Str (v |> string_of_path (module Nfa.Str) string_of_char_list))
               model
           in

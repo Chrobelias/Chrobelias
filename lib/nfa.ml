@@ -212,7 +212,7 @@ module Bv = struct
   let eos_with_mask mask = Z.zero, bv_of_list mask
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    assert (base = Z.of_int Config.config.base);
     Z.shift_left Z.one c, bv_of_list mask
   ;;
 
@@ -281,7 +281,7 @@ module StrBv = struct
   type t = Z.t * Z.t
   type u = Z.t
 
-  let base = Z.of_int 10
+  let base = Z.of_int Config.config.base
   let basei = Z.to_int base
 
   let u_zero, u_one, u_null, u_eos =
@@ -450,7 +450,7 @@ module StrBv = struct
   ;;
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    assert (base = Z.of_int config.base);
     let len = max (List.fold_left max 0 mask) c + 1 in
     ( bv_init len (fun i ->
         if not (List.mem i mask) then u_null else if i = c then u_one else u_zero)
@@ -508,8 +508,8 @@ module Str = struct
   type u = char
 
   (* TODO: use me here! *)
-  let base = Z.of_int 10
-  let basei = Z.to_int base
+  let basei = Config.config.base
+  let base = Z.of_int basei
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let is_end_char c = c = u_eos || c = u_null
@@ -588,12 +588,10 @@ module Str = struct
     @ [ u_eos; u_null ]
   ;;
 
-  (* FIXME: this should support different bases and symbols. *)
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
     let full_alpha =
-      Char.code '0' -- (Char.code '0' + Z.to_int (Config.base ()) - 1)
-      |> List.map Char.chr
+      Char.code '0' -- (Char.code '0' + Config.config.base - 1) |> List.map Char.chr
     in
     let full_alpha = Option.value ~default:full_alpha alpha in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
@@ -636,7 +634,7 @@ module Str = struct
   ;;
 
   let singleton_with_mask c mask =
-    assert (base = Config.base ());
+    assert (base = Z.of_int Config.config.base);
     let len = max (List.fold_left max 0 mask) c + 1 in
     Array.init len (fun i ->
       if not (List.mem i mask) then u_null else if i = c then '1' else '0')
@@ -1223,7 +1221,7 @@ struct
                     if
                       !flag
                       || Label.alphabet
-                         |> List.take (Z.to_int (Config.base ()))
+                         |> List.take config.base
                          |> List.for_all (fun c -> Set.mem symbols c)
                     then label1'
                     else label1)
