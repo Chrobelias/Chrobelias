@@ -30,10 +30,6 @@ opam switch create 5.3.0+flambda --packages=ocaml-variants.5.3.0+options,ocaml-o
 
 ```bash
 
-# Installing smtml dependencies.
-opam pin add smtml vendor/smtml --no-action
-opam install smtml --deps-only --with-test
-
 # Installing parsym dependencies.
 opam install . --deps-only --with-test
 

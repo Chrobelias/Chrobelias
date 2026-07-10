@@ -1,4 +1,0 @@
-(library
- (name smtml_test)
- (modules test_harness)
- (libraries smtml ounit2))
