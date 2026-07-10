@@ -1,0 +1,33 @@
+(env
+ (dev
+  (flags
+   (:standard -w -unused-var-strict))))
+
+(library
+ (name lib)
+ (modules
+  Ast
+  AstL
+  Env
+  Config
+  Nfa
+  NfaCollection
+  Ir
+  Regex
+  Solver
+  Debug
+  Fe
+  FT_SIG
+  SimplI
+  SimplII
+  Me
+  Utils)
+ (libraries base angstrom bitv smtml unix iter zarith lwt.unix)
+ (preprocess
+  (pps
+   ppx_deriving.show
+   ppx_compare
+   ppx_variants_conv
+   ppx_assert
+   ppx_expect
+   ppx_regexp)))

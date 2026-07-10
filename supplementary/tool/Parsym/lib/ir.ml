@@ -1,0 +1,809 @@
+module Map = Base.Map.Poly
+module Set = Base.Set.Poly
+
+let trace_log fmt = Debug.trace "ir" fmt
+let _config = Config.config
+let _base = _config.enc_base
+
+type atom = Var of string [@@deriving variants]
+
+let eq_atom : atom -> atom -> bool = Stdlib.( = )
+let internalc = ref 0
+
+let internal_name () =
+  let r = String.concat "" [ "%"; !internalc |> Int.to_string ] in
+  internalc := !internalc + 1;
+  r
+;;
+
+let name = function
+  | Var name -> name
+;;
+
+let internal () = var (internal_name ())
+let parameter = var "par"
+
+let pp_atom fmt = function
+  | Var var -> Format.fprintf fmt "%s" var
+;;
+
+type rel =
+  | Leq
+  | Eq
+  | Neq
+[@@deriving variants]
+
+let pp_rel fmt = function
+  | Leq -> Format.fprintf fmt "<="
+  | Eq -> Format.fprintf fmt "="
+  | Neq -> Format.fprintf fmt "distinct"
+;;
+
+type polynom = (atom, Z.t) Map.t
+
+let pp_polynom ppf poly =
+  let fprintf = Format.fprintf in
+  let pp_map ppf mapa =
+    let one =
+      fun ~key ~data ->
+      match data with
+      | data when data = Z.one -> fprintf ppf "%a@ " pp_atom key
+      | data when data > Z.zero -> fprintf ppf "(* %a %a)@ " Z.pp_print data pp_atom key
+      | _ -> fprintf ppf "(* (- %a) %a)@ " Z.pp_print (Z.( ~- ) data) pp_atom key
+    in
+    if Map.length mapa = 1
+    then (
+      let v, coeff = Map.min_elt_exn mapa in
+      one ~key:v ~data:coeff)
+    else (
+      fprintf ppf "@[(+ ";
+      Map.iteri mapa ~f:one;
+      fprintf ppf ")@]@ ")
+  in
+  fprintf ppf "@[(%a)@]@ " pp_map poly
+;;
+
+module NfaS = Nfa.Lsb (Nfa.Str)
+
+type t =
+  | True
+  | Reg of bool list Regex.t * atom list
+  | SReg of atom * char list Regex.t
+  | SRegRaw of atom * NfaS.t
+  | Stoi of atom * atom
+  | Rel of rel * polynom * Z.t
+  | V of atom * atom
+  (* Logical operations. *)
+  | Lnot of t
+  | Land of t list
+  | Lor of t list
+  | Exists of atom list * t (*| Pred of string * 'atom Eia.t list*)
+  | Unsupp of string
+
+let true_ = True
+let reg a b = Reg (a, b)
+let sreg a b = SReg (a, b)
+let sregraw a b = SRegRaw (a, b)
+let stoi a b = Stoi (a, b)
+let rel a b c = Rel (a, b, c)
+let v a b = V (a, b)
+
+let land_ = function
+  | [] -> true_
+  | [ ast ] -> ast
+  | asts when List.exists (( = ) (Lnot True)) asts -> Lnot True
+  | asts ->
+    let asts =
+      List.concat_map
+        (function
+          | Land asts' -> asts'
+          | ast -> [ ast ])
+        asts
+    in
+    Land asts
+;;
+
+let lor_ = function
+  | [] -> true_
+  | [ ast ] -> ast
+  | asts when List.exists (( = ) True) asts -> True
+  | asts ->
+    let asts =
+      List.map
+        (function
+          | Lor asts' -> asts'
+          | ast -> [ ast ])
+        asts
+      |> List.concat
+    in
+    Lor asts
+;;
+
+let rec lnot = function
+  | Lnot ast -> ast
+  | Land asts -> lor_ (List.map lnot asts)
+  | Lor asts -> land_ (List.map lnot asts)
+  | ast -> Lnot ast
+;;
+
+let rec pp fmt = function
+  | True -> Format.fprintf fmt "true"
+  | SReg (atom, re) ->
+    Format.fprintf
+      fmt
+      "(str.in.re %a %a)"
+      pp_atom
+      atom
+      (Regex.pp (fun ppf bv ->
+         Format.fprintf ppf "%a" (Format.pp_print_list Format.pp_print_char) bv))
+      re (* TODO: print regex *)
+  | SRegRaw (atom, re) -> Format.fprintf fmt "(str.in.re.raw %a)" pp_atom atom
+  | Stoi (atom, atom') ->
+    Format.fprintf fmt "@[(= %a (str.to.int %a))@]" pp_atom atom pp_atom atom'
+  | Rel (rel, term, c) ->
+    Format.fprintf
+      fmt
+      "(%a %a %a)"
+      (Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ")
+         (fun fmt (a, b) -> Format.fprintf fmt "%a%a" Z.pp_print b pp_atom a))
+      (Map.to_alist term)
+      pp_rel
+      rel
+      Z.pp_print
+      c
+  | Reg (regex, atoms) ->
+    Format.fprintf
+      fmt
+      "(%a %a)"
+      (Regex.pp (fun ppf bv ->
+         Format.fprintf
+           ppf
+           "%a"
+           (Format.pp_print_list (fun ppf b ->
+              Format.fprintf ppf (if b then "1" else "0")))
+           bv))
+      regex
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " + ") pp_atom)
+      atoms
+  | V (expr, pow) -> Format.fprintf fmt "(int.v (%a, %a))" pp_atom expr pp_atom pow
+  | Lnot ir -> Format.fprintf fmt "~%a" pp ir
+  | Land irs ->
+    Format.fprintf
+      fmt
+      "(%a)"
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " & ") pp)
+      irs
+  | Lor irs ->
+    Format.fprintf
+      fmt
+      "(%a)"
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " | ") pp)
+      irs
+  | Exists (atoms, ir) ->
+    Format.fprintf
+      fmt
+      "(exists (%a) %a)"
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") pp_atom)
+      atoms
+      pp
+      ir
+  | Unsupp s -> Format.fprintf fmt "(unsupported %s)" s
+;;
+
+(** A manually implemented printer to SMTLIB2-like format *)
+let pp_smtlib2 ppf ir =
+  let open Format in
+  (* https://microsoft.github.io/z3guide/docs/theories/Regular%20Expressions *)
+  let ( -- ) i j =
+    let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+    aux j []
+  in
+  let z_of_list_msb p =
+    let length = List.length p in
+    let bv_init deg f =
+      List.fold_left
+        (fun acc v -> if f v then Z.logor acc (Z.shift_left Z.one v) else acc)
+        Z.zero
+        (0 -- (deg - 1))
+    in
+    bv_init length (fun i -> List.nth p i) |> Z.to_int
+  in
+  let pp_sym ppf bv = Format.fprintf ppf "%d" (z_of_list_msb bv) in
+  let rec helper ppf =
+    let pp_map ppf mapa =
+      let one =
+        fun ~key ~data ->
+        match data with
+        | data when data = Z.one -> fprintf ppf "%a@ " pp_atom key
+        | data when data > Z.zero -> fprintf ppf "(* %a %a)@ " Z.pp_print data pp_atom key
+        | _ -> fprintf ppf "(* (- %a) %a)@ " Z.pp_print (Z.( ~- ) data) pp_atom key
+      in
+      if Map.length mapa = 1
+      then (
+        let v, coeff = Map.min_elt_exn mapa in
+        one ~key:v ~data:coeff)
+      else (
+        fprintf ppf "@[(+ ";
+        Map.iteri mapa ~f:one;
+        fprintf ppf ")@]@ ")
+    in
+    function
+    | True -> fprintf ppf "T"
+    | Exists (atoms, rhs) ->
+      fprintf
+        ppf
+        "@[(exists (%a)@ %a)@]@ "
+        (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_atom)
+        atoms
+        helper
+        rhs
+    | (Stoi _ | SReg _ | SRegRaw _) as ir -> Format.fprintf ppf "%a" pp ir
+    | Land [ x ] -> helper ppf x
+    | Land xs ->
+      fprintf ppf "@[<v 2>@[(and@]@ ";
+      List.iter (fprintf ppf "@[%a@]@ " helper) xs;
+      fprintf ppf "@]"
+    | Lor xs ->
+      fprintf ppf "@[<v 2>@[(or@]@ ";
+      List.iter (helper ppf) xs;
+      fprintf ppf "@]"
+    | Rel (op, poly, rhs) ->
+      fprintf
+        ppf
+        "@[(%s %a %a)@]@ "
+        (match op with
+         | Leq -> "<="
+         | Neq -> "distinct"
+         | Eq -> "=")
+        pp_map
+        poly
+        Z.pp_print
+        rhs
+    | Lnot ph -> fprintf ppf "@[(not %a)@]" helper ph
+    | V (poly, pow) -> fprintf ppf "@[(str.v %a %a)@]" pp_atom poly pp_atom pow
+    | Reg (r, atoms) ->
+      fprintf ppf "@[(%a" (Regex.pp pp_sym) r;
+      (* List.iter (fprintf ppf " %a" pp_atom) atoms; *)
+      fprintf ppf ")@]"
+    | Unsupp s -> fprintf ppf "@[(%s)@]" s
+  in
+  match ir with
+  | Land xs ->
+    fprintf ppf "@[<v>";
+    List.iter (fprintf ppf "@[(assert %a)@]@," helper) xs;
+    fprintf ppf "@]"
+  | ir -> fprintf ppf "(assert %a)" helper ir
+;;
+
+type model = (atom, [ `Int of Z.t | `Str of string ]) Map.t
+
+let pp_model_smtlib2 ppf m =
+  let open Format in
+  fprintf ppf "@[<hv 1>@[(@]\n ";
+  let i = ref 0 in
+  Map.iteri m ~f:(fun ~key ~data ->
+    if !i <> 0 then fprintf ppf "@ " else incr i;
+    match key, data with
+    | Var v, `Int z -> fprintf ppf "  @[(define-fun %s () Int\n    %a)@]" v Z.pp_print z
+    | Var v, `Str s -> fprintf ppf "  @[(define-fun %s () String\n    \"%s\")@]" v s);
+  fprintf ppf "\n)@]"
+;;
+
+let model_to_str m = Format.asprintf "%a" pp_model_smtlib2 m
+
+let exists vars = function
+  | True -> True
+  | ph ->
+    assert (None = Base.List.find_a_dup ~compare:Stdlib.compare vars);
+    Exists (vars, ph)
+;;
+
+let false_ = lnot true_
+
+let of_bool = function
+  | true -> True
+  | false -> false_
+;;
+
+let neg term = Map.map ~f:Z.( ~- ) term
+let _equal term1 term2 = Base.Map.equal Z.equal term1 term2
+
+let is_zero_lhs (map : (atom, Z.t) Map.t) =
+  match Map.length map with
+  | 0 -> true
+  | 1 -> Z.(snd (Map.min_elt_exn map) = zero)
+  | _ -> false
+;;
+
+let eq = rel eq
+let leq m rhs = if is_zero_lhs m then of_bool Z.(zero <= rhs) else rel leq m rhs
+let neq m rhs = rel neq m rhs
+let lt t c = leq t Z.(pred c)
+let geq t c = leq (neg t) Z.(-c)
+let gt t c = leq (neg t) Z.(pred ~-c)
+
+(* Structural equivalence of the IR formulas. *)
+let rec equal ir ir' =
+  match ir, ir' with
+  | True, True -> true
+  | Reg (reg, atoms), Reg (reg', atoms') -> List.equal ( = ) atoms atoms' && reg = reg'
+  | Rel (rel, term, c), Rel (rel', term', c') ->
+    rel = rel' && c = c' && Map.equal ( = ) term term'
+  | V (var, exp), V (var', exp') -> var = var' && exp = exp'
+  | Lnot ir, Lnot ir' -> equal ir ir'
+  | Land irs, Land irs' | Lor irs, Lor irs' ->
+    List.length irs = List.length irs' && List.for_all2 equal irs irs'
+  | Exists (atoms, ir), Exists (atoms', ir') ->
+    List.equal ( = ) atoms atoms' && equal ir ir'
+  | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
+  | SRegRaw (atom, regex), SRegRaw (atom', regex') -> atom = atom' && regex = regex'
+  | _, _ -> false
+;;
+
+let rec map2 f fleaf ir =
+  match ir with
+  | True -> fleaf ir
+  | Rel (_, _, _) -> fleaf ir
+  | V (_, _) -> fleaf ir
+  | Reg (_, _) -> fleaf ir
+  | SReg (_, _) -> fleaf ir
+  | SRegRaw (_, _) -> fleaf ir
+  | Stoi (_, _) -> fleaf ir
+  | Lnot ir' -> f (lnot (map2 f fleaf ir'))
+  | Land irs -> f (land_ (List.map (map2 f fleaf) irs))
+  | Lor irs -> f (lor_ (List.map (map2 f fleaf) irs))
+  | Exists (atoms, ir') -> f (exists atoms (map2 f fleaf ir'))
+  | Unsupp _ -> f ir
+;;
+
+let map f ir = map2 f f ir
+
+let rec fold f acc ir =
+  match ir with
+  | True -> f acc ir
+  | Rel _ -> f acc ir
+  | V (_, _) -> f acc ir
+  | Reg (_, _) -> f acc ir
+  | SReg (_, _) -> f acc ir
+  | SRegRaw (_, _) -> f acc ir
+  | Stoi (_, _) -> f acc ir
+  | Lnot ir' -> f (fold f acc ir') ir
+  | Land irs -> f (List.fold_left (fold f) acc irs) ir
+  | Lor irs -> f (List.fold_left (fold f) acc irs) ir
+  | Exists (_, ir') -> f (fold f acc ir') ir
+  | Unsupp _ -> f acc ir
+;;
+
+let is_used_atom (v : string) inside =
+  let exception Found in
+  try
+    fold
+      (fun () -> function
+         | Rel (_, mapa, _) when Map.mem mapa (Var v) -> raise Found
+         | _ -> ())
+      ()
+      inside;
+    false
+  with
+  | Found -> true
+;;
+
+let for_all f ir = fold (fun acc ir -> f ir |> ( && ) acc) true ir
+let for_some f ir = fold (fun acc ir -> f ir |> ( || ) acc) false ir
+
+[@@@ocaml.warnerror "-26"]
+
+type from =
+  | Top
+  | Bot
+
+(** [Bound (Top, x, y)] means for variable [v] holds [v <= x/y]
+    [Bound (Bot, x, y)] means for variable [v] holds [v >= x/y] *)
+type bound = from * Z.t * Z.t
+
+let pp_bound ppf = function
+  | Top, x, y -> Format.fprintf ppf "<= %d/%d" x y
+  | Bot, x, y -> Format.fprintf ppf ">= %d/%d" x y
+;;
+
+let log ppf =
+  match Sys.getenv "CHRO_DEBUG" with
+  | exception Not_found -> Format.ifprintf Format.std_formatter ppf
+  | _ -> Format.kasprintf (Format.printf "%s\n%!") ppf
+;;
+
+let collect_vars ir =
+  fold
+    (fun acc -> function
+       | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | V (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SReg (atom, _) -> Set.add acc atom
+       | SRegRaw (atom, _) -> Set.add acc atom
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function Var _ as ir -> [ ir ])
+            |> Set.of_list)
+       | _ -> acc)
+    Set.empty
+    ir
+  |> Set.to_list
+  |> List.mapi (fun i var -> var, i)
+  |> Map.of_alist_exn
+;;
+
+let collect_free_atoms ir =
+  fold
+    (fun acc -> function
+       | Exists (atoms, _) -> Set.diff acc (Set.of_list atoms)
+       | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | V (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SReg (atom, _) -> Set.add acc atom
+       | SRegRaw (atom, _) -> Set.add acc atom
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Rel (_, term, _) ->
+         Set.union
+           acc
+           (Map.keys term
+            |> List.concat_map (function Var _ as ir -> [ ir ])
+            |> Set.of_list)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
+let collect_free (ir : t) =
+  fold
+    (fun acc -> function
+       | Rel (_, term, _) -> term |> Map.keys |> Set.of_list |> Set.union acc
+       | V (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | SReg (atom, _) -> Set.add acc atom
+       | SRegRaw (atom, _) -> Set.add acc atom
+       | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
+       | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
+       | Exists (xs, ir) -> Set.diff acc (Set.of_list xs)
+       | _ -> acc)
+    Set.empty
+    ir
+;;
+
+let collect_atomics =
+  fold
+    (fun acc -> function
+       | Rel _ as ir -> Set.add acc ir
+       | V _ as buchi -> Set.add acc buchi
+       | SReg (atom, _) as ir -> Set.add acc ir
+       | SRegRaw (atom, _) as ir -> Set.add acc ir
+       | _ -> acc)
+    Set.empty
+;;
+
+(** Approximate size of an IR formula, used to sort conjuncts so that smaller
+    (fewer-state) NFAs are intersected first, reducing peak memory. *)
+
+let approx_size ir =
+  let rec helper = function
+    | True -> 1
+    | Rel (_, term, b) ->
+      let a_norm =
+        term
+        |> Map.data
+        |> List.fold_left (fun acc a -> Z.(acc + abs a)) Z.zero
+        |> Z.to_int
+      in
+      let b_log = if Z.(b = zero) then 1 else Z.(log2 (abs b)) + 1 in
+      int_of_float (sqrt (float_of_int (a_norm * b_log))) + a_norm
+    | V _ | Reg _ | SReg _ | SRegRaw _ | Stoi _ -> 3
+    | Lnot ir -> helper ir + 1
+    | Land irs -> List.fold_left (fun acc ir -> acc * helper ir) 1 irs
+    | Lor irs -> List.fold_left (fun acc ir -> acc + helper ir) 1 irs
+    | Exists (_, ir) -> 1 + helper ir
+    | Unsupp _ -> 1
+  in
+  helper ir
+;;
+
+let antiprenex =
+  fun ir ->
+  if _config.antiprenex_mode = `Disable
+  then ir
+  else
+    map
+      (function
+        | Exists ([], ir) -> ir
+        | Exists (atoms, Exists (atoms', ir)) ->
+          exists (Base.List.dedup_and_sort ~compare (atoms @ atoms')) ir
+        | Exists ((a :: b :: tl as atoms), Land irs) as orig_ir ->
+          let atoms_set = Set.of_list atoms in
+          if atoms_set |> Set.is_empty
+          then orig_ir
+          else (
+            let irs_using_var : (int * atom Set.t) list =
+              List.mapi
+                begin fun i ir ->
+                  let free_vars = collect_free ir in
+                  let used_vars = Set.inter atoms_set free_vars in
+                  i, used_vars
+                end
+                irs
+            in
+            let var_is_used_in : (atom, int list) Map.t =
+              List.map
+                begin fun atom ->
+                  ( atom
+                  , List.filter_map
+                      (fun (i, s) ->
+                         if
+                           Set.mem s atom
+                           || (_config.antiprenex_mode = `Push_re
+                               && List.nth irs i
+                                  |> function
+                                  | SRegRaw _ -> true
+                                  | _ -> false)
+                         then Some i
+                         else None)
+                      irs_using_var )
+                end
+                atoms
+              |> Map.of_alist_exn
+            in
+            let atom_to_move, used_in =
+              var_is_used_in
+              |> Map.to_alist
+              |> List.sort (fun (_, used_in) (_, used_in') ->
+                List.length used_in - List.length used_in')
+              |> List.hd
+            in
+            if List.length irs = List.length used_in
+            then orig_ir
+            else (
+              let atoms = List.filter (fun atom -> atom <> atom_to_move) atoms in
+              let irs_used, irs_free =
+                irs
+                |> List.mapi (fun i ir -> i, ir)
+                |> List.partition (fun (i, ir) -> List.mem i used_in)
+              in
+              let irs_used = List.map snd irs_used in
+              let irs_free = List.map snd irs_free in
+              let ir = land_ (exists [ atom_to_move ] (land_ irs_used) :: irs_free) in
+              if atoms <> [] then exists atoms ir else ir))
+        | Exists (atoms, Lor irs) -> lor_ (List.map (exists atoms) irs)
+        | ir -> ir)
+      ir
+;;
+
+let simpl ir =
+  ir
+  |> map (function
+    | Rel (Eq, term, c) when Map.for_all ~f:(fun v -> Z.(equal v zero)) term && c = Z.zero
+      -> true_
+    | Rel (Leq, term, c) when Map.length term = 0 && Z.(c >= zero) -> true_
+    | Rel (Leq, term, c) when Map.length term = 0 && Z.(c < zero) -> false_
+    | Rel (Eq, term, c) when Map.length term = 1 ->
+      let _, coeff = Map.min_elt_exn term in
+      (match Z.(coeff = zero) with
+       | true -> if Z.(c <> zero) then false_ else true_
+       | false -> if Z.(c mod coeff <> zero) then false_ else Rel (Eq, term, c))
+    | Rel (Eq, term, c) ->
+      let gcd_ = List.fold_left Z.gcd Z.zero (Map.data term) in
+      if Z.(c mod gcd_ = zero)
+      then (
+        let term' = Map.map ~f:(fun coeff -> Z.(coeff / gcd_)) term in
+        Rel (Eq, term', Utils.div_floor c gcd_))
+      else false_
+    | Rel (Leq, term, c) ->
+      trace_log "Term: %a; const: %a" pp_polynom term Z.pp_print c;
+      let gcd_ = List.fold_left Z.gcd Z.zero (Map.data term) in
+      let term' = Map.map ~f:(fun coeff -> Z.(coeff / gcd_)) term in
+      trace_log "Term': %a; const: %a" pp_polynom term' Z.pp_print c;
+      Rel (Leq, term', Utils.div_floor c gcd_)
+    | ir -> ir)
+  |> map (function
+    | Lor [] -> false_
+    | Land [] -> true_
+    | Land [ ir ] -> ir
+    | Lor [ ir ] -> ir
+    | Land irs
+      when List.exists
+             (function
+               | Lnot True -> true
+               | _ -> false)
+             irs -> Lnot True
+    | Land irs ->
+      land_
+        (List.filter_map
+           (function
+             | True -> None
+             | ir' -> Some ir')
+           irs)
+    | Lor irs
+      when List.exists
+             (function
+               | True -> true
+               | _ -> false)
+             irs -> True
+    | Lor irs ->
+      lor_
+        (List.filter_map
+           (function
+             | Lnot True -> None
+             | ir' -> Some ir')
+           irs)
+    | ir -> ir)
+  |> map (function
+    | Land lst ->
+      Land
+        (lst
+         |> List.concat_map (function
+           | Land lst -> lst
+           | ir -> [ ir ]))
+    | Lor lst ->
+      Lor
+        (lst
+         |> List.concat_map (function
+           | Lor lst -> lst
+           | ir -> [ ir ]))
+    | ir -> ir)
+;;
+
+let simpl_divisibility ir =
+  let short_mod x y =
+    let short x y = if Z.(abs x <= abs y) then x else y in
+    let z = Z.(x mod y) in
+    if Z.(z >= zero) then short z Z.(z - y) else short z Z.(z + y)
+  in
+  let unique_vars =
+    fold
+      (fun acc -> function
+         | Reg (_, atoms) -> atoms @ acc
+         | V (atom, atom') | Stoi (atom, atom') -> atom :: atom' :: acc
+         | SReg (atom, _) | SRegRaw (atom, _) -> atom :: acc
+         | Rel (_, term, _) -> Map.keys term @ acc
+         | _ -> acc)
+      []
+      ir
+    |> Utils.unique
+  in
+  ir
+  |> map (function
+    | Rel (Eq, term, c) as equality ->
+      let uniques =
+        Map.fold term ~init:[] ~f:(fun ~key ~data acc ->
+          if List.mem key unique_vars then (key, data) :: acc else acc)
+      in
+      (match uniques with
+       | x :: xs -> begin
+         let var, coeff =
+           List.fold_left
+             (fun (x_key, x_coeff) (key, data) ->
+                if data < x_coeff then key, data else x_key, x_coeff)
+             x
+             xs
+         in
+         let term' =
+           term
+           |> Map.mapi ~f:(fun ~key ~data ->
+             if eq_atom key var then data else short_mod data coeff)
+           |> Map.filter ~f:(fun coeff -> Z.(coeff <> zero))
+         in
+         Rel (Eq, term', short_mod c coeff)
+         end
+       | [] -> equality)
+    | ir -> ir)
+;;
+
+let simpl_ineq ir =
+  let simpl_ineq ir =
+    let merge lowb uppb =
+      let merge_bounds f = function
+        | Some x, Some y -> Some (f x y)
+        | None, Some y -> Some y
+        | Some x, None -> Some x
+        | None, None -> None
+      in
+      let (lowb1, uppb1), (lowb2, uppb2) = lowb, uppb in
+      merge_bounds max (lowb1, lowb2), merge_bounds min (uppb1, uppb2)
+    in
+    let bounds =
+      fold
+        (fun list -> function
+           | Rel (Eq, term, c) when Map.length term = 1 ->
+             let var, coeff = Map.min_elt_exn term in
+             let value = Z.(c / coeff) in
+             (var, (Some value, Some value)) :: list
+           | Rel (Leq, term, c) when Map.length term = 1 ->
+             let var, coeff = Map.min_elt_exn term in
+             let q, r = Utils.div_rem c coeff in
+             (* let value = if Z.(coeff < zero) then Z.(q + one) else q in *)
+             if Z.(coeff > zero)
+             then (var, (None, Some q)) :: list
+             else (var, (Some q, None)) :: list
+           | _ -> list)
+        []
+        ir
+    in
+    let bounds_map =
+      bounds
+      |> Map.of_alist_multi
+      |> Map.map ~f:(fun data -> List.fold_left merge (None, None) data)
+    in
+    let ir_without_eq_n_leq =
+      map
+        (function
+          | Rel (Eq, term, c) when Map.length term = 1 -> true_
+          | Rel (Leq, term, c) when Map.length term = 1 -> true_
+          | ir -> ir)
+        ir
+    in
+    let irs =
+      Map.fold
+        ~init:[]
+        ~f:(fun ~key:var ~data:(lowb, uppb) irs ->
+          match lowb, uppb with
+          | Some x, Some y ->
+            if x < y
+            then
+              leq (Map.singleton var Z.minus_one) Z.(-x)
+              :: leq (Map.singleton var Z.one) y
+              :: irs
+            else if x = y
+            then eq (Map.singleton var Z.one) y :: irs
+            else false_ :: irs
+          | Some x, None -> leq (Map.singleton var Z.minus_one) Z.(-x) :: irs
+          | None, Some y -> leq (Map.singleton var Z.one) y :: irs
+          | None, None -> irs)
+        bounds_map
+    in
+    let complex_bounds_map =
+      let complex_bounds =
+        fold
+          (fun list -> function
+             | Rel (Leq, term, value) -> (term, value) :: list
+             | _ -> list)
+          []
+          ir_without_eq_n_leq
+      in
+      complex_bounds
+      |> Map.of_alist_multi
+      |> Map.map ~f:(function
+        | hd :: tl -> List.fold_left Z.min hd tl
+        | [] -> assert false)
+    in
+    let ir_without_leq =
+      map
+        (function
+          | Rel (Leq, term, c) -> true_
+          | ir -> ir)
+        ir_without_eq_n_leq
+    in
+    let irs' =
+      let decide term c =
+        match Map.find complex_bounds_map (neg term) with
+        | None -> leq term c
+        | Some c' ->
+          if Z.(c = -c') then if Z.(c >= zero) then eq term c else true_ else leq term c
+      in
+      Map.fold
+        ~init:[]
+        ~f:(fun ~key ~data irs -> decide key data :: irs)
+        complex_bounds_map
+    in
+    let ir = land_ (List.concat [ irs'; ir_without_leq :: irs ]) |> simpl in
+    ir
+  in
+  map
+    (function
+      | Exists (v, ir) -> exists v (simpl_ineq ir)
+      | Lnot ir' -> lnot (simpl_ineq ir')
+      | ir -> ir)
+    ir
+  |> simpl_ineq
+;;
+
+let is_reg = function
+  | SReg _ | Reg _ | SRegRaw _ -> true
+  | _ -> false
+;;

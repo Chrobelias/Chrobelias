@@ -1,0 +1,228 @@
+module Map = Base.Map.Poly
+module Set = Base.Set.Poly
+
+type 'a t =
+  | Empty
+  | Epsilon
+  | Symbol of 'a
+  | Mand of 'a t * 'a t
+  | Mor of 'a t * 'a t
+  | Concat of 'a t * 'a t
+  | Kleene of 'a t
+  | Mnot of 'a t
+[@@deriving variants, compare]
+
+let rec pp pp_sym ppf = function
+  | Empty -> Format.fprintf ppf "(re.nostr)"
+  | Epsilon -> Format.fprintf ppf "(re.empty)"
+  | Mand (r1, r2) -> Format.fprintf ppf "(re.inter %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
+  | Mor (r1, r2) -> Format.fprintf ppf "(re.union %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
+  | Concat (r1, r2) -> Format.fprintf ppf "(re.++ %a %a)" (pp pp_sym) r1 (pp pp_sym) r2
+  | Kleene r -> Format.fprintf ppf "(re.* %a)" (pp pp_sym) r
+  | Mnot r -> Format.fprintf ppf "(re.~ %a)" (pp pp_sym) r
+  | Symbol r -> Format.fprintf ppf "(str.to.re \"%a\")" pp_sym r
+;;
+
+let all = mnot empty
+
+let rec kleene = function
+  | Kleene r -> kleene r
+  | Epsilon -> Epsilon
+  | Empty -> Epsilon
+  | r -> Kleene r
+;;
+
+let rec concat r' s' =
+  match r', s' with
+  | Empty, _ | _, Empty -> Empty
+  | Epsilon, r | r, Epsilon -> r
+  | Concat (r, s), t -> concat r (concat s t)
+  | r, s -> Concat (r, s)
+;;
+
+let rec mor r' s' =
+  match r', s' with
+  | Empty, r | r, Empty -> r
+  | Mor (r, s), t when t = s || t = r -> mor r s
+  | t, Mor (r, s) when t = s || t = r -> mor r s
+  | Mor (r, s), t -> mor r (mor s t)
+  | t, Mor (r, s) when compare Stdlib.compare t r > 0 -> mor r (mor t s)
+  | t, Mor (r, s) -> Mor (r', s')
+  | Mnot Empty, _ | _, Mnot Empty -> all
+  (*| t, Mor (r, s) when t > r -> mor r (mor t s)*)
+  | r, s when r = s -> r
+  | r, s ->
+    let c = compare Stdlib.compare r s in
+    if c = 0 then r else if c > 0 then mor s r else Mor (r, s)
+;;
+
+let rec mand r' s' =
+  match r', s' with
+  | Empty, _ | _, Empty -> Empty
+  | Epsilon, _ | _, Epsilon -> Epsilon
+  | Mnot Empty, r | r, Mnot Empty -> r
+  | Mand (r, s), t when t = s || t = r -> mand r s
+  | t, Mand (r, s) when t = s || t = r -> mand r s
+  | r, s when r = s -> r
+  | r, s -> Mand (r, s)
+;;
+
+let mnot = function
+  | Mnot (Mnot r) -> r
+  | r -> Mnot r
+;;
+
+let plus r = concat r (kleene r)
+let opt r = mor r epsilon
+let ( <|> ) = mor
+let ( <&> ) = mand
+let ( <*> ) = concat
+
+let rec v = function
+  | Empty -> false
+  | Epsilon -> true
+  | Symbol _ -> false
+  | Concat (r, s) -> v r && v s
+  | Mor (r, s) -> v r || v s
+  | Mand (r, s) -> v r && v s
+  | Kleene _ -> true
+  | Mnot r -> v r |> not
+;;
+
+let rec deriv a = function
+  | Empty -> Empty
+  | Epsilon -> Empty
+  | Symbol b -> if a = b then Epsilon else Empty
+  | Concat (r, s) -> if v r then deriv a r <*> s <|> deriv a s else deriv a r <*> s
+  | Mor (r, s) -> deriv a r <|> deriv a s
+  | Mand (r, s) -> deriv a r <&> deriv a s
+  | Kleene r -> deriv a r <*> kleene r
+  | Mnot r -> mnot (deriv a r)
+;;
+
+let symbols r =
+  let rec aux = function
+    | Empty | Epsilon -> Set.empty
+    | Symbol a -> Set.singleton a
+    | Concat (r, s) | Mor (r, s) | Mand (r, s) -> Set.union (aux r) (aux s)
+    | Kleene r | Mnot r -> aux r
+  in
+  aux r |> Set.to_list
+;;
+
+let ( -- ) i j =
+  let rec aux n acc = if n < i then acc else aux (n - 1) (n :: acc) in
+  aux j []
+;;
+
+let of_string symbol = failwith symbol
+
+let s bv =
+  Bitv.fold_left
+    (fun acc b -> b :: acc)
+    []
+    (Bitv.of_list_with_length (Bitv.of_int_us bv |> Bitv.to_list) 3)
+;;
+
+let bwand =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b100)) (symbol (s 0b010))) (symbol (s 0b000)))
+       (symbol (s 0b111)))
+;;
+
+let bwor =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b000)) (symbol (s 0b011))) (symbol (s 0b101)))
+       (symbol (s 0b111)))
+;;
+
+let bwxor =
+  kleene
+    (mor
+       (mor (mor (symbol (s 0b000)) (symbol (s 0b011))) (symbol (s 0b101)))
+       (symbol (s 0b110)))
+;;
+
+let dec = "0123456789"
+
+let all alpha =
+  kleene
+    (alpha
+     |> List.map (fun c -> symbol [ c ])
+     |> List.fold_left (fun acc a -> mor a acc) epsilon)
+;;
+
+let digit =
+  concat
+    (plus
+       (dec
+        |> String.to_seq
+        |> Seq.map (fun c -> symbol [ c ])
+        |> Seq.fold_left (fun acc a -> mor a acc) (symbol [ '0' ])))
+    (kleene (symbol [ Config.string_config.eos ]))
+;;
+
+let nondigit =
+  concat
+    (concat
+       (kleene (symbol [ Config.string_config.null ]))
+       (32 -- 126
+        |> List.map Char.chr
+        |> List.filter (function
+          | '0' .. '9' -> false
+          | _ -> true)
+        |> List.map (fun c -> symbol [ c ])
+        |> List.fold_left (fun acc a -> mor a acc) empty))
+    (kleene (symbol [ Config.string_config.null ]))
+;;
+
+let nondigit2 = mor (kleene (symbol [ Config.string_config.eos ])) nondigit
+
+let allchar =
+  concat
+    (List.fold_left
+       mor
+       (symbol [ Char.chr 32 ])
+       (33 -- 127 |> List.map Char.chr |> List.map (fun c -> symbol [ c ])))
+    (kleene (symbol [ Config.string_config.eos ]))
+;;
+
+let int_to_re s =
+  concat
+    (concat
+       (s
+        |> String.to_seq
+        |> Seq.map (fun c -> symbol [ c ])
+        |> Seq.fold_left
+             (fun acc a ->
+                (* String constraints use LSB representation, we intentionally reverse the concat. *)
+                concat a acc)
+             epsilon)
+       (kleene (symbol [ Config.string_config.zero ])))
+    (kleene (symbol [ Config.string_config.eos ]))
+;;
+
+let str_to_re s =
+  concat
+    (s
+     |> String.to_seq
+     |> Seq.map (fun c -> symbol [ c ])
+     |> Seq.fold_left
+          (fun acc a ->
+             (* String constraints use LSB representation, we intentionally reverse the concat. *)
+             concat a acc)
+          epsilon)
+    (kleene (symbol [ Config.string_config.eos ]))
+;;
+
+let prefix s = concat (kleene (symbol [ Config.string_config.null ])) (str_to_re s)
+
+let contains s =
+  concat
+    (concat (kleene (symbol [ Config.string_config.null ])) (str_to_re s))
+    (kleene (symbol [ Config.string_config.null ]))
+;;
+
+let suffix s = concat (str_to_re s) (kleene (symbol [ Config.string_config.null ]))

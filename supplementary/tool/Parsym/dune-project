@@ -1,0 +1,36 @@
+(lang dune 3.16)
+
+(using directory-targets 0.1)
+
+(name parsym)
+
+(generate_opam_files true)
+
+(license MIT)
+
+(package
+ (name parsym)
+ (synopsis
+  "SMT-solver based on parametric symbolic automata for parametric Büchi arithmetic")
+ (depends
+  ocaml
+  dune
+  angstrom
+  zarith
+  bitv
+  iter
+  ppx_regexp
+  ppx_deriving
+  ppx_variants_conv
+  smtml
+  ounit2
+  z3
+  ppx_expect
+  ppx_inline_test
+  mdx
+  (ocamlformat
+   (and
+    :dev
+    (= 0.29.0))))
+ (tags
+  (solver theorem)))

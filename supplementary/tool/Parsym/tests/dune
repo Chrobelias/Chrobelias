@@ -1,0 +1,10 @@
+(cram
+ (deps %{bin:ParSym}))
+
+(cram
+ (applies_to tests)
+ (deps test.smt2))
+
+(cram
+ (applies_to tests)
+ (deps prime_cone_disj.smt2))

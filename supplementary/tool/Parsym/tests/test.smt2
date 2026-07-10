@@ -1,0 +1,7 @@
+(set-logic QF_SLIA)
+(declare-fun A () Int)
+(declare-fun B () Int)
+(assert (int.v A A))
+(assert (>= A 10))
+(check-sat)
+(get-model)

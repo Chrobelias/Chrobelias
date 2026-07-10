@@ -1,0 +1,9 @@
+(rule
+ (targets QF_SLIA.tar.zst)
+ (action
+  (progn
+   (run
+    wget
+    https://zenodo.org/records/16740866/files/QF_SLIA.tar.zst
+    -O
+    QF_SLIA.tar.zst))))

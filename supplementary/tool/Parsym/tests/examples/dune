@@ -1,0 +1,18 @@
+(cram
+ (deps %{bin:ParSym}))
+
+(cram
+ (applies_to examples_slia)
+ (deps example.smt2))
+
+(cram
+ (applies_to examples_buchi)
+ (deps example_intro.smt2))
+
+(cram
+ (applies_to examples_slia)
+ (deps example_int.smt2))
+
+(cram
+ (applies_to examples_buchi)
+ (deps example_buchi.smt2))

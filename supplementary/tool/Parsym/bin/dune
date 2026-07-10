@@ -1,0 +1,38 @@
+(executables
+ (public_names Parsym)
+ (names parsym)
+ (libraries
+  lib
+  ;memtrace
+  )
+ (preprocess
+  (pps ppx_deriving.show))
+ (enabled_if
+  (= %{profile} dev)))
+
+(executables
+ (public_names Parsym)
+ (names parsym)
+ (libraries
+  lib
+  str
+  ;memtrace
+  )
+ (preprocess
+  (pps ppx_deriving.show))
+ (enabled_if
+  (= %{profile} release))
+ (flags
+  (:standard -verbose -cclib -static -cclib -no-pie)))
+
+(rule
+ (targets z3)
+ (action
+  (progn
+   (run
+    wget
+    https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/z3-4.15.2-x64-glibc-2.39.zip
+    -O
+    z3.zip)
+   (run unzip z3.zip)
+   (run mv ./z3-4.15.2-x64-glibc-2.39/bin/z3 ./z3))))
