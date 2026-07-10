@@ -20,7 +20,7 @@ let internal_name () =
 
 let name = function
   | Var name -> name
-  | Pow2 name -> Format.asprintf "%a" Z.pp_print (Config.base ()) ^ name
+  | Pow2 name -> Format.asprintf "%a" Z.pp_print (Z.of_int Config.config.base) ^ name
 ;;
 
 let internal () = var (internal_name ())

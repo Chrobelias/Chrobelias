@@ -52,7 +52,7 @@ let lift ?(unsat_info = "") ast = function
 ;;
 
 let logBaseZ n =
-  let base = Lib.Config.base () in
+  let base = Z.of_int Lib.Config.config.base in
   let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base) in
   helper Z.minus_one n
 ;;
@@ -76,28 +76,28 @@ let join_int_model _tys prefix m =
   (* log "prefix.length = %d" (Env.length prefix); *)
   let rec seek prefix key =
     match Env.lookup_int key prefix with
-    | Some eia -> begin
-      match SimplII.subst_term prefix eia with
+    | Some eia ->
+      begin match SimplII.subst_term prefix eia with
       | Ast.Eia.Const c -> Option.some (`Int c)
       | Ast.Eia.Str_const s -> Option.some (`Str s)
       | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
       | Ast.Eia.Len (Ast.Eia.Atom (Var (v, _))) -> seek prefix ("strlen" ^ v)
       | _ -> None
-    end
+      end
     (* | `Str (Ast.Str.Atom (Var z)) -> Some (`Str z) *)
     (* | `Str term -> failwith (Format.asprintf "not implemented: %a" Ast.Str.pp_term term) *)
-    | None -> begin
-      match Env.lookup_string key prefix with
-      | Some str -> begin
-        match SimplII.subst_term prefix str with
+    | None ->
+      begin match Env.lookup_string key prefix with
+      | Some str ->
+        begin match SimplII.subst_term prefix str with
         | Ast.Eia.Const c -> Option.some (`Int c)
         | Ast.Eia.Str_const s -> Option.some (`Str s)
         | Ast.Eia.Atom (Var (v, _)) -> seek prefix v
         | _ -> None
-      end
+        end
       | None when Solver.is_internal key -> None
       | None -> None
-    end
+      end
   in
   let rec saturate env =
     let env' : Env.t =
@@ -148,11 +148,11 @@ let rec model_from_parts_regexes_env tys model regexes env' =
     |> Map.mapi ~f:(fun ~key ~data ->
       match data with
       | `Str str -> `Str str
-      | `Int eia -> begin
-        match key with
+      | `Int eia ->
+        begin match key with
         | Lib.Ir.Var _ -> data
         | Pow2 _ -> `Int (logBaseZ eia)
-      end)
+        end)
     |> Map.map_keys_exn ~f:(function
       | Lib.Ir.Var _ as v -> v
       | Lib.Ir.Pow2 v -> Lib.Ir.Var v)
@@ -174,7 +174,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
         let data =
           match data with
           | `Int c ->
-            if c > Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ()))
+            if c > Z.(pow (Z.of_int Lib.Config.config.base) (Lib.Config.huge_const ()))
             then raise Too_long_model
             else (
               try Z.to_int c with
@@ -444,16 +444,16 @@ let rec check_sat ?(verbose = false) tys ast : rez =
             Sat_found of
               ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
                -> (Lib.Ir.model, [ `Too_long | `No_model ]) Result.t)
-          in
+            in
           (try
              let f ast =
                let ir = Lib.Me.ir_of_ast e ast in
                match ir with
-               | Ok ir -> begin
-                 match Lib.Solver.check_sat ir with
+               | Ok ir ->
+                 begin match Lib.Solver.check_sat ir with
                  | `Sat e -> raise (Sat_found e)
                  | _ -> Result.ok ()
-               end
+                 end
                | Error s -> Result.error s
              in
              let _results = List.map f asts in
@@ -506,8 +506,8 @@ let rec check_sat ?(verbose = false) tys ast : rez =
       Seq.map
         (function
           | Some (_, _, _, _, [], _) as rez -> rez
-          | Some (_, ast, e, get_model, post, regexes) as rez -> begin
-            match get_model tys with
+          | Some (_, ast, e, get_model, post, regexes) as rez ->
+            begin match get_model tys with
             | Result.Ok model ->
               let model = model_from_parts_regexes_env tys model regexes e in
               begin if
@@ -528,7 +528,7 @@ let rec check_sat ?(verbose = false) tys ast : rez =
               else Option.none
               end
             | Result.Error _ -> rez
-          end
+            end
           | None -> Option.none)
         asts_n_regexes
     in
@@ -710,7 +710,11 @@ let () =
                   eia
                     (Eia.leq
                        (Atom (Var (v, I)))
-                       (Const Z.(pow (Lib.Config.base ()) (Lib.Config.huge_const ())))))
+                       (Const
+                          Z.(
+                            pow
+                              (Z.of_int Lib.Config.config.base)
+                              (Lib.Config.huge_const ())))))
                 :: acc
               | _ -> acc)
             |> Lib.Ast.land_
@@ -779,15 +783,16 @@ let () =
       config.over_approx <- false;
       config.simpl_alpha <- false;
       config.simpl_mono <- true;
+      config.base <- 10;
       (* config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
       { asserts = []; prev = Some state; last_result = None; tys = Map.empty }
-    | Smtml.Ast.Pop _ -> begin
-      match prev with
+    | Smtml.Ast.Pop _ ->
+      begin match prev with
       | Some state -> state
       | None -> failwith "Nothing to pop"
-    end
+      end
     | Smtml.Ast.Check_sat exprs ->
       config.with_check_sat <- true;
       let expr_irs = List.map (Lib.Fe._to_ir state.tys) exprs in
@@ -842,7 +847,7 @@ let () =
     | Smtml.Ast.Assert expr -> begin
       let ast = expr |> Lib.Fe._to_ir state.tys in
       { state with asserts = ast :: state.asserts }
-    end
+      end
     | Smtml.Ast.Set_info e ->
       let open Smtml in
       (match Expr.view e with

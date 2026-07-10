@@ -222,7 +222,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let rec pow ~base exp =
-    let two = Config.base () in
+    let two = Z.of_int Config.config.base in
     let four = Z.(two * two) in
     match base, exp with
     | Poly (base_poly, base, base_sups), _ when Map.is_empty base_poly && base = four ->
@@ -294,17 +294,15 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
     | Symbol (a, _), _ ->
       failwith
         (Format.asprintf
-           "only the same base %a is supported in exponents (got %a)"
-           Z.pp_print
-           (Config.base ())
+           "only the same base %d is supported in exponents (got %a)"
+           Config.config.base
            Ir.pp_atom
            a)
     | Poly (base_poly, base_c, base_sups), _ ->
       failwith
         (Format.asprintf
-           "only the same base %a is supported in exponents (got %a)"
-           Z.pp_print
-           (Config.base ())
+           "only the same base %d is supported in exponents (got %a)"
+           Config.config.base
            Z.pp_print
            base_c)
   ;;
@@ -315,7 +313,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
       let u = Ir.internal () in
       Symbol (u, [ Ir.slen u (Ir.var v) ])
     | Ast.Eia.Str_const s ->
-      Poly (Map.empty, Z.(pow (Config.base ()) (String.length s) - one), [])
+      Poly (Map.empty, Z.(pow (Z.of_int Config.config.base) (String.length s) - one), [])
     | _ -> failwith "unreachable"
   ;;
 
@@ -612,50 +610,50 @@ let ir_of_ast env ast =
 ;;
 
 let rec eia_of_ir : Ir.t -> Ast.t =
+  let open Ast in
+  let open Ast.Eia in
   let ir_atom_to_eia_term = function
-    | Ir.Var s -> Ast.Eia.atom (Ast.var s I)
-    | Ir.Pow2 s ->
-      Ast.Eia.pow (Ast.Eia.const (Config.base ())) (Ast.Eia.atom (Ast.var s I))
+    | Ir.Var s -> atom (var s I)
+    | Ir.Pow2 s -> pow (const (Z.of_int Config.config.base)) (atom (var s I))
   in
   let ir_atom_to_atom = function
-    | Ir.Var s -> Ast.Any_atom (Ast.Var (s, I))
+    | Ir.Var s -> Any_atom (Var (s, I))
     | Ir.Pow2 _ -> failwith "only vars are supported to be converted back in AST"
   in
   function
-  | True -> Ast.true_
-  | Lnot lhs -> Ast.lnot (eia_of_ir lhs)
-  | Land ls -> Ast.land_ (List.map eia_of_ir ls)
-  | Lor ls -> Ast.lor_ (List.map eia_of_ir ls)
+  | True -> true_
+  | Lnot lhs -> lnot (eia_of_ir lhs)
+  | Land ls -> land_ (List.map eia_of_ir ls)
+  | Lor ls -> lor_ (List.map eia_of_ir ls)
   | Rel (rel, poly, c) ->
     let poly =
       Map.fold
-        ~f:(fun ~key ~data acc ->
-          Ast.Eia.mul [ Ast.Eia.const data; ir_atom_to_eia_term key ] :: acc)
+        ~f:(fun ~key ~data acc -> mul [ const data; ir_atom_to_eia_term key ] :: acc)
         ~init:[]
         poly
     in
-    let lhs = Ast.Eia.add poly in
-    let rhs = Ast.Eia.const c in
+    let lhs = add poly in
+    let rhs = const c in
     (match rel with
-     | Neq -> Ast.eia (Ast.Eia.neq lhs rhs I)
-     | Leq -> Ast.eia (Ast.Eia.leq lhs rhs)
-     | Eq -> Ast.eia (Ast.Eia.eq lhs rhs I))
+     | Neq -> eia (neq lhs rhs I)
+     | Leq -> eia (leq lhs rhs)
+     | Eq -> eia (eq lhs rhs I))
   | Exists ([], lhs) -> eia_of_ir lhs
-  | Exists (atoms, lhs) -> Ast.exists (List.map ir_atom_to_atom atoms) (eia_of_ir lhs)
-  | _ -> Ast.true_
+  | Exists (atoms, lhs) -> exists (List.map ir_atom_to_atom atoms) (eia_of_ir lhs)
+  | _ -> true_
 ;;
 
 let%expect_test _ =
   let open Ast in
   let wrap ast =
-    Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 (Eia ast);
+    Format.printf "@[%a@]\n%!" pp_smtlib2 (Eia ast);
     (*let ir1 = of_eia ast in
     Format.printf "@[IR1: %a@]\n%!" Ir.pp_smtlib2 ir1;*)
     let ir2 = of_eia2 ast |> Result.get_ok in
     Format.printf "@[IR2: %a@]\n%!" Ir.pp_smtlib2 ir2
   in
   wrap
-    (Ast.Eia.leq
+    (Eia.leq
        Eia.(pow (const (Z.of_int 2)) (Eia.pow (const (Z.of_int 2)) (Atom (int_var "z"))))
        Eia.(Const Z.one));
   [%expect
