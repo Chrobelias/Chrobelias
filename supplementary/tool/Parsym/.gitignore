@@ -1,8 +1,0 @@
-_build/
-debugs/
-dumps/
-/*.output
-/.log
-/.errlog
-# benchmark scripts
-/bench_*.sh

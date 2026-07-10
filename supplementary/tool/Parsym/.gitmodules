@@ -1,4 +1,0 @@
-[submodule "vendor/smtml"]
-	path = vendor/smtml
-	url = https://github.com/Chrobelias/smtml.git
-	shallow = true
