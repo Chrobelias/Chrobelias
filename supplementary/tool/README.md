@@ -59,5 +59,5 @@ For instance, to solve a Bounded Existence problem, in `par` mode, as described 
 `./<tool> -bmin a -bmin b -par -problem e instance.smt2` 
 
 where `[a..b]` is the range of bases you wish to check, `-par` states the mode (avoid this option to call the tool in `sym` mode), 
-and `-problem e` specifies that `instance.smt2` is an instance of an existence problem (for universality: `-problem u`). 
+and `-problem e` specifies that `instance.smt2` is an instance of an existence problem (for Bounded universality problems: `-problem u`). 
 
