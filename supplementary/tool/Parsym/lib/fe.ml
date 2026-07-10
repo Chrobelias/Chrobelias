@@ -233,19 +233,13 @@ and _to_ir tys orig_expr =
       let rhs = to_string rhs in
       build lhs rhs
     | Expr.Relop (_ty, rel, lhs, rhs) ->
-      let build =
-        match rel with
-        | Ty.Relop.Eq -> fun t c -> Ast.rlia (Ast.RLia.eq t c I)
-        | Ty.Relop.Ne -> fun t c -> Ast.lnot (Ast.rlia (Ast.RLia.eq t c I))
-        | Ty.Relop.Le -> fun t c -> Ast.rlia (Ast.RLia.leq t c)
-        | Ty.Relop.Lt -> fun t c -> Ast.rlia (Ast.RLia.lt t c)
-        | Ty.Relop.Ge -> fun t c -> Ast.rlia (Ast.RLia.geq t c)
-        | Ty.Relop.Gt -> fun t c -> Ast.rlia (Ast.RLia.gt t c)
-        | _ -> failwith "Unsupported relational operator in EIA"
-      in
       let lhs = to_rlia_term lhs in
       let rhs = to_rlia_term rhs in
-      build lhs rhs
+      (match rel with
+      | Ty.Relop.Eq -> Ast.rlia (Ast.RLia.eq lhs rhs I)
+      | Ty.Relop.Ne -> Ast.lnot (Ast.rlia (Ast.RLia.eq lhs rhs I))
+      | Ty.Relop.Le | Ty.Relop.LeU -> Ast.rlia (Ast.RLia.leq lhs rhs)
+      | Ty.Relop.Lt | Ty.Relop.LtU -> Ast.rlia (Ast.RLia.lt lhs rhs))
       (* Buchi arithmetic. *)
     | Expr.App ({ name = Symbol.Simple "int.v"; _ }, [ e; p ]) ->
       let expr = to_rlia_term e in
