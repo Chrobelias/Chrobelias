@@ -1,10 +1,12 @@
-### This folder 
+# Experiments
+
+Supplementary Material for Submission #360
 
 This folder contains data relevant to Section 5.3 of the paper:
 - benchmarks: contains all instances used in the experimentals
 - Jupyter: contains the Jupyter notebook used to produce the plots in the paper. This notebook also contains additional statistics on the experiments. 
 
-### The Jupyter notebook
+## The Jupyter notebook
 
 To look at the notebook, start by creating a Python virtual environment (if you don't have one already): 
 
