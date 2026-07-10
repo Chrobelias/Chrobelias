@@ -1,0 +1,527 @@
+(* SPDX-License-Identifier: MIT *)
+(* Copyright (C) 2023-2024 formalsec *)
+(* Written by Hichem Rami Ait El Hara *)
+
+module DExpr = Dolmen_std.Expr
+module DTy = DExpr.Ty
+module DTerm = DExpr.Term
+module DBuiltin = Dolmen_std.Builtin
+module DM = Dolmen_model
+
+module Builtin = struct
+  (* additional builtins *)
+
+  let string_ty_cst : DExpr.Term.ty_const =
+    DExpr.Id.mk ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "StringTy")
+      DExpr.{ arity = 0; alias = No_alias }
+
+  let string_ty = DTy.apply string_ty_cst []
+
+  let float32_ty = DTy.float 8 24
+
+  let float64_ty = DTy.float 11 53
+
+  let int_to_string : DExpr.term_cst =
+    DExpr.Id.mk ~name:"IntToString" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "IntToString")
+      (DTy.arrow [ DTy.int ] string_ty)
+
+  let string_to_int : DExpr.term_cst =
+    DExpr.Id.mk ~name:"StringToInt" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "StringToInt")
+      (DTy.arrow [ string_ty ] DTy.int)
+
+  let real_to_string : DExpr.term_cst =
+    DExpr.Id.mk ~name:"RealToString" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "RealToString")
+      (DTy.arrow [ DTy.real ] string_ty)
+
+  let string_to_real : DExpr.term_cst =
+    DExpr.Id.mk ~name:"StringToReal" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "StringToReal")
+      (DTy.arrow [ string_ty ] DTy.real)
+
+  let real_to_uint32 : DExpr.term_cst =
+    DExpr.Id.mk ~name:"RealToUInt32" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "RealToUInt32")
+      (DTy.arrow [ DTy.real ] DTy.real)
+
+  let trim_string : DExpr.term_cst =
+    DExpr.Id.mk ~name:"TrimString" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "TrimString")
+      (DTy.arrow [ string_ty ] string_ty)
+
+  let f32_to_string : DExpr.term_cst =
+    DExpr.Id.mk ~name:"F32ToString" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "F32ToString")
+      (DTy.arrow [ float32_ty ] string_ty)
+
+  let string_to_f32 : DExpr.term_cst =
+    DExpr.Id.mk ~name:"StringToF32" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "StringToF32")
+      (DTy.arrow [ string_ty ] float32_ty)
+
+  let f64_to_string : DExpr.term_cst =
+    DExpr.Id.mk ~name:"F64ToString" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "F64ToString")
+      (DTy.arrow [ float64_ty ] string_ty)
+
+  let string_to_f64 : DExpr.term_cst =
+    DExpr.Id.mk ~name:"StringToF64" ~builtin:DBuiltin.Base
+      (Dolmen_std.Path.global "StringToF64")
+      (DTy.arrow [ string_ty ] float64_ty)
+end
+
+module DolmenIntf = struct
+  include DTerm
+
+  module ConstMap = Map.Make (struct
+    type t = DTerm.Const.t
+
+    let compare = DTerm.Const.compare
+  end)
+
+  type ty = DTy.t
+
+  type term = DTerm.t
+
+  type interp = DM.Value.t
+
+  type func_decl = DTerm.Const.t
+
+  type model = interp ConstMap.t
+
+  let true_ = DTerm._true
+
+  let false_ = DTerm._false
+
+  let int i = DTerm.Int.mk (string_of_int i)
+
+  let real r = DTerm.Real.mk (string_of_float r)
+
+  let const s ty = DTerm.of_cst (DTerm.Const.mk (Dolmen_std.Path.global s) ty)
+
+  let not_ = DTerm.neg
+
+  let and_ a b = DTerm._and [ a; b ]
+
+  let or_ a b = DTerm._or [ a; b ]
+
+  let implies = DTerm.imply
+
+  let logand = DTerm._and
+
+  let logor = DTerm._or
+
+  let get_vars_from_terms tl =
+    List.map
+      (fun (t : DTerm.t) ->
+        match t.term_descr with
+        | Var v -> v
+        | _ ->
+          Fmt.failwith {|Can't quantify non-variable term "%a"|} DTerm.print t )
+      tl
+
+  let forall tl t =
+    let tvl = get_vars_from_terms tl in
+    DTerm.all ([], tvl) t
+
+  let exists (tl : term list) t =
+    let tvl = get_vars_from_terms tl in
+    DTerm.ex ([], tvl) t
+
+  let nary_to_binary f tl =
+    let rec aux acc = function
+      | [] -> acc
+      | h :: t -> aux (DTerm.apply_cst f [] [ acc; h ]) t
+    in
+    match tl with
+    | h1 :: h2 :: t -> aux (DTerm.apply_cst f [] [ h1; h2 ]) t
+    | _ ->
+      Fmt.failwith {|%a applied to less than two terms|} DTerm.Const.print f
+
+  let int_of_term (t : DTerm.t) =
+    match t.term_descr with
+    | Cst { builtin = DBuiltin.Bitvec i; _ } ->
+      (* There may be a proper alternative to int_of_string somewhere,
+         since its hidden by prelude. *)
+      Z.to_int (Z.of_string i)
+    | _ ->
+      Fmt.failwith
+        {|int_of_term: expected a term that is an integer constant, instead got: %a|}
+        DTerm.print t
+
+  module Types = struct
+    include DTy
+
+    let regexp = DTy.string_reg_lang
+
+    let ty = DTerm.ty
+
+    let to_ety (ty : DTy.t) : Ty.t =
+      match ty with
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Int; _ }, _); _ } -> Ty_int
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Real; _ }, _); _ } -> Ty_real
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Prop; _ }, _); _ } -> Ty_bool
+      | { ty_descr =
+            TyApp
+              ( { builtin = DBuiltin.Base
+                ; path = Absolute { name = "StringTy"; _ }
+                ; _
+                }
+              , _ )
+        ; _
+        } ->
+        Ty_str
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Bitv n; _ }, _); _ } ->
+        Ty_bitv n
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Float (8, 24); _ }, _); _ } ->
+        Ty_fp 32
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Float (11, 53); _ }, _); _ } ->
+        Ty_fp 64
+      | _ -> Fmt.failwith {|Unsupported dolmen type "%a"|} DTy.print ty
+  end
+
+  module Interp = struct
+    let to_int interp =
+      match DM.Value.extract ~ops:DM.Int.ops interp with
+      | Some z -> Z.to_int z
+      | _ -> assert false
+
+    let to_real interp =
+      match DM.Value.extract ~ops:DM.Real.ops interp with
+      | Some q -> Q.to_float q
+      | _ -> assert false
+
+    let to_bool interp =
+      match DM.Value.extract ~ops:DM.Bool.ops interp with
+      | Some b -> b
+      | None -> assert false
+
+    let to_string _ = assert false
+
+    let to_bitv interp _n =
+      match DM.Value.extract ~ops:DM.Bitv.ops interp with
+      | Some z -> z
+      | _ -> assert false
+
+    let to_float interp _eb _sb =
+      match DM.Value.extract ~ops:DM.Fp.ops interp with
+      | Some f -> Farith.F.to_float Farith.Mode.NE f
+      | _ -> assert false
+  end
+
+  module Int = struct
+    include DTerm.Int
+
+    let neg = DTerm.Int.minus
+
+    let to_bv = DTerm.Bitv.of_int
+
+    let mod_ = DTerm.Int.rem_f
+  end
+
+  module Real = struct
+    include DTerm.Real
+
+    let neg = DTerm.Real.minus
+  end
+
+  module String = struct
+    include DTerm.String
+
+    let v = DTerm.String.of_ustring
+
+    let to_re = DTerm.String.RegLan.of_string
+
+    let at t ~pos = DTerm.String.at t pos
+
+    let concat = nary_to_binary DTerm.Const.String.concat
+
+    let contains t ~sub = DTerm.String.contains t sub
+
+    let is_prefix t ~prefix = DTerm.String.is_prefix t prefix
+
+    let is_suffix t ~suffix = DTerm.String.is_suffix t suffix
+
+    let le = DTerm.String.leq
+
+    let sub t ~pos ~len = DTerm.String.sub t pos len
+
+    let index_of t ~sub ~pos = DTerm.String.index_of t sub pos
+
+    let replace t ~pattern ~with_ = DTerm.String.replace t pattern with_
+
+    let replace_all t ~pattern ~with_ = DTerm.String.replace_all t pattern with_
+
+    let replace_re t ~pattern ~with_ = DTerm.String.replace_re t pattern with_
+
+    let replace_re_all t ~pattern ~with_ =
+      DTerm.String.replace_re_all t pattern with_
+  end
+
+  module Re = struct
+    let all () = DTerm.String.RegLan.all
+
+    let allchar () = DTerm.String.RegLan.allchar
+
+    let none () = DTerm.String.RegLan.empty
+
+    let star = DTerm.String.RegLan.star
+
+    let plus = DTerm.String.RegLan.cross
+
+    let opt = DTerm.String.RegLan.option
+
+    let comp = DTerm.String.RegLan.complement
+
+    let range = DTerm.String.RegLan.range
+
+    let diff = DTerm.String.RegLan.diff
+
+    let inter = DTerm.String.RegLan.inter
+
+    let loop t i1 i2 = DTerm.String.RegLan.loop i1 i2 t
+
+    let union = nary_to_binary DTerm.Const.String.Reg_Lang.union
+
+    let concat = nary_to_binary DTerm.Const.String.Reg_Lang.concat
+  end
+
+  module Bitv = struct
+    include DTerm.Bitv
+
+    let int_to_bitvector (n : Z.t) (bits : int) : string =
+      let two_pow_n = Z.shift_left Z.one bits in
+      let unsigned_bv = if Z.lt n Z.zero then Z.add two_pow_n n else n in
+      let rec to_bitlist acc n bits =
+        if bits = 0 then acc
+        else
+          let bit = Z.(logand n one |> to_string) in
+          to_bitlist (Prelude.String.cat bit acc) (Z.shift_right n 1) (bits - 1)
+      in
+      to_bitlist "" unsigned_bv bits
+
+    let v (i : string) (n : int) =
+      let bv = int_to_bitvector (Z.of_string i) n in
+      DTerm.Bitv.mk bv
+
+    let lognot = DTerm.Bitv.not
+
+    let to_int ~signed:_ = DTerm.Bitv.to_nat
+
+    let div = DTerm.Bitv.sdiv
+
+    let div_u = DTerm.Bitv.udiv
+
+    let logor = DTerm.Bitv.or_
+
+    let logand = DTerm.Bitv.and_
+
+    let logxor = DTerm.Bitv.xor
+
+    let shl = DTerm.Bitv.shl
+
+    let ashr = DTerm.Bitv.ashr
+
+    let lshr = DTerm.Bitv.lshr
+
+    let rem = DTerm.Bitv.srem
+
+    let rem_u = DTerm.Bitv.urem
+
+    let rotate_left t1 t2 = DTerm.Bitv.rotate_left (int_of_term t2) t1
+
+    let rotate_right t1 t2 = DTerm.Bitv.rotate_right (int_of_term t2) t1
+
+    let nego _ = Fmt.failwith "Dolmenexpr: nego not implemented"
+
+    let addo ~signed:_ = Fmt.failwith "Dolmenexpr: addo not implemented"
+
+    let subo ~signed:_ = Fmt.failwith "Dolmenexpr: subo not implemented"
+
+    let mulo ~signed:_ = Fmt.failwith "Dolmenexpr: mulo not implemented"
+
+    let divo _ = Fmt.failwith "Dolmenexpr: divo not implemented"
+
+    let lt = DTerm.Bitv.slt
+
+    let lt_u = DTerm.Bitv.ult
+
+    let le = DTerm.Bitv.sle
+
+    let le_u = DTerm.Bitv.ule
+
+    let gt = DTerm.Bitv.sgt
+
+    let gt_u = DTerm.Bitv.ugt
+
+    let ge = DTerm.Bitv.sge
+
+    let ge_u = DTerm.Bitv.uge
+
+    let extract t ~high ~low = DTerm.Bitv.extract high low t
+  end
+
+  module Float = struct
+    include DTerm.Float
+
+    module Rounding_mode = struct
+      let rne = DTerm.Float.roundNearestTiesToEven
+
+      let rna = DTerm.Float.roundNearestTiesToAway
+
+      let rtp = DTerm.Float.roundTowardPositive
+
+      let rtn = DTerm.Float.roundTowardNegative
+
+      let rtz = DTerm.Float.roundTowardZero
+    end
+
+    let v f e s =
+      DTerm.Float.real_to_fp e s DTerm.Float.roundTowardZero
+        (DTerm.Real.mk (Prelude.Float.to_string f))
+
+    let sqrt ~rm t = DTerm.Float.sqrt rm t
+
+    let is_normal = DTerm.Float.isNormal
+
+    let is_subnormal = DTerm.Float.isSubnormal
+
+    let is_negative = DTerm.Float.isNegative
+
+    let is_positive = DTerm.Float.isPositive
+
+    let is_infinite = DTerm.Float.isInfinite
+
+    let is_nan = DTerm.Float.isNaN
+
+    let is_zero = DTerm.Float.isZero
+
+    let round_to_integral ~rm t = DTerm.Float.roundToIntegral rm t
+
+    let add ~rm t1 t2 = DTerm.Float.add rm t1 t2
+
+    let sub ~rm t1 t2 = DTerm.Float.sub rm t1 t2
+
+    let mul ~rm t1 t2 = DTerm.Float.mul rm t1 t2
+
+    let div ~rm t1 t2 = DTerm.Float.div rm t1 t2
+
+    let fma ~rm a b c = DTerm.Float.fma rm a b c
+
+    let le = DTerm.Float.leq
+
+    let ge = DTerm.Float.geq
+
+    let to_fp e s ~rm fp = DTerm.Float.to_fp e s rm fp
+
+    let sbv_to_fp e s ~rm bv = DTerm.Float.sbv_to_fp e s rm bv
+
+    let ubv_to_fp e s ~rm bv = DTerm.Float.ubv_to_fp e s rm bv
+
+    let to_ubv n ~rm fp = DTerm.Float.to_ubv n rm fp
+
+    let to_sbv n ~rm fp = DTerm.Float.to_sbv n rm fp
+
+    let of_ieee_bv eb sb bv = DTerm.Float.ieee_format_to_fp eb sb bv
+
+    let to_ieee_bv = None
+  end
+
+  module Func = struct
+    let make name tyl ty =
+      DTerm.Const.mk (Dolmen_std.Path.global name) (DTy.arrow tyl ty)
+
+    let apply f tl = DTerm.apply_cst f [] tl
+  end
+
+  module Adt = struct
+    module Cons = struct
+      type t = Dolmen_std.Path.t * (ty * Dolmen_std.Path.t option) list
+
+      let make _ ~fields:_ = assert false
+    end
+
+    type t = DExpr.ty_def * (func_decl * (ty * func_decl option) list) list
+
+    let make cons_name cons =
+      let cons_name = DTy.Const.mk (Dolmen_std.Path.local cons_name) 0 in
+      DTerm.define_adt cons_name [] cons
+
+    let ty _ = assert false
+
+    let constructor _ = assert false
+
+    let selector _ = assert false
+
+    let tester _ = assert false
+  end
+
+  module Smtlib = struct
+    let pp ?name:_ ?logic:_ ?status:_ = Fmt.list DTerm.print
+  end
+
+  module Model = struct
+    let tcst_to_symbol (c : DTerm.Const.t) : Symbol.t =
+      match c with
+      | { builtin = DBuiltin.Base
+        ; path = Local { name } | Absolute { name; _ }
+        ; id_ty
+        ; _
+        } ->
+        Symbol.make (Types.to_ety id_ty) name
+      | _ ->
+        Fmt.failwith {|Unsupported constant term "%a"|} DExpr.Print.term_cst c
+
+    let get_defval (c : DTerm.Const.t) : DM.Value.t =
+      match DTerm.Const.ty c with
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Int; _ }, _); _ } ->
+        DM.Int.mk Z.zero
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Real; _ }, _); _ } ->
+        DM.Real.mk Q.zero
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Prop; _ }, _); _ } ->
+        DM.Bool.mk false
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Bitv n; _ }, _); _ } ->
+        DM.Bitv.mk n Z.zero
+      | { ty_descr = TyApp ({ builtin = DBuiltin.Float _; _ }, _); _ } ->
+        DM.Fp.mk (Farith.F.of_float 0.)
+      | _ -> assert false
+
+    let get_symbols (m : model) =
+      ConstMap.fold (fun tcst _ acc -> tcst_to_symbol tcst :: acc) m []
+
+    let eval ?(ctx = Symbol.Map.empty) ?completion:_ (m : model) (e : term) :
+      interp option =
+      let m =
+        ConstMap.fold (fun c v acc -> DM.Model.Cst.add c v acc) m DM.Model.empty
+      in
+      let m =
+        Symbol.Map.fold
+          (fun _ (t : term) acc ->
+            match t with
+            | { term_descr = Cst c; _ } -> (
+              match DM.Model.Cst.find_opt c acc with
+              | Some _ -> acc
+              | None -> DM.Model.Cst.add c (get_defval c) acc )
+            | _ -> assert false )
+          ctx m
+      in
+      let env =
+        DM.Env.mk m
+          ~builtins:
+            (DM.Eval.builtins
+               [ DM.Core.builtins
+               ; DM.Bool.builtins
+               ; DM.Int.builtins
+               ; DM.Rat.builtins
+               ; DM.Real.builtins
+               ; DM.Bitv.builtins
+               ; DM.Fp.builtins
+               ] )
+      in
+      let v = DM.Eval.eval env e in
+      Some v
+  end
+end

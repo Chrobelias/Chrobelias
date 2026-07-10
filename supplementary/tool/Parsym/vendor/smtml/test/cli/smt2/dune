@@ -1,0 +1,5 @@
+(cram
+ (enabled_if %{lib-available:z3})
+ (deps
+  %{bin:smtml}
+  (source_tree ./)))

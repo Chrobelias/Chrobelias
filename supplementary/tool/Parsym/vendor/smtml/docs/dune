@@ -1,0 +1,15 @@
+(documentation
+ (package smtml))
+
+(mdx
+ (deps
+  (source_tree examples)
+  ./examples/product_mix.exe)
+ (enabled_if
+  (and
+   %{lib-available:z3}
+   (not %{lib-available:alt-ergo-lib})
+   (not %{lib-available:bitwuzla-cxx})
+   (not %{lib-available:colibri2.core})
+   (not %{lib-available:cvc5})))
+ (files :standard - *.mld))

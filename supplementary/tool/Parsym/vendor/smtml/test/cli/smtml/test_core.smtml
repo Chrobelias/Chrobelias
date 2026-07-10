@@ -1,0 +1,15 @@
+(let-const x bool)
+(let-const y bool)
+(let-const z bool)
+(let-const w bool)
+(assert (distinct x false))
+(assert
+  (and
+    (or (not x) y)
+    (or (not y) z)))
+(assert (or (not x) z))
+(check-sat)
+(assert (= w (ite (xor x z) true false)))
+(assert (or (not (and x z)) (not w)))
+(check-sat)
+(get-model)
