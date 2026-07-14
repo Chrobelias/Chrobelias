@@ -30,34 +30,38 @@ module Msb : sig
   include Type with type t = Nfa.Msb(Nfa.Bv).t and type v = bool
 end
 
-module MsbStr : sig
-  include Type with type t = Nfa.Msb(Nfa.Str).t and type v = Nfa.Str.u
+module MsbStr (B : Nfa.Base) : sig
+  include Type with type t = Nfa.Msb(Nfa.Str(B)).t and type v = Nfa.Str(B).u
 end
 
-module MsbStrBv : sig
-  include Type with type t = Nfa.Msb(Nfa.StrBv).t and type v = Nfa.StrBv.u
+module MsbStrBv (B : Nfa.Base) : sig
+  include Type with type t = Nfa.Msb(Nfa.StrBv(B)).t and type v = Nfa.StrBv(B).u
 end
 
 module MsbNat : sig
   include NatType with type t = Nfa.MsbNat(Nfa.Bv).t and type v = bool
 end
 
-module MsbNatStr : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.Str).t and type v = Nfa.Str.u
+module MsbNatStr (B : Nfa.Base) : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.Str(B)).t and type v = Nfa.Str(B).u
 end
 
-module MsbNatStrBv : sig
-  include NatType with type t = Nfa.MsbNat(Nfa.StrBv).t and type v = Nfa.StrBv.u
+module MsbNatStrBv (B : Nfa.Base) : sig
+  include NatType with type t = Nfa.MsbNat(Nfa.StrBv(B)).t and type v = Nfa.StrBv(B).u
 end
 
 module Lsb : sig
   include NatType with type t = Nfa.Lsb(Nfa.Bv).t and type v = bool
 end
 
-module LsbStr : sig
-  include NatType with type t = Nfa.Lsb(Nfa.Str).t and type v = Nfa.Str.u
+module LsbStr (B : Nfa.Base) : sig
+  include NatType with type t = Nfa.Lsb(Nfa.Str(B)).t and type v = Nfa.Str(B).u
 end
 
-module LsbStrBv : sig
-  include NatType with type t = Nfa.Lsb(Nfa.StrBv).t and type v = Nfa.StrBv.u
+module LsbStrBv (B : Nfa.Base) : sig
+  include NatType with type t = Nfa.Lsb(Nfa.StrBv(B)).t and type v = Nfa.StrBv(B).u
+end
+
+module LsbString : sig
+  include NatType with type t = Nfa.String.t and type v = Nfa.Str(Nfa.Base10).u
 end

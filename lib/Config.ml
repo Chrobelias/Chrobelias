@@ -2,7 +2,7 @@ type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bound_res : int
   ; mutable bound_states : int
-  ; mutable base : int
+  ; mutable base : int option
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
@@ -34,7 +34,7 @@ let config =
   { antiprenex_mode = `All
   ; bound_res = -1
   ; bound_states = -1
-  ; base = 2
+  ; base = None
   ; stop_after = `Solving
   ; dump_lics = false
   ; dump_pre_simpl = false
@@ -99,6 +99,14 @@ let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
+let base = ref 10
+
+let set_base ?ast_base () =
+  base
+  := Option.value
+       ~default:(Option.value ~default:(if config.logic = `Eia then 2 else 10) ast_base)
+       config.base
+;;
 
 let max_longest_path =
   match Sys.getenv_opt "CHRO_LONGEST_PATH" with
@@ -138,8 +146,8 @@ Basic options:
   in
   let rec spec_list =
     [ ( "-base"
-      , Arg.Int (fun n -> config.base <- n)
-      , Printf.sprintf "<n>\tSwitch to base <n> EIA (DEFAULT n=%d)\t" config.base )
+      , Arg.Int (fun n -> config.base <- Some n)
+      , Printf.sprintf "<n>\tSwitch to base <n> EIA (DEFAULT: auto)\t" )
     ; ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
       , "\tUpper bound for integer underapproximation (negative disables)" )

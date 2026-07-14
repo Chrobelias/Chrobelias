@@ -47,8 +47,6 @@ module Eq = struct
   ;;
 end
 
-module NfaS = Nfa.Lsb (Nfa.Str)
-
 module Eia = struct
   (** Exponential integer arithmetic, i.e. LIA with exponents.*)
 
@@ -326,7 +324,7 @@ module Eia = struct
     | Neq : 'a term * 'a term * 'a kind -> t
     | Leq : Z.t term * Z.t term -> t
     | InRe : 'a term * 'a kind * char list Regex.t -> t
-    | InReRaw : 'a term * 'a kind * NfaS.t -> t
+    | InReRaw : 'a term * 'a kind * Nfa.String.t -> t
     | RLen : Z.t term * Z.t term -> t
     | PrefixOf of string term * string term
     | Contains of string term * string term
@@ -512,11 +510,11 @@ let rec lnot = function
 
 let rec exists = function
   | [] -> Fun.id
-  | atoms -> begin
-    function
-    | Exists (atoms', ast) -> exists (atoms @ atoms') ast
-    | ast -> Exists (atoms, ast)
-  end
+  | atoms ->
+    begin function
+      | Exists (atoms', ast) -> exists (atoms @ atoms') ast
+      | ast -> Exists (atoms, ast)
+    end
 ;;
 
 let limpl a b = lor_ [ lnot a; b ]
@@ -887,9 +885,9 @@ let rec equal ast ast' =
 let safe_eq ast ast' =
   match ast, ast' with
   | Eia (Eia.InReRaw (atom, S, lhs)), Eia (Eia.InReRaw (atom', S, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
+    Nfa.String.equal_start_and_final lhs rhs && atom = atom'
   | Eia (Eia.InReRaw (atom, I, lhs)), Eia (Eia.InReRaw (atom', I, rhs)) ->
-    NfaS.equal_start_and_final lhs rhs && atom = atom'
+    Nfa.String.equal_start_and_final lhs rhs && atom = atom'
   | smth ->
     (match Stdlib.(ast = ast') with
      | exception _ -> true
@@ -976,4 +974,26 @@ let is_str ast =
        | _ -> acc)
     false
     ast
+;;
+
+let find_common_base ast =
+  let exception Different_bases in
+  try
+    fold
+      (fun acc -> function
+         | Eia eia ->
+           Eia.fold2
+             (fun acc -> function
+                | Eia.Pow (Const d, _) when Option.is_some acc && Option.get acc <> d ->
+                  raise_notrace Different_bases
+                | Eia.Pow (Const d, _) -> Some d
+                | _ -> acc)
+             (fun acc _ -> acc)
+             acc
+             eia
+         | _ -> acc)
+      None
+      ast
+  with
+  | Different_bases -> None
 ;;

@@ -31,7 +31,7 @@ type rez =
       * Lib.Env.t
       * ((Lib.Ir.atom, [ `Str | `Int ]) Map.t
          -> (Lib.Ir.model, [ `Too_long | `No_model ]) Result.t)
-      * (string, Lib.Nfa.Lsb(Lib.Nfa.Str).u) Base.Map.Poly.t
+      * (string, Lib.Nfa.String.u) Base.Map.Poly.t
   | Unknown of Lib.Ast.t * Lib.Env.t
   | Unsat of string
 
@@ -52,7 +52,7 @@ let lift ?(unsat_info = "") ast = function
 ;;
 
 let logBaseZ n =
-  let base = Z.of_int Lib.Config.config.base in
+  let base = Z.of_int !Lib.Config.base in
   let rec helper acc n = if n = Z.zero then acc else helper Z.(acc + one) Z.(n / base) in
   helper Z.minus_one n
 ;;
@@ -163,7 +163,6 @@ let rec model_from_parts_regexes_env tys model regexes env' =
   let raw_model = model in
   let prefix = "strlen" in
   let prefix_len = String.length prefix in
-  let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
   let module NfaC = Lib.NfaCollection in
   let aux raw_model =
     Map.to_alist raw_model
@@ -174,7 +173,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
         let data =
           match data with
           | `Int c ->
-            if c > Z.(pow (Z.of_int Lib.Config.config.base) (Lib.Config.huge_const ()))
+            if c > Z.(pow (Z.of_int !Lib.Config.base) (Lib.Config.huge_const ()))
             then raise Too_long_model
             else (
               try Z.to_int c with
@@ -188,7 +187,7 @@ let rec model_from_parts_regexes_env tys model regexes env' =
             let regexes = Map.find_exn regexes real_var in
             let nfa = regexes in
             let path =
-              NfaS.path_of_len2 ~var:0 ~len:data nfa
+              Lib.Nfa.String.path_of_len2 ~var:0 ~len:data nfa
               |> Option.value ~default:(List.init data (fun _ -> '0'))
             in
             Some (var real_var, `Str (List.to_seq path |> String.of_seq)))
@@ -255,11 +254,10 @@ let calculate_model tys model regexes env =
   Lib.Debug.printf "NFA model:\n  %a\n%!" Lib.Ir.pp_model_smtlib2 model;
   Lib.Debug.printf "Env      :\n  %a\n%!" (Lib.Env.pp ~title:"") env;
   Lib.Debug.printf "Regexes: :\n";
-  let module NfaS = Lib.Nfa.Lsb (Lib.Nfa.Str) in
   Map.iteri
     ~f:(fun ~key ~data ->
       Lib.Debug.printf "%s -> " key;
-      Lib.Debug.dump_nfa ~msg:"%s" NfaS.format_nfa data)
+      Lib.Debug.dump_nfa ~msg:"%s" Lib.Nfa.String.format_nfa data)
     regexes;
   Lib.Debug.printf "\n%!";
   let real_model =
@@ -711,10 +709,7 @@ let () =
                     (Eia.leq
                        (Atom (Var (v, I)))
                        (Const
-                          Z.(
-                            pow
-                              (Z.of_int Lib.Config.config.base)
-                              (Lib.Config.huge_const ())))))
+                          Z.(pow (Z.of_int !Lib.Config.base) (Lib.Config.huge_const ())))))
                 :: acc
               | _ -> acc)
             |> Lib.Ast.land_
@@ -783,7 +778,7 @@ let () =
       config.over_approx <- false;
       config.simpl_alpha <- false;
       config.simpl_mono <- true;
-      config.base <- 10;
+      config.base <- Some 10;
       (* config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
@@ -806,6 +801,9 @@ let () =
         Lib.Ast.land_
           (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
       in
+      let common_base = Lib.Ast.find_common_base ast |> Option.map Z.to_int in
+      let () = Lib.Config.set_base ?ast_base:common_base () in
+      Format.printf "BASE NOW IS %d\n%!" !Lib.Config.base;
       (try
          let rez = check_sat ~verbose:true state.tys ast in
          if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
@@ -837,6 +835,9 @@ let () =
           | None -> asserts
         in
         let ast = Lib.Ast.land_ (get_ast state) in
+        let common_base = Lib.Ast.find_common_base ast |> Option.map Z.to_int in
+        let () = Lib.Config.set_base ?ast_base:common_base () in
+        Format.printf "BASE NOW IS %d\n%!" !Lib.Config.base;
         let rez =
           match state.last_result with
           | Some r -> r

@@ -210,12 +210,7 @@ module Bv = struct
   let zero _deg = Z.zero, Z.zero
   let zero_with_mask mask = Z.zero, bv_of_list mask
   let eos_with_mask mask = Z.zero, bv_of_list mask
-
-  let singleton_with_mask c mask =
-    assert (base = Z.of_int Config.config.base);
-    Z.shift_left Z.one c, bv_of_list mask
-  ;;
-
+  let singleton_with_mask c mask = Z.shift_left Z.one c, bv_of_list mask
   let one_with_mask mask = bv_of_list mask, bv_of_list mask
 
   let pp ppf (vec, mask) =
@@ -277,11 +272,28 @@ module Bv = struct
   let is_any_at i (_, mask) = bv_get mask i = false
 end
 
-module StrBv = struct
+module type Base = sig
+  val base : Z.t
+end
+
+module type StrL = sig
+  include L
+
+  val u_null : u
+  val u_eos : u
+  val u_one : u
+  val is_end_char : u -> bool
+  val is_eos_at : int -> t -> bool
+  val is_any_at : int -> t -> bool
+  val is_zero_at : int -> t -> bool
+  val is_one_at : int -> t -> bool
+end
+
+module StrBv (B : Base) = struct
   type t = Z.t * Z.t
   type u = Z.t
 
-  let base = Z.of_int Config.config.base
+  let base = B.base
   let basei = Z.to_int base
 
   let u_zero, u_one, u_null, u_eos =
@@ -450,7 +462,6 @@ module StrBv = struct
   ;;
 
   let singleton_with_mask c mask =
-    assert (base = Z.of_int config.base);
     let len = max (List.fold_left max 0 mask) c + 1 in
     ( bv_init len (fun i ->
         if not (List.mem i mask) then u_null else if i = c then u_one else u_zero)
@@ -503,13 +514,13 @@ module StrBv = struct
   ;;
 end
 
-module Str = struct
+module Str (B : Base) = struct
   type t = char array
   type u = char
 
   (* TODO: use me here! *)
-  let basei = Config.config.base
-  let base = Z.of_int basei
+  let base = B.base
+  let basei = Z.to_int base
   let config = Config.string_config
   let u_zero, u_one, u_null, u_eos = config.zero, config.one, config.null, config.eos
   let is_end_char c = c = u_eos || c = u_null
@@ -590,9 +601,7 @@ module Str = struct
 
   let variations ?alpha vec =
     (*let alpha = List.map (fun a -> [ a ]) alpha in*)
-    let full_alpha =
-      Char.code '0' -- (Char.code '0' + Config.config.base - 1) |> List.map Char.chr
-    in
+    let full_alpha = Char.code '0' -- (Char.code '0' + basei - 1) |> List.map Char.chr in
     let full_alpha = Option.value ~default:full_alpha alpha in
     let alpha = [ u_eos ] :: (full_alpha |> List.map (fun c -> [ c ])) in
     let rec powerset = function
@@ -634,7 +643,7 @@ module Str = struct
   ;;
 
   let singleton_with_mask c mask =
-    assert (base = Z.of_int Config.config.base);
+    assert (base = Z.of_int !Config.base);
     let len = max (List.fold_left max 0 mask) c + 1 in
     Array.init len (fun i ->
       if not (List.mem i mask) then u_null else if i = c then '1' else '0')
@@ -1221,7 +1230,7 @@ struct
                     if
                       !flag
                       || Label.alphabet
-                         |> List.take config.base
+                         |> List.take !Config.base
                          |> List.for_all (fun c -> Set.mem symbols c)
                     then label1'
                     else label1)
@@ -2613,37 +2622,54 @@ module Msb (Label : L) = struct
   ;;
 end
 
-let strbv_of_str (str : Str.t) =
-  ( StrBv.bv_init (Array.length str) (fun i ->
-      match Str.get str i with
-      | c when c = Str.u_eos -> StrBv.u_eos
-      | c when c = Str.u_null -> StrBv.u_null
-      | '0' .. '9' as c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0')
-      | _ -> StrBv.u_null)
-  , StrBv.bv_init (Array.length str) (fun i ->
-      match Str.get str i with
-      | c when c = Str.u_null -> StrBv.u_null
-      | c -> StrBv.u_eos) )
-;;
+module Base2 = struct
+  let base = Z.of_int 2
+end
 
-let convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t =
-  fun nfa ->
-  { start = nfa.start
-  ; is_dfa = nfa.is_dfa
-  ; deg = nfa.deg
-  ; final = nfa.final
-  ; transitions =
-      Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
-  }
-;;
+module Base10 = struct
+  let base = Z.of_int 10
+end
 
-let convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t =
-  fun nfa ->
-  { start = nfa.start
-  ; is_dfa = nfa.is_dfa
-  ; deg = nfa.deg
-  ; final = nfa.final
-  ; transitions =
-      Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
-  }
-;;
+module Str10 = Str (Base10)
+module String = Lsb (Str (Base10))
+
+module ConvertStr (B : Base) = struct
+  let strbv_of_str (str : Str(B).t) =
+    let module Str = Str (B) in
+    let module StrBv = StrBv (B) in
+    ( StrBv.bv_init (Array.length str) (fun i ->
+        match Str.get str i with
+        | c when c = Str.u_eos -> StrBv.u_eos
+        | c when c = Str.u_null -> StrBv.u_null
+        | '0' .. '9' as c -> Z.(pow (of_int 2)) (Char.code c - Char.code '0')
+        | _ -> StrBv.u_null)
+    , StrBv.bv_init (Array.length str) (fun i ->
+        match Str.get str i with
+        | c when c = Str.u_null -> StrBv.u_null
+        | c -> StrBv.u_eos) )
+  ;;
+
+  let lsb : Lsb(Str(B)).t -> Lsb(StrBv(B)).t =
+    fun nfa ->
+    { start = nfa.start
+    ; is_dfa = nfa.is_dfa
+    ; deg = nfa.deg
+    ; final = nfa.final
+    ; transitions =
+        Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
+    }
+  ;;
+
+  let msb : Msb(Str(B)).t -> Msb(StrBv(B)).t =
+    fun nfa ->
+    { start = nfa.start
+    ; is_dfa = nfa.is_dfa
+    ; deg = nfa.deg
+    ; final = nfa.final
+    ; transitions =
+        Array.map (List.map (fun (label, q') -> strbv_of_str label, q')) nfa.transitions
+    }
+  ;;
+
+  let str : String.t -> Lsb(Str(B)).t = fun nfa -> nfa
+end

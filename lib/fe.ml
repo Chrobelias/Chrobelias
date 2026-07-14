@@ -20,11 +20,11 @@ let rec to_string orig_expr =
   | Expr.Symbol symbol ->
     let var = Symbol.to_string symbol in
     Ast.Eia.Atom (Ast.str_var var)
-  | Expr.Val v -> begin
-    match v with
+  | Expr.Val v ->
+    begin match v with
     | Str s -> Ast.Eia.(Str_const s)
     | _ -> failf (Format.asprintf "unable to handle %a as string" Expr.pp orig_expr)
-  end
+    end
   | Expr.Naryop (_, Ty.Naryop.Concat, ls) ->
     let ls = List.map to_string ls in
     begin match ls with
@@ -134,11 +134,11 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term =
   let neg eia_term = Ast.Eia.mul [ Ast.Eia.const Z.minus_one; eia_term ] in
   let expr = Expr.view orig_expr in
   match expr with
-  | Expr.Val v -> begin
-    match v with
+  | Expr.Val v ->
+    begin match v with
     | Int d -> Ast.Eia.const (Z.of_int d)
     | _ -> failf (Format.asprintf "unable to handle %a as integer term" Expr.pp orig_expr)
-  end
+    end
   | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.String_to_int, expr) ->
     let str = to_string expr in
@@ -236,20 +236,20 @@ and _to_ir tys orig_expr =
       Ast.Eia (Ast.Eia.eq term (Ast.Eia.Str_const "") Ast.S)
     | _ ->
       let re = to_regex re in
-      let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str.u_eos ])) in
+      let re = Regex.concat re (Regex.kleene (Regex.symbol [ Nfa.Str10.u_eos ])) in
       Ast.Eia (Ast.Eia.inre term Ast.S re)
   in
   let expr = Expr.view orig_expr in
   try
     match expr with
     (* Constants. *)
-    | Expr.Val v -> begin
-      match v with
+    | Expr.Val v ->
+      begin match v with
       | True -> Ast.True
       | False -> Ast.lnot Ast.true_
       | _ ->
         failf (Format.asprintf "unable to handle %a as boolean term" Expr.pp orig_expr)
-    end
+      end
     (* Variables. *)
     | Expr.Symbol symbol -> Ast.pred (Symbol.to_string symbol)
     (* Yes, probably this stuff is kinda over-engineered. *)
@@ -263,7 +263,7 @@ and _to_ir tys orig_expr =
     (* Binary and arbitrary or *)
     | Expr.Binop (_ty, Ty.Binop.Or, lhs, rhs) -> begin
       Ast.lor_ [ _to_ir tys lhs; _to_ir tys rhs ]
-    end
+      end
     | Expr.Naryop (_ty, Ty.Naryop.Logor, exprs) -> Ast.lor_ (List.map (_to_ir tys) exprs)
     (* Implication *)
     | Expr.Binop (_ty, Ty.Binop.Implies, lhs, rhs) ->
@@ -340,8 +340,8 @@ and _to_ir tys orig_expr =
            | Expr.App (symbol, [ expr ]) ->
              let symbol = Symbol.to_string symbol in
              (match expr |> _to_ir tys with
-              | (exception _) | Unsupp _ -> begin
-                match to_eia_term expr with
+              | (exception _) | Unsupp _ ->
+                begin match to_eia_term expr with
                 | eia' ->
                   Ast.map
                     (function
@@ -357,7 +357,7 @@ and _to_ir tys orig_expr =
                       | ast -> ast)
                     acc
                 | exception _ -> failf "Unexpected construction in let-in binding"
-              end
+                end
               | ast' ->
                 Ast.map
                   (function
@@ -367,7 +367,7 @@ and _to_ir tys orig_expr =
            | _ -> failf "Unexpected construction in let-in binding")
         ast
         bindings
-    end
+      end
     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
   with
   | UnsupportedException m -> Ast.Unsupp m

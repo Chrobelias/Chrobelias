@@ -2,8 +2,6 @@
 
 let log = Utils.log
 
-module NfaS = Nfa.Lsb (Nfa.Str)
-
 (* module Term_map = Map.Make (struct
     type t =
       [ `Eia of Ast.Eia.term
@@ -154,8 +152,8 @@ module type SYM = sig
   val pp_str : Format.formatter -> term -> unit
   val const : int -> term
   val in_rei : term -> char list Regex.t -> ph
-  val in_re_raw : str -> NfaS.t -> ph
-  val in_re_rawi : term -> NfaS.t -> ph
+  val in_re_raw : str -> Nfa.String.t -> ph
+  val in_re_rawi : term -> Nfa.String.t -> ph
   val rlen : term -> term -> ph
 end
 
@@ -249,7 +247,7 @@ module Id_symantics :
   let pow_minus_one t = pow (const (-1)) t
 
   let pow2var c =
-    Ast.Eia.pow (Ast.Eia.const (Z.of_int Config.config.base)) (Ast.Eia.atom (Ast.var c I))
+    Ast.Eia.pow (Ast.Eia.const (Z.of_int !Config.base)) (Ast.Eia.atom (Ast.var c I))
   ;;
 
   let unsupp s = Ast.Unsupp s
@@ -266,7 +264,7 @@ let apply_term_symantics
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
     | Pow (Const base, p) when base = Z.minus_one -> S.pow_minus_one (helperT p)
-    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Z.of_int Config.config.base ->
+    | Pow (Const base, Atom (Ast.Var (x, I))) when base = Z.of_int !Config.base ->
       S.pow (S.constz base) (S.var x)
     | Pow (base, p) -> S.pow (helperT base) (helperT p)
     | Bwand (l, r) -> S.bw FT_SIG.Bwand (helperT l) (helperT r)
@@ -569,7 +567,7 @@ let make_main_symantics ?alpha ?agressive env =
 
     let str_len2 = function
       | Ast.Eia.Str_const s ->
-        Id_symantics.constz Z.(pow (Z.of_int Config.config.base) (String.length s) - one)
+        Id_symantics.constz Z.(pow (Z.of_int !Config.base) (String.length s) - one)
       | s -> Id_symantics.str_len2 s
     ;;
 
@@ -582,7 +580,7 @@ let make_main_symantics ?alpha ?agressive env =
           [ Ast.Eia.mul
               [ Id_symantics.iofs lhs
               ; Ast.Eia.pow
-                  (Id_symantics.constz (Z.of_int Config.config.base))
+                  (Id_symantics.constz (Z.of_int !Config.base))
                   (Id_symantics.str_len rhs)
               ]
           ; Id_symantics.iofs rhs
@@ -593,7 +591,7 @@ let make_main_symantics ?alpha ?agressive env =
           [ Ast.Eia.mul
               [ Id_symantics.iofs lhs
               ; Ast.Eia.pow
-                  (Id_symantics.constz (Z.of_int Config.config.base))
+                  (Id_symantics.constz (Z.of_int !Config.base))
                   (Id_symantics.constz (Z.of_int (String.length s)))
               ]
           ; Id_symantics.constz (Z.of_string s)
@@ -714,8 +712,8 @@ let make_main_symantics ?alpha ?agressive env =
       | c, [ h ] when Z.equal c Z.one -> h
       | c, xs when Z.equal c Z.one -> Ast.Eia.mul (List.sort compare_term xs)
       | c, [ Pow ((Const base_ as base), Add [ Const v1; v ]) ]
-        when Z.(equal c (Z.of_int Config.config.base))
-             && base_ = Z.of_int Config.config.base
+        when Z.(equal c (Z.of_int !Config.base))
+             && base_ = Z.of_int !Config.base
              && v1 = Z.minus_one -> pow base v
       | c, [ Add ss ] -> Eia.Add (List.map (fun x -> Eia.Mul [ constz c; x ]) ss)
       | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)
@@ -812,12 +810,13 @@ let make_main_symantics ?alpha ?agressive env =
       | Ast.Eia (Ast.Eia.Leq (lhs, rhs)) -> Ast.eia (Ast.Eia.gt lhs rhs)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
       | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) when Option.is_some alpha ->
-        Id_symantics.in_re_raw v (re |> NfaS.invert ?alpha)
+        Id_symantics.in_re_raw v (re |> Nfa.String.invert ?alpha)
       | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) when Option.is_some alpha ->
-        Id_symantics.in_re_rawi v (re |> NfaS.invert ?alpha)
+        Id_symantics.in_re_rawi v (re |> Nfa.String.invert ?alpha)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
       | Ast.Eia (Ast.Eia.InRe (v, kind, re)) when Option.is_some alpha ->
-        Ast.eia (Ast.Eia.inreraw v kind (NfaS.invert ?alpha (NfaS.of_regex re)))
+        Ast.eia
+          (Ast.Eia.inreraw v kind (Nfa.String.invert ?alpha (Nfa.String.of_regex re)))
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, I)) -> Id_symantics.neqz lhs rhs
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, S)) -> Id_symantics.neq_str lhs rhs
       | Ast.Lnot x -> x
@@ -946,7 +945,9 @@ let make_main_symantics ?alpha ?agressive env =
       | Ast.Eia.Str_const l, Ast.Eia.Str_const r ->
         if l <> r then Ast.true_ else Ast.false_
       | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
-        Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex |> NfaS.invert ?alpha)
+        Id_symantics.in_re_raw
+          v
+          (Regex.str_to_re c |> Nfa.String.of_regex |> Nfa.String.invert ?alpha)
       | v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v -> failwith "BABKI, BABKI!"
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | _ -> Id_symantics.neq_str l r
@@ -973,7 +974,6 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let from_eia_nfa c =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
       let re =
         List.fold_left
           Regex.concat
@@ -985,21 +985,20 @@ let make_main_symantics ?alpha ?agressive env =
            |> List.of_seq
            |> List.rev)
       in
-      let re = Regex.concat re (Regex.kleene (Regex.Symbol [ Nfa.Str.u_zero ])) in
-      NfaStr.of_regex re
+      let re = Regex.concat re (Regex.kleene (Regex.Symbol [ Nfa.Str10.u_zero ])) in
+      Nfa.String.of_regex re
     ;;
 
     let in_re s re =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
       | Ast.Eia.Atom (Ast.Var (s, S)) ->
         begin match Env.lookup_string s env with
         | Some (Ast.Eia.Str_const _ as c) -> Ast.eia (Eia.inre c Ast.S re)
         | Some (Ast.Eia.Const c) ->
           begin match
-            NfaStr.of_regex re
-            |> NfaStr.intersect (from_eia_nfa c)
-            |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
+            Nfa.String.of_regex re
+            |> Nfa.String.intersect (from_eia_nfa c)
+            |> Nfa.String.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
           with
           | true -> Ast.true_
           | false -> Ast.false_
@@ -1010,17 +1009,17 @@ let make_main_symantics ?alpha ?agressive env =
       | Ast.Eia.Sofi (Const c) ->
         (* v = sofi 4 <=> v="4" | v="04" | v="004" | ... *)
         begin match
-          NfaStr.of_regex re
-          |> NfaStr.intersect (from_eia_nfa c)
-          |> NfaStr.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
+          Nfa.String.of_regex re
+          |> Nfa.String.intersect (from_eia_nfa c)
+          |> Nfa.String.run (*(String.to_seq str |> List.of_seq |> List.rev)*)
         with
         | true -> Ast.true_
         | false -> Ast.false_
         end
       | Ast.Eia.(Str_const str) ->
         begin match
-          NfaStr.of_regex re
-          |> NfaStr.re_accepts (String.to_seq str |> List.of_seq |> List.rev)
+          Nfa.String.of_regex re
+          |> Nfa.String.re_accepts (String.to_seq str |> List.of_seq |> List.rev)
         with
         | true -> Ast.true_
         | false -> Ast.false_
@@ -1029,11 +1028,12 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let in_rei s re =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
       | Ast.Eia.(Const c) ->
         begin match
-          NfaStr.of_regex re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run
+          Nfa.String.of_regex re
+          |> Nfa.String.intersect (from_eia_nfa c)
+          |> Nfa.String.run
         with
         | true -> Ast.true_
         | false -> Ast.false_
@@ -1042,11 +1042,13 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let in_re_raw s re =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
       | Ast.Eia.(Str_const str) ->
         begin match
-          Regex.str_to_re str |> NfaStr.of_regex |> NfaStr.intersect re |> NfaStr.run
+          Regex.str_to_re str
+          |> Nfa.String.of_regex
+          |> Nfa.String.intersect re
+          |> Nfa.String.run
         with
         | true -> Ast.true_
         | false -> Ast.false_
@@ -1055,10 +1057,9 @@ let make_main_symantics ?alpha ?agressive env =
     ;;
 
     let in_re_rawi s re =
-      let module NfaStr = Nfa.Lsb (Nfa.Str) in
       match s with
       | Ast.Eia.(Const c) ->
-        begin match re |> NfaStr.intersect (from_eia_nfa c) |> NfaStr.run with
+        begin match re |> Nfa.String.intersect (from_eia_nfa c) |> Nfa.String.run with
         | true -> Ast.true_
         | false -> Ast.false_
         end
@@ -1235,11 +1236,11 @@ let find_vars_for_under2 ast =
     (*function*)
     | Ast.Eia.Mul [ Atom (Var (v, _)); Pow (Const base, _) ]
     | Ast.Eia.Mul [ Pow (Const base, _); Atom (Var (v, _)) ]
-      when Z.(equal (Z.of_int Config.config.base) base) -> S.add acc v
+      when Z.(equal (Z.of_int !Config.base) base) -> S.add acc v
     | Mul [ Const _; Atom (Var (v, I)); Pow (Const base, _) ]
-      when Z.(equal (Z.of_int Config.config.base) base) -> S.add acc v
+      when Z.(equal (Z.of_int !Config.base) base) -> S.add acc v
     | Mul [ Atom (Var (v, _)); Pow (Const base, _) ]
-      when Z.(equal (Z.of_int Config.config.base) base) -> S.add acc v
+      when Z.(equal (Z.of_int !Config.base) base) -> S.add acc v
     | Mul [ Atom (Var (v1, _)); Atom (Var (v2, _)) ] -> S.add (S.add acc v1) v2
     | t ->
       (* Format.printf "skipping: @[%a@]\n%!" Ast.Eia.pp_term t; *)
@@ -1268,15 +1269,12 @@ let%expect_test _ =
   in
   test
     TS.(
-      add
-        [ pow (constz (Z.of_int Config.config.base)) (var "x"); mul [ const 2; var "y" ] ]
+      add [ pow (constz (Z.of_int !Config.base)) (var "x"); mul [ const 2; var "y" ] ]
       = var "z");
   [%expect ""];
-  test
-    TS.(mul [ pow (constz (Z.of_int Config.config.base)) (var "x"); var "y" ] = var "z");
+  test TS.(mul [ pow (constz (Z.of_int !Config.base)) (var "x"); var "y" ] = var "z");
   [%expect "y"];
-  test
-    TS.(mul [ var "y"; pow (constz (Z.of_int Config.config.base)) (var "x") ] = var "z");
+  test TS.(mul [ var "y"; pow (constz (Z.of_int !Config.base)) (var "x") ] = var "z");
   [%expect "y"];
   ()
 ;;
@@ -1304,7 +1302,7 @@ let shrink_variables ast =
     ;;
 
     let leq l r =
-      let base = constz (Z.of_int Config.config.base) in
+      let base = constz (Z.of_int !Config.base) in
       let open Eia in
       (* Format.printf "TRACE: @[%a@]\n%!" Ast.pp_smtlib2 (Id_symantics.leq l r); *)
         match l, r with
@@ -1509,10 +1507,10 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     let str_contains _ = failwith "not implemented str_contains"
     let str_suffixof _ = failwith "not implemented str_suffixof"
 
-    (*let pow2var s = pow (const Z.(Z.of_int Config.config.base |> to_int)) (var s)*)
+    (*let pow2var s = pow (const Z.(Z.of_int !Config.base |> to_int)) (var s)*)
     let pow_minus_one t = pow (constz Z.minus_one) t
     let exists vars x = failwith "tbd"
-    let pow2var s = pow (constz (Z.of_int Config.config.base)) (var s)
+    let pow2var s = pow (constz (Z.of_int !Config.base)) (var s)
     let str_len2 _ = failwith "not implemented str_len2"
     let pp_str = Smtml.Expr.pp
     let const c = constz (Z.of_int c)
@@ -2029,8 +2027,8 @@ struct
   ;;
 
   let in_rei lhs re = lhs ++ empty
-  let in_re_raw lhs re = lhs ++ NfaS.alpha re
-  let in_re_rawi lhs re = lhs ++ NfaS.alpha re
+  let in_re_raw lhs re = lhs ++ Nfa.String.alpha re
+  let in_re_rawi lhs re = lhs ++ Nfa.String.alpha re
   let str_len s = s
   let sofi s = s
   let iofs s = s
@@ -2169,21 +2167,21 @@ let run_basic_simplify ?(env = Env.empty) ast =
 ;;
 
 let collect_regexes ast =
-  let module NfaL = Nfa.Lsb (Nfa.Str) in
   let module Map = Base.Map.Poly in
   let open Ast in
   fold
     (fun acc -> function
        (* | Ast.Eia (Eq (lhs, Ast.Eia.Str_const str, S)) -> Ast.Eia.in_re TODO *)
        | Eia (Eq (Eia.Atom (Ast.Var (s, S)), Eia.Str_const str, S)) ->
-         (s, Regex.str_to_re str |> NfaL.of_regex) :: acc
+         (s, Regex.str_to_re str |> Nfa.String.of_regex) :: acc
        | Eia (Eq (Eia.Str_const str, Eia.Atom (Var (s, S)), S)) ->
-         (s, Regex.str_to_re str |> NfaL.of_regex) :: acc
+         (s, Regex.str_to_re str |> Nfa.String.of_regex) :: acc
        (* | Eia (Eq (Eia.Iofs (Eia.Atom (Var (s, S))), Eia.Const n, I)) ->
-         (s, Regex.int_to_re (Z.to_string n) |> NfaL.of_regex) :: acc
+         (s, Regex.int_to_re (Z.to_string n) |> Nfa.String.of_regex) :: acc
        | Eia (Eq (Eia.Const n, Eia.Iofs (Eia.Atom (Var (s, S))), I)) ->
-         (s, Regex.int_to_re (Z.to_string n) |> NfaL.of_regex) :: acc *)
-       | Eia (InRe (Eia.Atom (Var (s, S)), S, re)) -> (s, re |> NfaL.of_regex) :: acc
+         (s, Regex.int_to_re (Z.to_string n) |> Nfa.String.of_regex) :: acc *)
+       | Eia (InRe (Eia.Atom (Var (s, S)), S, re)) ->
+         (s, re |> Nfa.String.of_regex) :: acc
        | Eia (InReRaw (Eia.Atom (Var (s, S)), S, nfa)) -> (s, nfa) :: acc
        | Eia (InReRaw (Eia.Atom (Var (s, I)), I, nfa)) -> (s, nfa) :: acc
        | _ -> acc)
@@ -2208,11 +2206,12 @@ let get_range () =
 let get_strings_range nfa length ?(exact = false) num =
   let max_len = Config.under_str_config.max_len in
   (if length < 0
-   then NfaS.any_n_paths_range nfa ~len:max_len num
+   then Nfa.String.any_n_paths_range nfa ~len:max_len num
    else (
      match exact with
-     | true -> NfaS.any_n_paths nfa ~len:length num
-     | _ -> 0 -- length |> List.concat_map (fun x -> NfaS.any_n_paths nfa ~len:x num)))
+     | true -> Nfa.String.any_n_paths nfa ~len:length num
+     | _ ->
+       0 -- length |> List.concat_map (fun x -> Nfa.String.any_n_paths nfa ~len:x num)))
   |> List.map (fun c -> List.to_seq c |> String.of_seq)
   |> List.map (fun c ->
     if String.length c > 0
@@ -2223,7 +2222,7 @@ let get_strings_range nfa length ?(exact = false) num =
     | 0 -> String.compare x y
     | diff -> diff)
   |> fun x ->
-  if length <= 0 && NfaS.re_accepts (String.to_seq "" |> List.of_seq) nfa
+  if length <= 0 && Nfa.String.re_accepts (String.to_seq "" |> List.of_seq) nfa
   then "" :: x
   else x
 ;;
@@ -2422,8 +2421,8 @@ let try_under_concats vars alpha len env ast =
         Map.map
           ~f:(fun data ->
             List.fold_left
-              (fun acc nfa -> NfaS.intersect nfa acc)
-              (NfaCollection.LsbStr.n ())
+              (fun acc nfa -> Nfa.String.intersect nfa acc)
+              (NfaCollection.LsbString.n ())
               data)
           (collect_regexes ast)
       in
@@ -2435,7 +2434,7 @@ let try_under_concats vars alpha len env ast =
           Seq.fold_left (fun acc digit -> Set.add acc digit) x (Regex.dec |> String.to_seq))
           |> Set.to_list
         in
-        let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
+        let nfa_alpha = Regex.all alpha |> Nfa.String.of_regex in
         let max_cnt = Config.under_str_config.max_cnt in
         let length = Ast.get_len name ast in
         let length, exact, count =
@@ -2517,7 +2516,7 @@ let split_concats { Info.all; _ } =
     | _ -> false
   in
   let simplify_in_re_raw x nfa =
-    if NfaS.run nfa
+    if Nfa.String.run nfa
     then [ [ Id_symantics.in_re_raw x nfa ] ]
     else [ [ Id_symantics.false_ ] ]
   in
@@ -2526,19 +2525,19 @@ let split_concats { Info.all; _ } =
 
     let split lhs rhs nfa =
       let rec helper lhs rhs nfa =
-        Debug.dump_nfa ~msg:"Before splitting: %s" NfaS.format_nfa nfa;
-        let nfas : (NfaS.t * NfaS.t) list = NfaS.split nfa in
+        Debug.dump_nfa ~msg:"Before splitting: %s" Nfa.String.format_nfa nfa;
+        let nfas : (Nfa.String.t * Nfa.String.t) list = Nfa.String.split nfa in
         Debug.printf "==================================================\n%!";
         match lhs, rhs with
         | x, Ast.Eia.Str_const y ->
-          Debug.dump_nfa ~msg:"Before splitting derivative %s" NfaS.format_nfa nfa;
-          let nfa = NfaS.deriv nfa (String.to_seq y |> List.of_seq |> List.rev) in
-          Debug.dump_nfa ~msg:"Splitting derivative %s" NfaS.format_nfa nfa;
+          Debug.dump_nfa ~msg:"Before splitting derivative %s" Nfa.String.format_nfa nfa;
+          let nfa = Nfa.String.deriv nfa (String.to_seq y |> List.of_seq |> List.rev) in
+          Debug.dump_nfa ~msg:"Splitting derivative %s" Nfa.String.format_nfa nfa;
           simplify_in_re_raw x nfa
         | Ast.Eia.Str_const x, y ->
-          Debug.dump_nfa ~msg:"Before splitting derivative %s" NfaS.format_nfa nfa;
-          let nfa = NfaS.deriv_final nfa (String.to_seq x |> List.of_seq) in
-          Debug.dump_nfa ~msg:"Splitting derivative %s" NfaS.format_nfa nfa;
+          Debug.dump_nfa ~msg:"Before splitting derivative %s" Nfa.String.format_nfa nfa;
+          let nfa = Nfa.String.deriv_final nfa (String.to_seq x |> List.of_seq) in
+          Debug.dump_nfa ~msg:"Splitting derivative %s" Nfa.String.format_nfa nfa;
           simplify_in_re_raw y nfa
         | x, y when var_or_const x && var_or_const y ->
           List.map
@@ -2572,13 +2571,13 @@ let split_concats { Info.all; _ } =
       match l, r with
       | Ast.Eia.Str_const s, Ast.Eia.Concat (lhs, rhs)
       | Ast.Eia.Concat (lhs, rhs), Ast.Eia.Str_const s ->
-        split lhs rhs (NfaS.of_regex (Regex.str_to_re s))
+        split lhs rhs (Nfa.String.of_regex (Regex.str_to_re s))
       | lhs, rhs -> Id_symantics.eq_str lhs rhs
     ;;
 
     let in_re l regex =
       match l with
-      | Ast.Eia.Concat (lhs, rhs) -> split lhs rhs (NfaS.of_regex regex)
+      | Ast.Eia.Concat (lhs, rhs) -> split lhs rhs (Nfa.String.of_regex regex)
       | str -> Id_symantics.in_re l regex
     ;;
 
@@ -2674,11 +2673,10 @@ let arithmetize ast env =
   let module Set = Base.Set.Poly in
   (*let exception StrVar_In_Arithmetize in*)
   let strlens s = String.concat "" [ "strlen"; s ] in
-  let pow_base = Ast.Eia.pow (Ast.Eia.const (Z.of_int Config.config.base)) in
+  let pow_base = Ast.Eia.pow (Ast.Eia.const (Z.of_int !Config.base)) in
   (* let in_stoi2 v = Ast.in_stoi2 v ast in *)
   let atomi v = Ast.Eia.Atom (Ast.Var (v, Ast.I)) in
-  let module NfaL = Nfa.Lsb (Nfa.Str) in
-  let module NfaCL = NfaCollection.LsbStr in
+  let module NfaCL = NfaCollection.LsbString in
   let module Map = Base.Map.Poly in
   let is_regex : Ast.t -> bool = function
     | Ast.Eia (Eq (Ast.Eia.Atom (Ast.Var (s, S)), Ast.Eia.Str_const _, S))
@@ -2700,7 +2698,7 @@ let arithmetize ast env =
     let fold_regexes collected =
       Map.mapi
         ~f:(fun ~key:var ~data ->
-          List.fold_left (fun acc nfa -> NfaS.intersect nfa acc) (NfaCL.n ()) data)
+          List.fold_left (fun acc nfa -> Nfa.String.intersect nfa acc) (NfaCL.n ()) data)
         collected
     in
     let model_regexes = Ast.land_ [ ast; extra ] |> collect_regexes |> fold_regexes in
@@ -2713,7 +2711,7 @@ let arithmetize ast env =
         ast
     in
     let phs =
-      if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) model_regexes
+      if Map.existsi ~f:(fun ~key ~data -> Nfa.String.run data |> not) model_regexes
       then [ Ast.false_ ]
       else
         Map.fold
@@ -2730,8 +2728,8 @@ let arithmetize ast env =
       Map.map
         ~f:(fun data ->
           List.fold_left
-            (fun acc nfa -> NfaS.intersect nfa acc)
-            (NfaCollection.LsbStr.n ())
+            (fun acc nfa -> Nfa.String.intersect nfa acc)
+            (NfaCollection.LsbString.n ())
             data)
         (Ast.fold
            (fun acc -> function
@@ -2750,7 +2748,7 @@ let arithmetize ast env =
         ast
     in
     let phs =
-      if Map.existsi ~f:(fun ~key ~data -> NfaS.run data |> not) regexes
+      if Map.existsi ~f:(fun ~key ~data -> Nfa.String.run data |> not) regexes
       then [ Ast.false_ ]
       else
         Map.fold
@@ -2940,7 +2938,7 @@ let arithmetize ast env =
               let phs = leq (Ast.Eia.const Z.zero) v :: phs in
               let phs =
                 leq (pow_base v) term'
-                :: lt term' (Mul [ const (Z.of_int Config.config.base); pow_base v ])
+                :: lt term' (Mul [ const (Z.of_int !Config.base); pow_base v ])
                 :: phs
               in
               v, phs
@@ -2984,18 +2982,18 @@ let arithmetize ast env =
     in
     let arithmetize_in_re s nfa =
       log "Arithmetizing regex ...";
-      Debug.dump_nfa ~msg:"for NFA %s" NfaS.format_nfa nfa;
+      Debug.dump_nfa ~msg:"for NFA %s" Nfa.String.format_nfa nfa;
       let strlens = strlens s in
       let csds =
         let is_eos vec =
           match Array.length vec with
-          | 1 -> Char.equal (Array.get vec 0) Nfa.Str.u_eos
+          | 1 -> Char.equal (Array.get vec 0) Nfa.Str10.u_eos
           | _ -> failwith "unexpected nfa in arithmetize_in_re"
         in
-        NfaL.filter_map nfa (fun (label, q') ->
+        Nfa.String.filter_map nfa (fun (label, q') ->
           if is_eos label then Option.none else Option.some (label, q'))
-        |> NfaL.to_nat
-        |> NfaL.chrobak
+        |> Nfa.String.to_nat
+        |> Nfa.String.chrobak
       in
       let const = Ast.Eia.const in
       csds
@@ -3050,8 +3048,8 @@ let arithmetize ast env =
           if not (in_stoi_or_concat s)
           then nfa
           else if List.mem s str_vars
-          then Regex.nondigit |> NfaS.of_regex |> NfaS.intersect nfa
-          else Regex.digit |> NfaS.of_regex |> NfaS.intersect nfa
+          then Regex.nondigit |> Nfa.String.of_regex |> Nfa.String.intersect nfa
+          else Regex.digit |> Nfa.String.of_regex |> Nfa.String.intersect nfa
         in
         (match in_stoi_or_concat s, List.mem s str_vars with
          | true, false ->
@@ -3127,14 +3125,16 @@ let arithmetize ast env =
     in
     let can_be_both_digit lhs rhs =
       let lhs_re =
-        Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
+        Map.find regexes lhs
+        |> Option.map (Nfa.String.intersect (Nfa.String.of_regex Regex.digit))
       in
       let rhs_re =
-        Map.find regexes rhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
+        Map.find regexes rhs
+        |> Option.map (Nfa.String.intersect (Nfa.String.of_regex Regex.digit))
       in
       match lhs_re, rhs_re with
-      | Some lhs_re, Some rhs_re -> lhs_re |> NfaL.run && rhs_re |> NfaL.run
-      | Some re, None | None, Some re -> NfaL.run re
+      | Some lhs_re, Some rhs_re -> lhs_re |> Nfa.String.run && rhs_re |> Nfa.String.run
+      | Some re, None | None, Some re -> Nfa.String.run re
       | None, None -> true
     in
     let posts = ref Map.empty in
@@ -3155,24 +3155,24 @@ let arithmetize ast env =
         let ast3 =
           let lhs_re =
             Map.find regexes lhs
-            |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
+            |> Option.map (Nfa.String.intersect (Nfa.String.of_regex Regex.nondigit))
             |> Option.value ~default:(NfaCL.n ())
           in
           let rhs_re =
             Map.find regexes rhs
-            |> Option.map (NfaL.intersect (NfaL.of_regex Regex.nondigit))
+            |> Option.map (Nfa.String.intersect (Nfa.String.of_regex Regex.nondigit))
             |> Option.value ~default:(NfaCL.n ())
           in
           let length_check length =
             if length > 0
             then (
-              let w1 = NfaS.all_paths_of_len lhs_re length in
-              let w2 = NfaS.all_paths_of_len rhs_re length in
+              let w1 = Nfa.String.all_paths_of_len lhs_re length in
+              let w2 = Nfa.String.all_paths_of_len rhs_re length in
               List.length w1 + List.length w2 > 2
               || (List.length w1 = 1
                   && List.length w2 = 1
                   && List.nth w1 0 <> List.nth w2 0))
-            else lhs_re |> NfaS.run && rhs_re |> NfaS.run
+            else lhs_re |> Nfa.String.run && rhs_re |> Nfa.String.run
           in
           let constr = gensym ~prefix:"%under_distinct_3" () in
           let post
@@ -3317,7 +3317,7 @@ let arithmetize ast env =
              ~f:(fun ~key -> function
                 | `Left v -> Some v
                 | `Right v -> Some v
-                | `Both (v, v') -> Some (NfaS.intersect v v'))
+                | `Both (v, v') -> Some (Nfa.String.intersect v v'))
              regexes
              regexes'
          in

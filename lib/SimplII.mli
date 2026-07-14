@@ -27,7 +27,7 @@ val arithmetize
   -> (Ast.t
      * Env.t
      * (Ir.model -> Ast.t -> (Ast.t -> [ `Sat | `Unknown ]) -> [ `Sat | `Unknown ]) list
-     * (string, Nfa.Lsb(Nfa.Str).u) Base.Map.Poly.t)
+     * (string, Nfa.String.u) Base.Map.Poly.t)
        list
 
 val run_string_simplify
