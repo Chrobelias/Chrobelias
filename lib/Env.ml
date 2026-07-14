@@ -389,16 +389,16 @@ let filter_mapi
   fold
     ~f:(fun ~key ~data acc ->
       match data with
-      | Ast.TT (Ast.S, str) -> begin
-        match fstr key str with
+      | Ast.TT (Ast.S, str) ->
+        begin match fstr key str with
         | Some v -> extend_string_exn acc key str
         | None -> acc
-      end
-      | Ast.TT (Ast.I, int) -> begin
-        match fint key int with
+        end
+      | Ast.TT (Ast.I, int) ->
+        begin match fint key int with
         | Some v -> extend_int_exn acc key int
         | None -> acc
-      end)
+        end)
     ~init:empty
     env
 ;;

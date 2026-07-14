@@ -222,7 +222,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
   ;;
 
   let rec pow ~base exp =
-    let two = Z.of_int Config.config.base in
+    let two = Z.of_int !Config.base in
     let four = Z.(two * two) in
     match base, exp with
     | Poly (base_poly, base, base_sups), _ when Map.is_empty base_poly && base = four ->
@@ -295,14 +295,14 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
       failwith
         (Format.asprintf
            "only the same base %d is supported in exponents (got %a)"
-           Config.config.base
+           !Config.base
            Ir.pp_atom
            a)
     | Poly (base_poly, base_c, base_sups), _ ->
       failwith
         (Format.asprintf
            "only the same base %d is supported in exponents (got %a)"
-           Config.config.base
+           !Config.base
            Z.pp_print
            base_c)
   ;;
@@ -313,7 +313,7 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
       let u = Ir.internal () in
       Symbol (u, [ Ir.slen u (Ir.var v) ])
     | Ast.Eia.Str_const s ->
-      Poly (Map.empty, Z.(pow (Z.of_int Config.config.base) (String.length s) - one), [])
+      Poly (Map.empty, Z.(pow (Z.of_int !Config.base) (String.length s) - one), [])
     | _ -> failwith "unreachable"
   ;;
 
@@ -614,7 +614,7 @@ let rec eia_of_ir : Ir.t -> Ast.t =
   let open Ast.Eia in
   let ir_atom_to_eia_term = function
     | Ir.Var s -> atom (var s I)
-    | Ir.Pow2 s -> pow (const (Z.of_int Config.config.base)) (atom (var s I))
+    | Ir.Pow2 s -> pow (const (Z.of_int !Config.base)) (atom (var s I))
   in
   let ir_atom_to_atom = function
     | Ir.Var s -> Any_atom (Var (s, I))

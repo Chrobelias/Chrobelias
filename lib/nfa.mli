@@ -43,8 +43,12 @@ module Bv : sig
   include L with type u = bool
 end
 
-module Str : sig
-  include L with type u = char and type t = char array
+module type Base = sig
+  val base : Z.t
+end
+
+module type StrL = sig
+  include L
 
   val u_null : u
   val u_eos : u
@@ -56,17 +60,12 @@ module Str : sig
   val is_one_at : int -> t -> bool
 end
 
-module StrBv : sig
-  include L with type u = Z.t and type t = Z.t * Z.t
+module Str (_ : Base) : sig
+  include StrL with type u = char and type t = char array
+end
 
-  val u_null : u
-  val u_eos : u
-  val u_one : u
-  val is_end_char : u -> bool
-  val is_eos_at : int -> t -> bool
-  val is_any_at : int -> t -> bool
-  val is_zero_at : int -> t -> bool
-  val is_one_at : int -> t -> bool
+module StrBv (_ : Base) : sig
+  include StrL with type u = Z.t and type t = Z.t * Z.t
 end
 
 module type Type = sig
@@ -159,5 +158,26 @@ module Msb (Label : L) : sig
   val of_lsb : Lsb(Label).t -> t
 end
 
-val convert_nfa_lsb : Lsb(Str).t -> Lsb(StrBv).t
-val convert_nfa_msb : Msb(Str).t -> Msb(StrBv).t
+module Str10 : sig
+  include StrL with type u = char and type t = char array
+end
+
+module Base10 : Base
+module Base2 : Base
+
+module String : sig
+  include
+    NatType
+    with type v = Str(Base10).u
+     and type u = Lsb(Str(Base10)).u
+     and type t = Lsb(Str(Base10)).t
+
+  val filter_map : t -> (Str(Base10).t * int -> (Str(Base10).t * int) option) -> t
+  val path_of_len2 : t -> var:int -> len:int -> v list option
+end
+
+module ConvertStr (B : Base) : sig
+  val lsb : Lsb(Str(B)).t -> Lsb(StrBv(B)).t
+  val msb : Msb(Str(B)).t -> Msb(StrBv(B)).t
+  val str : String.t -> Lsb(Str(B)).t
+end

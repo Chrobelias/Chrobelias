@@ -203,12 +203,16 @@ module Msb = struct
   ;;
 end
 
-module MsbStr = struct
-  module Str = Nfa.Str
-  module Nfa = Nfa.Msb (Nfa.Str)
+module MsbStr (B : Nfa.Base) = struct
+  module Str = Nfa.Str (B)
 
-  type t = Nfa.t
+  type t = Nfa.Msb(Nfa.Str(B)).t
   type v = Str.u
+
+  (* OCaml handles this strange if we use module Nfa = <alias> *)
+  module Nfa = struct
+    include Nfa.Msb (Nfa.Str (B))
+  end
 
   let o = Str.u_zero
   let i = Str.u_one
@@ -378,12 +382,16 @@ module MsbStr = struct
   ;;
 end
 
-module MsbStrBv = struct
-  module Str = Nfa.StrBv
-  module Nfa = Nfa.Msb (Nfa.StrBv)
+module MsbStrBv (B : Nfa.Base) = struct
+  module Str = Nfa.StrBv (B)
 
-  type t = Nfa.t
+  type t = Nfa.Msb(Nfa.StrBv(B)).t
   type v = Str.u
+
+  (* OCaml handles this strange if we use module Nfa = <alias> *)
+  module Nfa = struct
+    include Nfa.Msb (Nfa.StrBv (B))
+  end
 
   let o = Str.u_zero
   let i = Str.u_one
@@ -635,10 +643,10 @@ module MsbNat = struct
   ;;
 end
 
-module MsbNatStr = struct
-  module Str = Nfa.Str
-  module NfaMsb = Nfa.Msb (Str)
-  module NfaMsbNat = Nfa.MsbNat (Str)
+module MsbNatStr (B : Nfa.Base) = struct
+  module Str = Nfa.Str (B)
+  module NfaMsb = Nfa.Msb (Nfa.Str (B))
+  module NfaMsbNat = Nfa.MsbNat (Nfa.Str (B))
 
   type t = NfaMsbNat.t
   type v = Str.u
@@ -717,6 +725,10 @@ module MsbNatStr = struct
       ~vars:[ exp ]
       ~deg:(exp + 1)
   ;;
+
+  (* type t = Nfa.Msb(Str).t*)
+
+  module MsbStr = MsbStr (B)
 
   let eq vars term c = MsbStr.eq vars term c |> NfaMsb.to_nat
   let neq vars term c = MsbStr.neq vars term c |> NfaMsb.to_nat
@@ -732,10 +744,10 @@ module MsbNatStr = struct
   ;;
 end
 
-module MsbNatStrBv = struct
-  module Str = Nfa.StrBv
-  module NfaMsb = Nfa.Msb (Str)
-  module NfaMsbNat = Nfa.MsbNat (Str)
+module MsbNatStrBv (B : Nfa.Base) = struct
+  module Str = Nfa.StrBv (B)
+  module NfaMsb = Nfa.Msb (Nfa.StrBv (B))
+  module NfaMsbNat = Nfa.MsbNat (Nfa.StrBv (B))
 
   type t = NfaMsbNat.t
   type v = Str.u
@@ -812,6 +824,8 @@ module MsbNatStrBv = struct
       ~vars:[ exp ]
       ~deg:(exp + 1)
   ;;
+
+  module MsbStrBv = MsbStrBv (B)
 
   let eq vars term c = MsbStrBv.eq vars term c |> NfaMsb.to_nat
   let neq vars term c = MsbStrBv.neq vars term c |> NfaMsb.to_nat
@@ -1012,12 +1026,12 @@ module Lsb = struct
   ;;
 end
 
-module LsbStr = struct
-  module Str = Nfa.Str
-  module Nfa = Nfa.Lsb (Nfa.Str)
+module LsbStr (B : Nfa.Base) = struct
+  type t = Nfa.Lsb(Nfa.Str(B)).t
+  type v = Nfa.Str(B).u
 
-  type t = Nfa.t
-  type v = Str.u
+  module Str = Nfa.Str (B)
+  module Nfa = Nfa.Lsb (Nfa.Str (B))
 
   let o = Str.u_zero
   let i = Str.u_one
@@ -1221,12 +1235,12 @@ module LsbStr = struct
   ;;
 end
 
-module LsbStrBv = struct
-  module Str = Nfa.StrBv
-  module Nfa = Nfa.Lsb (Nfa.StrBv)
+module LsbStrBv (B : Nfa.Base) = struct
+  type t = Nfa.Lsb(Nfa.StrBv(B)).t
+  type v = Nfa.StrBv(B).u
 
-  type t = Nfa.t
-  type v = Str.u
+  module Str = Nfa.StrBv (B)
+  module Nfa = Nfa.Lsb (Nfa.StrBv (B))
 
   let o = Str.u_zero
   let i = Str.u_one
@@ -1430,3 +1444,5 @@ module LsbStrBv = struct
     Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 1 ] ~vars:[ src; dest ] ~deg:2
   ;;
 end
+
+module LsbString = LsbStr (Nfa.Base10)

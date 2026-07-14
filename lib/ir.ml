@@ -20,7 +20,7 @@ let internal_name () =
 
 let name = function
   | Var name -> name
-  | Pow2 name -> Format.asprintf "%a" Z.pp_print (Z.of_int Config.config.base) ^ name
+  | Pow2 name -> Format.asprintf "%a" Z.pp_print (Z.of_int !Config.base) ^ name
 ;;
 
 let internal () = var (internal_name ())
@@ -73,13 +73,11 @@ let pp_polynom ppf poly =
   fprintf ppf "@[(%a)@]@ " pp_map poly
 ;;
 
-module NfaS = Nfa.Lsb (Nfa.Str)
-
 type t =
   | True
   | Reg of bool list Regex.t * atom list
   | SReg of atom * char list Regex.t
-  | SRegRaw of atom * NfaS.t
+  | SRegRaw of atom * Nfa.String.t
   | SPrefixOf of atom * atom
   | SSuffixOf of atom * atom
   | SContains of atom * atom
