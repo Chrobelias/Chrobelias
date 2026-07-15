@@ -36,6 +36,8 @@ $ export CHRO_DEBUG=1
 
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 2.smt2'
   $ CHRO_DEBUG=1 $RUN --stop-after presimpl
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (= (* x (exp 2 z)) 3076)
@@ -86,6 +88,8 @@ which is needed to be fixed first
   > EOF
   $ export RUN='Chro -no-over -bound -1 -lsb --dsimpl 4.smt2'
   $ CHRO_DEBUG=1 $RUN --stop-after presimpl
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (= (* x (exp 2 z)) 8096)

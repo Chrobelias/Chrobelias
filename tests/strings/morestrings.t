@@ -6,6 +6,8 @@
   > EOF
 
   $ CHRO_DEBUG=1 Chro --dpresimpl ./1.smt2
+  Base now is 2
+  
   iter(1)= (and
              (= x 12345)
              (= 5 (+ 0 5)))

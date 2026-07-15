@@ -7,6 +7,8 @@
   > (check-sat)
   > EOF
   $ Chro --dsimpl --stop-after pre-simpl TODO1.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (<= (+ (* 5 x1) x2) (* 6 x2))
@@ -24,6 +26,8 @@ Should be (<= x 2)
   > (check-sat)
   > EOF
   $ Chro  --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (<= (* 5 x1) 13)
@@ -39,6 +43,8 @@ Should be (<= x 2)
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (= (+ 2 6) 8)
@@ -57,6 +63,8 @@ Should be (<= x 2)
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (<= (+ x1 (* (* (- 1) 1) x1)) 8)
@@ -76,6 +84,8 @@ Fold exps
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 (+ 1 it135))) 2)
@@ -94,6 +104,8 @@ Fold exps
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl i4.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (<= (* (+ x1 x2) (exp 2 x3)) 2)
@@ -111,6 +123,8 @@ Fold exps
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 it134)) 2)
@@ -134,6 +148,8 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl it646.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (<= (+ (+ it646 (* (* (- 1) 2) it646)) (* (* (- 1) 1) it646))
@@ -157,6 +173,8 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (= 0 (* (+ (* (- 1) 2) (* 3 i3)) (exp 2 it134)))
@@ -178,6 +196,8 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (and
