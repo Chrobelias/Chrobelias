@@ -278,8 +278,6 @@ let calculate_model tys model regexes env =
 let print_model model = Format.printf "%s\n%!" (Lib.Ir.model_to_str model)
 
 let rec check_sat ?(verbose = false) tys ast : rez =
-  if config.logic = `Eia && Lib.Ast.is_str ast
-  then config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
   let __ () =
     if config.stop_after = `Pre_simplify
     then (
@@ -801,6 +799,8 @@ let () =
         Lib.Ast.land_
           (if List.is_empty all_asserts then [ Lib.Ast.True ] else all_asserts)
       in
+      if config.logic = `Eia && Lib.Ast.is_str ast
+      then config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
       let common_base = Lib.Ast.find_common_base ast |> Option.map Z.to_int in
       let () = Lib.Config.set_base ?ast_base:common_base () in
       Lib.Debug.printfln "Base now is %d\n%!" !Lib.Config.base;
@@ -835,6 +835,8 @@ let () =
           | None -> asserts
         in
         let ast = Lib.Ast.land_ (get_ast state) in
+        if config.logic = `Eia && Lib.Ast.is_str ast
+        then config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
         let common_base = Lib.Ast.find_common_base ast |> Option.map Z.to_int in
         let () = Lib.Config.set_base ?ast_base:common_base () in
         Lib.Debug.printfln "Base now is %d\n%!" !Lib.Config.base;
