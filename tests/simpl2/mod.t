@@ -5,6 +5,8 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over -bound 0  --dsimpl --stop-after pre-simpl 0.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   iter(1)= (= (mod (str.to.int x) 11111) 42)
   Alphabet with extra char: 0
   
@@ -54,6 +56,8 @@
   > EOF
 $ cat 1.smt2
   $ CHRO_DEBUG=1 Chro -no-over -bound 0  --dpresimpl --stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   iter(1)= (= (mod (mod (str.to.int x) 442271) 417677) 0)
   Alphabet with extra char: 0
   

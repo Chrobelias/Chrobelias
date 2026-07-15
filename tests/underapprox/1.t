@@ -9,6 +9,8 @@
   > EOF
   $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over -bound 3 --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (and
@@ -40,6 +42,8 @@
 
 
   $ Chro -no-over -bound 3 --dsimpl --stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (and

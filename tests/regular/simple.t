@@ -1,4 +1,6 @@
   $ CHRO_DEBUG=1 Chro simple.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 10
+  
   iter(1)= (and
              (= a "abc")
              (= a "abc"))
@@ -11,6 +13,8 @@
   fixed-point
   
   sat (presimpl str)
+  Base now is 10
+  
   iter(1)= (and
              (= a "-1099")
              (str.in_re a (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (re.++ (str.to.re "-") (re.* (str.to.re ""))))))
@@ -24,6 +28,8 @@
   fixed-point
   
   sat (presimpl str)
+  Base now is 10
+  
   iter(1)= (and
              (= a "-1090")
              (str.in_re a (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (re.++ (str.to.re "-") (re.* (str.to.re ""))))))

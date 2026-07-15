@@ -7,6 +7,8 @@
   > (get-model)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over -bound 0 --dsimpl --stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (and
@@ -34,6 +36,8 @@
   
   lib/Underapprox.ml gives early Sat.
   sat (under int)
+  Base now is 2
+  
   Calculating the model
   NFA model:
     (

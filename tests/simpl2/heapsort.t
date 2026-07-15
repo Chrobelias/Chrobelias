@@ -1,5 +1,7 @@
   $ export CHRO_DEBUG=1
   $ Chro -bound -1 --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (and

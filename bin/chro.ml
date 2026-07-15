@@ -803,7 +803,7 @@ let () =
       in
       let common_base = Lib.Ast.find_common_base ast |> Option.map Z.to_int in
       let () = Lib.Config.set_base ?ast_base:common_base () in
-      Format.printf "BASE NOW IS %d\n%!" !Lib.Config.base;
+      Lib.Debug.printfln "Base now is %d\n%!" !Lib.Config.base;
       (try
          let rez = check_sat ~verbose:true state.tys ast in
          if Lib.Config.config.check_model then get_model ~noprint:true ast rez;
@@ -819,7 +819,7 @@ let () =
        | exn ->
          Format.printf "unknown\n%!";
          Format.eprintf
-           "(swallowed: %s)\n%s"
+           "(exception: %s)\n%s"
            (Printexc.to_string exn)
            (Printexc.get_backtrace ());
          state)
@@ -837,7 +837,7 @@ let () =
         let ast = Lib.Ast.land_ (get_ast state) in
         let common_base = Lib.Ast.find_common_base ast |> Option.map Z.to_int in
         let () = Lib.Config.set_base ?ast_base:common_base () in
-        Format.printf "BASE NOW IS %d\n%!" !Lib.Config.base;
+        Lib.Debug.printfln "Base now is %d\n%!" !Lib.Config.base;
         let rez =
           match state.last_result with
           | Some r -> r
@@ -879,7 +879,7 @@ let () =
     | exn ->
       Format.printf "unknown\n%!";
       Format.eprintf
-        "(toplevel-swallowed: %s)\n%s"
+        "(toplevel-exception: %s)\n%s"
         (Printexc.to_string exn)
         (Printexc.get_backtrace ());
       exit 0

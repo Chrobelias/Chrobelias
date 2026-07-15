@@ -3,6 +3,8 @@
   $ export CHRO_TRACE_OPT=1
   $ export OCAMLRUNPARAM="b=0"
   $ Chro --dsimpl --stop-after simpl ../overapprox/NIA2334test5.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (and

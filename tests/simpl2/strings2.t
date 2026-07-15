@@ -9,6 +9,8 @@ $ export CHRO_DEBUG=1
   > EOF
 
   $ CHRO_DEBUG=1 Chro --dpresimpl --dsimpl --stop-after simpl 1.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 10
+  
   iter(1)= (and
              (= y "321")
              (= (str.++ "123" x) (str.++ y x)))

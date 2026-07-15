@@ -1,5 +1,7 @@
 $ cat input3.smt2
   $ CHRO_DEBUG=1 Chro --dsimpl --stop-after pre-simpl input3.smt2 | sed 's/[[:space:]]*$//'
+  Base now is 2
+  
   Basic simplifications:
   
   iter(1)= (and
