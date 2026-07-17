@@ -32,6 +32,19 @@ let rec powz ~base:a = function
     Z.(b * b * if n mod of_int 2 = zero then one else a)
 ;;
 
+let logBase n ~base:a =
+  let rec helper acc = function
+    | 0 -> acc
+    | n -> helper (acc + 1) (n / Z.to_int a)
+  in
+  helper (-1) n
+;;
+
+let logBaseZ n ~base:a =
+  let rec helper acc n = if n = Z.zero then acc else helper (acc + 1) Z.(n / a) in
+  helper (-1) n
+;;
+
 let div_rem a b =
   match Z.sign a, Z.sign b with
   | -1, 1 ->

@@ -321,19 +321,8 @@ struct
       v
   ;;
 
-  let logBase n =
-    let rec helper acc = function
-      | 0 -> acc
-      | n -> helper (acc + 1) (n / Z.to_int NfaCollection.base)
-    in
-    helper (-1) n
-  ;;
-
-  let logBaseZ n =
-    let base = NfaCollection.base in
-    let rec helper acc n = if n = Z.zero then acc else helper (acc + 1) Z.(n / base) in
-    helper (-1) n
-  ;;
+  let logBase n = Utils.logBase n ~base:NfaCollection.base
+  let logBaseZ n = Utils.logBaseZ n ~base:NfaCollection.base
 
   let pow2z n =
     List.init (Z.to_int n) (Fun.const NfaCollection.base) |> List.fold_left Z.( * ) Z.one
