@@ -1114,7 +1114,7 @@ let%test_module _ =
       [%expect
         {|
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ (exp 10 x) (exp 10 y)) 52)
           (<= (+ x (* (- 3) y)) 0))
 
         Exp: x y
@@ -1364,12 +1364,12 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ (exp 10 x) (exp 10 y)) 52)
           (<= x 3))
 
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
-          (<= (exp 2 x) (exp 2 3)))
+          (<= (+ (exp 10 x) (exp 10 y)) 52)
+          (<= (exp 10 x) (exp 10 3)))
         |}]
     ;;
 
@@ -1385,12 +1385,12 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
+          (<= (+ (exp 10 u) (exp 10 v) (exp 10 x) (exp 10 y)) 5000)
           (<= (+ x (* (- 1) y)) 0)
           (<= (+ v (* (- 1) u)) 0))
 
         (and
-          (<= (+ (exp 2 x) (exp 2 y) (exp 10 u) (exp 10 v)) 5000)
+          (<= (+ (exp 10 u) (exp 10 v) (exp 10 x) (exp 10 y)) 5000)
           (<= (+ x (* (- 1) y)) 0)
           (<= (+ v (* (- 1) u)) 0))
         |}]
@@ -1405,11 +1405,11 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ (exp 10 x) (exp 10 y)) 52)
           (<= (+ x (* (- 3) y)) 0))
 
         (and
-          (<= (+ (exp 2 x) (exp 2 y)) 52)
+          (<= (+ (exp 10 x) (exp 10 y)) 52)
           (<= (+ x (* (- 3) y)) 0))
         |}]
     ;;

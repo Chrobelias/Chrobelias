@@ -645,6 +645,7 @@ let rec eia_of_ir : Ir.t -> Ast.t =
 
 let%expect_test _ =
   let open Ast in
+  let open Ast.Eia in
   let wrap ast =
     Format.printf "@[%a@]\n%!" pp_smtlib2 (Eia ast);
     (*let ir1 = of_eia ast in
@@ -653,11 +654,15 @@ let%expect_test _ =
     Format.printf "@[IR2: %a@]\n%!" Ir.pp_smtlib2 ir2
   in
   wrap
-    (Eia.leq
-       Eia.(pow (const (Z.of_int 2)) (Eia.pow (const (Z.of_int 2)) (Atom (int_var "z"))))
-       Eia.(Const Z.one));
-  [%expect
-    {|
+    (let ast =
+       leq
+         (pow (const (Z.of_int 2)) (pow (const (Z.of_int 2)) (Atom (int_var "z"))))
+         (Const Z.one)
+     in
+     let common_base = Ast.find_common_base (Eia ast) |> Option.map Z.to_int in
+     Config.set_base ?ast_base:common_base ();
+     ast);
+  [%expect {|
     (<= (exp 2 (exp 2 z)) 1)
     IR2: (assert (<= pow2(%0)  1) )
          (assert (= (+ (* (- 1) %0) pow2(z) )  0) )

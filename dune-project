@@ -30,13 +30,12 @@
   ppx_regexp
   ppx_deriving
   ppx_variants_conv
+  ppx_inline_test
   smtml
   ounit2
   z3
   ppx_expect
-  ppx_inline_test
   mdx
-  (mdx :with-tests)
   (ocamlformat
    (and
     :dev

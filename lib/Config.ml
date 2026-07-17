@@ -272,5 +272,3 @@ Basic options:
        else Printf.eprintf "File %S doesn't exist\n" s)
     usage_msg
 ;;
-
-let () = parse_args ()
