@@ -4258,3 +4258,98 @@ let arithmetize str_vars ast env =
       in
       ast', env, regexes))
 ;;
+
+module NondeterministicMonad = struct
+  (* Also try to use lazy lists, it is probably more efficient *)
+  type 'a t = 'a list
+
+  let return = fun x -> [ x ]
+  let bind o f = List.concat_map f o
+  let ( >>= ) = bind
+  let ( let* ) = bind
+end
+
+let introduce_slacks =
+  let open Ast in
+  let gensym1 = gensym in
+  List.fold_left
+    (fun (slack, xs) ast ->
+       match ast with
+       | Eia (Leq (l, r)) ->
+         let var_name = gensym1 ?prefix:(Some "_slack_var_%") () in
+         let xs = eia (Eq (Add [ l; Atom (Var (var_name, I)) ], r, I)) :: xs in
+         var_name :: slack, xs
+       | _ -> slack, ast :: xs)
+    ([], [])
+;;
+
+let compute_mod eia =
+  let open Ast.Eia in
+  match eia with
+  | Eq (Mod (_, d), Const c, I) when Z.equal c Z.zero -> d
+  | _ -> Z.one
+;;
+
+let get_mod_phi_of_system =
+  List.fold_left
+    (fun acc -> function
+       | Ast.Eia eia -> Z.lcm acc (compute_mod eia)
+       | _ -> acc)
+    Z.one
+;;
+
+let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) =
+  (* Try to use something else instead of lists to improve performance *)
+  let rec get_var varname = function
+    | [] -> None
+    | x :: xs ->
+      let open Ast.Eia in
+      (* Assuming there is no variables on the right side of equation *)
+      begin match ast with
+      | Eia (Eq (Add xs, _, I)) ->
+        let find_var_with_coef = function
+          | Mul xs ->
+            List.exists
+              (function
+                | Atom (Var (x, I)) when x = varname -> true
+                | _ -> false)
+              xs
+          | _ -> false
+        in
+        List.find_opt find_var_with_coef xs
+      | _ -> get_var varname xs
+      end
+  in
+  let open NondeterministicMonad in
+  match ast with
+  | Exists (elim_vars, ast) ->
+    begin match ast with
+    | Land conj_list ->
+      let slack, conj_list = introduce_slacks conj_list in
+      let mod_phi = get_mod_phi_of_system conj_list in
+      let elim_vars =
+        List.map
+          (function
+            | Ast.Any_atom (Var (varname, I)) -> varname
+            | _ -> failwith "Expected only integer variables")
+          elim_vars
+      in
+      let rec helper p l slack xs = function
+        (* This function is supposed to do code from 3-12 *)
+        | Ast.Any_atom (Var (varname, I)) :: tl ->
+          begin match get_var varname xs with
+          | Some (Mul terms as el) ->
+            let xs = List.filter (fun x -> x <> el) xs in
+            return xs
+          (* WIP *)
+          | _ -> helper p l slack xs tl
+          end
+        | _ -> return xs
+      in
+      let* rez = helper 1 1 slack conj_list elim_vars in
+      (* WIP *)
+      return None
+    | _ -> failwith "Expected a conjuction"
+    end
+  | _ -> failwith "Expected the existence quantifier"
+;;
