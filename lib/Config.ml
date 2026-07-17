@@ -145,10 +145,11 @@ Basic options:
 |}
   in
   let rec spec_list =
-    [ ( "-base"
+    [ (* ( "-base"
       , Arg.Int (fun n -> config.base <- Some n)
       , Printf.sprintf "<n>\tSwitch to base <n> EIA (DEFAULT: auto)\t" )
-    ; ( "-bound"
+    ;  *)
+      ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
       , "\tUpper bound for integer underapproximation (negative disables)" )
     ; ( "-bres"
@@ -199,15 +200,6 @@ Basic options:
     ; ( "-under-all"
       , Arg.Unit (fun () -> config.under_str_all <- true)
       , "  \tApply string underapproximation for each string variable" )
-      (* ; ( "-flat"
-      , Arg.Int (fun n -> under2_config.flat <- n)
-      , "<n> \tAlternation depth in underapprox II for (* x (exp 2 y)). n >= 0" )
-    ; ( "-amin"
-      , Arg.Int (fun n -> under2_config.amin <- n)
-      , "<n> \tLower bound for the least significant bits in underapprox II. n >= 0" )
-    ; ( "-amax"
-      , Arg.Int (fun n -> under2_config.amax <- n)
-      , "<n> \tUpper bound for the least significant bits in underapprox II. n >= 0" ) *)
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
@@ -233,10 +225,6 @@ Basic options:
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness" )
-      (* ; "--err-check", Arg.Unit (fun () -> config.error_check <- true), "\t"
-    ; "--no-err-check", Arg.Unit (fun () -> config.error_check <- false), "\t" *)
-      (* ; "--pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- true), "\t"
-    ; "--no-pre-simpl", Arg.Unit (fun () -> config.pre_simpl <- false), "\t" *)
     ; ( "--info"
       , Arg.Unit (fun () -> config.with_info <- true)
       , "\tDisplay (un)sat decision step" )
