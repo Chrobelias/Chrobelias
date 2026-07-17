@@ -662,7 +662,8 @@ let%expect_test _ =
      let common_base = Ast.find_common_base (Eia ast) |> Option.map Z.to_int in
      Config.set_base ?ast_base:common_base ();
      ast);
-  [%expect {|
+  [%expect
+    {|
     (<= (exp 2 (exp 2 z)) 1)
     IR2: (assert (<= pow2(%0)  1) )
          (assert (= (+ (* (- 1) %0) pow2(z) )  0) )
