@@ -7,6 +7,8 @@ module Set = Base.Set.Poly
 val option_map_to_map_option : ('a, 'b option) Map.t -> ('a, 'b) Map.t option
 val pow : base:int -> int -> int
 val powz : base:Z.t -> Z.t -> Z.t
+val logBase : int -> base:Z.t -> int
+val logBaseZ : Z.t -> base:Z.t -> int
 val div_rem : Z.t -> Z.t -> Z.t * Z.t
 val to_bits : Z.t -> bool list
 val log : ('a, Format.formatter, unit) format -> 'a

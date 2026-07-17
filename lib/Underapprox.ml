@@ -1,3 +1,5 @@
+let _config = Config.config
+
 module type SYM0 = sig
   type term
   type ph
@@ -133,8 +135,16 @@ let make_collector () =
 
 exception Bitwise_op
 exception String_op
+exception Huge_for_smtml of Z.t
 
 let apply_symantics (type a) (module S : SYM with type repr = a) =
+  let phs = ref [] in
+  let gensym =
+    let n = ref 0 in
+    fun ?(prefix = "%exp") () ->
+      incr n;
+      Printf.sprintf "%s%d" prefix !n
+  in
   let rec helper = function
     | Ast.Land xs -> S.land_ (List.map helper xs)
     | Lor xs -> S.lor_ (List.map helper xs)
@@ -152,7 +162,17 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
       S.exists vs (helper ph)
     | Unsupp _ -> raise String_op
   and helperT = function
-    | Ast.Eia.Const n -> S.constz n
+    | Ast.Eia.Const n ->
+      (try
+         let _ = Z.to_int n in
+         S.constz n
+       with
+       | _ ->
+         let basei = if Option.is_some _config.base then Option.get _config.base else 2 in
+         let base = Z.of_int basei in
+         let exp_var = gensym () in
+         phs := S.(var exp_var = constz (Z.of_int (Utils.logBaseZ n ~base))) :: !phs;
+         S.pow (S.constz base) (S.var exp_var))
     | Atom (Ast.Var (s, _)) -> S.var s
     | Add terms -> S.add (List.map helperT terms)
     | Mul terms -> S.mul (List.map helperT terms)
@@ -171,7 +191,7 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
     | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ | RLen _ ->
       raise String_op
   in
-  fun x -> S.prj (helper x)
+  fun x -> S.prj (S.land_ (helper x :: !phs))
 ;;
 
 let log = Debug.printfln
