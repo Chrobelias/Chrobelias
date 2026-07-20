@@ -6,3 +6,5 @@ dumps/
 /.errlog
 # benchmark scripts
 /bench_*.sh
+
+TODO*
