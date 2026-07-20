@@ -759,6 +759,8 @@ let eia = function
   | eia -> Eia eia
 ;;
 
+let divides b a = Eia (Eia.Eq (Eia.Mod (a, b), Eia.Const Z.zero, I))
+
 let rec lnot = function
   | Lnot ast -> ast
   | Land asts -> lor_ (List.map lnot asts)

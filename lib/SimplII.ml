@@ -4269,15 +4269,29 @@ module NondeterministicMonad = struct
   let ( let* ) = bind
 end
 
+let substitute_vigorous_term x coeff tau term =
+  let open Ast.Eia in
+  let rec aux t =
+    match t with
+    | Atom (Var (v, I)) when v = x -> mul [ const (Z.neg coeff); tau ]
+    | Add ts -> add (List.map aux ts)
+    | Mul ts -> mul (List.map aux ts)
+    | Mod (t, d) -> mod_ (aux t) d
+    | Pow (b, e) -> pow (aux b) (aux e)
+    | _ -> t
+  in
+  mul [ const coeff; aux term ]
+;;
+
 let introduce_slacks =
   let open Ast in
   let gensym1 = gensym in
   List.fold_left
     (fun (slack, xs) ast ->
        match ast with
-       | Eia (Leq (l, r)) ->
+       | Eia (Leq (Add ys, r)) ->
          let var_name = gensym1 ?prefix:(Some "_slack_var_%") () in
-         let xs = eia (Eq (Add [ l; Atom (Var (var_name, I)) ], r, I)) :: xs in
+         let xs = eia (Eq (Add (Atom (Var (var_name, I)) :: ys), r, I)) :: xs in
          var_name :: slack, xs
        | _ -> slack, ast :: xs)
     ([], [])
@@ -4298,33 +4312,149 @@ let get_mod_phi_of_system =
     Z.one
 ;;
 
-let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) =
-  (* Try to use something else instead of lists to improve performance *)
-  let rec get_var varname = function
-    | [] -> None
-    | x :: xs ->
-      let open Ast.Eia in
-      (* Assuming there is no variables on the right side of equation *)
-      begin match ast with
-      | Eia (Eq (Add xs, _, I)) ->
-        let find_var_with_coef = function
-          | Mul xs ->
-            List.exists
-              (function
-                | Atom (Var (x, I)) when x = varname -> true
-                | _ -> false)
-              xs
-          | _ -> false
-        in
-        List.find_opt find_var_with_coef xs
-      | _ -> get_var varname xs
-      end
-  in
+let find_var_with_coef varname xs =
+  let open Ast.Eia in
+  List.find_opt
+    (function
+      | Mul xs ->
+        List.exists
+          (function
+            | Atom (Var (x, I)) when x = varname -> true
+            | _ -> false)
+          xs
+      | _ -> false)
+    xs
+;;
+
+let coeff_of_var varname ast =
+  let open Ast.Eia in
+  (* Assuming there is no variables on the right side of equation *)
+  begin match ast with
+  | Add xs ->
+    let ( let* ) = Option.bind in
+    let return = Option.some in
+    let* term = find_var_with_coef varname xs in
+    begin match term with
+    | Mul xs ->
+      xs
+      |> List.filter (fun x -> x <> Atom (Var (varname, I)))
+      |> List.fold_left
+           (fun acc -> function
+              | Const a -> Z.mul acc a
+              | _ -> acc)
+           Z.one
+      |> return
+    | _ -> None
+    end
+  | _ -> None
+  end
+;;
+
+let find_var_and_coeff varname =
+  let open Ast.Eia in
+  function
+  | Ast.Eia.Eq (l, r, I) ->
+    let coeff_l = coeff_of_var varname l in
+    let coeff_r = coeff_of_var varname r in
+    let tau = add [ l; mul [ const Z.minus_one; r ] ] in
+    let tau_no_x = substitute_vigorous_term varname Z.one (const Z.zero) tau in
+    begin match coeff_l, coeff_r with
+    | None, Some c when Z.equal c Z.zero -> Some (c, tau_no_x)
+    | Some c, None when Z.equal c Z.zero -> Some (Z.neg c, tau_no_x)
+    | _ -> None
+    end
+  | _ -> None
+;;
+
+module SlackMap = Map.Make (String)
+
+let rec slack_vars_in_term (subst : Z.t SlackMap.t) =
+  let open Ast.Eia in
+  function
+  | Atom (Var (varname, I)) when SlackMap.mem varname subst -> [ varname ]
+  | Add xs | Mul xs -> List.concat_map (slack_vars_in_term subst) xs
+  | Mod (term, _) -> slack_vars_in_term subst term
+  | Pow (term, _) -> slack_vars_in_term subst term
+  | _ -> []
+;;
+
+let rec divide_constaint_by_int (int : Z.t) =
+  let open Ast.Eia in
+  function
+  (* | Atom (Var (varname, I)) when SlackMap.mem varname subst -> [ varname ] *)
+  | Const c -> Const (Z.div c int)
+  | Mul xs -> Mul (List.filter (fun x -> x <> Const int) xs)
+  | Add xs -> Add (List.map (divide_constaint_by_int int) xs)
+  | Mod (term, term') -> Mod (divide_constaint_by_int int term, Z.div term' int)
+  | Pow (term, term') ->
+    Pow (divide_constaint_by_int int term, divide_constaint_by_int int term')
+  | x -> x
+;;
+
+let multiply_system_by_int int =
+  List.map (function
+    | Ast.Eia (Eq (Add xs, r, I)) ->
+      let xs =
+        List.map
+          (function
+            | Ast.Eia.Mul ys -> Ast.Eia.Mul (Const int :: ys)
+            | _ -> failwith "Expected Mul")
+          xs
+      in
+      Ast.Eia (Eq (Add xs, r, I))
+    | _ -> failwith "Expected linear system")
+;;
+
+let eliminate_one_var (conjs : Ast.t list) varname subst mod_phi =
   let open NondeterministicMonad in
+  let open Ast in
+  let* coeff, tau =
+    List.filter_map
+      (function
+        | Ast.Eia eia -> find_var_and_coeff varname eia
+        | _ -> None)
+      conjs
+  in
+  let slacks = slack_vars_in_term subst tau in
+  let max_value = Z.((Z.abs coeff * mod_phi) - Z.one) in
+  let* subst =
+    if slacks = []
+    then return subst
+    else
+      let* slack = slacks in
+      let* v = List.init (Z.to_int max_value + 1) Z.of_int in
+      let subst = SlackMap.add slack v subst in
+      return subst
+  in
+  let conjs = multiply_system_by_int coeff conjs in
+  let conjs = List.map (divide_constaint_by_int p) conjs in
+  let conjs = divides coeff tau :: conjs in
+  return tau
+;;
+
+(* let rec helper p l slack xs = function *)
+(*   (\* This function is supposed to do code from 3-12 *\) *)
+(*   | Ast.Any_atom (Var (varname, I)) :: tl -> begin *)
+(*     match get_coef_of_var varname conjs xs with *)
+(*     | Some (Mul terms as el) -> *)
+(*       let xs = List.filter (fun x -> x <> el) xs in *)
+(*       return xs *)
+(*     (\* WIP *\) *)
+(*     | _ -> helper p l slack xs tl *)
+(*   end *)
+(*   | _ -> return xs *)
+(* in *)
+
+let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) : Ast.t * Env.t =
+  (* Try to use something else instead of lists to improve performance *)
+  let open NondeterministicMonad in
+  let open Map in
   match ast with
   | Exists (elim_vars, ast) ->
     begin match ast with
     | Land conj_list ->
+      let l = Z.one in
+      let subst = SlackMap.empty in
       let slack, conj_list = introduce_slacks conj_list in
       let mod_phi = get_mod_phi_of_system conj_list in
       let elim_vars =
@@ -4334,21 +4464,28 @@ let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) =
             | _ -> failwith "Expected only integer variables")
           elim_vars
       in
-      let rec helper p l slack xs = function
-        (* This function is supposed to do code from 3-12 *)
-        | Ast.Any_atom (Var (varname, I)) :: tl ->
-          begin match get_var varname xs with
-          | Some (Mul terms as el) ->
-            let xs = List.filter (fun x -> x <> el) xs in
-            return xs
-          (* WIP *)
-          | _ -> helper p l slack xs tl
-          end
-        | _ -> return xs
+      let rec eliminate_all conjs = function
+        | [] -> return conjs
+        | h :: tl ->
+          let branches = eliminate_one_var conjs h subst mod_phi in
+          List.concat_map (fun xs -> eliminate_all xs tl) branches
       in
-      let* rez = helper 1 1 slack conj_list elim_vars in
-      (* WIP *)
-      return None
+      (* let rec helper p l slack xs = function *)
+      (*   (\* This function is supposed to do code from 3-12 *\) *)
+      (*   | Ast.Any_atom (Var (varname, I)) :: tl -> begin *)
+      (*     match get_var varname xs with *)
+      (*     | Some (Mul terms as el) -> *)
+      (*       let xs = List.filter (fun x -> x <> el) xs in *)
+      (*       return xs *)
+      (*     (\* WIP *\) *)
+      (*     | _ -> helper p l slack xs tl *)
+      (*   end *)
+      (*   | _ -> return xs *)
+      (* in *)
+      (* let* rez = helper 1 1 slack conj_list elim_vars in *)
+      (* (\* WIP *\) *)
+      (* return None *)
+      ast
     | _ -> failwith "Expected a conjuction"
     end
   | _ -> failwith "Expected the existence quantifier"
