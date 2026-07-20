@@ -370,6 +370,18 @@ let int_to_re s =
     (kleene (symbol [ Config.string_config.eos ]))
 ;;
 
+let int_to_re_all s =
+  concat
+    (concat
+       (s
+        |> Z.to_string
+        |> String.to_seq
+        |> Seq.map (fun c -> symbol [ c ])
+        |> Seq.fold_left (fun acc a -> concat a acc) epsilon)
+       (kleene (symbol [ Config.string_config.zero ])))
+    (kleene (symbol [ Config.string_config.zero ]))
+;;
+
 let str_to_re s =
   concat
     (s
