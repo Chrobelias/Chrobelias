@@ -1172,7 +1172,7 @@ let () =
       List.fold_left
         exec
         { asserts = []; prev = None; last_result = None; tys = Map.empty }
-        f
+        (f |> Result.get_ok)
     with
     | Fe.UnsupportedException _ when Config.is_quiet () ->
       Format.eprintf "\027[31mFronted error\027[0m\n%!";

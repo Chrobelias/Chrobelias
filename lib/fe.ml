@@ -371,8 +371,6 @@ and to_ast tys orig_expr : Ast.t =
         | Ty.Relop.Ne -> fun t c -> Ast.lnot (Ast.eia (Ast.Eia.eq t c I))
         | Ty.Relop.Le -> fun t c -> Ast.eia (Ast.Eia.leq t c)
         | Ty.Relop.Lt -> fun t c -> Ast.eia (Ast.Eia.lt t c)
-        | Ty.Relop.Ge -> fun t c -> Ast.eia (Ast.Eia.geq t c)
-        | Ty.Relop.Gt -> fun t c -> Ast.eia (Ast.Eia.gt t c)
         | _ -> failwith "Unsupported relational operator in EIA"
       in
       let* lhs, phs = to_eia_term lhs in
