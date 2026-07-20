@@ -4461,17 +4461,22 @@ let eliminate_one_var (conjs : Ast.t list) varname subst mod_phi p l =
     |> List.map (divide_constaint_by_int p)
     |> fun x -> divides coeff tau :: x
   in
-  return (conjs, l, coeff)
+  return (conjs, l, coeff, subst)
 ;;
 
-let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) =
+let subst_eia subst = function
+  | Ast.Eia (Ast.Eia.Eq (l, r, I)) -> Ast.Eia (Ast.Eia.Eq (subst_term subst l, r, I))
+  | Ast.Eia (Ast.Eia.Leq (l, r)) -> Ast.Eia (Ast.Eia.Leq (subst_term subst l, r))
+  | _ -> assert false
+;;
+
+let eliminate_existence_quantifier_branches (ast : Ast.t) (env : Env.t) =
   (* Try to use something else instead of lists to improve performance *)
   let open NondeterministicMonad in
   match ast with
   | Exists (elim_vars, ast) ->
     begin match ast with
     | Land conj_list ->
-      let subst = Env.empty in
       let slack, conj_list = introduce_slacks conj_list in
       let mod_phi = get_mod_phi_of_system conj_list in
       let elim_vars =
@@ -4481,15 +4486,54 @@ let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) =
             | _ -> failwith "Expected only integer variables")
           elim_vars
       in
-      let rec eliminate_all conjs p l = function
-        | [] -> return conjs
+      let rec eliminate_all subst conjs p l = function
+        | [] -> return (conjs, subst)
         | h :: tl ->
           let branches = eliminate_one_var conjs h subst mod_phi p l in
-          List.concat_map (fun (xs, p, l) -> eliminate_all xs p l tl) branches
+          List.concat_map
+            (fun (xs, p, l, subst) -> eliminate_all subst xs p l tl)
+            branches
       in
-      let* branch = eliminate_all conj_list Z.one Z.one elim_vars in
+      let* branch, subst = eliminate_all Env.empty conj_list Z.one Z.one elim_vars in
+      let branch =
+        List.map
+          (function
+            | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
+              (* assert (r = Ast.Eia.Const Z.zero); *)
+              let not_assigned =
+                slack_vars_in_term subst l
+                |> List.find (fun x -> Env.lookup_int x subst = None)
+              in
+              let env =
+                Env.extend_int_exn Env.empty not_assigned (Ast.Eia.Const Z.zero)
+              in
+              begin match coeff_of_var not_assigned l with
+              | Some c when c > Z.zero -> Ast.Eia (Leq (subst_term env l, r))
+              | Some c when c <= Z.zero -> Ast.Eia (Leq (r, subst_term env l))
+              | _ -> assert false
+              end
+            | eia -> eia)
+          branch
+      in
+      let branch = List.map (subst_eia subst) branch in
+      let max_value = Z.(mod_phi - Z.one) in
+      let rec loop phi = function
+        | [] -> phi
+        | h :: tl ->
+          let* v = List.init (Z.to_int max_value + 1) Z.of_int in
+          let env = Env.extend_int_exn Env.empty h (Ast.Eia.Const v) in
+          let phi = List.map (subst_eia env) phi in
+          loop phi tl
+      in
+      let branch = loop branch elim_vars in
       return branch
     | _ -> failwith "Expected a conjuction"
     end
   | _ -> failwith "Expected the existence quantifier"
+;;
+
+let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) : Ast.t =
+  let open Ast in
+  let branches = eliminate_existence_quantifier_branches ast env in
+  branches |> List.map (fun x -> land_ x) |> lor_
 ;;
