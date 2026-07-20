@@ -161,7 +161,21 @@ let construct_model tys env model regexes =
           | `Str c -> `Str c
           | `Int d ->
             (match Map.find tys key with
-             | Some `Str -> `Str (Z.to_string d)
+             | Some `Str ->
+               let model =
+                 if not (Map.mem regexes key)
+                 then Z.to_string d
+                 else (
+                   let re =
+                     Map.find_exn regexes key
+                     |> NfaS.intersect (Regex.int_to_re_all d |> NfaS.of_regex)
+                   in
+                   NfaS.any_path re [ 0 ]
+                   |> Option.get
+                   |> fun (l, _) ->
+                   List.nth l 0 |> List.rev |> List.to_seq |> String.of_seq)
+               in
+               `Str model
              | Some `Int | None -> `Int d)
         in
         let result =

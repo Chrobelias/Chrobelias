@@ -512,6 +512,5 @@ let rec of_ast = function
          atoms)
       (of_ast body)
   | Pred s -> pred_to_sym s
-  | Unsupp _ -> failwith "???"
-  | Eia eia -> assert false
+  | Unsupp _ | Eia _ -> assert false
 ;;
