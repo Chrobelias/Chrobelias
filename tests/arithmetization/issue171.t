@@ -1,3 +1,3 @@
   $ Chro --dsimpl ../examples/issue171.smt2
-  unsat (nia)
+  unsat (lengths)
   no model

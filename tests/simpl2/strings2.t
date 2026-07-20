@@ -9,20 +9,6 @@ $ export CHRO_DEBUG=1
   > EOF
 
   $ CHRO_DEBUG=1 Chro --dpresimpl --dsimpl --stop-after simpl 1.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 10
-  
-  iter(1)= (and
-             (= y "321")
-             (= (str.++ "123" x) (str.++ y x)))
-  Alphabet with extra char: 0 1 2 3
-  
-  Something ready to substitute
-        y -> "321";
-  
-  iter(2)= (= (str.++ "123" x) (str.++ y x))
-  iter(3)= (not True)
-  fixed-point
-  
   unsat (presimpl str)
 
   $ Chro 1.smt2 | sed 's/[[:space:]]*$//'

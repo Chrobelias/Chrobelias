@@ -8,24 +8,4 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over -bound 0 --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (and
-             (= (* (* (- 1) 2) z) 0)
-             (= (+ it2 (* (* (- 1) 1) i2)) 2))
-  Alphabet with extra char: 0
-  
-  Something ready to substitute
-        it2 -> (+ 2 i2);
-  
-  iter(2)= (= (* (- 2) z) 0)
-  Something ready to substitute
-        it2 -> (+ 2 i2);
-        z -> 0;
-  
-  iter(3)= True
-  fixed-point
-  
   sat (presimpl int)

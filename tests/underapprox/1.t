@@ -9,27 +9,6 @@
   > EOF
   $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over -bound 3 --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (and
-             (<= (exp 2 y) x)
-             (<= (exp 2 x) x))
-  Alphabet with extra char: 0
-  
-  iter(2)= (and
-             (<= (exp 2 x) x)
-             (<= (exp 2 y) x))
-  fixed-point
-  
-  Bound for underapproximation: 3
-  
-  Interesting: x y
-  
-  Expecting 9 choices ...
-  
-  Can't decide in lib/Underapprox.ml
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   
@@ -42,31 +21,6 @@
 
 
   $ Chro -no-over -bound 3 --dsimpl --stop-after simpl smoke1.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (and
-             (<= (+ (+ (+ (* 77 (exp 2 x1)) (* 42 (exp 2 x2))) (* 575 x2))
-                 (* (* (- 1) 575) x1)) (* (- 1) 80))
-             (<= 0 x2)
-             (<= 0 x1))
-  Alphabet with extra char: 0
-  
-  iter(2)= (and
-             (<= 0 x1)
-             (<= 0 x2)
-             (<= (+ (* (- 575) x1) (* 42 (exp 2 x2)) (* 77 (exp 2 x1))
-                 (* 575 x2)) (- 80)))
-  fixed-point
-  
-  Bound for underapproximation: 10
-  
-  Interesting: x1 x2
-  
-  Expecting 100 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
   sat (under int)
 $ echo '77*2^2+42*2^2' | bc
   $ unset CHRO_DEBUG

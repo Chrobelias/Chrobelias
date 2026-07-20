@@ -5,10 +5,10 @@
   unsat (presimpl str)
 
   $ Chro ./subst-3.smt2 
-  sat (under int)
+  sat (presimpl str)
 
   $ Chro ./subst-4.smt2 
-  sat (under int)
+  sat (presimpl str)
 
   $ Chro ./subst-5.smt2 
-  sat (presimpl int)
+  sat (presimpl str)

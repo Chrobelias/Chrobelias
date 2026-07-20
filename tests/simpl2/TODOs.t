@@ -7,16 +7,6 @@
   > (check-sat)
   > EOF
   $ Chro --dsimpl --stop-after pre-simpl TODO1.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (<= (+ (* 5 x1) x2) (* 6 x2))
-  Alphabet with extra char: 0
-  
-  iter(2)= (<= (+ x2 (* 5 x1)) (* 6 x2))
-  fixed-point
-  
 Should be (<= x 2)
   $ cat > TODO2.smt2 <<-EOF
   > (set-logic ALL)
@@ -26,15 +16,6 @@ Should be (<= x 2)
   > (check-sat)
   > EOF
   $ Chro  --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (<= (* 5 x1) 13)
-  Alphabet with extra char: 0
-  
-  fixed-point
-  
 
 
   $ cat > TODO2.smt2 <<-EOF
@@ -43,16 +24,6 @@ Should be (<= x 2)
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (= (+ 2 6) 8)
-  Alphabet with extra char: 0
-  
-  iter(2)= True
-  fixed-point
-  
   sat (presimpl int)
 
 
@@ -63,16 +34,6 @@ Should be (<= x 2)
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl TODO2.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (<= (+ x1 (* (* (- 1) 1) x1)) 8)
-  Alphabet with extra char: 0
-  
-  iter(2)= True
-  fixed-point
-  
   sat (presimpl int)
 
 Fold exps
@@ -84,17 +45,6 @@ Fold exps
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 (+ 1 it135))) 2)
-  Alphabet with extra char: 0
-  
-  iter(2)= (<= (exp 2 (+ (+ (- 1) it134) (+ 1 it135))) 2)
-  iter(3)= (<= (exp 2 (+ it134 it135)) 2)
-  fixed-point
-  
   $ cat > i4.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x1 () Int)
@@ -104,16 +54,6 @@ Fold exps
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl i4.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (<= (* (+ x1 x2) (exp 2 x3)) 2)
-  Alphabet with extra char: 0
-  
-  iter(2)= (<= (+ (* x1 (exp 2 x3)) (* x2 (exp 2 x3))) 2)
-  fixed-point
-  
 
   $ cat > i3.smt2 <<-EOF
   > (set-logic ALL)
@@ -123,17 +63,6 @@ Fold exps
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl i3.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (<= (* (exp 2 (+ (* (- 1) 1) it134)) (exp 2 it134)) 2)
-  Alphabet with extra char: 0
-  
-  iter(2)= (<= (exp 2 (+ (+ (- 1) it134) it134)) 2)
-  iter(3)= (<= (exp 2 (+ it134 it134)) 4)
-  fixed-point
-  
 
 
 $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's/[[:space:]]*$//'
@@ -148,18 +77,6 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl it646.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (<= (+ (+ it646 (* (* (- 1) 2) it646)) (* (* (- 1) 1) it646))
-           (* (- 1) 2))
-  Alphabet with extra char: 0
-  
-  iter(2)= (<= (+ it646 (* (- 2) it646) (* (- 1) it646)) (- 2))
-  iter(3)= (<= (+ it646 (* (- 3) it646)) (- 2))
-  fixed-point
-  
 
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)
@@ -173,17 +90,6 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (= 0 (* (+ (* (- 1) 2) (* 3 i3)) (exp 2 it134)))
-  Alphabet with extra char: 0
-  
-  iter(2)= (= (+ (* (- 1) (* 3 i3) (exp 2 it134)) (* 2 (exp 2 it134))) 0)
-  iter(3)= (= (+ (* (- 3) i3 (exp 2 it134)) (* 2 (exp 2 it134))) 0)
-  fixed-point
-  
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun i3 () Int)
@@ -196,19 +102,4 @@ $ CHRO_DEBUG=1 Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | sed 's
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro  --dsimpl --stop-after pre-simpl XXXX.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (and
-             (= (+ (+ it376 (* (* (- 1) 3) it361)) (* 2 (exp it362 3))) 0)
-             (= (* 0 it360) 0))
-  Alphabet with extra char: 0
-  
-  Something ready to substitute
-        it376 -> (+ (* (- 2) (exp it362 3)) (* 3 it361));
-  
-  iter(2)= True
-  fixed-point
-  
   sat (presimpl int)

@@ -36,8 +36,7 @@ Habermehl demo
   > (check-sat)
   > EOF
   $ Chro -bound 0 --dsimpl --stop-after simpl Habermehl.smt2 | sed 's/[[:space:]]*$//'
-  (assert (<= (+ x (* (- 3) y) z )  0) )
-  (assert (= (+ x pow2(z) )  52) )
+  (assert (<= (+ (* (- 3) y) z (* (- 1) pow2(z)) )  -52) )
   (assert (<= y  8) )
   
 

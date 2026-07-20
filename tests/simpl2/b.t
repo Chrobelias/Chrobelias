@@ -9,24 +9,3 @@
   > (check-sat)
   > EOF
   $ CHRO_DEBUG=1 Chro -no-over -bound -1 --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (and
-             (<= (+ 111111 1) (+ (exp 2 x) (exp 2 y)))
-             (= (+ z x) 32)
-             (= (+ z y) 52))
-  Alphabet with extra char: 0
-  
-  Something ready to substitute
-        z -> (+ 32 (- x));
-  
-  iter(2)= (and
-             (= (+ y z) 52)
-             (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
-  iter(3)= (and
-             (= (+ y (* (- 1) x)) 20)
-             (<= (+ (* (- 1) (exp 2 x)) (* (- 1) (exp 2 y))) (- 111112)))
-  fixed-point
-  
