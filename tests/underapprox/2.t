@@ -9,24 +9,6 @@
   > EOF
   $ export CHRO_DEBUG=1
   $ timeout 2 Chro -no-over -bound 3 --dsimpl --stop-after simpl testU.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
-  
-  Basic simplifications:
-  
-  iter(1)= (and
-             (<= (exp 2 y) x)
-             (exists (x) (<= (exp 2 x) x)))
-  Alphabet with extra char: 0
-  
-  fixed-point
-  
-  Bound for underapproximation: 3
-  
-  Interesting: x y
-  
-  Expecting 9 choices ...
-  
-  Can't decide in lib/Underapprox.ml
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
   (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
   

@@ -12,57 +12,12 @@
 $ ls
 $ cat len1.smt2
   $ CHRO_DEBUG=1 Chro -no-over -bound -1 --dpresimpl --stop-after presimpl len1.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 10
-  
-  iter(1)= (and
-             (<= (+ 1 1) (str.len x))
-             (<= (+ (str.len x) 1) (str.len y))
-             (<= (+ 1000 1) (str.len y)))
-  Alphabet with extra char: 0
-  
-  iter(2)= (and
-             (<= 2 (str.len x))
-             (<= 1001 (str.len y))
-             (<= (+ 1 (str.len x)) (str.len y)))
-  fixed-point
-  
-  Arithmetization gives 1 asts...
-  Arithmetized: (and
-                  (<= 2 strlenx)
-                  (<= 0 strlenx)
-                  (<= 1001 strleny)
-                  (<= 0 strleny)
-                  (<= (+ 1 strlenx) strleny)
-                  (<= 0 strlenx)
-                  (<= 0 strleny))
-  
-  Basic simplifications:
-  
-  iter(1)= (and
-             (<= 2 strlenx)
-             (<= 0 strlenx)
-             (<= 1001 strleny)
-             (<= 0 strleny)
-             (<= (+ 1 strlenx) strleny)
-             (<= 0 strlenx)
-             (<= 0 strleny))
-  Alphabet with extra char: 0
-  
-  iter(2)= (and
-             (<= 0 strlenx)
-             (<= 0 strleny)
-             (<= 2 strlenx)
-             (<= 1001 strleny)
-             (<= (+ 1 strlenx) strleny))
-  fixed-point
-  
-  Lightweight run:
   (and
-                     (<= 0 strlenx)
-                     (<= 0 strleny)
-                     (<= 2 strlenx)
-                     (<= 1001 strleny)
-                     (<= (+ 1 strlenx) strleny))
+    (<= (+ 1 strlenx (* (- 1) strleny)) 0)
+    (<= (+ 2 (* (- 1) strlenx)) 0)
+    (<= (+ 1001 (* (- 1) strleny)) 0)
+    (<= (* (- 1) strlenx) 0)
+    (<= (* (- 1) strleny) 0))
   $ Chro -no-over -bound -1 len1.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   (

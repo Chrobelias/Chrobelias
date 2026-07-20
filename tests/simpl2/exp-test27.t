@@ -2,25 +2,17 @@
 $ export CHRO_DEBUG=1
 
   $ Chro -huge-c 100 --dpresimpl --stop-after simpl ../examples/exp-test27.smt2
-  Lightweight run:
+  Early SAT in lib/Overapprox.ml ~~> Unknown
+  (model
+    (@@re_len1 int 0)
+    (strlenx int 9))
   (and
-                     (= %r1 (* 11 %q4))
-                     (= x (+ %r1 (* 29 %q2)))
-                     (<= 0 %r1)
-                     (<= 0 x)
-                     (<= (exp 10 1) (exp 10 strlenx))
-                     (<= %r1 28)
-                     (<= (exp 10 strlenx) (exp 10 99))
-                     (str.in_re.raw x)
-                     (chrob.len x (exp 10 strlenx)))
-  (and
-    (= %r5 (* 11 %q8))
-    (= x (+ %r5 (* 29 %q6)))
-    (<= 0 %r5)
-    (<= 0 x)
-    (<= (exp 10 1) (exp 10 strlenx))
-    (<= %r5 28)
-    (<= (exp 10 strlenx) (exp 10 99))
+    (= (+ (* (- 11) %q4) (* (- 29) %q2) x) 0)
+    (<= (+ (- 99) strlenx) 0)
+    (<= (+ (- 28) (* (- 29) %q2) x) 0)
+    (<= (+ 1 (* (- 1) strlenx)) 0)
+    (<= (+ (* 29 %q2) (* (- 1) x)) 0)
+    (<= (* (- 1) x) 0)
     (str.in_re.raw x)
     (chrob.len x (exp 10 strlenx)))
 
@@ -29,5 +21,5 @@ $ export CHRO_DEBUG=1
   sat (nfa)
   (
      (define-fun x () String
-      "1234582822626262626262626262626262626262626262626262626262626262626262626262626")
+      "1234582828282828282828282828282828282828282828282828282828282828282262626262626")
   )

@@ -18,13 +18,13 @@ Basic QF_S tests
   sat (presimpl str)
   unsat (presimpl str)
   unsat (presimpl str)
-  sat (under int)
+  sat (nfa)
   sat (presimpl str)
   sat (presimpl str)
   unsat (presimpl str)
   sat (nfa)
-  unsat (nia)
-  sat (presimpl int)
+  unsat (lengths)
+  sat (under int)
   (
      (define-fun a () String
       "100100100100")
@@ -70,8 +70,6 @@ Basic QF_S tests
       "BabBabBabBabBabBabBabBab")
      (define-fun b () String
       "2")
-     (define-fun q () Int
-      24)
      (define-fun x () Int
       0)
   )
@@ -85,7 +83,7 @@ Basic QF_S tests
      (define-fun x () Int
       0)
   )
-  sat (under int)
+  sat (presimpl str)
 
 +  1 sat
 +  2 sat

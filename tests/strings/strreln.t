@@ -16,7 +16,7 @@
   > (check-sat)
   > EOF
   $ Chro test1.smt2
-  unsat (nfa)
+  unsat (presimpl int)
 
   $ cat > test2.smt2 <<-EOF
   > (set-logic QF_SLIA)
