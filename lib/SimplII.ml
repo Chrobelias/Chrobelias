@@ -4299,14 +4299,13 @@ let introduce_slacks =
     ([], [])
 ;;
 
-let compute_mod eia =
-  let open Ast.Eia in
-  match eia with
-  | Eq (Mod (_, d), Const c, I) when Z.equal c Z.zero -> d
-  | _ -> Z.one
-;;
-
 let get_mod_phi_of_system =
+  let open Ast.Eia in
+  let compute_mod eia =
+    match eia with
+    | Eq (Mod (_, d), Const c, I) when Z.equal c Z.zero -> d
+    | _ -> Z.one
+  in
   List.fold_left
     (fun acc -> function
        | Ast.Eia eia -> Z.lcm acc (compute_mod eia)
@@ -4385,12 +4384,11 @@ let find_var_and_coeff varname =
   | _ -> None
 ;;
 
-module SlackMap = Map.Make (String)
-
-let rec slack_vars_in_term (subst : Z.t SlackMap.t) =
+let rec slack_vars_in_term (subst : Env.t) =
   let open Ast.Eia in
   function
-  | Atom (Var (varname, I)) when SlackMap.mem varname subst -> [ varname ]
+  (* Test the lookup *)
+  | Atom (Var (varname, I)) when Env.lookup_int varname subst = None -> [ varname ]
   | Add xs | Mul xs -> List.concat_map (slack_vars_in_term subst) xs
   | Mod (term, _) -> slack_vars_in_term subst term
   | Pow (term, _) -> slack_vars_in_term subst term
@@ -4450,30 +4448,30 @@ let eliminate_one_var (conjs : Ast.t list) varname subst mod_phi p l =
     else
       let* slack = slacks in
       let* v = List.init (Z.to_int max_value + 1) Z.of_int in
-      subst |> SlackMap.add slack v |> return
+      Env.extend_int_exn subst slack (Ast.Eia.const v) |> return
   in
-  conjs
-  |> multiply_system_by_int coeff
-  |> List.map (function
-    | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
-      let term = substitute_vigorous_constraint varname coeff tau l in
-      Ast.Eia (Ast.Eia.Eq (term, r, I))
-    | _ -> assert false)
-  |> List.map (divide_constaint_by_int p)
-  |> fun x -> divides coeff tau :: x |> return
+  let conjs =
+    conjs
+    |> multiply_system_by_int coeff
+    |> List.map (function
+      | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
+        let term = substitute_vigorous_constraint varname coeff tau l in
+        Ast.Eia (Ast.Eia.Eq (term, r, I))
+      | _ -> assert false)
+    |> List.map (divide_constaint_by_int p)
+    |> fun x -> divides coeff tau :: x
+  in
+  return (conjs, l, coeff)
 ;;
 
-let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) : Ast.t * Env.t =
+let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) =
   (* Try to use something else instead of lists to improve performance *)
   let open NondeterministicMonad in
-  let open Map in
   match ast with
   | Exists (elim_vars, ast) ->
     begin match ast with
     | Land conj_list ->
-      let l = Z.one in
-      let p = Z.one in
-      let subst = SlackMap.empty in
+      let subst = Env.empty in
       let slack, conj_list = introduce_slacks conj_list in
       let mod_phi = get_mod_phi_of_system conj_list in
       let elim_vars =
@@ -4483,14 +4481,14 @@ let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) : Ast.t * Env.t =
             | _ -> failwith "Expected only integer variables")
           elim_vars
       in
-      let rec eliminate_all conjs = function
+      let rec eliminate_all conjs p l = function
         | [] -> return conjs
         | h :: tl ->
           let branches = eliminate_one_var conjs h subst mod_phi p l in
-          List.concat_map (fun xs -> eliminate_all xs tl) branches
+          List.concat_map (fun (xs, p, l) -> eliminate_all xs p l tl) branches
       in
-      let branches = eliminate_all conj_list elim_vars in
-      ast
+      let* branch = eliminate_all conj_list Z.one Z.one elim_vars in
+      return branch
     | _ -> failwith "Expected a conjuction"
     end
   | _ -> failwith "Expected the existence quantifier"
