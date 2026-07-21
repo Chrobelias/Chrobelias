@@ -4261,11 +4261,10 @@ let arithmetize str_vars ast env =
 
 module NondeterministicMonad = struct
   (* Also try to use lazy lists, it is probably more efficient *)
-  type 'a t = 'a list
+  (* type 'a t = 'a list *)
 
   let return = fun x -> [ x ]
   let bind o f = List.concat_map f o
-  let ( >>= ) = bind
   let ( let* ) = bind
 end
 
@@ -4314,10 +4313,13 @@ let get_mod_phi_of_system =
 ;;
 
 let find_var_with_coef varname xs =
+  (* let () = Format.printf "%s\n" varname in *)
+  (* let _ = List.map (Format.printf "%a\n" Ast.Eia.pp_term) xs in *)
   let open Ast.Eia in
   List.find_opt
     (function
-      | Mul xs ->
+      | Atom (Var (x, _)) when x == varname -> true
+      | Mul xs | Add xs ->
         List.exists
           (function
             | Atom (Var (x, I)) when x = varname -> true
@@ -4327,16 +4329,28 @@ let find_var_with_coef varname xs =
     xs
 ;;
 
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph_list varname =
+    let string =
+      match find_var_with_coef varname ph_list with
+      | Some (Const c) -> "c"
+      | _ -> "None"
+    in
+    Format.printf "%s\n" string
+  in
+  let ph = TS.[ add [ mul [ const 2; var "x" ]; var "y" ] ] in
+  test ph "y"
+;;
+
 let coeff_of_var varname ast =
   let open Ast.Eia in
-  (* Assuming there is no variables on the right side of equation *)
   begin match ast with
   | Add xs ->
-    let ( let* ) = Option.bind in
-    let return = Option.some in
-    let* term = find_var_with_coef varname xs in
-    begin match term with
-    | Mul xs ->
+    (* Format.printf "%a\n" Ast.Eia.pp_term ast; *)
+    (* Format.printf "%s\n" varname; *)
+    begin match find_var_with_coef varname xs with
+    | Some (Mul xs) ->
       xs
       |> List.filter (fun x -> x <> Atom (Var (varname, I)))
       |> List.fold_left
@@ -4344,11 +4358,27 @@ let coeff_of_var varname ast =
               | Const a -> Z.mul acc a
               | _ -> acc)
            Z.one
-      |> return
-    | _ -> None
+      |> Option.some
+    | Some (Atom (Var (x, _))) -> Some Z.one
+    | None -> failwith "Can't find var with find_var_with_coef"
+    | _ -> failwith "It's not None"
     end
   | _ -> None
   end
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph_list varname =
+    let string =
+      match find_var_with_coef varname ph_list with
+      | Some (Const c) -> "c"
+      | _ -> "None"
+    in
+    Format.printf "%s\n" string
+  in
+  let ph = TS.[ add [ mul [ const 2; var "x" ]; var "y" ] ] in
+  test ph "y"
 ;;
 
 let remove_var x t =
@@ -4454,9 +4484,9 @@ let eliminate_one_var (conjs : Ast.t list) varname subst mod_phi p l =
     conjs
     |> multiply_system_by_int coeff
     |> List.map (function
-      | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
+      | Eia (Eq (l, r, I)) ->
         let term = substitute_vigorous_constraint varname coeff tau l in
-        Ast.Eia (Ast.Eia.Eq (term, r, I))
+        Eia (Eq (term, r, I))
       | _ -> assert false)
     |> List.map (divide_constaint_by_int p)
     |> fun x -> divides coeff tau :: x
@@ -4470,7 +4500,7 @@ let subst_eia subst = function
   | _ -> assert false
 ;;
 
-let eliminate_existence_quantifier_branches (ast : Ast.t) (env : Env.t) =
+let eliminate_existence_quantifier_branches (ast : Ast.t) =
   (* Try to use something else instead of lists to improve performance *)
   let open NondeterministicMonad in
   match ast with
@@ -4510,7 +4540,7 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) (env : Env.t) =
               begin match coeff_of_var not_assigned l with
               | Some c when c > Z.zero -> Ast.Eia (Leq (subst_term env l, r))
               | Some c when c <= Z.zero -> Ast.Eia (Leq (r, subst_term env l))
-              | _ -> assert false
+              | _ -> failwith "Failed to find coefficent of a variable"
               end
             | eia -> eia)
           branch
@@ -4532,8 +4562,8 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) (env : Env.t) =
   | _ -> failwith "Expected the existence quantifier"
 ;;
 
-let eliminate_existence_quantifier (ast : Ast.t) (env : Env.t) : Ast.t =
+let eliminate_existence_quantifier (ast : Ast.t) : Ast.t =
   let open Ast in
-  let branches = eliminate_existence_quantifier_branches ast env in
+  let branches = eliminate_existence_quantifier_branches ast in
   branches |> List.map (fun x -> land_ x) |> lor_
 ;;
