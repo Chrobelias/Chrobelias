@@ -4284,18 +4284,20 @@ let substitute_vigorous_constraint x coeff tau t =
   aux t
 ;;
 
-let introduce_slacks =
-  let open Ast in
-  let gensym1 = gensym in
-  List.fold_left
-    (fun (slack, xs) ast ->
-       match ast with
-       | Eia (Leq (Add ys, r)) ->
-         let var_name = gensym1 ?prefix:(Some "_slack_var_%") () in
-         let xs = eia (Eq (Add (Atom (Var (var_name, I)) :: ys), r, I)) :: xs in
-         var_name :: slack, xs
-       | _ -> slack, ast :: xs)
-    ([], [])
+let introduce_slacks conjs =
+  let open Ast.Eia in
+  let slack_vars = ref [] in
+  let new_conjs =
+    List.map
+      (function
+        | Ast.Eia (Leq (l, r)) ->
+          let y = gensym ~prefix:"_slack_" () in
+          slack_vars := y :: !slack_vars;
+          Ast.eia (Eq (add [ l; atom (Var (y, I)) ], r, I))
+        | other -> other)
+      conjs
+  in
+  !slack_vars, new_conjs
 ;;
 
 let get_mod_phi_of_system =
@@ -4312,73 +4314,50 @@ let get_mod_phi_of_system =
     Z.one
 ;;
 
-let find_var_with_coef varname xs =
-  (* let () = Format.printf "%s\n" varname in *)
-  (* let _ = List.map (Format.printf "%a\n" Ast.Eia.pp_term) xs in *)
+let coeff_of_var varname term =
   let open Ast.Eia in
-  List.find_opt
-    (function
-      | Atom (Var (x, _)) when x == varname -> true
-      | Mul xs | Add xs ->
-        List.exists
-          (function
-            | Atom (Var (x, I)) when x = varname -> true
-            | _ -> false)
-          xs
-      | _ -> false)
-    xs
+  let rec aux varname = function
+    | Atom (Var (v, I)) when v = varname -> Some Z.one
+    | Add ts ->
+      let sum =
+        List.fold_left
+          (fun acc t ->
+             match aux varname t with
+             | Some c -> Z.add acc c
+             | None -> acc)
+          Z.zero
+          ts
+      in
+      Some sum
+    | Mul [ Const c; Atom (Var (v, I)) ] when v = varname -> Some c
+    | Mul [ Const c; t ] -> Option.map (Z.mul c) (aux varname t)
+    | Mul [ Atom (Var (v, I)); Const c ] when v = varname -> Some c
+    | Mul [ t; Const c ] -> Option.map (Z.mul c) (aux varname t)
+    | _ -> None
+  in
+  match aux varname term with
+  | Some z when Z.equal z Z.zero -> None
+  | None -> None
+  | x -> x
 ;;
 
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ph_list varname =
     let string =
-      match find_var_with_coef varname ph_list with
-      | Some (Const c) -> "c"
-      | _ -> "None"
+      match coeff_of_var varname ph_list with
+      | Some c -> Z.to_string c
+      | None -> "None"
     in
     Format.printf "%s\n" string
   in
-  let ph = TS.[ add [ mul [ const 2; var "x" ]; var "y" ] ] in
-  test ph "y"
-;;
-
-let coeff_of_var varname ast =
-  let open Ast.Eia in
-  begin match ast with
-  | Add xs ->
-    (* Format.printf "%a\n" Ast.Eia.pp_term ast; *)
-    (* Format.printf "%s\n" varname; *)
-    begin match find_var_with_coef varname xs with
-    | Some (Mul xs) ->
-      xs
-      |> List.filter (fun x -> x <> Atom (Var (varname, I)))
-      |> List.fold_left
-           (fun acc -> function
-              | Const a -> Z.mul acc a
-              | _ -> acc)
-           Z.one
-      |> Option.some
-    | Some (Atom (Var (x, _))) -> Some Z.one
-    | None -> failwith "Can't find var with find_var_with_coef"
-    | _ -> failwith "It's not None"
-    end
-  | _ -> None
-  end
-;;
-
-let%expect_test _ =
-  let (module TS) = make_main_symantics Env.empty in
-  let test ph_list varname =
-    let string =
-      match find_var_with_coef varname ph_list with
-      | Some (Const c) -> "c"
-      | _ -> "None"
-    in
-    Format.printf "%s\n" string
-  in
-  let ph = TS.[ add [ mul [ const 2; var "x" ]; var "y" ] ] in
-  test ph "y"
+  let ph = TS.(add [ mul [ const 2; var "x" ]; var "y" ]) in
+  test ph "y";
+  [%expect {| 1 |}];
+  test ph "x";
+  [%expect {| 2 |}];
+  test ph "z";
+  [%expect {| None |}]
 ;;
 
 let remove_var x t =
@@ -4460,7 +4439,7 @@ let multiply_system_by_int int =
     | _ -> failwith "Expected linear system")
 ;;
 
-let eliminate_one_var (conjs : Ast.t list) varname subst mod_phi p l =
+let eliminate_one_var conjs varname subst mod_phi p l =
   let open NondeterministicMonad in
   let open Ast in
   let* coeff, tau =
