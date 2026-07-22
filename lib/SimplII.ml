@@ -4395,13 +4395,47 @@ let find_var_and_coeff varname =
 
 let rec slack_vars_in_term (subst : Env.t) =
   let open Ast.Eia in
+  let has_slack_prefix = String.starts_with ~prefix:"_slack_" in
   function
   (* Test the lookup *)
-  | Atom (Var (varname, I)) when Env.lookup_int varname subst = None -> [ varname ]
+  | Atom (Var (varname, I))
+    when Env.lookup_int varname subst = None && has_slack_prefix varname -> [ varname ]
   | Add xs | Mul xs -> List.concat_map (slack_vars_in_term subst) xs
   | Mod (term, _) -> slack_vars_in_term subst term
   | Pow (term, _) -> slack_vars_in_term subst term
   | _ -> []
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph_list =
+    let found =
+      List.concat_map
+        (function
+          | Ast.Eia (Eq (l, r, I)) ->
+            slack_vars_in_term Env.empty l @ slack_vars_in_term Env.empty r
+          | _ -> assert false)
+        ph_list
+    in
+    Format.printf "Found:\n";
+    let _ = List.map (Format.printf "%s\n") found in
+    ()
+  in
+  let ph =
+    TS.
+      [ add [ mul [ const 2; var "x" ]; var "y"; var "_slack_1" ] = const 1
+      ; add [ var "x"; mul [ const 2; var "y" ]; var "z"; var "_slack_2" ] = const 3
+      ; add [ var "y"; mul [ const 2; var "z" ]; var "_slack_3" ] = const 3
+      ]
+  in
+  test ph;
+  [%expect
+    {|
+   Found:
+   _slack_1
+   _slack_2
+   _slack_3
+   |}]
 ;;
 
 let divide_constaint_by_int (int : Z.t) =
