@@ -4300,6 +4300,33 @@ let introduce_slacks conjs =
   !slack_vars, new_conjs
 ;;
 
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph_list =
+    let slack, ph = introduce_slacks ph_list in
+    let _ = List.map (Format.printf "%a\n" Ast.pp) ph in
+    ()
+  in
+  let ph =
+    TS.
+      [ add [ mul [ const 2; var "x" ]; var "y" ] <= const 1
+      ; add [ var "x"; mul [ const 2; var "y" ]; var "z" ] <= const 3
+      ; add [ var "y"; mul [ const 2; var "z" ] ] <= const 3
+      ]
+  in
+  test ph;
+  [%expect
+    {|
+    (= (+ (+ y (* 2 x)) _slack_1) 1)
+    (= (+ (+ x z (* 2 y)) _slack_2) 3)
+    (=
+                                                                        (+
+                                                                        (+ y
+                                                                        (* 2 z))
+                                                                        _slack_3) 3)
+    |}]
+;;
+
 let get_mod_phi_of_system =
   let open Ast.Eia in
   let compute_mod eia =
@@ -4385,8 +4412,8 @@ let find_var_and_coeff varname =
       let tau_no_x = add [ l; mul [ const Z.minus_one; rest ] ] in
       Some (c, tau_no_x)
     | Some c, None when Z.equal c Z.zero ->
-      let rest = remove_var varname r in
-      let tau_no_x = add [ l; mul [ const Z.minus_one; rest ] ] in
+      let rest = remove_var varname l in
+      let tau_no_x = add [ rest; mul [ const Z.minus_one; r ] ] in
       Some (Z.neg c, tau_no_x)
     | _ -> None
     end
