@@ -4332,7 +4332,7 @@ let get_mod_phi_of_system =
   let open Ast.Eia in
   let compute_mod eia =
     match eia with
-    | Eq (Mod (_, d), Const c, I) when not (Z.equal c Z.zero) -> d
+    | Eq (Mod (_, d), Const c, I) when Z.equal c Z.zero -> d
     | _ -> Z.one
   in
   List.fold_left
@@ -4356,7 +4356,7 @@ let coeff_of_var varname term =
           Z.zero
           ts
       in
-      Some sum
+      if Z.equal sum Z.zero then None else Some sum
     | Mul [ Const c; Atom (Var (v, I)) ] when v = varname -> Some c
     | Mul [ Const c; t ] -> Option.map (Z.mul c) (aux varname t)
     | Mul [ Atom (Var (v, I)); Const c ] when v = varname -> Some c
@@ -4531,6 +4531,7 @@ let%expect_test _ =
 let eliminate_one_var conj varname subst =
   let open Ast in
   let open NondeterministicMonad in
+  let (module TS) = make_main_symantics Env.empty in
   let eqs =
     List.filter_map
       (function
@@ -4560,17 +4561,62 @@ let eliminate_one_var conj varname subst =
         loop subst slacks
       end
     in
+    let conjs_with_slacks =
+      List.map
+        (fun c ->
+           match c with
+           | Ast.Eia (Eq (l, r, I)) ->
+             Ast.eia (Eq (subst_term subst l, subst_term subst r, I))
+           | Ast.Eia (Leq (l, r)) ->
+             Ast.eia (Leq (subst_term subst l, subst_term subst r))
+           | other -> other)
+        conj
+    in
     let conj =
-      conj
+      conjs_with_slacks
       |> multiply_system_by_int (Z.to_int coeff)
       |> List.map (function
         | Eia (Eq (l, r, I)) ->
-          let term = substitute_vigorous_constraint varname coeff tau l in
-          Eia (Eq (term, r, I))
+          let term =
+            substitute_vigorous_constraint
+              varname
+              coeff
+              tau
+              TS.(add [ l; mul [ const (-1); r ] ])
+          in
+          TS.(Eia (Eq (term, const 0, I)))
+        | Eia (Leq (l, r)) ->
+          let term =
+            substitute_vigorous_constraint
+              varname
+              coeff
+              tau
+              TS.(add [ l; mul [ const (-1); r ] ])
+          in
+          TS.(Eia (Leq (term, const 0)))
         | _ -> assert false)
-      |> fun x -> divides coeff tau :: x
+      |> fun x -> divides coeff tau :: x |> List.map (apply_symantics (module TS))
     in
     return (conj, subst)
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let open NondeterministicMonad in
+  let test ph =
+    let varname = "x" in
+    let* conj, _ = eliminate_one_var ph varname Env.empty in
+    List.map (Format.printf "%a\n" Ast.pp) conj
+  in
+  let ph =
+    TS.
+      [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1
+      ; add [ var "x"; mul [ const 2; var "y" ]; var "z" ] = const 3
+      ; add [ var "y"; mul [ const 2; var "z" ] ] = const 3
+      ]
+  in
+  let _ = test ph in
+  ()
 ;;
 
 let subst_eia subst = function
