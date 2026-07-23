@@ -4270,16 +4270,17 @@ end
 
 let substitute_vigorous_constraint x coeff tau t =
   let open Ast.Eia in
+  let (module TS) = make_main_symantics Env.empty in
   let rec aux = function
     | Mul [ Const a; Atom (Var (v, I)) ] when v = x && Z.equal a coeff ->
-      mul [ const Z.minus_one; tau ]
+      TS.(mul [ const (-1); tau ])
     | Mul [ Atom (Var (v, I)); Const a ] when v = x && Z.equal a coeff ->
-      mul [ const Z.minus_one; tau ]
-    | Add ts -> add (List.map aux ts)
-    | Mul ts -> mul (List.map aux ts)
-    | Mod (t, d) -> mod_ (aux t) d
-    | Pow (b, e) -> pow (aux b) (aux e)
-    | _ -> t
+      TS.(mul [ const (-1); tau ])
+    | Add ts -> TS.(add (List.map aux ts))
+    | Mul ts -> TS.(mul (List.map aux ts))
+    | Mod (t, d) -> TS.(mod_ (aux t) d)
+    (* | _ -> failwith "Failed to substitute" *)
+    | x -> x
   in
   aux t
 ;;
@@ -4331,7 +4332,7 @@ let get_mod_phi_of_system =
   let open Ast.Eia in
   let compute_mod eia =
     match eia with
-    | Eq (Mod (_, d), Const c, I) when Z.equal c Z.zero -> d
+    | Eq (Mod (_, d), Const c, I) when not (Z.equal c Z.zero) -> d
     | _ -> Z.one
   in
   List.fold_left
@@ -4486,50 +4487,23 @@ let%expect_test _ =
    |}]
 ;;
 
-let divide_constaint_by_int (int : Z.t) =
-  let open Ast.Eia in
-  let rec f int = function
-    | Const c -> const (Z.div c int)
-    | Mul xs ->
-      (* This might be bad, need to test it *)
-      let rec f = function
-        | [] -> failwith "Expected element to be removed"
-        | h :: tl when h = Const int -> tl
-        | h :: tl -> h :: f tl
-      in
-      mul (f xs)
-    | Add xs -> add (List.map (f int) xs)
-    | Mod (term, term') -> mod_ (f int term) (Z.div term' int)
-    | x -> x
-  in
-  function
-  | Ast.Eia (Ast.Eia.Eq (l, r, I)) -> Ast.Eia (Ast.Eia.Eq (f int l, f int r, I))
-  | _ -> failwith "Expected equation"
-;;
-
 let multiply_system_by_int int system =
   let (module TS) = make_main_symantics Env.empty in
-  List.map
-    (function
-      | Ast.Eia (Eq (l, r, I)) ->
-        TS.(Ast.Eia (Eq (mul [ const int; l ], mul [ const int; r ], I)))
-      | Ast.Eia (Leq (l, r)) ->
-        TS.(Ast.Eia (Leq (mul [ const int; l ], mul [ const int; r ])))
-      | x -> x)
-    system
+  if int = 1
+  then system
+  else
+    List.map
+      (function
+        | Ast.Eia (Eq (l, r, I)) ->
+          TS.(Ast.Eia (Eq (mul [ const int; l ], mul [ const int; r ], I)))
+        | Ast.Eia (Leq (l, r)) when int > 0 ->
+          TS.(Ast.Eia (Leq (mul [ const int; l ], mul [ const int; r ])))
+        | Ast.Eia (Leq (l, r)) ->
+          (* flipped *)
+          TS.(Ast.Eia (Leq (mul [ const int; r ], mul [ const int; l ])))
+        | x -> x)
+      system
 ;;
-
-(* List.map (function *)
-(*   | Ast.Eia (Eq (Add xs, r, I)) -> *)
-(*     let xs = *)
-(*       List.map *)
-(*         (function *)
-(*           | Ast.Eia.Mul ys -> Ast.Eia.Mul (Const int :: ys) *)
-(*           | _ -> failwith "Expected Mul") *)
-(*         xs *)
-(*     in *)
-(*     Ast.Eia (Eq (Add xs, r, I)) *)
-(*   | _ -> failwith "Expected linear system") *)
 
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
@@ -4548,10 +4522,13 @@ let%expect_test _ =
   test 5 ph;
   [%expect
     {|
+    (= (+ (* y 5) (* (* 2 x) 5)) 5)
+    (= (+ (* x 5) (* z 5) (* (* 2 y) 5)) 15)
+    (= (+ (* y 5) (* (* 2 z) 5)) 15)
    |}]
 ;;
 
-let eliminate_one_var conj varname subst mod_phi p l =
+let eliminate_one_var conj varname subst =
   let open Ast in
   let open NondeterministicMonad in
   let eqs =
@@ -4562,18 +4539,26 @@ let eliminate_one_var conj varname subst mod_phi p l =
       conj
   in
   if eqs = []
-  then return (conj, p, l, Env.empty)
+  then return (conj, subst)
   else
     let* coeff, tau = eqs in
     let slacks = slack_vars_in_term subst tau in
+    let mod_phi = get_mod_phi_of_system conj in
     let max_value = Z.((Z.abs coeff * mod_phi) - Z.one) in
+    let possible_vals = List.init (Z.to_int max_value + 1) Z.of_int in
     let* subst =
       if slacks = []
       then return subst
-      else
-        let* slack = slacks in
-        let* v = List.init (Z.to_int max_value + 1) Z.of_int in
-        Env.extend_int_exn subst slack (Ast.Eia.const v) |> return
+      else begin
+        let rec loop acc = function
+          | [] -> return acc
+          | x :: xs ->
+            let* v = possible_vals in
+            let acc = Env.extend_int_exn acc x (Ast.Eia.const v) in
+            loop acc xs
+        in
+        loop subst slacks
+      end
     in
     let conj =
       conj
@@ -4583,10 +4568,9 @@ let eliminate_one_var conj varname subst mod_phi p l =
           let term = substitute_vigorous_constraint varname coeff tau l in
           Eia (Eq (term, r, I))
         | _ -> assert false)
-      |> List.map (divide_constaint_by_int p)
       |> fun x -> divides coeff tau :: x
     in
-    return (conj, l, coeff, subst)
+    return (conj, subst)
 ;;
 
 let subst_eia subst = function
@@ -4603,7 +4587,6 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
     begin match ast with
     | Land conj_list ->
       let slack, conj_list = introduce_slacks conj_list in
-      let mod_phi = get_mod_phi_of_system conj_list in
       let elim_vars =
         List.map
           (function
@@ -4611,17 +4594,17 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
             | _ -> failwith "Expected only integer variables")
           elim_vars
       in
-      let rec eliminate_all subst conjs p l = function
+      let rec eliminate_all subst conjs = function
         | [] -> return (conjs, subst)
         | h :: tl ->
           (* let branches = eliminate_one_var conjs h subst mod_phi p l in *)
           (* List.concat_map *)
           (*   (fun (xs, p, l, subst) -> eliminate_all subst xs p l tl) *)
           (*   branches *)
-          let* xs, p, l, subst = eliminate_one_var conjs h subst mod_phi p l in
-          eliminate_all subst xs p l tl
+          let* xs, subst = eliminate_one_var conjs h subst in
+          eliminate_all subst xs tl
       in
-      let* branch, subst = eliminate_all Env.empty conj_list Z.one Z.one elim_vars in
+      let* branch, subst = eliminate_all Env.empty conj_list elim_vars in
       let branch =
         List.map
           (function
@@ -4646,6 +4629,7 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
           branch
       in
       let branch = List.map (subst_eia subst) branch in
+      let mod_phi = get_mod_phi_of_system branch in
       let max_value = Z.(mod_phi - Z.one) in
       let rec loop phi = function
         | [] -> phi
