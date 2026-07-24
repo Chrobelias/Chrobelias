@@ -4561,19 +4561,8 @@ let eliminate_one_var conj varname subst =
         loop subst slacks
       end
     in
-    let conjs_with_slacks =
-      List.map
-        (fun c ->
-           match c with
-           | Ast.Eia (Eq (l, r, I)) ->
-             Ast.eia (Eq (subst_term subst l, subst_term subst r, I))
-           | Ast.Eia (Leq (l, r)) ->
-             Ast.eia (Leq (subst_term subst l, subst_term subst r))
-           | other -> other)
-        conj
-    in
     let conj =
-      conjs_with_slacks
+      conj
       |> multiply_system_by_int (Z.to_int coeff)
       |> List.map (function
         | Eia (Eq (l, r, I)) ->
@@ -4597,6 +4586,17 @@ let eliminate_one_var conj varname subst =
         | _ -> assert false)
       |> fun x -> divides coeff tau :: x |> List.map (apply_symantics (module TS))
     in
+    (* let conj = *)
+    (*   List.map *)
+    (*     (fun c -> *)
+    (*        match c with *)
+    (*        | Ast.Eia (Eq (l, r, I)) -> *)
+    (*          Ast.eia (Eq (subst_term subst l, subst_term subst r, I)) *)
+    (*        | Ast.Eia (Leq (l, r)) -> *)
+    (*          Ast.eia (Leq (subst_term subst l, subst_term subst r)) *)
+    (*        | other -> other) *)
+    (*     conj *)
+    (* in *)
     return (conj, subst)
 ;;
 
@@ -4619,10 +4619,12 @@ let%expect_test _ =
   ()
 ;;
 
-let subst_eia subst = function
-  | Ast.Eia (Ast.Eia.Eq (l, r, I)) -> Ast.Eia (Ast.Eia.Eq (subst_term subst l, r, I))
-  | Ast.Eia (Ast.Eia.Leq (l, r)) -> Ast.Eia (Ast.Eia.Leq (subst_term subst l, r))
-  | _ -> assert false
+let subst_eia subst =
+  let subst_term eta = subst_term subst eta in
+  function
+  | Ast.Eia (Ast.Eia.Eq (l, r, I)) -> Ast.Eia (Ast.Eia.Eq (subst_term l, subst_term r, I))
+  | Ast.Eia (Ast.Eia.Leq (l, r)) -> Ast.Eia (Ast.Eia.Leq (subst_term l, subst_term r))
+  | ast -> ast
 ;;
 
 let eliminate_existence_quantifier_branches (ast : Ast.t) =
@@ -4640,47 +4642,46 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
             | _ -> failwith "Expected only integer variables")
           elim_vars
       in
-      let rec eliminate_all subst conjs = function
-        | [] -> return (conjs, subst)
+      let rec eliminate_all subst conj = function
+        | [] -> return (conj, subst)
         | h :: tl ->
-          (* let branches = eliminate_one_var conjs h subst mod_phi p l in *)
-          (* List.concat_map *)
-          (*   (fun (xs, p, l, subst) -> eliminate_all subst xs p l tl) *)
-          (*   branches *)
-          let* xs, subst = eliminate_one_var conjs h subst in
-          eliminate_all subst xs tl
+          let* conj, subst = eliminate_one_var conj h subst in
+          eliminate_all subst conj tl
       in
       let* branch, subst = eliminate_all Env.empty conj_list elim_vars in
       let branch =
         List.map
           (function
-            | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
+            | Ast.Eia (Ast.Eia.Eq (l, r, I)) as t ->
               (* assert (r = Ast.Eia.Const Z.zero); *)
-              let not_assigned =
-                slack_vars_in_term subst l
+              (* let not_assigned = *)
+              begin
+                slack_vars_in_term subst r @ slack_vars_in_term subst l
                 |> List.find_opt (fun x -> Env.lookup_int x subst = None)
                 |> function
-                | Some c -> c
-                | None -> failwith "Can't find slack_vars in term"
-              in
-              let env =
-                Env.extend_int_exn Env.empty not_assigned (Ast.Eia.Const Z.zero)
-              in
-              begin match coeff_of_var not_assigned l with
-              | Some c when c > Z.zero -> Ast.Eia (Leq (subst_term env l, r))
-              | Some c when c <= Z.zero -> Ast.Eia (Leq (r, subst_term env l))
-              | _ -> failwith "Failed to find coefficent of a variable"
+                | Some varname ->
+                  let env = Env.extend_int_exn Env.empty varname (Ast.Eia.Const Z.zero) in
+                  begin match coeff_of_var varname l, coeff_of_var varname r with
+                  | Some c, None when c > Z.zero -> Ast.Eia (Leq (subst_term env l, r))
+                  | Some c, None -> Ast.Eia (Leq (r, subst_term env l))
+                  | None, Some c when c > Z.zero -> Ast.Eia (Leq (l, subst_term env r))
+                  | None, Some c -> Ast.Eia (Leq (subst_term env r, l))
+                  | None, None -> assert false
+                  | Some _, Some _ -> assert false
+                  end
+                | None -> t
               end
-            | eia -> eia)
+            | t -> t)
           branch
       in
       let branch = List.map (subst_eia subst) branch in
       let mod_phi = get_mod_phi_of_system branch in
       let max_value = Z.(mod_phi - Z.one) in
+      let possible_vals = List.init (Z.to_int max_value + 1) Z.of_int in
       let rec loop phi = function
         | [] -> phi
         | h :: tl ->
-          let* v = List.init (Z.to_int max_value + 1) Z.of_int in
+          let* v = possible_vals in
           let env = Env.extend_int_exn Env.empty h (Ast.Eia.Const v) in
           let phi = List.map (subst_eia env) phi in
           loop phi tl
