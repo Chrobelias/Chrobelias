@@ -4369,6 +4369,17 @@ let coeff_of_var varname term =
   | x -> x
 ;;
 
+let var_exists varname conj =
+  List.exists
+    (function
+      | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
+        coeff_of_var varname l <> None || coeff_of_var varname r <> None
+      | Ast.Eia (Ast.Eia.Leq (l, r)) ->
+        coeff_of_var varname l <> None || coeff_of_var varname r <> None
+      | _ -> false)
+    conj
+;;
+
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ph_list varname =
@@ -4678,15 +4689,16 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
       let mod_phi = get_mod_phi_of_system branch in
       let max_value = Z.(mod_phi - Z.one) in
       let possible_vals = List.init (Z.to_int max_value + 1) Z.of_int in
-      let rec loop phi = function
-        | [] -> phi
-        | h :: tl ->
+      let rec loop env phi = function
+        | [] -> return env
+        | h :: tl when var_exists h phi ->
           let* v = possible_vals in
-          let env = Env.extend_int_exn Env.empty h (Ast.Eia.Const v) in
-          let phi = List.map (subst_eia env) phi in
-          loop phi tl
+          let env = Env.extend_int_exn env h (Ast.Eia.Const v) in
+          loop env phi tl
+        | h :: tl -> loop env phi tl
       in
-      let branch = loop branch elim_vars in
+      let* env = loop Env.empty branch elim_vars in
+      let branch = List.map (subst_eia env) branch in
       return branch
     | _ -> failwith "Expected a conjuction"
     end
