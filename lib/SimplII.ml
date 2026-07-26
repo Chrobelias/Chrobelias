@@ -4609,17 +4609,6 @@ let eliminate_one_var conj varname subst =
         | _ -> assert false)
       |> fun x -> divides coeff tau :: x |> List.map (apply_symantics (module TS))
     in
-    (* let conj = *)
-    (*   List.map *)
-    (*     (fun c -> *)
-    (*        match c with *)
-    (*        | Ast.Eia (Eq (l, r, I)) -> *)
-    (*          Ast.eia (Eq (subst_term subst l, subst_term subst r, I)) *)
-    (*        | Ast.Eia (Leq (l, r)) -> *)
-    (*          Ast.eia (Leq (subst_term subst l, subst_term subst r)) *)
-    (*        | other -> other) *)
-    (*     conj *)
-    (* in *)
     return (conj, subst)
 ;;
 
