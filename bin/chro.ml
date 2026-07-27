@@ -932,6 +932,9 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
     | Unknown _ -> f ()
   in
   try
+    let ast =
+      if config.simpl_quantifier_elim then Lib.SimplII.simplify_quantifiers ast else ast
+    in
     if config.logic = `Str || config.logic = `StrBv
     then (
       let unsat_reason = ref "presimpl str" in
