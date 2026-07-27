@@ -4606,7 +4606,7 @@ let eliminate_one_var conj varname subst =
               TS.(add [ l; mul [ const (-1); r ] ])
           in
           TS.(Eia (Leq (term, const 0)))
-        | _ -> assert false)
+        | x -> x)
       |> fun x -> divides coeff tau :: x |> List.map (apply_symantics (module TS))
     in
     return (conj, subst)
