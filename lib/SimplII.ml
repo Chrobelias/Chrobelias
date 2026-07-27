@@ -3172,6 +3172,7 @@ let unfold_neq ast =
               (regexes : (string, Nfa.String.t) Map.t)
               (check_sat : Ast.t -> [ `Sat of unit -> Model.t | `Unknown ])
           =
+          Debug.trace "post" "Running post check for %s and %s\n" lhs rhs;
           let lhs_re =
             Map.find regexes lhs
             |> Option.map (Nfa.String.intersect (Nfa.String.of_regex Regex.nondigit))
@@ -3191,6 +3192,7 @@ let unfold_neq ast =
             in
             let path_to_str a = a |> List.to_seq |> String.of_seq in
             let length_check length =
+              Debug.trace "post" "Trying length %d\n" length;
               let return (a, b) = Some (List.take length a, List.take length b) in
               if length > 0
               then (
