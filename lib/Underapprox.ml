@@ -256,6 +256,7 @@ let check bound ast =
         then s_bound
         else Config.config.under_approx)
     in
+    let module Map = Base.Map.Poly in
     trace_log "Bound for underapproximation: %d\n" bound;
     trace_log "Interesting: %s\n" (String.concat " " interestring_vars);
     trace_log
@@ -268,8 +269,8 @@ let check bound ast =
         (fun acc name ->
            let* v = choice1 in
            let* acc = acc in
-           Seq.return (Base.Map.Poly.add_exn acc ~key:name ~data:v))
-        (Seq.return Base.Map.Poly.empty)
+           Seq.return (Map.add_exn acc ~key:name ~data:v))
+        (Seq.return Map.empty)
         interestring_vars
     in
     let exception Early of env in
@@ -277,11 +278,19 @@ let check bound ast =
     try
       Seq.iteri
         (fun i env ->
-           let ((module S : SYM with type repr = Smtml.Expr.t) as sym) =
+           (*let ((module S : SYM with type repr = Smtml.Expr.t) as sym) =
              make_sym env (fun s -> vars := Base.Set.add !vars s) bound
            in
-           let ph = apply_symantics sym ast in
-           (* trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph; *)
+           let ph = apply_symantics sym ast in*)
+           let open FT_SIG.To_smtml_symantics in
+           let ph =
+             Map.fold
+               ~init:[ apply_symantics (make_sym Map.empty Fun.id Fun.id) ast ]
+               ~f:(fun ~key ~data acc -> eqz (var key) (constz (Z.of_int data)) :: acc)
+               env
+             |> land_
+           in
+           trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
            let module Z3 = Smtml.Z3_mappings.Solver in
            (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
            let solver =
@@ -290,7 +299,7 @@ let check bound ast =
                ()
            in
            Z3.reset solver;
-           let __ _ = trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
+           let _ = trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
            match Z3.check solver ~assumptions:[ ph ] with
            | `Sat when omit_z3_model -> raise (Early env)
            | `Sat ->
@@ -302,8 +311,8 @@ let check bound ast =
                     (fun k v acc ->
                        let _ : Smtml.Symbol.t = k in
                        match k.name, v with
-                       | Smtml.Symbol.Simple s, Smtml.Value.Int n ->
-                         Base.Map.Poly.add_exn acc ~key:s ~data:n
+                       | Smtml.Symbol.Simple s, Smtml.Value.Int n
+                         when Bool.not (Map.mem acc s) -> Map.add_exn acc ~key:s ~data:n
                        | _ -> acc)
                     (Smtml.Z3_mappings.values_of_model m)
                     env
