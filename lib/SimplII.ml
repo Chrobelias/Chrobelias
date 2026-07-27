@@ -3183,13 +3183,7 @@ let unfold_neq ast =
             |> Option.map (Nfa.String.intersect (Nfa.String.of_regex Regex.nondigit))
             |> Option.value ~default:(NfaCollection.LsbString.n ())
           in
-          let find_ineq_from_lengths model =
-            let get_len v =
-              match Map.find model v with
-              | Some (`Str v) -> String.length v
-              | Some (`Int v) -> assert false
-              | None -> 0
-            in
+          let find_ineq_from_lengths len =
             let path_to_str a = a |> List.to_seq |> String.of_seq in
             let length_check length =
               Debug.trace "post" "Trying length %d\n" length;
@@ -3217,57 +3211,73 @@ let unfold_neq ast =
                 | Some (a, _), Some (b, _) -> return (path_to_str a, path_to_str b)
                 | _, _ -> None)
             in
-            length_check (max (get_len lhs) (get_len rhs))
-            |> Option.map (fun (a, b) -> path_to_str a, path_to_str b)
+            length_check len |> Option.map (fun (a, b) -> path_to_str a, path_to_str b)
           in
-          match find_ineq_from_lengths model with
-          | Some (a, b) -> `Sat (fun () -> Map.of_alist_exn [ lhs, `Str a; rhs, `Str b ])
-          | None -> begin
-            let model_ast =
-              Map.fold
-                ~f:(fun ~key ~data acc ->
-                  match data with
-                  | `Int d ->
-                    (*Ast.Eia.eq
-                      (Ast.Eia.atom (Ast.var key Ast.I))
-                (Ast.Eia.const d)
-                Ast.I
-                    :: *)
-                    acc
-                  | `Str s ->
-                    Ast.Eia.eq
-                      (strleni key)
-                      (Ast.Eia.const (String.length s |> Z.of_int))
-                      Ast.I
-                    :: acc)
-                ~init:[]
-                model
-              |> List.map Ast.eia
-              |> Ast.land_
+          begin
+            let get_len model v =
+              match Map.find model v with
+              | Some (`Str v) -> String.length v
+              | Some (`Int v) -> assert false
+              | None -> 0
             in
-            let ast =
-              Ast.land_
-                [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
-                ; Ast.eia (Ast.Eia.eq (stoi lhs) (stoi rhs) Ast.I)
-                ; Ast.eia (Ast.Eia.eq (stoi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
-                ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
-                ; Ast.lnot model_ast
-                ; orig_ast
-                ]
-              |> Ast.to_dnf
+            let rec aux models =
+              let ast =
+                Ast.land_
+                  ([ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
+                   ; Ast.eia (Ast.Eia.eq (stoi lhs) (stoi rhs) Ast.I)
+                   ; Ast.eia
+                       (Ast.Eia.eq (stoi lhs) (Id_symantics.constz Z.minus_one) Ast.I)
+                   ; Ast.eia (Ast.Eia.leq (Ast.Eia.const Z.one) (strleni lhs))
+                   ; orig_ast
+                   ]
+                   @ List.map Ast.lnot models)
+              in
+              assert (Ast.is_conjunct ast);
+              match check_sat ast with
+              | `Sat get_model ->
+                let model = get_model () in
+                let len = max (get_len model lhs) (get_len model rhs) in
+                begin match find_ineq_from_lengths len with
+                | Some (a, b) ->
+                  `Sat (fun () -> Map.of_alist_exn [ lhs, `Str a; rhs, `Str b ])
+                | None when List.length models > 10 -> `Unknown
+                | None ->
+                  aux
+                    (Ast.eia (Ast.Eia.eq (strleni lhs) (Id_symantics.const len) Ast.I)
+                     :: models)
+                end
+              | _ -> `Unknown
+              (*with
+              | Some (a, b) ->
+              | None when List.length models > 10 -> `Unknown
+              | None ->
+                (*let model_ast =
+                  Map.fold
+                    ~f:(fun ~key ~data acc ->
+                      match data with
+                      | `Int d ->
+                        (*Ast.Eia.eq
+                          (Ast.Eia.atom (Ast.var key Ast.I))
+                    (Ast.Eia.const d)
+                    Ast.I
+                        :: *)
+                        acc
+                      | `Str s ->
+                        Ast.Eia.eq
+                          (strleni key)
+                          (Ast.Eia.const (String.length s |> Z.of_int))
+                          Ast.I
+                        :: acc)
+                    ~init:[]
+                    model
+                  |> List.map Ast.eia
+                  |> Ast.land_
+                in
+                aux (model_ast :: models)*)
+                aux ()*)
             in
-            match
-              List.find_map
-                (fun ast ->
-                   match check_sat ast with
-                   | `Sat get_model -> find_ineq_from_lengths (get_model ())
-                   | _ -> None)
-                ast
-            with
-            | Some (a, b) ->
-              `Sat (fun () -> Map.of_alist_exn [ lhs, `Str a; rhs, `Str b ])
-            | None -> `Unknown
-            end
+            aux []
+          end
         in
         Ast.land_
           [ Ast.eia (Ast.Eia.eq (strleni lhs) (strleni rhs) Ast.I)
