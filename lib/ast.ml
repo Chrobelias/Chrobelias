@@ -559,6 +559,8 @@ module Eia = struct
   ;;
 
   let pp fmt = function
+    | Eq (Mod (term, term'), Const z, I) when Z.equal z Z.zero ->
+      Format.fprintf fmt "@[(divides %a %a)@]" Z.pp_print term' pp_term term
     | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
     | Neq (term, term', _) ->
       Format.fprintf fmt "@[(distinct %a %a)@]" pp_term term pp_term term'
