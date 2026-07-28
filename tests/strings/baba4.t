@@ -8,7 +8,7 @@ $ cat baba4.smt2
      (define-fun b () String
       "20")
   )
-$ export CHRO_DEBUG=1
+$ export CHRO_DEBUG=simpl
   $ Chro ./baba4.smt2
   sat (presimpl str)
   (

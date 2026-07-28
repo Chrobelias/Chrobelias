@@ -5,7 +5,23 @@
   > (check-sat)
   > EOF
 
-  $ CHRO_DEBUG=1 Chro --dpresimpl ./1.smt2
+  $ CHRO_DEBUG=simpl Chro --dpresimpl ./1.smt2
+  [+simpl]
+    iter(1)= (= (+ x (* (- 1) (str.to.int "12345"))) 0)
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        x -> 12345;
+        
+  [+simpl]
+    iter(2)= (= (+ (- 12345) x) 0)
+  [+simpl]
+    iter(3)= True
+  [+simpl]
+    fixed-point
+  
   sat (presimpl str)
 
   $ cat > 2.smt2 <<-EOF

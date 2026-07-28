@@ -6,7 +6,7 @@
   > (check-sat)
   > (get-model)
   > EOF
-  $ CHRO_DEBUG=1 Chro -no-over -bound 0 --dsimpl --stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=chro:simpl Chro -no-over -bound 0 --dsimpl --stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
   Base now is 2
   
   Basic simplifications:
