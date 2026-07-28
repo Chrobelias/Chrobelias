@@ -457,7 +457,11 @@ module Eia = struct
   let eq (type a) : a term -> a term -> a kind -> t =
     fun lhs rhs kind ->
     match kind with
-    | I -> eq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero) I
+    | I ->
+      begin match lhs, rhs with
+      | Pow (c, lhs), Pow (d, rhs) when c = d -> eq lhs rhs kind
+      | lhs, rhs -> eq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero) I
+      end
     | S -> eq lhs rhs S
   ;;
 
@@ -582,6 +586,12 @@ module Eia = struct
     let exception String_obj in
     try fold2 (fun acc _ -> acc) (fun acc _ -> raise String_obj) false ast with
     | String_obj -> true
+  ;;
+
+  let rec is_simple = function
+    | Const _ | Atom _ -> true
+    | (Add [ x ] | Mul [ x ]) when is_simple x -> true
+    | _ -> false
   ;;
 end
 

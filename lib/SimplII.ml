@@ -1963,7 +1963,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
         if
           Ast.get_vars (Ast.Eia.eq rhs (Ast.Eia.Const Z.zero) Ast.I) |> List.mem vn
           || Ast.in_chrob_len vn orig_ast
-          || List.mem vn (Ast.get_exp_vars orig_ast)
+          || (List.mem vn (Ast.get_exp_vars orig_ast) && not (Ast.Eia.is_simple rhs))
           || not (var_can_be_prop vn)
         then noprop
         else returni vn rhs
@@ -1993,7 +1993,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
         if
           Ast.get_vars (Ast.Eia.eq rhs (Ast.Eia.Const Z.zero) Ast.I) |> List.mem vn
           || Ast.in_chrob_len vn orig_ast
-          || List.mem vn (Ast.get_exp_vars orig_ast)
+          || (List.mem vn (Ast.get_exp_vars orig_ast) && not (Ast.Eia.is_simple rhs))
         then noprop
         else returni vn rhs
       | ( Ast.Eia.Add [ Ast.Eia.Const c; Ast.Eia.Len (Ast.Eia.Atom (Var (vn', _))) ]
