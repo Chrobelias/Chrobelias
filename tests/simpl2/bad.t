@@ -52,8 +52,29 @@ $ export OCAMLRUNPARAM='b=0'
   > ))
   > (check-sat)
   > EOF
-$ export CHRO_DEBUG=1
+  $ export CHRO_DEBUG=simpl
   $ Chro -bound 2 --dsimpl UnderDoesntHelp1.smt2 | sed 's/[[:space:]]*$//'
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (<= (* z y) 0)
+             (<= (+ 1 (exp 2 x)) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    iter(2)= (and
+             (<= (+ 1 (exp 2 x)) 0)
+             (<= (* y z) 0))
+  [+simpl]
+    fixed-point
+  
+  [+simpl]
+    Into Z3 goes: (bool.and (int.le_s (int.add 1 (int.pow 2 x)) 0)
+                 (int.le_s (int.mul y z) 0))
+  
   unsat (nia)
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
@@ -67,6 +88,23 @@ The single exponent is not bad
   > (check-sat)
   > EOF
   $ Chro -bound 2 --dsimpl TODO3.smt2 | sed 's/[[:space:]]*$//'
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (<= (+ (* (- 1) it383) (exp 2 it57)) 0)
+             (<= (+ 1 (* (- 1) it57)) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    iter(2)= (and
+             (<= (+ 1 (* (- 1) it57)) 0)
+             (<= (+ (* (- 1) it383) (exp 2 it57)) 0))
+  [+simpl]
+    fixed-point
+  
   sat (under int)
 
 

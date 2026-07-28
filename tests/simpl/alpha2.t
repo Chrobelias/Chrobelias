@@ -11,7 +11,7 @@
   > (check-sat)
   > EOF
   $ export OCAMLRUNPARAM='b=0'
-$ export CHRO_DEBUG=1
+$ export CHRO_DEBUG=chro
 
   $ timeout 2 Chro -bound -1 -no-over --dsimpl --stop-after simpl testA2.smt2 | sed 's/[[:space:]]*$//'
   (assert (<= (+ P (* (- 1) R) )  -1) )

@@ -1,6 +1,6 @@
   $ cp koat748_mini.smt2 input.smt2
 
-$ export CHRO_DEBUG=1
+$ export CHRO_DEBUG=simpl
   $ Chro --dsimpl --stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
 
 

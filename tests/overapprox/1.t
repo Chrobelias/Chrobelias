@@ -25,18 +25,21 @@ $ export CHRO_DEBUG=1
   (assert ((re.* (re.union (str.to.re "0") (re.union (str.to.re "2") (re.union (str.to.re "1") (str.to.re "7")))))))
   
 
-$ cat > test.smt2 <<-EOF
-> (set-logic ALL)
-> (declare-const a String)
-> (declare-fun x1 () Int)
-> (assert (str.in_re a (str.to_re "ab")) )
-> (assert (<= x1 x1))
-> (check-sat)
-> EOF
+  $ cat > test.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-const a String)
+  > (declare-fun x1 () Int)
+  > (assert (str.in_re a (str.to_re "ab")) )
+  > (assert (<= x1 x1))
+  > (check-sat)
+  > (get-model)
+  > EOF
 $ export CHRO_DEBUG=1
-$ Chro -over-approx -dsimpl -stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-+  Fatal error: exception Failure("Expression (str.in_re a (str.to_re \"ab\")) can't be handled")
-+  Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
-+  Called from Dune__exe__Chro.exec in file "bin/chro.ml", line 82, characters 16-37
-+  Called from Stdlib__List.fold_left in file "list.ml", line 123, characters 24-34
-+  Called from Dune__exe__Chro in file "bin/chro.ml", line 87, characters 10-61
+  $ Chro --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
+  sat (presimpl str)
+  (
+     (define-fun a () String
+      "ab")
+     (define-fun x1 () Int
+      0)
+  )
