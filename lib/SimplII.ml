@@ -4279,7 +4279,6 @@ let substitute_vigorous_constraint x coeff tau t =
     | Add ts -> TS.(add (List.map aux ts))
     | Mul ts -> TS.(mul (List.map aux ts))
     | Mod (t, d) -> TS.(mod_ (aux t) d)
-    (* | _ -> failwith "Failed to substitute" *)
     | x -> x
   in
   aux t
@@ -4378,6 +4377,30 @@ let var_exists varname conj =
         coeff_of_var varname l <> None || coeff_of_var varname r <> None
       | _ -> false)
     conj
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph_list varname =
+    if var_exists varname ph_list
+    then Format.printf "Found\n"
+    else Format.printf "Not found\n"
+  in
+  let ph =
+    TS.
+      [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1
+      ; add [ var "x"; mul [ const 2; var "y" ]; var "z" ] = const 3
+      ; add [ var "y"; mul [ const 2; var "z" ] ] = const 3
+      ]
+  in
+  test ph "y";
+  [%expect {| Found |}];
+  test ph "x";
+  [%expect {| Found |}];
+  test ph "z";
+  [%expect {| Found |}];
+  test ph "q";
+  [%expect {| Not found |}]
 ;;
 
 let%expect_test _ =
@@ -4510,21 +4533,23 @@ let%expect_test _ =
 ;;
 
 let multiply_system_by_int int system =
+  let open Ast.Eia in
   let (module TS) = make_main_symantics Env.empty in
-  if int = 1
+  if int = Z.one
   then system
   else
     List.map
       (function
         | Ast.Eia (Eq (l, r, I)) ->
-          TS.(Ast.Eia (Eq (mul [ const int; l ], mul [ const int; r ], I)))
-        | Ast.Eia (Leq (l, r)) when int > 0 ->
-          TS.(Ast.Eia (Leq (mul [ const int; l ], mul [ const int; r ])))
+          Ast.Eia (Eq (mul [ const int; l ], mul [ const int; r ], I))
+        | Ast.Eia (Leq (l, r)) when Z.gt int Z.one ->
+          Ast.Eia (Leq (mul [ const int; l ], mul [ const int; r ]))
         | Ast.Eia (Leq (l, r)) ->
           (* flipped *)
-          TS.(Ast.Eia (Leq (mul [ const int; r ], mul [ const int; l ])))
+          Ast.Eia (Leq (mul [ const int; r ], mul [ const int; l ]))
         | x -> x)
       system
+    |> List.map (apply_symantics (module TS))
 ;;
 
 let%expect_test _ =
@@ -4541,7 +4566,7 @@ let%expect_test _ =
       ; add [ var "y"; mul [ const 2; var "z" ] ] = const 3
       ]
   in
-  test 5 ph;
+  test (Z.of_int 5) ph;
   [%expect
     {|
     (= (+ (* y 5) (* (* 2 x) 5)) 5)
@@ -4551,7 +4576,26 @@ let%expect_test _ =
     |}]
 ;;
 
-let eliminate_one_var conj varname subst =
+let divide_constraint_by_p p (ast : Ast.t) =
+  let rec aux p = function
+    | Ast.Eia.Mul [ t; Ast.Eia.Const c ] | Ast.Eia.Mul [ Ast.Eia.Const c; t ] ->
+      if Z.(c mod p = zero)
+      then Ast.Eia.Mul [ Ast.Eia.Const Z.(c / p); t ]
+      else failwith "Coefficient not divisible by p"
+    | Ast.Eia.Add terms -> Ast.Eia.Add (List.map (aux p) terms)
+    | Ast.Eia.Const c ->
+      if Z.(c mod p = zero)
+      then Ast.Eia.Const Z.(c / p)
+      else failwith "Constant not divisible by p"
+    | t -> t
+  in
+  match ast with
+  | Ast.Eia (Ast.Eia.Eq (l, r, I)) -> Ast.Eia (Ast.Eia.Eq (aux p l, aux p r, I))
+  | Ast.Eia (Ast.Eia.Leq (l, r)) -> Ast.Eia (Ast.Eia.Leq (aux p l, aux p r))
+  | _ -> ast
+;;
+
+let eliminate_one_var conj varname subst p l =
   let open Ast in
   let open NondeterministicMonad in
   let (module TS) = make_main_symantics Env.empty in
@@ -4563,13 +4607,14 @@ let eliminate_one_var conj varname subst =
       conj
   in
   if eqs = []
-  then return (conj, subst)
+  then return (conj, subst, p, l)
   else
     let* coeff, tau = eqs in
+    let p = l in
+    let l = coeff in
     let slacks = slack_vars_in_term subst tau in
     let mod_phi = get_mod_phi_of_system conj in
-    let max_value = Z.((Z.abs coeff * mod_phi) - Z.one) in
-    let possible_vals = List.init (Z.to_int max_value + 1) Z.of_int in
+    let possible_vals = List.init (Z.to_int Z.(Z.abs coeff * mod_phi)) Z.of_int in
     let* subst =
       if slacks = []
       then return subst
@@ -4586,7 +4631,7 @@ let eliminate_one_var conj varname subst =
     in
     let conj =
       conj
-      |> multiply_system_by_int (Z.to_int coeff)
+      |> multiply_system_by_int coeff
       |> List.map (function
         | Eia (Eq (l, r, I)) ->
           let term =
@@ -4607,9 +4652,10 @@ let eliminate_one_var conj varname subst =
           in
           TS.(Eia (Leq (term, const 0)))
         | x -> x)
+      |> List.map (divide_constraint_by_p p)
       |> fun x -> divides coeff tau :: x |> List.map (apply_symantics (module TS))
     in
-    return (conj, subst)
+    return (conj, subst, p, l)
 ;;
 
 let%expect_test _ =
@@ -4617,7 +4663,7 @@ let%expect_test _ =
   let open NondeterministicMonad in
   let test ph =
     let varname = "x" in
-    let* conj, _ = eliminate_one_var ph varname Env.empty in
+    let* conj, _, _, _ = eliminate_one_var ph varname Env.empty Z.one Z.one in
     List.map (Format.printf "%a\n" Ast.pp) conj
   in
   let ph =
@@ -4668,42 +4714,38 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
             | _ -> failwith "Expected only integer variables")
           elim_vars
       in
-      let rec eliminate_all subst conj = function
+      let rec eliminate_all subst conj p l = function
         | [] -> return (conj, subst)
         | h :: tl ->
-          let* conj, subst = eliminate_one_var conj h subst in
-          eliminate_all subst conj tl
+          let* conj, subst, p, l = eliminate_one_var conj h subst p l in
+          eliminate_all subst conj p l tl
       in
-      let* branch, subst = eliminate_all Env.empty conj_list elim_vars in
+      let* branch, subst = eliminate_all Env.empty conj_list Z.one Z.one elim_vars in
       let branch =
         List.map
           (function
-            | Ast.Eia (Ast.Eia.Eq (l, r, I)) as t ->
-              (* assert (r = Ast.Eia.Const Z.zero); *)
-              (* let not_assigned = *)
-              begin
-                slack_vars_in_term subst r @ slack_vars_in_term subst l
-                |> List.find_opt (fun x -> Env.lookup_int x subst = None)
-                |> function
-                | Some varname ->
-                  let env = Env.extend_int_exn Env.empty varname (Ast.Eia.Const Z.zero) in
-                  begin match coeff_of_var varname l, coeff_of_var varname r with
-                  | Some c, None when c > Z.zero -> Ast.Eia (Leq (subst_term env l, r))
-                  | Some c, None -> Ast.Eia (Leq (r, subst_term env l))
-                  | None, Some c when c > Z.zero -> Ast.Eia (Leq (l, subst_term env r))
-                  | None, Some c -> Ast.Eia (Leq (subst_term env r, l))
-                  | None, None -> assert false
-                  | Some _, Some _ -> assert false
-                  end
-                | None -> t
+            | Ast.Eia (Ast.Eia.Eq (l, r, I)) as t -> begin
+              slack_vars_in_term subst r @ slack_vars_in_term subst l
+              |> List.find_opt (fun x -> Env.lookup_int x subst = None)
+              |> function
+              | Some varname ->
+                let env = Env.extend_int_exn Env.empty varname (Ast.Eia.Const Z.zero) in
+                begin match coeff_of_var varname l, coeff_of_var varname r with
+                | Some c, None when c > Z.zero -> Ast.Eia (Leq (subst_term env l, r))
+                | Some c, None -> Ast.Eia (Leq (r, subst_term env l))
+                | None, Some c when c > Z.zero -> Ast.Eia (Leq (l, subst_term env r))
+                | None, Some c -> Ast.Eia (Leq (subst_term env r, l))
+                | None, None -> assert false
+                | Some _, Some _ -> assert false
+                end
+              | None -> t
               end
             | t -> t)
           branch
       in
       let branch = List.map (subst_eia subst) branch in
       let mod_phi = get_mod_phi_of_system branch in
-      let max_value = Z.(mod_phi - Z.one) in
-      let possible_vals = List.init (Z.to_int max_value + 1) Z.of_int in
+      let possible_vals = List.init (Z.to_int mod_phi) Z.of_int in
       let rec loop env phi = function
         | [] -> return env
         | h :: tl when var_exists h phi ->
