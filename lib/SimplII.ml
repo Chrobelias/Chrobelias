@@ -4268,7 +4268,51 @@ module NondeterministicMonad = struct
   let ( let* ) = bind
 end
 
-let substitute_vigorous_constraint x coeff tau t =
+let multiply_system_by_int int system =
+  let open Ast.Eia in
+  let (module TS) = make_main_symantics Env.empty in
+  if int = Z.one
+  then system
+  else
+    List.map
+      (function
+        | Ast.Eia (Eq (l, r, I)) ->
+          Ast.Eia (Eq (mul [ const int; l ], mul [ const int; r ], I))
+        | Ast.Eia (Leq (l, r)) when Z.gt int Z.one ->
+          Ast.Eia (Leq (mul [ const int; l ], mul [ const int; r ]))
+        | Ast.Eia (Leq (l, r)) ->
+          (* flipped *)
+          Ast.Eia (Leq (mul [ const int; r ], mul [ const int; l ]))
+        | x -> x)
+      system
+    |> List.map (apply_symantics (module TS))
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test a ph_list =
+    let ph_list = multiply_system_by_int a ph_list in
+    let _ = List.map (Format.printf "%a\n" Ast.pp) ph_list in
+    ()
+  in
+  let ph =
+    TS.
+      [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1
+      ; add [ var "x"; mul [ const 2; var "y" ]; var "z" ] = const 3
+      ; add [ var "y"; mul [ const 2; var "z" ] ] = const 3
+      ]
+  in
+  test (Z.of_int 5) ph;
+  [%expect
+    {|
+    (= (+ (* y 5) (* (* 2 x) 5)) 5)
+    (= (+ (* x 5) (* z 5) (* (* 2 y) 5)) 15)
+
+    (= (+ (* y 5) (* (* 2 z) 5)) 15)
+    |}]
+;;
+
+let substitute_vigorous_constraint x coeff tau ast =
   let open Ast.Eia in
   let (module TS) = make_main_symantics Env.empty in
   let rec aux = function
@@ -4281,7 +4325,39 @@ let substitute_vigorous_constraint x coeff tau t =
     | Mod (t, d) -> TS.(mod_ (aux t) d)
     | x -> x
   in
-  aux t
+  match ast with
+  | Ast.Eia (Eq (l, r, I)) ->
+    let term = aux TS.(add [ l; mul [ const (-1); r ] ]) in
+    TS.(Ast.Eia (Eq (term, const 0, I)))
+  | Ast.Eia (Leq (l, r)) ->
+    let term = aux TS.(add [ l; mul [ const (-1); r ] ]) in
+    TS.(Ast.Eia (Leq (term, const 0)))
+  | _ -> ast
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph_list a tau x =
+    let ph_list = multiply_system_by_int a ph_list in
+    let ph_list = List.map (substitute_vigorous_constraint x a tau) ph_list in
+    let ph_list = List.map (apply_symantics (module TS)) ph_list in
+    let _ = List.map (Format.printf "%a\n" Ast.pp) ph_list in
+    ()
+  in
+  let ph =
+    TS.
+      [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1
+      ; add [ var "x"; mul [ const 2; var "y" ]; var "z" ] = const 3
+      ; add [ var "y"; mul [ const 2; var "z" ] ] = const 3
+      ]
+  in
+  test ph (Z.of_int 2) TS.(add [ var "y"; const (-1) ]) "x";
+  [%expect
+    {|
+    True
+    (= (+ (* 2 z) (* 3 y)) 5)
+    (= (+ (* 2 y) (* 4 z)) 6)
+    |}]
 ;;
 
 let introduce_slacks conjs =
@@ -4532,50 +4608,6 @@ let%expect_test _ =
    |}]
 ;;
 
-let multiply_system_by_int int system =
-  let open Ast.Eia in
-  let (module TS) = make_main_symantics Env.empty in
-  if int = Z.one
-  then system
-  else
-    List.map
-      (function
-        | Ast.Eia (Eq (l, r, I)) ->
-          Ast.Eia (Eq (mul [ const int; l ], mul [ const int; r ], I))
-        | Ast.Eia (Leq (l, r)) when Z.gt int Z.one ->
-          Ast.Eia (Leq (mul [ const int; l ], mul [ const int; r ]))
-        | Ast.Eia (Leq (l, r)) ->
-          (* flipped *)
-          Ast.Eia (Leq (mul [ const int; r ], mul [ const int; l ]))
-        | x -> x)
-      system
-    |> List.map (apply_symantics (module TS))
-;;
-
-let%expect_test _ =
-  let (module TS) = make_main_symantics Env.empty in
-  let test a ph_list =
-    let ph_list = multiply_system_by_int a ph_list in
-    let _ = List.map (Format.printf "%a\n" Ast.pp) ph_list in
-    ()
-  in
-  let ph =
-    TS.
-      [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1
-      ; add [ var "x"; mul [ const 2; var "y" ]; var "z" ] = const 3
-      ; add [ var "y"; mul [ const 2; var "z" ] ] = const 3
-      ]
-  in
-  test (Z.of_int 5) ph;
-  [%expect
-    {|
-    (= (+ (* y 5) (* (* 2 x) 5)) 5)
-    (= (+ (* x 5) (* z 5) (* (* 2 y) 5)) 15)
-
-    (= (+ (* y 5) (* (* 2 z) 5)) 15)
-    |}]
-;;
-
 let divide_constraint_by_p p (ast : Ast.t) =
   let rec aux p = function
     | Ast.Eia.Mul [ t; Ast.Eia.Const c ] | Ast.Eia.Mul [ Ast.Eia.Const c; t ] ->
@@ -4632,26 +4664,7 @@ let eliminate_one_var conj varname subst p l =
     let conj =
       conj
       |> multiply_system_by_int coeff
-      |> List.map (function
-        | Eia (Eq (l, r, I)) ->
-          let term =
-            substitute_vigorous_constraint
-              varname
-              coeff
-              tau
-              TS.(add [ l; mul [ const (-1); r ] ])
-          in
-          TS.(Eia (Eq (term, const 0, I)))
-        | Eia (Leq (l, r)) ->
-          let term =
-            substitute_vigorous_constraint
-              varname
-              coeff
-              tau
-              TS.(add [ l; mul [ const (-1); r ] ])
-          in
-          TS.(Eia (Leq (term, const 0)))
-        | x -> x)
+      |> List.map (substitute_vigorous_constraint varname coeff tau)
       |> List.map (divide_constraint_by_p p)
       |> fun x -> divides coeff tau :: x |> List.map (apply_symantics (module TS))
     in
