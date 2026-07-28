@@ -2458,7 +2458,7 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
     "Alphabet with extra char: %a\n%!"
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
     alpha;
-  let rec loop ?(soft = false) step (env : Env.t) ast =
+  let rec loop step (env : Env.t) ast =
     let (module Symantics) = make_main_symantics ~alpha ~with_nielsen env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
@@ -2466,21 +2466,25 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
     let __ _ = trace_log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
-    let env2, ast2 = eq_propagation var_info ~soft ?multiple env ast2 in
+    let env2, ast2 = eq_propagation var_info ?multiple env ast2 in
     let __ _ = trace_log "env2 = %a" (Env.pp ~title:"") env2 in
     let __ () = trace_log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     let next_step = next step in
-    match Env.length env2 > Env.length env, Ast.equal ast ast2 with
-    | true, equal ->
+    match
+      ( Env.length env2 > Env.length env
+      , Ast.equal ast ast2
+      , Ast.equal Ast.True ast2 || Ast.equal Ast.false_ ast2 )
+    with
+    | true, equal, _ ->
       let () = trace_log "%a" (Env.pp ~title:"Something ready to substitute") env2 in
       let __ () = trace_log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
       if not equal then trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
-      loop ~soft next_step (Env.merge_exn env2 env) ast2
-    | false, false ->
+      loop next_step (Env.merge_exn env2 env) ast2
+    | false, false, false ->
       trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
-      loop ~soft next_step env ast2
-    | false, true ->
-      trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
+      loop next_step env ast2
+    | false, equal, _ ->
+      if not equal then trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
       trace_log "fixed-point\n";
       (match ast2 with
        | Ast.True -> `Sat env

@@ -21,8 +21,7 @@ This test should be removed
   > ))
   > (check-sat)
   > EOF
-$ export OCAMLRUNPARAM='b=0'
-$ export CHRO_DEBUG=1
+$ export CHRO_DEBUG=simpl
 
   $ timeout 2 Chro --dsimpl --stop-after simpl testA.smt2 | sed 's/[[:space:]]*$//'
   sat (under int)

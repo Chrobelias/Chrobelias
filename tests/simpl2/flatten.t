@@ -6,4 +6,15 @@
   > (assert (= (exp x 2) 32))
   > (check-sat)
   > EOF
-  $ CHRO_DEBUG=1 Chro -bound 1 --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  $ CHRO_DEBUG=simpl Chro -bound 1 --dsimpl --stop-after pre-simpl testS1.smt2 | sed 's/[[:space:]]*$//'
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (= (+ (- 32) (exp x 2)) 0)
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    fixed-point
+  
