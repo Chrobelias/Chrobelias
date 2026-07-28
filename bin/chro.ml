@@ -225,7 +225,7 @@ let construct_model tys env model regexes =
         | `Int -> Map.add_exn acc ~key ~data:(`Int Z.zero)
         | `Str -> Map.add_exn acc ~key ~data:(`Str ""))
       else acc)
-    ~init:string_model
+    ~init:(Map.filter_keys ~f:(Map.mem tys) string_model)
     tys
 ;;
 
