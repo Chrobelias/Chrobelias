@@ -4268,16 +4268,36 @@ module NondeterministicMonad = struct
   let ( let* ) = bind
 end
 
+let simplify_constants ts =
+  let open Ast.Eia in
+  let rec aux ts =
+    List.fold_left
+      (fun ((prod, has_const), vars) t ->
+         match t with
+         | Const c -> (Z.mul prod c, true), vars
+         | Mul xs ->
+           let (prod1, has_const1), vars1 = aux xs in
+           (Z.mul prod prod1, has_const1 || has_const), vars1 @ vars
+         | t -> (prod, has_const), t :: vars)
+      ((Z.one, false), [])
+      ts
+  in
+  let (prod, has_const), vars = aux ts in
+  let vars = List.rev vars in
+  if has_const then Const prod :: vars else vars
+;;
+
 let rec multiply_constraint_by_int int =
   let open Ast.Eia in
   let (module TS) = make_main_symantics Env.empty in
-  (* let _ = List.map (Format.printf "%a\n" Ast.pp) system in *)
   function
   | ast when Z.(int = one) -> ast
-  | Ast.Eia (Eq (l, r, I)) -> Ast.Eia (Eq (mul [ const int; l ], mul [ const int; r ], I))
+  | Ast.Eia (Eq (l, r, I)) ->
+    Ast.Eia (Eq (TS.(mul [ constz int; l ]), TS.(mul [ constz int; r ]), I))
   | Ast.Eia (Leq (l, r)) when int > Z.zero ->
-    Ast.Eia (Leq (mul [ const int; l ], mul [ const int; r ]))
-  | Ast.Eia (Leq (l, r)) -> Ast.Eia (Leq (mul [ const int; r ], mul [ const int; l ]))
+    Ast.Eia (Leq (TS.(mul [ constz int; l ]), TS.(mul [ constz int; r ])))
+  | Ast.Eia (Leq (l, r)) ->
+    Ast.Eia (Leq (TS.(mul [ constz int; r ]), TS.(mul [ constz int; l ])))
   | Ast.Land xs -> Ast.Land (List.map (multiply_constraint_by_int int) xs)
   | Ast.Lor xs -> Ast.Lor (List.map (multiply_constraint_by_int int) xs)
   | x -> x
@@ -4305,21 +4325,6 @@ let%expect_test _ =
 
     (= (+ (* y 5) (* (* 2 z) 5)) 15)
     |}]
-;;
-
-let simplify_constants ts =
-  let open Ast.Eia in
-  let (prod, has_const), vars =
-    List.fold_left
-      (fun ((prod, has_const), vars) t ->
-         match t with
-         | Const c -> (Z.mul prod c, true), vars
-         | t -> (prod, has_const), t :: vars)
-      ((Z.one, false), [])
-      ts
-  in
-  let vars = List.rev vars in
-  if has_const then Const prod :: vars else vars
 ;;
 
 let divide_constraint_by_p p (ast : Ast.t) =
@@ -4366,10 +4371,10 @@ let coeff_of_var varname term =
       begin match Mul (simplify_constants ts) with
       | Mul [ Const c; Atom (Var (v, I)) ] when v = varname -> Some c
       | Mul [ Atom (Var (v, I)); Const c ] when v = varname -> Some c
-      | Mul [ Mul [ Const mone; Const c ]; Atom (Var (v, I)) ] when Z.(mone = minus_one)
-        -> Some Z.(-c)
-      | Mul [ Mul [ Const c; Const mone ]; Atom (Var (v, I)) ] when Z.(mone = minus_one)
-        -> Some Z.(-c)
+      | Mul [ Mul [ Const mone; Const c ]; Atom (Var (v, I)) ]
+        when Z.(mone = minus_one) && v = varname -> Some Z.(-c)
+      | Mul [ Mul [ Const c; Const mone ]; Atom (Var (v, I)) ]
+        when Z.(mone = minus_one) && v = varname -> Some Z.(-c)
       | _ -> None
       end
     | _ -> None
@@ -4400,12 +4405,15 @@ let substitute_vigorous_constraint varname coeff tau ast =
     | Pow (b, e) -> TS.pow (aux b) (aux e)
     | _ -> t
   in
+  Format.printf "Ast before: %a\n" Ast.pp ast;
+  Format.printf "Coeff is: %a\n" Z.pp_print coeff;
   let ast = multiply_constraint_by_int coeff ast in
+  Format.printf "Ast after: %a\n" Ast.pp ast;
   match ast with
   | Ast.Eia (Eq (l, r, I)) ->
-    TS.(aux TS.(mul [ Const coeff; l ]) = aux TS.(mul [ Const coeff; r ]))
+    TS.(aux TS.(mul [ constz coeff; l ]) = aux TS.(mul [ constz coeff; r ]))
   | Ast.Eia (Leq (l, r)) ->
-    TS.(aux TS.(mul [ Const coeff; l ]) <= aux TS.(mul [ Const coeff; r ]))
+    TS.(aux TS.(mul [ constz coeff; l ]) <= aux TS.(mul [ constz coeff; r ]))
   | _ -> ast
 ;;
 
