@@ -4268,30 +4268,12 @@ module NondeterministicMonad = struct
   let ( let* ) = bind
 end
 
-(* let divide_constraint_by_p p (ast : Ast.t) = *)
-(*   let rec aux p = function *)
-(*     | Ast.Eia.Mul [ t; Ast.Eia.Const c ] | Ast.Eia.Mul [ Ast.Eia.Const c; t ] -> *)
-(*       if Z.(c mod p = zero) *)
-(*       then Ast.Eia.Mul [ Ast.Eia.Const Z.(c / p); t ] *)
-(*       else failwith "Coefficient not divisible by p" *)
-(*     | Ast.Eia.Add terms -> Ast.Eia.Add (List.map (aux p) terms) *)
-(*     | Ast.Eia.Const c -> *)
-(*       if Z.(c mod p = zero) *)
-(*       then Ast.Eia.Const Z.(c / p) *)
-(*       else failwith "Constant not divisible by p" *)
-(*     | t -> t *)
-(*   in *)
-(*   match ast with *)
-(*   | Ast.Eia (Ast.Eia.Eq (l, r, I)) -> Ast.Eia (Ast.Eia.Eq (aux p l, aux p r, I)) *)
-(*   | Ast.Eia (Ast.Eia.Leq (l, r)) -> Ast.Eia (Ast.Eia.Leq (aux p l, aux p r)) *)
-(*   | _ -> ast *)
-(* ;; *)
-
 let rec multiply_constraint_by_int int =
   let open Ast.Eia in
   let (module TS) = make_main_symantics Env.empty in
   (* let _ = List.map (Format.printf "%a\n" Ast.pp) system in *)
   function
+  | ast when Z.(int = one) -> ast
   | Ast.Eia (Eq (l, r, I)) -> Ast.Eia (Eq (mul [ const int; l ], mul [ const int; r ], I))
   | Ast.Eia (Leq (l, r)) when int > Z.zero ->
     Ast.Eia (Leq (mul [ const int; l ], mul [ const int; r ]))
@@ -4325,22 +4307,48 @@ let%expect_test _ =
     |}]
 ;;
 
+let simplify_constants ts =
+  let open Ast.Eia in
+  let (prod, has_const), vars =
+    List.fold_left
+      (fun ((prod, has_const), vars) t ->
+         match t with
+         | Const c -> (Z.mul prod c, true), vars
+         | t -> (prod, has_const), t :: vars)
+      ((Z.one, false), [])
+      ts
+  in
+  let vars = List.rev vars in
+  if has_const then Const prod :: vars else vars
+;;
+
+let divide_constraint_by_p p (ast : Ast.t) =
+  let rec aux p = function
+    | Ast.Eia.Mul [ t; Ast.Eia.Const c ] | Ast.Eia.Mul [ Ast.Eia.Const c; t ] ->
+      if Z.(c mod p = zero)
+      then Ast.Eia.Mul [ Ast.Eia.Const Z.(c / p); t ]
+      else failwith "Coefficient not divisible by p"
+    | Ast.Eia.Add terms -> Ast.Eia.Add (List.map (aux p) terms)
+    | Ast.Eia.Const c ->
+      if Z.(c mod p = zero)
+      then Ast.Eia.Const Z.(c / p)
+      else failwith "Constant not divisible by p"
+    | t -> t
+  in
+  match ast with
+  | Ast.Eia (Ast.Eia.Eq (Mul l, Mul r, I)) ->
+    let l' = Ast.Eia.Mul (simplify_constants l) in
+    let r' = Ast.Eia.Mul (simplify_constants r) in
+    Ast.Eia (Ast.Eia.Eq (aux p l', aux p r', I))
+  | Ast.Eia (Ast.Eia.Leq (Mul l, Mul r)) ->
+    let l' = Ast.Eia.Mul (simplify_constants l) in
+    let r' = Ast.Eia.Mul (simplify_constants r) in
+    Ast.Eia (Ast.Eia.Leq (aux p l', aux p r'))
+  | _ -> ast
+;;
+
 let coeff_of_var varname term =
   let open Ast.Eia in
-  let (module TS) = make_main_symantics Env.empty in
-  let simplify ts =
-    let (prod, has_const), vars =
-      List.fold_left
-        (fun ((prod, has_const), vars) t ->
-           match t with
-           | Const c -> (Z.mul prod c, true), vars
-           | t -> (prod, has_const), t :: vars)
-        ((Z.one, false), [])
-        ts
-    in
-    let vars = List.rev vars in
-    if has_const then Const prod :: vars else vars
-  in
   let rec aux varname = function
     | Atom (Var (v, I)) when v = varname -> Some Z.one
     | Add ts ->
@@ -4355,17 +4363,19 @@ let coeff_of_var varname term =
       in
       if Z.equal sum Z.zero then None else Some sum
     | Mul ts ->
-      begin match Mul (simplify ts) with
+      begin match Mul (simplify_constants ts) with
       | Mul [ Const c; Atom (Var (v, I)) ] when v = varname -> Some c
       | Mul [ Atom (Var (v, I)); Const c ] when v = varname -> Some c
-      | Mul [ Const c; t ] -> Option.map (Z.mul c) (aux varname t)
-      | Mul [ t; Const c ] -> Option.map (Z.mul c) (aux varname t)
+      | Mul [ Mul [ Const mone; Const c ]; Atom (Var (v, I)) ] when Z.(mone = minus_one)
+        -> Some Z.(-c)
+      | Mul [ Mul [ Const c; Const mone ]; Atom (Var (v, I)) ] when Z.(mone = minus_one)
+        -> Some Z.(-c)
       | _ -> None
       end
     | _ -> None
   in
   match aux varname term with
-  | Some z when Z.equal z Z.zero -> None
+  | Some z when Z.(z = zero) -> None
   | None -> None
   | x -> x
 ;;
@@ -4378,11 +4388,9 @@ let substitute_vigorous_constraint varname coeff tau ast =
     match t with
     | Add ts -> TS.add (List.map aux ts)
     | Mul ts ->
+      (* I need to use ts there *)
       begin match coeff_of_var varname t with
       | Some c when not (Z.equal c Z.zero) ->
-        Format.printf "%a : %a\n" Z.pp_print c Z.pp_print coeff;
-        Format.printf "Ast: %a\n" Ast.pp ast;
-        Format.printf "Tau: %a\n" Ast.Eia.pp_term tau;
         assert (Z.equal Z.(c mod coeff) Z.zero);
         let factor = Z.div c coeff in
         TS.mul [ TS.constz Z.(neg factor); tau ]
@@ -4392,63 +4400,14 @@ let substitute_vigorous_constraint varname coeff tau ast =
     | Pow (b, e) -> TS.pow (aux b) (aux e)
     | _ -> t
   in
-  (* let ast = multiply_constraint_by_int coeff ast in *)
-    match ast with
-    | Ast.Eia (Eq (l, r, I)) ->
-      TS.(aux TS.(mul [ Const coeff; l ]) = aux TS.(mul [ Const coeff; r ]))
-    | Ast.Eia (Leq (l, r)) ->
-      TS.(aux TS.(mul [ Const coeff; l ]) <= aux TS.(mul [ Const coeff; r ]))
-    | _ -> ast
+  let ast = multiply_constraint_by_int coeff ast in
+  match ast with
+  | Ast.Eia (Eq (l, r, I)) ->
+    TS.(aux TS.(mul [ Const coeff; l ]) = aux TS.(mul [ Const coeff; r ]))
+  | Ast.Eia (Leq (l, r)) ->
+    TS.(aux TS.(mul [ Const coeff; l ]) <= aux TS.(mul [ Const coeff; r ]))
+  | _ -> ast
 ;;
-
-(* let substitute_vigorous_constraint varname coeff tau ast = *)
-(*   let open Ast.Eia in *)
-(*   let (module TS) = make_main_symantics Env.empty in *)
-(*   let ast = apply_symantics (module TS) ast in *)
-(*   let rec get_coeff acc = function *)
-(*     | [] -> acc *)
-(*     | Const c :: xs -> get_coeff Z.(mul acc c) xs *)
-(*     | Atom (Var (v, I)) :: xs when varname = v -> get_coeff acc xs *)
-(*     | x :: xs -> failwith "Constraint is not linear" *)
-(*   in *)
-(*   let rec aux = function *)
-(*     (\* | Mul [ Const a; Atom (Var (v, I)); Const b ] when v = varname && not Z.(equal a zero) *\) *)
-(*     (\*   -> *\) *)
-(*     (\*   assert (Z.(equal Z.(abs a mod coeff) zero)); *\) *)
-(*     (\*   let factor = Z.(abs a / coeff) in *\) *)
-(*     (\*   mul [ const (Z.neg factor); tau ] *\) *)
-(*     (\* | Mul [ Const a; Atom (Var (v, I)) ] when v = varname && not Z.(equal a zero) -> *\) *)
-(*     (\*   (\\* Format.printf "the big ints: %a : %a\n" Z.pp_print a Z.pp_print coeff; *\\) *\) *)
-(*     (\*   assert (Z.(equal Z.(abs a mod coeff) zero)); *\) *)
-(*     (\*   let factor = Z.(abs a / coeff) in *\) *)
-(*     (\*   mul [ const (Z.neg factor); tau ] *\) *)
-(*     (\* | Mul [ Atom (Var (v, I)); Const a ] when v = varname && not Z.(equal a zero) -> *\) *)
-(*     (\*   (\\* Format.printf "the big ints: %a : %a\n" Z.pp_print a Z.pp_print coeff; *\\) *\) *)
-(*     (\*   assert (Z.(equal (abs a mod coeff) zero)); *\) *)
-(*     (\*   let factor = Z.(abs a / coeff) in *\) *)
-(*     (\*   mul [ const (Z.neg factor); tau ] *\) *)
-(*     | Mul ts when List.exists (fun x -> coeff_of_var varname x <> None) ts -> *)
-(*       (\* TS.(mul (List.map aux ts)) *\) *)
-(*       let a = get_coeff Z.zero ts in *)
-(*       assert (Z.(equal (a mod coeff) zero)); *)
-(*       mul [ const Z.(a / coeff); tau ] *)
-(*       (\* let env = Env.extend_int_exn Env.empty varname tau in *\) *)
-(*       (\* let new_ts = List.map (subst_term env) new_ts in *\) *)
-(*       (\* Mul new_ts *\) *)
-(*     | Add ts -> TS.(add (List.map aux ts)) *)
-(*     | Mul ts -> TS.(mul (List.map aux ts)) *)
-(*     | Mod (t, d) -> TS.(mod_ (aux t) d) *)
-(*     | term -> term *)
-(*   in *)
-(*   match ast with *)
-(*   | Ast.Eia (Eq (l, r, I)) -> *)
-(*     let term = aux TS.(add [ l; mul [ const (-1); r ] ]) in *)
-(*     TS.(term = const 0) *)
-(*   | Ast.Eia (Leq (l, r)) -> *)
-(*     let term = aux TS.(add [ l; mul [ const (-1); r ] ]) in *)
-(*     TS.(term <= const 0) *)
-(*   | _ -> ast *)
-(* ;; *)
 
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
@@ -4733,7 +4692,7 @@ let eliminate_one_var conj varname subst p l =
     let conj =
       conj
       |> List.map (substitute_vigorous_constraint varname coeff tau)
-         (* |> List.map (divide_constraint_by_p p) *)
+      |> List.map (divide_constraint_by_p p)
       |> fun x -> divides (Z.abs coeff) tau :: x |> List.map (apply_symantics (module TS))
     in
     return (conj, subst, p, l)
@@ -4815,4 +4774,163 @@ let eliminate_existence_quantifier (ast : Ast.t) : Ast.t =
   let (module TS) = make_main_symantics Env.empty in
   let branches = eliminate_existence_quantifier_branches ast in
   branches |> List.map (fun x -> land_ x) |> lor_
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph_list a x tau =
+    let ph_list = List.map (multiply_constraint_by_int a) ph_list in
+    let ph_list = List.map (substitute_vigorous_constraint x a tau) ph_list in
+    let ph_list = List.map (apply_symantics (module TS)) ph_list in
+    let _ = List.map (Format.printf "%a\n" Ast.pp) ph_list in
+    ()
+  in
+  let ph = TS.[ add [ mul [ const (-1); var "x0" ] ] = const (-55) ] in
+  let tau =
+    Ast.Eia.add
+      [ Ast.Eia.mul [ Ast.Eia.Const (Z.of_int (-1)); Ast.Eia.Atom (Ast.Var ("x1", I)) ]
+      ; Ast.Eia.Const (Z.of_int (-217))
+      ]
+  in
+  test ph (Z.of_int 4) "x0" tau;
+  [%expect {| (= (* (- 1) x1) (- 3)) |}]
+;;
+
+let rec is_linear_term =
+  let open Ast.Eia in
+  function
+  | Const _ -> true
+  | Atom _ -> true
+  | Add xs -> List.for_all is_linear_term xs
+  | Mul xs -> List.for_all is_linear_term xs
+  | Mod (xs, _) -> is_linear_term xs
+  | _ -> false
+;;
+
+let is_linear_system =
+  let rec aux = function
+    | Ast.Land conj -> List.for_all aux conj
+    | Ast.Eia (Ast.Eia.Leq (l, r)) -> is_linear_term l && is_linear_term r
+    | Ast.Eia (Ast.Eia.Eq (l, r, I)) -> is_linear_term l && is_linear_term r
+    | _ -> false
+  in
+  function
+  | Ast.Land conj -> List.for_all aux conj
+  | _ -> false
+;;
+
+let is_linear_constraint = function
+  | Ast.Eia (Ast.Eia.Leq (l, r)) -> is_linear_term l && is_linear_term r
+  | Ast.Eia (Ast.Eia.Eq (l, r, I)) -> is_linear_term l && is_linear_term r
+  | _ -> false
+;;
+
+let simplify_quantifiers (ast : Ast.t) =
+  let open Ast in
+  let rec aux = function
+    | True -> True
+    | Ast.Exists (_, ast) as eq when is_linear_system ast ->
+      eliminate_existence_quantifier eq
+    | Ast.Exists (atoms, ast) when is_linear_constraint ast ->
+      eliminate_existence_quantifier (exists atoms (Ast.Land [ ast ]))
+    | Ast.Exists (atoms, ast) -> exists atoms (aux ast)
+    | Ast.Lnot ast -> lnot (aux ast)
+    | Ast.Land ast -> land_ (List.map aux ast)
+    | Ast.Lor ast -> lor_ (List.map aux ast)
+    | ast -> ast
+  in
+  aux ast
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph =
+    let set = simplify_quantifiers ph in
+    Format.printf "%a\n" Ast.pp set
+  in
+  let ph =
+    TS.(
+      Ast.Exists
+        ( [ Ast.Any_atom (Ast.Var ("x0", I)) ]
+        , Ast.Land
+            [ add [ mul [ const (-1); var "x0" ] ] = const (-55)
+            ; add [ mul [ const 4; var "x0" ]; mul [ const (-1); var "x1" ] ] = const 217
+            ] ))
+  in
+  test ph;
+  [%expect
+    {|
+    ((
+    (divides 4 (+ (- 217) (* (- 1) x1))) & True & (= (* (- 1) x1) (- 3)))
+    | ((divides -1 55) & (= x1 3) & (= 0 55))
+    )
+    |}]
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph =
+    let ph = simplify_quantifiers ph in
+    Format.printf "%a\n" Ast.pp ph
+  in
+  let ph =
+    TS.(
+      Ast.Exists
+        ( [ Ast.Any_atom (Ast.Var ("x0", I)) ]
+        , Ast.Land
+            [ add [ mul [ const 1; var "x0" ] ] = const 6
+            ; add [ mul [ const (-4); var "x0" ]; mul [ const 1; var "x1" ] ] = const 29
+            ] ))
+  in
+  test ph;
+  [%expect
+    {|
+    (divides 1 (- 6)) & (= 0 6) & (= x1 53))
+    | ((divides 4 (+ (- 29) x1)) & (= (* (- 1) x1) (- 53)) & True))
+    |}]
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph = simplify_quantifiers ph |> Format.printf "%a\n" Ast.pp in
+  let ph1 =
+    TS.(
+      exists
+        [ Ast.Any_atom (Ast.Var ("y", I)) ]
+        (Ast.Land [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1 ]))
+  in
+  let ph2 =
+    TS.(
+      exists
+        [ Ast.Any_atom (Ast.Var ("y", I)) ]
+        (land_ [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1 ]))
+  in
+  let ph3 = TS.(land_ [ ph1; ph2 ]) in
+  let ph4 =
+    TS.(
+      exists
+        [ Ast.Any_atom (Ast.Var ("x0", I)); Ast.Any_atom (Ast.Var ("x1", I)) ]
+        (lor_
+           [ not (land_ [ var "x0" <= const 0; const 0 <= var "x1" ])
+           ; not
+               (add [ mul [ var "x0"; const 199 ]; mul [ var "x1"; const 221 ] ] = var "P")
+           ]))
+  in
+  test ph1;
+  test ph2;
+  test ph3;
+  test ph4;
+  [%expect
+    {|
+    ((divides 1 (+ (- 1) (* 2 x))) & (= (* 2 x) 1))
+    ((divides 1 (+ (- 1) (* 2 x))) &
+    (= (* 2 x) 1))
+    ((divides 1 (+ (- 1) (* 2 x))) & (= (* 2 x) 1) & (divides 1
+                                                                    (+ (- 1)
+                                                                    (* 2 x))) &
+    (= (* 2 x) 1))
+    (Ex0 x1 ((<= (+ x1 1) 0) | (<= (+ 0 1) x0) | (distinct
+                                                                (+ (* 199 x0)
+                                                                (* 221 x1)) P)))
+    |}]
 ;;
