@@ -221,6 +221,27 @@ let construct_model tys env model regexes =
     "String model:\n  %s"
     (Model.to_string (Map.filter_keys ~f:(Map.mem tys) string_model));
   let env = Env.enrich2 env string_model in
+  let resolve_from_env key =
+    let open Ast in
+    let rec seek key steps =
+      if steps <= 0
+      then None
+      else (
+        let of_term : type a. a Eia.term -> _ = function
+          | Eia.Const c -> Option.some (`Int c)
+          | Eia.Str_const s -> Option.some (`Str s)
+          | Eia.Atom (Var (v, _)) -> seek v (steps - 1)
+          | _ -> None
+        in
+        match Env.lookup_int key env with
+        | Some eia -> of_term (SimplII.subst_term env eia)
+        | None ->
+          (match Env.lookup_string key env with
+           | Some str -> of_term (SimplII.subst_term env str)
+           | None -> None))
+    in
+    seek key (Env.length env + 1)
+  in
   Map.fold
     ~f:(fun ~key ~data acc ->
       if Map.mem acc key
@@ -230,7 +251,12 @@ let construct_model tys env model regexes =
         match data with
         | `Int -> Map.add_exn acc ~key ~data:(`Int Z.zero)
         | `Str -> Map.add_exn acc ~key ~data:(`Str ""))
-      else acc)
+      else (
+        match resolve_from_env key, data with
+        | Some (`Str s), `Str -> Map.add_exn acc ~key ~data:(`Str s)
+        | Some (`Int c), `Int -> Map.add_exn acc ~key ~data:(`Int c)
+        | Some (`Int c), `Str -> Map.add_exn acc ~key ~data:(`Str (Z.to_string c))
+        | Some (`Str _), `Int | None, _ -> acc))
     ~init:(Map.filter_keys ~f:(Map.mem tys) string_model)
     tys
 ;;
