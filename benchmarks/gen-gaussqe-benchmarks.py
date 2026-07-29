@@ -9,9 +9,9 @@ from random import randint, choice
 import os
 import sys
 
-num_of_vars = 10
+num_of_vars = 2
 num_of_coeffs = 5
-num_of_files = 20
+num_of_files = 10
 vars_to_eliminate = num_of_vars // 2
 
 max_true_integer_value = 100
@@ -37,6 +37,14 @@ def generate_gl_matrix(n, max_coeff=5):
 
     return A
 
+def generate_left_side(terms):
+    if len(terms) == 1:
+        return str(terms[0])
+    first_term = terms[0]
+    right_term = generate_left_side(terms[1:])
+    return f"(+ {first_term} {right_term})"
+    
+
 def generate_smt2(n_vars, filename, is_sat=True, max_coeff=5):
     A = generate_gl_matrix(n_vars, max_coeff)
     
@@ -46,16 +54,14 @@ def generate_smt2(n_vars, filename, is_sat=True, max_coeff=5):
 
     k = [sum(A[i][j] * x_true[j] for j in range(n_vars)) for i in range(n_vars)]
 
-    if not is_sat:
-        k[-1] += choice([1, -1])
-
     lines = []
+    lines.append("(set-info :smt-lib-version 2.6)")
     lines.append("(set-logic LIA)")
     lines.append("")
 
     vars_decl = " ".join(f"({var_names[i]} Int)" for i in range(0, vars_to_eliminate))
     for i in range(vars_to_eliminate, n_vars):
-        lines.append(f"(declare_fun {var_names[i]} () Int)")
+        lines.append(f"(declare-fun {var_names[i]} () Int)")
 
     lines.append(f"(assert (exists ({vars_decl})")
     lines.append("  (and")
@@ -73,15 +79,17 @@ def generate_smt2(n_vars, filename, is_sat=True, max_coeff=5):
             else:
                 terms.append(f"(* {coeff} {var_names[j]})")
 
-        if len(terms) == 1:
-            left_side = terms[0]
-        else:
-            left_side = f"(+ {' '.join(terms)})"
+
+        left_side = generate_left_side(terms)
 
         right_side = str(k[i])
         lines.append(f"    (= {left_side} {right_side})")
 
-    lines.append("  ))")
+    if not is_sat:
+        lines.append(f"    (= {var_names[0]} 0)")
+        lines.append(f"    (= {var_names[0]} 1)")
+
+    lines.append("  )))")
     lines.append("")
     lines.append("(check-sat)")
 
