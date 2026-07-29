@@ -70,6 +70,8 @@ Basic QF_S tests
       "BabBabBabBabBabBabBabBab")
      (define-fun b () String
       "2")
+     (define-fun q () Int
+      24)
      (define-fun x () Int
       0)
   )
