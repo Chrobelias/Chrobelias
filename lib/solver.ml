@@ -1076,96 +1076,128 @@ struct
   ;;
 end
 
-(*module LsbStr (B : Nfa.Base) =
+module LsbStrExtra (B : Nfa.Base) = struct
+  module NfaO = Nfa
+  module NfaO2 = Nfa.Lsb (Str (B))
+  module Nfa = Nfa.Lsb (Str (B))
+  module Str = NfaO.Str (B)
+
+  let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
+  let eval_sreg _vars _atom _reg = failwith ""
+  let eval_sregraw _vars _atom _reg = failwith ""
+  let char_to_v c = c
+  let nat_model_to_model = Fun.id
+
+  let nat_model_to_int c =
+    c
+    |> List.to_seq
+    |> Seq.filter (( <> ) Str.u_eos)
+    |> Seq.filter (( <> ) Str.u_null)
+    |> List.of_seq
+    |> List.rev
+    |> Base.List.drop_while ~f:(( = ) Str.u_zero)
+    |> Base.String.of_list
+    |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
+  ;;
+
+  let int_to_model n =
+    n |> Z.to_string |> String.to_seq |> List.of_seq |> List.rev |> List.map char_to_v
+  ;;
+end
+
+module LsbStr (B : Nfa.Base) =
   Make
     (Nfa.Lsb (Nfa.Str (B))) (NfaCollection.LsbStr (B)) (Nfa.Lsb (Nfa.Str (B)))
     (NfaCollection.LsbStr (B))
-    (struct
-      module Str = Nfa.Str (B)
-      module Nfa = Nfa.Lsb (Nfa.Str (B))
+    (LsbStrExtra (B))
 
-      let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
+module LsbStr10 =
+  Make
+    (Nfa.Lsb
+       (Nfa.Str (Nfa.Base10))) (NfaCollection.LsbStr (Nfa.Base10))
+       (Nfa.Lsb (Nfa.Str (Nfa.Base10)))
+    (NfaCollection.LsbStr (Nfa.Base10))
+    (struct
+      include LsbStrExtra (Nfa.Base10)
+      module Convert = NfaO.ConvertStr (NfaO.Base10)
 
       let eval_sreg vars atom reg =
         let nfa = reg |> NfaO.String.of_regex in
         Debug.dump_nfa ~msg:"SREG %s" ~vars:(Map.to_alist vars) NfaO.String.format_nfa nfa;
-        (*let reenum = Map.singleton (Map.find_exn vars atom) 0 in*)
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         NfaO.String.reenumerate reenum nfa
       ;;
 
-      let eval_sregraw vars atom reg =
+      let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaO.String.u -> Nfa.t =
+        fun vars atom reg ->
         let nfa = reg in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
-
-      let model_to_int c =
-        c
-        |> List.to_seq
-        |> Seq.filter (( <> ) Str.u_eos)
-        |> Seq.filter (( <> ) Str.u_null)
-        |> List.of_seq
-        |> List.rev
-        |> Base.List.drop_while ~f:(( = ) Str.u_zero)
-        |> Base.String.of_list
-        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
-      ;;
-
-      let nat_model_to_int = model_to_int
-      let nat_model_to_model = Fun.id
-      let char_to_v c = c
-
-      let int_to_model n =
-        n |> Z.to_string |> String.to_seq |> List.of_seq |> List.rev |> List.map char_to_v
-      ;;
     end)
 
-module LsbStrBv =
-  Make (Nfa.Lsb (Nfa.StrBv)) (NfaCollection.LsbStrBv) (Nfa.Lsb (Nfa.StrBv))
-    (NfaCollection.LsbStrBv)
-    (struct
-      module Str = Nfa.StrBv
-      module Nfa = Nfa.Lsb (Nfa.StrBv)
+module LsbStrBvExtra (B : Nfa.Base) = struct
+  module NfaO2 = Nfa.Lsb (Nfa.Str (B))
+  module Str = Nfa.StrBv (B)
+  module Nfa = Nfa.Lsb (Nfa.StrBv (B))
+  module Convert = NfaO.ConvertStr (B)
 
-      let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
+  let eval_reg _vars _reg _atoms = failwith "not implemented for string theory"
+  let eval_sreg _vars _atom _reg = failwith ""
+  let eval_sregraw _vars _atom _reg = failwith ""
+  let char_to_v = char_to_strbv
+  let nat_model_to_model = Fun.id
+
+  let nat_model_to_int c =
+    c
+    |> List.to_seq
+    |> Seq.filter (( <> ) Str.u_eos)
+    |> Seq.filter (( <> ) Str.u_null)
+    |> List.of_seq
+    |> List.rev
+    |> Base.List.drop_while ~f:(( = ) Str.u_zero)
+    |> List.map strbv_to_char
+    |> Base.String.of_list
+    |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
+  ;;
+
+  let int_to_model n =
+    n |> Z.to_string |> String.to_seq |> List.of_seq |> List.rev |> List.map char_to_v
+  ;;
+end
+
+module LsbStrBv (B : Nfa.Base) =
+  Make
+    (Nfa.Lsb (Nfa.StrBv (B))) (NfaCollection.LsbStrBv (B)) (Nfa.Lsb (Nfa.StrBv (B)))
+    (NfaCollection.LsbStrBv (B))
+    (LsbStrBvExtra (B))
+
+module LsbStrBv10 =
+  Make
+    (Nfa.Lsb
+       (Nfa.StrBv (Nfa.Base10))) (NfaCollection.LsbStrBv (Nfa.Base10))
+       (Nfa.Lsb (Nfa.StrBv (Nfa.Base10)))
+    (NfaCollection.LsbStrBv (Nfa.Base10))
+    (struct
+      include LsbStrBvExtra (Nfa.Base10)
+      module Convert = NfaO.ConvertStr (NfaO.Base10)
 
       let eval_sreg vars atom reg =
         let nfa = reg |> NfaO.String.of_regex in
-        let nfa = nfa |> NfaO.convert_nfa_lsb in
+        let nfa = nfa |> Convert.lsb in
         Debug.dump_nfa ~msg:"SREG %s" ~vars:(Map.to_alist vars) Nfa.format_nfa nfa;
         (*let reenum = Map.singleton (Map.find_exn vars atom) 0 in*)
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
 
-      let eval_sregraw vars atom reg =
-        let nfa = reg |> NfaO.convert_nfa_lsb in
+      let eval_sregraw : (Ir.atom, int) Map.t -> Ir.atom -> NfaO.String.u -> Nfa.t =
+        fun vars atom reg ->
+        let nfa = reg |> Convert.lsb in
         let reenum = Map.singleton (Map.find_exn vars atom) 0 in
         Nfa.reenumerate reenum nfa
       ;;
-
-      let model_to_int c =
-        c
-        |> List.to_seq
-        |> Seq.filter (( <> ) Str.u_eos)
-        |> Seq.filter (( <> ) Str.u_null)
-        |> List.of_seq
-        |> List.rev
-        |> Base.List.drop_while ~f:(( = ) Str.u_zero)
-        |> List.map strbv_to_char
-        |> Base.String.of_list
-        |> fun s -> if String.length s = 0 then Z.zero else Z.of_string s
-      ;;
-
-      let nat_model_to_int = model_to_int
-      let char_to_v = char_to_strbv
-      let nat_model_to_model = Fun.id
-
-      let int_to_model n =
-        n |> Z.to_string |> String.to_seq |> List.of_seq |> List.rev |> List.map char_to_v
-      ;;
-    end)*)
+    end)
 
 module MsbStrExtra (B : Nfa.Base) = struct
   module NfaO = Nfa
@@ -1479,7 +1511,11 @@ let check_sat ir
       match Config.config.logic, Config.config.mode with
       | `Str, `Lsb ->
         trace_log "Running string LSB mode";
-        failwith "LSB mode is temporarily disabled"
+        if !Config.base = 10
+        then LsbStr10.check_sat
+        else
+          let module LsbStr = LsbStr (B) in
+          LsbStr.check_sat
       | `Str, `Msb ->
         trace_log "Running string MSB mode";
         if !Config.base = 10
@@ -1489,7 +1525,11 @@ let check_sat ir
           MsbStr.check_sat
       | `StrBv, `Lsb ->
         trace_log "Running string-bitvector LSB mode";
-        failwith "LSB mode is temporarily disabled"
+        if !Config.base = 10
+        then wrap LsbStrBv10.check_sat
+        else
+          let module LsbStrBv = LsbStrBv (B) in
+          wrap LsbStrBv.check_sat
       | `StrBv, `Msb ->
         trace_log "Running string-bitvector MSB mode";
         if !Config.base = 10
