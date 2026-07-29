@@ -3,6 +3,7 @@
 (declare-const x Int)
 (declare-const y Int)
 (declare-const z Int)
+(declare-const u Int)
 (declare-const a Int)
 (declare-const b Int)
 (declare-const c Int)
@@ -149,7 +150,7 @@
 ; (pop 1)
 
 ;(push 1)
-;  (assert (= eee2 (+ u z 100)))
+;  (assert (= c (+ y z 100)))
 ;  (assert (<= x (- 1)))
 ;  (get-model)
 ;(pop 1)

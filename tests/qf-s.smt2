@@ -131,7 +131,7 @@
 (pop 1)
 
 (push 1)
-  (assert (= eeb5 (* 10 (exp 10 (exp 10 p)))))
+  (assert (= x (* 10 (exp 10 (exp 10 q)))))
   (check-sat)
 (pop 1) ; sat
 

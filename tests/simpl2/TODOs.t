@@ -210,9 +210,10 @@ $ CHRO_DEBUG=simpl Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | se
   
   $ cat > XXXX.smt2 <<-EOF
   > (set-logic ALL)
-  > (declare-fun i3 () Int)
-  > (declare-fun it134 () Int)
-  > (declare-fun it1110 () Int)
+  > (declare-fun it360 () Int)
+  > (declare-fun it361 () Int)
+  > (declare-fun it362 () Int)
+  > (declare-fun it376 () Int)
   > (assert (and
   >    (= (+ it376 (* (- 3) it361) (* 2 (exp it362 3))) 0)
   >    (= (* 0 it360) 0)

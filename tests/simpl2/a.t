@@ -33,6 +33,7 @@
   $ cat > sum_join1.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun x () Int)
+  > (declare-fun n () Int)
   > (assert (= (+ (* n (exp 2 n)) ;(* x (exp 2 n))
   >               (* (- 1) n (exp 2 n))
   >               )

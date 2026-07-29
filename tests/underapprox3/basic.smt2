@@ -2,6 +2,7 @@
 
 (declare-const a String)
 (declare-const b String)
+(declare-const c String)
 
 (assert (= a "1"))
 (assert (= b "1"))

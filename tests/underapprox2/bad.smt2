@@ -4,9 +4,9 @@
 (declare-fun z () Int)
 
 (assert (and
-           (= (+ (* 5 (exp 2 z)) (exp 2 (+ u7 z))) y)
+           (= (+ (* 5 (exp 2 z)) (exp 2 (+ x z))) y)
            (<= y 1000000)
 ;           (<= 10 z)
-;           (<= (* (- 1) (exp 2 u7)) (- 989))
+;           (<= (* (- 1) (exp 2 x)) (- 989))
 ))
 (check-sat)

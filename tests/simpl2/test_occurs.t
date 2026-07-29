@@ -69,10 +69,11 @@
 
   $ cat > 4.smt2 <<-EOF
   > (set-logic ALL)
-  > (declare-fun a () Int)
-  > (declare-fun v () Int)
-  > (declare-fun x () Int)
-  > (declare-fun z () Int)
+  > (declare-fun i4 () Int)
+  > (declare-fun it19 () Int)
+  > (declare-fun it21 () Int)
+  > (declare-fun it23 () Int)
+  > (declare-fun it57 () Int)
   > (assert (and
   >           (= (+ it19 it23 (* (- 1) i4)) (- 1))
   >           (= (+ it21 it57 (* (- 1) it21) (* (- 1) it57)) 0)
@@ -106,10 +107,13 @@
 
   $ cat > 5.smt2 <<-EOF
   > (set-logic ALL)
-  > ;(declare-fun a () Int)
-  > ;(declare-fun v () Int)
-  > ;(declare-fun x () Int)
-  > (declare-fun z () Int)
+  > (declare-fun it19 () Int)
+  > (declare-fun it198 () Int)
+  > (declare-fun it199 () Int)
+  > (declare-fun it200 () Int)
+  > (declare-fun it232 () Int)
+  > (declare-fun it233 () Int)
+  > (declare-fun z () Int) 
   > (assert
   >   (= (+ (* it198 (- 1)) it232 (* it19 (- 3))) 0) )
   > (assert
