@@ -1377,7 +1377,6 @@ module Msb =
       let int_to_model n = n |> Utils.to_bits |> Base.List.rev |> fun x -> false :: x
     end)
 
-let is_internal = String.starts_with ~prefix:"%"
 let ( let* ) = Result.bind
 let return = Result.ok
 

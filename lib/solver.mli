@@ -11,6 +11,3 @@ val check_sat
      ]
 
 exception Too_long_model
-
-(* TODO(Kakadu): Move somewhere else... *)
-val is_internal : string -> bool

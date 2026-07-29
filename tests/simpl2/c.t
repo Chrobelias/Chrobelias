@@ -3,7 +3,7 @@
   > (declare-fun x () Int)
   > (declare-fun y () Int)
   > (declare-fun z () Int)
-  > (assert (= (+ it2 (* (- 1) i2)) 2) )
+  > (assert (= (+ x (* (- 1) y)) 2) )
   > (assert (= (* (- 2) z) 0) )
   > (check-sat)
   > EOF
@@ -14,18 +14,18 @@
   [+simpl]
     iter(1)= (and
              (= (* (- 2) z) 0)
-             (= (+ (- 2) it2 (* (- 1) i2)) 0))
+             (= (+ (- 2) x (* (- 1) y)) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
     Something ready to substitute
-        it2 -> (+ 2 i2);
+        x -> (+ 2 y);
         z -> 0;
   
   [+simpl]
     iter(2)= (and
-             (= (+ (- 2) (* (- 1) i2) it2) 0)
+             (= (+ (- 2) x (* (- 1) y)) 0)
              (= (* (- 2) z) 0))
   [+simpl]
     iter(3)= True

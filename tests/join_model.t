@@ -1,5 +1,9 @@
   $ cat > testS1.smt2 <<-EOF
   > (set-logic ALL)
+  > (declare-const u Int)
+  > (declare-const x Int)
+  > (declare-const z Int)
+  > (declare-const y Int)
   > (assert (= (+ 5 y (* (- 7) u)) 0))
   > (assert (= (+ 2 y (* (- 3) x)) 0))
   > (assert (>= z 100))
@@ -7,53 +11,53 @@
   > (get-model)
   > EOF
   $ CHRO_DEBUG=chro:simpl Chro -no-over -bound 0 --dsimpl --stop-after simpl testS1.smt2 | sed 's/[[:space:]]*$//'
-  Base now is 2
+  [+chro]
+    Base now is 2
   
-  Basic simplifications:
+  [+chro]
+    Checking eia sat (ast = (and
+                            (<= (+ 100 (* (- 1) z)) 0)
+                            (= (+ 2 y (* (- 3) x)) 0)
+                            (= (+ 5 y (* (- 7) u)) 0)))
   
-  iter(1)= (and
-             (<= 100 z)
-             (= (+ (+ 2 y) (* (* (- 1) 3) x)) 0)
-             (= (+ (+ 5 y) (* (* (- 1) 7) u)) 0))
-  Alphabet with extra char: 0
+  [+simpl]
+    Basic simplifications:
   
-  Something ready to substitute
-        y -> (+ (- 5) (* 7 u));
+  [+simpl]
+    iter(1)= (and
+             (<= (+ 100 (* (- 1) z)) 0)
+             (= (+ 2 y (* (- 3) x)) 0)
+             (= (+ 5 y (* (- 7) u)) 0))
+  [+simpl]
+    Alphabet with extra char: 0
   
-  iter(2)= (and
-             (= (+ y (* (- 3) x)) (- 2))
-             (<= 100 z))
-  iter(3)= (and
-             (= (+ (* (- 3) x) (* 7 u)) 3)
-             (<= 100 z))
-  fixed-point
+  [+simpl]
+    Something ready to substitute
+        y -> (+ (- 2) (* 3 x));
   
-  Bound for underapproximation: 6
+  [+simpl]
+    iter(2)= (and
+             (= (+ 2 (* (- 3) x) y) 0)
+             (= (+ 5 (* (- 7) u) y) 0)
+             (<= (+ 100 (* (- 1) z)) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ 3 (* (- 7) u) (* 3 x)) 0)
+             (<= (+ 100 (* (- 1) z)) 0))
+  [+simpl]
+    fixed-point
   
-  Interesting:
-  
-  Expecting 1 choices ...
-  
-  lib/Underapprox.ml gives early Sat.
   sat (under int)
-  Base now is 2
-  
-  Calculating the model
-  NFA model:
-    (
-  
-  )
-  Env      :
-     u -> 3; x -> 6; y -> (+ (- 5) (* 7 u)); z -> 100;
-  Regexes: :
+  [+chro]
+    Base now is 2
   
   (
      (define-fun u () Int
-      3)
+      0)
      (define-fun x () Int
-      6)
+      -1)
      (define-fun y () Int
-      16)
+      -5)
      (define-fun z () Int
       100)
   )

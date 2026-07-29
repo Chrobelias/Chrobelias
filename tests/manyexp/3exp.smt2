@@ -2,7 +2,7 @@
 
 (declare-const x Int)
 (declare-const y Int)
-(declare-const y Int)
+(declare-const z Int)
 (declare-const u Int)
 
 (push 1)

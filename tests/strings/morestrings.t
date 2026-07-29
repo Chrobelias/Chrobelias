@@ -1,5 +1,6 @@
   $ cat > 1.smt2 <<-EOF
   > (set-logic ALL)
+  > (declare-const x Int)
   > (assert (= (str.len "12345") (+ 0 5)))
   > (assert (= x (str.to.int "12345")) )
   > (check-sat)

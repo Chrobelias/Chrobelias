@@ -14,6 +14,7 @@ let () = Config.parse_args ()
 let trace_log fmt = Debug.trace "chro" fmt
 let smt_status = ref None
 let sat_found = ref false
+let is_internal = String.starts_with ~prefix:"%"
 
 let () =
   Sys.set_signal
@@ -113,7 +114,7 @@ let construct_model tys env model regexes =
       match seek prefix key with
       | Some value -> Map.set acc ~key ~data:value
       | None -> acc)
-    |> Map.filter_keys ~f:(Fun.negate Solver.is_internal)
+    |> Map.filter_keys ~f:(Fun.negate is_internal)
   in
   let prefix = "strlen" in
   let strlenvar var = prefix ^ var in
@@ -214,6 +215,11 @@ let construct_model tys env model regexes =
         else acc)
       regexes
   in
+  Debug.trace "Model" "tys length = %d" (Map.length tys);
+  Debug.trace
+    "Model"
+    "String model:\n  %s"
+    (Model.to_string (Map.filter_keys ~f:(Map.mem tys) string_model));
   let env = Env.enrich2 env string_model in
   Map.fold
     ~f:(fun ~key ~data acc ->
@@ -1076,7 +1082,7 @@ let () =
       (* config.pre_simpl <- false; *)
       state
     | Smtml.Ast.Push _ ->
-      { asserts = []; prev = Some state; last_result = None; tys = Map.empty }
+      { asserts = []; prev = Some state; last_result = None; tys = state.tys }
     | Smtml.Ast.Pop _ ->
       begin match prev with
       | Some state -> state
@@ -1094,6 +1100,9 @@ let () =
       let ast =
         Ast.land_ (if List.is_empty all_asserts then [ Ast.True ] else all_asserts)
       in
+      Set.diff (Ast.collect_free_vars ast) (Set.of_list (Map.keys state.tys))
+      |> Set.filter ~f:(Fun.negate is_internal)
+      |> Set.iter ~f:(fun var -> Printf.eprintf "(error: unknown constant %s)\n%!" var);
       if config.logic = `Eia && Lib.Ast.is_str ast
       then config.logic <- (if Lib.Config.config.no_str_bv then `Str else `StrBv);
       let common_base = Lib.Ast.find_common_base ast |> Option.map Z.to_int in

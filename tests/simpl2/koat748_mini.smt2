@@ -7,6 +7,7 @@
 (declare-fun it1142 () Int)
 (declare-fun it1143 () Int)
 (declare-fun it57 () Int)
+(declare-fun it134 () Int)
 
 (assert
   (>= (+ 2

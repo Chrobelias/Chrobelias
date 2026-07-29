@@ -1,5 +1,8 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2026, Chrobelias. *)
+
+module Set = Base.Set.Poly
+
 let compare_string = String.compare
 let compare_int = Int.compare
 let compare_list f = Base.List.compare f
@@ -543,7 +546,6 @@ module Eia = struct
   ;;
 
   let collect_vars (type a) (term : a term) =
-    let module Set = Base.Set.Poly in
     fold_term
       (fun acc -> function
          | Atom (Var (x, I)) -> Set.add acc x
@@ -1006,7 +1008,6 @@ let rec in_chrob_len v ast =
 ;;
 
 let collect_lin_exp ast =
-  let module Set = Base.Set.Poly in
   fold
     (fun (lin, exp) ast ->
        let open Eia in
@@ -1035,7 +1036,6 @@ let collect_lin_exp ast =
 ;;
 
 let collect_str_vars ast =
-  let module Set = Base.Set.Poly in
   fold
     (fun vars ast ->
        let open Eia in
@@ -1067,7 +1067,6 @@ let collect_all acc eia =
 ;;
 
 let collect_vars =
-  let module Set = Base.Set.Poly in
   fold
     (fun acc -> function
        | Eia eia ->
@@ -1084,13 +1083,26 @@ let collect_vars =
     Set.empty
 ;;
 
+let collect_free_vars ast =
+  let vars = collect_vars ast in
+  let bound =
+    ast
+    |> fold
+         (fun acc -> function
+            | Exists (atoms, ast) ->
+              List.fold_left (fun acc (Any_atom (Var (v, _))) -> Set.add acc v) acc atoms
+            | _ -> acc)
+         Set.empty
+  in
+  Set.diff vars bound
+;;
+
 let get_vars eia =
   eia |> collect_all ([], [], []) |> fun (x, y, z) -> List.concat [ x; y; z ]
 ;;
 
 let collect_all ast =
   let remove_dups l = l |> Base.Set.Poly.of_list |> Base.Set.Poly.to_list in
-  let module Set = Base.Set.Poly in
   fold
     (fun acc ast ->
        match ast with
@@ -1106,7 +1118,6 @@ let get_int_vars ast = ast |> collect_all |> fun (x, y, z) -> y
 let get_exp_vars ast = ast |> collect_all |> fun (x, y, z) -> z
 
 let get_lin_vars ast =
-  let module Set = Base.Set.Poly in
   fold
     (fun acc ast ->
        match ast with
@@ -1190,7 +1201,6 @@ let rec equal ast ast' =
   let safe_eq_eia eia eia' =
     let open Eia in
     let eq_lin_term term1 term2 =
-      let module Set = Base.Set.Poly in
       match term1, term2 with
       | Add terms1, Add terms2 -> Set.equal (Set.of_list terms1) (Set.of_list terms2)
       | term1, term2 -> Stdlib.(term1 = term2)
@@ -1243,7 +1253,6 @@ let lxor_ xs =
 ;;
 
 let to_nat ast =
-  let module Set = Base.Set.Poly in
   let nat_prefixes =
     [ "%r"
     ; "%under2"
