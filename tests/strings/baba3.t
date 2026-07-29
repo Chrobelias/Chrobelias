@@ -7,6 +7,8 @@ $ cat baba3.smt2
       "BabBabBabBabBabBabBabBab")
      (define-fun b () String
       "2")
+     (define-fun q () Int
+      24)
   )
   $ Chro ./baba3.smt2
   sat (under int)
@@ -15,5 +17,7 @@ $ cat baba3.smt2
       "BabBabBabBabBabBabBabBab")
      (define-fun b () String
       "2")
+     (define-fun q () Int
+      24)
   )
 
