@@ -254,27 +254,30 @@ and to_ast tys orig_expr : Ast.t =
   (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
-  let is_str tys expr =
-    (Expr.ty expr = Ty.Ty_str
-     &&
-       match Expr.view expr with
-       | Expr.Unop (_, Ty.Unop.Length, _)
-       | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ _ ])
-       | Expr.Cvtop (_, Ty.Cvtop.String_to_int, _) -> false
-       | _ -> true)
-    ||
-      match Expr.view expr with
-      | Expr.Symbol symbol ->
-        Option.bind
-          (Base.Map.Poly.find tys (Symbol.to_string symbol))
-          (function
-            | `Str -> Option.some true
-            | _ -> Option.none)
-        |> Option.is_some
-      | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ _ ])
-      | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ _ ])
-      | Expr.Cvtop (_, Ty.Cvtop.ToString, _) -> true
-      | _ -> false
+  let rec is_str tys expr =
+    match Expr.view expr with
+    | Expr.Triop (_, Ty.Triop.Ite, _, t, e) -> is_str tys t || is_str tys e
+    | _ ->
+      (Expr.ty expr = Ty.Ty_str
+       &&
+         match Expr.view expr with
+         | Expr.Unop (_, Ty.Unop.Length, _)
+         | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ _ ])
+         | Expr.Cvtop (_, Ty.Cvtop.String_to_int, _) -> false
+         | _ -> true)
+      ||
+        (match Expr.view expr with
+        | Expr.Symbol symbol ->
+          Option.bind
+            (Base.Map.Poly.find tys (Symbol.to_string symbol))
+            (function
+              | `Str -> Option.some true
+              | _ -> Option.none)
+          |> Option.is_some
+        | Expr.App ({ name = Symbol.Simple "str.from_int"; _ }, [ _ ])
+        | Expr.App ({ name = Symbol.Simple "str.from.int"; _ }, [ _ ])
+        | Expr.Cvtop (_, Ty.Cvtop.ToString, _) -> true
+        | _ -> false)
   in
   let to_regex_helper term re =
     let term =
