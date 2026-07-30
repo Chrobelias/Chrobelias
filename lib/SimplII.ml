@@ -1710,6 +1710,7 @@ type action =
 
 let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast : Ast.t) =
   let open Ast in
+  let open Ast.Eia in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
   let trivial_simplify eta = subst_term Env.empty eta in
   let noprop = Noprop in
@@ -1717,20 +1718,49 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     Eia.fold_term
       (fun acc el ->
          match el with
-         | Eia.At _ | Eia.Substr _ -> false
+         | At _ | Substr _ -> false
          | _ -> acc)
       (fun acc el ->
          match el with
-         | Eia.At _ | Eia.Substr _ -> false
+         | At _ | Substr _ -> false
          | _ -> acc)
       true
       eia
   in
+  (* A variable constrained by a unary range (typically the remainder that
+   lowering [mod] introduces, with 0 <= %r < c) must not be propagated into a
+   term over several variables: its range constraints get rewritten into ones
+   coupling all of them, and the automata solver pays dearly for that
+   coupling. See gh-245. *)
+  let ranged_vars =
+    lazy
+      (collect_atomic ast
+       |> List.fold_left
+            (fun acc -> function
+               | Eia eia ->
+                 let vs =
+                   Eia.fold2
+                     (fun acc -> function
+                        | Atom (Var (s, _)) -> Set.add acc s
+                        | _ -> acc)
+                     (fun acc -> function
+                        | Atom (Var (s, _)) -> Set.add acc s
+                        | _ -> acc)
+                     Set.empty
+                     eia
+                 in
+                 if Set.length vs = 1 then Set.union acc vs else acc
+               | _ -> acc)
+            Set.empty)
+  in
+  let breaks_range vn rhs =
+    Set.length (collect_vars rhs) > 1 && Set.mem (Lazy.force ranged_vars) vn
+  in
   let returni vn rhs =
-    if is_simpl rhs
+    if is_simpl rhs && not (breaks_range vn rhs)
     then
       if Option.value ~default:false soft
-      then PropAndPreserve (Ast.Eia.Atom (Ast.var vn Ast.I), rhs, Ast.I)
+      then PropAndPreserve (Atom (var vn I), rhs, I)
       else Prop (vn, Ast.TT (Ast.I, rhs))
     else noprop
   in
@@ -1752,8 +1782,8 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     let cnt lhs =
       Ast.fold
         (fun acc -> function
-           | Ast.Eia eia ->
-             Ast.Eia.fold2
+           | Eia eia ->
+             fold2
                (fun acc term -> if term = lhs then acc + 1 else acc)
                (fun acc _term -> acc)
                acc
@@ -1767,85 +1797,11 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     | _ -> noprop
   in
   let helper info orig_ast env ast =
-    (*<<<<<<< HEAD
-    let module Set = Base.Set.Poly in
-  let get_atoms =
-    Ast.Eia.fold2
-        (fun acc -> function
-          | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
-           | _ -> acc)
-        (fun acc -> function
-          | Ast.Eia.Atom (Ast.Var (s, _)) -> Set.add acc s
-           | _ -> acc)
-        Set.empty
-  in
-    (*let is_simple_eia eia =
-      let on_int_term acc = function
-        | Ast.Eia.Atom (Ast.Var (s, I)) -> Set.add acc s
-        | _ -> acc
-  in
-      let on_str_term acc = function
-        | Ast.Eia.Atom (Ast.Var (s, S)) -> Set.add acc s
-        | _ -> acc
-  in
-      Ast.Eia.fold_term on_int_term on_str_term Set.empty eia |> Set.length <= 1
-  in*)
-    let in_strlen_eia v eia =
-      Eia.fold2
-        (fun acc el ->
-          match el with
-           | Eia.Len (Eia.Atom (Var (s, S))) when s = v -> true
-           (*| Eia.Atom (Var (s, _)) when s = String.concat "" [ "strlen"; v ] -> true*)
-           | _ -> acc)
-        (fun acc _ -> acc)
-        false
-        eia
-  in
-    let rec in_strlen v ast =
-      match ast with
-      | True | Pred _ -> false
-      | Eia eia ->
-          begin match eia with
-        | Eia.RLen (Eia.Atom (Var (s, _)), _) when s = v -> true
-        | _ -> in_strlen_eia v eia
-  end
-    | Lnot ast' | Exists (_, ast') -> in_strlen v ast'
-      | Land asts | Lor asts ->
-          List.fold_left (fun acc ast -> acc || in_strlen v ast) false asts
-    | Unsupp _ -> false
-  in
-    let rec in_in_re_rawi v ast =
-      match ast with
-      | True | Pred _ -> false
-      | Eia (InReRaw (Ast.Eia.Atom (Ast.Var (v, I)), I, _)) -> true
-      | Eia _ -> false
-      | Lnot ast' | Exists (_, ast') -> in_in_re_rawi v ast'
-      | Land asts | Lor asts ->
-          List.fold_left (fun acc ast -> acc || in_in_re_rawi v ast) false asts
-    | Unsupp _ -> false
-  in
-    let var_can_subst v =
-      =======*)
     let var_can_be_prop ?rhs v =
-      (*>>>>>>> 23fa0fa19 (solver: add ite support)*)
       Env.is_absent_key v env
       && Option.value
            ~default:true
            (Option.map (fun rhs -> Env.occurs_var env v rhs |> not) rhs)
-      (*&& not
-           (Ast.forsome
-                 (function
-                   | Ast.Eia eia ->
-                       Ast.Eia.fold2
-                       (fun acc -> function
-                         | Ast.Eia.Pow (_, Ast.Eia.Atom (Ast.Var (v', Ast.I))) when v = v'
-                            -> true
-    | _ -> acc)
-                       (fun acc _ -> acc)
-                       false
-                       eia
-    | _ -> false)
-                 ast)*)
     in
     let var_can_subst_complex v = var_can_be_prop v && not (Ast.in_strlen v ast) in
     let trivial_integer_propagations vn rhs =
@@ -1859,12 +1815,10 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
         if var_can_subst_complex vn then returni vn rhs else returni vn rhs
       | _ -> noprop
     in
-    let advanced_integer_propagations (lhs : Z.t Ast.Eia.term) (rhs : Z.t Ast.Eia.term)
-      : action
-      =
+    let advanced_integer_propagations (lhs : Z.t term) (rhs : Z.t term) : action =
       let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
       let single =
-        fun c1 (Ast.Var (vn1, _) as v1) c2 (Ast.Var (vn2, _) as v2) rhs ->
+        fun c1 (Var (vn1, _) as v1) c2 (Var (vn2, _) as v2) rhs ->
         let is_bad v =
           (not (var_can_subst_complex v))
           || Info.is_in_expo v info
@@ -1939,11 +1893,11 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     in
     let last_resort lhs rhs =
       match lhs, rhs with
-      | Ast.Eia.Add xs, Ast.Eia.Const z
+      | Add xs, Const z
         when z = Z.zero
              && List.exists
                   (function
-                    | Ast.Eia.Atom (Var (x, _)) -> var_can_be_prop x
+                    | Atom (Var (x, _)) -> var_can_be_prop x
                     | _ -> false)
                   xs ->
         let filtered = ref false in
@@ -1951,7 +1905,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
         let xs =
           List.filter
             (function
-              | Ast.Eia.Atom (Var (vn', _)) when (not !filtered) && var_can_be_prop vn' ->
+              | Atom (Var (vn', _)) when (not !filtered) && var_can_be_prop vn' ->
                 vn := Option.some vn';
                 filtered := true;
                 false
@@ -2035,65 +1989,6 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
         end
       | smth -> smth
       end
-      (*| Eia (Eia.Eq (Add sums, Const rhs, I)) when Z.(zero = rhs) ->
-            (* (= (+ ...) 0) *)
-            let not_touched_by_env env term =
-              try
-                let f env = function
-                  | Eia.Atom (Var (v, _)) when not (Env.is_absent_key v env) -> raise Exit
-            | _ -> env
-    in
-          let _ : Env.t = Eia.fold_term f (fun acc _ -> acc) env term in
-  true
-          with
-        | Exit -> false
-  in
-      let maybe_extend env vn v data ~fk =
-        if not (Env.occurs_var env vn data) then extend_exn env v data else fk ()
-  in
-      let is_bad v = Info.is_in_expo v info || Info.is_in_string v info in
-  let rec loop acc = function
-    | Eia.Atom (Var (v, _)) :: _ when not (Env.is_absent_key v env) -> raise Exit
-        | Eia.Atom (Var (vn, _) as v) :: xs
-          when var_can_subst_complex vn && not (is_bad vn) ->
-            let data = S.(mul [ constz Z.minus_one; add (acc @ xs) ]) in
-  maybe_extend env vn v data ~fk:(fun () -> loop (Eia.Atom v :: acc) xs)
-        | (Mul [ Const c; Eia.Atom (Var (vn, _) as v) ] as leftmost) :: xs
-          when var_can_subst_complex vn
-               && (not (is_bad vn))
-               && Z.(equal (of_int (-1)) c)
-               && not_touched_by_env env (Eia.Add acc)
-               && not_touched_by_env env (Eia.Add xs) ->
-                 let data = S.(mul [ add (acc @ xs) ]) in
-  maybe_extend env vn v data ~fk:(fun () -> loop (leftmost :: acc) xs)
-        | h :: tl -> loop (h :: acc) tl
-        | [] -> raise Exit
-  in
-      (try Some (loop [] sums) with
-       | Exit -> None)
-    | Eia (Eia.Eq (Atom (Var (vn, _)), rhs, _))
-      when match rhs with
-           | Bwand _ | Bwor _ | Bwxor _ -> true
-           | _ -> false -> None
-    | Eia (Eia.Eq (Atom (Var (vn, _) as v), rhs, _) as eia')
-      when (not (Env.occurs_var env vn rhs))
-           && var_can_subst_complex vn
-           && Ast.forsome
-                (function
-                  | Eia eia'' when eia' <> eia'' && List.mem vn (Ast.get_vars eia'') ->
-                      true
-        | _ -> false)
-                orig_ast -> Some (extend_exn env v rhs)
-        | Eia (Eia.Eq (lhs, Atom (Var (vn, _)), _))
-      when match lhs with
-           | Bwand _ | Bwor _ | Bwxor _ -> true
-           | _ -> false -> None
-    | Eia (Eia.Eq (lhs, Atom (Var (vn, _) as v), _) as eia')
-      when var_can_subst_complex vn
-           && (function
-             | Eia eia'' when eia' <> eia'' && List.mem vn (Ast.get_vars eia'') -> true
-                | _ -> false)
-                orig_ast -> Some (extend_exn env v lhs)*)
     | eq -> noprop
   in
   let handle_action env ast = function
@@ -2125,20 +2020,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       env, ast
     | PropLen (s, len) ->
       let many_words = 10 in
-      let unfold_nfa_with_fixed_len _len _nfa =
-        (*try
-                    let len = Z.to_int len in
-                let words =
-                  NfaS.all_paths_of_len nfa len ~limit:many_words
-            |> List.map (fun c -> String.sub (List.to_seq c |> String.of_seq) 0 len)
-            |> List.map (fun word ->
-                if String.length word <> len then failwith "lengths doesn't match" else word)
-                in
-          Option.some words
-        with
-        | _ ->*)
-        None
-      in
+      let unfold_nfa_with_fixed_len _len _nfa = None in
       let words_into_disjunction ?default words =
         if Option.is_some default && List.length words > many_words
         then default |> Option.get
@@ -2169,36 +2051,9 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
                 unfold_nfa_with_fixed_len len nfa
                 |> Option.map words_into_disjunction
                 |> Option.value ~default:orig
-              (*| Eia eia ->
-                Eia.map2
-                  Fun.id
-                  (function
-                    | Eia.Len (Ast.Eia.Atom (Ast.Var (s', S))) when s = s' ->
-                        removed_orig := true;
-                      Ast.Eia.const len
-              | eia -> eia)
-            Fun.id
-                  eia
-              |> Ast.eia*)
               | el -> el)
             ast
         in
-        (*let (module Sym) = make_main_symantics Env.empty in
-      let ast = apply_symantics (module Sym) ast in
-      if !removed_orig
-        then begin
-          let module Sym = Id_symantics in
-      let orig =
-        Sym.eqz
-              (Sym.add
-                 [ Sym.constz len
-                 ; Sym.mul [ Sym.constz Z.minus_one; Sym.str_len (Sym.str_var s) ]
-                 ])
-              (Sym.constz Z.zero)
-      in
-          Ast.land_ [ ast; orig ]
-          end
-        else*)
         ast
       in
       env, ast
@@ -2221,6 +2076,12 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       let ast = Ast.land_ [ S.eq_str term rhs; ast ] in
       env, ast
     | Noprop -> env, ast
+  in
+  let propagate =
+    List.map (fun y ->
+      let env, ph = eq_propagation ~soft:true info env y in
+      let (module Symantics) = make_main_symantics env in
+      apply_symantics_unsugared (module Symantics) ph)
   in
   match ast with
   | Land xs ->
@@ -2261,32 +2122,17 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     in
     let ph =
       match ph with
-      | Ast.Land xs ->
-        Ast.land_
+      | Land xs ->
+        land_
           (List.map
              (function
-               | Ast.Lor ys ->
-                 Ast.lor_
-                   (List.map
-                      (fun y ->
-                         let env, ph = eq_propagation ~soft:true info env y in
-                         let (module Symantics) = make_main_symantics env in
-                         apply_symantics_unsugared (module Symantics) ph)
-                      ys)
+               | Lor ys -> lor_ (propagate ys)
                | el -> el)
              xs)
       | ph -> ph
     in
     env, ph
-  | Ast.Lor ys ->
-    ( env
-    , Ast.lor_
-        (List.map
-           (fun y ->
-              let env, ph = eq_propagation ~soft:true info env y in
-              let (module Symantics) = make_main_symantics env in
-              apply_symantics_unsugared (module Symantics) ph)
-           ys) )
+  | Lor ys -> env, lor_ (propagate ys)
   | Eia _ ->
     let env, ph = handle_action env ast (helper info ast env ast) in
     env, ph
