@@ -6,6 +6,10 @@ module Sequence = Base.Sequence
 
 exception Too_big_nfa
 
+(** Raised by [all_paths_of_len ~limit] when the BFS frontier exceeds [limit].
+    Callers passing [~limit] are expected to catch it and degrade to unknown. *)
+exception Too_dense_graph
+
 type state = int
 type deg = int
 

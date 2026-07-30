@@ -238,7 +238,13 @@ let check_length ast =
           let v = var (strlens s) in
           eqs := Set.add !eqs (leq (const 0) v);
           v
-        | _ -> var (strlens "dummy")
+        (* A fresh, unconstrained length per unhandled term. Reusing one shared
+           variable would equate the lengths of unrelated terms, and this
+           over-approximation's [Unsat] is trusted by the caller. *)
+        | _ ->
+          let v = var (gensym ~prefix:"@@strlen_other" ()) in
+          eqs := Set.add !eqs (leq (const 0) v);
+          v
       ;;
 
       let eq_str lhs rhs = eqz (str_len lhs) (str_len rhs)

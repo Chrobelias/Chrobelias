@@ -275,17 +275,16 @@ let check bound ast =
     in
     let exception Early of env in
     let exception Early_Unsat in
+    (* Loop-invariant: the choice only contributes the [key = data] conjuncts,
+       and the choice space is exponential. *)
+    let base_ph = apply_symantics (make_sym Map.empty Fun.id Fun.id) ast in
     try
       Seq.iteri
         (fun i env ->
-           (*let ((module S : SYM with type repr = Smtml.Expr.t) as sym) =
-             make_sym env (fun s -> vars := Base.Set.add !vars s) bound
-           in
-           let ph = apply_symantics sym ast in*)
            let open FT_SIG.To_smtml_symantics in
            let ph =
              Map.fold
-               ~init:[ apply_symantics (make_sym Map.empty Fun.id Fun.id) ast ]
+               ~init:[ base_ph ]
                ~f:(fun ~key ~data acc -> eqz (var key) (constz (Z.of_int data)) :: acc)
                env
              |> land_

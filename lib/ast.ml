@@ -7,7 +7,7 @@ let compare_string = String.compare
 let compare_int = Int.compare
 let compare_list f = Base.List.compare f
 let compare_char = Char.compare
-let trace_log fmt = Debug.trace "nfa_collection" fmt
+let trace_log fmt = Debug.trace "ast" fmt
 
 type 'a kind =
   | I : Z.t kind
@@ -462,7 +462,8 @@ module Eia = struct
     match kind with
     | I ->
       begin match lhs, rhs with
-      | Pow (c, lhs), Pow (d, rhs) when c = d -> eq lhs rhs kind
+      | Pow (Const c, lhs), Pow (Const d, rhs)
+        when Z.equal c d && Z.(geq (abs c) (of_int 2)) -> eq lhs rhs kind
       | lhs, rhs -> eq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero) I
       end
     | S -> eq lhs rhs S
@@ -728,7 +729,7 @@ let eia = function
   | Eia.SuffixOf (Str_const a, Str_const b) ->
     if String.ends_with ~suffix:a b then true_ else false_
   | Eia.Contains (Str_const a, Str_const b) ->
-    if Base.String.is_substring ~substring:a b then true_ else false_
+    if Base.String.is_substring ~substring:b a then true_ else false_
   | eia -> Eia eia
 ;;
 

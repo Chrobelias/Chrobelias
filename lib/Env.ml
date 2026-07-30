@@ -167,22 +167,20 @@ let extend_cstrt_exn env ~key data =
     add_cstrt env key data
 ;;
 
+(* Unlike [extend_string_exn], re-binding an integer variable replaces the old
+   definition instead of failing: [eq_propagation] can reach the same variable
+   from two different equations. This does not lose a constraint, because
+   [Prop] leaves both original equations in the ast — after substitution a
+   contradicting pair reduces to [false] there. It stays distinct from
+   [set_int_exn], which additionally [walk]s the new value. *)
 let extend_int_exn e vname data =
   match SM.find e.env vname with
   | Some old_data ->
-    { e with env = SM.add_exn (SM.remove vname e.env) ~key:vname ~data }
-    (* if Ast.Eia.eq_term old_data data
+    if Ast.Eia.eq_term old_data data
     then e
-    else (
-      Format.eprintf "old value = %a\n" Ast.pp_term_smtlib2 old_data;
-      Format.eprintf "new value = %a\n" Ast.pp_term_smtlib2 data;
-      failwith (Format.sprintf "key %s aready exists." vname)) *)
+    else { e with env = SM.add_exn (SM.remove vname e.env) ~key:vname ~data }
   | None ->
-    (*let data = walk e data in*)
     if occurs_var e vname data then raise_occurs vname;
-    (*match data with
-    | Ast.Eia.Iofs _ | Len _ | Len2 _ -> add_cstrt e (Ast.Var (vname, I)) data
-    | _ -> *)
     { e with env = SM.add_exn e.env ~key:vname ~data }
 ;;
 

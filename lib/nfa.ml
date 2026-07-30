@@ -7,6 +7,10 @@ module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 module Sequence = Base.Sequence
 
+(** Raised by [all_paths_of_len ~limit] when the BFS frontier exceeds [limit].
+    Callers passing [~limit] are expected to catch it and degrade to unknown. *)
+exception Too_dense_graph
+
 let config = Config.config
 let trace_log fmt = Debug.trace "nfa" fmt
 
@@ -1694,7 +1698,6 @@ struct
       let frontier = Queue.create () in
       let rec bfs cool_paths =
         let cool_paths_cnt = Set.length cool_paths in
-        let exception Too_dense_graph in
         match Queue.take_opt frontier with
         | _ when Queue.length frontier >= Option.value ~default:Int.max_int limit ->
           raise Too_dense_graph

@@ -608,14 +608,14 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
 
     let str_substr term offset len =
       match term, offset, len with
-      | Ast.Eia.Str_const s, Ast.Eia.Const n, Ast.Eia.Const len ->
-        let n = Z.to_int n in
-        let len = Z.to_int len in
-        (try Ast.Eia.Str_const (String.sub s n len) with
-         | _ ->
-           if n < String.length s
-           then Ast.Eia.Str_const (String.sub s n (String.length s - n))
-           else Ast.Eia.Str_const "")
+      | Ast.Eia.Str_const s, Ast.Eia.Const m, Ast.Eia.Const n ->
+        let slen = Z.of_int (String.length s) in
+        if Z.(lt m zero) || Z.(leq n zero) || Z.(geq m slen)
+        then Ast.Eia.Str_const ""
+        else (
+          let m = Z.to_int m in
+          let n = Z.to_int Z.(min n (slen - of_int m)) in
+          Ast.Eia.Str_const (String.sub s m n))
       | Ast.Eia.Str_const "", _, _ -> Ast.Eia.Str_const ""
       | _ -> Ast.Eia.substr term offset len
     ;;
@@ -941,12 +941,20 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
 
     let eq_str lhs rhs =
       let open Ast.Eia in
-      let as_list : string Ast.Eia.term -> string Ast.Eia.term list = function
-        | Str_const _ as c -> [ c ]
-        | Atom (Var _) as v -> [ v ]
-        | Concat list -> list
-        | (Substr _ | At _) as v -> [ v ]
-        | _ -> []
+      (* [None] for a term [check_card] has no character count for (e.g. [Sofi]).
+         Returning [[]] instead would make [check_card] count it as contributing
+         zero characters and conclude [false_] for a satisfiable equation. *)
+      let as_list : string Ast.Eia.term -> string Ast.Eia.term list option = function
+        | Str_const _ as c -> Some [ c ]
+        | Atom (Var _) as v -> Some [ v ]
+        | Concat list -> Some list
+        | (Substr _ | At _) as v -> Some [ v ]
+        | _ -> None
+      in
+      let check_card lhs rhs =
+        match as_list lhs, as_list rhs with
+        | Some lhs, Some rhs -> check_card lhs rhs
+        | _ -> false
       in
       let nielsen lhs rhs =
         match lhs, rhs with
@@ -1016,7 +1024,7 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
         when Option.is_some alpha ->
           Id_symantics.in_re_raw v (Regex.str_to_re c |> NfaS.of_regex) *)
       | lhs, rhs when Eia.eq_term lhs rhs -> Ast.true_
-      | lhs, rhs when check_card (as_list lhs) (as_list rhs) -> Ast.false_
+      | lhs, rhs when check_card lhs rhs -> Ast.false_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
              | x :: _, y :: _ when x = y -> true
@@ -1832,8 +1840,13 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       | Len (Atom (Var _))
       | Len2 (Atom (Var _))
       | Sofi (Atom (Var _)) -> returni vn rhs
-      | Atom (Ast.Var (vn', _)) when vn' <> vn ->
-        if var_can_subst_complex vn then returni vn rhs else returni vn rhs
+      | Atom (Ast.Var (vn', I)) when vn' <> vn ->
+        if var_can_subst_complex vn
+        then returni vn rhs
+        else if
+          var_can_subst_complex vn' && not (Env.occurs_var env vn' (Atom (var vn I)))
+        then returni vn' (Atom (var vn I))
+        else noprop
       | _ -> noprop
     in
     let advanced_integer_propagations (lhs : Z.t term) (rhs : Z.t term) : action =
@@ -2016,7 +2029,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     | Prop (vn, Ast.TT (Ast.I, term)) ->
       let term = trivial_simplify term in
       ( (try Env.extend_int_exn env vn term with
-         | _ -> env)
+         | Env.Occurs -> env)
       , ast )
     | Prop (vn, Ast.TT (Ast.S, term)) ->
       let term = trivial_simplify term in
@@ -2525,40 +2538,83 @@ let rewrite_via_concat { Info.all; _ } =
   let extend_eq v other =
     extra_ph := Id_symantics.eq_str (Id_symantics.str_var v) other :: !extra_ph
   in
+  let extend_ph ph = extra_ph := ph :: !extra_ph in
   let module Rewrite = struct
     include Id_symantics
 
-    let str_substr (term : str) (offset : term) (len : term) =
-      let svar v = Ast.Eia.atom (Ast.var v S) in
+    let svar v = Ast.Eia.atom (Ast.var v S)
+
+    (* [u], [len_u] name the string being indexed and its length; [z1 . y . z2]
+       is the split that extracts the result [y]. Only the split itself is
+       conditional: the definitional equations hold in both branches. *)
+    let split_vars term =
+      let u = gensym () in
+      let len_u = gensym () in
       let z1 = gensym () in
       let z2 = gensym () in
       let len_z1 = gensym () in
-      let u = gensym () in
       let y = gensym () in
       let len_y = gensym () in
-      extend len_y (Ast.Eia.len (svar y));
-      extend len_y len;
-      extend len_z1 (Ast.Eia.len (svar z1));
-      extend len_z1 offset;
-      extend_eq u (Ast.Eia.concat [ svar z1; svar y; svar z2 ]);
       extend_eq u term;
+      extend len_u (Ast.Eia.len (svar u));
+      extend len_z1 (Ast.Eia.len (svar z1));
+      extend len_y (Ast.Eia.len (svar y));
+      let split =
+        Id_symantics.eq_str (svar u) (Ast.Eia.concat [ svar z1; svar y; svar z2 ])
+      in
+      u, var len_u, var len_z1, y, var len_y, split
+    ;;
+
+    let str_substr (term : str) (offset : term) (len : term) =
+      let _u, len_u, len_z1, y, len_y, split = split_vars term in
+      let zero = Ast.Eia.const Z.zero in
+      let in_range =
+        land_
+          [ leq zero offset
+          ; lt offset len_u
+          ; lt zero len
+          ; eqz len_z1 offset
+          ; split
+            (* [|y| = min (len, |u| - m)]: the second disjunct also forces
+             [z2 = ""] through [split]. *)
+          ; lor_
+              [ eqz len_y len
+              ; land_
+                  [ eqz
+                      len_y
+                      (Ast.Eia.add
+                         [ len_u; Ast.Eia.mul [ Ast.Eia.const Z.minus_one; offset ] ])
+                  ; leq len_y len
+                  ]
+              ]
+          ]
+      in
+      let out_of_range =
+        land_
+          [ lor_ [ lt offset zero; leq len zero; leq len_u offset ]
+          ; eq_str (svar y) (str_const "")
+          ]
+      in
+      extend_ph (lor_ [ in_range; out_of_range ]);
       svar y
     ;;
 
     let str_at (term : str) (pos : term) =
-      let svar v = Ast.Eia.atom (Ast.var v S) in
-      let z1 = gensym () in
-      let z2 = gensym () in
-      let len_z1 = gensym () in
-      let u = gensym () in
-      let y = gensym () in
-      let len_y = gensym () in
-      extend len_y (Ast.Eia.len (svar y));
-      extend len_y (Ast.Eia.const Z.one);
-      extend len_z1 (Ast.Eia.len (svar z1));
-      extend len_z1 pos;
-      extend_eq u (Ast.Eia.concat [ svar z1; svar y; svar z2 ]);
-      extend_eq u term;
+      let _u, len_u, len_z1, y, len_y, split = split_vars term in
+      let zero = Ast.Eia.const Z.zero in
+      let in_range =
+        land_
+          [ leq zero pos
+          ; lt pos len_u
+          ; eqz len_z1 pos
+          ; eqz len_y (Ast.Eia.const Z.one)
+          ; split
+          ]
+      in
+      let out_of_range =
+        land_ [ lor_ [ lt pos zero; leq len_u pos ]; eq_str (svar y) (str_const "") ]
+      in
+      extend_ph (lor_ [ in_range; out_of_range ]);
       svar y
     ;;
 

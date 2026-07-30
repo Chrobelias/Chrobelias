@@ -858,7 +858,6 @@ let%expect_test _ =
   let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int (-2)) in
   Format.printf "@[%a@] " pp_smtlib2 v;
   Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
-  (* wrong *)
   (* 3v <= -4 ~> v <= -2 *)
   let v = leq (Map.singleton (var "t") Z.(of_int 3)) (Z.of_int (-4)) in
   Format.printf "@[%a@] " pp_smtlib2 v;
@@ -879,8 +878,7 @@ let%expect_test _ =
   let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int (-6)) in
   Format.printf "@[%a@] " pp_smtlib2 v;
   Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
-  (* wrong *)
-  (* -7v <= 8 ~> -v <= -1 *)
+  (* -7v <= 8 ~> -v <= 1 *)
   let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 8) in
   Format.printf "@[%a@] " pp_smtlib2 v;
   Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
@@ -888,7 +886,7 @@ let%expect_test _ =
   let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 6) in
   Format.printf "@[%a@] " pp_smtlib2 v;
   Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
-  (* -7v <= 7 ~> -v <= -1 *)
+  (* -7v <= 7 ~> -v <= 1 *)
   let v = leq (Map.singleton (var "t") Z.(of_int (-7))) (Z.of_int 7) in
   Format.printf "@[%a@] " pp_smtlib2 v;
   Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq v);
