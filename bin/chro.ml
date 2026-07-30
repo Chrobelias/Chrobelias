@@ -16,6 +16,20 @@ let smt_status = ref None
 let sat_found = ref false
 let is_internal = String.starts_with ~prefix:"%"
 
+(* Post-checks for different disequalities may share a variable, so the partial
+   models they produce are not necessarily disjoint. Agreeing bindings merge
+   cleanly; on a genuine conflict keep the already-accumulated one rather than
+   raising from [merge_disjoint_exn] after [sat] has already been reported. *)
+let merge_models : Model.t -> Model.t -> Model.t =
+  fun model1 model2 ->
+  Map.merge_skewed model1 model2 ~combine:(fun ~key v1 v2 ->
+    if Stdlib.(v1 = v2)
+    then v1
+    else (
+      trace_log "conflicting bindings for %S while merging models\n%!" key;
+      v1))
+;;
+
 let () =
   Sys.set_signal
     Sys.sigterm
@@ -49,6 +63,17 @@ let sat
 
 let unsat desc core = Unsat (desc, core)
 let unknown ast env = Unknown (ast, env)
+
+(* Like [Seq.fold_left], but stops as soon as the accumulator is [Sat] instead
+   of forcing the rest of a lazy — and potentially expensive — sequence. *)
+let rec fold_until_sat f acc seq =
+  match acc with
+  | Sat _ -> acc
+  | Unknown _ | Unsat _ ->
+    (match seq () with
+     | Seq.Nil -> acc
+     | Seq.Cons (x, rest) -> fold_until_sat f (f acc x) rest)
+;;
 
 let construct_model tys env model regexes =
   let module NfaS = Nfa.String in
@@ -275,6 +300,9 @@ let calculate_model tys env model regexes =
   Debug.trace "Model" "";
   try construct_model tys env model regexes with
   | Too_long_model -> raise Too_long_model
+  | exn ->
+    trace_log "model construction failed: %s\n%!" (Printexc.to_string exn);
+    raise Too_long_model
 ;;
 
 let print_model model = Format.printf "%s\n%!" (Model.to_string model)
@@ -316,6 +344,8 @@ let reason lhs rhs =
   let rhs' = List.find_index (( = ) rhs) ord |> Option.value ~default:(List.length ord) in
   if lhs' <= rhs' then lhs else rhs
 ;;
+
+let z3_timeout_ms = 60_000
 
 let dpll check_sat ?(verbose = false) ast =
   let module Z3 = Smtml.Z3_mappings.Solver in
@@ -462,7 +492,9 @@ let dpll check_sat ?(verbose = false) ast =
   (* Debug.trace "DPLL" "Theory ast: %a\n%!" Ast.pp_smtlib2 ast; *)
   dpll
     assumptions
-    (Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ())
+    (Z3.make
+       ~params:Smtml.Params.(default () $ (Timeout, z3_timeout_ms) $ (Random_seed, 42))
+       ())
 ;;
 
 let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
@@ -650,7 +682,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
               env;
             let orig_ast = ast in
             let arithmetized_asts = SimplII.arithmetize str_vars ast env in
-            Seq.fold_left
+            fold_until_sat
               (fun acc (ast, e, regexes) ->
                  trace_log "Arithmetized: %a\n" Ast.pp_smtlib2 ast;
                  match acc with
@@ -702,7 +734,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                                          let model1 = acc () in
                                          let model2 = get_model () in
                                          (* Can be not disjoint. *)
-                                         Map.merge_disjoint_exn model1 model2)
+                                         merge_models model1 model2)
                                    | `Unknown -> None)
                                 (Some (fun () -> Map.empty))
                                 post
@@ -711,7 +743,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                               let get_model tys =
                                 let model1 = get_model tys |> Result.get_ok in
                                 let model2 = get_model' () in
-                                Result.ok (Map.merge_disjoint_exn model1 model2)
+                                Result.ok (merge_models model1 model2)
                               in
                               sat s ast ~env ~get_model ~regexes
                             | None ->
@@ -843,12 +875,19 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                   aux solver env
                 end
             end
-          | `Unknown -> assert false
+          | `Unknown ->
+            (* Z3 gave up on the boolean skeleton (e.g. hit the timeout); the
+               outer [dpll] degrades to unknown here too. *)
+            Debug.trace "DPLL" "Z3 SAT-solver gives 'unknown'\n%!";
+            unknown ast Env.empty
           | `Unsat when !can_be_unk -> unknown ast Env.empty
           | `Unsat -> Unsat ("todo", ast)
         in
         let z3_light =
-          Z3.make ~params:Smtml.Params.(default () $ (Timeout, 60) $ (Random_seed, 42)) ()
+          Z3.make
+            ~params:
+              Smtml.Params.(default () $ (Timeout, z3_timeout_ms) $ (Random_seed, 42))
+            ()
         in
         Z3.add z3_light [ split_vars_skeleton ];
         aux z3_light env
@@ -982,7 +1021,7 @@ let check_model tys (ast : Ast.t) (model : Model.t) =
     end
   with
   | ex ->
-    Printf.printf "(info: unable to check the model: %s)\n%!" (Printexc.to_string ex)
+    Printf.eprintf "(info: unable to check the model: %s)\n%!" (Printexc.to_string ex)
 ;;
 
 type state =

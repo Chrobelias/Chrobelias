@@ -1425,20 +1425,19 @@ let check_sat ir
     in
     helper Z.minus_one n
   in
+  (* A [Pow2 v] key holds the value of [base ** v]; turn it into a binding for
+     [v] itself. Both [Var v] and [Pow2 v] may be present, so the keys can
+     collide after flattening — the direct [Var] binding wins. *)
   let flatten_pows_in_model model =
-    Map.mapi
-      ~f:(fun ~key ~data ->
-        match data with
-        | `Str str -> `Str str
-        | `Int eia ->
-          begin match key with
-          | Ir.Var _ -> data
-          | Pow2 _ -> `Int (logBaseZ eia)
-          end)
+    Map.fold
+      ~init:Map.empty
+      ~f:(fun ~key ~data acc ->
+        match key, data with
+        | Ir.Var v, _ -> Map.set acc ~key:v ~data
+        | Ir.Pow2 v, `Int eia ->
+          if Map.mem acc v then acc else Map.set acc ~key:v ~data:(`Int (logBaseZ eia))
+        | Ir.Pow2 _, `Str _ -> acc)
       model
-    |> Map.map_keys_exn ~f:(function
-      | Ir.Var v -> v
-      | Ir.Pow2 _ -> assert false)
   in
   let on_no_strings ir =
     let checker =
