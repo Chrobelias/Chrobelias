@@ -1727,34 +1727,55 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       true
       eia
   in
-  (* A variable constrained by a unary range (typically the remainder that
-   lowering [mod] introduces, with 0 <= %r < c) must not be propagated into a
-   term over several variables: its range constraints get rewritten into ones
-   coupling all of them, and the automata solver pays dearly for that
-   coupling. See gh-245. *)
+  (* Variables pinned between a constant lower *and* a constant upper bound —
+   typically the remainder that lowering [mod] introduces, with 0 <= %r < c. *)
   let ranged_vars =
-    lazy
-      (collect_atomic ast
-       |> List.fold_left
-            (fun acc -> function
-               | Eia eia ->
-                 let vs =
-                   Eia.fold2
-                     (fun acc -> function
-                        | Atom (Var (s, _)) -> Set.add acc s
-                        | _ -> acc)
-                     (fun acc -> function
-                        | Atom (Var (s, _)) -> Set.add acc s
-                        | _ -> acc)
-                     Set.empty
-                     eia
-                 in
-                 if Set.length vs = 1 then Set.union acc vs else acc
-               | _ -> acc)
-            Set.empty)
+    let rec coeff_sign vn = function
+      | Atom (Var (s, _)) -> if s = vn then 1 else 0
+      | Const _ -> 0
+      | Add ts ->
+        List.fold_left
+          (fun acc t ->
+             match acc, coeff_sign vn t with
+             | a, 0 -> a
+             | 0, b -> b
+             | a, b when a = b -> a
+             | _ -> 0)
+          0
+          ts
+      | Mul ts ->
+        (match List.filter (fun t -> Set.mem (collect_vars t) vn) ts with
+         | [ Atom (Var (s, _)) ] when s = vn ->
+           List.fold_left
+             (fun acc -> function
+                | Const c -> acc * Z.sign c
+                | _ -> acc)
+             1
+             ts
+         | _ -> 0)
+      | t -> 0
+    in
+    collect_atomic ast
+    |> List.fold_left
+         (fun acc -> function
+            | Eia (Leq (lhs, Const _)) ->
+              let vs = collect_vars lhs in
+              if Set.length vs = 1
+              then (
+                let vn = Set.choose_exn vs in
+                match coeff_sign vn lhs with
+                | s when s <> 0 ->
+                  let lo, hi = Option.value ~default:(false, false) (Map.find acc vn) in
+                  Map.set acc ~key:vn ~data:(if s > 0 then lo, true else true, hi)
+                | _ -> acc)
+              else acc
+            | _ -> acc)
+         Map.empty
+    |> Map.filter ~f:(fun (lo, hi) -> lo && hi)
+    |> Map.keys
   in
   let breaks_range vn rhs =
-    Set.length (collect_vars rhs) > 1 && Set.mem (Lazy.force ranged_vars) vn
+    Set.length (collect_vars rhs) > 1 && List.mem vn ranged_vars
   in
   let returni vn rhs =
     if is_simpl rhs && not (breaks_range vn rhs)
