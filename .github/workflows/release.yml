@@ -30,9 +30,14 @@ jobs:
         with:
           submodules: true
 
+      # gnupg is required by ocaml/setup-ocaml >= 3.7.0, which verifies the GPG
+      # signature of the opam binary it downloads and shells out to `gpg` with
+      # no fallback. It is not part of alpine-sdk.
       - name: Install extra dependencies
         if: startsWith(matrix.os, 'alpine')
-        run: apk add bash sqlite sqlite-dev gmp gmp-dev gmp-static cmake python3 bubblewrap
+        run: apk add bash sqlite sqlite-dev gmp gmp-dev gmp-static cmake python3 bubblewrap gnupg
+
+      - run: git config --global --add safe.directory $(pwd)
 
       - uses: ocaml/setup-ocaml@v3
         with:
@@ -49,12 +54,6 @@ jobs:
           eval $(opam env)
           (cd z3 &&
            opam install .)
-
-      - name: Install Smtml depedencies
-        working-directory: ./vendor/smtml
-        run: opam install . --deps-only --with-test --with-dev-setup
-
-      - run: git config --global --add safe.directory $(pwd)
 
       - name: Install depedencies
         run: opam install . --deps-only --with-test -vvv

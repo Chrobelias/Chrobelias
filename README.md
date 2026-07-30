@@ -4,7 +4,7 @@
 [1]:  https://github.com/Chrobelias/Chrobelias/actions/workflows/build-linux.yml/badge.svg
 [2]:  https://github.com/Chrobelias/Chrobelias/actions
 
-# Chrobelias - Chrobak normal form-based Exponential Linear Integer Arithmetic Solver
+# Chrobelias - Chrobak normal form in Exponential Linear Integer Arithmetic and Strings
 
 __ChrobELIAS__ is an smt-solver for the existential **E**xponential-**L**inear **I**nteger **A**rithmetic with regular constraints $\langle\mathbb{N}; 0, 1, +, x\mapsto 2^x, \mathscr{R}, =,\leq\rangle$.
 The solver implements the decision procedure for [existential generalised Semёnov arithmetic](https://arxiv.org/abs/2306.14593)
@@ -37,11 +37,8 @@ git clone https://github.com/Chrobelias/Chrobelias.git
 # Change directory to Chrobelias.
 cd Chrobelias
 
-# Initialize submodules, including the smtml library and the benchmarks.
+# Initialize submodules with the benchmarks.
 git submodule update --init --recursive
-
-# Installing smtml dependencies.
-opam install vendor/smtml --deps-only --with-test --with-dev-setup
 
 # Installing ChrobELIAS dependencies.
 opam install . --deps-only --with-test
@@ -63,6 +60,26 @@ Supports `.smt2` files with
 ```
 
 Simple `.smt2` files for ChrobELIAS can be found in [benchmarks](https://github.com/Chrobelias/Chrobelias/tree/main/benchmarks) and [examples](https://github.com/Chrobelias/Chrobelias/tree/main/examples).
+
+### Debug output
+
+Tracing is selected per component through the `CHRO_DEBUG` environment
+variable, which holds a `:`-separated list of tracer names. `CHRO_DEBUG=ANY`
+enables all of them; note that a bare `CHRO_DEBUG=1` enables *no* tracer, since
+`1` does not name one.
+
+```bash
+# Trace the simplifier and the DPLL driver.
+CHRO_DEBUG=simpl:DPLL ./_build/default/bin/chro.exe examples/lnr-sat.smt2
+
+# Trace everything.
+CHRO_DEBUG=ANY ./_build/default/bin/chro.exe examples/lnr-sat.smt2
+```
+
+The available tracers are `alpha`, `ast`, `chro`, `DPLL`, `env`, `LICS`, `me`,
+`Model`, `nfa`, `nfa_collection`, `over`, `post`, `simpl`, `solver` and
+`under`. The `nfa` tracer additionally dumps every NFA as a `.dot` file under
+`debugs/<pid>/`.
 
 
 ### Examples
