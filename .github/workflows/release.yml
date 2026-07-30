@@ -39,9 +39,16 @@ jobs:
 
       - run: git config --global --add safe.directory $(pwd)
 
+      # opam-pin is off because setup-ocaml 3.7.0 pins local packages through a
+      # file:// URL, i.e. opam's rsync backend, which copies the whole working
+      # tree (benchmark submodules included) instead of just the tracked files
+      # a git-backed pin would take -- see ocaml/setup-ocaml#1114. Nothing here
+      # needs the pin: dependencies come from "opam install . --deps-only"
+      # below. Once the fix (ocaml/setup-ocaml#1116) ships, this can go.
       - uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda,ocaml-option-static
+          opam-pin: false
 
       - run: opam --version
       - run: opam exec -- ocamlopt --version

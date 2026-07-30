@@ -32,13 +32,16 @@
   (progn
    (run
     wget
+    --tries=5
+    --timeout=30
+    --waitretry=10
     https://github.com/ffrohn/swine-z3/releases/download/nightly/swine-z3-linux-static-fcc6b5311c2025b612cdeb800e1d8ce631d3a9aa.zip
     -O
     swine-z3-linux-static.zip)
-   (run unzip swine-z3-linux-static.zip)
+   (run unzip -o -q swine-z3-linux-static.zip)
    (run
     cp
-    -i
+    -f
     swine-z3-linux-static-fcc6b5311c2025b612cdeb800e1d8ce631d3a9aa/swine-z3
     swine)
    (run chmod +x ./swine)
@@ -51,11 +54,14 @@
   (progn
    (run
     wget
+    --tries=5
+    --timeout=30
+    --waitretry=10
     https://github.com/cvc5/cvc5/releases/download/cvc5-1.3.2/cvc5-Linux-x86_64-static.zip
     -O
     cvc5-linux-static.zip)
-   (run unzip cvc5-linux-static.zip)
-   (run cp -i ./cvc5-Linux-x86_64-static/bin/cvc5 ./cvc5)
+   (run unzip -o -q cvc5-linux-static.zip)
+   (run cp -f ./cvc5-Linux-x86_64-static/bin/cvc5 ./cvc5)
    (run chmod +x ./cvc5)
    ;
    )))
@@ -66,6 +72,9 @@
   (progn
    (run
     wget
+    --tries=5
+    --timeout=30
+    --waitretry=10
     https://github.com/VeriFIT/z3-noodler/releases/download/v1.5.1/z3-noodler-ubuntu-24.04-x86_64-static-libz3
     -O
     z3-noodler)
@@ -79,10 +88,13 @@
   (progn
    (run
     wget
+    --tries=5
+    --timeout=30
+    --waitretry=10
     https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/z3-4.15.2-x64-glibc-2.39.zip
     -O
     z3.zip)
-   (run unzip z3.zip)
+   (run unzip -o -q z3.zip)
    (run mv ./z3-4.15.2-x64-glibc-2.39/bin/z3 ./z3))))
 
 (rule
@@ -91,13 +103,16 @@
   (progn
    (run
     wget
+    --tries=5
+    --timeout=30
+    --waitretry=10
     https://github.com/uuverifiers/ostrich/releases/download/v2.0.1/ostrich-2.0.1.zip
     -O
     ostrich.zip)
-   (run unzip ostrich.zip)
-   (run cp -i -r ./ostrich-2.0.1/ostrich ./ostrich2)
-   (run cp -i -r ./ostrich-2.0.1/ostrich-client ./ostrich-client)
-   (run cp -i -r ./ostrich-2.0.1/target ./target)
+   (run unzip -o -q ostrich.zip)
+   (run cp -f -r ./ostrich-2.0.1/ostrich ./ostrich2)
+   (run cp -f -r ./ostrich-2.0.1/ostrich-client ./ostrich-client)
+   (run cp -f -r ./ostrich-2.0.1/target ./target)
    (run chmod +x ./ostrich2)
    ;
    )))
