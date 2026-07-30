@@ -350,42 +350,6 @@
            0))
          (int.lt_s (int.mul 9 strlenx) exp_10_strlenx)
   
-  [+simpl]
-    iter(0)= (and
-             (= x "")
-             (= (+ (* (- 29) %q2) (* (- 11) %q4) (str.to.int x)) 0)
-             (<= (+ (- 99) (str.len x)) 0)
-             (<= (+ (- 28) (* 11 %q4)) 0)
-             (<= (* (- 11) %q4) 0)
-             (<= (* (- 1) (str.to.int x)) 0)
-             (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
-  [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
-  
-  [+simpl]
-    Something ready to substitute
-        %r1 -> (* 11 %q4);
-        %r3 -> 0;
-        x -> "";
-        
-  [+simpl]
-    iter(2)= (not True)
-  [+simpl]
-    fixed-point
-  
-  [+simpl]
-    contradicting clause: (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re ""))))))))))))))
-  [+simpl]
-    contradicting env:  %r1 -> (* 11 %q4); %r3 -> 0; x -> ""; 
-  [+simpl]
-    short env:  x -> ""; 
-  
-  [+simpl]
-    unsat core: (and
-                (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re ""))))))))))))))
-                (<= (+ (- 99) (str.len x)) 0)
-                (= x ""))
-  
   sat (nfa)
   (
      (define-fun x () String
