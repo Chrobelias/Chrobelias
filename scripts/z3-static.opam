@@ -1,4 +1,9 @@
 opam-version: "2.0"
+# Without an explicit version opam records this local install as "z3.dev",
+# which satisfies none of smtml's z3 version constraints, so the solver
+# silently falls back to a pre-0.24 smtml that has no Smtml.Binder. Keep this
+# in sync with the tag cloned by .github/workflows/release.yml.
+version: "4.16.0"
 maintainer: "weng@cs.jhu.edu"
 authors: "MSR"
 homepage: "https://github.com/Z3prover/z3"
@@ -38,5 +43,5 @@ conflicts: [
 synopsis: "Z3 solver"
 url {
   src:
-    "https://github.com/Z3Prover/z3/archive/refs/tags/z3-4.15.2.tar.gz"
+    "https://github.com/Z3Prover/z3/archive/refs/tags/z3-4.16.0.tar.gz"
 }
