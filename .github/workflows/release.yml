@@ -71,6 +71,23 @@ jobs:
       - name: Install depedencies
         run: opam install . --deps-only --with-test -vvv
 
+      # z3 is a depopt of smtml, so smtml compiles its z3 backend in only if z3
+      # is installed when *smtml* is built -- and opam never rebuilds a package
+      # just because a depopt showed up later. setup-ocaml restores a cached
+      # opam switch that can already hold a z3-less smtml, in which case nothing
+      # above would rebuild it. This used to be hidden by vendor/smtml, which
+      # dune built inside the workspace where findlib z3 was always resolved at
+      # link time; since it was dropped, smtml comes from opam instead.
+      - name: Rebuild smtml against the static Z3
+        run: opam reinstall --yes smtml
+
+      # Without the backend the link silently drops z3ml.cmxa and we would ship
+      # a chro whose Z3 is a stub, so fail here rather than at the user's.
+      - name: Check smtml really has the z3 backend
+        run: |
+          opam exec -- ocamlfind query -r -p-format smtml | grep -qx z3 \
+            || { echo "::error::smtml was built without its z3 backend"; exit 1; }
+
       - name: List opam packages
         run: opam list
 
