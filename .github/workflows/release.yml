@@ -68,6 +68,27 @@ jobs:
           (cd z3 &&
            opam install .)
 
+      # smtml enables its z3 backend only when dune can resolve the *findlib*
+      # package z3, which is separate from the opam package being installed.
+      # scripts/z3-static.opam seds every "libz3ml" token out of z3's Makefile
+      # before "make install", and libz3ml.a is exactly the OCaml stubs archive
+      # findlib z3 needs -- so this dumps what actually landed.
+      - name: Diagnose the z3 findlib package
+        continue-on-error: true
+        run: |
+          echo "--- opam packages ---"
+          opam list z3 smtml || true
+          echo "--- findlib knows z3? ---"
+          opam exec -- ocamlfind list 2>/dev/null | grep -i '^z3' \
+            || echo "MISSING: findlib has no z3 package"
+          echo "--- \$(opam var lib)/z3 ---"
+          ls -la "$(opam var lib)/z3" 2>/dev/null || echo "MISSING: no lib/z3 directory"
+          echo "--- static archives on disk ---"
+          ls -la /usr/lib/libz3*.a 2>/dev/null || echo "none in /usr/lib"
+          echo "--- what findlib would link for z3 ---"
+          opam exec -- ocamlfind query -r -p-format z3 2>&1 | tr '\n' ' ' || true
+          echo
+
       - name: Install depedencies
         run: opam install . --deps-only --with-test -vvv
 
@@ -85,8 +106,15 @@ jobs:
       # a chro whose Z3 is a stub, so fail here rather than at the user's.
       - name: Check smtml really has the z3 backend
         run: |
-          opam exec -- ocamlfind query -r -p-format smtml | grep -qx z3 \
-            || { echo "::error::smtml was built without its z3 backend"; exit 1; }
+          if opam exec -- ocamlfind query -r -p-format smtml | grep -qx z3; then
+            echo "smtml links z3 -- ok"
+          else
+            echo "smtml requires: $(opam exec -- ocamlfind query -r -p-format smtml | tr '\n' ' ')"
+            opam exec -- ocamlfind list 2>/dev/null | grep -i '^z3' \
+              || echo "root cause: findlib has no usable z3 package"
+            echo "::error::smtml was built without its z3 backend"
+            exit 1
+          fi
 
       - name: List opam packages
         run: opam list
@@ -95,6 +123,46 @@ jobs:
         run: opam exec -- dune build @check @all --release
 
       - run: mv _build/default/bin/chro.exe _build/default/bin/chro
+
+      # Nothing above proves the artifact actually solves anything: a chro whose
+      # smtml lacks the z3 backend compiles and links cleanly, then answers
+      # "unknown" on everything that needs Z3. Run the exact binary that is
+      # about to be uploaded.
+      - name: Smoke-test the release binary
+        run: |
+          set -u
+          CHRO=_build/default/bin/chro
+          fail=0
+          check () {
+            name="$1"; want="$2"; file="$3"
+            got=$("$CHRO" --info "$file" 2>&1 | grep -m1 -E '^(sat|unsat|unknown)' || true)
+            case "$got" in
+              "$want"*) echo "ok    $name: $got" ;;
+              *)
+                echo "FAIL  $name: expected '$want...', got '${got:-<no verdict>}'"
+                "$CHRO" --info "$file" 2>&1 | head -20
+                fail=1
+                ;;
+            esac
+          }
+          check "lnr-sat"   "sat"   examples/lnr-sat.smt2
+          check "lnr-unsat" "unsat" examples/lnr-unsat.smt2
+          # Routes through check_nia, which actually calls Z3, so a stub backend
+          # cannot fake this one.
+          cat > smoke-nia.smt2 <<'SMT'
+          (set-logic ALL)
+          (declare-fun b () Int)
+          (declare-fun x () Int)
+          (assert (= x (ite (= b 1) 10 20)))
+          (assert (= x 30))
+          (check-sat)
+          SMT
+          check "z3-nia" "unsat (nia)" smoke-nia.smt2
+          rm -f smoke-nia.smt2
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::the release binary does not solve correctly"
+            exit 1
+          fi
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
