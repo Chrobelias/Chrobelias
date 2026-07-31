@@ -54,9 +54,15 @@ jobs:
       - run: opam exec -- ocamlopt --version
       - run: opam switch list
 
+      # The tag must match the "version:" in scripts/z3-static.opam: opam builds
+      # from this clone (the opam file's url: is unused for a local install), so
+      # an unpinned clone of master would build a source tree that has nothing
+      # to do with the version the solver reasons about. smtml >= 0.28 conflicts
+      # with z3 < 4.16.0, so getting this wrong downgrades smtml instead of
+      # failing.
       - name: Build and install static Z3
         run: |
-          git clone https://github.com/Z3Prover/z3.git z3
+          git clone --depth 1 --branch z3-4.16.0 https://github.com/Z3Prover/z3.git z3
           cp ./scripts/z3-static.opam z3/opam
           eval $(opam env)
           (cd z3 &&
