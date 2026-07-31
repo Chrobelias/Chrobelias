@@ -2,15 +2,6 @@
 
 let trace_log fmt = Debug.trace "simpl" fmt
 
-(*
-type error =
-  | Non_linear_arith : Z.t Ast.Eia.term list -> error
-  | Non_linear_string : string Ast.Eia.term list -> error
-
-
-let compare_error : error -> _ = Stdlib.compare
-*)
-
 module NfaS = Nfa.String
 module Set = Base.Set.Poly
 
@@ -254,7 +245,7 @@ let apply_term_symantics
 ;;
 
 module Info = struct
-  type names = string Base.Set.Poly.t
+  type names = string Set.t
 
   type t =
     { exp : names
@@ -262,12 +253,12 @@ module Info = struct
     ; str : names
     }
 
-  let is_in_expo name { exp; _ } = Base.Set.Poly.mem exp name
-  let is_in_string name { str; _ } = Base.Set.Poly.mem str name
+  let is_in_expo name { exp; _ } = Set.mem exp name
+  let is_in_string name { str; _ } = Set.mem str name
 
   let make ~exp ~all ~str =
     (* TODO: check subsumtion *)
-    let of_list = Base.Set.Poly.of_list in
+    let of_list = Set.of_list in
     { exp = of_list exp; all = of_list all; str = of_list str }
   ;;
 
@@ -279,7 +270,7 @@ module Info = struct
       "exp: @[%a@]"
       Format.(
         pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ "))
-      (Base.Set.Poly.to_list exp)
+      (Set.to_list exp)
   [@@ocaml.warning "-unused-value-declaration"]
   ;;
 
@@ -289,20 +280,20 @@ module Info = struct
       pp_print_list Format.pp_print_string ~pp_sep:(fun ppf () -> fprintf ppf "@ ")
     in
     fprintf ppf "@[<v>";
-    fprintf ppf "@[Exp: @[%a@]@]@," pp_list (Base.Set.Poly.to_list exp);
-    fprintf ppf "@[Str: @[%a@]@]@," pp_list (Base.Set.Poly.to_list str);
-    fprintf ppf "@[ALL: @[%a@]@]" pp_list (Base.Set.Poly.to_list all);
+    fprintf ppf "@[Exp: @[%a@]@]@," pp_list (Set.to_list exp);
+    fprintf ppf "@[Str: @[%a@]@]@," pp_list (Set.to_list str);
+    fprintf ppf "@[ALL: @[%a@]@]" pp_list (Set.to_list all);
     fprintf ppf "@]"
   ;;
 
   let union e1 e2 =
-    let ( ++ ) = Base.Set.Poly.union in
+    let ( ++ ) = Set.union in
     { exp = e1.exp ++ e2.exp; all = e1.all ++ e2.all; str = e1.str ++ e2.str }
   ;;
 end
 
 module Who_in_exponents_ = struct
-  module S = Base.Set.Poly
+  module S = Set
 
   type term = Info.t
 
@@ -319,9 +310,9 @@ module Who_in_exponents_ = struct
     Format.printf
       "@[{ all = @[%a@];@ exp  = @[%a@] }@]"
       pp_set
-      (Base.Set.Poly.to_list all)
+      (Set.to_list all)
       pp_set
-      (Base.Set.Poly.to_list exp)
+      (Set.to_list exp)
   [@@warning "-32"]
   ;;
 
@@ -474,7 +465,7 @@ let apply_symantics_unsugared (type a) (module S : SYM with type ph = a) =
 
 let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
   let _ : Env.t = env in
-  let module Set = Base.Set.Poly in
+  let module Set = Set in
   let module Main_symantics_ = struct
     open Ast
     include Id_symantics
@@ -1375,7 +1366,7 @@ let propagate_exponents ast =
 ;;
 
 let find_vars_for_under2s ast =
-  let module S = Base.Set.Poly in
+  let module S = Set in
   let open Ast.Eia in
   let fz = fun acc _ -> acc in
   let fs : bool -> string S.t -> string Ast.Eia.term -> _ =
@@ -1415,60 +1406,8 @@ let find_vars_for_under2s ast =
   collect (fs true) ast, collect (fs false) ast
 ;;
 
-let find_vars_for_under2 ast =
-  let module S = Base.Set.Poly in
-  let fz : string S.t -> Z.t Ast.Eia.term -> _ =
-    fun acc ->
-    fun c ->
-    match c with
-    (*function*)
-    | Ast.Eia.Mul [ Atom (Var (v, _)); Pow (Const base, _) ]
-    | Ast.Eia.Mul [ Pow (Const base, _); Atom (Var (v, _)) ]
-      when Z.(equal (Z.of_int !Config.base) base) -> S.add acc v
-    | Mul [ Const _; Atom (Var (v, I)); Pow (Const base, _) ]
-      when Z.(equal (Z.of_int !Config.base) base) -> S.add acc v
-    | Mul [ Atom (Var (v, _)); Pow (Const base, _) ]
-      when Z.(equal (Z.of_int !Config.base) base) -> S.add acc v
-    | Mul [ Atom (Var (v1, _)); Atom (Var (v2, _)) ] -> S.add (S.add acc v1) v2
-    | t ->
-      (* Format.printf "skipping: @[%a@]\n%!" Ast.Eia.pp_term t; *)
-      acc
-  in
-  let fs = fun acc _ -> acc in
-  Ast.fold
-    (fun acc ->
-       let open Ast.Eia in
-       function
-       | Eia (Eq (l, r, I)) -> fold_term fz fs (fold_term fz fs acc r) l
-       | Eia (Leq (l, r)) -> fold_term fz fs (fold_term fz fs acc r) l
-       | _ -> acc)
-    S.empty
-    ast
-;;
-
-let%expect_test _ =
-  let (module TS) = make_main_symantics Env.empty in
-  let test ph =
-    let set = find_vars_for_under2 ph in
-    Format.printf
-      "@[%a@]\n%!"
-      Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_string)
-      (Base.Set.to_list set)
-  in
-  test
-    TS.(
-      add [ pow (constz (Z.of_int !Config.base)) (var "x"); mul [ const 2; var "y" ] ]
-      = var "z");
-  [%expect ""];
-  test TS.(mul [ pow (constz (Z.of_int !Config.base)) (var "x"); var "y" ] = var "z");
-  [%expect "y"];
-  test TS.(mul [ var "y"; pow (constz (Z.of_int !Config.base)) (var "x") ] = var "z");
-  [%expect "y"];
-  ()
-;;
-
 let shrink_variables ast =
-  let module Set = Base.Set.Poly in
+  let module Set = Set in
   let _ : Ast.t = ast in
   (* trace_log "old ast: @[%a@]\n" Ast.pp_smtlib2 ast; *)
   let info = apply_symantics (module Who_in_exponents) ast in
@@ -1630,7 +1569,7 @@ let flatten { Info.all; _ } =
   let gensym1 = gensym in
   let rec gensym height =
     let ans = gensym1 ~prefix:("%" ^ Format.asprintf "%d" height ^ "flat_pow") () in
-    if Base.Set.Poly.mem all ans then gensym height else ans
+    if Set.mem all ans then gensym height else ans
   in
   let extra_ph = ref [] in
   let mapping = ref ZTM.empty in
@@ -2000,7 +1939,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       | Noprop -> f rhs lhs
       | smth -> smth
     in
-    let module Set = Base.Set.Poly in
+    let module Set = Set in
     match ast with
     | Eia (Eia.Eq ((Eia.Atom (Var (vn, I)) as lhs), rhs, I)) when var_can_be_prop vn ~rhs
       ->
@@ -2119,7 +2058,7 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
   in
   match ast with
   | Land xs ->
-    let module Set = Base.Set.Poly in
+    let module Set = Set in
     let actions =
       List.fold_left
         (fun acc h ->
@@ -2228,11 +2167,9 @@ let lower_mod ast =
   | acc -> Ast.land_ (ph :: acc)
 ;;
 
-module
-  Collect_alpha_
-  (*: SYM_SUGAR with type repr = char Base.Set.Poly.t and type ph = char Base.Set.Poly.t*) =
+module Collect_alpha_ (*: SYM_SUGAR with type repr = char Set.t and type ph = char Set.t*) =
 struct
-  module S = Base.Set.Poly
+  module S = Set
 
   type term = char S.t
 
@@ -2529,7 +2466,7 @@ let rewrite_via_concat { Info.all; _ } =
   let gensym1 = gensym in
   let rec gensym () =
     let ans = gensym1 ~prefix:"%substr" () in
-    if Base.Set.Poly.mem all ans then gensym () else ans
+    if Set.mem all ans then gensym () else ans
   in
   let extra_ph = ref [] in
   let extend v other =
@@ -2687,7 +2624,6 @@ let run_length_simplify env ast =
 ;;
 
 let under_str env alpha vars ast =
-  let module Set = Base.Set.Poly in
   let module Map = Base.Map.Poly in
   let get_strings_range nfa length ?(exact = false) num =
     let max_len = Config.under_str_config.max_len in
@@ -2712,7 +2648,7 @@ let under_str env alpha vars ast =
     else x
   in
   let try_under_str vars alpha len env ast =
-    if Base.Set.length vars = 0
+    if Set.length vars = 0
     then []
     else (
       let ( let* ) xs f = List.concat_map f xs in
@@ -2764,7 +2700,7 @@ let under_str env alpha vars ast =
             list;
           list
         in
-        Base.Set.Poly.fold
+        Set.fold
           ~f:(fun acc name ->
             let* s = all_as name in
             let* acc = acc in
@@ -2924,7 +2860,7 @@ let extract_and_filter_unsupported_atomic_formulas ast =
 ;;
 
 let run_string_simplify ast =
-  (let module Set = Base.Set.Poly in
+  (let module Set = Set in
    match basic_simplify [ 1 ] ~with_nielsen:false Env.empty ast with
    | `Sat env -> `Sat env
    | `Unsat unsat_core -> `Unsat unsat_core
@@ -3066,18 +3002,6 @@ let unfold_neq ast =
              , Ast.S )) -> f lhs rhs
       | ast -> ast)
   in
-  (*let can_be_both_digit lhs rhs =
-    let lhs_re =
-      Map.find regexes lhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
-    in
-    let rhs_re =
-      Map.find regexes rhs |> Option.map (NfaL.intersect (NfaL.of_regex Regex.digit))
-    in
-    match lhs_re, rhs_re with
-    | Some lhs_re, Some rhs_re -> lhs_re |> NfaL.run && rhs_re |> NfaL.run
-    | Some re, None | None, Some re -> NfaL.run re
-    | None, None -> true
-    in*)
   let asts =
     ast
     |> aux (fun lhs rhs ->
@@ -3174,34 +3098,6 @@ let unfold_neq ast =
                      :: models)
                 end
               | _ -> `Unknown
-              (*with
-              | Some (a, b) ->
-              | None when List.length models > 10 -> `Unknown
-              | None ->
-                (*let model_ast =
-                  Map.fold
-                    ~f:(fun ~key ~data acc ->
-                      match data with
-                      | `Int d ->
-                        (*Ast.Eia.eq
-                          (Ast.Eia.atom (Ast.var key Ast.I))
-                    (Ast.Eia.const d)
-                    Ast.I
-                        :: *)
-                        acc
-                      | `Str s ->
-                        Ast.Eia.eq
-                          (strleni key)
-                          (Ast.Eia.const (String.length s |> Z.of_int))
-                          Ast.I
-                        :: acc)
-                    ~init:[]
-                    model
-                  |> List.map Ast.eia
-                  |> Ast.land_
-                in
-                aux (model_ast :: models)*)
-                aux ()*)
             in
             aux []
           end
@@ -3220,7 +3116,7 @@ let unfold_neq ast =
 ;;
 
 let arithmetize str_vars ast env =
-  let module Set = Base.Set.Poly in
+  let module Set = Set in
   assert (Ast.is_conjunct ast);
   (*let exception StrVar_In_Arithmetize in*)
   let strlens s = String.concat "" [ "strlen"; s ] in
@@ -3329,7 +3225,7 @@ let arithmetize str_vars ast env =
     let gensym1 = gensym in
     let rec gensym () =
       let ans = gensym1 ~prefix:"%concat" () in
-      if Base.Set.Poly.mem all ans then gensym () else ans
+      if Set.mem all ans then gensym () else ans
     in
     let extra_ph = ref [] in
     let extend v other =
