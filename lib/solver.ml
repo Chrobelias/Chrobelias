@@ -278,6 +278,22 @@ struct
                vars
            in
            nfa
+         | Ir.Div m ->
+           let nfa = NfaCollection.mod_eq vars term m c in
+           let nfa =
+             Map.fold
+               ~init:nfa
+               ~f:(fun ~key:k ~data:v acc ->
+                 if Map.mem term k && is_exp k
+                 then
+                   acc
+                   |> Nfa.intersect
+                        (NfaCollection.power_of_two v |> do_if_msb Nfa.minimize_strong)
+                   |> do_if_msb Nfa.minimize_not_very_strong
+                 else acc)
+               vars
+           in
+           nfa
          end
        | Ir.Reg (reg, atoms) -> Extra.eval_reg vars reg atoms
        | Ir.Exists (atoms, ir) ->

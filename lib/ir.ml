@@ -41,12 +41,18 @@ type rel =
   | Leq
   | Eq
   | Neq
+  (* [Div m] is the congruence [poly = c (mod m)]. It is kept as a relation of
+     its own rather than lowered to [exists q. poly - m*q = c] because
+     [NfaCollection.mod_eq] builds a small automaton for it directly, whereas
+     the lowering would add an unbounded track plus a projection. *)
+  | Div of Z.t
 [@@deriving variants]
 
 let pp_rel fmt = function
   | Leq -> Format.fprintf fmt "<="
   | Eq -> Format.fprintf fmt "="
   | Neq -> Format.fprintf fmt "distinct"
+  | Div m -> Format.fprintf fmt "=(mod %a)" Z.pp_print m
 ;;
 
 type polynom = (atom, Z.t) Map.t
@@ -296,7 +302,8 @@ let pp_smtlib2 ppf ir =
         (match op with
          | Leq -> "<="
          | Neq -> "distinct"
-         | Eq -> "=")
+         | Eq -> "="
+         | Div m -> Format.asprintf "=(mod %a)" Z.pp_print m)
         pp_map
         poly
         Z.pp_print
@@ -1072,7 +1079,11 @@ let pin_unconstrained_vars ir =
                    let x = Z.divexact rhs coeff in
                    Some (tighter Z.max lo (Some x), tighter Z.min hi (Some x)))
                  else None
-               | Neq -> None))
+               (* Unreachable: [self_bound] only ever collects [Leq] and [Eq].
+                  A variable under either of these still counts as an
+                  occurrence without counting as a bound, so it never becomes a
+                  candidate in the first place. *)
+               | Neq | Div _ -> None))
          (Some (None, None))
     |> function
     | None -> None
