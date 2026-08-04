@@ -41,6 +41,89 @@ let rec pow a = function
     b * b * if n mod 2 = 0 then 1 else a
 ;;
 
+(* A Boolean skeleton over atoms numbered by an [int]. There is deliberately no
+   negation here: [any_path_bool_comb] below needs acceptance to be monotone in
+   the atoms, so a negated subformula has to become an atom of its own. *)
+module Skel = struct
+  type t =
+    | True
+    | False
+    | Atom of int
+    | And of t list
+    | Or of t list
+
+  let true_ = True
+  let false_ = False
+  let atom i = Atom i
+
+  let and_ asts =
+    let asts =
+      List.concat_map
+        (function
+          | And asts' -> asts'
+          | True -> []
+          | ast -> [ ast ])
+        asts
+    in
+    if List.exists (( = ) False) asts
+    then False
+    else (
+      match asts with
+      | [] -> True
+      | [ ast ] -> ast
+      | asts -> And asts)
+  ;;
+
+  let or_ asts =
+    let asts =
+      List.concat_map
+        (function
+          | Or asts' -> asts'
+          | False -> []
+          | ast -> [ ast ])
+        asts
+    in
+    if List.exists (( = ) True) asts
+    then True
+    else (
+      match asts with
+      | [] -> False
+      | [ ast ] -> ast
+      | asts -> Or asts)
+  ;;
+
+  let rec eval f = function
+    | True -> true
+    | False -> false
+    | Atom i -> f i
+    | And asts -> List.for_all (eval f) asts
+    | Or asts -> List.exists (eval f) asts
+  ;;
+
+  let rec is_conjunctive = function
+    | True | False | Atom _ -> true
+    | And asts -> List.for_all is_conjunctive asts
+    | Or _ -> false
+  ;;
+
+  let rec map_atoms f = function
+    | (True | False) as ast -> ast
+    | Atom i -> Atom (f i)
+    | And asts -> And (List.map (map_atoms f) asts)
+    | Or asts -> Or (List.map (map_atoms f) asts)
+  ;;
+
+  let rec pp ppf =
+    let pp_list = pp_print_list ~pp_sep:pp_print_space pp in
+    function
+    | True -> fprintf ppf "true"
+    | False -> fprintf ppf "false"
+    | Atom i -> fprintf ppf "a%d" i
+    | And asts -> fprintf ppf "@[<hov 2>(and@ %a)@]" pp_list asts
+    | Or asts -> fprintf ppf "@[<hov 2>(or@ %a)@]" pp_list asts
+  ;;
+end
+
 module type L = sig
   type t
   type u
@@ -909,6 +992,14 @@ module type Type = sig
   val run : t -> bool
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
+
+  val any_path_bool_comb
+    :  Skel.t
+    -> (int, t) Map.t
+    -> int list
+    -> (v list list * int) option
+
+  val run_bool_comb : Skel.t -> (int, t) Map.t -> bool
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
   val all_paths_of_len : t -> ?limit:int -> int -> v list list
@@ -1692,6 +1783,166 @@ struct
     | None -> None
   ;;
 
+  (* Distance, in transitions, from every state to the nearest final state;
+     [length nfa] for the states from which no final state is reachable. *)
+  let assign_weights nfa =
+    let reversed_transitions = nfa.transitions |> Graph.reverse in
+    let huge = length nfa in
+    let weights = Array.make huge huge in
+    let rec bfs states weight =
+      List.iter (fun q -> if weights.(q) > weight then weights.(q) <- weight) states;
+      let next =
+        states
+        |> List.concat_map (fun q -> Array.get reversed_transitions q |> List.map snd)
+        |> List.filter (fun q -> weights.(q) = huge)
+      in
+      match next with
+      | [] -> ()
+      | next -> bfs next (weight + 1)
+    in
+    bfs (nfa.final |> Set.to_list) 0;
+    weights
+  ;;
+
+  (* [any_path_bool_comb skel nfas vars] looks for a word accepted by the Boolean
+     combination [skel] of [nfas] (atom [i] of [skel] stands for
+     [Map.find_exn nfas i]) without ever building their product.
+
+     Instead of intersecting the automata we walk all of them at once: a node of
+     the search is a tuple of states, one state per automaton, and a joint
+     transition is a tuple of transitions whose labels agree — the very condition
+     [intersect] checks, just tested on the fly rather than materialised. A node
+     is accepting when [skel] holds under "automaton [i] sits in a final state".
+
+     Since [Skel.t] has no negation, acceptance is monotone in the atoms, and
+     that is what makes a found path meaningful: the path gives one run per
+     automaton, and every automaton whose run is accepting does accept the word.
+
+     For a conjunctive [skel] the search is also complete, because then all runs
+     have to be accepting anyway. Under a disjunction it is complete only if
+     every automaton can read every word: the tuple has no joint transition as
+     soon as one automaton gets stuck, even when that automaton's atom is
+     irrelevant to satisfying [skel]. That is why [Solver] splits on [Ir.Lor]
+     only when explicitly asked to.
+
+     Successors are visited best-first: [Config.config.bool_comb_depth] controls
+     how far the look-ahead reaches when ranking them by how close their
+     automata are to accepting. *)
+  let any_path_bool_comb ?(nozero = false) skel (nfas : (int, t) Map.t) vars =
+    let exception Sat_found of Label.t list in
+    let atom_ids = Map.keys nfas |> Array.of_list in
+    let nfas = atom_ids |> Array.map (Map.find_exn nfas) in
+    let count = Array.length nfas in
+    (* Refer to the automata by their position in [nfas] rather than by atom id. *)
+    let skel =
+      let pos =
+        atom_ids |> Array.to_list |> List.mapi (fun i id -> id, i) |> Map.of_alist_exn
+      in
+      Skel.map_atoms (Map.find_exn pos) skel
+    in
+    let deg = Array.fold_left (fun acc nfa -> Int.max acc nfa.deg) 0 nfas in
+    let weights = Array.map assign_weights nfas in
+    (* [accepts_at op k] relaxes acceptance to "automaton [i] is [op k]
+       transitions away from accepting"; [accepts_at ( = ) 0] is the real thing. *)
+    let accepts_at op k node = Skel.eval (fun i -> op weights.(i).(node.(i)) k) skel in
+    let is_accepting = accepts_at ( = ) 0 in
+    (* One transition per automaton, all labels mutually compatible. *)
+    let joint_transitions node =
+      let rec build i label states =
+        if i = count
+        then [ label, states |> List.rev |> Array.of_list ]
+        else
+          nfas.(i).transitions.(node.(i))
+          |> List.concat_map (fun (label', q') ->
+            if Label.equal label label'
+            then build (i + 1) (Label.combine label label') (q' :: states)
+            else [])
+      in
+      build 0 (Label.zero deg) []
+    in
+    let visited = ref Set.empty in
+    let depth = Config.config.bool_comb_depth in
+    (* The still unvisited [transitions], in batches of decreasing promise: the
+       nodes whose automata are closest to accepting come first. Each batch is
+       computed on demand, so nodes visited while the previous batch was being
+       explored are dropped from the later ones. *)
+    let successors transitions =
+      let batch () =
+        match
+          List.filter (fun (_, node') -> not (Set.mem !visited node')) transitions
+        with
+        | [] -> None
+        | active ->
+          let pick op k =
+            match List.filter (fun (_, node') -> accepts_at op k node') active with
+            | [] -> None
+            | batch -> Some batch
+          in
+          (match List.find_map (pick ( = )) (1 -- depth) with
+           | Some batch -> Some batch
+           | None ->
+             (match List.find_map (pick ( <= )) (1 -- depth) with
+              | Some batch -> Some batch
+              | None -> Some active))
+      in
+      Seq.unfold (fun () -> batch () |> Option.map (fun batch -> batch, ())) ()
+    in
+    (* Like [any_path], acceptance is tested on the successors of a node rather
+       than on the node itself, both so that [nozero] never reports a path of
+       length zero and so that an accepting node is recognised even when the
+       search has already been through it. *)
+    let rec dfs path node =
+      let transitions = joint_transitions node in
+      (match List.find_opt (fun (_, node') -> is_accepting node') transitions with
+       | Some (label, _) -> raise_notrace (Sat_found (label :: path))
+       | None -> ());
+      Seq.iter
+        (fun batch ->
+           List.iter
+             (fun (label, node') ->
+                if not (Set.mem !visited node')
+                then begin
+                  visited := Set.add !visited node';
+                  if Set.length !visited > Config.max_nfa_size then raise Too_big_nfa;
+                  trace_log "bool comb: %d nodes visited" (Set.length !visited);
+                  dfs (label :: path) node'
+                end)
+             batch)
+        (successors transitions)
+    in
+    let starts =
+      nfas
+      |> Array.to_list
+      |> List.map (fun nfa -> nfa.start |> Set.to_list)
+      |> Utils.cartesian
+      |> List.map Array.of_list
+    in
+    let p =
+      if (not nozero) && List.exists is_accepting starts
+      then Some []
+      else
+        starts
+        |> List.find_map (fun start ->
+          if Set.mem !visited start
+          then None
+          else (
+            visited := Set.add !visited start;
+            try
+              dfs [] start;
+              None
+            with
+            | Sat_found p -> Some p))
+    in
+    match p with
+    | Some [] -> Some (List.map (fun _ -> []) vars, 0)
+    | Some p ->
+      let p = List.rev p in
+      let length = List.length p in
+      Some
+        (List.map (fun var -> List.map (fun label -> Label.get label var) p) vars, length)
+    | None -> None
+  ;;
+
   let any_n_paths_helper (nfa : t) ?len ?n ?limit sign =
     let transitions = nfa.transitions in
     let p =
@@ -1863,6 +2114,8 @@ module Lsb (Label : L) = struct
   let zero_any_path = any_path ~nozero:false
   let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
+  let any_path_bool_comb = any_path_bool_comb ~nozero:false
+  let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
 
   let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
     let zero_lbl = Label.zero_with_mask [ res; temp ] in
@@ -2178,6 +2431,8 @@ module MsbNat (Label : L) = struct
 
   let any_path = any_path ~nozero:false
   let run nfa = any_path nfa [] |> Option.is_some
+  let any_path_bool_comb = any_path_bool_comb ~nozero:false
+  let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
 
   let get_exponent_sub_nfa nfa ~(res : deg) ~(temp : deg) =
     (*Debug.dump_nfa ~msg:"Exponent sub_nfa input: %s" format_nfa nfa;*)
@@ -2521,6 +2776,8 @@ module Msb (Label : L) = struct
   ;;
 
   let run nfa = any_path nfa [] |> Option.is_some
+  let any_path_bool_comb = any_path_bool_comb ~nozero:true
+  let run_bool_comb skel nfas = any_path_bool_comb skel nfas [] |> Option.is_some
 
   let to_nat (nfa : t) : u =
     let start =

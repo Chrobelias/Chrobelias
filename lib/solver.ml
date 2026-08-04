@@ -168,10 +168,12 @@ module Make
 struct
   let is_exp = Ir.is_exp
 
-  let eval ir =
-    let ir = Ir.antiprenex ir in
+  (* [eval_with vars ir] builds the NFA of [ir] using the given variable
+     numbering. Taking it as an argument (rather than deriving it from [ir]) lets
+     [eval_bool_comb] compile the leaves of one formula into automata that all
+     speak about the same positions of a label. *)
+  let eval_with vars ir =
     let alpha = None in
-    let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
     let rec eval ir =
       if Config.config.dump_ir
@@ -307,9 +309,14 @@ struct
       level := !level - 1;
       nfa
     in
-    let nfa = eval ir in
+    eval ir
+  ;;
+
+  let eval ir =
+    let ir = Ir.antiprenex ir in
+    let vars = Ir.collect_vars ir in
     (*let nfa = apply_post_strings ( Ir.collect_free ir |> Set.to_list in*)
-    nfa, vars
+    eval_with vars ir, vars
   ;;
 
   let cache = ref Map.empty
@@ -321,6 +328,26 @@ struct
       let v = eval ir in
       cache := Map.add_exn !cache ~key:ir ~data:v;
       v
+  ;;
+
+  (* The Boolean-combination view of [ir]: its skeleton, the NFA of each of its
+     leaves and the variable numbering they share. Passed to
+     [Nfa.any_path_bool_comb], which decides the combination by traversing the
+     leaves' automata at once instead of intersecting them. *)
+  let eval_bool_comb ir =
+    let ir = Ir.antiprenex ir in
+    let vars = Ir.collect_vars ir in
+    let skel, leaves = Ir.bool_skeleton ~with_or:Config.config.bool_comb_or ir in
+    trace_log "Boolean skeleton: %a" NfaO.Skel.pp skel;
+    let nfas =
+      leaves
+      |> List.mapi (fun i leaf ->
+        let nfa = eval_with vars leaf in
+        trace_log "Nfa for a%d (%a) has %d nodes" i Ir.pp leaf (Nfa.length nfa);
+        i, nfa)
+      |> Map.of_alist_exn
+    in
+    skel, nfas, vars
   ;;
 
   let logBase n = Utils.logBase n ~base:NfaCollection.base
@@ -881,6 +908,47 @@ struct
       List.mapi (fun i v -> List.nth free_vars i, v) model |> Map.of_alist_exn)
   ;;
 
+  (* An empty search says "unsatisfiable" only for a conjunctive skeleton; under a
+     disjunction it may also mean that some automaton got stuck, so the answer has
+     to be recomputed the classic way. See [Nfa.Type.any_path_bool_comb]. *)
+  let decided_by skel = function
+    | Some answer -> `Decided (Some answer)
+    | None -> if NfaO.Skel.is_conjunctive skel then `Decided None else `Inconclusive
+  ;;
+
+  let get_model_nfa_bool_comb ir () =
+    let skel, nfas, vars = ir |> eval_bool_comb in
+    let free_vars = ir |> Ir.collect_free_atoms |> Set.to_list in
+    Nfa.any_path_bool_comb skel nfas (List.map (fun v -> Map.find_exn vars v) free_vars)
+    |> Option.map (fun (model, _) ->
+      List.mapi (fun i v -> List.nth free_vars i, v) model |> Map.of_alist_exn)
+    |> decided_by skel
+  ;;
+
+  let run_nfa_bool_comb ir () =
+    let skel, nfas, _ = ir |> eval_bool_comb in
+    (if Nfa.run_bool_comb skel nfas then Some () else None) |> decided_by skel
+  ;;
+
+  (* [Config.config.bool_comb] replaces the intersection-based decision procedure
+     by the simultaneous traversal of the leaves' automata. Two things send us back
+     to the intersection: a search that came up empty without being conclusive,
+     and a traversal that outgrew [Config.max_nfa_size] — it keeps every product
+     state it has been through in memory. *)
+  let with_bool_comb ~bool_comb ~classic () =
+    if Config.config.bool_comb
+    then (
+      let intersect_instead reason =
+        trace_log "Boolean combination search %s, intersecting instead" reason;
+        classic ()
+      in
+      match bool_comb () with
+      | `Decided answer -> answer
+      | `Inconclusive -> intersect_instead "was inconclusive"
+      | exception NfaO.Too_big_nfa -> intersect_instead "gave up")
+    else classic ()
+  ;;
+
   let get_model_semenov f s order (model, len) models () =
     let get_val map atom = Extra.nat_model_to_int (Map.find_exn map atom) in
     let apply ?(light = false) map ir =
@@ -1064,12 +1132,25 @@ struct
       Debug.trace "LICS" "Trying to use automatic decision procedure over %a\n" Ir.pp ir;
       if Config.config.no_model
       then
-        begin if ir' |> eval |> fst |> Nfa.run
-        then sat_if_no_unsupp (fun () -> Result.Ok Map.empty)
-        else `Unsat
+        (* The traversal treats every variable existentially anyway, so it gets
+             [ir] rather than its existential closure [ir'] — quantifying the free
+             variables would collapse the whole formula into a single leaf. *)
+        begin match
+          with_bool_comb
+            ~bool_comb:(run_nfa_bool_comb ir)
+            ~classic:(fun () -> if ir' |> eval |> fst |> Nfa.run then Some () else None)
+            ()
+        with
+        | Some () -> sat_if_no_unsupp (fun () -> Result.Ok Map.empty)
+        | None -> `Unsat
         end
       else (
-        let model = get_model_nfa ir () in
+        let model =
+          with_bool_comb
+            ~bool_comb:(get_model_nfa_bool_comb ir)
+            ~classic:(get_model_nfa ir)
+            ()
+        in
         match model with
         | Some model -> sat_if_no_unsupp (fun () -> Result.Ok model)
         | None -> `Unsat))

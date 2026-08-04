@@ -77,6 +77,31 @@ let rec powerset = function
     ps @ with_x
 ;;
 
+let rec cartesian = function
+  | [] -> [ [] ]
+  | xs :: xss ->
+    let rest = cartesian xss in
+    List.concat_map (fun x -> List.map (fun tl -> x :: tl) rest) xs
+;;
+
+let%expect_test "cartesian" =
+  let pp xss =
+    xss
+    |> List.iter (fun xs ->
+      Printf.printf "[%s] " (xs |> List.map Int.to_string |> String.concat " "));
+    Printf.printf "\n%!"
+  in
+  pp (cartesian [ [ 1; 2 ]; [ 3; 4 ]; [ 5 ] ]);
+  pp (cartesian [ [ 1 ]; []; [ 5 ] ]);
+  pp (cartesian []);
+  [%expect
+    {|
+    [1 3 5] [1 4 5] [2 3 5] [2 4 5]
+
+    []
+    |}]
+;;
+
 let rec powerset_seq = function
   | [] -> Seq.return []
   | x :: xs ->

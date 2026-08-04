@@ -504,6 +504,40 @@ let collect_model_vars ir =
   |> Map.filter_keys ~f:(fun x -> not (Base.String.is_prefix (name x) ~prefix:"2"))
 ;;
 
+(** Split [ir] into a Boolean skeleton and the maximal sub-formulas its atoms
+    stand for: atom [i] of the skeleton is the [i]-th element of the returned
+    list, and equal sub-formulas share an atom.
+
+    Only [Land] — and, when [with_or] is set, [Lor] — is reflected in the
+    skeleton. Everything else becomes a leaf, negations included, which is what
+    keeps the skeleton free of negation as
+    {!Nfa.Type.any_path_bool_comb} requires; a leaf is then compiled the usual
+    way, so [Lnot] still goes through [Nfa.invert]. Splitting on [Lor] costs
+    completeness there, hence the flag. *)
+let bool_skeleton ?(with_or = false) ir =
+  (* [leaves] holds the atoms in reverse order of discovery. *)
+  let leaves = ref [] in
+  let next = ref 0 in
+  let atom ir =
+    match List.find_opt (fun (ir', _) -> equal ir ir') !leaves with
+    | Some (_, i) -> Nfa.Skel.atom i
+    | None ->
+      let i = !next in
+      leaves := (ir, i) :: !leaves;
+      next := i + 1;
+      Nfa.Skel.atom i
+  in
+  let rec helper = function
+    | True -> Nfa.Skel.true_
+    | Lnot True -> Nfa.Skel.false_
+    | Land irs -> Nfa.Skel.and_ (List.map helper irs)
+    | Lor irs when with_or -> Nfa.Skel.or_ (List.map helper irs)
+    | ir -> atom ir
+  in
+  let skel = helper ir in
+  skel, !leaves |> List.rev_map fst
+;;
+
 let collect_atoms ir =
   fold
     (fun acc -> function

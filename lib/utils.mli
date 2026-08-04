@@ -12,6 +12,11 @@ val logBaseZ : Z.t -> base:Z.t -> int
 val div_rem : Z.t -> Z.t -> Z.t * Z.t
 val to_bits : Z.t -> bool list
 val powerset : 'a list -> 'a list list
+
+(** [cartesian [l1; ...; ln]] enumerates all the lists [[x1; ...; xn]] with
+    [xi] taken from [li]; empty as soon as one of the [li] is empty. *)
+val cartesian : 'a list list -> 'a list list
+
 val powerset_seq : 'a list -> 'a list Seq.t
 val strings_of_len : int -> string list -> string list
 val with_extra_char : char Set.t -> char list

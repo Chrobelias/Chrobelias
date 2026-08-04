@@ -3,6 +3,9 @@ type config =
   ; mutable bound_res : int
   ; mutable bound_states : int
   ; mutable base : int option
+  ; mutable bool_comb : bool
+  ; mutable bool_comb_or : bool
+  ; mutable bool_comb_depth : int
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
@@ -36,6 +39,9 @@ let config =
   ; bound_res = -1
   ; bound_states = -1
   ; base = None
+  ; bool_comb = false
+  ; bool_comb_or = false
+  ; bool_comb_depth = 5
   ; stop_after = `Solving
   ; dump_lics = false
   ; dump_pre_simpl = false
@@ -247,6 +253,22 @@ Basic options:
       , Arg.Unit (fun () -> config.light_dpll <- true)
       , "\tEnable the nested inner DPLL procedure for enumerating \
          empty/number/not-a-number string states" )
+    ; ( "--bool-comb"
+      , Arg.Unit (fun () -> config.bool_comb <- true)
+      , "\tDecide conjunctions by traversing their NFAs simultaneously instead of \
+         intersecting them" )
+    ; ( "--bool-comb-or"
+      , Arg.Unit
+          (fun () ->
+            config.bool_comb <- true;
+            config.bool_comb_or <- true)
+      , "\tAlso split disjunctions in --bool-comb mode (a search that comes up empty \
+         then has to be redone by intersecting)" )
+    ; ( "--bool-comb-depth"
+      , Arg.Int (fun n -> config.bool_comb_depth <- n)
+      , Printf.sprintf
+          "<n>\tHow far --bool-comb looks ahead for near-accepting states (DEFAULT n=%d)"
+          config.bool_comb_depth )
       (* ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t" *)
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"

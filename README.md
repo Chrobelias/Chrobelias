@@ -61,6 +61,35 @@ Supports `.smt2` files with
 
 Simple `.smt2` files for ChrobELIAS can be found in [benchmarks](https://github.com/Chrobelias/Chrobelias/tree/main/benchmarks) and [examples](https://github.com/Chrobelias/Chrobelias/tree/main/examples).
 
+Run `./_build/default/bin/chro.exe -help` for the full list of options.
+
+### Deciding a conjunction without intersecting (`--bool-comb`)
+
+By default a conjunction is decided by intersecting the NFAs of its conjuncts,
+which is where the solver tends to run out of memory. With `--bool-comb` the
+product is never built: the solver keeps one NFA per conjunct and walks all of
+them at once, a node of the search being a tuple of states and a step a tuple of
+transitions whose labels agree. A node is accepting when the Boolean skeleton of
+the formula holds under "the *i*-th automaton sits in a final state", and
+successors are explored best-first, closest-to-accepting ones ahead of the rest
+(`--bool-comb-depth` sets how far that look-ahead reaches).
+
+```bash
+# Decide by simultaneous traversal rather than by intersection.
+./_build/default/bin/chro.exe --bool-comb examples/lnr-sat.smt2
+
+# Watch the skeleton and the per-conjunct automata.
+CHRO_DEBUG=solver ./_build/default/bin/chro.exe --bool-comb examples/lnr-sat.smt2
+```
+
+Only conjunctions are split this way; a disjunction, a negation or a quantifier
+stays a single leaf of the skeleton and its automaton is built as usual, so
+`--bool-comb` decides exactly what the default procedure does.
+`--bool-comb-or` additionally splits disjunctions, which the traversal cannot
+always decide — a tuple has no joint transition as soon as one automaton gets
+stuck, even when its conjunct is irrelevant — so a search that comes up empty
+there is redone by intersecting.
+
 ### Debug output
 
 Tracing is selected per component through the `CHRO_DEBUG` environment

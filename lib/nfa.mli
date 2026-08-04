@@ -13,6 +13,37 @@ exception Too_dense_graph
 type state = int
 type deg = int
 
+(** A Boolean skeleton over atoms numbered by an [int], as consumed by
+    {!Type.any_path_bool_comb}. There is deliberately no negation: that function
+    needs acceptance to be monotone in the atoms, so a negated subformula has to
+    become an atom of its own. *)
+module Skel : sig
+  type t =
+    | True
+    | False
+    | Atom of int
+    | And of t list
+    | Or of t list
+
+  val true_ : t
+  val false_ : t
+  val atom : int -> t
+
+  (** [and_] and [or_] flatten nested combinations of the same connective and
+      fold the constants away. *)
+  val and_ : t list -> t
+
+  val or_ : t list -> t
+  val eval : (int -> bool) -> t -> bool
+  val map_atoms : (int -> int) -> t -> t
+
+  (** Whether the skeleton is free of [Or], which is what makes
+      {!Type.any_path_bool_comb} a complete decision procedure for it. *)
+  val is_conjunctive : t -> bool
+
+  val pp : Format.formatter -> t -> unit
+end
+
 module type L = sig
   type t
   type u
@@ -98,6 +129,25 @@ module type Type = sig
   val run : t -> bool
   val re_accepts : v list -> t -> bool
   val any_path : t -> int list -> (v list list * int) option
+
+  (** [any_path_bool_comb skel nfas vars] looks for a word accepted by the
+      Boolean combination [skel] of [nfas] (atom [i] of [skel] stands for
+      [Map.find_exn nfas i]) without ever building their product: it walks all
+      the automata simultaneously, a node of the search being a tuple of states
+      and a joint transition a tuple of transitions with agreeing labels.
+
+      A returned path always is a genuine model, because [Skel.t] cannot negate:
+      the path exhibits one run per automaton and every automaton whose run is
+      accepting does accept the word. [None] means unsatisfiable as long as
+      [skel] is conjunctive; under a disjunction it may also mean that some
+      automaton — possibly one irrelevant to satisfying [skel] — got stuck. *)
+  val any_path_bool_comb
+    :  Skel.t
+    -> (int, t) Map.t
+    -> int list
+    -> (v list list * int) option
+
+  val run_bool_comb : Skel.t -> (int, t) Map.t -> bool
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
   val all_paths_of_len : t -> ?limit:int -> int -> v list list
