@@ -1111,12 +1111,6 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | Add lhs, Add rhs -> cancel_left (relop Eq) lhs rhs
       | lhs, Add rhs -> cancel_left (relop Eq) [ lhs ] rhs
       | Add lhs, rhs -> cancel_left (relop Eq) lhs [ rhs ]
-      | Mul (Const lc :: ltl), Mul (Const rc :: rtl) ->
-        let gcd1 = Z.gcd lc rc in
-        if Z.(equal gcd1 one)
-        then relop Eq l r
-        else
-          relop Eq (mul (constz Z.(lc / gcd1) :: ltl)) (mul (constz Z.(rc / gcd1) :: rtl))
       | _ -> relop Eq l r
     ;;
 
@@ -2349,7 +2343,38 @@ let lower_mod ast =
     ;;
   end
   in
-  let ph = apply_symantics_unsugared (module M) ast in
+  (* A top-level [t mod m = c] with [0 <= c < m] is left alone: [Me] turns it
+     into an [Ir.Div] congruence, for which the NFA layer has a direct (small)
+     automaton. Lowering it here would spend two fresh unbounded variables per
+     occurrence -- which is exactly what quantifier elimination produces a lot
+     of. Anything else, including a [mod] nested inside a term, still gets
+     lowered the usual way. *)
+  let rec has_mod : 'a. 'a Ast.Eia.term -> bool =
+    fun (type a) (t : a Ast.Eia.term) : bool ->
+    match t with
+    | Ast.Eia.Mod _ -> true
+    | Add xs | Mul xs -> List.exists has_mod xs
+    | Pow (a, b) | Bwand (a, b) | Bwor (a, b) | Bwxor (a, b) -> has_mod a || has_mod b
+    | _ -> false
+  in
+  let is_congruence = function
+    | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Mod (t, m), Ast.Eia.Const c, Ast.I))
+    | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Const c, Ast.Eia.Mod (t, m), Ast.I)) ->
+      Z.(geq c zero) && Z.(lt c (abs m)) && not (has_mod t)
+    | _ -> false
+  in
+  let rec walk ph =
+    if is_congruence ph
+    then ph
+    else (
+      match ph with
+      | Ast.Land xs -> Ast.land_ (List.map walk xs)
+      | Ast.Lor xs -> Ast.lor_ (List.map walk xs)
+      | Ast.Lnot x -> Ast.lnot (walk x)
+      | Ast.Exists (vs, x) -> Ast.exists vs (walk x)
+      | ph -> apply_symantics_unsugared (module M) ph)
+  in
+  let ph = walk ast in
   match !acc with
   | [] -> ph
   | acc -> Ast.land_ (ph :: acc)

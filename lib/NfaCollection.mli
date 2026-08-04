@@ -15,6 +15,12 @@ module type Type = sig
   val eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val neq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
   val leq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> t
+
+  (** [mod_eq vars term m c] recognises [sum term = c (mod m)], i.e. the
+      "divides" constraint [m | (sum term - c)]. [m = 0] is read as plain
+      equality. *)
+  val mod_eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> Z.t -> t
+
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
   val base : Z.t
 end

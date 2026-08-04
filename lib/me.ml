@@ -45,6 +45,12 @@ module type S = sig
   val bwop : FT_SIG.sup_binop -> t -> t -> t
   val pow : base:t -> t -> t
   val prj : t -> repr
+
+  (** Like [prj], but also reports the positive factor by which clearing
+      denominators scaled the relation. An equation is invariant under that
+      scaling, a congruence is not -- its modulus has to be scaled alongside. *)
+  val prj_scaled : t -> repr * Z.t
+
   val prjs : t -> Ir.atom * Ir.t list
 
   (* Alias for [iofs] *)
@@ -103,6 +109,14 @@ module Symantics : S with type repr = (Ir.atom, Z.t) Map.t * Z.t * Ir.t list = s
       let mapa, c = from_rat mapa c in
       mapa, c, sups
     | Symbol (symbol, sups) -> Map.singleton symbol Z.one, Z.zero, sups
+  ;;
+
+  let prj_scaled = function
+    | Poly (mapa, c, sups) ->
+      let lcmz = Map.fold mapa ~init:Z.one ~f:(fun ~key:_ ~data -> Z.lcm (Q.den data)) in
+      let mapa, c = from_rat mapa c in
+      (mapa, c, sups), lcmz
+    | Symbol (symbol, sups) -> (Map.singleton symbol Z.one, Z.zero, sups), Z.one
   ;;
 
   let prjs v =
@@ -467,6 +481,19 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
         | [] -> ir :: sup |> Ir.land_ |> return
         | atoms -> Ir.exists atoms (ir :: sup |> Ir.land_) |> return
       end *)
+    (* [t mod m = c] with [0 <= c < m] is exactly the congruence
+       [t = c (mod m)], which the NFA layer decides directly. Any other shape
+       falls through and has already been lowered by [SimplII.lower_mod]. *)
+    | Eq (Mod (t, m), Const c, I) | Eq (Const c, Mod (t, m), I)
+      when Z.(geq c zero) && Z.(lt c (abs m)) ->
+      let* t = helper t in
+      (* [poly = k] is [t = c] after clearing denominators by [scale]; the same
+         scaling has to be applied to the modulus for the congruence. *)
+      let (poly, k, sups), scale =
+        Symantics.prj_scaled (Symantics.minus t (Symantics.poly_of_const c))
+      in
+      let ans = Ir.land_ (Ir.rel (Ir.Div Z.(abs m * scale)) poly k :: sups) in
+      return ans
     | Eq (lhs, rhs, I) ->
       let* lhs = helper lhs in
       let* rhs = helper rhs in
@@ -646,7 +673,8 @@ let rec eia_of_ir : Ir.t -> Ast.t =
     (match rel with
      | Neq -> eia (neq lhs rhs I)
      | Leq -> eia (leq lhs rhs)
-     | Eq -> eia (eq lhs rhs I))
+     | Eq -> eia (eq lhs rhs I)
+     | Div m -> eia (eq (mod_ lhs m) rhs I))
   | Exists ([], lhs) -> eia_of_ir lhs
   | Exists (atoms, lhs) -> exists (List.map ir_atom_to_atom atoms) (eia_of_ir lhs)
   | _ -> true_
