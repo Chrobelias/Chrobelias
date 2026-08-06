@@ -30,7 +30,7 @@ Basic QF_EIA tests using only NFAs
   unsat (presimpl int)
   sat (presimpl int)
   unsat (nfa)
-  sat (nfa)
+  sat (simpl)
   unsat (nfa)
   sat (presimpl int)
 
@@ -48,7 +48,7 @@ Same basic QF_EIA tests using only NFAs but in the LSB mode
   unsat (presimpl int)
   sat (presimpl int)
   unsat (nfa)
-  sat (nfa)
+  sat (simpl)
   unsat (nfa)
   sat (presimpl int)
 
