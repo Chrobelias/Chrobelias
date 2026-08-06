@@ -89,9 +89,7 @@ $ cat len1.smt2
              (<= (* (- 1) strlenx) 0)
              (<= (* (- 1) strleny) 0)
              (<= (+ 2 (* (- 1) strlenx)) 0)
-             (<= (* (- 1) strlenx) 0)
-             (<= (+ 1001 (* (- 1) strleny)) 0)
-             (<= (* (- 1) strleny) 0))
+             (<= (+ 1001 (* (- 1) strleny)) 0))
   [+simpl]
     Alphabet with extra char: 0
   

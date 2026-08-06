@@ -1,8 +1,6 @@
   $ CHRO_DEBUG=simpl Chro simple.smt2 | sed 's/[[:space:]]*$//'
   [+simpl]
-    iter(1)= (and
-             (= a "abc")
-             (= a "abc"))
+    iter(1)= (= a "abc")
   [+simpl]
     Alphabet with extra char: 0 a b c
   
@@ -10,8 +8,6 @@
     Something ready to substitute
         a -> "abc";
   
-  [+simpl]
-    iter(2)= (= a "abc")
   [+simpl]
     iter(3)= True
   [+simpl]
