@@ -2493,13 +2493,18 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
        | Ast.True -> `Sat env
        | Ast.Lnot Ast.True ->
          (* Below, we are extracting an unsat core *)
+         (* Literals, not bare atoms: [collect_atomic] strips [Lnot], so a
+            conjunct [(not A)] would be examined -- and later re-asserted in the
+            core -- as plain [A]. The core then flips the polarity of a literal of
+            the very assignment it is supposed to refute, and the DPLL loop in
+            [chro.ml] learns a clause that fails to exclude that assignment. *)
          begin match
            List.find_map
              (fun atomic ->
                 match subst env atomic with
                 | Ast.Lnot Ast.True -> Option.some atomic
                 | _ -> Option.none)
-             (Ast.collect_atomic orig_ast)
+             (Ast.collect_literals orig_ast)
          with
          | None when orig_ast = Lnot True -> `Unsat orig_ast
          | None ->
@@ -2535,7 +2540,7 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
            trace_log "short env: %a\n" (Env.pp ~title:"") short_env;
            let core =
              orig_ast
-             |> Ast.collect_atomic
+             |> Ast.collect_literals
              |> List.filter (fun ph -> Set.is_subset (Ast.collect_vars ph) ~of_:vars)
              |> List.filter (fun ph ->
                match subst short_env ph with
