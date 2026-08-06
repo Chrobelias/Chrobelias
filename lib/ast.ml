@@ -842,6 +842,23 @@ let collect_atomic =
     []
 ;;
 
+(* Like [collect_atomic], but keeps the polarity each atom carries: a [Lnot]
+   context yields the negated literal instead of the bare atom.
+
+   [collect_atomic] discards negation, so a caller that rebuilds a formula out of
+   its result re-asserts negated conjuncts positively. That is what used to
+   corrupt the unsat cores produced by [SimplII.basic_simplify]. *)
+let collect_literals ast =
+  let rec go pol acc = function
+    | Lnot ph -> go (Bool.not pol) acc ph
+    | Land xs | Lor xs -> List.fold_left (go pol) acc xs
+    | Exists (_, ph) -> go pol acc ph
+    | (Eia _ | Pred _) as atom -> (if pol then atom else lnot atom) :: acc
+    | True | Unsupp _ -> acc
+  in
+  go true [] ast
+;;
+
 let collect_equalities =
   fold
     (fun acc -> function
