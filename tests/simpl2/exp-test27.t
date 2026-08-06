@@ -41,12 +41,12 @@
     fixed-point
   
   [+over]
-    CHECK OVER  (and
-                (= (mod (mod (str.to.int x) 29) 11) 0)
-                (<= (+ (- 99) strlenx) 0)
-                (<= (* (- 1) @@re_len1) 0)
-                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
-                (<= (* (- 1) strlenx) 0)) 
+    Length abstraction result:  (and
+                                (= (mod (mod (str.to.int x) 29) 11) 0)
+                                (<= (+ (- 99) strlenx) 0)
+                                (<= (* (- 1) @@re_len1) 0)
+                                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
+                                (<= (* (- 1) strlenx) 0)) 
   [+over]
     whole: (bool.and
           (bool.and
@@ -59,6 +59,14 @@
   (model
     (@@re_len1 int 0)
     (strlenx int 9))
+  [+over]
+    Length abstraction result:  (and
+                                (<= (* (- 1) @@re_len1) 0)
+                                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
+                                (= (mod (mod (str.to.int x) 29) 11) 0)
+                                (<= (+ (- 99) strlenx) 0)
+                                (<= (* (- 1) (str.to.int x)) 0)
+                                (<= (* (- 1) strlenx) 0)) 
   [+simpl]
     Basic simplifications:
   
@@ -212,12 +220,12 @@
     fixed-point
   
   [+over]
-    CHECK OVER  (and
-                (= (mod (mod (str.to.int x) 29) 11) 0)
-                (<= (+ (- 99) strlenx) 0)
-                (<= (* (- 1) @@re_len1) 0)
-                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
-                (<= (* (- 1) strlenx) 0)) 
+    Length abstraction result:  (and
+                                (= (mod (mod (str.to.int x) 29) 11) 0)
+                                (<= (+ (- 99) strlenx) 0)
+                                (<= (* (- 1) @@re_len1) 0)
+                                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
+                                (<= (* (- 1) strlenx) 0)) 
   [+over]
     whole: (bool.and
           (bool.and
@@ -226,6 +234,14 @@
            (bool.eq (int.add (int.add -9 strlenx) (int.mul -2 @@re_len1)) 0))
           (int.le_s (int.mul -1 strlenx) 0))
   
+  [+over]
+    Length abstraction result:  (and
+                                (<= (* (- 1) @@re_len1) 0)
+                                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
+                                (= (mod (mod (str.to.int x) 29) 11) 0)
+                                (<= (+ (- 99) strlenx) 0)
+                                (<= (* (- 1) (str.to.int x)) 0)
+                                (<= (* (- 1) strlenx) 0)) 
   [+simpl]
     Basic simplifications:
   
