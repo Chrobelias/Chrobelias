@@ -348,7 +348,7 @@ module Eia = struct
       (fs : string term -> string term)
       : (a term -> a term) ->
       function
-    | Len x -> fz (Len x)
+    | Len x -> fz (len (map_term fz fs x))
     | Const c -> fz (Const c)
     | Str_const s -> fs (Str_const s)
     | Atom (Var (name, S)) -> fs (Atom (Var (name, S)))
@@ -665,6 +665,16 @@ let pp_smtlib2 =
   pp
 ;;
 
+let dedup_branches asts =
+  let rec go seen = function
+    | [] -> []
+    | hd :: tl -> if List.mem hd seen then go seen tl else hd :: go (hd :: seen) tl
+  in
+  match asts with
+  | ([] | [ _ ]) as asts -> asts
+  | asts -> go [] asts
+;;
+
 let land_ =
   fun asts ->
   (* Format.printf "> %a\n%!" (Format.pp_print_list pp_smtlib2) asts; *)
@@ -688,6 +698,7 @@ let land_ =
             | True -> []
             | ast -> [ ast ])
           asts
+        |> dedup_branches
       in
       (match asts with
        | [] -> true_
@@ -711,6 +722,7 @@ let lor_ xs =
           | ast -> [ ast ])
         asts
       |> List.concat
+      |> dedup_branches
     in
     (match asts with
      | [] -> false_
