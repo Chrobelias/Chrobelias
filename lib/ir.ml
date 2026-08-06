@@ -730,6 +730,9 @@ let simpl ir =
 ;;
 
 let simpl_ineq ir =
+  (* Bounds are collected across the whole tree and re-emitted conjoined, which is
+     only sound because every [Ir] pass is given a conjunction. Merging an upper
+     bound with [min] across the arms of a [Lor] would strengthen the formula. *)
   let simpl_ineq ir =
     let merge lowb uppb =
       let merge_bounds f = function
@@ -759,16 +762,61 @@ let simpl_ineq ir =
         []
         ir
     in
+    (* Values a variable is forbidden to take, from single-variable disequalities.
+       [c * v <> rhs] forbids [rhs / c], and is vacuously true over the integers
+       when [c] does not divide [rhs] -- so those are simply not recorded, and get
+       erased below along with the rest. *)
+    let forbidden =
+      fold
+        (fun list -> function
+           | Rel (Neq, term, c) when Map.length term = 1 ->
+             let var, coeff = Map.min_elt_exn term in
+             if Z.divisible c coeff then (var, Z.divexact c coeff) :: list else list
+           | _ -> list)
+        []
+        ir
+      |> Map.of_alist_multi
+      |> Map.map ~f:(List.sort_uniq Z.compare)
+    in
+    let forbids var x =
+      match Map.find forbidden var with
+      | None -> false
+      | Some xs -> List.exists (Z.equal x) xs
+    in
+    (* [v >= c] together with [v <> c] gives [v >= c + 1], and symmetrically for an
+       upper bound. Each step consumes one forbidden value, so this terminates. *)
+    let tighten var (lowb, uppb) =
+      let rec raise_ x = if forbids var x then raise_ Z.(x + one) else x in
+      let rec lower x = if forbids var x then lower Z.(x - one) else x in
+      Option.map raise_ lowb, Option.map lower uppb
+    in
     let bounds_map =
       bounds
       |> Map.of_alist_multi
       |> Map.map ~f:(fun data -> List.fold_left merge (None, None) data)
+      |> Map.mapi ~f:(fun ~key ~data -> tighten key data)
+    in
+    (* A forbidden value outside the tightened range is already ruled out by the
+       bounds, so its disequality has been discharged and need not be re-emitted. *)
+    let neq_irs =
+      Map.fold forbidden ~init:[] ~f:(fun ~key:var ~data:values irs ->
+        let lowb, uppb = Map.find bounds_map var |> Option.value ~default:(None, None) in
+        let within x =
+          Option.fold ~none:true ~some:(fun l -> Z.geq x l) lowb
+          && Option.fold ~none:true ~some:(fun u -> Z.leq x u) uppb
+        in
+        List.fold_left
+          (fun irs x -> if within x then neq (Map.singleton var Z.one) x :: irs else irs)
+          irs
+          values)
     in
     let ir_without_eq_n_leq =
       map
         (function
           | Rel (Eq, term, c) when Map.length term = 1 -> true_
           | Rel (Leq, term, c) when Map.length term = 1 -> true_
+          (* Re-emitted by [neq_irs] above, minus the discharged and vacuous ones. *)
+          | Rel (Neq, term, c) when Map.length term = 1 -> true_
           | ir -> ir)
         ir
     in
@@ -825,7 +873,7 @@ let simpl_ineq ir =
         ~f:(fun ~key ~data irs -> decide key data :: irs)
         complex_bounds_map
     in
-    let ir = land_ (List.concat [ irs'; ir_without_leq :: irs ]) |> simpl in
+    let ir = land_ (List.concat [ irs'; neq_irs; ir_without_leq :: irs ]) |> simpl in
     ir
   in
   map
@@ -1074,6 +1122,43 @@ let pin_unconstrained_vars ir =
       | ir -> ir
     in
     go true ir, Map.to_alist pinned)
+;;
+
+let%expect_test "simpl_ineq and disequalities" =
+  let show ir = Format.printf "@[%a@]\n%!" pp_smtlib2 (simpl_ineq ir) in
+  let ge v n = leq (Map.singleton (var v) Z.minus_one) Z.(neg (of_int n)) in
+  let le v n = leq (Map.singleton (var v) Z.one) (Z.of_int n) in
+  let ne v n = neq (Map.singleton (var v) Z.one) (Z.of_int n) in
+  (* [v >= 1] and [v <> 1] tighten to [v >= 2]; the disequality is discharged. *)
+  show (land_ [ ge "v" 1; ne "v" 1 ]);
+  [%expect "(assert (<= (* (- 1) v)  -2) )"];
+  (* Consecutive excluded values keep tightening. *)
+  show (land_ [ ge "v" 1; ne "v" 1; ne "v" 2 ]);
+  [%expect "(assert (<= (* (- 1) v)  -3) )"];
+  (* Symmetrically for an upper bound. *)
+  show (land_ [ le "v" 5; ne "v" 5 ]);
+  [%expect "(assert (<= v  4) )"];
+  (* A forbidden value strictly inside the range has to stay. *)
+  show (land_ [ ge "v" 0; le "v" 10; ne "v" 5 ]);
+  [%expect
+    " \n\
+    \ (assert (distinct v  5) )\n\
+    \ (assert (<= (* (- 1) v)  0) )\n\
+    \ (assert (<= v  10) )\n\
+    \ "];
+  (* Already outside the range: discharged without changing the bound. *)
+  show (land_ [ ge "v" 0; le "v" 3; ne "v" 9 ]);
+  [%expect " \n (assert (<= (* (- 1) v)  0) )\n (assert (<= v  3) )\n "];
+  (* [3v <> 7] holds for every integer [v], so it carries no information. *)
+  show (neq (Map.singleton (var "v") (Z.of_int 3)) (Z.of_int 7));
+  [%expect "(assert T)"];
+  (* [3v <> 6] does forbid [v = 2]. *)
+  show (land_ [ ge "v" 2; neq (Map.singleton (var "v") (Z.of_int 3)) (Z.of_int 6) ]);
+  [%expect "(assert (<= (* (- 1) v)  -3) )"];
+  (* No bounds at all: the disequality survives unchanged. *)
+  show (ne "v" 3);
+  [%expect "(assert (distinct v  3) )"];
+  ()
 ;;
 
 let%expect_test "pin_unconstrained_vars" =
