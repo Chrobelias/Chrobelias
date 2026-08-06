@@ -2822,7 +2822,7 @@ let run_length_simplify env ast =
       | ast -> ast)
   in
   match basic_simplify [ 0 ] Env.empty (map_with len_to_int ast) with
-  | `Unsat core -> `Unsat core
+  | `Unsat core -> `Unsat (map_with len_of_int core)
   | `Sat env | `Unknown (_, env, _, _) ->
     let extra_eqs =
       Env.to_eqs env

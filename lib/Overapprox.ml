@@ -180,8 +180,9 @@ let check ast =
 ;;
 
 (*Below is something useful about lengths. Will be overapproximation based on string abstractions *)
-let check_length ast =
-  (*`Unknown ast*)
+(* The length over-approximation of [ast]: one abstraction per conjunct, the side
+   facts, and their conjunction. *)
+let length_abstraction ast =
   let strlens s = String.concat "" [ "strlen"; s ] in
   let gensym =
     let n = ref 0 in
@@ -250,10 +251,92 @@ let check_length ast =
       let eq_str lhs rhs = eqz (str_len lhs) (str_len rhs)
     end
     in
-    let ast = SimplII.apply_symantics_unsugared (module OverStrLen) ast in
-    let ast = Ast.land_ (ast :: (!eqs |> Set.to_list)) in
-    trace_log "CHECK OVER  %a %!" Ast.pp_smtlib2 ast;
-    ast
+    (* One abstraction per conjunct, rather than one for the whole conjunction.
+       [apply_symantics_unsugared] maps the formula structurally, so keeping the
+       conjuncts apart makes the correspondence between a conjunct and its
+       abstraction positional -- which is what lets a core over the abstractions be
+       reported back in terms of the caller's own atoms, with no provenance
+       bookkeeping. Conjoining the parts reproduces the old whole-formula result. *)
+    let conjuncts =
+      match ast with
+      | Ast.Land xs -> xs
+      | ph -> [ ph ]
+    in
+    let parts =
+      List.map
+        (fun ph -> ph, SimplII.apply_symantics_unsugared (module OverStrLen) ph)
+        conjuncts
+    in
+    (* Side facts: every length is non-negative, plus Chrobak's [@@re_len] bounds.
+       They are not attributable to any one conjunct, so they always hold. *)
+    parts, !eqs |> Set.to_list
   in
-  check (over_concat_len ast)
+  let parts, facts = over_concat_len ast in
+  let whole = Ast.land_ (List.map snd parts @ facts) in
+  trace_log "Length abstraction result:  %a %!" Ast.pp_smtlib2 whole;
+  parts, facts, whole
+;;
+
+let check_length ast =
+  let _parts, _facts, whole = length_abstraction ast in
+  check whole
+;;
+
+(* Like [check_length], but on [`Unsat] also reports which conjuncts of [ast] are
+   responsible, as a formula over [ast]'s own atoms.
+
+   Smtml's solver interface exposes no [get_unsat_core], so the core is found by
+   deletion: drop an assumption and keep it only if what remains is still
+   unsatisfiable. Every probe is a small linear-integer query over the length
+   abstraction, so this stays cheap -- unlike minimising against the full string
+   theory. *)
+let check_length_core_exn ast =
+  let parts, facts, _whole = length_abstraction ast in
+  cache := Base.Map.empty (module Base.String);
+  let to_smtml = apply_symnatics (module Symantics) in
+  (* Translate everything before reading the cache: [apply_symnatics] populates it
+     while lowering [Pow], and the bounds it records belong with the facts. *)
+  let assumptions = List.map (fun (ph, abstraction) -> ph, to_smtml abstraction) parts in
+  let fact_exprs = List.map to_smtml facts in
+  let fact_exprs = fact_exprs @ formulas_of_cache () in
+  let module Z3 = Smtml.Z3_mappings.Solver in
+  let solver =
+    Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
+  in
+  Z3.reset solver;
+  Z3.add solver fact_exprs;
+  let unsat_with kept =
+    match Z3.check solver ~assumptions:(List.map snd kept) with
+    | `Unsat -> true
+    | `Sat | `Unknown -> false
+  in
+  if not (unsat_with assumptions)
+  then `Unknown
+  else (
+    let rec go kept = function
+      | [] -> List.rev kept
+      | p :: rest ->
+        if unsat_with (List.rev_append kept rest)
+        then go kept rest
+        else go (p :: kept) rest
+    in
+    match go [] assumptions with
+    (* The facts alone are contradictory, so no conjunct is to blame. *)
+    | [] -> `Unknown
+    | survivors ->
+      trace_log
+        "length core: %d -> %d conjunct(s)"
+        (List.length assumptions)
+        (List.length survivors);
+      `Unsat (Ast.land_ (List.map fst survivors)))
+;;
+
+(* Translating to Smtml can raise from deep inside the evaluator (an oversized
+   constant, an operator it cannot fold), exactly as it can for [check] above,
+   which is why that one is wrapped too. An over-approximation is free to give up. *)
+let check_length_core ast =
+  try check_length_core_exn ast with
+  | exn ->
+    trace_log "check_length_core gave up: %s" (Printexc.to_string exn);
+    `Unknown
 ;;
