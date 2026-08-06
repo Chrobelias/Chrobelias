@@ -674,7 +674,14 @@ let rec eia_of_ir : Ir.t -> Ast.t =
      | Neq -> eia (neq lhs rhs I)
      | Leq -> eia (leq lhs rhs)
      | Eq -> eia (eq lhs rhs I)
-     | Div m -> eia (eq (mod_ lhs m) rhs I))
+     (* [Rel (Div m, poly, c)] is [poly = c (mod m)] with [c] taken as is,
+        while [mod] in the AST yields a value in [0, |m|) -- so the residue
+        has to be reduced, or the equation comes out unsatisfiable. *)
+     | Div m when Z.(equal m zero) -> eia (eq lhs rhs I)
+     | Div m when Z.(equal (abs m) one) -> true_
+     | Div m ->
+       let m = Z.abs m in
+       eia (eq (mod_ lhs m) (const (Z.erem c m)) I))
   | Exists ([], lhs) -> eia_of_ir lhs
   | Exists (atoms, lhs) -> exists (List.map ir_atom_to_atom atoms) (eia_of_ir lhs)
   | _ -> true_
