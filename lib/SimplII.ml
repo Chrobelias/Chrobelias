@@ -1120,13 +1120,40 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | _ -> relop Eq l r
     ;;
 
+    (* [str.len s] is never negative Length 0 -> empty string *)
+    let by_len_nonneg l r =
+      let open Ast.Eia in
+      let summands =
+        match add [ l; mul [ const Z.minus_one; r ] ] with
+        | Add xs -> xs
+        | x -> [ x ]
+      in
+      let nonpositive = function
+        | Const c -> Z.leq c Z.zero
+        | Mul [ Const c; Len _ ] -> Z.lt c Z.zero
+        | _ -> false
+      in
+      let is_empty s = Option.some (Ast.eia (eq s (Str_const "") Ast.S)) in
+      if List.for_all nonpositive summands
+      then Option.some Ast.true_
+      else (
+        match summands with
+        | [ Len s ] -> is_empty s
+        | [ Mul [ Const c; Len s ] ] when Z.gt c Z.zero -> is_empty s
+        | _ -> Option.none)
+    ;;
+
     let leq l r =
       let open Ast.Eia in
-      match l, r with
-      | Add lhs, Add rhs -> cancel_left (relop Leq) lhs rhs
-      | lhs, Add rhs -> cancel_left (relop Leq) [ lhs ] rhs
-      | Add lhs, rhs -> cancel_left (relop Leq) lhs [ rhs ]
-      | _ -> relop Leq l r
+      match by_len_nonneg l r with
+      | Some ph -> ph
+      | None ->
+        begin match l, r with
+        | Add lhs, Add rhs -> cancel_left (relop Leq) lhs rhs
+        | lhs, Add rhs -> cancel_left (relop Leq) [ lhs ] rhs
+        | Add lhs, rhs -> cancel_left (relop Leq) lhs [ rhs ]
+        | _ -> relop Leq l r
+        end
     ;;
 
     let lt l r = leq (add [ const 1; l ]) r
@@ -1467,6 +1494,33 @@ let shrink_variables ast =
   else ast
 ;;
 
+(* [str.len s] is never negative, which decides some inequalities outright and
+   turns others into a much more useful equality. See [by_len_nonneg]. *)
+let%expect_test "length non-negativity in inequalities" =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  let show ph = Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 ph in
+  let len s = TS.str_len (TS.str_var s) in
+  let open TS in
+  (* Tautologies: every summand on the left is non-positive. *)
+  show (mul [ const (-1); len "s" ] <= const 0);
+  [%expect "True"];
+  show
+    (add [ const (-5); mul [ const (-2); len "s" ]; mul [ const (-1); len "t" ] ]
+     <= const 0);
+  [%expect "True"];
+  (* A non-positive length squeezes the string to be empty. *)
+  show (len "s" <= const 0);
+  [%expect "(= s \"\")"];
+  show (mul [ const 3; len "s" ] <= const 0);
+  [%expect "(= s \"\")"];
+  (* Neither rule applies: the length may well be positive here. *)
+  show (len "s" <= const 5);
+  [%expect "(<= (+ (- 5) (str.len s)) 0)"];
+  show (add [ len "s"; mul [ const (-1); len "t" ] ] <= const 0);
+  [%expect "(<= (+ (str.len s) (* (- 1) (str.len t))) 0)"];
+  ()
+;;
+
 let%test_module "about shrinking" =
   (module struct
     let wrap f =
@@ -1649,78 +1703,215 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
     with type ph = Smtml.Expr.t)
 ;;
 
+(* What we decided to do with a single equality.
+
+   [Prop] records the substitution in the environment and leaves the formula as
+   it is: the driver loop in [basic_simplify] applies the environment to the
+   whole formula on its next iteration. Sound only where the equality is asserted
+   unconditionally, i.e. somewhere in a top-level conjunction.
+
+   [PropAndPreserve] rewrites the formula in place *and* re-asserts the equality
+   as a conjunct. This is the variant to use below a disjunction: a branch must
+   not drop the equality it propagates, and its environment cannot escape to the
+   sibling branches. Unlike [Prop] it can substitute an arbitrary term, not just
+   a variable.
+
+   [PropLen] records that a string variable has a known length, which lets
+   regular-membership constraints on it be unfolded into a disjunction of words. *)
 type action =
   | Prop : string * Ast.typed_term -> action
   | PropAndPreserve : 'a Ast.Eia.term * 'a Ast.Eia.term * 'a Ast.kind -> action
   | PropLen : string * Z.t -> action
   | Noprop
 
+(* A term is substitutable only when it is free of [str.at]/[str.substr]: those
+   are lowered into fresh variables later on, and duplicating them across the
+   formula loses the sharing that the lowering relies on. *)
+let is_substitutable eia =
+  let open Ast.Eia in
+  fold_term
+    (fun acc el ->
+       match el with
+       | At _ | Substr _ -> false
+       | _ -> acc)
+    (fun acc el ->
+       match el with
+       | At _ | Substr _ -> false
+       | _ -> acc)
+    true
+    eia
+;;
+
+(* Variables pinned between a constant lower *and* a constant upper bound —
+   typically the remainder that lowering [mod] introduces, with 0 <= %r < c.
+   Substituting a multi-variable term for one of these loses the bounds, so
+   [breaks_range] below refuses to do it. *)
+let ranged_vars_of ast =
+  let open Ast in
+  let open Ast.Eia in
+  let rec coeff_sign vn = function
+    | Atom (Var (s, _)) -> if s = vn then 1 else 0
+    | Const _ -> 0
+    | Add ts ->
+      List.fold_left
+        (fun acc t ->
+           match acc, coeff_sign vn t with
+           | a, 0 -> a
+           | 0, b -> b
+           | a, b when a = b -> a
+           | _ -> 0)
+        0
+        ts
+    | Mul ts ->
+      (match List.filter (fun t -> Set.mem (collect_vars t) vn) ts with
+       | [ Atom (Var (s, _)) ] when s = vn ->
+         List.fold_left
+           (fun acc -> function
+              | Const c -> acc * Z.sign c
+              | _ -> acc)
+           1
+           ts
+       | _ -> 0)
+    | t -> 0
+  in
+  collect_atomic ast
+  |> List.fold_left
+       (fun acc -> function
+          | Eia (Leq (lhs, Const _)) ->
+            let vs = collect_vars lhs in
+            if Set.length vs = 1
+            then (
+              let vn = Set.choose_exn vs in
+              match coeff_sign vn lhs with
+              | s when s <> 0 ->
+                let lo, hi = Option.value ~default:(false, false) (Map.find acc vn) in
+                Map.set acc ~key:vn ~data:(if s > 0 then lo, true else true, hi)
+              | _ -> acc)
+            else acc
+          | _ -> acc)
+       Map.empty
+  |> Map.filter ~f:(fun (lo, hi) -> lo && hi)
+  |> Map.keys
+;;
+
+(* Knowing that [s] has length exactly [len], replace every regular-membership
+   constraint on [s] by the disjunction of the words of that length it accepts.
+
+   NOTE: [unfold_nfa_with_fixed_len] is still a stub returning [None], so this
+   whole rewriting is currently a no-op and [PropLen] has no observable effect.
+   The scaffolding around it is kept for whoever implements the unfolding. *)
+let unfold_regexes_at_fixed_len s len ast =
+  let open Ast in
+  let many_words = 10 in
+  let unfold_nfa_with_fixed_len _len _nfa = None in
+  let words_into_disjunction ?default words =
+    if Option.is_some default && List.length words > many_words
+    then default |> Option.get
+    else
+      words
+      |> List.map (fun word -> Eia.eq (Eia.Atom (Var (s, S))) (Eia.Str_const word) S)
+      |> List.map Ast.eia
+      |> Ast.lor_
+  in
+  let unfold nfa orig =
+    unfold_nfa_with_fixed_len len nfa
+    |> Option.map words_into_disjunction
+    |> Option.value ~default:orig
+  in
+  Ast.map
+    (function
+      | Eia (Eia.InRe (Eia.Atom (Var (s', S)), S, re)) as orig when s = s' ->
+        unfold (NfaS.of_regex re) orig
+      | Eia (Eia.InReRaw (Eia.Atom (Var (s', S)), S, nfa)) as orig when s = s' ->
+        unfold nfa orig
+      | Eia (Eia.InRe (Eia.Atom (Var (s', I)), I, re)) as orig when s = s' ->
+        unfold (NfaS.of_regex re) orig
+      | Eia (Eia.InReRaw (Eia.Atom (Var (s', I)), I, nfa)) as orig when s = s' ->
+        unfold nfa orig
+      | el -> el)
+    ast
+;;
+
+(* Carry out a single [action], returning the (possibly extended) environment and
+   the (possibly rewritten) formula. See [action] for why some variants touch the
+   environment and others rewrite the formula. *)
+let apply_action =
+  let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  let trivial_simplify eta = subst_term Env.empty eta in
+  let map_eia f ast =
+    Ast.map
+      (function
+        | Ast.Eia eia -> Ast.eia (f eia)
+        | el -> el)
+      ast
+  in
+  fun env ast -> function
+    | Noprop -> env, ast
+    (* Environment only: the formula is left as it is and the driver loop applies
+       the substitution globally on its next pass. *)
+    | Prop (vn, Ast.TT (Ast.I, term)) ->
+      let term = trivial_simplify term in
+      ( (try Env.extend_int_exn env vn term with
+         | Env.Occurs -> env)
+      , ast )
+    | Prop (vn, Ast.TT (Ast.S, term)) ->
+      let term = trivial_simplify term in
+      Env.extend_string_exn env vn term, ast
+    (* In place: substitute throughout, and re-assert the equality so that the
+       rewriting stays equivalence-preserving even under a disjunction. *)
+    | PropAndPreserve (term, rhs, Ast.I) ->
+      let ast =
+        map_eia
+          (Ast.Eia.map2 Fun.id (fun term' -> if term = term' then rhs else term') Fun.id)
+          ast
+      in
+      env, Ast.land_ [ S.eqz term rhs; ast ]
+    | PropAndPreserve (term, rhs, Ast.S) ->
+      let ast =
+        map_eia
+          (Ast.Eia.map2 Fun.id Fun.id (fun term' -> if term = term' then rhs else term'))
+          ast
+      in
+      env, Ast.land_ [ S.eq_str term rhs; ast ]
+    | PropLen (s, len) -> env, unfold_regexes_at_fixed_len s len ast
+;;
+
+let select_actions classify conjuncts =
+  let is_prop = function
+    | Prop _ -> true
+    | _ -> false
+  in
+  let independent_of vn chosen =
+    List.for_all
+      (function
+        | Prop (vn', Ast.TT (Ast.I, rhs)) ->
+          vn <> vn' && not (Set.mem (Ast.Eia.collect_vars rhs) vn)
+        | Prop (vn', Ast.TT (Ast.S, rhs)) ->
+          vn <> vn' && not (Set.mem (Ast.Eia.collect_vars rhs) vn)
+        | _ -> true)
+      chosen
+  in
+  List.fold_left
+    (fun chosen conjunct ->
+       match classify conjunct with
+       | Noprop -> chosen
+       | Prop (vn, _) as action when independent_of vn chosen ->
+         action :: List.filter is_prop chosen
+       | (PropAndPreserve _ | PropLen _) as action when not (List.exists is_prop chosen)
+         -> action :: chosen
+       | _ -> chosen)
+    []
+    conjuncts
+;;
+
 let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast : Ast.t) =
   let open Ast in
   let open Ast.Eia in
   let (module S : SYM_SUGAR_AST) = make_main_symantics Env.empty in
-  let trivial_simplify eta = subst_term Env.empty eta in
+  let handle_action = apply_action in
   let noprop = Noprop in
-  let is_simpl eia =
-    Eia.fold_term
-      (fun acc el ->
-         match el with
-         | At _ | Substr _ -> false
-         | _ -> acc)
-      (fun acc el ->
-         match el with
-         | At _ | Substr _ -> false
-         | _ -> acc)
-      true
-      eia
-  in
-  (* Variables pinned between a constant lower *and* a constant upper bound —
-   typically the remainder that lowering [mod] introduces, with 0 <= %r < c. *)
-  let ranged_vars =
-    let rec coeff_sign vn = function
-      | Atom (Var (s, _)) -> if s = vn then 1 else 0
-      | Const _ -> 0
-      | Add ts ->
-        List.fold_left
-          (fun acc t ->
-             match acc, coeff_sign vn t with
-             | a, 0 -> a
-             | 0, b -> b
-             | a, b when a = b -> a
-             | _ -> 0)
-          0
-          ts
-      | Mul ts ->
-        (match List.filter (fun t -> Set.mem (collect_vars t) vn) ts with
-         | [ Atom (Var (s, _)) ] when s = vn ->
-           List.fold_left
-             (fun acc -> function
-                | Const c -> acc * Z.sign c
-                | _ -> acc)
-             1
-             ts
-         | _ -> 0)
-      | t -> 0
-    in
-    collect_atomic ast
-    |> List.fold_left
-         (fun acc -> function
-            | Eia (Leq (lhs, Const _)) ->
-              let vs = collect_vars lhs in
-              if Set.length vs = 1
-              then (
-                let vn = Set.choose_exn vs in
-                match coeff_sign vn lhs with
-                | s when s <> 0 ->
-                  let lo, hi = Option.value ~default:(false, false) (Map.find acc vn) in
-                  Map.set acc ~key:vn ~data:(if s > 0 then lo, true else true, hi)
-                | _ -> acc)
-              else acc
-            | _ -> acc)
-         Map.empty
-    |> Map.filter ~f:(fun (lo, hi) -> lo && hi)
-    |> Map.keys
-  in
+  let is_simpl = is_substitutable in
+  let ranged_vars = ranged_vars_of ast in
   let breaks_range vn rhs =
     Set.length (collect_vars rhs) > 1 && List.mem vn ranged_vars
   in
@@ -1743,6 +1934,19 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
   let return2i lhs rhs =
     if is_simpl rhs then PropAndPreserve (lhs, rhs, Ast.I) else noprop
   in
+  (* [len_term], a [str.len] application on [vn], is known to equal [n].
+
+     Below a disjunction we substitute the constant for it in place, keeping the
+     equality: that is what carries a length equality from an enclosing
+     conjunction down into a nested disjunction, and a disjunct has no
+     environment of its own to record it in. At the top level we keep returning
+     [PropLen], whose intent is to unfold regular constraints on [vn] into the
+     words of that length. *)
+  let known_length len_term vn n =
+    if Option.value ~default:false soft
+    then PropAndPreserve (len_term, Ast.Eia.Const n, Ast.I)
+    else PropLen (vn, n)
+  in
   let trivial_string_propagations v = function
     | rhs -> returns v rhs
   in
@@ -1764,7 +1968,12 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
     | (Ast.Eia.Const _ | Atom _) as rhs when cnt lhs > 1 -> return2i lhs rhs
     | _ -> noprop
   in
-  let helper info orig_ast env ast =
+  (* Decide what, if anything, a single (in)equality lets us propagate. The
+     cases are tried from the cheapest and most obviously safe to the most
+     speculative: [trivial_*] handles [x = c] and [x = y], [advanced_*] solves a
+     linear equation for one of its variables, [term_propagations] substitutes a
+     repeated compound term, and [last_resort] picks a variable out of a sum. *)
+  let classify_equality info orig_ast env ast =
     let var_can_be_prop ?rhs v =
       Env.is_absent_key v env
       && Option.value
@@ -1923,15 +2132,17 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
           || (List.mem vn (Ast.get_exp_vars orig_ast) && not (Ast.Eia.is_simple rhs))
         then noprop
         else returni vn rhs
-      | ( Ast.Eia.Add [ Ast.Eia.Const c; Ast.Eia.Len (Ast.Eia.Atom (Var (vn', _))) ]
+      (* [c + str.len s = 0] and [c - str.len s = 0]: the length of [s] is known. *)
+      | ( Ast.Eia.Add [ Ast.Eia.Const c; (Ast.Eia.Len (Ast.Eia.Atom (Var (vn', _))) as l) ]
         , Ast.Eia.Const rhs )
-        when rhs = Z.zero -> PropLen (vn', Z.(neg c))
+        when rhs = Z.zero -> known_length l vn' Z.(neg c)
       | ( Ast.Eia.Add
             [ Ast.Eia.Const c
-            ; Ast.Eia.Mul [ Ast.Eia.Const d; Ast.Eia.Len (Ast.Eia.Atom (Var (vn', _))) ]
+            ; Ast.Eia.Mul
+                [ Ast.Eia.Const d; (Ast.Eia.Len (Ast.Eia.Atom (Var (vn', _))) as l) ]
             ]
         , Ast.Eia.Const rhs )
-        when rhs = Z.zero && d = Z.minus_one -> PropLen (vn', c)
+        when rhs = Z.zero && d = Z.minus_one -> known_length l vn' c
       | _ -> noprop
     in
     let commut f lhs rhs =
@@ -1964,93 +2175,12 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
       end
     | eq -> noprop
   in
-  let handle_action env ast = function
-    | Prop (vn, Ast.TT (Ast.I, term)) ->
-      let term = trivial_simplify term in
-      ( (try Env.extend_int_exn env vn term with
-         | Env.Occurs -> env)
-      , ast )
-    | Prop (vn, Ast.TT (Ast.S, term)) ->
-      let term = trivial_simplify term in
-      Env.extend_string_exn env vn term, ast
-    | PropAndPreserve (term, rhs, Ast.I) ->
-      let ast =
-        Ast.map
-          (function
-            | Eia eia ->
-              let eia =
-                Ast.Eia.map2
-                  Fun.id
-                  (fun term' -> if term = term' then rhs else term')
-                  Fun.id
-                  eia
-              in
-              Ast.eia eia
-            | el -> el)
-          ast
-      in
-      let ast = Ast.land_ [ S.eqz term rhs; ast ] in
-      env, ast
-    | PropLen (s, len) ->
-      let many_words = 10 in
-      let unfold_nfa_with_fixed_len _len _nfa = None in
-      let words_into_disjunction ?default words =
-        if Option.is_some default && List.length words > many_words
-        then default |> Option.get
-        else
-          words
-          |> List.map (fun word -> Eia.eq (Eia.Atom (Var (s, S))) (Eia.Str_const word) S)
-          |> List.map Ast.eia
-          |> Ast.lor_
-      in
-      let ast =
-        (*let removed_orig = ref false in*)
-        let ast =
-          Ast.map
-            (function
-              | Eia (Eia.InRe (Eia.Atom (Var (s', S)), S, re)) as orig when s = s' ->
-                unfold_nfa_with_fixed_len len (NfaS.of_regex re)
-                |> Option.map words_into_disjunction
-                |> Option.value ~default:orig
-              | Eia (Eia.InReRaw (Eia.Atom (Var (s', S)), S, nfa)) as orig when s = s' ->
-                unfold_nfa_with_fixed_len len nfa
-                |> Option.map words_into_disjunction
-                |> Option.value ~default:orig
-              | Eia (Eia.InRe (Eia.Atom (Var (s', I)), I, re)) as orig when s = s' ->
-                unfold_nfa_with_fixed_len len (NfaS.of_regex re)
-                |> Option.map words_into_disjunction
-                |> Option.value ~default:orig
-              | Eia (Eia.InReRaw (Eia.Atom (Var (s', I)), I, nfa)) as orig when s = s' ->
-                unfold_nfa_with_fixed_len len nfa
-                |> Option.map words_into_disjunction
-                |> Option.value ~default:orig
-              | el -> el)
-            ast
-        in
-        ast
-      in
-      env, ast
-    | PropAndPreserve (term, rhs, Ast.S) ->
-      let ast =
-        Ast.map
-          (function
-            | Eia eia ->
-              let eia =
-                Ast.Eia.map2
-                  Fun.id
-                  Fun.id
-                  (fun term' -> if term = term' then rhs else term')
-                  eia
-              in
-              Ast.eia eia
-            | el -> el)
-          ast
-      in
-      let ast = Ast.land_ [ S.eq_str term rhs; ast ] in
-      env, ast
-    | Noprop -> env, ast
-  in
-  let propagate =
+  (* Recurse into the branches of a disjunction. [env] must be threaded in
+     explicitly: the equalities learned from the enclosing conjunction have to be
+     visible here, otherwise [(x = a) /\ (ph(x) \/ psi)] never rewrites [ph(x)].
+     Inside a disjunct we always go [~soft:true], since a disjunct may not drop
+     the equality it propagates. *)
+  let propagate env =
     List.map (fun y ->
       let env, ph = eq_propagation ~soft:true info env y in
       let (module Symantics) = make_main_symantics env in
@@ -2058,57 +2188,28 @@ let rec eq_propagation (info : Info.t) ?soft ?multiple:bool (env : Env.t) (ast :
   in
   match ast with
   | Land xs ->
-    let module Set = Set in
-    let actions =
-      List.fold_left
-        (fun acc h ->
-           match (helper info ast env) h with
-           | Noprop -> acc
-           | Prop (vn, _) as smth
-             when List.for_all
-                    (function
-                      | Prop (vn', TT (Ast.I, rhs)) ->
-                        vn <> vn' && not (Set.mem (Ast.Eia.collect_vars rhs) vn)
-                      | Prop (vn', TT (Ast.S, rhs)) ->
-                        vn <> vn' && not (Set.mem (Ast.Eia.collect_vars rhs) vn)
-                      | _ -> true)
-                    acc ->
-             smth
-             :: List.filter
-                  (function
-                    | Prop _ -> true
-                    | _ -> false)
-                  acc
-           | (PropAndPreserve _ | PropLen _) as smth
-             when not
-                    (List.exists
-                       (function
-                         | Prop (vn', _) -> true
-                         | _ -> false)
-                       acc) -> smth :: acc
-           | _ -> acc)
-        []
-        xs
-    in
+    (* Every conjunct holds, so each equality among them may be propagated to all
+       the others. *)
+    let actions = select_actions (classify_equality info ast env) xs in
     let env, ph =
       List.fold_left (fun (env, ph) -> handle_action env ph) (env, ast) actions
     in
+    (* ...including down into the nested disjunctions, which is what makes
+       [(x = a) /\ (ph(x) \/ psi)] reduce to [(x = a) /\ (ph(a) \/ psi)]. *)
     let ph =
       match ph with
       | Land xs ->
         land_
           (List.map
              (function
-               | Lor ys -> lor_ (propagate ys)
+               | Lor ys -> lor_ (propagate env ys)
                | el -> el)
              xs)
       | ph -> ph
     in
     env, ph
-  | Lor ys -> env, lor_ (propagate ys)
-  | Eia _ ->
-    let env, ph = handle_action env ast (helper info ast env ast) in
-    env, ph
+  | Lor ys -> env, lor_ (propagate env ys)
+  | Eia _ -> handle_action env ast (classify_equality info ast env ast)
   | ph -> env, ph
 ;;
 
@@ -2125,6 +2226,91 @@ let%expect_test _ =
   [%expect "x -> (+ (* (- 2) y) (* z z));"];
   test ~exp:[ "x" ] TS.(add [ var "x"; var "y" ] = mul [ var "z"; var "z" ]);
   [%expect "x -> (+ (- y) (* z z));"];
+  ()
+;;
+
+(* Issue #258: an equality asserted in a conjunction must reach *every* nested
+   Boolean combination below it: [(x = a) /\ ph(x)] ~> [(x = a) /\ ph(a)]. *)
+let%expect_test "eq_propagation into boolean combinations" =
+  let open Ast in
+  let sv s = Ast.Eia.Atom (Ast.var s Ast.S) in
+  let len s = Ast.Eia.len (sv s) in
+  let ( =. ) lhs rhs = Ast.eia (Ast.Eia.eq lhs rhs Ast.I) in
+  let ( <=. ) lhs rhs = Ast.eia (Ast.Eia.leq lhs rhs) in
+  (* One [eq_propagation] pass only propagates what is visible at the time it
+     runs, and a substitution can expose further ones (expanding [s13] here
+     creates new [str.len s17] occurrences). So iterate to a fixed point, the way
+     the driver loop in [basic_simplify] does. *)
+  let test ~all ph =
+    let info = Info.make ~all ~exp:[] ~str:all in
+    let rec fixpoint budget env ph =
+      let env, ph' = eq_propagation info env ph in
+      let (module Symantics) = make_main_symantics env in
+      let ph' = apply_symantics_unsugared (module Symantics) ph' in
+      if budget = 0 || Ast.equal ph ph' then ph' else fixpoint (budget - 1) env ph'
+    in
+    Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 (fixpoint 10 Env.empty ph)
+  in
+  (* The shape reported in the issue, cut down to the essentials: two equalities
+     at the outer [and], both of which should fire inside the nested [or]. *)
+  test
+    ~all:[ "s13"; "s17"; "s18"; "s20"; "s6" ]
+    (land_
+       [ Ast.eia
+           (Ast.Eia.eq (sv "s13") (Ast.Eia.concat [ sv "s17"; sv "s20"; sv "s18" ]) S)
+       ; len "s17" =. Ast.Eia.Const Z.one
+       ; lor_
+           [ Ast.Eia.add [ len "s20"; Ast.Eia.Const Z.one ] =. len "s6"
+           ; land_
+               [ Ast.Eia.add [ Ast.Eia.Const Z.one; len "s20" ] =. len "s13"
+               ; len "s13" <=. len "s6"
+               ]
+           ]
+       ]);
+  [%expect
+    " \n\
+    \ (and\n\
+    \   (= (+ (- 1) (str.len s17)) 0)\n\
+    \   (or\n\
+    \     (= (+ 1 (str.len s20) (* (- 1) (str.len s6))) 0)\n\
+    \     (and\n\
+    \       (= (+ 1 (* (- 1) (str.len s17)) (* (- 1) (str.len s18))) 0)\n\
+    \       (<= (+ (str.len s17) (str.len s18) (str.len s20)\n\
+    \           (* (- 1) (str.len s6))) 0))))\n\
+    \ "];
+  (* Same equalities, but one level deeper: this is the nesting actually reported
+     in the issue, where the [and] carrying the equalities is itself a disjunct,
+     so the propagation has to run in [~soft:true] mode. *)
+  test
+    ~all:[ "s13"; "s17"; "s18"; "s20"; "s6" ]
+    (lor_
+       [ land_
+           [ Ast.eia
+               (Ast.Eia.eq (sv "s13") (Ast.Eia.concat [ sv "s17"; sv "s20"; sv "s18" ]) S)
+           ; len "s17" =. Ast.Eia.Const Z.one
+           ; lor_
+               [ Ast.Eia.add [ len "s20"; Ast.Eia.Const Z.one ] =. len "s6"
+               ; land_
+                   [ Ast.Eia.add [ Ast.Eia.Const Z.one; len "s20" ] =. len "s13"
+                   ; len "s13" <=. len "s6"
+                   ]
+               ]
+           ]
+       ; Ast.eia (Ast.Eia.eq (sv "s20") (Ast.Eia.Str_const "") S)
+       ]);
+  [%expect
+    " \n\
+    \ (or\n\
+    \   (and\n\
+    \     (= s13 (str.++ s17 s20 s18))\n\
+    \     (= (+ (- 1) (str.len s17)) 0)\n\
+    \     (or\n\
+    \       (= (+ 1 (str.len s20) (* (- 1) (str.len s6))) 0)\n\
+    \       (and\n\
+    \         (= s18 \"\")\n\
+    \         (<= (+ 1 (str.len s20) (* (- 1) (str.len s6))) 0))))\n\
+    \   (= s20 \"\"))\n\
+    \ "];
   ()
 ;;
 
@@ -2476,6 +2662,26 @@ let rewrite_via_concat { Info.all; _ } =
     extra_ph := Id_symantics.eq_str (Id_symantics.str_var v) other :: !extra_ph
   in
   let extend_ph ph = extra_ph := ph :: !extra_ph in
+  (* Lower identical [str.at]/[str.substr] subterms only once.
+
+     Every [split_vars] call mints seven fresh variables and emits a conditional
+     split, so lowering the same subterm twice duplicates the whole encoding and,
+     worse, hides from every later pass that the two results denote the same
+     string. A formula that mentions [(str.at u (- (str.len u) 1))] four times used
+     to get four independent copies of it.
+
+     The arguments are already-rewritten terms by the time we get here, so
+     structural equality on them is the right notion of "the same subterm". *)
+  let at_cache = ref Map.empty
+  and substr_cache = ref Map.empty in
+  let memoize cache key build =
+    match Map.find !cache key with
+    | Some y -> y
+    | None ->
+      let y = build () in
+      cache := Map.set !cache ~key ~data:y;
+      y
+  in
   let module Rewrite = struct
     include Id_symantics
 
@@ -2503,56 +2709,58 @@ let rewrite_via_concat { Info.all; _ } =
     ;;
 
     let str_substr (term : str) (offset : term) (len : term) =
-      let _u, len_u, len_z1, y, len_y, split = split_vars term in
-      let zero = Ast.Eia.const Z.zero in
-      let in_range =
-        land_
-          [ leq zero offset
-          ; lt offset len_u
-          ; lt zero len
-          ; eqz len_z1 offset
-          ; split
-            (* [|y| = min (len, |u| - m)]: the second disjunct also forces
+      memoize substr_cache (term, offset, len) (fun () ->
+        let _u, len_u, len_z1, y, len_y, split = split_vars term in
+        let zero = Ast.Eia.const Z.zero in
+        let in_range =
+          land_
+            [ leq zero offset
+            ; lt offset len_u
+            ; lt zero len
+            ; eqz len_z1 offset
+            ; split
+              (* [|y| = min (len, |u| - m)]: the second disjunct also forces
              [z2 = ""] through [split]. *)
-          ; lor_
-              [ eqz len_y len
-              ; land_
-                  [ eqz
-                      len_y
-                      (Ast.Eia.add
-                         [ len_u; Ast.Eia.mul [ Ast.Eia.const Z.minus_one; offset ] ])
-                  ; leq len_y len
-                  ]
-              ]
-          ]
-      in
-      let out_of_range =
-        land_
-          [ lor_ [ lt offset zero; leq len zero; leq len_u offset ]
-          ; eq_str (svar y) (str_const "")
-          ]
-      in
-      extend_ph (lor_ [ in_range; out_of_range ]);
-      svar y
+            ; lor_
+                [ eqz len_y len
+                ; land_
+                    [ eqz
+                        len_y
+                        (Ast.Eia.add
+                           [ len_u; Ast.Eia.mul [ Ast.Eia.const Z.minus_one; offset ] ])
+                    ; leq len_y len
+                    ]
+                ]
+            ]
+        in
+        let out_of_range =
+          land_
+            [ lor_ [ lt offset zero; leq len zero; leq len_u offset ]
+            ; eq_str (svar y) (str_const "")
+            ]
+        in
+        extend_ph (lor_ [ in_range; out_of_range ]);
+        svar y)
     ;;
 
     let str_at (term : str) (pos : term) =
-      let _u, len_u, len_z1, y, len_y, split = split_vars term in
-      let zero = Ast.Eia.const Z.zero in
-      let in_range =
-        land_
-          [ leq zero pos
-          ; lt pos len_u
-          ; eqz len_z1 pos
-          ; eqz len_y (Ast.Eia.const Z.one)
-          ; split
-          ]
-      in
-      let out_of_range =
-        land_ [ lor_ [ lt pos zero; leq len_u pos ]; eq_str (svar y) (str_const "") ]
-      in
-      extend_ph (lor_ [ in_range; out_of_range ]);
-      svar y
+      memoize at_cache (term, pos) (fun () ->
+        let _u, len_u, len_z1, y, len_y, split = split_vars term in
+        let zero = Ast.Eia.const Z.zero in
+        let in_range =
+          land_
+            [ leq zero pos
+            ; lt pos len_u
+            ; eqz len_z1 pos
+            ; eqz len_y (Ast.Eia.const Z.one)
+            ; split
+            ]
+        in
+        let out_of_range =
+          land_ [ lor_ [ lt pos zero; leq len_u pos ]; eq_str (svar y) (str_const "") ]
+        in
+        extend_ph (lor_ [ in_range; out_of_range ]);
+        svar y)
     ;;
 
     let str_prefixof (s1 : str) (s2 : str) =
