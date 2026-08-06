@@ -71,6 +71,12 @@ type relop =
 exception Str_Underapprox_fired of Env.t
 
 val has_unsupported_nonlinearity : Ast.t -> (unit, Z.t Ast.Eia.term list) Result.t
+
+(** Replaces an existentially quantified variable which occurs linearly in a
+    single equation by a divisibility: [exists x. a*x + t = 0] becomes
+    [t = 0 (mod |a|)]. Vacuous binders are dropped along the way. *)
+val quantifiers_to_mod : Ast.t -> Ast.t
+
 val subst : Env.t -> Ast.t -> Ast.t
 val subst_term : Env.t -> 'a Ast.Eia.term -> 'a Ast.Eia.term
 val split_concats : Ast.t -> Ast.t

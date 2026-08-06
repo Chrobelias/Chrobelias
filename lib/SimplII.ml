@@ -2326,6 +2326,250 @@ let pp_step fmt step =
     (List.rev step)
 ;;
 
+(* [exists x. a*x + t = 0] is solvable in [x] exactly when [|a|] divides [t],
+   i.e. it is the congruence [t = 0 (mod |a|)]. Rewriting it that way spares
+   the automaton an unbounded quantified track and leaves the shape that [Me]
+   turns into an [Ir.Div], for which [NfaCollection.mod_eq] has a small direct
+   automaton. The residue is always zero, so the rewrite does not depend on
+   which convention [mod] uses for negative arguments. *)
+let quantifiers_to_mod ast =
+  let open Ast in
+  let binds v (Any_atom (Var (name, kind))) =
+    match kind with
+    | I -> String.equal name v
+    | S -> false
+  in
+  let occurs_in_term v (t : Z.t Eia.term) =
+    Eia.fold_term
+      (fun acc -> function
+         | Eia.Atom (Var (x, _)) -> acc || String.equal x v
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      t
+  in
+  let occurs_in_eia v ph =
+    Eia.fold2
+      (fun acc -> function
+         | Eia.Atom (Var (x, _)) -> acc || String.equal x v
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      ph
+  in
+  let rec occurs v = function
+    | True | Pred _ -> false
+    (* An [Unsupp (`Check _)] is a closure which may look at any variable. *)
+    | Unsupp _ -> true
+    | Eia ph -> occurs_in_eia v ph
+    | Lnot ph -> occurs v ph
+    | Land phs | Lor phs -> List.exists (occurs v) phs
+    | Exists (vs, ph) -> (not (List.exists (binds v) vs)) && occurs v ph
+  in
+  (* [split v t = Some (a, rest)], where [t = a*v + rest] and [v] does not
+     occur in [rest]. [None] when [v] sits in a non-linear position. *)
+  let rec split v (t : Z.t Eia.term) =
+    if not (occurs_in_term v t)
+    then Some (Z.zero, t)
+    else (
+      match t with
+      | Eia.Atom (Var (x, _)) when String.equal x v -> Some (Z.one, Eia.Const Z.zero)
+      | Eia.Add xs ->
+        List.fold_left
+          (fun acc x ->
+             match acc, split v x with
+             | Some (a, rest), Some (b, rest') -> Some (Z.(a + b), Eia.add [ rest; rest' ])
+             | _ -> None)
+          (Some (Z.zero, Eia.Const Z.zero))
+          xs
+      | Eia.Mul xs ->
+        (* [v] occurs, so the product is linear in it only when every other
+           factor is a constant. *)
+        let rec aux coeff seen = function
+          | [] -> if seen = 1 then Some (coeff, Eia.Const Z.zero) else None
+          | Eia.Const c :: tl -> aux Z.(coeff * c) seen tl
+          | Eia.Atom (Var (x, _)) :: tl when String.equal x v -> aux coeff (seen + 1) tl
+          | _ :: _ -> None
+        in
+        aux Z.one 0 xs
+      | _ -> None)
+  in
+  let elim_eia v = function
+    | Eia.Eq (lhs, rhs, I) ->
+      (match split v lhs, split v rhs with
+       | Some (a, lrest), Some (b, rrest) ->
+         let a = Z.(a - b) in
+         let rest = Eia.(add [ lrest; mul [ Const Z.minus_one; rrest ] ]) in
+         if Z.(equal a zero)
+         then (* [v] cancels out. *)
+           Some (eia (Eia.eq rest (Eia.Const Z.zero) I))
+         else if Z.(equal (abs a) one)
+         then (* [exists v. v + rest = 0] always holds over the integers. *)
+           Some true_
+         else Some (eia (Eia.eq (Eia.mod_ rest (Z.abs a)) (Eia.Const Z.zero) I))
+       | _ -> None)
+    | _ -> None
+  in
+  let map_all f xs =
+    List.fold_right
+      (fun x acc ->
+         match acc, f x with
+         | Some acc, Some y -> Some (y :: acc)
+         | _ -> None)
+      xs
+      (Some [])
+  in
+  (* [elim v ph = Some ph'] with [ph'] equivalent to [exists v. ph]. *)
+  let rec elim v ph =
+    if not (occurs v ph)
+    then (* The integers are non-empty, so a vacuous binder just goes away. *)
+      Some ph
+    else (
+      match ph with
+      | Eia ph -> elim_eia v ph
+      (* The quantifier goes under a conjunction only when a single conjunct
+         mentions [v]; under a disjunction it always does. Under a negation it
+         does not, hence no [Lnot] case here. *)
+      | Land phs when List.length (List.filter (occurs v) phs) = 1 ->
+        map_all (fun ph -> if occurs v ph then elim v ph else Some ph) phs
+        |> Option.map land_
+      | Lor phs -> map_all (elim v) phs |> Option.map lor_
+      | Exists (vs, ph) -> elim v ph |> Option.map (exists vs)
+      | _ -> None)
+  in
+  (* Only positive occurrences are rewritten. Under a negation the binder is a
+     universal quantifier, which is outside the fragment the rest of the
+     pipeline handles; touching it there changes answers without making any of
+     them more correct. *)
+  let rec walk = function
+    | Land phs -> land_ (List.map walk phs)
+    | Lor phs -> lor_ (List.map walk phs)
+    | Lnot _ as ph -> ph
+    | Exists (vs, body) ->
+      let vs, body =
+        List.fold_left
+          (fun (vs, body) atom ->
+             match atom with
+             | Any_atom (Var (name, I)) ->
+               (match elim name body with
+                | Some body -> vs, body
+                | None -> atom :: vs, body)
+             | Any_atom (Var (_, S)) -> atom :: vs, body)
+          ([], walk body)
+          vs
+      in
+      exists (List.rev vs) body
+    | ph -> ph
+  in
+  walk ast
+;;
+
+let%test_module "quantifiers to mod" =
+  (module struct
+    open Ast
+
+    let x = Eia.Atom (int_var "x")
+    let y = Eia.Atom (int_var "y")
+    let z = Eia.Atom (int_var "z")
+    let num c = Eia.Const (Z.of_int c)
+    let ( * ) c t = Eia.mul [ num c; t ]
+    let ( + ) a b = Eia.add [ a; b ]
+    let ( = ) a b = eia (Eia.eq a b I)
+    let ( <= ) a b = eia (Eia.leq a b)
+    let ex names ph = exists (List.map (fun n -> Any_atom (int_var n)) names) ph
+    let test ph = Format.printf "%a@." pp_smtlib2 (quantifiers_to_mod ph)
+
+    let%expect_test "a single equation" =
+      test (ex [ "x" ] (y = 2 * x));
+      test (ex [ "x" ] (6 * x = y));
+      test (ex [ "x" ] (y + (3 * x) + num 1 = z));
+      [%expect
+        {|
+        (= (mod y 2) 0)
+        (= (mod (* (- 1) y) 6) 0)
+        (= (mod (+ 1 y (* (- 1) z)) 3) 0)
+        |}]
+    ;;
+
+    let%expect_test "an invertible coefficient is always solvable" =
+      test (ex [ "x" ] (y = x));
+      test (ex [ "x" ] (y = -1 * x));
+      [%expect
+        {|
+        True
+        True
+        |}]
+    ;;
+
+    let%expect_test "the variable cancels out" =
+      test (ex [ "x" ] (y + x = z + x));
+      [%expect {| (= (+ y (* (- 1) z)) 0) |}]
+    ;;
+
+    let%expect_test "a vacuous binder is dropped" =
+      test (ex [ "x" ] (y <= num 5));
+      [%expect {| (<= (+ (- 5) y) 0) |}]
+    ;;
+
+    let%expect_test "one binder per equation" =
+      test (ex [ "x"; "z" ] (land_ [ y = 4 * x; y + num 1 = 6 * z ]));
+      [%expect
+        {|
+        (and
+          (= (mod y 4) 0)
+          (= (mod (+ 1 y) 6) 0))
+        |}]
+    ;;
+
+    let%expect_test "a conjunct without the variable is left in place" =
+      test (ex [ "x" ] (land_ [ z <= num 5; y = 4 * x ]));
+      [%expect
+        {|
+        (and
+          (<= (+ (- 5) z) 0)
+          (= (mod y 4) 0))
+        |}]
+    ;;
+
+    let%expect_test "the quantifier goes under a disjunction" =
+      test (ex [ "x" ] (lor_ [ y = 2 * x; y = 3 * x ]));
+      [%expect
+        {|
+        (or
+          (= (mod y 2) 0)
+          (= (mod y 3) 0))
+        |}]
+    ;;
+
+    (* Below the rewrite must not fire. *)
+
+    let%expect_test "the variable is mentioned twice" =
+      test (ex [ "x" ] (land_ [ y = 2 * x; x <= num 5 ]));
+      [%expect
+        {|
+        (exists (x) (and
+                      (= (+ y (* (- 2) x)) 0)
+                      (<= (+ (- 5) x) 0)))
+        |}]
+    ;;
+
+    let%expect_test "the variable is not in a linear position" =
+      test (ex [ "x" ] (y = 2 * Eia.Pow (num 2, x)));
+      test (ex [ "x" ] (y = Eia.mul [ z; x ]));
+      [%expect
+        {|
+        (exists (x) (= (+ y (* (- 2) (exp 2 x))) 0))
+        (exists (x) (= (+ y (* (- 1) z x)) 0))
+        |}]
+    ;;
+
+    let%expect_test "a negated binder is a universal quantifier" =
+      test (lnot (ex [ "x" ] (y = 2 * x)));
+      [%expect {| (not (exists (x) (= (+ y (* (- 2) x)) 0))) |}]
+    ;;
+  end)
+;;
+
 let lower_mod ast =
   let acc = ref [] in
   let extend ph = acc := ph :: !acc in
@@ -3335,6 +3579,12 @@ let run_string_simplify ast =
 
 let run_basic_simplify ?(env = Env.empty) ast =
   trace_log "Basic simplifications:\n%!";
+  (* Before [lower_mod], so that a congruence which does not end up in the
+     shape [Me] recognises -- under a negation, or wrapped around another
+     [mod] -- is still lowered the usual way instead of reaching [Me] raw. *)
+  Format.printf "Quanifiers to mod before: %a\n%!" Ast.pp_smtlib2 ast;
+  let ast = quantifiers_to_mod ast in
+  Format.printf "Quanifiers to mod after: %a\n%!" Ast.pp_smtlib2 ast;
   let ast = lower_mod ast in
   let __ _ = trace_log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
