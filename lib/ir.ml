@@ -913,8 +913,220 @@ let%expect_test _ =
     |}]
 ;;
 
+(* Eliminate variables whose only occurrences are bounds on themselves.
+
+   Nothing else constrains such a variable, so it can be fixed to any value its own
+   bounds admit: the bounds are dropped and the chosen value is returned for the
+   caller to record in its environment, which keeps the model complete. That takes
+   the variable out of the formula and with it a track from the automaton the solver
+   builds.
+
+   [simpl_monotonicty] below does this for *quantified* variables, pinning a
+   monotone one to its bound, but it only fires on [Exists] and the pipeline hands it
+   quantifier-free formulas -- so free variables never got the treatment.
+
+   What disqualifies a variable:
+
+   - an occurrence anywhere other than a single-variable bound on itself.
+     Occurrences are looked for in *every* leaf, not just [Rel]: a variable also
+     lives in [SLen], [SRegRaw], [Stoi] and friends, and treating one of those as
+     absent would drop a bound that is doing real work. [Var v] and [Pow2 v] denote
+     the same variable, so they count together.
+
+   - an occurrence in a negative position, or under a quantifier. Below a [Lnot] a
+     bound is a genuine constraint rather than something to be satisfied at will.
+
+   - a [Neq] bound, whose feasible set is not an interval, or a zero coefficient.
+
+   - bounds with no value between them, e.g. [x >= 5] together with [x <= 2]. That
+     is a genuine contradiction; it is left in place for [simpl_ineq], which already
+     reduces it to [false]. *)
+let pin_unconstrained_vars ir =
+  let var_of = function
+    | Var v | Pow2 v -> v
+  in
+  let atoms_of = function
+    | Rel (_, poly, _) -> Map.keys poly
+    | Reg (_, atoms) -> atoms
+    | SReg (a, _) | SRegRaw (a, _) -> [ a ]
+    | SPrefixOf (a, b)
+    | SSuffixOf (a, b)
+    | SContains (a, b)
+    | SLen (a, b)
+    | Stoi (a, b)
+    | Itos (a, b) -> [ a; b ]
+    | True | Unsupp _ | Lnot _ | Land _ | Lor _ | Exists _ -> []
+  in
+  (* A bound on a single variable, which is the only shape we can eliminate.
+
+     [Pow2 v] is deliberately rejected: it bounds the *power*, not [v], so the
+     interval arithmetic below would be reasoning about the wrong quantity. Since
+     occurrences are keyed on the bare name, such a bound still counts against [v]
+     and disqualifies it, which is what we want. *)
+  let self_bound = function
+    | Rel (((Leq | Eq) as rel), poly, rhs) when Map.length poly = 1 ->
+      (match Map.min_elt_exn poly with
+       | Var v, coeff when not (Z.equal coeff Z.zero) -> Some (v, rel, coeff, rhs)
+       | _ -> None)
+    | _ -> None
+  in
+  let bump tbl v =
+    tbl
+    := Map.update !tbl v ~f:(function
+         | None -> 1
+         | Some n -> n + 1)
+  in
+  (* Count every occurrence, and separately those that are eliminable bounds. A
+     variable is a candidate exactly when the two counts agree. *)
+  let occurrences = ref Map.empty
+  and as_bound = ref Map.empty
+  and collected = ref [] in
+  let rec scan positive ir =
+    match ir with
+    | Land irs | Lor irs -> List.iter (scan positive) irs
+    | Lnot ir -> scan false ir
+    | Exists (_, ir) -> scan false ir
+    | leaf ->
+      List.iter (fun atom -> bump occurrences (var_of atom)) (atoms_of leaf);
+      (match self_bound leaf with
+       | Some ((v, _, _, _) as bound) when positive ->
+         bump as_bound v;
+         collected := bound :: !collected
+       | _ -> ())
+  in
+  scan true ir;
+  let candidates =
+    Map.filteri !as_bound ~f:(fun ~key ~data -> Map.find !occurrences key = Some data)
+    |> Map.keys
+  in
+  (* Narrow each candidate's bounds to an interval, then take any value inside it. *)
+  let tighter pick a b =
+    match a, b with
+    | None, x | x, None -> x
+    | Some a, Some b -> Some (pick a b)
+  in
+  let value_for v =
+    List.filter (fun (v', _, _, _) -> String.equal v v') !collected
+    |> List.fold_left
+         (fun acc (_, rel, coeff, rhs) ->
+            match acc with
+            | None -> None
+            | Some (lo, hi) ->
+              (match rel with
+               (* [coeff * v <= rhs] bounds [v] above when [coeff > 0], below when
+                  [coeff < 0]; the division rounds towards the feasible side. *)
+               | Leq when Z.(coeff > zero) ->
+                 Some (lo, tighter Z.min hi (Some (Z.fdiv rhs coeff)))
+               | Leq -> Some (tighter Z.max lo (Some (Z.cdiv rhs coeff)), hi)
+               | Eq ->
+                 if Z.divisible rhs coeff
+                 then (
+                   let x = Z.divexact rhs coeff in
+                   Some (tighter Z.max lo (Some x), tighter Z.min hi (Some x)))
+                 else None
+               | Neq -> None))
+         (Some (None, None))
+    |> function
+    | None -> None
+    | Some (Some lo, Some hi) when Z.gt lo hi -> None
+    (* Prefer [0] whenever the bounds admit it: that is the value model
+       reconstruction used to supply for a variable the solver never assigned, so
+       keeping it leaves existing models untouched. Only move off [0] when it is
+       genuinely infeasible. *)
+    | Some (lo, hi)
+      when (match lo with
+            | Some lo -> Z.leq lo Z.zero
+            | None -> true)
+           &&
+             match hi with
+             | Some hi -> Z.geq hi Z.zero
+             | None -> true -> Some Z.zero
+    | Some (Some lo, _) -> Some lo
+    | Some (None, Some hi) -> Some hi
+    | Some (None, None) -> Some Z.zero
+  in
+  let pinned =
+    List.fold_left
+      (fun acc v ->
+         match value_for v with
+         | Some x -> Map.set acc ~key:v ~data:x
+         | None -> acc)
+      Map.empty
+      candidates
+  in
+  if Map.is_empty pinned
+  then ir, []
+  else (
+    let eliminated leaf =
+      match self_bound leaf with
+      | Some (v, _, _, _) -> Map.mem pinned v
+      | None -> false
+    in
+    (* [land_]/[lor_] keep [True]/[Lnot True] children and nothing re-runs [simpl]
+       after this pass, so drop them here rather than leave them for the solver. *)
+    let rec go positive ir =
+      match ir with
+      | Land irs ->
+        land_ (List.map (go positive) irs |> List.filter (fun ir -> ir <> True))
+      | Lor irs ->
+        lor_ (List.map (go positive) irs |> List.filter (fun ir -> ir <> Lnot True))
+      | leaf when positive && eliminated leaf -> true_
+      | ir -> ir
+    in
+    go true ir, Map.to_alist pinned)
+;;
+
+let%expect_test "pin_unconstrained_vars" =
+  let show ir =
+    let ir, pinned = pin_unconstrained_vars ir in
+    Format.printf
+      "@[%a@]  pinned: [%a]\n%!"
+      pp_smtlib2
+      ir
+      (Format.pp_print_list
+         ~pp_sep:(fun ppf () -> Format.fprintf ppf "; ")
+         (fun ppf (v, x) -> Format.fprintf ppf "%s=%a" v Z.pp_print x))
+      pinned
+  in
+  let ge v n = leq (Map.singleton (var v) Z.minus_one) Z.(neg (of_int n)) in
+  let le v n = leq (Map.singleton (var v) Z.one) (Z.of_int n) in
+  (* [x >= 0] alone: eliminated, value recorded. *)
+  show (ge "x" 0);
+  [%expect "(assert T)  pinned: [x=0]"];
+  (* [x >= 5] alone: also eliminated now, pinned to 5. *)
+  show (ge "x" 5);
+  [%expect "(assert T)  pinned: [x=5]"];
+  (* Both bounds and nothing else: still eliminable, pinned inside the interval. *)
+  show (land_ [ ge "x" 3; le "x" 9 ]);
+  [%expect "(assert T)  pinned: [x=3]"];
+  (* Upper bound only. *)
+  show (le "x" (-4));
+  [%expect "(assert T)  pinned: [x=-4]"];
+  (* Empty interval is a real contradiction: left for [simpl_ineq]. *)
+  show (land_ [ ge "x" 5; le "x" 2 ]);
+  [%expect " \n (assert (<= (* (- 1) x)  -5) )\n (assert (<= x  2) )\n   pinned: []\n "];
+  (* Used by a non-bound constraint, so the bound stays. *)
+  show (land_ [ ge "x" 0; sregraw (var "x") (Nfa.String.of_regex Regex.epsilon) ]);
+  [%expect
+    " \n (assert (<= (* (- 1) x)  0) )\n (assert (str.in.re.raw x))\n   pinned: []\n "];
+  (* [Pow2 x] is the same variable as [Var x]. *)
+  show (land_ [ ge "x" 0; le "y" 1; leq (Map.singleton (pow2 "x") Z.one) Z.one ]);
+  [%expect
+    " \n (assert (<= (* (- 1) x)  0) )\n (assert (<= pow2(x)  1) )\n   pinned: [y=0]\n "];
+  (* Under a negation a bound is a genuine constraint. *)
+  show (lnot (ge "x" 0));
+  [%expect "(assert (not (<= (* (- 1) x)  0) ))  pinned: []"];
+  (* An exact bound pins the only feasible value. *)
+  show (eq (Map.singleton (var "x") (Z.of_int 3)) (Z.of_int 12));
+  [%expect "(assert T)  pinned: [x=4]"];
+  (* Not divisible: infeasible, so left alone. *)
+  show (eq (Map.singleton (var "x") (Z.of_int 3)) (Z.of_int 7));
+  [%expect "(assert (= (* 3 x)  7) )  pinned: []"];
+  ()
+;;
+
 (** Habermehl's 2024 monotonicity simplification  *)
-let simpl_monotonicty ir =
+let simpl_monotonicty e ir =
   let is_bounded qvar ir =
     match ir with
     | Rel (Leq, map, rhs) when Map.length map = 1 ->
@@ -930,110 +1142,121 @@ let simpl_monotonicty ir =
     | _ when is_used_atom qvar ir -> Stop
     | _ -> Skip
   in
-  match ir with
-  | Exists (atoms, rhs) ->
-    let vars, other_atoms =
-      List.fold_left
-        (fun (vars, other) atom ->
-           match atom with
-           | Var v -> v :: vars, other
-           | o -> vars, o :: other)
-        ([], [])
-        atoms
-    in
-    if vars <> [] then log "Vars: %s" ([%show: string list] vars);
-    if other_atoms <> [] then log "Other: %s" ([%show: atom list] other_atoms);
-    let rewrite_rel v new_value ir =
-      let ans =
-        match ir with
-        | Rel (r, mapa, rhs) ->
-          let coeff = Map.find_exn mapa (Var v) in
-          Rel (r, Map.remove mapa (Var v), Z.(rhs - (coeff * new_value)))
-        | ir -> ir
+  let ir, pinned =
+    match ir with
+    | Exists (atoms, rhs) ->
+      let vars, other_atoms =
+        List.fold_left
+          (fun (vars, other) atom ->
+             match atom with
+             | Var v -> v :: vars, other
+             | o -> vars, o :: other)
+          ([], [])
+          atoms
       in
-      log "%a ~~> %a using %s=%a" pp ir pp ans v Z.pp_print new_value;
-      ans
-    in
-    let rec loop ~progress ivars ovars conjs ~sk =
-      let _ : string list = ovars in
-      match ivars with
-      | [] -> sk progress ovars conjs
-      | v :: ivars ->
-        let exception Stop in
-        (* log "Check %s" v; *)
-          (try
-             let verdict =
-               List.fold_left
-                 (fun (bounds, pos, neg, skipped) c ->
-                    match is_bounded v c with
-                    | Bound x -> x :: bounds, pos, neg, skipped
-                    | Pos -> bounds, c :: pos, neg, skipped
-                    | Neg -> bounds, pos, c :: neg, skipped
-                    | Skip -> bounds, pos, neg, c :: skipped
-                    | Stop -> raise Stop)
-                 ([], [], [], [])
-                 conjs
-             in
-             let verdict =
-               let bounds, pos, negs, rest = verdict in
-               let min, max =
+      if vars <> [] then log "Vars: %s" ([%show: string list] vars);
+      if other_atoms <> [] then log "Other: %s" ([%show: atom list] other_atoms);
+      let rewrite_rel v new_value ir =
+        let ans =
+          match ir with
+          | Rel (r, mapa, rhs) ->
+            let coeff = Map.find_exn mapa (Var v) in
+            Rel (r, Map.remove mapa (Var v), Z.(rhs - (coeff * new_value)))
+          | ir -> ir
+        in
+        log "%a ~~> %a using %s=%a" pp ir pp ans v Z.pp_print new_value;
+        ans
+      in
+      let rec loop ~progress ivars ovars conjs ~sk =
+        let _ : string list = ovars in
+        match ivars with
+        | [] -> sk progress ovars conjs
+        | v :: ivars ->
+          let exception Stop in
+          (* log "Check %s" v; *)
+            (try
+               let verdict =
                  List.fold_left
-                   (fun acc b ->
-                      match acc, b with
-                      | (low, None), (Top, b, a) -> low, Some Z.(b / a)
-                      | (None, high), (Bot, b, a) -> Some Z.(b / a), high
-                      | (low, Some m), (Top, b, a) -> low, Some (min m Z.(b / a))
-                      | (Some m, high), (Bot, b, a) -> Some (max m Z.(b / a)), high)
-                   (None, None)
-                   bounds
+                   (fun (bounds, pos, neg, skipped) c ->
+                      match is_bounded v c with
+                      | Bound x -> x :: bounds, pos, neg, skipped
+                      | Pos -> bounds, c :: pos, neg, skipped
+                      | Neg -> bounds, pos, c :: neg, skipped
+                      | Skip -> bounds, pos, neg, c :: skipped
+                      | Stop -> raise Stop)
+                   ([], [], [], [])
+                   conjs
                in
-               min, max, pos, negs, rest
-             in
-             match verdict with
-             | None, None, _, _, _ ->
-               log "Var %s is not monotonic\n%!" v;
-               loop ~progress ivars (v :: ovars) conjs ~sk
-             | None, Some _, _ :: _, _, other | Some _, None, _, _ :: _, other ->
-               (* Can't simplify  *)
-               log "Can't simplify %s: bad polarity" v;
-               loop ~progress ivars (v :: ovars) conjs ~sk
-             | None, Some high, [], negs, other ->
-               log "Simplifying %s..." v;
-               let negs = List.map (rewrite_rel v high) negs in
-               loop ~progress:true ivars ovars (negs @ other) ~sk
-             | Some low, None, pos, [], other ->
-               log "Simplifying %s..." v;
-               let pos = List.map (rewrite_rel v low) pos in
-               loop ~progress:true ivars ovars (pos @ other) ~sk
-             | Some low, Some high, pos, negs, other ->
-               log "Simplifying %s..." v;
-               let pos = List.map (rewrite_rel v low) pos in
-               let negs = List.map (rewrite_rel v high) negs in
-               loop ~progress:true ivars ovars (pos @ negs @ other) ~sk
-           with
-           | Stop ->
-             log "Var %s can't be interesting: used somewhere" v;
-             loop ~progress ivars (v :: ovars) conjs ~sk)
-    in
-    let rhs =
-      match rhs with
-      | Land xs -> xs
-      | x -> [ x ]
-    in
-    let rec fixpoint stage vars other_vars rhs =
-      loop ~progress:false vars [] rhs ~sk:(fun progress ovars rhs ->
-        match progress, ovars with
-        | false, _ | _, [] -> Exists (List.map var ovars @ other_atoms, Land rhs)
-        | true, ovars ->
-          log
-            "After stage %d there %d variables: %s"
-            stage
-            (List.length ovars)
-            (String.concat " " ovars);
-          fixpoint (Int.add stage 1) ovars [] rhs)
-    in
-    fixpoint 0 vars [] rhs
-  | _ -> ir
+               let verdict =
+                 let bounds, pos, negs, rest = verdict in
+                 let min, max =
+                   List.fold_left
+                     (fun acc b ->
+                        match acc, b with
+                        | (low, None), (Top, b, a) -> low, Some Z.(b / a)
+                        | (None, high), (Bot, b, a) -> Some Z.(b / a), high
+                        | (low, Some m), (Top, b, a) -> low, Some (min m Z.(b / a))
+                        | (Some m, high), (Bot, b, a) -> Some (max m Z.(b / a)), high)
+                     (None, None)
+                     bounds
+                 in
+                 min, max, pos, negs, rest
+               in
+               match verdict with
+               | None, None, _, _, _ ->
+                 log "Var %s is not monotonic\n%!" v;
+                 loop ~progress ivars (v :: ovars) conjs ~sk
+               | None, Some _, _ :: _, _, other | Some _, None, _, _ :: _, other ->
+                 (* Can't simplify  *)
+                 log "Can't simplify %s: bad polarity" v;
+                 loop ~progress ivars (v :: ovars) conjs ~sk
+               | None, Some high, [], negs, other ->
+                 log "Simplifying %s..." v;
+                 let negs = List.map (rewrite_rel v high) negs in
+                 loop ~progress:true ivars ovars (negs @ other) ~sk
+               | Some low, None, pos, [], other ->
+                 log "Simplifying %s..." v;
+                 let pos = List.map (rewrite_rel v low) pos in
+                 loop ~progress:true ivars ovars (pos @ other) ~sk
+               | Some low, Some high, pos, negs, other ->
+                 log "Simplifying %s..." v;
+                 let pos = List.map (rewrite_rel v low) pos in
+                 let negs = List.map (rewrite_rel v high) negs in
+                 loop ~progress:true ivars ovars (pos @ negs @ other) ~sk
+             with
+             | Stop ->
+               log "Var %s can't be interesting: used somewhere" v;
+               loop ~progress ivars (v :: ovars) conjs ~sk)
+      in
+      let rhs =
+        match rhs with
+        | Land xs -> xs
+        | x -> [ x ]
+      in
+      let rec fixpoint stage vars other_vars rhs =
+        loop ~progress:false vars [] rhs ~sk:(fun progress ovars rhs ->
+          match progress, ovars with
+          | false, _ | _, [] -> Exists (List.map var ovars @ other_atoms, Land rhs), []
+          | true, ovars ->
+            log
+              "After stage %d there %d variables: %s"
+              stage
+              (List.length ovars)
+              (String.concat " " ovars);
+            fixpoint (Int.add stage 1) ovars [] rhs)
+      in
+      fixpoint 0 vars [] rhs
+    (* Quantifier-free input, which is what the pipeline actually produces: the
+     elimination above needs an [Exists] to work on, but free variables can still be
+     pinned and their bounds dropped. *)
+    | ir -> pin_unconstrained_vars ir
+  in
+  ( List.fold_left
+      (fun e (v, value) ->
+         if Env.is_absent_key v e then Env.extend_int_exn e v (Ast.Eia.const value) else e)
+      e
+      pinned
+  , ir )
 ;;
 
 let get_partial_model ir =

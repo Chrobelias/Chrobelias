@@ -501,10 +501,11 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
   let report_result2 s = report_result ~verbose s in
   let check_nfa_sat ast e =
     trace_log "Checking nfa sat (ast = %a)\n%!" Ast.pp_smtlib2 ast;
+    Debug.trace "NFA" "Ast to NFA Solver: %a" Ast.pp_smtlib2 ast;
     match Me.ir_of_ast e ast with
     | Ok ir ->
       let ir = ir |> Ir.simpl |> Ir.simpl_ineq in
-      let ir = if config.simpl_mono then Ir.simpl_monotonicty ir else ir in
+      let e, ir = if config.simpl_mono then Ir.simpl_monotonicty e ir else e, ir in
       let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
       (match ir with
        | Lib.Ir.True -> sat "simpl" ast ~env:e
