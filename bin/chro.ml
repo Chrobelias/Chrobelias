@@ -663,105 +663,111 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
             "Unsupported assertions: %a\n%!"
             (Format.pp_print_list pp_smtlib2)
             unsupported);
-        let str_vars = Ast.collect_str_vars ast in
-        trace_log "Run basic simplify (ast = %a)" Ast.pp_smtlib2 ast;
-        match
-          begin match SimplII.run_basic_simplify ~env ast with
-          | `Sat env ->
-            trace_log "Basic simplify sat (ast = %a)" Ast.pp_smtlib2 ast;
-            sat "presimpl str" ast ~env
-          | `Unsat ast ->
-            trace_log "Basic simplify unsat (ast = %a)" Ast.pp_smtlib2 ast;
-            unsat "presimpl str" ast
-          | `Unknown (ast, env) ->
-            trace_log
-              "Basic simplify unknown (ast = %a, env = %a)"
-              Ast.pp_smtlib2
-              ast
-              (Env.pp ~title:"")
-              env;
-            let orig_ast = ast in
-            let arithmetized_asts = SimplII.arithmetize str_vars ast env in
-            fold_until_sat
-              (fun acc (ast, e, regexes) ->
-                 trace_log "Arithmetized: %a\n" Ast.pp_smtlib2 ast;
-                 match acc with
-                 | Sat _ as rez -> rez
-                 | Unknown _ | Unsat _ ->
-                   let unsat_or_unknown rez =
-                     match acc with
-                     | Sat _ -> assert false
-                     | Unknown _ as rez -> rez
-                     | Unsat _ -> rez
-                   in
-                   (match check_eia_sat ast e with
-                    | Sat (s, (ast, env, get_model, _)) -> begin
-                      let env = Env.merge_exn env e in
-                      let result = sat s ast ~env ~get_model ~regexes in
-                      if List.is_empty post
-                      then result
-                      else (
-                        match get_model tys with
-                        | Result.Ok model ->
-                          let model = construct_model tys env model regexes in
-                          begin
-                            let ( let* ) = Option.bind in
-                            match
-                              List.fold_left
-                                (fun acc post ->
-                                   let* acc = acc in
-                                   match
-                                     post model orig_ast regexes (fun ast ->
-                                       match (check_sat tys) ast with
-                                       | Sat (_, (_, env, get_model, regexes)) ->
-                                         `Sat
-                                           (fun () ->
-                                             begin
-                                               let intm_model =
-                                                 calculate_model
-                                                   tys
-                                                   env
-                                                   (get_model tys |> Result.get_ok)
-                                                   regexes
-                                               in
-                                               intm_model
-                                             end)
-                                       | _ -> `Unknown)
-                                   with
-                                   | `Sat get_model ->
-                                     Some
-                                       (fun () ->
-                                         let model1 = acc () in
-                                         let model2 = get_model () in
-                                         (* Can be not disjoint. *)
-                                         merge_models model1 model2)
-                                   | `Unknown -> None)
-                                (Some (fun () -> Map.empty))
-                                post
-                            with
-                            | Some get_model' ->
-                              let get_model tys =
-                                let model1 = get_model tys |> Result.get_ok in
-                                let model2 = get_model' () in
-                                Result.ok (merge_models model1 model2)
-                              in
-                              sat s ast ~env ~get_model ~regexes
-                            | None ->
-                              can_be_unk := true;
-                              unknown ast Env.empty
-                          end
-                        | Result.Error _ ->
-                          can_be_unk := true;
-                          unknown ast Env.empty)
-                      end
-                    | Unknown _ as rez -> rez
-                    | Unsat _ as rez -> unsat_or_unknown rez))
-              (Unsat ("", ast))
-              arithmetized_asts
-          end
-        with
-        | Unsat (_, ast) when not (List.is_empty unsupported) -> Unknown (ast, Env.empty)
-        | _ as rez -> rez
+        match Overapprox.check_length_core ast with
+        | `Unsat core ->
+          Debug.trace "Length" "Length overapprox unsat, core = %a" Ast.pp_smtlib2 core;
+          unsat "lengths" core
+        | `Unknown ->
+          let str_vars = Ast.collect_str_vars ast in
+          trace_log "Run basic simplify (ast = %a)" Ast.pp_smtlib2 ast;
+          (match
+             begin match SimplII.run_basic_simplify ~env ast with
+             | `Sat env ->
+               trace_log "Basic simplify sat (ast = %a)" Ast.pp_smtlib2 ast;
+               sat "presimpl str" ast ~env
+             | `Unsat core ->
+               trace_log "Basic simplify unsat (ast = %a)" Ast.pp_smtlib2 ast;
+               unsat "presimpl str" core
+             | `Unknown (ast, env) ->
+               trace_log
+                 "Basic simplify unknown (ast = %a, env = %a)"
+                 Ast.pp_smtlib2
+                 ast
+                 (Env.pp ~title:"")
+                 env;
+               let orig_ast = ast in
+               let arithmetized_asts = SimplII.arithmetize str_vars ast env in
+               fold_until_sat
+                 (fun acc (ast, e, regexes) ->
+                    trace_log "Arithmetized: %a\n" Ast.pp_smtlib2 ast;
+                    match acc with
+                    | Sat _ as rez -> rez
+                    | Unknown _ | Unsat _ ->
+                      let unsat_or_unknown rez =
+                        match acc with
+                        | Sat _ -> assert false
+                        | Unknown _ as rez -> rez
+                        | Unsat _ -> rez
+                      in
+                      (match check_eia_sat ast e with
+                       | Sat (s, (ast, env, get_model, _)) -> begin
+                         let env = Env.merge_exn env e in
+                         let result = sat s ast ~env ~get_model ~regexes in
+                         if List.is_empty post
+                         then result
+                         else (
+                           match get_model tys with
+                           | Result.Ok model ->
+                             let model = construct_model tys env model regexes in
+                             begin
+                               let ( let* ) = Option.bind in
+                               match
+                                 List.fold_left
+                                   (fun acc post ->
+                                      let* acc = acc in
+                                      match
+                                        post model orig_ast regexes (fun ast ->
+                                          match (check_sat tys) ast with
+                                          | Sat (_, (_, env, get_model, regexes)) ->
+                                            `Sat
+                                              (fun () ->
+                                                begin
+                                                  let intm_model =
+                                                    calculate_model
+                                                      tys
+                                                      env
+                                                      (get_model tys |> Result.get_ok)
+                                                      regexes
+                                                  in
+                                                  intm_model
+                                                end)
+                                          | _ -> `Unknown)
+                                      with
+                                      | `Sat get_model ->
+                                        Some
+                                          (fun () ->
+                                            let model1 = acc () in
+                                            let model2 = get_model () in
+                                            (* Can be not disjoint. *)
+                                            merge_models model1 model2)
+                                      | `Unknown -> None)
+                                   (Some (fun () -> Map.empty))
+                                   post
+                               with
+                               | Some get_model' ->
+                                 let get_model tys =
+                                   let model1 = get_model tys |> Result.get_ok in
+                                   let model2 = get_model' () in
+                                   Result.ok (merge_models model1 model2)
+                                 in
+                                 sat s ast ~env ~get_model ~regexes
+                               | None ->
+                                 can_be_unk := true;
+                                 unknown ast Env.empty
+                             end
+                           | Result.Error _ ->
+                             can_be_unk := true;
+                             unknown ast Env.empty)
+                         end
+                       | Unknown _ as rez -> rez
+                       | Unsat _ as rez -> unsat_or_unknown rez))
+                 (Unsat ("", ast))
+                 arithmetized_asts
+             end
+           with
+           | Unsat (_, ast) when not (List.is_empty unsupported) ->
+             Unknown (ast, Env.empty)
+           | _ as rez -> rez)
       in
       let light_dpll check_sat env ast =
         let module Z3 = Smtml.Z3_mappings.Solver in
