@@ -665,14 +665,28 @@ let pp_smtlib2 =
   pp
 ;;
 
+(* Order-preserving dedup, same equality as the [List.mem] version it replaces
+   but with a hash table for the seen-set: [land_] runs this on every
+   construction, and the DPLL loop rebuilds conjunctions of hundreds of atoms
+   every iteration, where the O(n^2) scan of deep structural comparisons
+   dominated the whole solver's profile. [Hashtbl.hash]'s bounded traversal
+   keeps hashing O(1) on large terms; full structural equality is only checked
+   within a bucket, i.e. essentially only against genuine duplicates. *)
 let dedup_branches asts =
-  let rec go seen = function
-    | [] -> []
-    | hd :: tl -> if List.mem hd seen then go seen tl else hd :: go (hd :: seen) tl
-  in
   match asts with
   | ([] | [ _ ]) as asts -> asts
-  | asts -> go [] asts
+  | asts ->
+    let seen = Hashtbl.create (List.length asts) in
+    List.filter
+      (fun ast ->
+         let h = Hashtbl.hash_param 64 256 ast in
+         let bucket = Hashtbl.find_opt seen h |> Option.value ~default:[] in
+         if List.mem ast bucket
+         then false
+         else (
+           Hashtbl.replace seen h (ast :: bucket);
+           true))
+      asts
 ;;
 
 let land_ =
