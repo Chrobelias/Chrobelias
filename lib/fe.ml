@@ -3,9 +3,7 @@ module Symbol = Smtml.Symbol
 module Ty = Smtml.Ty
 module Binder = Smtml.Binder
 
-exception UnsupportedException of string
-
-let failf fmt = raise (UnsupportedException fmt)
+exception UnsupportedException of string * Smtml.Expr.t
 
 (* let failf fmt = failwith (Format.asprintf fmt) *)
 
@@ -31,6 +29,7 @@ let extras = ref []
 let extend ast = extras := ast :: !extras
 
 let rec to_string orig_expr : string Ast.Eia.term * Ast.t =
+  let failf fmt = raise (UnsupportedException (fmt, orig_expr)) in
   let expr = Expr.view orig_expr in
   match expr with
   | Expr.Symbol symbol ->
@@ -76,6 +75,7 @@ let rec to_string orig_expr : string Ast.Eia.term * Ast.t =
   | _ -> failf (Format.asprintf "unable to handle %a as string" Expr.pp orig_expr)
 
 and to_regex orig_expr =
+  let failf fmt = raise (UnsupportedException (fmt, orig_expr)) in
   let expr = Expr.view orig_expr in
   match expr with
   | Expr.Symbol s when Symbol.to_string s = "re.none" -> Regex.empty
@@ -147,6 +147,7 @@ and to_regex orig_expr =
   | _ -> failf (Format.asprintf "unable to handle %a as regex" Expr.pp orig_expr)
 
 and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
+  let failf fmt = raise (UnsupportedException (fmt, orig_expr)) in
   let neg eia_term = Ast.Eia.mul [ Ast.Eia.const Z.minus_one; eia_term ] in
   let expr = Expr.view orig_expr in
   match expr with
@@ -251,6 +252,7 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
   | _ -> failf (Format.asprintf "expected term, in %a" Expr.pp orig_expr)
 
 and to_ast tys orig_expr : Ast.t =
+  let failf fmt = raise (UnsupportedException (fmt, orig_expr)) in
   (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
@@ -472,7 +474,7 @@ and to_ast tys orig_expr : Ast.t =
       end
     | _ -> failf (Format.asprintf "Expression %a can't be handled" Expr.pp orig_expr)
   with
-  | UnsupportedException m -> Ast.Unsupp (`Msg m)
+  | UnsupportedException (m, e) -> Ast.Unsupp (`Msg (m, e))
 ;;
 
 let to_ast a b =

@@ -81,7 +81,7 @@ module type SYM0 = sig
   (* All formulas  *)
   val pow2var : string -> term
   val exists : Ast.any_atom list -> ph -> ph
-  val unsupp : string -> ph
+  val unsupp : string -> Smtml.Expr.t -> ph
 
   val unsupp_check
     :  (Model.t
@@ -194,7 +194,7 @@ module Id_symantics :
     Ast.Eia.pow (Ast.Eia.const (Z.of_int !Config.base)) (Ast.Eia.atom (Ast.var c I))
   ;;
 
-  let unsupp s = Ast.Unsupp (`Msg s)
+  let unsupp s e = Ast.Unsupp (`Msg (s, e))
   let unsupp_check c = Ast.Unsupp (`Check c)
 end
 
@@ -390,7 +390,7 @@ module Who_in_exponents_ = struct
   let pow_minus_one e = { e with all = S.union S.empty e.all }
   let pow base e = { e with all = S.union base.all e.all; exp = S.union e.all base.exp }
   let prj = Fun.id
-  let unsupp _ = empty
+  let unsupp _ _ = empty
   let unsupp_check _ = empty
 end
 
@@ -433,7 +433,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) ast =
           let r = helperT term' in
           (* Format.printf "Apply Str.Eq: l = %a, r = %a\n%!" S.pp_str l S.pp_str r; *)
           S.str_equal l r *)
-    | Unsupp (`Msg s) -> S.unsupp s
+    | Unsupp (`Msg (s, e)) -> S.unsupp s e
     | Unsupp (`Check c) -> S.unsupp_check c
   and helper_eia eia =
     match eia with
@@ -2437,7 +2437,7 @@ struct
   let pow2var v = empty
   let pow = ( ++ )
   let prj = Fun.id
-  let unsupp _ = empty
+  let unsupp _ _ = empty
   let unsupp_check _ = empty
 end
 
@@ -3455,7 +3455,11 @@ let arithmetize str_vars ast env =
              :: !extra_ph
     in
     let extend_unsupp s =
-      extra_ph := Id_symantics.unsupp (s ^ " in unsupported concat") :: !extra_ph
+      extra_ph
+      := Id_symantics.unsupp
+           (s ^ " in unsupported concat")
+           (Smtml.Expr.value Smtml.Value.False)
+         :: !extra_ph
     in
     let module ArConcIofs = struct
       include Id_symantics

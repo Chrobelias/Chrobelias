@@ -617,7 +617,7 @@ type t =
   | Exists of any_atom list * t
   | Pred of string
   | Unsupp of
-      [ `Msg of string
+      [ `Msg of string * Smtml.Expr.t
       | `Check of
           Model.t
           -> t
@@ -659,7 +659,7 @@ let pp_smtlib2 =
         pp
         b
     | Eia eia -> fprintf ppf "%a" Eia.pp eia
-    | Unsupp (`Msg s) -> fprintf ppf "(unsupp: %s)" s
+    | Unsupp (`Msg (s, e)) -> fprintf ppf "(unsupp: %s, %a)" s Smtml.Expr.pp e
     | Unsupp (`Check _) -> Format.fprintf ppf "(unsupp: post check)"
   in
   pp
@@ -796,7 +796,7 @@ let rec pp ppf = function
       pp
       b
   | Eia eia -> Format.fprintf ppf "%a" Eia.pp eia
-  | Unsupp (`Msg s) -> Format.fprintf ppf "%s" s
+  | Unsupp (`Msg (s, e)) -> Format.fprintf ppf "%s %a" s Smtml.Expr.pp e
   | Unsupp (`Check _) -> Format.fprintf ppf "post check"
 ;;
 
