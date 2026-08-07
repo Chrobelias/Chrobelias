@@ -2517,37 +2517,22 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
          | Some atomic ->
            trace_log "contradicting clause: %a" Ast.pp_smtlib2 atomic;
            trace_log "contradicting env: %a" (Env.pp ~title:"") env;
-           let env_eqs_with_vars =
-             Env.to_eqs env |> List.map (fun env_eq -> env_eq, Ast.collect_vars env_eq)
-           in
-           let short_env, vars =
-             let rec aux vars eqs =
-               let added_eqs =
-                 List.filter_map
-                   (fun (env_eq, vars') ->
-                      if Set.(inter vars vars' |> is_empty |> not)
-                      then Some (env_eq, vars')
-                      else None)
-                   env_eqs_with_vars
-               in
-               let new_vars =
-                 added_eqs |> List.map snd |> List.fold_left Set.union Set.empty
-               in
-               if Set.is_subset new_vars ~of_:vars
-               then Env.of_eqs (List.map fst added_eqs @ eqs), vars
-               else aux (Set.union vars new_vars) (List.map fst added_eqs @ eqs)
-             in
-             aux (Ast.collect_vars atomic) []
-           in
-           trace_log "short env: %a\n" (Env.pp ~title:"") short_env;
+           (* Every literal that substitutes to [True] under [env] stays in the
+              core: the literals that produced a binding substitute to [True]
+              under it, so this keeps the core's justification closed --
+              [atomic] is false under [env] and the retained literals force
+              [env]. Restricting to the variables reachable from [atomic]
+              through env equations used to drop cross-variable justifications
+              (e.g. [y = ""] derived from [|x| <= 0] and [|x| = |y|]), and the
+              resulting satisfiable "core" became a DPLL blocking clause that
+              excluded sat assignments. *)
            let core =
              orig_ast
              |> Ast.collect_literals
-             |> List.filter (fun ph -> Set.is_subset (Ast.collect_vars ph) ~of_:vars)
              |> List.filter (fun ph ->
-               match subst short_env ph with
+               match subst env ph with
                | Ast.True -> true
-               | ph' -> false)
+               | _ -> false)
              |> List.cons atomic
              |> Ast.land_
            in
@@ -3195,6 +3180,7 @@ let%test_module "unsat core" =
         {|
         unsat (core = (and
                         (str.in_re x (str.to.re "Tarantino"))
+                        (= y z)
                         (= x "Quentin")))
         |}]
     ;;
