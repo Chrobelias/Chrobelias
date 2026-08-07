@@ -654,8 +654,9 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
               | ast -> ast)
             ast
         in
+        let ast' = ast in
         let ast, unsupported =
-          SimplII.extract_and_filter_unsupported_atomic_formulas ast
+          SimplII.extract_and_filter_unsupported_atomic_formulas ast'
         in
         if not (List.is_empty unsupported)
         then (
@@ -664,7 +665,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
             "Unsupported assertions: %a\n%!"
             (Format.pp_print_list pp_smtlib2)
             unsupported);
-        match Overapprox.check_length_core ast with
+        match Overapprox.check_length_core ast' with
         | `Unsat core ->
           Debug.trace "Length" "Length overapprox unsat, core = %a" Ast.pp_smtlib2 core;
           unsat "lengths" core

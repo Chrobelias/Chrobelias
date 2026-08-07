@@ -28,7 +28,7 @@ module type SYM0 = sig
   (* All formulas  *)
   val pow2var : string -> term
   val exists : Ast.any_atom list -> ph -> ph
-  val unsupp : string -> ph
+  val unsupp : string -> Smtml.Expr.t -> ph
 
   val unsupp_check
     :  (Model.t
