@@ -1856,7 +1856,9 @@ let apply_action =
       , ast )
     | Prop (vn, Ast.TT (Ast.S, term)) ->
       let term = trivial_simplify term in
-      Env.extend_string_exn env vn term, ast
+      ( (try Env.extend_string_exn env vn term with
+         | Env.Occurs -> env)
+      , ast )
     (* In place: substitute throughout, and re-assert the equality so that the
        rewriting stays equivalence-preserving even under a disjunction. *)
     | PropAndPreserve (term, rhs, Ast.I) ->
