@@ -62,17 +62,23 @@ exception String_op
 exception Difficult_Exp_op
 
 let apply_symnatics (module S : Smtml_symantics) =
-  let rec helper = function
+  (* Polarity-aware: an atom the translation cannot express is relaxed to
+     [true], but only in positive positions -- under an odd number of
+     negations the sound relaxation is [false], so the enclosing [not]s come
+     out [true]. Relaxing to [true] unconditionally used to turn
+     [(or (and U (not U)) (not U))], [U] unsupported, into [false] and the
+     whole over-approximation into a bogus [`Unsat]. *)
+  let rec helper pos = function
     | Ast.True -> S.true_
     | Lnot (Eia (InRe _))
     | Lnot (Eia (InReRaw _))
     | Lnot (Eia (SuffixOf _))
     | Lnot (Eia (PrefixOf _))
-    | Lnot (Eia (Contains _)) -> S.true_
-    | Lnot x -> S.not (helper x)
-    | Land xs -> S.land_ (List.map helper xs)
-    | Lor xs -> S.lor_ (List.map helper xs)
-    | Eia e -> helper_eia e
+    | Lnot (Eia (Contains _)) -> if pos then S.true_ else S.false_
+    | Lnot x -> S.not (helper (Stdlib.not pos) x)
+    | Land xs -> S.land_ (List.map (helper pos) xs)
+    | Lor xs -> S.lor_ (List.map (helper pos) xs)
+    | Eia e -> helper_eia pos e
     | Pred s -> assert false
     | Exists (vs, ph) ->
       let vs =
@@ -81,8 +87,8 @@ let apply_symnatics (module S : Smtml_symantics) =
             | Ast.Any_atom (Ast.Var (s, _)) -> Some s)
           vs
       in
-      S.exists vs (helper ph)
-    | Unsupp _ -> S.true_
+      S.exists vs (helper pos ph)
+    | Unsupp _ -> if pos then S.true_ else S.false_
   and helperT = function
     | Ast.Eia.Const n -> S.constz n
     | Atom (Ast.Var (s, _)) -> S.var s
@@ -95,7 +101,7 @@ let apply_symnatics (module S : Smtml_symantics) =
     | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
     | Concat _ | At _ | Substr _ | Ast.Eia.Str_const _ | Len _ | Sofi _ | Iofs _ | Len2 _
       -> raise String_op
-  and helper_eia ph =
+  and helper_eia pos ph =
     try
       let open Ast in
       let open Ast.Eia in
@@ -110,9 +116,9 @@ let apply_symnatics (module S : Smtml_symantics) =
       | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ | RLen _ ->
         raise String_op
     with
-    | String_op | Bitwise_op | Difficult_Exp_op -> Symantics.true_
+    | String_op | Bitwise_op | Difficult_Exp_op -> if pos then S.true_ else S.false_
   in
-  fun x -> S.prj (helper x)
+  fun x -> S.prj (helper true x)
 ;;
 
 let check ast =
@@ -262,9 +268,33 @@ let length_abstraction ast =
       | Ast.Land xs -> xs
       | ph -> [ ph ]
     in
+    (* The abstractions of string atoms are one-directional: [s in_re L] implies
+       its length progression, [s1 = s2] implies equal lengths -- but their
+       negations imply nothing about lengths. Negating the abstraction anyway
+       (which is what mapping the formula structurally does to a [Lnot]) turns
+       the over-approximation into a wrong-way constraint and yields bogus
+       [`Unsat]s. So before abstracting, every such atom in negative polarity
+       is replaced by [false]: its negation then relaxes to [true]. Raw
+       constructors keep the structure (and [parts]' positions) intact. *)
+    let rec relax pos ph =
+      match ph with
+      | Ast.Lnot x -> Ast.Lnot (relax (Stdlib.not pos) x)
+      | Ast.Land xs -> Ast.Land (List.map (relax pos) xs)
+      | Ast.Lor xs -> Ast.Lor (List.map (relax pos) xs)
+      | Ast.Exists (v, x) -> Ast.Exists (v, relax pos x)
+      | Ast.Eia
+          ( Ast.Eia.InRe _ | Ast.Eia.InReRaw _
+          | Ast.Eia.Eq (_, _, Ast.S)
+          | Ast.Eia.Neq (_, _, Ast.S)
+          | Ast.Eia.PrefixOf _ | Ast.Eia.SuffixOf _ | Ast.Eia.Contains _ | Ast.Eia.RLen _
+            )
+        when Stdlib.not pos -> Ast.Lnot Ast.True
+      | ph -> ph
+    in
     let parts =
       List.map
-        (fun ph -> ph, SimplII.apply_symantics_unsugared (module OverStrLen) ph)
+        (fun ph ->
+           ph, SimplII.apply_symantics_unsugared (module OverStrLen) (relax true ph))
         conjuncts
     in
     (* Side facts: every length is non-negative, plus Chrobak's [@@re_len] bounds.
