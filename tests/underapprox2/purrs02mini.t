@@ -37,9 +37,6 @@
   [+simpl]
     contradicting env:  
   [+simpl]
-    short env:  
-  
-  [+simpl]
     unsat core: (distinct (+ (* (+ x n) (exp 2 n))
                         (* (- 2) (+ (- 1) x n) (exp 2 (+ (- 1) n)))
                         (* (- 1) (exp 2 n))) 0)

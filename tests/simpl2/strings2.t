@@ -34,10 +34,9 @@ $ export CHRO_DEBUG=simpl
   [+simpl]
     contradicting env:  y -> "123";
   [+simpl]
-    short env:  y -> "123";
-  
-  [+simpl]
-    unsat core: (= y "321")
+    unsat core: (and
+                (= y "321")
+                (= (str.++ "123" x) (str.++ y x)))
   
   unsat (presimpl str)
 

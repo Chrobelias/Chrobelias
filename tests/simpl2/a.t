@@ -80,9 +80,6 @@
   [+simpl]
     contradicting env:
   [+simpl]
-    short env:
-  
-  [+simpl]
     unsat core: (distinct (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)
   
   unsat (presimpl int)
