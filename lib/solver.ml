@@ -173,19 +173,26 @@ struct
     let alpha = None in
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
-    let rec eval ir =
+    (* [pol] tracks the polarity of the enclosing [Lnot]s. An [Unsupp] hole is
+       relaxed to the universal automaton, but only in positive positions: under
+       an odd number of inversions the sound relaxation is the empty automaton,
+       which the enclosing [Nfa.invert]s turn back into "anything". Universal at
+       both polarities would make [not (unsupported)] the empty language and
+       yield bogus [`Unsat]s; [`Sat] over the relaxation is already demoted to
+       [`Unknown] by [sat_if_no_unsupp]. *)
+    let rec eval pol ir =
       if Config.config.dump_ir
       then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
       level := !level + 1;
       (match ir with
-       | Ir.Unsupp s -> NfaCollection.n ()
+       | Ir.Unsupp s -> if pol then NfaCollection.n () else NfaCollection.z ()
        | Ir.True -> NfaCollection.n ()
-       | Ir.Lnot ir -> eval ir |> Nfa.invert
+       | Ir.Lnot ir -> eval (Stdlib.not pol) ir |> Nfa.invert
        | Ir.Land irs ->
          let nfas =
            List.map
              (fun ir ->
-                let nfa = eval ir in
+                let nfa = eval pol ir in
                 trace_log "Nfa for %a has %d nodes\n%!" Ir.pp ir (Nfa.length nfa);
                 nfa |> do_if_lsb Nfa.reverse, ir)
              irs
@@ -216,7 +223,7 @@ struct
          trace_log "Intersect result %d \n%!" (Nfa.length nfa);
          nfa |> do_if_lsb Nfa.reverse
        | Ir.Lor (hd :: tl) ->
-         List.fold_left (fun nfa ir -> eval ir |> Nfa.unite nfa) (eval hd) tl
+         List.fold_left (fun nfa ir -> eval pol ir |> Nfa.unite nfa) (eval pol hd) tl
        | Ir.Lor [] -> NfaCollection.z ()
        | Ir.Rel (rel, term, c) ->
          begin match rel with
@@ -276,7 +283,7 @@ struct
        | Ir.Exists (atoms, ir) ->
          let latest_var = Set.equal (Ir.collect_free ir) (Set.of_list atoms) in
          let nfa =
-           eval ir
+           eval pol ir
            (*|> apply_post_strings atoms*)
            |> Nfa.project (List.filter_map (Map.find vars) atoms)
          in
@@ -307,7 +314,7 @@ struct
       level := !level - 1;
       nfa
     in
-    let nfa = eval ir in
+    let nfa = eval true ir in
     (*let nfa = apply_post_strings ( Ir.collect_free ir |> Set.to_list in*)
     nfa, vars
   ;;
