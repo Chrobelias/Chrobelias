@@ -24,7 +24,7 @@
   Me
   Model
   Utils)
- (libraries base angstrom bitv smtml unix iter zarith)
+ (libraries base angstrom bitv smtml unix iter zarith z3)
  (inline_tests)
  (preprocess
   (pps
