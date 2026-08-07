@@ -4,6 +4,7 @@
  (libraries
   lib
   str
+  unix
   ;memtrace
   )
  (preprocess
@@ -17,6 +18,7 @@
  (libraries
   lib
   str
+  unix
   ;memtrace
   )
  (preprocess

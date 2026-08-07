@@ -25,6 +25,10 @@ type config =
   ; mutable stop_after : [ `Pre_dpll | `Pre_simplify | `Simpl | `Solving ]
   ; mutable under_approx : int
   ; mutable under_str_all : bool
+    (* Run the string-under-approximation strategy and the normal one at the same
+       time, in separate processes, and take the first definitive answer. *)
+  ; mutable parallel : bool
+  ; mutable under_str_budget : float
   ; mutable with_check_sat : bool
   ; mutable with_info : bool
   ; mutable check_model : bool
@@ -60,6 +64,8 @@ let config =
   ; with_info = true
   ; under_approx = 2
   ; under_str_all = false
+  ; parallel = false
+  ; under_str_budget = 1.0
   ; check_model = false
   ; light_dpll = false
   }
@@ -202,6 +208,14 @@ Basic options:
     ; ( "-under-all"
       , Arg.Unit (fun () -> config.under_str_all <- true)
       , "  \tApply string underapproximation for each string variable" )
+    ; ( "-budget"
+      , Arg.Float (fun x -> config.under_str_budget <- x)
+      , "<s>\tSeconds to spend on string under-approximations before falling through to \
+         the full check (DEFAULT 1.0, negative for no limit)" )
+    ; ( "-parallel"
+      , Arg.Unit (fun () -> config.parallel <- true)
+      , "\tRun the string-underapproximation strategy and the normal one in parallel \
+         processes, taking the first definitive answer" )
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )

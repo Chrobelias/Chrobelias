@@ -945,8 +945,23 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                     report_result2 (`Unknown "nfa");
                     unknown ast Env.empty)
                 else
-                  handle (check_string_sat e ast) (fun () ->
+                  (* Under-approximations first: cheap, they can only answer [Sat],
+                     and the sequence ends with [[ ast, e ]] -- the original problem
+                     -- so nothing is lost by not running the full check eagerly. *)
+                  handle (unknown ast e) (fun () ->
+                    (* Budget the under-approximations. They can only answer [Sat], so
+                       on an unsatisfiable formula every second spent here is lost --
+                       but the answers they do find come almost immediately. The
+                       deadline is checked between variants; the full problem is
+                       appended afterwards and is never skipped. *)
+                    let deadline =
+                      if config.under_str_budget < 0.0
+                      then infinity
+                      else Unix.gettimeofday () +. config.under_str_budget
+                    in
+                    let in_budget () = Unix.gettimeofday () < deadline in
                     seq_of_variants
+                    |> Seq.take_while (fun _ -> in_budget ())
                     |> (fun x -> Seq.append x (Seq.return [ ast, e ]))
                     |> Seq.find_map (fun variants ->
                       List.find_map
@@ -1248,23 +1263,110 @@ let () =
       (* Format.eprintf "skipped: @[%a@]\n%!" Smtml.Ast.pp ast; *)
       state
   in
-  let _ =
-    try
-      List.fold_left
-        exec
-        { asserts = []; prev = None; last_result = None; tys = Map.empty }
-        (f |> Result.get_ok)
-    with
-    | Fe.UnsupportedException _ when Config.is_quiet () ->
-      Format.eprintf "\027[31mFronted error\027[0m\n%!";
-      exit 1
-    | exn ->
-      Format.printf "unknown\n%!";
-      Format.eprintf
-        "(toplevel-exception: %s)\n%s"
-        (Printexc.to_string exn)
-        (Printexc.get_backtrace ());
-      exit 0
+  let solve_all () =
+    let _ =
+      try
+        List.fold_left
+          exec
+          { asserts = []; prev = None; last_result = None; tys = Map.empty }
+          (f |> Result.get_ok)
+      with
+      | Fe.UnsupportedException _ when Config.is_quiet () ->
+        Format.eprintf "\027[31mFronted error\027[0m\n%!";
+        exit 1
+      | exn ->
+        Format.printf "unknown\n%!";
+        Format.eprintf
+          "(toplevel-exception: %s)\n%s"
+          (Printexc.to_string exn)
+          (Printexc.get_backtrace ());
+        exit 0
+    in
+    ()
   in
-  ()
+  if not config.parallel
+  then solve_all ()
+  else (
+    (* Run both strategies at once and keep the first definitive answer.
+
+       Separate processes rather than threads: the solver carries a lot of global
+       mutable state -- fresh-name counters, the exponent cache, [smt_status] -- and
+       Z3 contexts are not safe to share, so forking is what makes the two runs
+       independent without auditing every one of them. *)
+    let strategies =
+      [ ("under", fun () -> config.under_str_all <- true); ("normal", fun () -> ()) ]
+    in
+    let children =
+      List.map
+        (fun (name, configure) ->
+           let out = Filename.temp_file "chro-par-" ("-" ^ name) in
+           match Unix.fork () with
+           | 0 ->
+             let fd = Unix.openfile out [ Unix.O_WRONLY; Unix.O_TRUNC ] 0o600 in
+             Unix.dup2 fd Unix.stdout;
+             configure ();
+             solve_all ();
+             Stdlib.flush Stdlib.stdout;
+             Unix._exit 0
+           | pid -> pid, out)
+        strategies
+    in
+    (* [timeout] and Ctrl-C signal only this process, so without this the children
+       outlive the parent as orphans -- which, run across a benchmark suite, piles up
+       until the machine runs out of memory. *)
+    let () =
+      let terminate _ =
+        List.iter
+          (fun (pid, _) ->
+             try Unix.kill pid Sys.sigkill with
+             | _ -> ())
+          children;
+        Stdlib.exit 1
+      in
+      Sys.set_signal Sys.sigterm (Sys.Signal_handle terminate);
+      Sys.set_signal Sys.sigint (Sys.Signal_handle terminate)
+    in
+    let definitive text =
+      let has w =
+        let re = Str.regexp_string w in
+        try
+          ignore (Str.search_forward re text 0);
+          true
+        with
+        | Not_found -> false
+      in
+      (has "sat" || has "unsat") && not (has "unknown")
+    in
+    let kill_all () =
+      List.iter
+        (fun (pid, _) ->
+           try Unix.kill pid Sys.sigkill with
+           | _ -> ())
+        children
+    in
+    let read_file p =
+      try In_channel.with_open_bin p In_channel.input_all with
+      | _ -> ""
+    in
+    let rec collect remaining fallback =
+      if remaining = 0
+      then print_string fallback
+      else (
+        match Unix.wait () with
+        | pid, _ ->
+          let out = List.assoc_opt pid children in
+          let text = Option.fold ~none:"" ~some:read_file out in
+          if definitive text
+          then (
+            kill_all ();
+            print_string text)
+          else collect (remaining - 1) (if fallback = "" then text else fallback)
+        | exception _ -> print_string fallback)
+    in
+    collect (List.length children) "";
+    List.iter
+      (fun (_, p) ->
+         try Sys.remove p with
+         | _ -> ())
+      children)
 ;;
