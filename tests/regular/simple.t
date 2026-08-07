@@ -52,9 +52,6 @@
   [+simpl]
     contradicting env:  a -> "-1090";
   [+simpl]
-    short env:  a -> "-1090";
-  
-  [+simpl]
     unsat core: (and
                 (str.in_re a (re.++ (re.* (re.union (re.++ (str.to.re "0") (str.to.re "1")) (re.++ (str.to.re "9") (str.to.re "9")))) (re.++ (str.to.re "-") (re.* (str.to.re "")))))
                 (= a "-1090"))
