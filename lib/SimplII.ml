@@ -2778,11 +2778,226 @@ let rewrite_via_concat { Info.all; _ } =
     ;;
   end
   in
+  (* Shared positional decomposition. py-conbyte-style formulas probe the same
+     string at many constant offsets ([str.substr s 0 1], [str.at s 3], ...);
+     lowering each site through [split_vars] mints an independent seven-variable
+     conditional split of the same string, so five sites cost ~35 fresh
+     variables and 2^5 branch combinations. Instead, all constant-offset sites
+     on one variable share a single segmentation [v = g1 ++ ... ++ gk ++ tail]
+     cut at every offset any site needs, with one branch per length window
+     [q_j <= |v| < q_j+1] handling the SMT-LIB out-of-range semantics. The
+     branch guards are pure length constraints, which the skeleton length
+     axioms resolve upfront when |v| is bounded.
+
+     Sharing happens by pre-populating [substr_cache]/[at_cache] before the
+     rewrite: sites the collector recognized hit the cache, everything else
+     falls back to [split_vars]. A missed cache key (a term the rewriter
+     normalizes differently than the input) only loses the sharing, never
+     soundness: the fallback encoding is still emitted, and the orphaned shared
+     variables stay consistent with it. *)
+  let prepopulate_shared ast =
+    let module PSet = Base.Set.Poly in
+    let site_of_term term =
+      let open Ast.Eia in
+      match term with
+      | Substr (Atom (Ast.Var (v, Ast.S)), Const m, Const l)
+        when Z.(geq m zero) && Z.(geq l one) && Z.fits_int m && Z.fits_int l ->
+        Some (v, `Seg (Z.to_int m, Z.to_int l))
+      | Substr (Atom (Ast.Var (v, Ast.S)), Const m, len)
+        when Z.(geq m zero) && Z.fits_int m ->
+        (* The "rest of the string from m" pattern: [str.substr v m (|v| - m)]. *)
+        let suffix_len =
+          match len with
+          | Add [ Const c; Len (Atom (Ast.Var (v', Ast.S))) ]
+          | Add [ Len (Atom (Ast.Var (v', Ast.S))); Const c ] ->
+            String.equal v v' && Z.(equal c (neg m))
+          | _ -> false
+        in
+        if suffix_len then Some (v, `Suffix (Z.to_int m)) else None
+      | At (Atom (Ast.Var (v, Ast.S)), Const p) when Z.(geq p zero) && Z.fits_int p ->
+        Some (v, `Char (Z.to_int p))
+      | _ -> None
+    in
+    (* [str.at] over a recognized site folds to a site on the base variable:
+       [at (substr v m l) p] is [at v (m + p)] when [p < l] and "" when
+       [p >= l], both directions of the SMT-LIB out-of-range semantics
+       included ([m + p >= |v|] gives "" on both sides). Without this the
+       inner site rewrites to a fresh variable first and the outer [at]
+       falls back to an independent seven-variable split of it. *)
+    let nested_of_term term =
+      match term with
+      | Ast.Eia.At (inner, Const p) when Z.(geq p zero) && Z.fits_int p ->
+        let p = Z.to_int p in
+        (match site_of_term inner with
+         | Some (v, (`Seg (m, l) as ik)) ->
+           Some (v, ik, p, if p < l then Some (`Char (m + p)) else None)
+         | Some (v, (`Suffix m as ik)) -> Some (v, ik, p, Some (`Char (m + p)))
+         | Some (v, (`Char _ as ik)) -> Some (v, ik, p, if p = 0 then Some ik else None)
+         | None -> None)
+      | _ -> None
+    in
+    let sites, nested =
+      Ast.fold
+        (fun acc -> function
+           | Ast.Eia eia ->
+             Ast.Eia.fold2
+               (fun acc _ -> acc)
+               (fun (sites, nested) term ->
+                  let sites =
+                    match site_of_term term with
+                    | Some site -> PSet.add sites site
+                    | None -> sites
+                  in
+                  match nested_of_term term with
+                  | Some (v, ik, p, outer) ->
+                    let sites =
+                      match outer with
+                      | Some ok -> PSet.add sites (v, ok)
+                      | None -> sites
+                    in
+                    sites, PSet.add nested (v, ik, p, outer)
+                  | None -> sites, nested)
+               acc
+               eia
+           | _ -> acc)
+        (PSet.empty, PSet.empty)
+        ast
+    in
+    let by_var =
+      PSet.fold sites ~init:Map.empty ~f:(fun acc (v, kind) ->
+        Map.add_multi acc ~key:v ~data:kind)
+    in
+    let nested_by_var =
+      PSet.fold nested ~init:Map.empty ~f:(fun acc (v, ik, p, outer) ->
+        Map.add_multi acc ~key:v ~data:(ik, p, outer))
+    in
+    Map.iteri by_var ~f:(fun ~key:v ~data:kinds ->
+      if List.length kinds >= 2
+      then (
+        let svar v = Ast.Eia.atom (Ast.var v S) in
+        let const n = Ast.Eia.const (Z.of_int n) in
+        let cuts =
+          List.concat_map
+            (function
+              | `Seg (m, l) -> [ m; m + l ]
+              | `Suffix m -> [ m ]
+              | `Char p -> [ p; p + 1 ])
+            kinds
+          |> List.sort_uniq Int.compare
+          |> List.filter (fun q -> q > 0)
+        in
+        if not (List.is_empty cuts)
+        then (
+          let q = Array.of_list (0 :: cuts) in
+          let k = Array.length q - 1 in
+          let idx_of c =
+            let rec go i = if q.(i) = c then i else go (i + 1) in
+            go 0
+          in
+          let segs = Array.init (k + 1) (fun i -> if i = 0 then "" else gensym ()) in
+          let tail = gensym () in
+          (* Segments covering [q_a, q_b): g_{a+1} .. g_b. *)
+          let seg_range a b = List.init (b - a) (fun i -> svar segs.(a + 1 + i)) in
+          let concat_or_eps = function
+            | [] -> Id_symantics.str_const ""
+            | [ t ] -> t
+            | ts -> Ast.Eia.concat ts
+          in
+          let results = List.map (fun kind -> kind, gensym ()) kinds in
+          let vlen = Ast.Eia.len (svar v) in
+          (* Branch j: q_j <= |v| < q_{j+1} (last branch unbounded above);
+             [tail] covers [q_j, |v|), segments beyond j are pinned to "". *)
+          let branch j =
+            let conds =
+              Id_symantics.leq (const q.(j)) vlen
+              :: (if j < k then [ Id_symantics.lt vlen (const q.(j + 1)) ] else [])
+            in
+            let split =
+              Id_symantics.eq_str (svar v) (concat_or_eps (seg_range 0 j @ [ svar tail ]))
+            in
+            let widths =
+              List.init j (fun i ->
+                Id_symantics.eqz
+                  (Ast.Eia.len (svar segs.(i + 1)))
+                  (const (q.(i + 1) - q.(i))))
+            in
+            let empties =
+              List.init (k - j) (fun i ->
+                Id_symantics.eq_str (svar segs.(j + 1 + i)) (Id_symantics.str_const ""))
+            in
+            let tail_len =
+              Id_symantics.eqz
+                (Ast.Eia.len (svar tail))
+                (Ast.Eia.add [ vlen; const (-q.(j)) ])
+            in
+            let site_eqs =
+              List.map
+                (fun (kind, y) ->
+                   let value =
+                     match kind with
+                     | `Seg (m, l) ->
+                       let a = idx_of m
+                       and b = idx_of (m + l) in
+                       if j < a
+                       then Id_symantics.str_const ""
+                       else if j < b
+                       then concat_or_eps (seg_range a j @ [ svar tail ])
+                       else concat_or_eps (seg_range a b)
+                     | `Suffix m ->
+                       let a = idx_of m in
+                       if j < a
+                       then Id_symantics.str_const ""
+                       else concat_or_eps (seg_range a j @ [ svar tail ])
+                     | `Char p ->
+                       let a = idx_of p in
+                       if j <= a then Id_symantics.str_const "" else svar segs.(a + 1)
+                   in
+                   Id_symantics.eq_str (svar y) value)
+                results
+            in
+            Id_symantics.land_ (conds @ (split :: tail_len :: widths) @ empties @ site_eqs)
+          in
+          extend_ph (Id_symantics.lor_ (List.init (k + 1) branch));
+          List.iter
+            (fun (kind, y) ->
+               match kind with
+               | `Seg (m, l) ->
+                 substr_cache
+                 := Map.set !substr_cache ~key:(svar v, const m, const l) ~data:(svar y)
+               | `Suffix m ->
+                 substr_cache
+                 := Map.set
+                      !substr_cache
+                      ~key:
+                        (svar v, const m, Ast.Eia.add [ const (-m); Ast.Eia.len (svar v) ])
+                      ~data:(svar y)
+               | `Char p ->
+                 at_cache := Map.set !at_cache ~key:(svar v, const p) ~data:(svar y))
+            results;
+          List.iter
+            (fun (ik, p, outer) ->
+               match List.assoc_opt ik results with
+               | None -> ()
+               | Some y_inner ->
+                 let data =
+                   match outer with
+                   | None -> Id_symantics.str_const ""
+                   | Some ok ->
+                     (match List.assoc_opt ok results with
+                      | Some y_outer -> svar y_outer
+                      | None -> svar y_inner (* only for [`Char _, p = 0] *))
+                 in
+                 at_cache := Map.set !at_cache ~key:(svar y_inner, const p) ~data)
+            (Map.find nested_by_var v |> Option.value ~default:[]))))
+  in
   let rec loop ast =
     let ast' = Rewrite.prj (ast |> apply_symantics_unsugared (module Rewrite)) in
     if Ast.is_simpl ast' then ast' else loop ast'
   in
-  fun ph -> loop ph
+  fun ph ->
+    (try prepopulate_shared ph with
+     | exn -> trace_log "prepopulate_shared gave up: %s" (Printexc.to_string exn));
+    loop ph
 ;;
 
 let run_length_simplify env ast =
