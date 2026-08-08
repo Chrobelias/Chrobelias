@@ -64,13 +64,17 @@ let config =
   ; with_info = true
   ; under_approx = 2
   ; under_str_all = false
-  ; parallel = false
+  ; parallel = true
   ; under_str_budget = 1.0
   ; check_model = false
   ; light_dpll = false
   }
 ;;
 
+(* The cram tests set this (tests/dune): with two strategies racing, stage
+   labels, models and debug traces depend on which child answers first, which
+   under load makes the expected outputs flap. Same idea as CHRO_OMIT_Z3_MODEL. *)
+let () = if Sys.getenv_opt "CHRO_NO_PARALLEL" <> None then config.parallel <- false
 let is_quiet () = config.quiet
 
 type under2_config =
@@ -212,10 +216,6 @@ Basic options:
       , Arg.Float (fun x -> config.under_str_budget <- x)
       , "<s>\tSeconds to spend on string under-approximations before falling through to \
          the full check (DEFAULT 1.0, negative for no limit)" )
-    ; ( "-parallel"
-      , Arg.Unit (fun () -> config.parallel <- true)
-      , "\tRun the string-underapproximation strategy and the normal one in parallel \
-         processes, taking the first definitive answer" )
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
@@ -248,6 +248,10 @@ Basic options:
     ; ( "--no-str-bv"
       , Arg.Unit (fun () -> config.no_str_bv <- true)
       , "\tSwitch labels encoding in nfa to 'char's" )
+    ; ( "--no-parallel"
+      , Arg.Unit (fun () -> config.parallel <- false)
+      , "\tDisable running the string-underapproximation strategy and the normal one in \
+         parallel processes to take the first definitive answer" )
       (* ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , "\tDon't try simplifications based on alpha-equivalence" )
