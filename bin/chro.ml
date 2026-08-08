@@ -246,6 +246,24 @@ let construct_model tys env model regexes =
     "String model:\n  %s"
     (Model.to_string (Map.filter_keys ~f:(Map.mem tys) string_model));
   let env = Env.enrich2 env string_model in
+  (* Pin every still-free variable to its default before resolving, not while
+     printing: a bound variable may refer to a free one -- e.g. the string
+     under-approximation can answer with [x -> (str.++ m "ab")] where any [m]
+     works -- and resolving that term needs [m]'s value in the environment.
+     Defaulting [m] only at print time left [x] unresolvable, silently
+     dropping it from the model. *)
+  let env =
+    Map.fold
+      ~init:env
+      ~f:(fun ~key ~data env ->
+        if Env.is_absent_key key env
+        then (
+          match data with
+          | `Str -> Env.extend_string_exn env key (Ast.Eia.Str_const "")
+          | `Int -> Env.extend_int_exn env key (Ast.Eia.Const Z.zero))
+        else env)
+      tys
+  in
   let resolve_from_env key =
     let open Ast in
     let rec seek key steps =
@@ -271,11 +289,6 @@ let construct_model tys env model regexes =
     ~f:(fun ~key ~data acc ->
       if Map.mem acc key
       then acc
-      else if Env.is_absent_key key env
-      then (
-        match data with
-        | `Int -> Map.add_exn acc ~key ~data:(`Int Z.zero)
-        | `Str -> Map.add_exn acc ~key ~data:(`Str ""))
       else (
         match resolve_from_env key, data with
         | Some (`Str s), `Str -> Map.add_exn acc ~key ~data:(`Str s)
