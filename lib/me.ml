@@ -484,7 +484,7 @@ and of_eia2 : Ast.Eia.t -> (Ir.t, string) result =
     (* [t mod m = c] with [0 <= c < m] is exactly the congruence
        [t = c (mod m)], which the NFA layer decides directly. Any other shape
        falls through and has already been lowered by [SimplII.lower_mod]. *)
-    | Eq (Mod (t, m), Const c, I) | Eq (Const c, Mod (t, m), I)
+    | (Eq (Mod (t, m), Const c, I) | Eq (Const c, Mod (t, m), I))
       when Z.(geq c zero) && Z.(lt c (abs m)) ->
       let* t = helper t in
       (* [poly = k] is [t = c] after clearing denominators by [scale]; the same

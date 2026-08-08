@@ -1356,7 +1356,8 @@ let%expect_test "congruence automata stay small" =
          (Lsb.mod_eq vars term (Z.of_int m) Z.zero |> NLsb.length)
          (Msb.mod_eq vars term (Z.of_int m) Z.zero |> NMsb.length))
     [ 3; 4; 8; 12; 67 ];
-  [%expect {|
+  [%expect
+    {|
     m=3   lsb=3   msb=4
     m=4   lsb=7   msb=5
     m=8   lsb=15  msb=9
@@ -1371,12 +1372,12 @@ let%expect_test "congruence automata stay small" =
    be empty -- not just agreement on a few pinned values. *)
 
 let lsb_same_lang a b =
-  not (NLsb.run (NLsb.intersect a (NLsb.invert b)))
+  (not (NLsb.run (NLsb.intersect a (NLsb.invert b))))
   && not (NLsb.run (NLsb.intersect b (NLsb.invert a)))
 ;;
 
 let msb_same_lang a b =
-  not (NMsb.run (NMsb.intersect a (NMsb.invert b)))
+  (not (NMsb.run (NMsb.intersect a (NMsb.invert b))))
   && not (NMsb.run (NMsb.intersect b (NMsb.invert a)))
 ;;
 
@@ -1465,7 +1466,9 @@ let%expect_test "conjoined congruences are one congruence modulo the lcm" =
       let l = m1 * m2 / Z.(to_int (gcd (of_int m1) (of_int m2))) in
       for c1 = 0 to m1 - 1 do
         for c2 = 0 to m2 - 1 do
-          let c0 = List.find_opt (fun c -> c mod m1 = c1 && c mod m2 = c2) (0 -- (l - 1)) in
+          let c0 =
+            List.find_opt (fun c -> c mod m1 = c1 && c mod m2 = c2) (0 -- (l - 1))
+          in
           let lsb_inter =
             NLsb.intersect
               (Lsb.mod_eq vars term (Z.of_int m1) (Z.of_int c1))

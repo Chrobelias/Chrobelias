@@ -2394,6 +2394,16 @@ let quantifiers_to_mod ast =
         aux Z.one 0 xs
       | _ -> None)
   in
+  (* [Me] reads a congruence only when nothing below it is another [mod], and
+     [lower_mod] has already run, so a nested one would stay in the AST. *)
+  let rec has_mod : 'a. 'a Eia.term -> bool =
+    fun (type a) (t : a Eia.term) : bool ->
+    match t with
+    | Eia.Mod _ -> true
+    | Add xs | Mul xs -> List.exists has_mod xs
+    | Pow (a, b) | Bwand (a, b) | Bwor (a, b) | Bwxor (a, b) -> has_mod a || has_mod b
+    | _ -> false
+  in
   let elim_eia v = function
     | Eia.Eq (lhs, rhs, I) ->
       (match split v lhs, split v rhs with
@@ -2406,6 +2416,8 @@ let quantifiers_to_mod ast =
          else if Z.(equal (abs a) one)
          then (* [exists v. v + rest = 0] always holds over the integers. *)
            Some true_
+         else if has_mod rest
+         then None
          else Some (eia (Eia.eq (Eia.mod_ rest (Z.abs a)) (Eia.Const Z.zero) I))
        | _ -> None)
     | _ -> None
@@ -2461,7 +2473,19 @@ let quantifiers_to_mod ast =
       exists (List.rev vs) body
     | ph -> ph
   in
-  walk ast
+  (* Lowering a [mod] leaves its quotient and remainder as *free* variables of
+     the formula rather than under a binder -- they are internal, no model is
+     ever reported for them, so the whole formula is implicitly their
+     existential closure. [(mod (mod t 109) 6) = 0] lowers to
+     [t = 109q + r & r = 6q' & 0 <= r < 109], where [q] occurs in a single
+     equation and is exactly the shape above: [t - 6q' = 0 (mod 109)], one
+     unbounded track less. *)
+  let elim_internals ph =
+    Ast.collect_free_vars ph
+    |> Set.filter ~f:(String.starts_with ~prefix:"%")
+    |> Set.fold ~init:ph ~f:(fun ph v -> elim v ph |> Option.value ~default:ph)
+  in
+  walk ast |> elim_internals
 ;;
 
 let%test_module "quantifiers to mod" =
@@ -2541,7 +2565,25 @@ let%test_module "quantifiers to mod" =
         |}]
     ;;
 
+    (* [lower_mod] leaves its quotients and remainders free rather than bound,
+       but they are internal and implicitly existential all the same. *)
+    let%expect_test "an internal free variable is an existential too" =
+      let q = Eia.Atom (int_var "%q1") in
+      test (land_ [ y = (109 * q) + z; z <= num 5 ]);
+      [%expect
+        {|
+        (and
+          (= (mod (+ y (* (- 1) z)) 109) 0)
+          (<= (+ (- 5) z) 0))
+        |}]
+    ;;
+
     (* Below the rewrite must not fire. *)
+
+    let%expect_test "the remainder would sit under another mod" =
+      test (ex [ "x" ] (y = (2 * x) + Eia.mod_ z (Z.of_int 5)));
+      [%expect {| (exists (x) (= (+ y (* (- 2) x) (* (- 1) (mod z 5))) 0)) |}]
+    ;;
 
     let%expect_test "the variable is mentioned twice" =
       test (ex [ "x" ] (land_ [ y = 2 * x; x <= num 5 ]));
@@ -3579,13 +3621,11 @@ let run_string_simplify ast =
 
 let run_basic_simplify ?(env = Env.empty) ast =
   trace_log "Basic simplifications:\n%!";
-  (* Before [lower_mod], so that a congruence which does not end up in the
-     shape [Me] recognises -- under a negation, or wrapped around another
-     [mod] -- is still lowered the usual way instead of reaching [Me] raw. *)
-  Format.printf "Quanifiers to mod before: %a\n%!" Ast.pp_smtlib2 ast;
-  let ast = quantifiers_to_mod ast in
-  Format.printf "Quanifiers to mod after: %a\n%!" Ast.pp_smtlib2 ast;
   let ast = lower_mod ast in
+  (* After [lower_mod]: the congruences it leaves alone are exactly the ones
+     [Me] reads, and the internal variables the lowering introduces are
+     themselves eliminable existentials. *)
+  let ast = quantifiers_to_mod ast in
   let __ _ = trace_log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
   then (
