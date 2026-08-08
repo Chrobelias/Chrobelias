@@ -1319,6 +1319,10 @@ let () =
              Unix.dup2 fd Unix.stdout;
              configure ();
              solve_all ();
+             (* [Unix._exit] skips [at_exit], which is what normally flushes the
+                Format buffers -- and e.g. "no model" is printed without [%!],
+                so without this it never reaches the file. *)
+             Format.pp_print_flush Format.std_formatter ();
              Stdlib.flush Stdlib.stdout;
              Unix._exit 0
            | pid -> pid, out)
@@ -1334,6 +1338,9 @@ let () =
              try Unix.kill pid Sys.sigkill with
              | _ -> ())
           children;
+        (* Keep the report the toplevel SIGTERM handler (which this one
+           overrides) would have given. *)
+        print_endline "timeout";
         Stdlib.exit 1
       in
       Sys.set_signal Sys.sigterm (Sys.Signal_handle terminate);

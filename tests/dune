@@ -1,3 +1,12 @@
+; Parallel mode races two solver strategies and takes the first definitive
+; answer, so stage labels, models and debug traces depend on machine load.
+; The tests pin the deterministic single-strategy path.
+
+(env
+ (_
+  (env-vars
+   (CHRO_NO_PARALLEL 1))))
+
 (cram
  (deps
   %{bin:Chro}
