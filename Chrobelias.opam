@@ -24,11 +24,13 @@ depends: [
   "ppx_inline_test"
   "smtml" {>= "0.28.0"}
   "ounit2"
-  "z3" {>= "4.16.0"}
   "ppx_expect"
   "mdx"
   "ocamlformat" {dev & = "0.29.0"}
   "odoc" {with-doc}
+]
+depopts: [
+  "z3" {>= "4.16.0"}
 ]
 build: [
   ["dune" "subst"] {dev}

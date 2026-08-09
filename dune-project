@@ -32,14 +32,19 @@
   ppx_deriving
   ppx_variants_conv
   ppx_inline_test
-  smtml
+  (smtml
+   (>= 0.28.0))
   ounit2
-  z3
   ppx_expect
   mdx
   (ocamlformat
    (and
     :dev
     (= 0.29.0))))
+ ; The static release build strips z3's OCaml bindings; without them the
+ ; native unsat-core support compiles to a stub (see lib/dune).
+ (depopts
+  (z3
+   (>= 4.16.0)))
  (tags
   (solver theorem)))
