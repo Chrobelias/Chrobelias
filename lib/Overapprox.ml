@@ -33,7 +33,93 @@ module Symantics : Smtml_symantics = struct
   ;;
 end
 
-let apply_symnatics = Lowering.apply_symnatics
+let cache : (string, string, _) Base.Map.t ref = ref (Base.Map.empty (module Base.String))
+let extend vk vv = cache := Base.Map.add_exn !cache ~key:vk ~data:vv
+
+(* MS: Config.base () must be replaced with a base taken from the phormula *)
+let formulas_of_cache () =
+  Base.Map.to_sequence !cache
+  |> Base.Sequence.map ~f:(fun (x, fv) ->
+    Symantics.(mul [ constz Z.(of_int !Config.base - one); var x ] < var fv))
+  |> Base.Sequence.to_list
+;;
+
+let gensym base =
+  let n = ref 0 in
+  let prefix = Format.asprintf "exp_%a_" Z.pp_print base in
+  fun name ->
+    match Base.Map.find_exn !cache name with
+    | exception Base.Not_found_s _ ->
+      incr n;
+      let ans = Printf.sprintf "%s%s" prefix name in
+      extend name ans;
+      ans
+    | x -> x
+;;
+
+exception Bitwise_op
+exception String_op
+exception Difficult_Exp_op
+
+let apply_symnatics (module S : Smtml_symantics) =
+  (* Polarity-aware: an atom the translation cannot express is relaxed to
+     [true], but only in positive positions -- under an odd number of
+     negations the sound relaxation is [false], so the enclosing [not]s come
+     out [true]. Relaxing to [true] unconditionally used to turn
+     [(or (and U (not U)) (not U))], [U] unsupported, into [false] and the
+     whole over-approximation into a bogus [`Unsat]. *)
+  let rec helper pos = function
+    | Ast.True -> S.true_
+    | Lnot (Eia (InRe _))
+    | Lnot (Eia (InReRaw _))
+    | Lnot (Eia (SuffixOf _))
+    | Lnot (Eia (PrefixOf _))
+    | Lnot (Eia (Contains _)) -> if pos then S.true_ else S.false_
+    | Lnot x -> S.not (helper (Stdlib.not pos) x)
+    | Land xs -> S.land_ (List.map (helper pos) xs)
+    | Lor xs -> S.lor_ (List.map (helper pos) xs)
+    | Eia e -> helper_eia pos e
+    | Pred s -> assert false
+    | Exists (vs, ph) ->
+      let vs =
+        List.filter_map
+          (function
+            | Ast.Any_atom (Ast.Var (s, _)) -> Some s)
+          vs
+      in
+      S.exists vs (helper pos ph)
+    | Unsupp _ -> if pos then S.true_ else S.false_
+  and helperT = function
+    | Ast.Eia.Const n -> S.constz n
+    | Atom (Ast.Var (s, _)) -> S.var s
+    | Add terms -> S.add (List.map helperT terms)
+    | Mul terms -> S.mul (List.map helperT terms)
+    | Pow (Const base, Atom (Ast.Var (x, _k))) -> Symantics.var (gensym base x)
+    | Pow (base, Const p) -> S.pow (helperT base) (helperT (Const p))
+    | Pow (_, _) -> raise Difficult_Exp_op
+    | Mod (t, z) -> S.mod_ (helperT t) z
+    | Bwand _ | Bwor _ | Bwxor _ -> raise Bitwise_op
+    | Concat _ | At _ | Substr _ | Ast.Eia.Str_const _ | Len _ | Sofi _ | Iofs _ | Len2 _
+      -> raise String_op
+  and helper_eia pos ph =
+    try
+      let open Ast in
+      let open Ast.Eia in
+      match ph with
+      | Leq (l, r) -> S.(helperT l <= helperT r)
+      (*| Eq (Atom (Var (name, I)), r, I) -> S.(helperT (Atom (Var (name, I))) = helperT r)
+      | Eq (Atom (Var (_, S)), _, S) -> raise String_op*)
+      | Eq (l, r, I) -> S.(helperT l = helperT r)
+      | Neq (l, r, I) -> S.(helperT l <> helperT r)
+      | Eq (l, r, S) -> raise String_op
+      | Neq (l, r, S) -> raise String_op
+      | InRe _ | InReRaw _ | SuffixOf _ | PrefixOf _ | Contains _ | RLen _ ->
+        raise String_op
+    with
+    | String_op | Bitwise_op | Difficult_Exp_op -> if pos then S.true_ else S.false_
+  in
+  fun x -> S.prj (helper true x)
+;;
 
 let check ast =
   let tracing_on =
@@ -42,9 +128,9 @@ let check ast =
     | "1" -> true
     | _ -> false
   in
-  Lowering.reset_cache ();
+  cache := Base.Map.empty (module Base.String);
   let _repr = apply_symnatics (module Symantics) ast in
-  let whole = _repr :: Lowering.formulas_of_cache (module Symantics) in
+  let whole = _repr :: formulas_of_cache () in
   Format.pp_print_flush Format.std_formatter ();
   trace_log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
   let module Z3 = Smtml.Z3_mappings.Solver in
@@ -226,20 +312,53 @@ let check_length ast =
   check whole
 ;;
 
-(* Like [check_length], but on [`Unsat] also reports which conjuncts of [ast]
-   are responsible, as a formula over [ast]'s own atoms. The core extraction
-   itself lives in [Z3core]: it needs Z3's native unsat cores, and the z3
-   findlib package is optional (see lib/dune). *)
+(* Like [check_length], but on [`Unsat] also reports which conjuncts of [ast] are
+   responsible, as a formula over [ast]'s own atoms.
+
+   Smtml's solver interface exposes no [get_unsat_core], so the core is found by
+   deletion: drop an assumption and keep it only if what remains is still
+   unsatisfiable. Every probe is a small linear-integer query over the length
+   abstraction, so this stays cheap -- unlike minimising against the full string
+   theory. *)
 let check_length_core_exn ast =
   let parts, facts, _whole = length_abstraction ast in
-  match Z3core.check_length_core ~parts ~facts with
-  | `Unknown -> `Unknown
-  | `Unsat survivors ->
-    trace_log
-      "length core: %d -> %d conjunct(s)"
-      (List.length parts)
-      (List.length survivors);
-    `Unsat (Ast.land_ survivors)
+  cache := Base.Map.empty (module Base.String);
+  let to_smtml = apply_symnatics (module Symantics) in
+  (* Translate everything before reading the cache: [apply_symnatics] populates it
+     while lowering [Pow], and the bounds it records belong with the facts. *)
+  let assumptions = List.map (fun (ph, abstraction) -> ph, to_smtml abstraction) parts in
+  let fact_exprs = List.map to_smtml facts in
+  let fact_exprs = fact_exprs @ formulas_of_cache () in
+  let module Z3 = Smtml.Z3_mappings.Solver in
+  let solver =
+    Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
+  in
+  Z3.reset solver;
+  Z3.add solver fact_exprs;
+  let unsat_with kept =
+    match Z3.check solver ~assumptions:(List.map snd kept) with
+    | `Unsat -> true
+    | `Sat | `Unknown -> false
+  in
+  if not (unsat_with assumptions)
+  then `Unknown
+  else (
+    let rec go kept = function
+      | [] -> List.rev kept
+      | p :: rest ->
+        if unsat_with (List.rev_append kept rest)
+        then go kept rest
+        else go (p :: kept) rest
+    in
+    match go [] assumptions with
+    (* The facts alone are contradictory, so no conjunct is to blame. *)
+    | [] -> `Unknown
+    | survivors ->
+      trace_log
+        "length core: %d -> %d conjunct(s)"
+        (List.length assumptions)
+        (List.length survivors);
+      `Unsat (Ast.land_ (List.map fst survivors)))
 ;;
 
 (* Translating to Smtml can raise from deep inside the evaluator (an oversized

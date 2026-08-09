@@ -29,9 +29,6 @@ depends: [
   "ocamlformat" {dev & = "0.29.0"}
   "odoc" {with-doc}
 ]
-depopts: [
-  "z3" {>= "4.16.0"}
-]
 build: [
   ["dune" "subst"] {dev}
   [
