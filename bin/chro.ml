@@ -1313,19 +1313,28 @@ let () =
       List.map
         (fun (name, configure) ->
            let out = Filename.temp_file "chro-par-" ("-" ^ name) in
+           (* Capture stderr per child as well: both children reach the
+              diagnostics ((warning: check annotation ...), exceptions), and
+              with stderr merely inherited every such line was printed once
+              per child. The parent replays only the winner's. *)
+           let err = Filename.temp_file "chro-par-" ("-" ^ name ^ "-err") in
            match Unix.fork () with
            | 0 ->
              let fd = Unix.openfile out [ Unix.O_WRONLY; Unix.O_TRUNC ] 0o600 in
              Unix.dup2 fd Unix.stdout;
+             let fd_err = Unix.openfile err [ Unix.O_WRONLY; Unix.O_TRUNC ] 0o600 in
+             Unix.dup2 fd_err Unix.stderr;
              configure ();
              solve_all ();
              (* [Unix._exit] skips [at_exit], which is what normally flushes the
                 Format buffers -- and e.g. "no model" is printed without [%!],
                 so without this it never reaches the file. *)
              Format.pp_print_flush Format.std_formatter ();
+             Format.pp_print_flush Format.err_formatter ();
              Stdlib.flush Stdlib.stdout;
+             Stdlib.flush Stdlib.stderr;
              Unix._exit 0
-           | pid -> pid, out)
+           | pid -> pid, (out, err))
         strategies
     in
     (* [timeout] and Ctrl-C signal only this process, so without this the children
@@ -1368,25 +1377,35 @@ let () =
       try In_channel.with_open_bin p In_channel.input_all with
       | _ -> ""
     in
+    let report (text, err_text) =
+      print_string text;
+      prerr_string err_text;
+      flush stderr
+    in
     let rec collect remaining fallback =
       if remaining = 0
-      then print_string fallback
+      then report fallback
       else (
         match Unix.wait () with
         | pid, _ ->
-          let out = List.assoc_opt pid children in
-          let text = Option.fold ~none:"" ~some:read_file out in
-          if definitive text
+          let texts =
+            match List.assoc_opt pid children with
+            | Some (out, err) -> read_file out, read_file err
+            | None -> "", ""
+          in
+          if definitive (fst texts)
           then (
             kill_all ();
-            print_string text)
-          else collect (remaining - 1) (if fallback = "" then text else fallback)
-        | exception _ -> print_string fallback)
+            report texts)
+          else collect (remaining - 1) (if fst fallback = "" then texts else fallback)
+        | exception _ -> report fallback)
     in
-    collect (List.length children) "";
+    collect (List.length children) ("", "");
     List.iter
-      (fun (_, p) ->
-         try Sys.remove p with
+      (fun (_, (out, err)) ->
+         (try Sys.remove out with
+          | _ -> ());
+         try Sys.remove err with
          | _ -> ())
       children)
 ;;
