@@ -12,7 +12,6 @@
   Nfa
   NfaCollection
   Ir
-  Lowering
   Simpl_alpha
   Overapprox
   Underapprox
@@ -24,23 +23,8 @@
   SimplII
   Me
   Model
-  Utils
-  Z3core)
- ; The z3 findlib package is optional: the static release build strips z3's
- ; OCaml bindings, so the native unsat-core support degrades to a stub there.
- (libraries
-  base
-  angstrom
-  bitv
-  smtml
-  unix
-  iter
-  zarith
-  (select
-   z3core.ml
-   from
-   (z3 -> z3core.z3.ml)
-   (-> z3core.stub.ml)))
+  Utils)
+ (libraries base angstrom bitv smtml unix iter zarith)
  (inline_tests)
  (preprocess
   (pps

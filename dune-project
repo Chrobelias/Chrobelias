@@ -41,10 +41,5 @@
    (and
     :dev
     (= 0.29.0))))
- ; The static release build strips z3's OCaml bindings; without them the
- ; native unsat-core support compiles to a stub (see lib/dune).
- (depopts
-  (z3
-   (>= 4.16.0)))
  (tags
   (solver theorem)))
