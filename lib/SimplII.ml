@@ -2634,7 +2634,8 @@ let lower_mod ast =
      automaton. Lowering it here would spend two fresh unbounded variables per
      occurrence -- which is exactly what quantifier elimination produces a lot
      of. Anything else, including a [mod] nested inside a term, still gets
-     lowered the usual way. *)
+     lowered the usual way -- as does everything, congruence or not, under
+     [-no-mod-eq]. *)
   let rec has_mod : 'a. 'a Ast.Eia.term -> bool =
     fun (type a) (t : a Ast.Eia.term) : bool ->
     match t with
@@ -2643,11 +2644,14 @@ let lower_mod ast =
     | Pow (a, b) | Bwand (a, b) | Bwor (a, b) | Bwxor (a, b) -> has_mod a || has_mod b
     | _ -> false
   in
-  let is_congruence = function
-    | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Mod (t, m), Ast.Eia.Const c, Ast.I))
-    | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Const c, Ast.Eia.Mod (t, m), Ast.I)) ->
-      Z.(geq c zero) && Z.(lt c (abs m)) && not (has_mod t)
-    | _ -> false
+  let is_congruence ph =
+    Config.config.mod_eq
+    &&
+      match ph with
+      | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Mod (t, m), Ast.Eia.Const c, Ast.I))
+      | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Const c, Ast.Eia.Mod (t, m), Ast.I)) ->
+        Z.(geq c zero) && Z.(lt c (abs m)) && not (has_mod t)
+      | _ -> false
   in
   let rec walk ph =
     if is_congruence ph
@@ -3625,7 +3629,7 @@ let run_basic_simplify ?(env = Env.empty) ast =
   (* After [lower_mod]: the congruences it leaves alone are exactly the ones
      [Me] reads, and the internal variables the lowering introduces are
      themselves eliminable existentials. *)
-  let ast = quantifiers_to_mod ast in
+  let ast = if Config.config.mod_eq then quantifiers_to_mod ast else ast in
   let __ _ = trace_log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
   then (
