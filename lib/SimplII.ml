@@ -2313,8 +2313,10 @@ let%expect_test "eq_propagation into boolean combinations" =
 exception Str_Underapprox_fired of Env.t
 
 (* type step = int list *)
+(* [[]] is the silent step used for internal reruns (e.g. unsat-core
+   minimization); it stays [[]] so those reruns never log. *)
 let next = function
-  | [] -> failwith "Bad argument: next_step"
+  | [] -> []
   | h :: tl -> (1 + h) :: tl
 ;;
 
@@ -2768,11 +2770,42 @@ end
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
 let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
 
-let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast =
+let rec basic_simplify
+  step
+  ?multiple
+  ?(with_nielsen = false)
+  ?(minimize = true)
+  (env : Env.t)
+  orig_ast
+  =
   let trace_log =
     if step = [] then fun ppf -> Format.ifprintf Format.std_formatter ppf else trace_log
   in
   trace_log "iter(%a)= @[%a@]" pp_step step Ast.pp_smtlib2 orig_ast;
+  (* Deletion-based core minimization: a literal is dropped iff the remaining
+     conjunction still simplifies to a contradiction (relative to the initial
+     [env]). Every deletion is verified by re-running the simplifier, so no
+     justification can be lost the way the old reachability-based "short env"
+     shortening used to lose cross-variable ones. Capped so a huge candidate
+     core does not trigger a quadratic pile of simplifier reruns. *)
+  let minimize_core literals =
+    let still_unsat = function
+      | [] -> false
+      | lits ->
+        (match
+           basic_simplify [] ?multiple ~with_nielsen ~minimize:false env (Ast.land_ lits)
+         with
+         | `Unsat _ -> true
+         | `Sat _ | `Unknown _ -> false)
+    in
+    List.fold_left
+      (fun kept lit ->
+         let rest = List.filter (fun l -> not (Ast.equal l lit)) kept in
+         if List.compare_lengths rest kept < 0 && still_unsat rest then rest else kept)
+      literals
+      literals
+  in
+  let max_minimized_core_size = 64 in
   let alpha = alpha_with_extra_char orig_ast in
   trace_log
     "Alphabet with extra char: %a\n%!"
@@ -2815,42 +2848,44 @@ let basic_simplify step ?multiple ?(with_nielsen = false) (env : Env.t) orig_ast
             core -- as plain [A]. The core then flips the polarity of a literal of
             the very assignment it is supposed to refute, and the DPLL loop in
             [chro.ml] learns a clause that fails to exclude that assignment. *)
-         begin match
-           List.find_map
-             (fun atomic ->
-                match subst env atomic with
-                | Ast.Lnot Ast.True -> Option.some atomic
-                | _ -> Option.none)
+         let contras, trues =
+           List.fold_left
+             (fun (contras, trues) ph ->
+                match subst env ph with
+                | Ast.Lnot Ast.True -> ph :: contras, trues
+                | Ast.True -> contras, ph :: trues
+                | _ -> contras, trues)
+             ([], [])
              (Ast.collect_literals orig_ast)
-         with
-         | None when orig_ast = Lnot True -> `Unsat orig_ast
-         | None ->
-           (*let () = Format.printf "env = %a\n%!" (Env.pp ~title:"") env in*)
-           (*let () = Format.printf "ast = %a\n%!" Ast.pp_smtlib2 orig_ast in*)
-           (*failwith "Unexpected result of env substitution"*)
-           `Unsat orig_ast
-         | Some atomic ->
+         in
+         begin match List.rev contras, List.rev trues with
+         | [], _ -> `Unsat orig_ast
+         | (atomic :: _ as contras), trues ->
            trace_log "contradicting clause: %a" Ast.pp_smtlib2 atomic;
            trace_log "contradicting env: %a" (Env.pp ~title:"") env;
            (* Every literal that substitutes to [True] under [env] stays in the
-              core: the literals that produced a binding substitute to [True]
-              under it, so this keeps the core's justification closed --
-              [atomic] is false under [env] and the retained literals force
-              [env]. Restricting to the variables reachable from [atomic]
-              through env equations used to drop cross-variable justifications
-              (e.g. [y = ""] derived from [|x| <= 0] and [|x| = |y|]), and the
-              resulting satisfiable "core" became a DPLL blocking clause that
-              excluded sat assignments. *)
-           let core =
-             orig_ast
-             |> Ast.collect_literals
-             |> List.filter (fun ph ->
-               match subst env ph with
-               | Ast.True -> true
-               | _ -> false)
-             |> List.cons atomic
-             |> Ast.land_
+              candidate core: the literals that produced a binding substitute
+              to [True] under it, so this keeps the core's justification
+              closed -- [atomic] is false under [env] and the retained
+              literals force [env]. Restricting to the variables reachable
+              from [atomic] through env equations used to drop cross-variable
+              justifications (e.g. [y = ""] derived from [|x| <= 0] and
+              [|x| = |y|]), and the resulting satisfiable "core" became a DPLL
+              blocking clause that excluded sat assignments.
+
+              [minimize_core] then shrinks the candidate by verified
+              deletions. It is seeded with every contradicting literal, not
+              just [atomic]: refuting the first one found may need a long
+              chain of justifications while another falls to a two-literal
+              core, and deletion filtering can only ever reach cores that are
+              subsets of its seed. *)
+           let candidate = contras @ trues in
+           let core_literals =
+             if minimize && List.length candidate <= max_minimized_core_size
+             then minimize_core candidate
+             else atomic :: trues
            in
+           let core = Ast.land_ core_literals in
            trace_log "unsat core: %a\n" Ast.pp_smtlib2 core;
            `Unsat core
          end
@@ -3453,7 +3488,9 @@ let under_str env alpha vars ast =
       List.filter_map (fun (env, ast) ->
         (* trace_log "After rewriting via concats:\n%!"; *)
         let var_info = apply_symantics (module Who_in_exponents) ast in
-        match basic_simplify [ 0 ] env (ast |> rewrite_via_concat var_info) with
+        match
+          basic_simplify [ 0 ] ~minimize:false env (ast |> rewrite_via_concat var_info)
+        with
         | `Unsat _ -> None
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast (*|> over_concat_len*), env))
@@ -3670,6 +3707,11 @@ let%test_module "unsat core" =
       wrap (fun (module TS : SYM_SUGAR_AST) ->
         let open TS in
         [ eqz (var "x") (const 100); leq (var "x") (const 5) ]);
+      (* An irrelevant conjunct that merely evaluates to true under the
+         propagated bindings ([z = 30]) must not survive minimization. *)
+      wrap (fun (module TS : SYM_SUGAR_AST) ->
+        let open TS in
+        [ eqz (var "x") (const 3); eqz (var "z") (const 30); eqz (var "x") (const 5) ]);
       (* wrap (fun (module TS : SYM_SUGAR_AST) ->
         let open TS in
     [ leq (var "w") (const 15)
@@ -3685,11 +3727,14 @@ let%test_module "unsat core" =
                         (= (+ (- 3) x) 0)
                         (= (+ (- 5) x) 0)))
         unsat (core = (and
-                        (= (+ (- 15) x) 0)
+                        (= (+ (- 3) x) 0)
                         (= (+ (- 25) x) 0)))
         unsat (core = (and
                         (<= (+ (- 5) x) 0)
                         (= (+ (- 100) x) 0)))
+        unsat (core = (and
+                        (= (+ (- 3) x) 0)
+                        (= (+ (- 5) x) 0)))
         |}]
     ;;
 
@@ -3714,7 +3759,6 @@ let%test_module "unsat core" =
         {|
         unsat (core = (and
                         (str.in_re x (str.to.re "Tarantino"))
-                        (= y z)
                         (= x "Quentin")))
         |}]
     ;;
@@ -4307,7 +4351,7 @@ let arithmetize str_vars ast env =
   |> (fun s -> if Config.config.light_dpll then s else Seq.concat_map with_empty_cases s)
   |> Seq.map (apply_symantics (module Symantics))
   |> Seq.filter_map (fun ast ->
-    match basic_simplify [ 0 ] env ast with
+    match basic_simplify [ 0 ] ~minimize:false env ast with
     | `Unsat _core ->
       (*Format.printf "missed unsat core %a\n%!" Ast.pp_smtlib2 core;*) None
     | `Sat env -> Some (Ast.true_, env)
