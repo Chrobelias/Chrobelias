@@ -25,12 +25,10 @@ The core feeds the blocking clauses of the DPLL driver.
 
   $ CHRO_DEBUG=simpl Chro core.smt2 2>&1 | grep -A6 'unsat core'
     unsat core: (and
-                (= (+ (- 1) w (* (- 1) z)) 0)
-                (= (+ (- 7) w) 0)
-                (= (+ (- 1) x (* (- 1) y)) 0)
-                (= (+ (- 1) z (* (- 1) x)) 0)
-                (= (+ (- 7) y) 0))
+                (<= (+ (- 2) w) 0)
+                (= (+ (- 7) w) 0))
   
+  unsat (presimpl int)
 
 
 A satisfiable problem produces no core.
