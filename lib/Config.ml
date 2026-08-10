@@ -13,6 +13,11 @@ type config =
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str | `StrBv ]
   ; mutable mode : [ `Msb | `Lsb ]
+    (* Decide [t = c (mod m)] with the dedicated congruence automaton. Turning
+       this off lowers every [mod] to a quotient and a remainder instead, which
+       is what the solver did before the automaton existed -- the point of the
+       switch is to be able to compare the two. *)
+  ; mutable mod_eq : bool
   ; mutable no_model : bool
   ; mutable no_str_bv : bool
   ; mutable over_approx : bool
@@ -55,6 +60,7 @@ let config =
   ; input_file = ""
   ; logic = `Eia
   ; mode = `Msb
+  ; mod_eq = true
   ; no_model = false
   ; no_str_bv = false
   ; quiet = false
@@ -183,6 +189,10 @@ Basic options:
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , "  \tUse least-significant-bit first representation" )
+    ; ( "-no-mod-eq"
+      , Arg.Unit (fun () -> config.mod_eq <- false)
+      , "\tDisable the congruence automaton: lower every 'mod' to a quotient and a \
+         remainder, as before it existed" )
     ; ( "-no-model"
       , Arg.Unit (fun () -> config.no_model <- true)
       , "\tDisable model generation subroutines" )
