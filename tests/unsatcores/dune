@@ -1,0 +1,6 @@
+(cram
+ (deps %{bin:Chro}))
+
+(cram
+ (applies_to basic)
+ (deps example.smt2 issue229.smt2))
