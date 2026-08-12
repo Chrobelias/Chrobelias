@@ -1050,7 +1050,7 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
          [alpha] and avoids determinizing over the whole alphabet: this is by
          far the most frequent disequality, because it is what the [str.at] /
          [str.substr] lowering emits for its out-of-range branch. *)
-      | (v, Ast.Eia.Str_const "" | Ast.Eia.Str_const "", v) ->
+      | v, Ast.Eia.Str_const "" | Ast.Eia.Str_const "", v ->
         Id_symantics.leq (Ast.Eia.const Z.one) (Ast.Eia.len v)
       | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
         Id_symantics.in_re_raw
@@ -2824,12 +2824,12 @@ let alpha_with_extra_char ast =
 ;;
 
 let rec basic_simplify
-  step
-  ?multiple
-  ?(with_nielsen = false)
-  ?(minimize = true)
-  (env : Env.t)
-  orig_ast
+          step
+          ?multiple
+          ?(with_nielsen = false)
+          ?(minimize = true)
+          (env : Env.t)
+          orig_ast
   =
   let trace_log =
     if step = [] then fun ppf -> Format.ifprintf Format.std_formatter ppf else trace_log
