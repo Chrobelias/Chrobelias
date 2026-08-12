@@ -1045,6 +1045,13 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       match l, r with
       | Ast.Eia.Str_const l, Ast.Eia.Str_const r ->
         if l <> r then Ast.true_ else Ast.false_
+      (* [v <> ""] is exactly [1 <= |v|]. Saying it with a length constraint
+         instead of a complement automaton keeps the encoding independent of
+         [alpha] and avoids determinizing over the whole alphabet: this is by
+         far the most frequent disequality, because it is what the [str.at] /
+         [str.substr] lowering emits for its out-of-range branch. *)
+      | (v, Ast.Eia.Str_const "" | Ast.Eia.Str_const "", v) ->
+        Id_symantics.leq (Ast.Eia.const Z.one) (Ast.Eia.len v)
       | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
         Id_symantics.in_re_raw
           v
@@ -2768,7 +2775,53 @@ struct
 end
 
 let collect_alpha ast = apply_symantics (module Collect_alpha) ast
-let alpha_with_extra_char = fun x -> x |> collect_alpha |> Utils.with_extra_char
+
+(* Does the formula read some string as a number ([str.to_int]/[str.from_int])? *)
+let reads_strings_as_numbers ast =
+  Ast.fold
+    (fun acc -> function
+       | Ast.Eia eia ->
+         Ast.Eia.fold2
+           (fun acc -> function
+              | Ast.Eia.Iofs _ -> true
+              | _ -> acc)
+           (fun acc -> function
+              | Ast.Eia.Sofi _ -> true
+              | _ -> acc)
+           acc
+           eia
+       | _ -> acc)
+    false
+    ast
+;;
+
+(* [v <> c] and [not (v in re)] are lowered into a *complement* automaton built
+   over [alpha] (see [neq_str] and [not] in [make_main_symantics]). Taking
+   [alpha] to be "the characters of the input constants plus one fresh
+   character" is the classical sufficient alphabet for pure word (dis)equations:
+   one spare character is enough to satisfy any number of disequalities.
+
+   That argument breaks as soon as the same variable is also read numerically.
+   [str.to_int v] constrains the characters of [v] to be decimal digits (see
+   [arithmetize]), so a complement taken over an alphabet that is missing a
+   digit silently deletes satisfying assignments, and the solver reports [unsat]
+   for a satisfiable formula. Concretely, on a formula whose only string
+   constants are ["-"] and [""], [v <> ""] used to denote "digit strings ending
+   in [0]", which made e.g.
+
+     (assert (not (= s ""))) (assert (= (str.to_int s) 2))
+
+   come out [unsat]. [under_str] already unions [Regex.dec] into its own
+   alphabet for exactly this reason; the main path has to do the same. *)
+let alpha_with_extra_char ast =
+  let alpha = collect_alpha ast in
+  let alpha =
+    if reads_strings_as_numbers ast
+    then Regex.dec |> String.to_seq |> Seq.fold_left Set.add alpha
+    else alpha
+  in
+  Utils.with_extra_char alpha
+;;
 
 let rec basic_simplify
   step

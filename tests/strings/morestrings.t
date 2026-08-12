@@ -10,7 +10,7 @@
   [+simpl]
     iter(1)= (= (+ x (* (- 1) (str.to.int "12345"))) 0)
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     Something ready to substitute

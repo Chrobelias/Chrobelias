@@ -8,7 +8,7 @@
   [+simpl]
     iter(1)= (= (+ (- 42) (mod (str.to.int x) 11111)) 0)
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
@@ -16,7 +16,7 @@
   [+simpl]
     iter(0)= (= (+ (- 42) (mod (str.to.int x) 11111)) 0)
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
@@ -40,7 +40,7 @@
              (<= (+ (- 11110) %r1) 0)
              (<= (* (- 1) %r1) 0))
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     Something ready to substitute
@@ -65,7 +65,7 @@
              (= (mod (+ (- 42) (str.to.int x)) 11111) 0)
              (<= (* (- 1) (str.to.int x)) 0))
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
@@ -95,7 +95,7 @@ $ cat 1.smt2
   [+simpl]
     iter(1)= (= (mod (mod (str.to.int x) 442271) 417677) 0)
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
@@ -103,7 +103,7 @@ $ cat 1.smt2
   [+simpl]
     iter(0)= (= (mod (mod (str.to.int x) 442271) 417677) 0)
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
@@ -130,7 +130,7 @@ $ cat 1.smt2
              (<= (+ (- 442270) %r1) 0)
              (<= (* (- 1) %r1) 0))
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     Something ready to substitute
@@ -164,7 +164,7 @@ $ cat 1.smt2
              (<= (* (- 1) %r1) 0)
              (<= (* (- 1) (str.to.int x)) 0))
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
