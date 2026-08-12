@@ -8,7 +8,7 @@
              (= (mod (mod (str.to.int x) 29) 11) 0)
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
   [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
+    Alphabet with extra char:    0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     iter(2)= (and
@@ -24,7 +24,7 @@
              (<= (+ (- 99) (str.len x)) 0)
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
   [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
+    Alphabet with extra char:    0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
@@ -83,7 +83,7 @@
              (<= (+ (- 28) %r1) 0)
              (<= (* (- 1) %r1) 0))
   [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
+    Alphabet with extra char:    0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     Something ready to substitute
@@ -123,7 +123,7 @@
              (<= (* (- 1) (str.to.int x)) 0)
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
   [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
+    Alphabet with extra char:    0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
@@ -178,7 +178,7 @@
              (= (mod (mod (str.to.int x) 29) 11) 0)
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
   [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
+    Alphabet with extra char:    0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     iter(2)= (and
@@ -194,7 +194,7 @@
              (<= (+ (- 99) (str.len x)) 0)
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
   [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
+    Alphabet with extra char:    0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point
@@ -249,7 +249,7 @@
              (<= (+ (- 28) %r1) 0)
              (<= (* (- 1) %r1) 0))
   [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
+    Alphabet with extra char:    0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     Something ready to substitute
@@ -289,7 +289,7 @@
              (<= (* (- 1) (str.to.int x)) 0)
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
   [+simpl]
-    Alphabet with extra char:  0 1 2 3 4 5 6 8
+    Alphabet with extra char:    0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     fixed-point

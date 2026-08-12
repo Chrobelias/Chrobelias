@@ -11,7 +11,7 @@
              (= (+ (- 10) x (* 3 y)) 0)
              (= (+ (- 7) x) 0))
   [+simpl]
-    Alphabet with extra char: 0
+    Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
   [+simpl]
     Something ready to substitute
