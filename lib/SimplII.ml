@@ -2353,7 +2353,9 @@ let lower_mod ast =
            quotient track is spent. Under [-no-mod-eq] the [Div] machinery is
            off, so the classical [t = z*q + r] flattening remains. *)
         extend
-          (eqz (Ast.Eia.mod_ (add [ t; mul [ constz Z.minus_one; r ] ]) z) (constz Z.zero))
+          (eqz
+             (Ast.Eia.mod_ (add [ t; mul [ constz Z.minus_one; r ] ]) z)
+             (constz Z.zero))
       else (
         let q = var (gensym ~prefix:"%q" ()) in
         extend (eqz t (add [ mul [ zz; q ]; r ])));
