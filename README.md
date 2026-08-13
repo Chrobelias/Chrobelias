@@ -65,8 +65,7 @@ Simple `.smt2` files for ChrobELIAS can be found in [benchmarks](https://github.
 
 Tracing is selected per component through the `CHRO_DEBUG` environment
 variable, which holds a `:`-separated list of tracer names. `CHRO_DEBUG=ANY`
-enables all of them; note that a bare `CHRO_DEBUG=1` enables *no* tracer, since
-`1` does not name one.
+enables all of them.
 
 ```bash
 # Trace the simplifier and the DPLL driver.
