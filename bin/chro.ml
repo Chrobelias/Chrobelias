@@ -1337,6 +1337,25 @@ let () =
            | pid -> pid, (out, err))
         strategies
     in
+    let read_file p =
+      try In_channel.with_open_bin p In_channel.input_all with
+      | _ -> ""
+    in
+    (* Under [CHRO_DEBUG] the capture must not swallow the traces: the winner's
+       replay only ever shows one strategy, and a timeout or Ctrl-C used to
+       show nothing at all -- which is exactly when the traces are wanted.
+       Everything goes to stderr, bannered per strategy, so the answer on
+       stdout stays machine-readable. *)
+    let dump_captured () =
+      if Debug.flag ()
+      then
+        List.iter2
+          (fun (name, _) (_, (out, err)) ->
+             Printf.eprintf "--- %s: captured stdout ---\n%s" name (read_file out);
+             Printf.eprintf "--- %s: captured stderr ---\n%s%!" name (read_file err))
+          strategies
+          children
+    in
     (* [timeout] and Ctrl-C signal only this process, so without this the children
        outlive the parent as orphans -- which, run across a benchmark suite, piles up
        until the machine runs out of memory. *)
@@ -1347,6 +1366,7 @@ let () =
              try Unix.kill pid Sys.sigkill with
              | _ -> ())
           children;
+        dump_captured ();
         (* Keep the report the toplevel SIGTERM handler (which this one
            overrides) would have given. *)
         print_endline "timeout";
@@ -1373,10 +1393,6 @@ let () =
            | _ -> ())
         children
     in
-    let read_file p =
-      try In_channel.with_open_bin p In_channel.input_all with
-      | _ -> ""
-    in
     let report (text, err_text) =
       print_string text;
       prerr_string err_text;
@@ -1401,6 +1417,7 @@ let () =
         | exception _ -> report fallback)
     in
     collect (List.length children) ("", "");
+    dump_captured ();
     List.iter
       (fun (_, (out, err)) ->
          (try Sys.remove out with
