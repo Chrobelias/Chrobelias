@@ -6,7 +6,6 @@ type config =
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
-  ; mutable dump_lics : bool
   ; mutable error_check : bool
   ; mutable good_for_minimize : int
   ; mutable good_for_shrinking : int
@@ -46,7 +45,6 @@ let config =
   ; bound_states = -1
   ; base = None
   ; stop_after = `Solving
-  ; dump_lics = false
   ; dump_pre_simpl = false
   ; dump_simpl = false
   ; dump_ir = false
@@ -156,18 +154,14 @@ let max_under_const =
 let parse_args () =
   (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let usage_msg =
-    {|Chrobak normal form-based Exponential Linear Integer Arithmetic Solver.
+    {|Chrobak normal form in Exponential Linear Integer Arithmetic and Strings.
 Usage: chro [options] <file.smt2>
 
 Basic options:
 |}
   in
   let rec spec_list =
-    [ (* ( "-base"
-      , Arg.Int (fun n -> config.base <- Some n)
-      , Printf.sprintf "<n>\tSwitch to base <n> EIA (DEFAULT: auto)\t" )
-    ;  *)
-      ( "-bound"
+    [ ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
       , "\tUpper bound for integer underapproximation (negative disables)" )
     ; ( "-bres"
@@ -192,7 +186,7 @@ Basic options:
     ; ( "-no-mod-eq"
       , Arg.Unit (fun () -> config.mod_eq <- false)
       , "\tDisable the congruence automaton: lower every 'mod' to a quotient and a \
-         remainder, as before it existed" )
+         remainder" )
     ; ( "-no-model"
       , Arg.Unit (fun () -> config.no_model <- true)
       , "\tDisable model generation subroutines" )
@@ -248,7 +242,7 @@ Basic options:
             | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
               config.stop_after <- `Pre_simplify
             | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tStop after step [presimpl; simpl]" )
+      , "\tStop after step [presimpl; pre-dpll; simpl]" )
     ; ( "--check-model"
       , Arg.Unit (fun () -> config.check_model <- true)
       , "Сalculate a model and check its correctness" )
@@ -260,7 +254,7 @@ Basic options:
       , "\tSwitch labels encoding in nfa to 'char's" )
     ; ( "--no-parallel"
       , Arg.Unit (fun () -> config.parallel <- false)
-      , "\tDisable running the string-underapproximation strategy and the normal one in \
+      , "Disable running the string-underapproximation strategy and the normal one in \
          parallel processes to take the first definitive answer" )
       (* ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
@@ -278,16 +272,15 @@ Basic options:
       (* ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t" *)
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
-    ; "--dlics", Arg.Unit (fun () -> config.dump_lics <- true), "  \tDump LICS steps"
     ; ( "--dpresimpl"
       , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
       , "\tDump AST simplifications" )
     ; ( "--help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options" )
-    ; ( "--no-model-check"
+      (* ; ( "--no-model-check"
       , Arg.Unit (fun () -> config.check_model <- false)
-      , "\tSkip running model check after (get-model)" )
+      , "\tSkip running model check after (get-model)" ) *)
     ]
   in
   Arg.parse
