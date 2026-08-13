@@ -1,7 +1,10 @@
 An existentially quantified variable which occurs linearly in a single
 equation is a divisibility in disguise: `(exists ((x Int)) (= y (* 2 x)))` is
-`(= (mod y 2) 0)`. The rewrite happens in the pre-simplification, before the
-formula reaches the automata.
+`y = 0 (mod 2)`. The pre-simplification keeps the quantifier; the fold into a
+congruence happens at the IR level (`Ir.exists_to_div`, running after
+`antiprenex` has shrunk each quantifier to its minimal scope), where it
+replaces an unbounded quantified automaton track plus a projection with the
+small direct `NfaCollection.mod_eq` automaton.
 
   $ cat > divides.smt2 <<-EOF
   > (set-logic ALL)
@@ -10,7 +13,7 @@ formula reaches the automata.
   > (check-sat)
   > EOF
   $ Chro --dpresimpl --stop-after presimpl divides.smt2
-  (= (mod y 2) 0)
+  (exists (x) (= (+ (* (- 2) x) y) 0))
 
 The congruence is what constrains the rest of the formula, so a model has to
 respect it. Here y is pinned between 10 and 13, hence y = 12.
@@ -26,9 +29,9 @@ respect it. Here y is pinned between 10 and 13, hence y = 12.
   > EOF
   $ Chro --dpresimpl --stop-after presimpl model.smt2
   (and
-    (= (mod y 6) 0)
     (<= (+ (- 13) y) 0)
-    (<= (+ 10 (* (- 1) y)) 0))
+    (<= (+ 10 (* (- 1) y)) 0)
+    (exists (x) (= (+ (* (- 6) x) y) 0)))
   $ Chro --info -no-over -bound -1 model.smt2
   sat (nfa)
   (
@@ -61,9 +64,10 @@ disappears completely instead of turning into a modulo 1.
   > (check-sat)
   > EOF
   $ Chro --dpresimpl --stop-after presimpl many.smt2
-  (and
-    (= (mod y 4) 0)
-    (= (mod (+ (- 1) z) 6) 0))
+  (exists (x w v) (and
+                    (= (+ (- 2) (* (- 1) v) y z) 0)
+                    (= (+ (- 1) (* (- 6) w) z) 0)
+                    (= (+ (* (- 4) x) y) 0)))
 
 Shapes the rewrite has to leave alone: a variable used more than once, one
 under an exponent, and a binder below a negation (that is a universal
@@ -129,7 +133,7 @@ be reduced on the way out. Here x = 2, y = 4 and 2^4 = 16 = 6 + 10.
   $ Chro --dpresimpl --stop-after presimpl exp.smt2
   (and
     (= (+ (* (- 1) y) (exp 2 x)) 0)
-    (= (mod (+ 6 (* (- 1) (exp 2 y))) 10) 0))
+    (exists (k) (= (+ 6 (* 10 k) (* (- 1) (exp 2 y))) 0)))
   $ Chro --info -bound -1 exp.smt2
   sat (nfa)
 

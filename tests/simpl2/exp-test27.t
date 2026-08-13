@@ -73,12 +73,12 @@
   [+simpl]
     iter(1)= (and
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re ""))))))))))))))
-             (= %r3 0)
+             (= %r2 0)
              (<= (+ (- 99) (str.len x)) 0)
              (<= (* (- 1) (str.to.int x)) 0)
-             (= (mod (+ %r1 (* (- 1) %r3)) 11) 0)
-             (<= (+ (- 10) %r3) 0)
-             (<= (* (- 1) %r3) 0)
+             (= (mod (+ %r1 (* (- 1) %r2)) 11) 0)
+             (<= (+ (- 10) %r2) 0)
+             (<= (* (- 1) %r2) 0)
              (= (mod (+ (str.to.int x) (* (- 1) %r1)) 29) 0)
              (<= (+ (- 28) %r1) 0)
              (<= (* (- 1) %r1) 0))
@@ -87,18 +87,18 @@
   
   [+simpl]
     Something ready to substitute
-        %r3 -> 0;
+        %r2 -> 0;
         
   [+simpl]
     iter(2)= (and
-             (= %r3 0)
-             (= (mod (+ %r1 (* (- 1) %r3)) 11) 0)
+             (= %r2 0)
+             (= (mod (+ %r1 (* (- 1) %r2)) 11) 0)
              (= (mod (+ (* (- 1) %r1) (str.to.int x)) 29) 0)
              (<= (+ (- 99) (str.len x)) 0)
              (<= (+ (- 28) %r1) 0)
-             (<= (+ (- 10) %r3) 0)
+             (<= (+ (- 10) %r2) 0)
              (<= (* (- 1) %r1) 0)
-             (<= (* (- 1) %r3) 0)
+             (<= (* (- 1) %r2) 0)
              (<= (* (- 1) (str.to.int x)) 0)
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
   [+simpl]
@@ -239,12 +239,12 @@
   [+simpl]
     iter(1)= (and
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re ""))))))))))))))
-             (= %r3 0)
+             (= %r2 0)
              (<= (+ (- 99) (str.len x)) 0)
              (<= (* (- 1) (str.to.int x)) 0)
-             (= (mod (+ %r1 (* (- 1) %r3)) 11) 0)
-             (<= (+ (- 10) %r3) 0)
-             (<= (* (- 1) %r3) 0)
+             (= (mod (+ %r1 (* (- 1) %r2)) 11) 0)
+             (<= (+ (- 10) %r2) 0)
+             (<= (* (- 1) %r2) 0)
              (= (mod (+ (str.to.int x) (* (- 1) %r1)) 29) 0)
              (<= (+ (- 28) %r1) 0)
              (<= (* (- 1) %r1) 0))
@@ -253,18 +253,18 @@
   
   [+simpl]
     Something ready to substitute
-        %r3 -> 0;
+        %r2 -> 0;
         
   [+simpl]
     iter(2)= (and
-             (= %r3 0)
-             (= (mod (+ %r1 (* (- 1) %r3)) 11) 0)
+             (= %r2 0)
+             (= (mod (+ %r1 (* (- 1) %r2)) 11) 0)
              (= (mod (+ (* (- 1) %r1) (str.to.int x)) 29) 0)
              (<= (+ (- 99) (str.len x)) 0)
              (<= (+ (- 28) %r1) 0)
-             (<= (+ (- 10) %r3) 0)
+             (<= (+ (- 10) %r2) 0)
              (<= (* (- 1) %r1) 0)
-             (<= (* (- 1) %r3) 0)
+             (<= (* (- 1) %r2) 0)
              (<= (* (- 1) (str.to.int x)) 0)
              (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re "")))))))))))))))
   [+simpl]
