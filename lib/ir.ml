@@ -665,8 +665,96 @@ let antiprenex =
       ir
 ;;
 
-(* let simpl1 ir = 
-  let simp_equalities = function 
+(* [exists q. m*q + poly = c] is the congruence [poly = c (mod |m|)]: it is
+   solvable in an integer [q] exactly when [|m|] divides [c - poly]. In LSB
+   mode variables range over the naturals (after [Ast.to_nat]), so [q >= 0]
+   additionally bounds the reach of [m*q]: the equation then also forces
+   [poly <= c] when [m > 0] (resp. [poly >= c] when [m < 0]).
+
+   The rewrite runs after [antiprenex] has shrunk every quantifier to its
+   minimal scope, so divisibility arising from any frontend shape is caught
+   uniformly, and each catch replaces an unbounded quantified track plus a
+   projection with the small direct automaton behind [Div]
+   ([NfaCollection.mod_eq]).
+
+   Only *bound* variables are folded. A free variable -- even an internal
+   quotient the lowerings mint -- may be referenced by the accumulated
+   environment when reconstructing a model (e.g. after equality propagation
+   eliminated a user variable through it), and folding would delete the
+   automaton track its value is read from. *)
+let exists_to_div =
+  let is_nat () = Config.config.mode = `Lsb in
+  (* [Some conjs'] when [q] occurs linearly in exactly one conjunct, an
+     equation, which is then replaced by the congruence; [None] otherwise. *)
+  let fold_var q conjs =
+    match q with
+    | Pow2 _ -> None
+    | Var qname ->
+      let used, rest = List.partition (fun ir -> Set.mem (collect_free ir) q) conjs in
+      (match used with
+       | [] -> (* A vacuous binder: the integers are non-empty. *) Some rest
+       | [ Rel (Eq, poly, c) ]
+         when Map.mem poly q
+              && (not (Map.mem poly (Pow2 qname)))
+              && not (Z.equal (Map.find_exn poly q) Z.zero) ->
+         let m = Map.find_exn poly q in
+         let poly = Map.remove poly q in
+         if Map.is_empty poly
+         then (
+           (* [exists q. m*q = c]. Over the naturals the quotient must also
+              be non-negative, i.e. [c] and [m] must agree in sign. *)
+           let feasible =
+             Z.divisible c m && ((not (is_nat ())) || Z.sign c * Z.sign m >= 0)
+           in
+           Some (of_bool feasible :: rest))
+         else (
+           let congr =
+             (* An invertible coefficient is always solvable. *)
+             if Z.(equal (abs m) one) then [] else [ rel (Div (Z.abs m)) poly c ]
+           in
+           let bound =
+             if is_nat ()
+             then
+               if Z.(gt m zero)
+               then [ leq poly c ]
+               else [ leq (Map.map poly ~f:Z.neg) (Z.neg c) ]
+             else []
+           in
+           match congr @ bound with
+           | [] -> Some (true_ :: rest)
+           | irs -> Some (irs @ rest))
+       | _ -> None)
+  in
+  let fold_atoms atoms conjs =
+    List.fold_left
+      (fun (atoms, conjs) q ->
+         match fold_var q conjs with
+         | Some conjs -> atoms, conjs
+         | None -> q :: atoms, conjs)
+      ([], conjs)
+      atoms
+  in
+  let conjuncts_of = function
+    | Land irs -> irs
+    | ir -> [ ir ]
+  in
+  fun ir ->
+  if Config.config.mod_eq = false
+  then ir
+  else
+    map
+      (function
+        | Exists (atoms, body) ->
+          let atoms, conjs = fold_atoms atoms (conjuncts_of body) in
+          (match List.rev atoms with
+           | [] -> land_ conjs
+           | atoms -> exists atoms (land_ conjs))
+        | ir -> ir)
+      ir
+;;
+
+(* let simpl1 ir =
+  let simp_equalities = function
   | Rel (Eq, term, c) when Map.for_all ~f:(fun v -> Z.(equal v zero)) term && c = Z.zero *)
 let simpl ir =
   ir
