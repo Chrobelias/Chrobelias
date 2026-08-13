@@ -170,6 +170,9 @@ struct
 
   let eval ir =
     let ir = Ir.antiprenex ir in
+    trace_log "antiprenex done\n%!";
+    let ir = Ir.exists_to_div ir in
+    trace_log "exists_to_div done\n%!";
     let alpha = None in
     let vars = Ir.collect_vars ir in
     (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
