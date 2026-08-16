@@ -3406,7 +3406,7 @@ let extract_and_filter_unsupported_atomic_formulas ast =
 
 let run_string_simplify ast =
   (let module Set = Set in
-   match basic_simplify [ 1 ] ~with_nielsen:false Env.empty ast with
+   match basic_simplify [ 1 ] ~with_nielsen:Config.config.nielsen Env.empty ast with
    | `Sat env -> `Sat env
    | `Unsat unsat_core -> `Unsat unsat_core
    | `Unknown (ast', e, _, _) ->

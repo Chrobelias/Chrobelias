@@ -17,6 +17,7 @@ type config =
        is what the solver did before the automaton existed -- the point of the
        switch is to be able to compare the two. *)
   ; mutable mod_eq : bool
+  ; mutable nielsen : bool
   ; mutable no_model : bool
   ; mutable no_str_bv : bool
   ; mutable over_approx : bool
@@ -59,6 +60,7 @@ let config =
   ; logic = `Eia
   ; mode = `Msb
   ; mod_eq = true
+  ; nielsen = false
   ; no_model = false
   ; no_str_bv = false
   ; quiet = false
@@ -187,6 +189,9 @@ Basic options:
       , Arg.Unit (fun () -> config.mod_eq <- false)
       , "\tDisable the congruence automaton: lower every 'mod' to a quotient and a \
          remainder" )
+    ; ( "-nielsen"
+      , Arg.Unit (fun () -> config.nielsen <- true)
+      , "\tEnable Nielsen transformations for word equations in the simplifier" )
     ; ( "-no-model"
       , Arg.Unit (fun () -> config.no_model <- true)
       , "\tDisable model generation subroutines" )
