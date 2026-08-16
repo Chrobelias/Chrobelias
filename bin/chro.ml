@@ -1307,7 +1307,20 @@ let () =
        Z3 contexts are not safe to share, so forking is what makes the two runs
        independent without auditing every one of them. *)
     let strategies =
-      [ ("under", fun () -> config.under_str_all <- true); ("normal", fun () -> ()) ]
+      [ ("under", fun () -> config.under_str_all <- true)
+      ; ("normal", fun () -> ())
+        (* Nielsen splitting is qualitatively stronger on word-equation
+           suites -- it cracks RElnc timeouts that more time alone never
+           does -- but ~10x slower on equations whose variables are pinned
+           by str.to_int, so it races as its own strategy rather than
+           being the default. Combined with the string underapproximation
+           because that pairing dominates: on the RElnc timeout set it
+           solves 40/42 (8 uniquely) where plain nielsen gets 34. *)
+      ; ( "nielsen"
+        , fun () ->
+            config.nielsen <- true;
+            config.under_str_all <- true )
+      ]
     in
     let children =
       List.map
