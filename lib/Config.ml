@@ -92,6 +92,12 @@ type under2_config =
 type under_str_config =
   { mutable max_len : int
   ; mutable max_cnt : int
+    (* Total environments (candidate-string tuples) allowed per enumeration
+       round. The per-variable candidate count is [max_envs ** (1/m)] for [m]
+       variables, so a single unconstrained variable gets thousands of
+       candidates while three variables get a handful each -- balanced
+       against the size of the product instead of a flat per-variable cap. *)
+  ; mutable max_envs : int
   }
 
 type huge_const_config =
@@ -112,7 +118,7 @@ let huge_const () = huge_const_config.const
 let huge_path () = huge_const_config.path
 let huge_const_for_model () = huge_const_config.const_model
 let under2_config = { amin = 5; amax = 11; flat = -1 }
-let under_str_config = { max_len = 32; max_cnt = 32 }
+let under_str_config = { max_len = 32; max_cnt = 32; max_envs = 8192 }
 let get_flat () = under2_config.flat
 let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
@@ -212,6 +218,10 @@ Basic options:
       , Arg.Int (fun n -> under_str_config.max_len <- n)
       , "<n>\tUnderapproximate strings in concats via words of length at most <n> \
          (DEFAULT n=32)" )
+    ; ( "-sbenvs"
+      , Arg.Int (fun n -> under_str_config.max_envs <- n)
+      , "<n>\tCap on candidate environments per string underapproximation round (DEFAULT \
+         n=8192)" )
       (*; ( "-over"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , "\tSimple overapprox" )*)

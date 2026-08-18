@@ -3181,12 +3181,15 @@ let under_str env alpha vars ast =
       if String.length c > 0
       then String.sub c 0 (String.length c - 1)
       else c (* Format.printf ">>>>> %s\n%!" c; *))
-    |> List.fast_sort (fun x y ->
+    |> List.sort_uniq (fun x y ->
       match String.length x - String.length y with
       | 0 -> String.compare x y
       | diff -> diff)
     |> fun x ->
-    if length <= 0 && NfaS.re_accepts (String.to_seq "" |> List.of_seq) nfa
+    if
+      length <= 0
+      && NfaS.re_accepts (String.to_seq "" |> List.of_seq) nfa
+      && not (List.mem "" x)
     then "" :: x
     else x
   in
@@ -3205,7 +3208,35 @@ let under_str env alpha vars ast =
                 data)
             (collect_regexes ast)
         in
+        (* Balance the enumeration against the size of the product it feeds:
+           [max_envs] bounds the number of candidate tuples per round, so the
+           per-variable count is its [m]-th root -- a single unconstrained
+           variable gets thousands of candidates where three variables get a
+           handful each, instead of a flat [max_cnt] for every arity. *)
+        let per_var =
+          let cap = Config.under_str_config.max_envs in
+          let m = Set.length vars in
+          if cap < 0
+          then Config.under_str_config.max_cnt
+          else Int.max 2 (Float.to_int (Float.of_int cap ** (1. /. Float.of_int m)))
+        in
+        (* [base^l], clamped against overflow. *)
+        let space base l =
+          if l <= 0
+          then 1
+          else if Float.of_int l *. Float.log2 (Float.of_int base) >= 30.
+          then Int.max_int
+          else Utils.pow ~base l
+        in
+        let numeric = Ast.get_stoi_vars ast |> Set.of_list in
         let all_as name =
+          let known_len = Ast.get_len name ast in
+          (* The full alphabet for every variable, digits included. Narrowing
+             a [str.to_int]-read variable to digits looks tempting, but its
+             [to_int v = -1] branches are witnessed only by strings with a
+             non-digit character -- e.g. the stringfuzz instances whose model
+             is [m = "0s"] -- so the narrowing silently loses real models.
+             Only the candidate counts are balanced, never the alphabet. *)
           let alpha =
             alpha
             |> Set.of_list
@@ -3217,23 +3248,56 @@ let under_str env alpha vars ast =
             |> Set.to_list
           in
           let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
-          let max_cnt = Config.under_str_config.max_cnt in
-          let length = Ast.get_len name ast in
-          let length, exact, count =
-            match length >= 0, Map.mem regexes name with
-            | true, other ->
-              length, true, min max_cnt (Utils.pow ~base:(List.length alpha) length)
-            | false, true -> length, false, max_cnt
-            | _ -> len, false, max_cnt
+          let is_regex = Ast.is_conjunct ast && Map.mem regexes name in
+          (* A regex-constrained variable gets its ranged enumeration in the
+             very first round: its witnesses are as long as the regex pumps,
+             so waiting for their exact-length round would push them past the
+             caller's time budget. Later rounds still add exact-length
+             coverage beyond the initial sample. *)
+          (* Regex-constrained variables keep the small flat cap: their
+             candidates are pumped words whose length grows with the index,
+             and every extra candidate makes both the substitution and the
+             automata check on the residual superlinearly more expensive --
+             the balanced root budget only makes sense for the flat-cost
+             alphabet enumeration. *)
+          let per_var =
+            if is_regex then min per_var Config.under_str_config.max_cnt else per_var
+          in
+          let length, count =
+            if known_len >= 0
+            then known_len, min per_var (space (List.length alpha) known_len)
+            else if is_regex && len = 0
+            then -1, per_var
+            else len, min per_var (space (List.length alpha) len)
           in
           let list =
             get_strings_range
-              (if Ast.is_conjunct ast && Map.mem regexes name
-               then Map.find_exn regexes name
-               else nfa_alpha)
+              (if is_regex then Map.find_exn regexes name else nfa_alpha)
               length
-              ~exact
+              ~exact:true
               count
+          in
+          (* A variable read as a number gets a digit-only sample *prepended*:
+             most of its useful witnesses are digit-dense, but the full
+             alphabet stays in the pool -- ordering is the safe form of the
+             digit bias, exclusion loses the [to_int v = -1] witnesses (the
+             stringfuzz models like [m = "0s"]). *)
+          let list =
+            let is_digits s = String.for_all (fun c -> '0' <= c && c <= '9') s in
+            if is_regex || (not (Set.mem numeric name)) || length < 0
+            then list
+            else (
+              let digit_nfa =
+                Regex.all (Regex.dec |> String.to_seq |> List.of_seq) |> NfaS.of_regex
+              in
+              let digits =
+                get_strings_range
+                  digit_nfa
+                  length
+                  ~exact:true
+                  (min count (space 10 length))
+              in
+              digits @ List.filter (fun s -> not (is_digits s)) list)
           in
           trace_log
             "Strings for %s:\n %a\n%!"
@@ -3251,13 +3315,7 @@ let under_str env alpha vars ast =
           ~init:[ env ]
           vars
       in
-      List.map
-        (fun e ->
-           let (module Symantics) = make_main_symantics e in
-           (* trace_log "AST: %a\n%!" Ast.pp_smtlib2 ast;
-         trace_log "@[%a@]" (Env.pp ~title:"env = ") e; *)
-           e, apply_symantics (module Symantics) ast)
-        envs)
+      envs)
   in
   if Config.under_str_config.max_cnt < 0
   then Seq.empty
@@ -3273,12 +3331,34 @@ let under_str env alpha vars ast =
         | `Sat env -> raise_notrace (Str_Underapprox_fired env)
         | `Unknown (ast, env, _, _) -> Some (ast (*|> over_concat_len*), env))
     in
+    (* A round can hold thousands of candidate environments, but the caller's
+       time budget is only checked between the variants of this sequence, so
+       each round is emitted as [max_cnt]-sized chunks -- substitution
+       included, lazily per chunk -- to keep that deadline meaningful. A fat
+       round would otherwise run to completion long past it. *)
+    let chunk_size = Int.max 1 Config.under_str_config.max_cnt in
+    let rec chunks lst =
+      match lst with
+      | [] -> []
+      | _ ->
+        let hd, tl = Base.List.split_n lst chunk_size in
+        hd :: chunks tl
+    in
     let m = List.length vars in
     Seq.init (m * (Config.under_str_config.max_len + 1)) (fun x -> x / m, x mod m)
-    |> Seq.map (fun (length, side) ->
+    |> Seq.concat_map (fun (length, side) ->
       match side with
       | n when n >= 0 && n < m ->
-        filter_asts (try_under_str (List.nth vars n) alpha length env ast)
+        try_under_str (List.nth vars n) alpha length env ast
+        |> chunks
+        |> List.to_seq
+        |> Seq.map (fun chunk ->
+          filter_asts
+            (List.map
+               (fun e ->
+                  let (module Symantics) = make_main_symantics e in
+                  e, apply_symantics (module Symantics) ast)
+               chunk))
       | other -> failwith "Unreachable: remainder is negative"))
 ;;
 
