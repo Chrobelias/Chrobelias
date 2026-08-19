@@ -1671,7 +1671,7 @@ let make_smtml_symantics (env : (string, _) Base.Map.Poly.t) =
 
     let var s =
       match Base.Map.Poly.find env s with
-      | None -> Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
+      | None -> Smtml.Expr.symbol (Smtml.Symbol.make_var Smtml.Ty.Ty_int s)
       | Some c -> constz c
     ;;
 
@@ -2725,7 +2725,7 @@ let check_nia env ast =
     Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
       let _ : Env.t = acc in
       let open Ast in
-      Env.extend_exn acc (Var (key, I)) (Eia.Const (Z.of_int data)))
+      Env.extend_exn acc (Var (key, I)) (Eia.Const data))
   in
   (* trace_log "ast1=@[%a@]" Ast.pp_smtlib2 ast; *)
   let module M = struct

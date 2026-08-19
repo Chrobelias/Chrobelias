@@ -28,7 +28,7 @@ module Symantics : Smtml_symantics = struct
 
   let exists vs ph =
     Smtml.Expr.exists
-      (List.map (fun s -> Smtml.Expr.symbol (Smtml.Symbol.make Ty_int s)) vs)
+      (List.map (fun s -> Smtml.Expr.symbol (Smtml.Symbol.make_var Ty_int s)) vs)
       ph
   ;;
 end
