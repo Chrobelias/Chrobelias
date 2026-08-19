@@ -4550,36 +4550,25 @@ let coeff_of_var varname term =
     | t -> [ t ]
   in
   let rec aux = function
-    | Atom (Var (v, I)) when v = varname -> Some Z.one
-    | Add ts ->
-      let sum =
-        List.fold_left
-          (fun acc t ->
-             match acc, aux t with
-             | Some a, Some b -> Some (Z.add a b)
-             | _ -> None)
-          (Some Z.zero)
-          ts
-      in
-      (match sum with
-       | Some z when Z.equal z Z.zero -> None
-       | x -> x)
+    | Atom (Var (v, I)) when v = varname -> Z.one
+    | Add ts -> List.fold_left (fun acc t -> Z.add acc (aux t)) Z.zero ts
     | Mul ts ->
       let flat = List.concat_map flatten_mul ts in
       let rec scan const_acc var_seen = function
-        | [] -> if var_seen then Some const_acc else None
+        | [] when var_seen -> const_acc
+        | [] -> Z.zero
         | Const c :: rest -> scan (Z.mul const_acc c) var_seen rest
-        | Atom (Var (v, I)) :: rest when v = varname ->
-          if var_seen then None else scan const_acc true rest
-        | _ :: rest -> None
+        | Atom (Var (v, I)) :: rest when v = varname && not var_seen ->
+          scan const_acc true rest
+        | Atom (Var (v, I)) :: rest when v = varname && var_seen ->
+          failwith "Expected linear equations"
+        | _ :: _ -> Z.zero
       in
       scan Z.one false flat
     | Mod (t, _) -> aux t
-    | _ -> None
+    | _ -> Z.zero
   in
-  match aux term with
-  | Some z when Z.equal z Z.zero -> None
-  | x -> x
+  aux term
 ;;
 
 let substitute_vigorous_constraint varname coeff tau ast =
@@ -4591,7 +4580,7 @@ let substitute_vigorous_constraint varname coeff tau ast =
     | Add ts -> TS.add (List.map aux ts)
     | Mul ts ->
       begin match coeff_of_var varname t with
-      | Some c when not (Z.equal c Z.zero) ->
+      | c when not (Z.equal c Z.zero) ->
         assert (Z.equal Z.(c mod coeff) Z.zero);
         let factor = Z.div c coeff in
         TS.mul [ TS.constz Z.(neg factor); tau ]
@@ -4693,9 +4682,9 @@ let var_exists varname conj =
   List.exists
     (function
       | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
-        coeff_of_var varname l <> None || coeff_of_var varname r <> None
+        coeff_of_var varname l <> Z.zero || coeff_of_var varname r <> Z.zero
       | Ast.Eia (Ast.Eia.Leq (l, r)) ->
-        coeff_of_var varname l <> None || coeff_of_var varname r <> None
+        coeff_of_var varname l <> Z.zero || coeff_of_var varname r <> Z.zero
       | _ -> false)
     conj
 ;;
@@ -4727,20 +4716,19 @@ let%expect_test _ =
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ph_list varname =
-    let string =
-      match coeff_of_var varname ph_list with
-      | Some c -> Z.to_string c
-      | None -> "None"
-    in
+    let string = coeff_of_var varname ph_list |> Z.to_string in
     Format.printf "%s\n" string
   in
   let ph = TS.(add [ mul [ const 2; var "x" ]; var "y" ]) in
+  let ph1 = TS.(add [ mul [ const 2; var "x" ]; mul [ const 2; var "x" ] ]) in
   test ph "y";
   [%expect {| 1 |}];
   test ph "x";
   [%expect {| 2 |}];
   test ph "z";
-  [%expect {| None |}]
+  [%expect {| None |}];
+  test ph1 "x";
+  [%expect {| 4 |}]
 ;;
 
 let find_var_and_coeff varname =
@@ -4749,21 +4737,16 @@ let find_var_and_coeff varname =
   | Ast.Eia.Eq (l, r, I) ->
     let coeff_l = coeff_of_var varname l in
     let coeff_r = coeff_of_var varname r in
-    begin match coeff_l, coeff_r with
-    | None, Some c when not (Z.equal c Z.zero) ->
-      let (module TS) = make_main_symantics Env.empty in
-      let env = Env.extend_int_exn Env.empty varname (const Z.zero) in
-      let rest = subst_term env r in
-      let tau_no_x = TS.(add [ l; mul [ const (-1); rest ] ]) in
-      Some (Z.neg c, tau_no_x)
-    | Some c, None when not (Z.equal c Z.zero) ->
+    let coeff = Z.(coeff_l - coeff_r) in
+    if Z.(coeff <> zero)
+    then begin
       let (module TS) = make_main_symantics Env.empty in
       let env = Env.extend_int_exn Env.empty varname (const Z.zero) in
       let rest = subst_term env l in
       let tau_no_x = TS.(add [ rest; mul [ const (-1); r ] ]) in
-      Some (c, tau_no_x)
-    | _ -> None
+      Some (coeff, tau_no_x)
     end
+    else None
   | _ -> None
 ;;
 
@@ -4937,12 +4920,13 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
               | Some varname ->
                 let env = Env.extend_int_exn Env.empty varname (Ast.Eia.Const Z.zero) in
                 begin match coeff_of_var varname l, coeff_of_var varname r with
-                | Some c, None when c > Z.zero -> Ast.Eia (Leq (subst_term env l, r))
-                | Some c, None -> Ast.Eia (Leq (r, subst_term env l))
-                | None, Some c when c > Z.zero -> Ast.Eia (Leq (l, subst_term env r))
-                | None, Some c -> Ast.Eia (Leq (subst_term env r, l))
-                | None, None -> assert false
-                | Some _, Some _ -> assert false
+                | c, z when c > Z.zero && Z.(z = zero) ->
+                  Ast.Eia (Leq (subst_term env l, r))
+                | c, z when Z.(z = zero) -> Ast.Eia (Leq (r, subst_term env l))
+                | z, c when c > Z.zero && Z.(z = zero) ->
+                  Ast.Eia (Leq (l, subst_term env r))
+                | z, c when Z.(z = zero) -> Ast.Eia (Leq (subst_term env r, l))
+                | _, _ -> assert false
                 end
               | None -> t
               end
@@ -5115,41 +5099,46 @@ let%expect_test _ =
 
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
-  let test ph = simplify_quantifiers ph |> Format.printf "%a\n" Ast.pp in
-  let ph1 =
-    TS.(
-      exists
-        [ Ast.Any_atom (Ast.Var ("y", I)) ]
-        (Ast.Land [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1 ]))
+  let test ph =
+    let ph = simplify_quantifiers ph in
+    Format.printf "%a\n" Ast.pp ph
   in
-  let ph2 =
+  let ph =
     TS.(
-      exists
-        [ Ast.Any_atom (Ast.Var ("y", I)) ]
-        (land_ [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1 ]))
+      Ast.Exists
+        ( [ Ast.Any_atom (Ast.Var ("x0", I)) ]
+        , Ast.Land
+            [ add [ mul [ const (-1); var "x0" ] ] = const (-82)
+            ; add [ mul [ const 4; var "x0" ]; mul [ const 1; var "x1" ] ] = const 425
+            ] ))
   in
-  let ph3 = TS.(land_ [ ph1; ph2 ]) in
-  let ph4 =
-    TS.(
-      exists
-        [ Ast.Any_atom (Ast.Var ("x0", I)); Ast.Any_atom (Ast.Var ("x1", I)) ]
-        (lor_
-           [ not (land_ [ var "x0" <= const 0; const 0 <= var "x1" ])
-           ; not
-               (add [ mul [ var "x0"; const 199 ]; mul [ var "x1"; const 221 ] ] = var "P")
-           ]))
-  in
-  test ph1;
-  test ph2;
-  test ph3;
-  test ph4;
+  test ph;
   [%expect
     {|
-    ((divides 1 (+ (- 1) (* 2 x))) & True)
-    ((divides 1 (+ (- 1) (* 2 x))) & True)
-    (
-    (divides 1 (+ (- 1) (* 2 x))) & True & (divides 1 (+ (- 1) (* 2 x))) & True)
-    (Ex0 x1 (
-    (<= (+ x1 1) 0) | (<= (+ 0 1) x0) | (distinct (+ (* 199 x0) (* 221 x1)) P)))
+    (((divides 1 (- 6)) & (= 0 6) & (= x1 53)) | ((divides 4 (+ (- 29) x1)) &
+    (= (* 4 x1) 212) & True))
+    |}]
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph =
+    let ph = simplify_quantifiers ph in
+    Format.printf "%a\n" Ast.pp ph
+  in
+  let ph =
+    TS.(
+      Ast.Exists
+        ( [ Ast.Any_atom (Ast.Var ("x0", I)) ]
+        , Ast.Land
+            [ add [ mul [ const (-1); var "x0" ]; mul [ const 3; var "x1" ] ] = const 124
+            ; add [ mul [ const (-1); var "x0" ]; mul [ const 2; var "x1" ] ] = const 78
+            ] ))
+  in
+  test ph;
+  [%expect
+    {|
+    (((divides 1 (- 6)) & (= 0 6) & (= x1 53)) | ((divides 4 (+ (- 29) x1)) &
+    (= (* 4 x1) 212) & True))
     |}]
 ;;
