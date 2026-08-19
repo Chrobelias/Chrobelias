@@ -153,7 +153,7 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
   match expr with
   | Expr.Val v ->
     begin match v with
-    | Int d -> return (Ast.Eia.const (Z.of_int d)) empty
+    | Int d -> return (Ast.Eia.const d) empty
     | _ -> failf (Format.asprintf "unable to handle %a as integer term" Expr.pp orig_expr)
     end
   | Expr.App ({ name = Symbol.Simple "str.to.int"; _ }, [ expr ])
@@ -235,7 +235,7 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
     (match Expr.view rhs with
      | Expr.Val (Int d) ->
        let* lhs, phs = to_eia_term lhs in
-       return (Ast.Eia.Mod (lhs, Z.of_int d)) phs
+       return (Ast.Eia.Mod (lhs, d)) phs
      | _ -> failf (Format.asprintf "expected term, in %a" Expr.pp orig_expr))
     (* Remainder is needed for example for this test
     dune b @benchmarks/tests/EXP-solver/flatten/head/test24 --profile=benchmark *)
@@ -483,7 +483,7 @@ let to_ast a b =
   Ast.land_ (ast :: !extras)
 ;;
 
-let pred_to_sym s = Expr.symbol (Symbol.make Ty.Ty_bool s)
+let pred_to_sym s = Expr.symbol (Symbol.make_const Ty.Ty_bool s)
 
 let sym_to_pred (s : Symbol.t) =
   match s with
@@ -509,9 +509,9 @@ let rec of_ast = function
       (List.map
          (function
            | Ast.Any_atom (Ast.Var (s, S)) ->
-             Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_str s)
+             Expr.symbol (Smtml.Symbol.make_const Smtml.Ty.Ty_str s)
            | Ast.Any_atom (Ast.Var (s, I)) ->
-             Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s))
+             Expr.symbol (Smtml.Symbol.make_const Smtml.Ty.Ty_int s))
          atoms)
       (of_ast body)
   | Pred s -> pred_to_sym s

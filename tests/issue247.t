@@ -8,7 +8,7 @@
   > EOF
 
   $ Chro 1.smt2
-  sat (under int)
+  sat (nia)
 
   $ cat > 2.smt2 <<-EOF
   > (set-logic ALL)

@@ -23,19 +23,19 @@ module type SYM = sig
 end
 
 (* TODO(Kakadu): Maybe it's time to use Z.t here  *)
-type env = (string, int) Base.Map.Poly.t
+type env = (string, Z.t) Base.Map.Poly.t
 
 let to_normal_env : env -> Env.t =
   Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
     let _ : Env.t = acc in
     let open Ast in
-    Env.extend_exn acc (Var (key, I)) (Eia.Const (Z.of_int data)))
+    Env.extend_exn acc (Var (key, I)) (Eia.Const data))
 ;;
 
 let pp_env ppf env =
   Format.fprintf ppf "@[{|";
   Base.Map.Poly.iteri env ~f:(fun ~key ~data ->
-    Format.fprintf ppf "@ @[%s->%d@]@," key data);
+    Format.fprintf ppf "@ @[%s->%a@]@," key Z.pp_print data);
   Format.fprintf ppf " |}@]"
 ;;
 
@@ -48,8 +48,8 @@ let make_sym (env : env) onvar bound =
 
     let var s =
       match Base.Map.Poly.find env s with
-      | None -> Smtml.Expr.symbol (Smtml.Symbol.make Smtml.Ty.Ty_int s)
-      | Some c -> constz (Z.of_int c)
+      | None -> Smtml.Expr.symbol (Smtml.Symbol.make_const Smtml.Ty.Ty_int s)
+      | Some c -> constz c
     ;;
 
     let pow2var s = pow (constz (Z.of_int !Config.base)) (var s)
@@ -300,7 +300,7 @@ let check bound ast =
            Z3.reset solver;
            let _ = trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph in
            match Z3.check solver ~assumptions:[ ph ] with
-           | `Sat when omit_z3_model -> raise (Early env)
+           | `Sat when omit_z3_model -> raise (Early (Map.map env ~f:Z.of_int))
            | `Sat ->
              (match Z3.model solver with
               | None -> assert false
@@ -314,7 +314,7 @@ let check bound ast =
                          when Bool.not (Map.mem acc s) -> Map.add_exn acc ~key:s ~data:n
                        | _ -> acc)
                     (Smtml.Z3_mappings.values_of_model m)
-                    env
+                    (Map.map env ~f:Z.of_int)
                 in
                 raise (Early env))
            | `Unsat when List.length interestring_vars == 0 -> raise Early_Unsat
