@@ -4259,6 +4259,210 @@ let arithmetize str_vars ast env =
       ast', env, regexes))
 ;;
 
+(* let%expect_test _ = *)
+(*   let (module TS) = make_main_symantics Env.empty in *)
+(*   let test ph = *)
+(*     let set = eliminate_existence_quantifier ph in *)
+(*     Format.printf "%a\n" Ast.pp set *)
+(*   in *)
+(*   let ph = *)
+(*     TS.( *)
+(*       Ast.Exists *)
+(*         ( [ Ast.Any_atom (Ast.Var ("z", I)) ] *)
+(*         , land_ *)
+(*             [ add [ mul [ const 2; var "x" ]; var "y" ] = const 1 *)
+(*             ; add [ var "x"; mul [ const 2; var "y" ]; var "z" ] = const 3 *)
+(*             ; add [ var "y"; mul [ const 2; var "z" ] ] = const 3 *)
+(*             ] )) *)
+(*   in *)
+(*   test ph *)
+(* ;; *)
+
+(* let distribute xs =
+  let open Ast in
+  List.fold_left
+    (fun acc -> function
+       | Eia.Add ys -> List.concat_map (fun zs -> List.map (fun h -> h :: zs) ys) acc
+       | other -> List.map (fun x -> other :: x) acc)
+    ([ [] ] : _ list list)
+    xs
+;; *)
+
+(* let test_distr xs =
+  let (module Main_symantics) = make_main_symantics Env.empty in
+  let ans = distribute xs |> List.map Main_symantics.mul |> Main_symantics.add in
+  Debug.printf "@[%a@]\n%!" Ast.pp_term_smtlib2 ans
+;; *)
+
+(* Outdated tests*)
+(* let%expect_test _ =
+  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ] ];
+  [%expect "(+ (* 5 x) (* 5 y))"]
+;;
+
+let%expect_test _ =
+  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; var "u" ] ];
+  [%expect "(+ (* 5 u x) (* 5 u y) (* 5 x z) (* 5 y z))"]
+;;
+
+let%expect_test _ =
+  let (module Test_symantcs : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  test_distr Test_symantcs.[ const 5; add [ var "x"; var "y" ]; add [ var "z"; const 2 ] ];
+  [%expect "(+ (* 5 x z) (* 5 y z) (* 10 x) (* 10 y))"]
+;; *)
+
+let leq_simpl l r =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  let ans = TS.prj TS.(l <= r) in
+  Format.printf "@[%a@]\n%!" Ast.pp_smtlib2 ans
+;;
+
+let%expect_test " -2x <= -7" =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-7));
+  [%expect "(<= (* (- 2) x) (- 7))"]
+;;
+
+let%expect_test " -2x <= -8" =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-8));
+  [%expect "(<= (* (- 2) x) (- 8))"]
+;;
+
+let%expect_test " -2x <= -1" =
+  let (module TS : SYM_SUGAR_AST) = make_main_symantics Env.empty in
+  leq_simpl TS.(mul [ const (-2); var "x" ]) TS.(const (-1));
+  [%expect "(<= (* (- 2) x) (- 1))"]
+;;
+
+(* let tracing_on =
+  match Sys.getenv "CHRO_TRACE_OPT" with
+  | exception Not_found -> false
+  | "1" -> true
+  | _ -> false
+;; *)
+
+(* let log ppf =
+  if tracing_on
+  then Format.kasprintf (Format.printf "%s%!") ppf
+  else Format.ifprintf Format.std_formatter ppf
+;; *)
+
+let simpl bound ast =
+  let prepare_choices env var_info =
+    let ( let* ) xs f = List.concat_map f xs in
+    let choice1 = List.init (bound + 1) Fun.id in
+    Base.Set.Poly.fold
+      ~f:(fun acc name ->
+        let* v = choice1 in
+        let* acc = acc in
+        [ Env.extend_int_exn acc name Ast.Eia.(Const (Z.of_int v)) ])
+      ~init:[ env ]
+      var_info.Info.exp
+  in
+  let on_env step env =
+    (* log "step: %a. env = %a\n" pp_step step Env.pp env; *)
+    let (module Symantics) = make_main_symantics env in
+    let ast_spec = apply_symantics (module Symantics) ast in
+    match basic_simplify step env ast_spec with
+    | `Unsat -> `Unknown
+    | `Sat env -> raise (Underapprox_fired env)
+    | `Unknown (ast, env, _info, step) ->
+      let var_info = apply_symantics (module Who_in_exponents) ast_spec in
+      let ast_spec = flatten var_info ast_spec in
+      let ast_spec = apply_symantics (module Symantics) ast_spec in
+      let __ () =
+        log "step: %a. flattened ast = %a\n" pp_step step Ast.pp_smtlib2 ast_spec
+      in
+      (match check_errors ast_spec with
+       | [] ->
+         let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast_spec in
+         let solver = Smtml.Z3_mappings.Solver.make ~logic:Smtml.Logic.LIA () in
+         Smtml.Z3_mappings.Solver.reset solver;
+         (match Smtml.Z3_mappings.Solver.check solver ~assumptions:[ ph ] with
+          | `Sat ->
+            Printf.eprintf
+              "The model could be not fully populated. %s %d\n%!"
+              __FILE__
+              __LINE__;
+            raise (Underapprox_fired env)
+          | `Unsat | `Unknown -> `Unknown)
+       | errors ->
+         log "%d errors found" (List.length errors);
+         Format.printf "@[<v>%a@]\n%!" (Format.pp_print_list pp_error) errors;
+         `Errors)
+  in
+  let loop (env : Env.t) ast =
+    match basic_simplify [ 1 ] env ast with
+    | `Unsat -> raise Unsat
+    | `Sat env -> raise (Sat ("", env))
+    | `Unknown (ast, env, _, _) when bound <= 0 -> ast, env
+    | `Unknown (ast, env, _var_info, step) ->
+      let ast = flatten _var_info ast in
+      let var_info = apply_symantics (module Who_in_exponents) ast in
+      let all_choices = prepare_choices env var_info in
+      assert (all_choices <> []);
+      let verdicts = List.mapi (fun i -> on_env (i :: step)) all_choices in
+      let is_error = function
+        | `Errors -> true
+        | `Unknown -> false
+      in
+      if verdicts <> [] && List.for_all is_error verdicts
+      then (
+        match check_errors ast with
+        | [] ->
+          Printf.eprintf "Something weird: no errors. %s %d\n%!" __FILE__ __LINE__;
+          raise (Error (ast, []))
+        | errors -> raise (Error (ast, errors)));
+      ast, env
+  in
+  let ast, env = loop Env.empty ast in
+  (* Underapprox I *)
+    match if bound >= 0 then Underapprox.check bound ast else `Unknown ast with
+    | `Sat (reason, e) -> `Sat (reason, Env.merge_exn e env)
+    | `Unsat _ -> `Unsat
+    | `Unknown _ ->
+      (try
+         match check_errors ast with
+         | [] -> `Unknown ast
+         | errrs when Config.get_flat () < 0 ->
+           `Error (ast, Base.List.dedup_and_sort ~compare:Stdlib.compare errrs)
+         | errrs ->
+           (* Underapprox II *)
+           (* TODO(Kakadu): enrich environment  *)
+           let env = Env.empty in
+           log "%s %d" __FILE__ __LINE__;
+           let asts = try_under2_heuristics env ast in
+           let asts =
+             List.filter_map
+               (fun ast ->
+                  match basic_simplify [ 1 ] env ast with
+                  | `Unsat -> None
+                  | `Sat env -> raise (Underapprox_fired env)
+                  | `Unknown (ast, _, _, _) ->
+                    let var_info = apply_symantics (module Who_in_exponents) ast in
+                    let ast = flatten var_info ast in
+                    (match check_errors ast with
+                     | [] -> Some ast
+                     | errors ->
+                       log "Bad AST: @[%a]" Ast.pp_smtlib2 ast;
+                       Format.printf
+                         "@[<v>%a@]\n%!"
+                         (Format.pp_print_list pp_error)
+                         errors;
+                       None))
+               asts
+           in
+           `Underapprox asts
+       with
+       | Unsat -> `Unsat
+       | Underapprox_fired env -> `Sat ("underappox2", env)
+       | Sat (reason, env) -> `Sat (reason, env)
+       | Error (ast, errs) -> `Error (ast, errs))
+;;
+
 module NondeterministicMonad = struct
   (* Also try to use lazy lists, it is probably more efficient *)
   (* type 'a t = 'a list *)
@@ -4267,25 +4471,6 @@ module NondeterministicMonad = struct
   let bind o f = List.concat_map f o
   let ( let* ) = bind
 end
-
-(* let simplify_constants ts = *)
-(*   let open Ast.Eia in *)
-(*   let rec aux ts = *)
-(*     List.fold_left *)
-(*       (fun ((prod, has_const), vars) t -> *)
-(*          match t with *)
-(*          | Const c -> (Z.mul prod c, true), vars *)
-(*          | Mul xs -> *)
-(*            let (prod1, has_const1), vars1 = aux xs in *)
-(*            (Z.mul prod prod1, has_const1 || has_const), vars1 @ vars *)
-(*          | t -> (prod, has_const), t :: vars) *)
-(*       ((Z.one, false), []) *)
-(*       ts *)
-(*   in *)
-(*   let (prod, has_const), vars = aux ts in *)
-(*   let vars = List.rev vars in *)
-(*   if has_const then Const prod :: vars else vars *)
-(* ;; *)
 
 let rec multiply_constraint_by_int int =
   let open Ast.Eia in
@@ -4405,7 +4590,6 @@ let substitute_vigorous_constraint varname coeff tau ast =
     match t with
     | Add ts -> TS.add (List.map aux ts)
     | Mul ts ->
-      (* I need to use ts there *)
       begin match coeff_of_var varname t with
       | Some c when not (Z.equal c Z.zero) ->
         assert (Z.equal Z.(c mod coeff) Z.zero);
@@ -4417,13 +4601,10 @@ let substitute_vigorous_constraint varname coeff tau ast =
     | Pow (b, e) -> TS.pow (aux b) (aux e)
     | _ -> t
   in
-  (* Format.printf "Ast before: %a\n" Ast.pp ast; *)
-  (* Format.printf "Coeff is: %a\n" Z.pp_print coeff; *)
-  (* Format.printf "Ast after: %a\n" Ast.pp ast; *)
-    match ast with
-    | Ast.Eia (Eq (l, r, I)) -> TS.(aux l = aux r)
-    | Ast.Eia (Leq (l, r)) -> TS.(aux l <= aux r)
-    | _ -> ast
+  match ast with
+  | Ast.Eia (Eq (l, r, I)) -> TS.(aux l = aux r)
+  | Ast.Eia (Leq (l, r)) -> TS.(aux l <= aux r)
+  | _ -> ast
 ;;
 
 let%expect_test _ =
