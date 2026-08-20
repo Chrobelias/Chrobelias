@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: we1ine/chrobelias:latest
-      options: --user root
+      options: --user root --init
     strategy:
       fail-fast: false
       matrix:
