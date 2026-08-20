@@ -81,6 +81,10 @@ and to_regex orig_expr =
   | Expr.Symbol s when Symbol.to_string s = "re.none" -> Regex.empty
   | Expr.Symbol s when Symbol.to_string s = "re.nostr" -> Regex.empty
   | Expr.Symbol s when Symbol.to_string s = "re.allchar" -> Regex.allchar
+  (* smtml 0.30 parses the regex constants into values, not symbols. *)
+  | Expr.Val Smtml.Value.Re_none -> Regex.empty
+  | Expr.Val Smtml.Value.Re_allchar -> Regex.allchar
+  | Expr.Val Smtml.Value.Re_all -> Regex.kleene Regex.allchar
   | Expr.App ({ name = Symbol.Simple "str.to.re"; _ }, [ expr ])
   | Expr.Cvtop (_, Ty.Cvtop.String_to_re, expr) ->
     let str =
