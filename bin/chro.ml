@@ -1306,8 +1306,17 @@ let () =
        mutable state -- fresh-name counters, the exponent cache, [smt_status] -- and
        Z3 contexts are not safe to share, so forking is what makes the two runs
        independent without auditing every one of them. *)
+    (* The under-approximation children get a larger enumeration budget:
+       spending seconds on candidate substitution is their whole purpose, and
+       the racing normal child keeps unsat latency unaffected. Deep product
+       witnesses (the stringfuzz [("0s", "0")] pairs) sit a few seconds into
+       the now honestly-chunked rounds. Explicit -budget still wins. *)
+    let deep_under () =
+      config.under_str_all <- true;
+      if Float.equal config.under_str_budget 1.0 then config.under_str_budget <- 4.0
+    in
     let strategies =
-      [ ("under", fun () -> config.under_str_all <- true)
+      [ "under", deep_under
       ; ("normal", fun () -> ())
         (* Nielsen splitting is qualitatively stronger on word-equation
            suites -- it cracks RElnc timeouts that more time alone never
@@ -1319,7 +1328,7 @@ let () =
       ; ( "nielsen"
         , fun () ->
             config.nielsen <- true;
-            config.under_str_all <- true )
+            deep_under () )
       ]
     in
     let children =

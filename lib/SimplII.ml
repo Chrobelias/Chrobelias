@@ -3168,6 +3168,38 @@ let run_length_simplify env ast =
 
 let under_str env alpha vars ast =
   let module Map = Base.Map.Poly in
+  (* A variable is *provably numeric* when replacing its direct
+     [str.to_int v] reading with -1 collapses the formula to
+     unsatisfiable: every model then has [to_int v >= 0], i.e. [v] is a
+     non-empty digit string, and enumerating its candidates over the
+     decimal alphabet alone loses nothing. This is the sound form of
+     the digit bias -- HashFunction's [mod (to_int x) m = c] proves it,
+     while a formula that is satisfiable through [to_int v = -1] (the
+     stringfuzz models like [m = "0s"]) keeps the full alphabet. *)
+  let proven_digit =
+    Ast.get_stoi_vars ast
+    |> List.filter (fun v ->
+      let ast' =
+        Ast.map
+          (function
+            | Ast.Eia eia ->
+              Ast.eia
+                (Ast.Eia.map2
+                   Fun.id
+                   (function
+                     | Ast.Eia.Iofs (Ast.Eia.Atom (Ast.Var (u, Ast.S)))
+                       when String.equal u v -> Ast.Eia.Const Z.minus_one
+                     | t -> t)
+                   Fun.id
+                   eia)
+            | ph -> ph)
+          ast
+      in
+      match basic_simplify [] ~minimize:false env ast' with
+      | `Unsat _ -> true
+      | `Sat _ | `Unknown _ -> false)
+    |> Set.of_list
+  in
   let get_strings_range nfa length ?(exact = false) num =
     let max_len = Config.under_str_config.max_len in
     (if length < 0
@@ -3228,24 +3260,20 @@ let under_str env alpha vars ast =
           then Int.max_int
           else Utils.pow ~base l
         in
-        let numeric = Ast.get_stoi_vars ast |> Set.of_list in
         let all_as name =
           let known_len = Ast.get_len name ast in
-          (* The full alphabet for every variable, digits included. Narrowing
-             a [str.to_int]-read variable to digits looks tempting, but its
-             [to_int v = -1] branches are witnessed only by strings with a
-             non-digit character -- e.g. the stringfuzz instances whose model
-             is [m = "0s"] -- so the narrowing silently loses real models.
-             Only the candidate counts are balanced, never the alphabet. *)
           let alpha =
-            alpha
-            |> Set.of_list
-            |> (fun x ->
-            Seq.fold_left
-              (fun acc digit -> Set.add acc digit)
-              x
-              (Regex.dec |> String.to_seq))
-            |> Set.to_list
+            if Set.mem proven_digit name
+            then Regex.dec |> String.to_seq |> List.of_seq
+            else
+              alpha
+              |> Set.of_list
+              |> (fun x ->
+              Seq.fold_left
+                (fun acc digit -> Set.add acc digit)
+                x
+                (Regex.dec |> String.to_seq))
+              |> Set.to_list
           in
           let nfa_alpha = Regex.all alpha |> NfaS.of_regex in
           let is_regex = Ast.is_conjunct ast && Map.mem regexes name in
@@ -3263,41 +3291,36 @@ let under_str env alpha vars ast =
           let per_var =
             if is_regex then min per_var Config.under_str_config.max_cnt else per_var
           in
-          let length, count =
-            if known_len >= 0
-            then known_len, min per_var (space (List.length alpha) known_len)
+          (* Multi-variable sets keep the legacy sampler: ranged rounds with
+             the flat cap. The balanced exact-length enumeration below is
+             only proven for singletons; for products it reshuffles which
+             slice of the tuple space gets sampled and loses low-total-length
+             witness pairs (the stringfuzz [("0s", "0")] models) that the
+             legacy breadth-first order happens to reach. Products get the
+             principled treatment when enumeration by total length across
+             the set lands. *)
+          let legacy = Set.length vars >= 2 in
+          let length, exact, count =
+            if legacy
+            then (
+              let max_cnt = Config.under_str_config.max_cnt in
+              if known_len >= 0
+              then known_len, true, min max_cnt (space (List.length alpha) known_len)
+              else if is_regex
+              then -1, false, max_cnt
+              else len, false, max_cnt)
+            else if known_len >= 0
+            then known_len, true, min per_var (space (List.length alpha) known_len)
             else if is_regex && len = 0
-            then -1, per_var
-            else len, min per_var (space (List.length alpha) len)
+            then -1, true, per_var
+            else len, true, min per_var (space (List.length alpha) len)
           in
           let list =
             get_strings_range
               (if is_regex then Map.find_exn regexes name else nfa_alpha)
               length
-              ~exact:true
+              ~exact
               count
-          in
-          (* A variable read as a number gets a digit-only sample *prepended*:
-             most of its useful witnesses are digit-dense, but the full
-             alphabet stays in the pool -- ordering is the safe form of the
-             digit bias, exclusion loses the [to_int v = -1] witnesses (the
-             stringfuzz models like [m = "0s"]). *)
-          let list =
-            let is_digits s = String.for_all (fun c -> '0' <= c && c <= '9') s in
-            if is_regex || (not (Set.mem numeric name)) || length < 0
-            then list
-            else (
-              let digit_nfa =
-                Regex.all (Regex.dec |> String.to_seq |> List.of_seq) |> NfaS.of_regex
-              in
-              let digits =
-                get_strings_range
-                  digit_nfa
-                  length
-                  ~exact:true
-                  (min count (space 10 length))
-              in
-              digits @ List.filter (fun s -> not (is_digits s)) list)
           in
           trace_log
             "Strings for %s:\n %a\n%!"
@@ -3349,7 +3372,8 @@ let under_str env alpha vars ast =
     |> Seq.concat_map (fun (length, side) ->
       match side with
       | n when n >= 0 && n < m ->
-        try_under_str (List.nth vars n) alpha length env ast
+        let set = List.nth vars n in
+        try_under_str set alpha length env ast
         |> chunks
         |> List.to_seq
         |> Seq.map (fun chunk ->
