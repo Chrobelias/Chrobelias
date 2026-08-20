@@ -16,7 +16,7 @@ for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {las
   START_TIME=$(date +%s)
   for i in $suite"/"*.smt2; do
     echo $i;
-    (timeout $timeout time ./_build/default/$execut "${flags[@]}" $i) > $tempfile 2>&1 ;
+    (timeout -k 2 $timeout time ./_build/default/$execut "${flags[@]}" $i) > $tempfile 2>&1 ;
     res=$?;
     if [[ res -eq 124 ]]; then
       echo timeout
@@ -30,6 +30,12 @@ for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {las
       echo unknown
     fi
   done | tee $suitefile;
+  # A solver stuck inside native Z3 defers OCaml signal handling forever, so a
+  # TERM-only timeout strands it (and its portfolio children). -k above KILLs
+  # the process group after the grace period; this sweep catches anything that
+  # escaped the group, before orphans accumulate into fork failures that turn
+  # every remaining instance into a bare "unknown".
+  pkill -9 -f "_build/default/$execut" 2>/dev/null;
   END_TIME=$(date +%s)
   DURATION=$(($END_TIME - $START_TIME))
   echo "Benchmarks $suitename completed by $solver in: $DURATION seconds with $execute"
