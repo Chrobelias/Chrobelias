@@ -18,7 +18,12 @@ for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {las
     echo $i;
     (timeout -k 2 $timeout time ./_build/default/$execut "${flags[@]}" $i) > $tempfile 2>&1 ;
     res=$?;
-    if [[ res -eq 124 ]]; then
+    # timeout's -k SIGKILL reaches only its direct child, and a solver stuck
+    # inside native Z3 defers the group SIGTERM forever, so stragglers (and
+    # their portfolio children) survive every instance that hits the limit.
+    # Sequential execution makes an unconditional per-instance sweep safe.
+    pkill -9 -f "_build/default/$execut" 2>/dev/null;
+    if [[ res -eq 124 || res -eq 137 ]]; then
       echo timeout
     elif grep -q "^sat" $tempfile; then
       echo sat
@@ -30,12 +35,6 @@ for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {las
       echo unknown
     fi
   done | tee $suitefile;
-  # A solver stuck inside native Z3 defers OCaml signal handling forever, so a
-  # TERM-only timeout strands it (and its portfolio children). -k above KILLs
-  # the process group after the grace period; this sweep catches anything that
-  # escaped the group, before orphans accumulate into fork failures that turn
-  # every remaining instance into a bare "unknown".
-  pkill -9 -f "_build/default/$execut" 2>/dev/null;
   END_TIME=$(date +%s)
   DURATION=$(($END_TIME - $START_TIME))
   echo "Benchmarks $suitename completed by $solver in: $DURATION seconds with $execute"
