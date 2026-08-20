@@ -29,7 +29,7 @@ $ cat input4.smt2
   [+simpl]
     Something ready to substitute
         it376 -> (+ (* 3 i7) (* (- 2) (exp i6 3)));
-  
+        
   [+simpl]
     iter(2)= (and
              (= (+ (* (- 3) i7) it376 (* 2 (exp i6 3))) 0)

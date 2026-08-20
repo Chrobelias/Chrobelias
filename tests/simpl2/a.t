@@ -78,7 +78,7 @@
   [+simpl]
     contradicting clause: (distinct (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)
   [+simpl]
-    contradicting env:
+    contradicting env:  
   [+simpl]
     unsat core: (distinct (+ (* (- 1) (exp 2 n)) (exp 2 n)) 0)
   

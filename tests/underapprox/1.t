@@ -97,7 +97,7 @@ $ echo '77*2^2+42*2^2' | bc
   [+simpl]
     Something ready to substitute
         a -> "ab";
-  
+        
   [+simpl]
     iter(2)= (= a "ab")
   [+simpl]

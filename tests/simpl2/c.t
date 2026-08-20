@@ -22,7 +22,7 @@
     Something ready to substitute
         x -> (+ 2 y);
         z -> 0;
-  
+        
   [+simpl]
     iter(2)= (and
              (= (+ (- 2) x (* (- 1) y)) 0)

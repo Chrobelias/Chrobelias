@@ -19,7 +19,7 @@ $ export CHRO_DEBUG=simpl
   [+simpl]
     Something ready to substitute
         y -> "123";
-  
+        
   [+simpl]
     iter(2)= (and
              (= "123" y)
@@ -32,7 +32,7 @@ $ export CHRO_DEBUG=simpl
   [+simpl]
     contradicting clause: (= y "321")
   [+simpl]
-    contradicting env:  y -> "123";
+    contradicting env:  y -> "123"; 
   [+simpl]
     unsat core: (and
                 (= y "321")
