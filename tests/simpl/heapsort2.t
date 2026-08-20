@@ -25,7 +25,7 @@
   [+simpl]
     Something ready to substitute
         it159 -> (* 2 (exp 2 (+ 1 it147)));
-  
+        
   [+simpl]
     iter(3)= True
   [+simpl]
@@ -46,7 +46,7 @@
   [+simpl]
     Something ready to substitute
         it159 -> (* 2 (exp 2 (+ 1 it147)));
-  
+        
   [+simpl]
     iter(3)= True
   [+simpl]
@@ -165,7 +165,7 @@
         it7 -> i3;
         it8 -> i4;
         it9 -> i5;
-  
+        
   [+simpl]
     iter(2)= (and
              (= (+ (- 13) it5) 0)
@@ -268,7 +268,7 @@
         it7 -> i3;
         it8 -> i4;
         it9 -> i5;
-  
+        
   [+simpl]
     iter(5)= (and
              (= (+ (- 13) it5) 0)

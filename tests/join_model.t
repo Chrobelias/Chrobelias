@@ -34,7 +34,7 @@
   [+simpl]
     Something ready to substitute
         y -> (+ (- 2) (* 3 x));
-  
+        
   [+simpl]
     iter(2)= (and
              (= (+ 2 (* (- 3) x) y) 0)
@@ -47,10 +47,10 @@
   [+simpl]
     fixed-point
   
-  sat (under int)
   [+chro]
     Base now is 2
   
+  sat (under int)
   (
      (define-fun u () Int
       0)

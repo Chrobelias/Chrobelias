@@ -12,7 +12,7 @@
   [+simpl]
     Something ready to substitute
         x -> (+ 13 (- y));
-  
+        
   [+simpl]
     iter(2)= (= (+ (- 13) x y) 0)
   [+simpl]
@@ -38,7 +38,7 @@
     Something ready to substitute
         x -> (+ 10000 (- z));
         y -> (+ 100 (- z));
-  
+        
   [+simpl]
     iter(3)= (= (+ 10099 (* 2 (* (- 1) z))) 0)
   [+simpl]
@@ -95,7 +95,7 @@
   [+simpl]
     Something ready to substitute
         it19 -> (+ (- 1) i4 (- it23));
-  
+        
   [+simpl]
     iter(2)= (= (+ 1 (* (- 1) i4) it19 it23) 0)
   [+simpl]
@@ -140,7 +140,7 @@
         it19 -> (+ it200 (- z));
         it232 -> (+ (* 3 it19) it198);
         it233 -> it199;
-  
+        
   [+simpl]
     iter(2)= (and
              (= (+ it19 (* (- 1) it200) z) 0)

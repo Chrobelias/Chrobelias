@@ -45,7 +45,7 @@
   [+simpl]
     Something ready to substitute
         %r1 -> 42;
-  
+        
   [+simpl]
     iter(2)= (and
              (= (+ (- 42) %r1) 0)
@@ -135,7 +135,7 @@ $ cat 1.smt2
   [+simpl]
     Something ready to substitute
         %r2 -> 0;
-  
+        
   [+simpl]
     iter(2)= (and
              (= %r2 0)

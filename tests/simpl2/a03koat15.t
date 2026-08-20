@@ -100,7 +100,7 @@ $ cat input.smt2
         it91 -> it61;
         it93 -> it61;
         it94 -> (* 2 it61);
-  
+        
   [+simpl]
     iter(2)= (and
              (= (+ (- 3) it1) 0)
@@ -197,7 +197,7 @@ $ cat input.smt2
         it91 -> it61;
         it93 -> it61;
         it94 -> (* 2 it61);
-  
+        
   [+simpl]
     iter(3)= (and
              (= (+ (- 3) it1) 0)
@@ -328,7 +328,7 @@ $ cat input.smt2
         it91 -> it61;
         it93 -> it61;
         it94 -> (* 2 it61);
-  
+        
   [+simpl]
     iter(5)= (and
              (= (+ (- 3) it1) 0)
@@ -383,7 +383,7 @@ $ cat input.smt2
                      it63 -> (* it25 (exp 2 (+ (- 1) it57)));
                      it64 -> (* it25 (exp 2 it57)); it88 -> (+ it23 (- it92));
                      it89 -> it59; it90 -> (+ it60 (* 3 it88)); it91 -> it61;
-                     it93 -> it61; it94 -> (* 2 it61);
+                     it93 -> it61; it94 -> (* 2 it61); 
   [+simpl]
     unsat core: (and
                 (<= (+ 1 (* (- 1) it94)) 0)

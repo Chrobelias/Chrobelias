@@ -71,7 +71,7 @@ $ cat input1.smt2
         it376 -> (+ (* 3 it361) (* (- 2) (exp it362 3)));
         it377 -> it362;
         it378 -> it363;
-  
+        
   [+simpl]
     iter(2)= (and
              (= (+ (- 3) it357) 0)
@@ -138,7 +138,7 @@ $ cat input1.smt2
         it376 -> (+ (* 3 it361) (* (- 2) (exp it362 3)));
         it377 -> it362;
         it378 -> it363;
-  
+        
   [+simpl]
     iter(3)= (and
              (= (+ (- 3) it372) 0)
@@ -244,7 +244,7 @@ $ cat input1.smt2
         it376 -> (+ (* 3 it361) (* (- 2) (exp it362 3)));
         it377 -> it362;
         it378 -> it363;
-  
+        
   [+simpl]
     iter(7)= (and
              (<= (+ (- 5) i6) 0)

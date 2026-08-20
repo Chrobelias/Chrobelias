@@ -232,7 +232,7 @@ $ CHRO_DEBUG=simpl Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | se
   [+simpl]
     Something ready to substitute
         it376 -> (+ (* 3 it361) (* (- 2) (exp it362 3)));
-  
+        
   [+simpl]
     iter(3)= True
   [+simpl]
