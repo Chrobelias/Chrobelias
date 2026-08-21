@@ -43,11 +43,11 @@ def generate_left_side(terms):
     first_term = terms[0]
     right_term = generate_left_side(terms[1:])
     return f"(+ {first_term} {right_term})"
-    
+
 
 def generate_smt2(n_vars, filename, is_sat=True, max_coeff=5):
     A = generate_gl_matrix(n_vars, max_coeff)
-    
+
     var_names = [f"x{i}" for i in range(n_vars)]
 
     x_true = [randint(min_true_integer_value, max_true_integer_value) for _ in range(n_vars)]
@@ -74,15 +74,15 @@ def generate_smt2(n_vars, filename, is_sat=True, max_coeff=5):
                 continue
             if coeff == 1:
                 terms.append(var_names[j])
-            elif coeff == -1:
-                terms.append(f"(- {var_names[j]})")
+            elif coeff < 0:
+                terms.append(f"(* (- {-coeff}) {var_names[j]})")
             else:
                 terms.append(f"(* {coeff} {var_names[j]})")
 
 
         left_side = generate_left_side(terms)
+        right_side = f"{k[i]}" if k[i] >= 0 else f"(- {- k[i]})"
 
-        right_side = str(k[i])
         lines.append(f"    (= {left_side} {right_side})")
 
     if not is_sat:

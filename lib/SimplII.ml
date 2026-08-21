@@ -4575,20 +4575,22 @@ let substitute_vigorous_constraint varname coeff tau ast =
   let open Ast.Eia in
   let (module TS) = make_main_symantics Env.empty in
   let ast = apply_symantics (module TS) ast in
-  let rec aux t =
-    match t with
+  let rec aux = function
     | Add ts -> TS.add (List.map aux ts)
-    | Mul ts ->
+    | Atom (Var (v, I)) when v = varname && Z.(coeff = minus_one) -> tau
+    | Atom (Var (v, I)) when v = varname && Z.(coeff = one) ->
+      TS.(mul [ const (-1); tau ])
+    | Mul ts as t ->
       begin match coeff_of_var varname t with
       | c when not (Z.equal c Z.zero) ->
-        assert (Z.equal Z.(c mod coeff) Z.zero);
+        assert (Z.(equal (c mod coeff) zero));
         let factor = Z.div c coeff in
-        TS.mul [ TS.constz Z.(neg factor); tau ]
+        TS.(mul [ constz (Z.neg factor); tau ])
       | _ -> TS.mul (List.map aux ts)
       end
     | Mod (t, d) -> TS.mod_ (aux t) d
     | Pow (b, e) -> TS.pow (aux b) (aux e)
-    | _ -> t
+    | t -> t
   in
   match ast with
   | Ast.Eia (Eq (l, r, I)) -> TS.(aux l = aux r)
@@ -4874,7 +4876,6 @@ let eliminate_one_var conj varname subst p l =
       conj
       |> List.map (multiply_constraint_by_int coeff)
       |> List.map (substitute_vigorous_constraint varname coeff tau)
-      (* |> divide_constraint_by_p p *)
       |> fun x -> divides (Z.abs coeff) tau :: x |> List.map (apply_symantics (module TS))
     in
     return (conj, subst, p, l)
@@ -4889,7 +4890,6 @@ let subst_eia subst =
 ;;
 
 let eliminate_existence_quantifier_branches (ast : Ast.t) =
-  (* Try to use something else instead of lists to improve performance *)
   let open NondeterministicMonad in
   match ast with
   | Exists (elim_vars, ast) ->
@@ -4910,6 +4910,7 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
           eliminate_all subst conj p l tl
       in
       let* branch, subst = eliminate_all Env.empty conj_list Z.one Z.one elim_vars in
+      (* let _ = List.map (Format.printf "%a\n" Ast.pp) branch in *)
       let branch =
         List.map
           (function
@@ -5131,8 +5132,8 @@ let%expect_test _ =
       Ast.Exists
         ( [ Ast.Any_atom (Ast.Var ("x0", I)) ]
         , Ast.Land
-            [ add [ mul [ const (-1); var "x0" ]; mul [ const 3; var "x1" ] ] = const 124
-            ; add [ mul [ const (-1); var "x0" ]; mul [ const 2; var "x1" ] ] = const 78
+            [ add [ mul [ const 1; var "x0" ]; mul [ const (-1); var "x1" ] ] = const 6
+            ; add [ mul [ const (-1); var "x0" ] ] = const (-62)
             ] ))
   in
   test ph;
