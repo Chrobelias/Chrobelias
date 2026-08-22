@@ -825,9 +825,26 @@ let simpl ir =
 ;;
 
 let simpl_ineq ir =
-  (* Bounds are collected across the whole tree and re-emitted conjoined, which is
-     only sound because every [Ir] pass is given a conjunction. Merging an upper
-     bound with [min] across the arms of a [Lor] would strengthen the formula. *)
+  (* Bounds are collected and re-emitted conjoined, so both the collection and
+     the erasure below must stay on the top-level conjunctive spine: merging an
+     upper bound with [min] across the arms of a [Lor] (or from under a [Lnot])
+     would strengthen the formula -- e.g. [x <= 0 /\ (x = 1 \/ x = 0)] used to
+     collapse to false by combining [x = 1] from one arm with the rest. The
+     arms themselves are simplified recursively by the wrapper at the bottom. *)
+  let fold_conj f init ir =
+    let rec go acc = function
+      | Land irs -> List.fold_left go acc irs
+      | ir -> f acc ir
+    in
+    go init ir
+  in
+  let map_conj f ir =
+    let rec go = function
+      | Land irs -> land_ (List.map go irs)
+      | ir -> f ir
+    in
+    go ir
+  in
   let simpl_ineq ir =
     let merge lowb uppb =
       let merge_bounds f = function
@@ -840,7 +857,7 @@ let simpl_ineq ir =
       merge_bounds max (lowb1, lowb2), merge_bounds min (uppb1, uppb2)
     in
     let bounds =
-      fold
+      fold_conj
         (fun list -> function
            | Rel (Eq, term, c) when Map.length term = 1 ->
              let var, coeff = Map.min_elt_exn term in
@@ -862,7 +879,7 @@ let simpl_ineq ir =
        when [c] does not divide [rhs] -- so those are simply not recorded, and get
        erased below along with the rest. *)
     let forbidden =
-      fold
+      fold_conj
         (fun list -> function
            | Rel (Neq, term, c) when Map.length term = 1 ->
              let var, coeff = Map.min_elt_exn term in
@@ -906,7 +923,7 @@ let simpl_ineq ir =
           values)
     in
     let ir_without_eq_n_leq =
-      map
+      map_conj
         (function
           | Rel (Eq, term, c) when Map.length term = 1 -> true_
           | Rel (Leq, term, c) when Map.length term = 1 -> true_
@@ -936,7 +953,7 @@ let simpl_ineq ir =
     in
     let complex_bounds_map =
       let complex_bounds =
-        fold
+        fold_conj
           (fun list -> function
              | Rel (Leq, term, value) -> (term, value) :: list
              | _ -> list)
@@ -950,7 +967,7 @@ let simpl_ineq ir =
         | [] -> assert false)
     in
     let ir_without_leq =
-      map
+      map_conj
         (function
           | Rel (Leq, term, c) -> true_
           | ir -> ir)
@@ -971,13 +988,22 @@ let simpl_ineq ir =
     let ir = land_ (List.concat [ irs'; neq_irs; ir_without_leq :: irs ]) |> simpl in
     ir
   in
-  map
-    (function
-      | Exists (v, ir) -> exists v (simpl_ineq ir)
-      | Lnot ir' -> lnot (simpl_ineq ir')
-      | ir -> ir)
-    ir
-  |> simpl_ineq
+  (* Single top-down visit: walk the conjunctive spine and give each
+     disjunct/binder body its own recursive treatment, then run the
+     bound-merging pass on the spine. Recursing through [map] instead (which
+     visits every node) re-ran the whole pass once per [Lor] node per level
+     -- exponential on the disjunction-heavy IRs the string suites produce. *)
+  let rec top ir =
+    let rec descend = function
+      | Land irs -> land_ (List.map descend irs)
+      | Lor irs -> lor_ (List.map top irs)
+      | Lnot ir' -> lnot (top ir')
+      | Exists (v, ir') -> exists v (top ir')
+      | ir -> ir
+    in
+    simpl_ineq (descend ir)
+  in
+  top ir
 ;;
 
 let%expect_test _ =

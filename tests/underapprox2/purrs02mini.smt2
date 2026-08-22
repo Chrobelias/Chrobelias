@@ -9,8 +9,8 @@
 
 (assert (> n 0))
 (assert (distinct
-  (* (+ x n) (exp 2 n))
-  (+ (* 2 (* (+ x (- n 1)) (exp 2 (- n 1)))) (exp 2 n))
+  (* (+ x n) (** 2 n))
+  (+ (* 2 (* (+ x (- n 1)) (** 2 (- n 1)))) (** 2 n))
 ))
 
 (check-sat)

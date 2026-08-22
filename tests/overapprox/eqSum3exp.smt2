@@ -3,5 +3,5 @@
 (declare-fun x2 () Int)
 (declare-fun x3 () Int)
 (assert (>= x1 0))
-(assert (= (+ (exp 2 x1) (exp 2 x2) (exp 2 x3)) (+ x1 x2 x3 2)))
+(assert (= (+ (** 2 x1) (** 2 x2) (** 2 x3)) (+ x1 x2 x3 2)))
 (check-sat)

@@ -174,10 +174,47 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
   | Expr.App ({ name = Symbol.Simple "pow10"; _ }, [ expr ]) ->
     let* expr, phs = to_eia_term expr in
     return (Ast.Eia.pow Ast.Eia.(const (Z.of_int 10)) expr) phs
-  | Expr.App ({ name = Symbol.Simple "exp"; _ }, [ base; exp ]) ->
+  (* Exponentiation as standardized in SMT-LIB Ints (April 2026). "exp" is
+     the pre-standard spelling; kept as an alias while the benchmark
+     repositories still use it (Chrobelias/Chrobelias#257).
+
+     The engine's [Pow] relation is partial -- nonnegative exponents over
+     constant bases >= -1 (base -1 has dedicated [pow_minus_one] handling) --
+     while the standard [**] is total (e.g. [2 ** -3] is 0 and [-2 ** 3] is
+     -8). A syntactically negative constant exponent or a constant base
+     <= -2 is therefore rejected into the unsupported path here: an honest
+     unknown instead of an unsound verdict from the partial relation. *)
+  | Expr.App ({ name = Symbol.Simple ("**" | "exp"); _ }, [ base; exp ]) ->
     let* base, phs = to_eia_term base in
     let* exp, phs' = to_eia_term exp in
-    return (Ast.Eia.pow base exp) (phs @ phs')
+    let rec const_of : Z.t Ast.Eia.term -> Z.t option = function
+      | Ast.Eia.Const c -> Some c
+      | Ast.Eia.Mul ts ->
+        List.fold_left
+          (fun acc t ->
+             match acc, const_of t with
+             | Some a, Some b -> Some (Z.mul a b)
+             | _ -> None)
+          (Some Z.one)
+          ts
+      | Ast.Eia.Add ts ->
+        List.fold_left
+          (fun acc t ->
+             match acc, const_of t with
+             | Some a, Some b -> Some (Z.add a b)
+             | _ -> None)
+          (Some Z.zero)
+          ts
+      | _ -> None
+    in
+    let const_lt t bound =
+      match const_of t with
+      | Some c -> Z.(lt c bound)
+      | None -> false
+    in
+    if const_lt base Z.minus_one || const_lt exp Z.zero
+    then failf "negative base or exponent in exponentiation is not supported"
+    else return (Ast.Eia.pow base exp) (phs @ phs')
   (* Bit-wise operations *)
   | Expr.App ({ name = Symbol.Simple "bwand"; _ }, hd :: tl) ->
     List.fold_left

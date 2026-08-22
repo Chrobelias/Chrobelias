@@ -131,7 +131,7 @@
 (pop 1)
 
 (push 1)
-  (assert (= x (* 10 (exp 10 (exp 10 q)))))
+  (assert (= x (* 10 (** 10 (** 10 q)))))
   (check-sat)
 (pop 1) ; sat
 

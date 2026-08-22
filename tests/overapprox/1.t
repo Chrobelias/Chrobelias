@@ -3,7 +3,7 @@
   > (declare-fun x () Int)
   > (declare-fun y () Int)
   > (declare-fun z () Int)
-  > (assert (<= (exp 2  x) x))
+  > (assert (<= (** 2  x) x))
   > (check-sat)
   > EOF
 $ export CHRO_DEBUG=1

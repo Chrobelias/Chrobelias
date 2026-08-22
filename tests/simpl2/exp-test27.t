@@ -137,7 +137,7 @@
              (= (mod (+ (* (- 1) %r1) x) 29) 0)
              (<= (* (- 1) x) 0)
              (<= (+ (- 99) strlenx) 0)
-             (chrob.len x (exp 10 strlenx))
+             (chrob.len x (** 10 strlenx))
              (<= (+ 1 (* (- 1) strlenx)) 0)
              (<= (+ (- 28) %r1) 0)
              (<= (* (- 1) %r1) 0)
@@ -155,7 +155,7 @@
              (<= (* (- 1) %r1) 0)
              (<= (* (- 1) x) 0)
              (str.in_re.raw x)
-             (chrob.len x (exp 10 strlenx)))
+             (chrob.len x (** 10 strlenx)))
   [+simpl]
     fixed-point
   
@@ -168,7 +168,7 @@
     (<= (* (- 1) %r1) 0)
     (<= (* (- 1) x) 0)
     (str.in_re.raw x)
-    (chrob.len x (exp 10 strlenx)))
+    (chrob.len x (** 10 strlenx)))
 
   $ unset CHRO_TRACE_OPT
   $ timeout 15 Chro ../examples/exp-test27.smt2 -huge-c 99
@@ -303,7 +303,7 @@
              (= (mod (+ (* (- 1) %r1) x) 29) 0)
              (<= (* (- 1) x) 0)
              (<= (+ (- 99) strlenx) 0)
-             (chrob.len x (exp 10 strlenx))
+             (chrob.len x (** 10 strlenx))
              (<= (+ 1 (* (- 1) strlenx)) 0)
              (<= (+ (- 28) %r1) 0)
              (<= (* (- 1) %r1) 0)
@@ -321,7 +321,7 @@
              (<= (* (- 1) %r1) 0)
              (<= (* (- 1) x) 0)
              (str.in_re.raw x)
-             (chrob.len x (exp 10 strlenx)))
+             (chrob.len x (** 10 strlenx)))
   [+simpl]
     fixed-point
   

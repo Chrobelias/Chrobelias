@@ -672,7 +672,11 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
 
     let mod_ lhs rhs =
       match lhs, rhs with
-      | Ast.Eia.Const lhs, rhs -> Id_symantics.constz (Z.( mod ) lhs rhs)
+      (* Euclidean, like SMT-LIB [mod] and the [NfaCollection] congruence
+         automata: the result lies in [0, |rhs|) whatever the sign of [lhs].
+         [Z.( mod )] is truncated division and would fold [(mod (- 3) 2)]
+         to [-1] where every other layer of the solver says [1]. *)
+      | Ast.Eia.Const lhs, rhs -> Id_symantics.constz (Z.erem lhs rhs)
       | lhs, rhs -> Id_symantics.mod_ lhs rhs
     ;;
 
@@ -1318,7 +1322,7 @@ let%test_module _ =
       [%expect
         {|
         (and
-          (<= (+ (- 52) (exp 10 x) (exp 10 y)) 0)
+          (<= (+ (- 52) (** 10 x) (** 10 y)) 0)
           (<= (+ x (* (- 3) y)) 0))
 
         Exp: x y
@@ -1344,7 +1348,7 @@ let%test_module _ =
         (and
           (<= (+ (- 13) (* 5 x)) 0)
           (<= (+ (- 52) x z) 0)
-          (<= (+ 13 (* (- 5) x) (* (- 7) z) (* (- 8) (exp 2 y))) 0))
+          (<= (+ 13 (* (- 5) x) (* (- 7) z) (* (- 8) (** 2 y))) 0))
 
         Exp: y
         Str:
@@ -1546,11 +1550,11 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (- 52) (exp 10 x) (exp 10 y)) 0)
+          (<= (+ (- 52) (** 10 x) (** 10 y)) 0)
           (<= (+ (- 3) x) 0))
 
         (and
-          (<= (+ (- 52) (exp 10 x) (exp 10 y)) 0)
+          (<= (+ (- 52) (** 10 x) (** 10 y)) 0)
           (<= (+ (- 3) x) 0))
         |}]
     ;;
@@ -1567,12 +1571,12 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (- 5000) (exp 10 u) (exp 10 v) (exp 10 x) (exp 10 y)) 0)
+          (<= (+ (- 5000) (** 10 u) (** 10 v) (** 10 x) (** 10 y)) 0)
           (<= (+ x (* (- 1) y)) 0)
           (<= (+ (* (- 1) u) v) 0))
 
         (and
-          (<= (+ (- 5000) (exp 10 u) (exp 10 v) (exp 10 x) (exp 10 y)) 0)
+          (<= (+ (- 5000) (** 10 u) (** 10 v) (** 10 x) (** 10 y)) 0)
           (<= (+ x (* (- 1) y)) 0)
           (<= (+ (* (- 1) u) v) 0))
         |}]
@@ -1587,11 +1591,11 @@ let%test_module "about shrinking" =
       [%expect
         {|
         (and
-          (<= (+ (- 52) (exp 10 x) (exp 10 y)) 0)
+          (<= (+ (- 52) (** 10 x) (** 10 y)) 0)
           (<= (+ x (* (- 3) y)) 0))
 
         (and
-          (<= (+ (- 52) (exp 10 x) (exp 10 y)) 0)
+          (<= (+ (- 52) (** 10 x) (** 10 y)) 0)
           (<= (+ x (* (- 3) y)) 0))
         |}]
     ;;

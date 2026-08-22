@@ -5,7 +5,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (declare-fun v () Int)
   > (declare-fun a () Int)
   > (declare-fun z () Int)
-  > (assert (= 113 (* (+ (exp 2 u) (exp 2 v) a) (exp 2 z)) ))
+  > (assert (= 113 (* (+ (** 2 u) (** 2 v) a) (** 2 z)) ))
   > (check-sat)
   > EOF
   $ OCAMLRUNPARAM='b=0' Chro -no-over -bound 6 -lsb 0.smt2
@@ -15,7 +15,7 @@ $ export OCAMLRUNPARAM='b=0'
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun y () Int)
-  > (assert (= 52 (* x (exp 2 y)) ))
+  > (assert (= 52 (* x (** 2 y)) ))
   > (check-sat)
   > EOF
 
@@ -29,7 +29,7 @@ $ export CHRO_DEBUG=1
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun z () Int)
-  > (assert (= (* x (exp 2 z)) 3076))
+  > (assert (= (* x (** 2 z)) 3076))
   > (check-sat)
   > (get-model)
   > EOF
@@ -54,7 +54,7 @@ which is needed to be fixed first
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun z () Int)
-  > (assert (= (* x (exp 2 z)) 3073))
+  > (assert (= (* x (** 2 z)) 3073))
   > (check-sat)
   > (get-model)
   > EOF
@@ -75,7 +75,7 @@ which is needed to be fixed first
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun z () Int)
-  > (assert (= (* x (exp 2 z)) 8096))
+  > (assert (= (* x (** 2 z)) 8096))
   > (check-sat)
   > (get-model)
   > EOF

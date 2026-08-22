@@ -3,8 +3,8 @@
   > (declare-fun x () Int)
   > (declare-fun y () Int)
   > (declare-fun z () Int)
-  > (assert (exists ((x Int)) (<= (exp 2  x) x)))
-  > (assert (<= (exp 2  y) x))
+  > (assert (exists ((x Int)) (<= (** 2  x) x)))
+  > (assert (<= (** 2  y) x))
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=simpl
@@ -14,8 +14,8 @@
   
   [+simpl]
     iter(1)= (and
-             (<= (+ (exp 2 y) (* (- 1) x)) 0)
-             (exists (x) (<= (+ (exp 2 x) (* (- 1) x)) 0)))
+             (<= (+ (** 2 y) (* (- 1) x)) 0)
+             (exists (x) (<= (+ (** 2 x) (* (- 1) x)) 0)))
   [+simpl]
     Alphabet with extra char: 0
   
@@ -23,7 +23,7 @@
     fixed-point
   
   (assert (<= (+ (* (- 1) x) pow2(y) )  0) )
-  (assert (<= (+ (* (- 1) x) pow2(x) )  0) )
+  (assert (exists (x) (<= (+ (* (- 1) x) pow2(x) )  0) ) )
   
 
 

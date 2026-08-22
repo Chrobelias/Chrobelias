@@ -130,7 +130,7 @@ bases 0 and 1 (and for a variable base that can take those values).
 
   $ cat > pow-base-one.smt2 <<-EOF
   > (set-logic ALL)
-  > (assert (= (exp 1 0) (exp 1 5)))
+  > (assert (= (** 1 0) (** 1 5)))
   > (check-sat)
   > EOF
 
@@ -139,7 +139,7 @@ bases 0 and 1 (and for a variable base that can take those values).
 
   $ cat > pow-base-zero.smt2 <<-EOF
   > (set-logic ALL)
-  > (assert (= (exp 0 1) (exp 0 5)))
+  > (assert (= (** 0 1) (** 0 5)))
   > (check-sat)
   > EOF
 
@@ -150,7 +150,7 @@ The fold is still applied for a constant base of absolute value at least 2.
 
   $ cat > pow-base-two.smt2 <<-EOF
   > (set-logic ALL)
-  > (assert (= (exp 2 3) (exp 2 5)))
+  > (assert (= (** 2 3) (** 2 5)))
   > (check-sat)
   > EOF
 

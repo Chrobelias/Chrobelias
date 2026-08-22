@@ -6,10 +6,10 @@
 (declare-fun u () Int)
 (declare-fun v () Int)
 
-(assert (= (exp 2 x) y))
-(assert (= (exp 2 (+ x (- 1))) z))
-(assert (= (exp 2 (+ x (- 3))) u))
-(assert (= (exp 2 (+ x (- 5))) v))
+(assert (= (** 2 x) y))
+(assert (= (** 2 (+ x (- 1))) z))
+(assert (= (** 2 (+ x (- 3))) u))
+(assert (= (** 2 (+ x (- 5))) v))
 
 (assert (>= (+ x y z u v) 100))
 

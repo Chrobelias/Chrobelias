@@ -9,7 +9,7 @@ $ cat baba2.smt2
     (<= (* (- 1) %re_len1) 0)
     (<= (* (- 1) b) 0)
     (str.in_re.raw b)
-    (chrob.len b (exp 10 strlenb)))
+    (chrob.len b (** 10 strlenb)))
   sat (nfa)
   (
      (define-fun a () String

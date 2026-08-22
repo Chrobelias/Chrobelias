@@ -5,6 +5,6 @@
 
 (assert (>= z 10))
 (assert (>= x 1000))
-(assert (= (* x (exp 2 z)) y))
+(assert (= (* x (** 2 z)) y))
 (assert (<= y 1050000))
 (check-sat)

@@ -8,7 +8,7 @@
     (<= (* (- 444) u) 0)
     (<= (* (- 1) x) 0)
     (str.in_re.raw x)
-    (chrob.len x (exp 10 strlenx)))
+    (chrob.len x (** 10 strlenx)))
 $ Chro -no-over-approx -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
 
 
