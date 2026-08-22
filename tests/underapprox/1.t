@@ -3,8 +3,8 @@
   > (declare-fun x () Int)
   > (declare-fun y () Int)
   > (declare-fun z () Int)
-  > (assert (<= (exp 2  x) x))
-  > (assert (<= (exp 2  y) x))
+  > (assert (<= (** 2  x) x))
+  > (assert (<= (** 2  y) x))
   > (check-sat)
   > EOF
   $ export CHRO_DEBUG=simpl
@@ -14,15 +14,15 @@
   
   [+simpl]
     iter(1)= (and
-             (<= (+ (exp 2 y) (* (- 1) x)) 0)
-             (<= (+ (exp 2 x) (* (- 1) x)) 0))
+             (<= (+ (** 2 y) (* (- 1) x)) 0)
+             (<= (+ (** 2 x) (* (- 1) x)) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
     iter(2)= (and
-             (<= (+ (* (- 1) x) (exp 2 x)) 0)
-             (<= (+ (* (- 1) x) (exp 2 y)) 0))
+             (<= (+ (* (- 1) x) (** 2 x)) 0)
+             (<= (+ (* (- 1) x) (** 2 y)) 0))
   [+simpl]
     fixed-point
   
@@ -43,7 +43,7 @@
   
   [+simpl]
     iter(1)= (and
-             (<= (+ 80 (* 77 (exp 2 x1)) (* 42 (exp 2 x2)) (* 575 x2)
+             (<= (+ 80 (* 77 (** 2 x1)) (* 42 (** 2 x2)) (* 575 x2)
                  (* (- 575) x1)) 0)
              (<= (* (- 1) x2) 0)
              (<= (* (- 1) x1) 0))
@@ -52,8 +52,8 @@
   
   [+simpl]
     iter(2)= (and
-             (<= (+ 80 (* 575 x2) (* (- 575) x1) (* 77 (exp 2 x1))
-                 (* 42 (exp 2 x2))) 0)
+             (<= (+ 80 (* 575 x2) (* (- 575) x1) (* 77 (** 2 x1))
+                 (* 42 (** 2 x2))) 0)
              (<= (* (- 1) x1) 0)
              (<= (* (- 1) x2) 0))
   [+simpl]

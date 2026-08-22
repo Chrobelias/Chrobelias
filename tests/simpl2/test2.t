@@ -3,7 +3,7 @@
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (<= (+ (exp 2 (+ x y)) (* (- 1) (exp 2 z))) 0)
+    iter(1)= (<= (+ (** 2 (+ x y)) (* (- 1) (** 2 z))) 0)
   [+simpl]
     Alphabet with extra char: 0
   

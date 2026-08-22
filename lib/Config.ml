@@ -284,7 +284,9 @@ Basic options:
       , Arg.Unit (fun () -> config.light_dpll <- true)
       , "\tEnable the nested inner DPLL procedure for enumerating \
          empty/number/not-a-number string states" )
-      (* ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t" *)
+    ; ( "--no-mono"
+      , Arg.Unit (fun () -> config.simpl_mono <- false)
+      , "\tDisable the monotone-variable IR simplification" )
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
     ; ( "--dpresimpl"

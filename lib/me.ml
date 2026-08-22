@@ -708,7 +708,7 @@ let%expect_test _ =
      ast);
   [%expect
     {|
-    (<= (+ (- 1) (exp 2 (exp 2 z))) 0)
+    (<= (+ (- 1) (** 2 (** 2 z))) 0)
     IR2: (assert (<= pow2(%0)  1) )
          (assert (= (+ (* (- 1) %0) pow2(z) )  0) )
     |}]

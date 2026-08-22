@@ -42,7 +42,7 @@ The same tests with three exponentiated vars in the LSB mode
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun t () Int)
-  > (assert (= (mod (+ x (exp 2 x) (exp 2 (exp 2 x))) 100) t))
+  > (assert (= (mod (+ x (** 2 x) (** 2 (** 2 x))) 100) t))
   > (assert (<= t 45))
   > (assert (>= t 35))
   > (check-sat)

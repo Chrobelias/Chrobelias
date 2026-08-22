@@ -5,7 +5,7 @@
   > (declare-const y Int)
   > 
   > (assert (= (some.strange x y) 28))
-  > (assert (= (+ (exp 2 x) x) 11))
+  > (assert (= (+ (** 2 x) x) 11))
   > 
   > (check-sat)
   > EOF
@@ -19,7 +19,7 @@
   > (declare-const y Int)
   > 
   > (assert (= (some.strange x y) 28))
-  > (assert (= (+ (exp 2 x) x) 12))
+  > (assert (= (+ (** 2 x) x) 12))
   > 
   > (check-sat)
   > EOF

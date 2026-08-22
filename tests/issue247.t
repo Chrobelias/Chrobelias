@@ -2,7 +2,7 @@
   > (set-logic ALL)
   > (declare-fun |_q_11| () Int)
   > (declare-fun |_c_12| () Int)
-  > (assert (= (+ (* |_q_11| (exp 2 256)) |_c_12|) 0))
+  > (assert (= (+ (* |_q_11| (** 2 256)) |_c_12|) 0))
   > (assert (<= 0 |_c_12|))
   > (check-sat)
   > EOF
@@ -15,7 +15,7 @@
   > (declare-fun a () Int)
   > (declare-fun b () Int)
   > (declare-fun c () Int)
-  > (assert (= (+ (* a (exp 2 100)) (* b (exp 2 50)) c) 0))
+  > (assert (= (+ (* a (** 2 100)) (* b (** 2 50)) c) 0))
   > (assert (<= 0 c))
   > (check-sat)
   > EOF
@@ -27,7 +27,7 @@
   > (set-logic ALL)
   > (declare-fun q () Int)
   > (declare-fun c () Int)
-  > (assert (= (- c (* q (exp 2 100))) 0))
+  > (assert (= (- c (* q (** 2 100))) 0))
   > (assert (<= 0 c))
   > (check-sat)
   > EOF
@@ -39,7 +39,7 @@
   > (set-logic ALL)
   > (declare-fun x () Int)
   > (declare-fun b () Int)
-  > (assert (= x (ite (= b 1) (exp 2 100) 0)))
+  > (assert (= x (ite (= b 1) (** 2 100) 0)))
   > (check-sat)
   > EOF
 
@@ -57,7 +57,7 @@
   > (declare-fun q2 () Int)
   > (declare-fun c2 () Int)
   > (assert (= (+ q c) (ite (= b 1) x y)))
-  > (assert (= (+ (* q2 (exp 2 256)) c2) t))
+  > (assert (= (+ (* q2 (** 2 256)) c2) t))
   > (check-sat)
   > EOF
 
