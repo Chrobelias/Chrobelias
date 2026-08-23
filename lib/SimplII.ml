@@ -4464,11 +4464,10 @@ let simpl bound ast =
 ;;
 
 module NondeterministicMonad = struct
-  (* Also try to use lazy lists, it is probably more efficient *)
-  (* type 'a t = 'a list *)
+  (* type 'a t = 'a Seq.t *)
 
-  let return = fun x -> [ x ]
-  let bind o f = List.concat_map f o
+  let return = Seq.return
+  let bind m f = Seq.flat_map f m
   let ( let* ) = bind
 end
 
@@ -4518,6 +4517,25 @@ let%expect_test _ =
     (= (+ (* y 5) (* (* 2 z) 5)) 15)
     |}]
 ;;
+
+(* let simplify_constants ts = *)
+(*   let open Ast.Eia in *)
+(*   let rec aux ts = *)
+(*     List.fold_left *)
+(*       (fun ((prod, has_const), vars) t -> *)
+(*          match t with *)
+(*          | Const c -> (Z.mul prod c, true), vars *)
+(*          | Mul xs -> *)
+(*            let (prod1, has_const1), vars1 = aux xs in *)
+(*            (Z.mul prod prod1, has_const1 || has_const), vars1 @ vars *)
+(*          | t -> (prod, has_const), t :: vars) *)
+(*       ((Z.one, false), []) *)
+(*       ts *)
+(*   in *)
+(*   let (prod, has_const), vars = aux ts in *)
+(*   let vars = List.rev vars in *)
+(*   if has_const then Const prod :: vars else vars *)
+(* ;; *)
 
 (* let divide_constraint_by_p p (ast : Ast.t) = *)
 (*   let rec aux p = function *)
@@ -4853,12 +4871,14 @@ let eliminate_one_var conj varname subst p l =
   if eqs = []
   then return (conj, subst, p, l)
   else
-    let* coeff, tau = eqs in
+    let* coeff, tau = List.to_seq eqs in
     let p = l in
     let l = coeff in
     let slacks = slack_vars_in_term subst tau in
     let mod_phi = get_mod_phi_of_system conj in
-    let possible_vals = List.init (Z.to_int Z.(Z.abs coeff * mod_phi)) Z.of_int in
+    let possible_vals =
+      List.init (Z.to_int Z.(Z.abs coeff * mod_phi)) Z.of_int |> List.to_seq
+    in
     let* subst =
       if slacks = []
       then return subst
@@ -4877,6 +4897,7 @@ let eliminate_one_var conj varname subst p l =
       conj
       |> List.map (multiply_constraint_by_int coeff)
       |> List.map (substitute_vigorous_constraint varname coeff tau)
+      (* |> List.map (divide_constraint_by_p p) *)
       |> fun x -> divides (Z.abs coeff) tau :: x |> List.map (apply_symantics (module TS))
     in
     return (conj, subst, p, l)
@@ -4937,7 +4958,7 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
       in
       let branch = List.map (subst_eia subst) branch in
       let mod_phi = get_mod_phi_of_system branch in
-      let possible_vals = List.init (Z.to_int mod_phi) Z.of_int in
+      let possible_vals = List.init (Z.to_int mod_phi) Z.of_int |> List.to_seq in
       let rec loop env phi = function
         | [] -> return env
         | h :: tl when var_exists h phi ->
@@ -4957,7 +4978,7 @@ let eliminate_existence_quantifier (ast : Ast.t) : Ast.t =
   let open Ast in
   let (module TS) = make_main_symantics Env.empty in
   let branches = eliminate_existence_quantifier_branches ast in
-  branches |> List.map (fun x -> land_ x) |> lor_
+  List.of_seq branches |> List.map (fun x -> land_ x) |> lor_
 ;;
 
 let%expect_test _ =
