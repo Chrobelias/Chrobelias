@@ -1420,6 +1420,10 @@ module Msb =
         failwith "string constraints are not supported in EIA mode"
       ;;
 
+      (* Unsigned on purpose: this reads the semenov machinery's raw
+         exponent-block words, which carry no sign symbol. User-facing
+         values go through [int_to_model] / the final signed decode
+         instead. *)
       let nat_model_to_int =
         int_of_path (module NfaO.Bv) ~mode:`Msb z_of_bool_list ?negate_symbol:Option.none
       ;;
@@ -1432,7 +1436,22 @@ module Msb =
       ;;
 
       let nat_model_to_model model = char_to_v '0' :: model
-      let int_to_model n = n |> Utils.to_bits |> Base.List.rev |> fun x -> false :: x
+
+      (* The encode dual of [nat_model_to_int]: sign-symbol-first two's
+         complement. [Utils.to_bits] works on |n|, so a negative value used
+         to encode as its absolute word behind a 0 sign -- x = -1 round-
+         tripped as +1. A negative n is the 1 sign symbol followed by the
+         complement of the bits of [-n - 1]. *)
+      let int_to_model n =
+        if Z.(geq n zero)
+        then n |> Utils.to_bits |> Base.List.rev |> fun x -> false :: x
+        else
+          Z.(-n - one)
+          |> Utils.to_bits
+          |> Base.List.rev
+          |> List.map Stdlib.not
+          |> fun x -> true :: x
+      ;;
     end)
 
 let ( let* ) = Result.bind
@@ -1492,7 +1511,23 @@ let check_sat ir
                 in
                 match Map.find tys k' with
                 | None | Some `Int ->
-                  let v = int_of_path (module Nfa.Bv) z_of_bool_list v in
+                  (* Msb integer tracks are sign-symbol-first two's
+                     complement, the same convention the [negate_symbol]
+                     callers above decode; reading the sign symbol as a
+                     value bit returned negative models sign-dropped
+                     (x = -4 printed as 4). Lsb goes through [to_nat], so
+                     its words are plain naturals. The empty word is 0. *)
+                  let v =
+                    match Config.config.mode, v with
+                    | _, [] -> Z.zero
+                    | `Msb, v ->
+                      int_of_path
+                        (module Nfa.Bv)
+                        z_of_bool_list
+                        ~negate_symbol:Stdlib.not
+                        v
+                    | `Lsb, v -> int_of_path (module Nfa.Bv) z_of_bool_list v
+                  in
                   let v =
                     match k with
                     | Ir.Var _ -> v
