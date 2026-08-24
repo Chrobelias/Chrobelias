@@ -94,6 +94,11 @@ val run_string_simplify
 
 val run_length_simplify : Env.t -> Ast.t -> [> `Unknown of Ast.t | `Unsat of Ast.t ]
 
+(* [--neg-exp]: case-split simple powers [b ** x] over the sign of [x]; the
+   negative branch multiplies the affected atoms through by [b^(-x)] (exact
+   rational semantics) with a fresh [t = -x] solved over [t >= 1]. *)
+val neg_exp_split : Ast.t -> Ast.t
+
 val run_basic_simplify
   :  ?env:Env.t
   -> Ast.t

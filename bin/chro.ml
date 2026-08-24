@@ -1016,10 +1016,11 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         let s = "under str" in
         report_result2 (`Sat s);
         sat s ast ~env)
-    else
+    else (
+      let ast = if config.neg_exp then SimplII.neg_exp_split ast else ast in
       handle (check_eia_sat ast Env.empty) (fun () ->
         report_result2 (`Unknown "nfa");
-        unknown ast Env.empty)
+        unknown ast Env.empty))
   with
   | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful
   | Nfa.Too_big_nfa ->

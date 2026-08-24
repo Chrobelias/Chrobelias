@@ -3546,6 +3546,148 @@ let run_string_simplify ast =
   |> fun res -> res
 ;;
 
+exception Neg_exp_bail
+
+(* [--neg-exp]: give powers over possibly-negative exponents the exact
+   rational semantics of [b^x]. For every simple power [b ** x] (constant
+   base [b >= 2], variable exponent) the atoms mentioning it are wrapped in
+   a case split:
+
+     x >= 0:  the atoms as written (the engine fragment), or
+     x <= -1: every atom multiplied through by [b^(-x)] -- the member that
+              carried [b ** x] loses that factor, every other member and
+              the other side gain [b ** t] for a fresh [t] with [t = -x],
+              solved over [t >= 1]; [x] is restored through [x + t = 0].
+
+   Multiplying an (in)equality by [b^t > 0] preserves it, so each branch is
+   exact. A power in any non-multiplicative position (under another power,
+   a mod, a bitwise operator, squared, ...) bails out and leaves the
+   formula untouched -- the flag is best-effort over the linear fragment. *)
+let neg_exp_split ast =
+  let module E = Ast.Eia in
+  let powvars =
+    Ast.fold
+      (fun acc -> function
+         | Ast.Eia eia ->
+           E.fold2
+             (fun acc -> function
+                | E.Pow (E.Const b, E.Atom (Ast.Var (x, Ast.I))) when Z.(geq b (of_int 2))
+                  -> (x, b) :: acc
+                | _ -> acc)
+             (fun acc _ -> acc)
+             acc
+             eia
+         | _ -> acc)
+      []
+      ast
+    |> List.sort_uniq Stdlib.compare
+  in
+  (* A variable used as an exponent under two different bases is left to the
+     legacy semantics: one fresh [t] could not serve both rewrites. *)
+  let powvars =
+    List.filter
+      (fun (x, _) ->
+         List.length (List.filter (fun (x', _) -> String.equal x x') powvars) = 1)
+      powvars
+  in
+  let split_one ast (x, b) =
+    let p = E.Pow (E.Const b, E.Atom (Ast.Var (x, Ast.I))) in
+    let term_eq t t' = Stdlib.compare t t' = 0 in
+    let atom_mentions eia =
+      E.fold2 (fun acc t -> acc || term_eq t p) (fun acc _ -> acc) false eia
+    in
+    let mentions_ph ph =
+      Ast.fold
+        (fun acc -> function
+           | Ast.Eia e -> acc || atom_mentions e
+           | _ -> acc)
+        false
+        ph
+    in
+    try
+      let conjs =
+        match ast with
+        | Ast.Land xs -> xs
+        | ph -> [ ph ]
+      in
+      let touched, rest = List.partition mentions_ph conjs in
+      if List.is_empty touched
+      then ast
+      else (
+        let t = gensym ~prefix:"%negexp" () in
+        let xv = E.Atom (Ast.Var (x, Ast.I)) in
+        let tv = E.Atom (Ast.Var (t, Ast.I)) in
+        let py = E.Pow (E.Const b, tv) in
+        let member_rw m =
+          if term_eq m p
+          then E.Const Z.one
+          else (
+            match m with
+            | E.Mul ts when List.exists (fun f -> term_eq f p) ts ->
+              (match List.partition (fun f -> term_eq f p) ts with
+               | [ _ ], others -> E.mul others
+               | _ -> raise Neg_exp_bail)
+            | m -> E.mul [ m; py ])
+        in
+        let rw_side = function
+          | E.Add ms -> E.add (List.map member_rw ms)
+          | m -> member_rw m
+        in
+        let rw_atom eia =
+          let eia' =
+            match eia with
+            | E.Eq (l, r, Ast.I) -> E.eq (rw_side l) (rw_side r) Ast.I
+            | E.Neq (l, r, Ast.I) -> E.neq (rw_side l) (rw_side r) Ast.I
+            | E.Leq (l, r) -> E.leq (rw_side l) (rw_side r)
+            | _ -> raise Neg_exp_bail
+          in
+          (* The safety net: whatever shape slipped past [member_rw] (the
+             power nested deeper than a plain multiplicative factor) must
+             not survive the rewrite. *)
+          if atom_mentions eia' then raise Neg_exp_bail else eia'
+        in
+        let rec rw_ph = function
+          | Ast.Land xs -> Ast.land_ (List.map rw_ph xs)
+          | Ast.Lor xs -> Ast.lor_ (List.map rw_ph xs)
+          | Ast.Lnot ph -> Ast.lnot (rw_ph ph)
+          | Ast.Exists _ as ph -> if mentions_ph ph then raise Neg_exp_bail else ph
+          | Ast.Eia eia when atom_mentions eia -> Ast.eia (rw_atom eia)
+          | ph -> ph
+        in
+        (* The exponential track relation is global in the automata product:
+           [pow2 x] anywhere forces [x >= 0] on every branch. Both branches
+           therefore ride fresh exponents -- [u = x] here, [t = -x] below --
+           each unconstrained (hence harmless) when the other branch is the
+           one taken. *)
+        let u = gensym ~prefix:"%negexp" () in
+        let uv = E.Atom (Ast.Var (u, Ast.I)) in
+        let pu = E.Pow (E.Const b, uv) in
+        let subst_p =
+          Ast.map (function
+            | Ast.Eia eia ->
+              Ast.eia (E.map2 Fun.id (fun t -> if term_eq t p then pu else t) Fun.id eia)
+            | ph -> ph)
+        in
+        let nonneg =
+          Ast.land_
+            (Ast.eia (E.leq (E.Const Z.zero) xv)
+             :: Ast.eia (E.eq uv xv Ast.I)
+             :: List.map subst_p touched)
+        in
+        let neg =
+          Ast.land_
+            (Ast.eia (E.leq xv (E.Const Z.minus_one))
+             :: Ast.eia (E.eq (E.add [ xv; tv ]) (E.Const Z.zero) Ast.I)
+             :: Ast.eia (E.leq (E.Const Z.one) tv)
+             :: List.map rw_ph touched)
+        in
+        Ast.land_ (Ast.lor_ [ nonneg; neg ] :: rest))
+    with
+    | Neg_exp_bail -> ast
+  in
+  List.fold_left split_one ast powvars
+;;
+
 let run_basic_simplify ?(env = Env.empty) ast =
   trace_log "Basic simplifications:\n%!";
   let ast = lower_mod ast in

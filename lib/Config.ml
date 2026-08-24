@@ -38,6 +38,10 @@ type config =
   ; mutable with_info : bool
   ; mutable check_model : bool
   ; mutable light_dpll : bool
+    (* Case-split powers over possibly-negative exponents: for [x < 0] the
+       atoms are multiplied through by [b^(-x)] (exact rational semantics of
+       [b^x]), with a fresh [t = -x] solved over [t >= 1]. *)
+  ; mutable neg_exp : bool
   }
 
 let config =
@@ -74,6 +78,7 @@ let config =
   ; under_str_budget = 1.0
   ; check_model = false
   ; light_dpll = false
+  ; neg_exp = false
   }
 ;;
 
@@ -287,6 +292,10 @@ Basic options:
     ; ( "--no-mono"
       , Arg.Unit (fun () -> config.simpl_mono <- false)
       , "\tDisable the monotone-variable IR simplification" )
+    ; ( "--neg-exp"
+      , Arg.Unit (fun () -> config.neg_exp <- true)
+      , "\tHandle negative exponents in powers by case splitting (exact rational \
+         semantics: for x < 0 the atoms are multiplied through by b^(-x))" )
     ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
     ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
     ; ( "--dpresimpl"
