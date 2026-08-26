@@ -1017,18 +1017,15 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         report_result2 (`Sat s);
         sat s ast ~env)
     else (
-      (* Standard [**] semantics by default; [--neg-exp] opts into the
-         exact-rational reading of negative exponents instead. Two phases:
-         the engine's partial Pow relation is exact on nonnegative
-         exponents, so a sat of the original formula is a model under the
-         total semantics too and the exact pipeline keeps its full power.
-         Only when it fails to find one does the totalized case split run --
-         its verdicts (including unsat, which the partial relation cannot be
-         trusted for) are final. Formulas the split leaves unchanged (all
-         exponents provably nonnegative, or no powers at all) solve once. *)
-      let ast_split =
-        if config.neg_exp then SimplII.neg_exp_split ast else SimplII.std_exp_split ast
-      in
+      (* Standard [**] semantics, in two phases: the engine's partial Pow
+         relation is exact on nonnegative exponents, so a sat of the
+         original formula is a model under the total semantics too and the
+         exact pipeline keeps its full power. Only when it fails to find one
+         does the totalized case split run -- its verdicts (including unsat,
+         which the partial relation cannot be trusted for) are final.
+         Formulas the split leaves unchanged (all exponents provably
+         nonnegative, or no powers at all) solve once. *)
+      let ast_split = SimplII.std_exp_split ast in
       let fallback ast =
         fun () ->
         report_result2 (`Unknown "nfa");

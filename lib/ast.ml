@@ -1386,10 +1386,10 @@ let find_common_base ast =
          | Eia eia ->
            Eia.fold2
              (fun acc -> function
-                (* [SimplII.lower_pow] rewrites a negative constant base into
-                   its absolute value (with a parity split) and eliminates
-                   bases 0 and +-1 entirely, so only |d| >= 2 matters for the
-                   automata track base. *)
+                (* [SimplII.std_exp_split] rewrites a negative constant base
+                   into its absolute value (with a parity split) and
+                   eliminates bases 0 and +-1 entirely, so only |d| >= 2
+                   matters for the automata track base. *)
                 | Eia.Pow (Const d, _) when Z.(leq (abs d) one) -> acc
                 | Eia.Pow (Const d, _)
                   when Option.is_some acc && Option.get acc <> Z.abs d ->
