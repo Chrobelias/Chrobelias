@@ -75,7 +75,37 @@ $ export OCAMLRUNPARAM='b=0'
     Into Z3 goes: (bool.and (int.le_s (int.add 1 (int.pow 2 x)) 0)
                  (int.le_s (int.mul y z) 0))
   
-  unsat (nia)
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (<= (* (- 1) x) 0)
+             (= (+ %stdexp1 (* (- 1) x)) 0)
+             (<= (+ 1 (** 2 %stdexp1)) 0)
+             (<= (* z y) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> x;
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ %stdexp1 (* (- 1) x)) 0)
+             (<= (+ 1 (** 2 %stdexp1)) 0)
+             (<= (* (- 1) x) 0)
+             (<= (* y z) 0))
+  [+simpl]
+    iter(3)= (and
+             (<= (+ 1 (** 2 x)) 0)
+             (<= (* (- 1) x) 0)
+             (<= (* y z) 0))
+  [+simpl]
+    fixed-point
+  
+  unsat (over)
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
   > (set-logic ALL)
