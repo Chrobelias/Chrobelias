@@ -207,14 +207,20 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
           ts
       | _ -> None
     in
-    let const_lt t bound =
-      match const_of t with
-      | Some c -> Z.(lt c bound)
-      | None -> false
-    in
-    if const_lt base Z.minus_one || const_lt exp Z.zero
-    then failf "negative base or exponent in exponentiation is not supported"
-    else return (Ast.Eia.pow base exp) (phs @ phs')
+    (* A constant negative exponent folds right here by the standard's
+       rules: [m ** n = div 1 (m ** -n)] for [n < 0], i.e. 0 whenever
+       [|m| > 1] or [m = 0], and [m ** -n] when [|m| = 1]. Nonnegative
+       constant exponents fold in the simplifier; every remaining shape
+       (negative or 0/1 bases over variable exponents, variable bases under
+       negative constant exponents) is totalized by [SimplII.std_exp_split]
+       before solving. *)
+      (match const_of base, const_of exp with
+       | Some m, Some k when Z.(lt k zero) ->
+         let v =
+           if Z.(equal (abs m) one) then if Z.is_even k then Z.one else m else Z.zero
+         in
+         return (Ast.Eia.const v) (phs @ phs')
+       | _ -> return (Ast.Eia.pow base exp) (phs @ phs'))
   (* Bit-wise operations *)
   | Expr.App ({ name = Symbol.Simple "bwand"; _ }, hd :: tl) ->
     List.fold_left

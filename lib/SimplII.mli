@@ -99,6 +99,19 @@ val run_length_simplify : Env.t -> Ast.t -> [> `Unknown of Ast.t | `Unsat of Ast
    rational semantics) with a fresh [t = -x] solved over [t >= 1]. *)
 val neg_exp_split : Ast.t -> Ast.t
 
+(* Default totalization of powers to the standard SMT-LIB Ints (April 2026)
+   semantics: [m ** n = 0] for [n < 0, |m| > 1], base 0 collapsing to 1/0 at
+   [n = 0]/elsewhere, base -1 deciding by parity, negative constant bases
+   via |base| plus a parity sign split. Runs once on the whole formula
+   before the EIA pipeline; exponents provably nonnegative from the
+   pow-free atoms are left on the engine's exact fragment. *)
+val std_exp_split : Ast.t -> Ast.t
+
+(* True iff every power in the formula has a constant base >= 2 -- the
+   fragment the automata engine can express. Guards the two-phase driver's
+   attempt at the un-split formula. *)
+val engine_pows_only : Ast.t -> bool
+
 val run_basic_simplify
   :  ?env:Env.t
   -> Ast.t

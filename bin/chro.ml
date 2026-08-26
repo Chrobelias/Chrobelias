@@ -1017,10 +1017,41 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         report_result2 (`Sat s);
         sat s ast ~env)
     else (
-      let ast = if config.neg_exp then SimplII.neg_exp_split ast else ast in
-      handle (check_eia_sat ast Env.empty) (fun () ->
+      (* Standard [**] semantics by default; [--neg-exp] opts into the
+         exact-rational reading of negative exponents instead. Two phases:
+         the engine's partial Pow relation is exact on nonnegative
+         exponents, so a sat of the original formula is a model under the
+         total semantics too and the exact pipeline keeps its full power.
+         Only when it fails to find one does the totalized case split run --
+         its verdicts (including unsat, which the partial relation cannot be
+         trusted for) are final. Formulas the split leaves unchanged (all
+         exponents provably nonnegative, or no powers at all) solve once. *)
+      let ast_split =
+        if config.neg_exp then SimplII.neg_exp_split ast else SimplII.std_exp_split ast
+      in
+      let fallback ast =
+        fun () ->
         report_result2 (`Unknown "nfa");
-        unknown ast Env.empty))
+        unknown ast Env.empty
+      in
+      if Stdlib.compare ast ast_split = 0
+      then handle (check_eia_sat ast Env.empty) (fallback ast)
+      else if not (SimplII.engine_pows_only ast)
+      then
+        (* Powers outside the engine fragment make the NFA stage abort the
+           whole process on the un-split formula; only the split one can be
+           attempted. *)
+        handle (check_eia_sat ast_split Env.empty) (fallback ast_split)
+      else (
+        let phase1 =
+          try check_eia_sat ast Env.empty with
+          | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful
+          | _ -> unknown ast Env.empty
+        in
+        match phase1 with
+        | Sat _ as rez -> handle rez (fallback ast)
+        | Unsat _ | Unknown _ ->
+          handle (check_eia_sat ast_split Env.empty) (fallback ast_split)))
   with
   | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful
   | Nfa.Too_big_nfa ->
