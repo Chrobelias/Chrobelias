@@ -3688,6 +3688,222 @@ let neg_exp_split ast =
   List.fold_left split_one ast powvars
 ;;
 
+(* Standard SMT-LIB Ints (April 2026) semantics for the powers the engine's
+   partial relation does not cover: [m ** n] is total, with [m ** n = 0] for
+   [n < 0, |m| > 1]; [0 ** n] is 1 at [n = 0] and 0 elsewhere; base -1
+   decides by the exponent's parity on the whole domain. Every simple power
+   over a variable exponent (and every variable base under a constant
+   negative exponent -- the constant-constant case folds in the frontend)
+   is wrapped in a case split; the substitution is plain term replacement,
+   so any atom shape is covered.
+
+   Two lessons inherited from the first totalization attempt: exponents
+   provably nonnegative from the pow-free top-level conjuncts skip the
+   split entirely, so guarded benchmarks keep their exact pipeline; and the
+   nonnegative branch rides a fresh alias [u = x], because the exponential
+   track relation is global in the automata product and a pow over the real
+   exponent would leak [x >= 0] into the sibling branch. Powers under a
+   binder are left alone (the split joins the top-level conjunction and
+   would capture the bound name). *)
+(* Whether every power in the formula lies in the automata engine's
+   fragment: a constant base >= 2. Anything else (bases 0, 1, negatives,
+   non-constant bases) makes the NFA stage bail out of the whole process, so
+   the two-phase driver must not attempt the un-split formula on those. *)
+let engine_pows_only ast =
+  let module E = Ast.Eia in
+  Ast.fold
+    (fun acc -> function
+       | Ast.Eia eia ->
+         acc
+         && E.fold2
+              (fun acc -> function
+                 | E.Pow (E.Const b, _) -> acc && Z.(geq b (of_int 2))
+                 | E.Pow (_, _) -> false
+                 | _ -> acc)
+              (fun acc _ -> acc)
+              true
+              eia
+       | _ -> acc)
+    true
+    ast
+;;
+
+let std_exp_split ast =
+  let module E = Ast.Eia in
+  let term_eq t t' = Stdlib.compare t t' = 0 in
+  let contains_pow eia =
+    E.fold2
+      (fun acc -> function
+         | E.Pow _ -> true
+         | _ -> acc)
+      (fun acc _ -> acc)
+      false
+      eia
+  in
+  let has_pow =
+    Ast.fold
+      (fun acc -> function
+         | Ast.Eia eia -> acc || contains_pow eia
+         | _ -> acc)
+      false
+      ast
+  in
+  if Stdlib.not has_pow
+  then ast
+  else (
+    (* The proof obligation deliberately uses only pow-free atoms: proving
+       nonnegativity *through* a pow atom would assume the partial
+       semantics being repaired here. *)
+    let pow_free_atoms =
+      let rec go acc = function
+        | Ast.Land xs -> List.fold_left go acc xs
+        | (Ast.Eia eia | Ast.Lnot (Ast.Eia eia)) as ph ->
+          if contains_pow eia then acc else ph :: acc
+        | _ -> acc
+      in
+      go [] ast
+    in
+    let proven_nonneg =
+      let memo = Hashtbl.create 8 in
+      fun x ->
+        match Hashtbl.find_opt memo x with
+        | Some b -> b
+        | None ->
+          let xv = E.Atom (Ast.Var (x, Ast.I)) in
+          let probe =
+            Ast.land_ (Ast.eia (E.leq xv (E.Const Z.minus_one)) :: pow_free_atoms)
+          in
+          let b =
+            match basic_simplify [] ~minimize:false Env.empty probe with
+            | `Unsat _ -> true
+            | `Sat _ | `Unknown _ -> false
+          in
+          Hashtbl.add memo x b;
+          b
+    in
+    (* Occurrences are collected once up front: the fresh aliases the
+       rewrite introduces must not be re-split. *)
+    let occs =
+      Ast.fold
+        (fun acc -> function
+           | Ast.Eia eia ->
+             E.fold2
+               (fun acc -> function
+                  | E.Pow (E.Const b, E.Atom (Ast.Var (x, Ast.I))) as p ->
+                    `Var_exp (p, b, x) :: acc
+                  | E.Pow (bt, E.Const k) as p when Z.(lt k zero) ->
+                    `Neg_const_exp (p, bt, k) :: acc
+                  | _ -> acc)
+               (fun acc _ -> acc)
+               acc
+               eia
+           | _ -> acc)
+        []
+        ast
+      |> List.sort_uniq Stdlib.compare
+    in
+    let split_one ast occ =
+      let p =
+        match occ with
+        | `Var_exp (p, _, _) | `Neg_const_exp (p, _, _) -> p
+      in
+      let atom_mentions eia =
+        E.fold2 (fun acc t -> acc || term_eq t p) (fun acc _ -> acc) false eia
+      in
+      let mentions_ph ph =
+        Ast.fold
+          (fun acc -> function
+             | Ast.Eia e -> acc || atom_mentions e
+             | _ -> acc)
+          false
+          ph
+      in
+      let under_binder =
+        Ast.fold
+          (fun acc -> function
+             | Ast.Exists (_, body) -> acc || mentions_ph body
+             | _ -> acc)
+          false
+          ast
+      in
+      let sub repl =
+        Ast.map (function
+          | Ast.Eia eia ->
+            Ast.eia (E.map2 Fun.id (fun t -> if term_eq t p then repl else t) Fun.id eia)
+          | ph -> ph)
+      in
+      let cases =
+        match occ with
+        | `Var_exp (_, b, _) when Z.(equal b one) -> Some [ [], E.Const Z.one ]
+        | `Var_exp (_, b, x) ->
+          let xv = E.Atom (Ast.Var (x, Ast.I)) in
+          let x_is_zero = Ast.eia (E.eq xv (E.Const Z.zero) Ast.I) in
+          let even = Ast.eia (E.eq (E.Mod (xv, Z.of_int 2)) (E.Const Z.zero) Ast.I) in
+          let odd = Ast.eia (E.eq (E.Mod (xv, Z.of_int 2)) (E.Const Z.one) Ast.I) in
+          let nonneg = Ast.eia (E.leq (E.Const Z.zero) xv) in
+          let negative = Ast.eia (E.leq xv (E.Const Z.minus_one)) in
+          if Z.(equal b zero)
+          then
+            Some [ [ x_is_zero ], E.Const Z.one; [ Ast.lnot x_is_zero ], E.Const Z.zero ]
+          else if Z.(equal b minus_one)
+          then Some [ [ even ], E.Const Z.one; [ odd ], E.Const Z.minus_one ]
+          else if Z.(geq b (of_int 2))
+          then
+            if proven_nonneg x
+            then None
+            else (
+              let u = gensym ~prefix:"%stdexp" () in
+              let uv = E.Atom (Ast.Var (u, Ast.I)) in
+              let pu = E.Pow (E.Const b, uv) in
+              Some
+                [ [ nonneg; Ast.eia (E.eq uv xv Ast.I) ], pu
+                ; [ negative ], E.Const Z.zero
+                ])
+          else (
+            (* b <= -2: |b|^x with the sign decided by the parity. *)
+            let u = gensym ~prefix:"%stdexp" () in
+            let uv = E.Atom (Ast.Var (u, Ast.I)) in
+            let pu = E.Pow (E.Const (Z.abs b), uv) in
+            Some
+              [ [ nonneg; even; Ast.eia (E.eq uv xv Ast.I) ], pu
+              ; ( [ nonneg; odd; Ast.eia (E.eq uv xv Ast.I) ]
+                , E.mul [ E.Const Z.minus_one; pu ] )
+              ; [ negative ], E.Const Z.zero
+              ])
+        | `Neg_const_exp (_, bt, k) ->
+          let sgn = if Z.is_even k then Z.one else Z.minus_one in
+          Some
+            [ [ Ast.eia (E.eq bt (E.Const Z.zero) Ast.I) ], E.Const Z.zero
+            ; [ Ast.eia (E.eq bt (E.Const Z.one) Ast.I) ], E.Const Z.one
+            ; [ Ast.eia (E.eq bt (E.Const Z.minus_one) Ast.I) ], E.Const sgn
+            ; ( [ Ast.lor_
+                    [ Ast.eia (E.leq (E.Const (Z.of_int 2)) bt)
+                    ; Ast.eia (E.leq bt (E.Const (Z.of_int (-2))))
+                    ]
+                ]
+              , E.Const Z.zero )
+            ]
+      in
+      match cases with
+      | None -> ast
+      | Some _ when under_binder -> ast
+      | Some [ ([], repl) ] -> sub repl ast
+      | Some cases ->
+        let conjs =
+          match ast with
+          | Ast.Land xs -> xs
+          | ph -> [ ph ]
+        in
+        let touched, rest = List.partition mentions_ph conjs in
+        if List.is_empty touched
+        then ast
+        else (
+          let branch (guards, repl) = Ast.land_ (guards @ List.map (sub repl) touched) in
+          Ast.land_ (Ast.lor_ (List.map branch cases) :: rest))
+    in
+    List.fold_left split_one ast occs)
+;;
+
 let run_basic_simplify ?(env = Env.empty) ast =
   trace_log "Basic simplifications:\n%!";
   let ast = lower_mod ast in
