@@ -133,5 +133,189 @@
          (int.lt_s (int.mul 1 x1) exp_2_x1)
          (int.lt_s (int.mul 1 x2) exp_2_x2)
   
+  [+simpl]
+    Basic simplifications:
+  
+  [+over]
+    whole: (bool.and
+          (bool.and
+           (bool.and
+            (bool.and
+             (bool.and
+              (bool.and
+               (bool.and
+                (bool.and
+                 (bool.and
+                  (bool.or
+                   (bool.and
+                    (bool.and (int.le_s (int.mul -1 x2) 0)
+                     (bool.eq (int.add %stdexp2 (int.mul -1 x2)) 0))
+                    (bool.or
+                     (bool.and
+                      (bool.and
+                       (bool.and
+                        (bool.and (int.le_s (int.mul -1 x1) 0)
+                         (bool.eq (int.add %stdexp1 (int.mul -1 x1)) 0))
+                        (int.le_s
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add
+                             (int.add
+                              (int.add
+                               (int.add 54594 (int.mul -96 exp_2_%stdexp1))
+                               (int.mul 40 exp_2_%stdexp2)) (int.mul 75146 x1))
+                             (int.mul -33357 x2)) (int.mul -55318 x3))
+                           (int.mul 16322 x4)) (int.mul -42327 x5)) 0))
+                       (int.le_s
+                        (int.add
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add
+                             (int.add
+                              (int.add 55034 (int.mul 38 exp_2_%stdexp1))
+                              (int.mul -69 exp_2_%stdexp2)) (int.mul 70809 x1))
+                            (int.mul 77330 x2)) (int.mul 91984 x3))
+                          (int.mul 4945 x4)) (int.mul 52371 x5)) 0))
+                      (int.le_s
+                       (int.add
+                        (int.add
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add
+                             (int.add -66490 (int.mul -73 exp_2_%stdexp1))
+                             (int.mul 5 exp_2_%stdexp2)) (int.mul -11652 x1))
+                           (int.mul 91714 x2)) (int.mul 75317 x3))
+                         (int.mul 87603 x4)) (int.mul -53824 x5)) 0))
+                     (bool.and
+                      (bool.and
+                       (bool.and (int.le_s (int.add 1 x1) 0)
+                        (int.le_s
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add
+                             (int.add
+                              (int.add 54594 (int.mul 40 exp_2_%stdexp2))
+                              (int.mul 75146 x1)) (int.mul -33357 x2))
+                            (int.mul -55318 x3)) (int.mul 16322 x4))
+                          (int.mul -42327 x5)) 0))
+                       (int.le_s
+                        (int.add
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add
+                             (int.add 55034 (int.mul -69 exp_2_%stdexp2))
+                             (int.mul 70809 x1)) (int.mul 77330 x2))
+                           (int.mul 91984 x3)) (int.mul 4945 x4))
+                         (int.mul 52371 x5)) 0))
+                      (int.le_s
+                       (int.add
+                        (int.add
+                         (int.add
+                          (int.add
+                           (int.add (int.add -66490 (int.mul 5 exp_2_%stdexp2))
+                            (int.mul -11652 x1)) (int.mul 91714 x2))
+                          (int.mul 75317 x3)) (int.mul 87603 x4))
+                        (int.mul -53824 x5)) 0))))
+                   (bool.and (int.le_s (int.add 1 x2) 0)
+                    (bool.or
+                     (bool.and
+                      (bool.and
+                       (bool.and
+                        (bool.and (int.le_s (int.mul -1 x1) 0)
+                         (bool.eq (int.add %stdexp1 (int.mul -1 x1)) 0))
+                        (int.le_s
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add
+                             (int.add
+                              (int.add 54594 (int.mul -96 exp_2_%stdexp1))
+                              (int.mul 75146 x1)) (int.mul -33357 x2))
+                            (int.mul -55318 x3)) (int.mul 16322 x4))
+                          (int.mul -42327 x5)) 0))
+                       (int.le_s
+                        (int.add
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add
+                             (int.add 55034 (int.mul 38 exp_2_%stdexp1))
+                             (int.mul 70809 x1)) (int.mul 77330 x2))
+                           (int.mul 91984 x3)) (int.mul 4945 x4))
+                         (int.mul 52371 x5)) 0))
+                      (int.le_s
+                       (int.add
+                        (int.add
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add -66490 (int.mul -73 exp_2_%stdexp1))
+                            (int.mul -11652 x1)) (int.mul 91714 x2))
+                          (int.mul 75317 x3)) (int.mul 87603 x4))
+                        (int.mul -53824 x5)) 0))
+                     (bool.and
+                      (bool.and
+                       (bool.and (int.le_s (int.add 1 x1) 0)
+                        (int.le_s
+                         (int.add
+                          (int.add
+                           (int.add
+                            (int.add (int.add 54594 (int.mul 75146 x1))
+                             (int.mul -33357 x2)) (int.mul -55318 x3))
+                           (int.mul 16322 x4)) (int.mul -42327 x5)) 0))
+                       (int.le_s
+                        (int.add
+                         (int.add
+                          (int.add
+                           (int.add (int.add 55034 (int.mul 70809 x1))
+                            (int.mul 77330 x2)) (int.mul 91984 x3))
+                          (int.mul 4945 x4)) (int.mul 52371 x5)) 0))
+                      (int.le_s
+                       (int.add
+                        (int.add
+                         (int.add
+                          (int.add (int.add -66490 (int.mul -11652 x1))
+                           (int.mul 91714 x2)) (int.mul 75317 x3))
+                         (int.mul 87603 x4)) (int.mul -53824 x5)) 0)))))
+                  (int.le_s
+                   (int.add
+                    (int.add
+                     (int.add
+                      (int.add (int.add 717 (int.mul -69958 x1))
+                       (int.mul -73696 x2)) (int.mul 55275 x3))
+                     (int.mul -38784 x4)) (int.mul -54064 x5)) 0))
+                 (int.le_s
+                  (int.add
+                   (int.add
+                    (int.add
+                     (int.add (int.add -88727 (int.mul -77280 x1))
+                      (int.mul 12387 x2)) (int.mul -26192 x3))
+                    (int.mul -4662 x4)) (int.mul 5594 x5)) 0))
+                (int.le_s
+                 (int.add
+                  (int.add
+                   (int.add
+                    (int.add (int.add 55013 (int.mul 86806 x1))
+                     (int.mul 95727 x2)) (int.mul -41491 x3))
+                   (int.mul 52186 x4)) (int.mul 85893 x5)) 0))
+               (int.le_s
+                (int.add
+                 (int.add
+                  (int.add
+                   (int.add (int.add 3046 (int.mul -94087 x1))
+                    (int.mul -88353 x2)) (int.mul -83347 x3))
+                  (int.mul -75426 x4)) (int.mul 27609 x5)) 0))
+              (int.le_s (int.mul -1 x5) 0)) (int.le_s (int.mul -1 x4) 0))
+            (int.le_s (int.mul -1 x3) 0)) (int.le_s (int.mul -1 x2) 0))
+          (int.le_s (int.mul -1 x1) 0))
+         (int.lt_s (int.mul 1 %stdexp1) exp_2_%stdexp1)
+         (int.lt_s (int.mul 1 %stdexp2) exp_2_%stdexp2)
+  
+  Early Unsat in lib/Overapprox.ml
   Early Unsat in lib/Overapprox.ml
   unsat (over)

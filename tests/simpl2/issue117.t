@@ -37,11 +37,11 @@
     fixed-point
   
   (and
-    (= (+ 5 %0flat_pow3 (* (- 1) x)) 0)
-    (= (+ 3 %0flat_pow2 (* (- 1) x)) 0)
-    (= (+ 1 %0flat_pow1 (* (- 1) x)) 0)
-    (<= (+ 100 (* (- 1) x) (* (- 1) (** 2 x)) (* (- 1) (** 2 %0flat_pow1))
-        (* (- 1) (** 2 %0flat_pow2)) (* (- 1) (** 2 %0flat_pow3))) 0))
+    (= (+ 5 %0flat_pow4 (* (- 1) x)) 0)
+    (= (+ 3 %0flat_pow3 (* (- 1) x)) 0)
+    (= (+ 1 %0flat_pow2 (* (- 1) x)) 0)
+    (<= (+ 100 (* (- 1) x) (* (- 1) (** 2 x)) (* (- 1) (** 2 %0flat_pow2))
+        (* (- 1) (** 2 %0flat_pow3)) (* (- 1) (** 2 %0flat_pow4))) 0))
   $ Chro -no-over -bound -1 issue117.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
 

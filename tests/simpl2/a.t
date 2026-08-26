@@ -82,4 +82,27 @@
   [+simpl]
     unsat core: (distinct (+ (* (- 1) (** 2 n)) (** 2 n)) 0)
   
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (<= (* (- 1) n) 0)
+             (= (+ %stdexp1 (* (- 1) n)) 0)
+             (distinct (+ (* (- 1) (** 2 %stdexp1)) (** 2 %stdexp1)) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    iter(2)= (not True)
+  [+simpl]
+    fixed-point
+  
+  [+simpl]
+    contradicting clause: (distinct (+ (* (- 1) (** 2 %stdexp1)) (** 2 %stdexp1)) 0)
+  [+simpl]
+    contradicting env:  
+  [+simpl]
+    unsat core: (distinct (+ (* (- 1) (** 2 %stdexp1)) (** 2 %stdexp1)) 0)
+  
   unsat (presimpl int)

@@ -41,6 +41,8 @@
                         (* (- 2) (+ (- 1) x n) (** 2 (+ (- 1) n)))
                         (* (- 1) (** 2 n))) 0)
   
-  unsat (presimpl int)
+  [+simpl]
+    Basic simplifications:
+  
 
 
