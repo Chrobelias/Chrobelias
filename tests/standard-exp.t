@@ -11,8 +11,7 @@ totalized by `SimplII.std_exp_split` -- a case split over the exponent's
 sign (and parity, for negative bases) applied before the EIA pipeline.
 Exponents provably nonnegative from the pow-free atoms skip the split, so
 guarded formulas keep the engine's exact fragment. Related: issue257.t
-(syntax extension), negative-exp.t (--neg-exp, the exact-rational reading
-of negative exponents, which deliberately differs from the standard).
+(the syntax extension and the frontend folds).
 
 == The engine fragment ==
 
@@ -119,8 +118,8 @@ is at least 1:
   unsat (over)
 
 Under the standard's truncated division 2^-1 is 0, so 1000 * 2^x can never
-be 500. (--neg-exp instead answers sat with x = -1: the exact-rational
-reading; see negative-exp.t. The two semantics genuinely diverge here.)
+be 500 (the exact-rational reading would answer x = -1 here -- that is
+deliberately NOT what the standard prescribes).
 
   $ cat > a15.smt2 <<-EOF
   > (set-logic QF_EIA)

@@ -94,11 +94,6 @@ val run_string_simplify
 
 val run_length_simplify : Env.t -> Ast.t -> [> `Unknown of Ast.t | `Unsat of Ast.t ]
 
-(* [--neg-exp]: case-split simple powers [b ** x] over the sign of [x]; the
-   negative branch multiplies the affected atoms through by [b^(-x)] (exact
-   rational semantics) with a fresh [t = -x] solved over [t >= 1]. *)
-val neg_exp_split : Ast.t -> Ast.t
-
 (* Default totalization of powers to the standard SMT-LIB Ints (April 2026)
    semantics: [m ** n = 0] for [n < 0, |m| > 1], base 0 collapsing to 1/0 at
    [n = 0]/elsewhere, base -1 deciding by parity, negative constant bases
