@@ -97,12 +97,101 @@ Fold exps
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (<= (+ (- 2) (* (** 2 (+ (- 1) it134)) (** 2 (+ 1 it135)))) 0)
+    iter(1)= (and
+             (<= (+ (- 2) (* %stdexp2 %stdexp4)) 0)
+             (<= (+ (- 1) (* (- 1) it135)) 0)
+             (= (+ (- 1) %stdexp3 (* (- 1) it135)) 0)
+             (= (+ %stdexp4 (* (- 1) (** 2 %stdexp3))) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
-    iter(2)= (<= (+ (- 2) (** 2 (+ it134 it135))) 0)
+    Something ready to substitute
+        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp4 -> (** 2 %stdexp3);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ (- 1) %stdexp3 (* (- 1) it135)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ %stdexp4 (* (- 1) (** 2 %stdexp3))) 0)
+             (<= (+ (- 2) (* %stdexp2 %stdexp4)) 0)
+             (<= (+ (- 1) (* (- 1) it135)) 0)
+             (<= (+ 1 (* (- 1) it134)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ (- 1) it134);
+        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp3 -> (+ 1 it135);
+        %stdexp4 -> (** 2 %stdexp3);
+        
+  [+simpl]
+    iter(3)= (and
+             (= (+ (- 1) %stdexp3 (* (- 1) it135)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (<= (+ (- 2) (** 2 (+ %stdexp1 %stdexp3))) 0)
+             (<= (+ (- 1) (* (- 1) it135)) 0)
+             (<= (+ 1 (* (- 1) it134)) 0))
+  [+simpl]
+    iter(4)= (and
+             (<= (+ (- 2) (** 2 (+ it134 it135))) 0)
+             (<= (+ (- 1) (* (- 1) it135)) 0)
+             (<= (+ 1 (* (- 1) it134)) 0))
+  [+simpl]
+    fixed-point
+  
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (<= (+ (- 2) (* %stdexp2 %stdexp4)) 0)
+             (<= (+ (- 1) (* (- 1) it135)) 0)
+             (= (+ (- 1) %stdexp3 (* (- 1) it135)) 0)
+             (= (+ %stdexp4 (* (- 1) (** 2 %stdexp3))) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp4 -> (** 2 %stdexp3);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ (- 1) %stdexp3 (* (- 1) it135)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ %stdexp4 (* (- 1) (** 2 %stdexp3))) 0)
+             (<= (+ (- 2) (* %stdexp2 %stdexp4)) 0)
+             (<= (+ (- 1) (* (- 1) it135)) 0)
+             (<= (+ 1 (* (- 1) it134)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ (- 1) it134);
+        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp3 -> (+ 1 it135);
+        %stdexp4 -> (** 2 %stdexp3);
+        
+  [+simpl]
+    iter(3)= (and
+             (= (+ (- 1) %stdexp3 (* (- 1) it135)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (<= (+ (- 2) (** 2 (+ %stdexp1 %stdexp3))) 0)
+             (<= (+ (- 1) (* (- 1) it135)) 0)
+             (<= (+ 1 (* (- 1) it134)) 0))
+  [+simpl]
+    iter(4)= (and
+             (<= (+ (- 2) (** 2 (+ it134 it135))) 0)
+             (<= (+ (- 1) (* (- 1) it135)) 0)
+             (<= (+ 1 (* (- 1) it134)) 0))
   [+simpl]
     fixed-point
   
@@ -119,12 +208,69 @@ Fold exps
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (<= (+ (- 2) (* (+ x1 x2) (** 2 x3))) 0)
+    iter(1)= (and
+             (<= (+ (- 2) (* (+ x1 x2) %stdexp2)) 0)
+             (<= (* (- 1) x3) 0)
+             (= (+ %stdexp1 (* (- 1) x3)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
-    iter(2)= (<= (+ (- 2) (* x1 (** 2 x3)) (* x2 (** 2 x3))) 0)
+    Something ready to substitute
+        %stdexp1 -> x3;
+        %stdexp2 -> (** 2 %stdexp1);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ %stdexp1 (* (- 1) x3)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ (- 2) (* x1 %stdexp2) (* x2 %stdexp2)) 0)
+             (<= (* (- 1) x3) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 x3))) 0)
+             (<= (+ (- 2) (* x1 (** 2 %stdexp1)) (* x2 (** 2 %stdexp1))) 0)
+             (<= (* (- 1) x3) 0))
+  [+simpl]
+    iter(4)= (and
+             (<= (+ (- 2) (* x1 (** 2 x3)) (* x2 (** 2 x3))) 0)
+             (<= (* (- 1) x3) 0))
+  [+simpl]
+    fixed-point
+  
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (<= (+ (- 2) (* (+ x1 x2) %stdexp2)) 0)
+             (<= (* (- 1) x3) 0)
+             (= (+ %stdexp1 (* (- 1) x3)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> x3;
+        %stdexp2 -> (** 2 %stdexp1);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ %stdexp1 (* (- 1) x3)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ (- 2) (* x1 %stdexp2) (* x2 %stdexp2)) 0)
+             (<= (* (- 1) x3) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 x3))) 0)
+             (<= (+ (- 2) (* x1 (** 2 %stdexp1)) (* x2 (** 2 %stdexp1))) 0)
+             (<= (* (- 1) x3) 0))
+  [+simpl]
+    iter(4)= (and
+             (<= (+ (- 2) (* x1 (** 2 x3)) (* x2 (** 2 x3))) 0)
+             (<= (* (- 1) x3) 0))
   [+simpl]
     fixed-point
   
@@ -141,14 +287,103 @@ Fold exps
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (<= (+ (- 2) (* (** 2 (+ (- 1) it134)) (** 2 it134))) 0)
+    iter(1)= (and
+             (<= (+ (- 2) (* %stdexp2 %stdexp4)) 0)
+             (<= (* (- 1) it134) 0)
+             (= (+ %stdexp3 (* (- 1) it134)) 0)
+             (= (+ %stdexp4 (* (- 1) (** 2 %stdexp3))) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
-    iter(2)= (<= (+ (- 2) (** 2 (+ (- 1) it134 it134))) 0)
+    Something ready to substitute
+        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp3 -> it134;
+        %stdexp4 -> (** 2 %stdexp3);
+        
   [+simpl]
-    iter(3)= (<= (+ (- 2) (** 2 (+ (- 1) (* 2 it134)))) 0)
+    iter(2)= (and
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ %stdexp3 (* (- 1) it134)) 0)
+             (= (+ %stdexp4 (* (- 1) (** 2 %stdexp3))) 0)
+             (<= (+ (- 2) (* %stdexp2 %stdexp4)) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ (- 1) it134);
+        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp3 -> it134;
+        %stdexp4 -> (** 2 %stdexp3);
+        
+  [+simpl]
+    iter(3)= (and
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ (** 2 %stdexp3) (* (- 1) (** 2 it134))) 0)
+             (<= (+ (- 2) (** 2 (+ %stdexp1 %stdexp3))) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    iter(4)= (and
+             (<= (+ (- 2) (** 2 (+ (- 1) (* 2 it134)))) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    fixed-point
+  
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (<= (+ (- 2) (* %stdexp2 %stdexp4)) 0)
+             (<= (* (- 1) it134) 0)
+             (= (+ %stdexp3 (* (- 1) it134)) 0)
+             (= (+ %stdexp4 (* (- 1) (** 2 %stdexp3))) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp3 -> it134;
+        %stdexp4 -> (** 2 %stdexp3);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ %stdexp3 (* (- 1) it134)) 0)
+             (= (+ %stdexp4 (* (- 1) (** 2 %stdexp3))) 0)
+             (<= (+ (- 2) (* %stdexp2 %stdexp4)) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ (- 1) it134);
+        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp3 -> it134;
+        %stdexp4 -> (** 2 %stdexp3);
+        
+  [+simpl]
+    iter(3)= (and
+             (= (+ 1 %stdexp1 (* (- 1) it134)) 0)
+             (= (+ (** 2 %stdexp3) (* (- 1) (** 2 it134))) 0)
+             (<= (+ (- 2) (** 2 (+ %stdexp1 %stdexp3))) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    iter(4)= (and
+             (<= (+ (- 2) (** 2 (+ (- 1) (* 2 it134)))) 0)
+             (<= (+ 1 (* (- 1) it134)) 0)
+             (<= (* (- 1) it134) 0))
   [+simpl]
     fixed-point
   
@@ -196,15 +431,71 @@ $ CHRO_DEBUG=simpl Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | se
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (= (* (- 1) (+ (- 2) (* 3 i3)) (** 2 it134)) 0)
+    iter(1)= (and
+             (= (* (- 1) (+ (- 2) (* 3 i3)) %stdexp2) 0)
+             (<= (* (- 1) it134) 0)
+             (= (+ %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
-    iter(2)= (= (+ (* (* (- 2) (** 2 it134)) (- 1))
-              (* (* (* 3 i3) (** 2 it134)) (- 1))) 0)
+    Something ready to substitute
+        %stdexp1 -> it134;
+        %stdexp2 -> (** 2 %stdexp1);
+        
   [+simpl]
-    iter(3)= (= (+ (* (- 3) i3 (** 2 it134)) (* 2 (** 2 it134))) 0)
+    iter(2)= (and
+             (= (+ %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ (* (* (- 2) %stdexp2) (- 1))
+                (* (* (* 3 i3) %stdexp2) (- 1))) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (* (- 3) i3 (** 2 %stdexp1)) (* 2 (** 2 %stdexp1))) 0)
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 it134))) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    iter(4)= (and
+             (= (+ (* (- 3) i3 (** 2 it134)) (* 2 (** 2 it134))) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    fixed-point
+  
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (= (* (- 1) (+ (- 2) (* 3 i3)) %stdexp2) 0)
+             (<= (* (- 1) it134) 0)
+             (= (+ %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> it134;
+        %stdexp2 -> (** 2 %stdexp1);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ %stdexp1 (* (- 1) it134)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ (* (* (- 2) %stdexp2) (- 1))
+                (* (* (* 3 i3) %stdexp2) (- 1))) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (* (- 3) i3 (** 2 %stdexp1)) (* 2 (** 2 %stdexp1))) 0)
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 it134))) 0)
+             (<= (* (- 1) it134) 0))
+  [+simpl]
+    iter(4)= (and
+             (= (+ (* (- 3) i3 (** 2 it134)) (* 2 (** 2 it134))) 0)
+             (<= (* (- 1) it134) 0))
   [+simpl]
     fixed-point
   

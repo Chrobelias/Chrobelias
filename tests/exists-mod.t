@@ -132,7 +132,8 @@ be reduced on the way out. Here x = 2, y = 4 and 2^4 = 16 = 6 + 10.
   > EOF
   $ Chro --dpresimpl --stop-after presimpl exp.smt2
   (and
-    (= (+ (* (- 1) y) (** 2 x)) 0)
+    (= (+ y (* (- 1) (** 2 x))) 0)
+    (<= (* (- 1) x) 0)
     (exists (k) (= (+ 6 (* 10 k) (* (- 1) (** 2 y))) 0)))
   $ Chro --info -bound -1 exp.smt2
   sat (nfa)

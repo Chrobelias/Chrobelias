@@ -658,8 +658,20 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
     and pow base xs =
       match base, xs with
       | _, Eia.Const c when c = Z.zero -> const 1
-      | Eia.Pow (base, e1), e2 -> Eia.Pow (base, Eia.Mul [ e1; e2 ])
-      | Mul ((Const c as base0) :: tl), Eia.Const e ->
+      (* A negative constant exponent folds by the standard's rules: 0 for
+         |b| > 1 or b = 0, the parity sign for |b| = 1. Substitutions
+         re-create this shape after the frontend fold, so it must be handled
+         here too -- leaving it as a Pow lets the exponent-law rewrites in
+         [mul] merge it unsoundly (2^1 * 2^-1 is 2 * 0 = 0, not 2^0). *)
+      | Eia.Const b, Eia.Const exp when Z.(lt exp zero) ->
+        constz
+          (if Z.(equal (abs b) one) then if Z.is_even exp then Z.one else b else Z.zero)
+      (* Collapsing (b^e1)^e2 to b^(e1*e2) is only an identity when e2 is a
+         nonnegative constant: for e2 < 0 the outer power truncates the
+         inner *value* to 0, which b^(e1*e2) does not. *)
+      | Eia.Pow (base, e1), (Eia.Const k as e2) when Z.(geq k zero) ->
+        Eia.Pow (base, Eia.Mul [ e1; e2 ])
+      | Mul ((Const c as base0) :: tl), Eia.Const e when Z.(geq e zero) ->
         mul [ pow base0 xs; pow (Mul tl) xs ]
       | Eia.Const b, Eia.Const exp when Z.(exp > zero) && agressive |> Option.is_none ->
         (try const (Z.to_int (Utils.powz ~base:b exp)) with
@@ -3572,6 +3584,7 @@ let engine_pows_only ast =
 let std_exp_split ast =
   let module E = Ast.Eia in
   let term_eq t t' = Stdlib.compare t t' = 0 in
+  let term_key t = Format.asprintf "%a" E.pp_term t in
   let contains_pow eia =
     E.fold2
       (fun acc -> function
@@ -3581,15 +3594,22 @@ let std_exp_split ast =
       false
       eia
   in
-  let has_pow =
+  let pow_count =
     Ast.fold
       (fun acc -> function
-         | Ast.Eia eia -> acc || contains_pow eia
+         | Ast.Eia eia ->
+           E.fold2
+             (fun acc -> function
+                | E.Pow _ -> acc + 1
+                | _ -> acc)
+             (fun acc _ -> acc)
+             acc
+             eia
          | _ -> acc)
-      false
+      0
       ast
   in
-  if Stdlib.not has_pow
+  if pow_count = 0
   then ast
   else (
     (* The proof obligation deliberately uses only pow-free atoms: proving
@@ -3604,148 +3624,323 @@ let std_exp_split ast =
       in
       go [] ast
     in
+    (* Interval bounds harvested from single-variable linear pow-free atoms.
+       [basic_simplify] is a rewriting engine with no inequality reasoning,
+       so guards like [1000 <= x] are invisible to the probe below -- this
+       syntactic pass is what actually discharges the guarded-exponent
+       benchmarks. *)
+    let var_bounds : (string, Z.t option * Z.t option) Hashtbl.t = Hashtbl.create 8 in
+    let () =
+      (* [linear t] = Some (coeffs, konst) when t is linear over integer
+         variables. *)
+      let rec linear : Z.t E.term -> (Z.t Base.Map.M(Base.String).t * Z.t) option =
+        function
+        | E.Const c -> Some (Base.Map.empty (module Base.String), c)
+        | E.Atom (Ast.Var (v, Ast.I)) ->
+          Some (Base.Map.singleton (module Base.String) v Z.one, Z.zero)
+        | E.Add ts ->
+          List.fold_left
+            (fun acc t ->
+               match acc, linear t with
+               | Some (m, c), Some (m', c') ->
+                 Some
+                   ( Base.Map.merge_skewed m m' ~combine:(fun ~key:_ a b -> Z.add a b)
+                   , Z.add c c' )
+               | _ -> None)
+            (Some (Base.Map.empty (module Base.String), Z.zero))
+            ts
+        | E.Mul ts ->
+          (* Only a product of constants and at most one linear factor stays
+             linear. *)
+          List.fold_left
+            (fun acc t ->
+               match acc with
+               | None -> None
+               | Some (m, c) ->
+                 (match linear t with
+                  | None -> None
+                  | Some (m', c') ->
+                    if Base.Map.is_empty m
+                    then Some (Base.Map.map m' ~f:(Z.mul c), Z.mul c c')
+                    else if Base.Map.is_empty m'
+                    then Some (Base.Map.map m ~f:(Z.mul c'), Z.mul c c')
+                    else None))
+            (Some (Base.Map.empty (module Base.String), Z.one))
+            ts
+        | _ -> None
+      in
+      (* Record [t <= 0] when t is linear in exactly one variable. *)
+      let note_le_zero t =
+        match linear t with
+        | Some (m, c) when Base.Map.length m = 1 ->
+          let v, k = Base.Map.min_elt_exn m in
+          if Z.(equal k zero)
+          then ()
+          else (
+            let lo, hi =
+              Option.value ~default:(None, None) (Hashtbl.find_opt var_bounds v)
+            in
+            let tighten =
+              (* k*v + c <= 0, so v <= (-c)/k rounded down for positive k
+                 and v >= (-c)/k rounded up for negative k. *)
+              if Z.(gt k zero)
+              then (
+                let b = Z.fdiv (Z.neg c) k in
+                ( lo
+                , Some
+                    (match hi with
+                     | Some h -> Z.min h b
+                     | None -> b) ))
+              else (
+                let b = Z.cdiv (Z.neg c) k in
+                ( Some
+                    (match lo with
+                     | Some l -> Z.max l b
+                     | None -> b)
+                , hi ))
+            in
+            Hashtbl.replace var_bounds v tighten)
+        | _ -> ()
+      in
+      let sub l r = E.add [ l; E.mul [ E.Const Z.minus_one; r ] ] in
+      let note = function
+        | Ast.Eia (E.Leq (l, r)) -> note_le_zero (sub l r)
+        | Ast.Lnot (Ast.Eia (E.Leq (l, r))) ->
+          (* not (l <= r)  <=>  r + 1 <= l *)
+          note_le_zero (sub (E.add [ r; E.Const Z.one ]) l)
+        | Ast.Eia (E.Eq (l, r, Ast.I)) ->
+          note_le_zero (sub l r);
+          note_le_zero (sub r l)
+        | _ -> ()
+      in
+      List.iter note pow_free_atoms
+    in
+    let interval_nonneg e =
+      (* Lower/upper interval evaluation; None encodes the infinite bound. *)
+      let scale k (lo, hi) =
+        if Z.(equal k zero)
+        then Some Z.zero, Some Z.zero
+        else (
+          let m = Option.map (Z.mul k) in
+          if Z.(gt k zero) then m lo, m hi else m hi, m lo)
+      in
+      let rec go : Z.t E.term -> Z.t option * Z.t option = function
+        | E.Const c -> Some c, Some c
+        | E.Atom (Ast.Var (v, Ast.I)) ->
+          Option.value ~default:(None, None) (Hashtbl.find_opt var_bounds v)
+        | E.Add ts ->
+          List.fold_left
+            (fun (alo, ahi) t ->
+               let lo, hi = go t in
+               ( (match alo, lo with
+                  | Some a, Some b -> Some (Z.add a b)
+                  | _ -> None)
+               , match ahi, hi with
+                 | Some a, Some b -> Some (Z.add a b)
+                 | _ -> None ))
+            (Some Z.zero, Some Z.zero)
+            ts
+        | E.Mul ts ->
+          (* Constant-by-interval products only; a variable-by-variable
+             product falls back to unknown. *)
+          let k, rest =
+            List.fold_left
+              (fun (k, rest) -> function
+                 | E.Const c -> Z.mul k c, rest
+                 | t -> k, t :: rest)
+              (Z.one, [])
+              ts
+          in
+          (match rest with
+           | [] -> Some k, Some k
+           | [ t ] -> scale k (go t)
+           | _ -> None, None)
+        | E.Mod (_, m) ->
+          (* SMT-LIB mod is Euclidean: the result lies in [0, |m|-1]. *)
+          Some Z.zero, Some Z.(abs m - one)
+        | E.Pow (E.Const b, _) when Z.(geq b zero) ->
+          (* Total semantics: a nonnegative base never produces a negative
+             power (negative exponents collapse to 0 or 1). *)
+          Some Z.zero, None
+        | _ -> None, None
+      in
+      match go e with
+      | Some lo, _ -> Z.(geq lo zero)
+      | None, _ -> false
+    in
     let proven_nonneg =
       let memo = Hashtbl.create 8 in
-      fun x ->
-        match Hashtbl.find_opt memo x with
+      fun e ->
+        let key = term_key e in
+        match Hashtbl.find_opt memo key with
         | Some b -> b
         | None ->
-          let xv = E.Atom (Ast.Var (x, Ast.I)) in
-          let probe =
-            Ast.land_ (Ast.eia (E.leq xv (E.Const Z.minus_one)) :: pow_free_atoms)
-          in
           let b =
+            interval_nonneg e
+            ||
+            let probe =
+              Ast.land_ (Ast.eia (E.leq e (E.Const Z.minus_one)) :: pow_free_atoms)
+            in
             match basic_simplify [] ~minimize:false Env.empty probe with
             | `Unsat _ -> true
             | `Sat _ | `Unknown _ -> false
           in
-          Hashtbl.add memo x b;
+          Hashtbl.add memo key b;
           b
     in
-    (* Occurrences are collected once up front: the fresh aliases the
-       rewrite introduces must not be re-split. *)
-    let occs =
+    let mentions_ph p ph =
+      Ast.fold
+        (fun acc -> function
+           | Ast.Eia eia ->
+             acc || E.fold2 (fun acc t -> acc || term_eq t p) (fun acc _ -> acc) false eia
+           | _ -> acc)
+        false
+        ph
+    in
+    let under_binder p ph =
+      Ast.fold
+        (fun acc -> function
+           | Ast.Exists (_, body) -> acc || mentions_ph p body
+           | _ -> acc)
+        false
+        ph
+    in
+    let global_subst p repl =
+      Ast.map (function
+        | Ast.Eia eia ->
+          Ast.eia (E.map2 Fun.id (fun t -> if term_eq t p then repl else t) Fun.id eia)
+        | ph -> ph)
+    in
+    (* One splittable occurrence at a time, re-scanning after each rewrite:
+       an inner power replaced by its result variable turns the enclosing
+       power into a fresh occurrence over a new exponent term, so nesting
+       converges without any ordering discipline. [skipped] holds the
+       occurrences deliberately left on the engine's exact fragment (proven
+       nonnegative, under a binder, or the fresh aliases this pass itself
+       creates). A power skipped under a binder keeps the engine's legacy
+       partial semantics -- verdicts on quantified formulas are only as
+       standard-exact as that fragment. *)
+    let find_occ skipped ph =
       Ast.fold
         (fun acc -> function
            | Ast.Eia eia ->
              E.fold2
-               (fun acc -> function
-                  | E.Pow (E.Const b, E.Atom (Ast.Var (x, Ast.I))) as p ->
-                    `Var_exp (p, b, x) :: acc
-                  | E.Pow (bt, E.Const k) as p when Z.(lt k zero) ->
-                    `Neg_const_exp (p, bt, k) :: acc
-                  | _ -> acc)
+               (fun acc t ->
+                  match acc, t with
+                  | Some _, _ -> acc
+                  | None, E.Pow (E.Const _, E.Const _) -> acc
+                  | None, (E.Pow (E.Const _, _) as p) | None, (E.Pow (_, E.Const _) as p)
+                    -> if Base.Set.Poly.mem skipped (term_key p) then acc else Some p
+                  | None, _ -> acc)
                (fun acc _ -> acc)
                acc
                eia
            | _ -> acc)
-        []
-        ast
-      |> List.sort_uniq Stdlib.compare
+        None
+        ph
     in
-    let split_one ast occ =
-      let p =
-        match occ with
-        | `Var_exp (p, _, _) | `Neg_const_exp (p, _, _) -> p
-      in
-      let atom_mentions eia =
-        E.fold2 (fun acc t -> acc || term_eq t p) (fun acc _ -> acc) false eia
-      in
-      let mentions_ph ph =
-        Ast.fold
-          (fun acc -> function
-             | Ast.Eia e -> acc || atom_mentions e
-             | _ -> acc)
-          false
-          ph
-      in
-      let under_binder =
-        Ast.fold
-          (fun acc -> function
-             | Ast.Exists (_, body) -> acc || mentions_ph body
-             | _ -> acc)
-          false
-          ast
-      in
-      let sub repl =
-        Ast.map (function
-          | Ast.Eia eia ->
-            Ast.eia (E.map2 Fun.id (fun t -> if term_eq t p then repl else t) Fun.id eia)
-          | ph -> ph)
-      in
-      let cases =
-        match occ with
-        | `Var_exp (_, b, _) when Z.(equal b one) -> Some [ [], E.Const Z.one ]
-        | `Var_exp (_, b, x) ->
-          let xv = E.Atom (Ast.Var (x, Ast.I)) in
-          let x_is_zero = Ast.eia (E.eq xv (E.Const Z.zero) Ast.I) in
-          let even = Ast.eia (E.eq (E.Mod (xv, Z.of_int 2)) (E.Const Z.zero) Ast.I) in
-          let odd = Ast.eia (E.eq (E.Mod (xv, Z.of_int 2)) (E.Const Z.one) Ast.I) in
-          let nonneg = Ast.eia (E.leq (E.Const Z.zero) xv) in
-          let negative = Ast.eia (E.leq xv (E.Const Z.minus_one)) in
-          if Z.(equal b zero)
-          then
-            Some [ [ x_is_zero ], E.Const Z.one; [ Ast.lnot x_is_zero ], E.Const Z.zero ]
-          else if Z.(equal b minus_one)
-          then Some [ [ even ], E.Const Z.one; [ odd ], E.Const Z.minus_one ]
-          else if Z.(geq b (of_int 2))
-          then
-            if proven_nonneg x
-            then None
-            else (
-              let u = gensym ~prefix:"%stdexp" () in
-              let uv = E.Atom (Ast.Var (u, Ast.I)) in
-              let pu = E.Pow (E.Const b, uv) in
-              Some
-                [ [ nonneg; Ast.eia (E.eq uv xv Ast.I) ], pu
-                ; [ negative ], E.Const Z.zero
-                ])
+    let rec loop skipped fuel ast =
+      if fuel <= 0
+      then ast
+      else (
+        match find_occ skipped ast with
+        | None -> ast
+        | Some p ->
+          let skip () = loop (Base.Set.Poly.add skipped (term_key p)) fuel ast in
+          if under_binder p ast
+          then skip ()
           else (
-            (* b <= -2: |b|^x with the sign decided by the parity. *)
-            let u = gensym ~prefix:"%stdexp" () in
-            let uv = E.Atom (Ast.Var (u, Ast.I)) in
-            let pu = E.Pow (E.Const (Z.abs b), uv) in
-            Some
-              [ [ nonneg; even; Ast.eia (E.eq uv xv Ast.I) ], pu
-              ; ( [ nonneg; odd; Ast.eia (E.eq uv xv Ast.I) ]
-                , E.mul [ E.Const Z.minus_one; pu ] )
-              ; [ negative ], E.Const Z.zero
-              ])
-        | `Neg_const_exp (_, bt, k) ->
-          let sgn = if Z.is_even k then Z.one else Z.minus_one in
-          Some
-            [ [ Ast.eia (E.eq bt (E.Const Z.zero) Ast.I) ], E.Const Z.zero
-            ; [ Ast.eia (E.eq bt (E.Const Z.one) Ast.I) ], E.Const Z.one
-            ; [ Ast.eia (E.eq bt (E.Const Z.minus_one) Ast.I) ], E.Const sgn
-            ; ( [ Ast.lor_
-                    [ Ast.eia (E.leq (E.Const (Z.of_int 2)) bt)
-                    ; Ast.eia (E.leq bt (E.Const (Z.of_int (-2))))
-                    ]
-                ]
-              , E.Const Z.zero )
-            ]
-      in
-      match cases with
-      | None -> ast
-      | Some _ when under_binder -> ast
-      | Some [ ([], repl) ] -> sub repl ast
-      | Some cases ->
-        let conjs =
-          match ast with
-          | Ast.Land xs -> xs
-          | ph -> [ ph ]
-        in
-        let touched, rest = List.partition mentions_ph conjs in
-        if List.is_empty touched
-        then ast
-        else (
-          let branch (guards, repl) = Ast.land_ (guards @ List.map (sub repl) touched) in
-          Ast.land_ (Ast.lor_ (List.map branch cases) :: rest))
+            let case_split cases =
+              let r = E.Atom (Ast.Var (gensym ~prefix:"%stdexp" (), Ast.I)) in
+              let def =
+                Ast.lor_
+                  (List.map
+                     (fun (guards, value) ->
+                        Ast.land_ (guards @ [ Ast.eia (E.eq r value Ast.I) ]))
+                     cases)
+              in
+              Ast.land_ [ global_subst p r ast; def ]
+            in
+            let subst repl = global_subst p repl ast in
+            let alias () =
+              let u = E.Atom (Ast.Var (gensym ~prefix:"%stdexp" (), Ast.I)) in
+              u
+            in
+            match p with
+            | E.Pow (E.Const b, e) ->
+              let x_is_zero = Ast.eia (E.eq e (E.Const Z.zero) Ast.I) in
+              let even = Ast.eia (E.eq (E.Mod (e, Z.of_int 2)) (E.Const Z.zero) Ast.I) in
+              let odd = Ast.eia (E.eq (E.Mod (e, Z.of_int 2)) (E.Const Z.one) Ast.I) in
+              let nonneg = Ast.eia (E.leq (E.Const Z.zero) e) in
+              let negative = Ast.eia (E.leq e (E.Const Z.minus_one)) in
+              if Z.(equal b one)
+              then loop skipped (fuel - 1) (subst (E.Const Z.one))
+              else if Z.(equal b zero)
+              then
+                loop
+                  skipped
+                  (fuel - 1)
+                  (case_split
+                     [ [ x_is_zero ], E.Const Z.one
+                     ; [ Ast.lnot x_is_zero ], E.Const Z.zero
+                     ])
+              else if Z.(equal b minus_one)
+              then
+                loop
+                  skipped
+                  (fuel - 1)
+                  (case_split [ [ even ], E.Const Z.one; [ odd ], E.Const Z.minus_one ])
+              else if Z.(geq b (of_int 2)) && proven_nonneg e
+              then skip ()
+              else if Z.(geq b (of_int 2))
+              then (
+                let u = alias () in
+                let pu = E.Pow (E.Const b, u) in
+                loop
+                  (Base.Set.Poly.add skipped (term_key pu))
+                  (fuel - 1)
+                  (case_split
+                     [ [ nonneg; Ast.eia (E.eq u e Ast.I) ], pu
+                     ; [ negative ], E.Const Z.zero
+                     ]))
+              else (
+                (* b <= -2: |b|^e with the sign decided by the parity. *)
+                let u = alias () in
+                let pu = E.Pow (E.Const (Z.abs b), u) in
+                loop
+                  (Base.Set.Poly.add skipped (term_key pu))
+                  (fuel - 1)
+                  (case_split
+                     [ [ nonneg; even; Ast.eia (E.eq u e Ast.I) ], pu
+                     ; ( [ nonneg; odd; Ast.eia (E.eq u e Ast.I) ]
+                       , E.mul [ E.Const Z.minus_one; pu ] )
+                     ; [ negative ], E.Const Z.zero
+                     ]))
+            | E.Pow (bt, E.Const k) when Z.(lt k zero) ->
+              let sgn = if Z.is_even k then Z.one else Z.minus_one in
+              loop
+                skipped
+                (fuel - 1)
+                (case_split
+                   [ [ Ast.eia (E.eq bt (E.Const Z.zero) Ast.I) ], E.Const Z.zero
+                   ; [ Ast.eia (E.eq bt (E.Const Z.one) Ast.I) ], E.Const Z.one
+                   ; [ Ast.eia (E.eq bt (E.Const Z.minus_one) Ast.I) ], E.Const sgn
+                   ; ( [ Ast.lor_
+                           [ Ast.eia (E.leq (E.Const (Z.of_int 2)) bt)
+                           ; Ast.eia (E.leq bt (E.Const (Z.of_int (-2))))
+                           ]
+                       ]
+                     , E.Const Z.zero )
+                   ])
+            | p ->
+              (* A variable base under a nonnegative constant exponent: the
+                 fragment the under-approximation explores; unchanged. *)
+              skip ()))
     in
-    List.fold_left split_one ast occs)
+    loop Base.Set.Poly.empty ((pow_count * 4) + 8) ast)
 ;;
 
-let run_basic_simplify ?(env = Env.empty) ast =
+let run_basic_simplify ?(env = Env.empty) ?(minimize = true) ast =
   trace_log "Basic simplifications:\n%!";
   let ast = lower_mod ast in
   (* After [lower_mod]: the congruences it leaves alone are exactly the ones
@@ -3754,7 +3949,7 @@ let run_basic_simplify ?(env = Env.empty) ast =
   let __ _ = trace_log "After strlen lowering:@,@[%a@]\n" Ast.pp_smtlib2 ast in
   if Ast.is_conjunct ast
   then (
-    match basic_simplify [ 1 ] env ast with
+    match basic_simplify [ 1 ] ~minimize env ast with
     | `Sat env -> `Sat env
     | `Unsat core -> `Unsat core
     | `Unknown (ast, e, _, _) ->

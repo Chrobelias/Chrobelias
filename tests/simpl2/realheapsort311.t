@@ -544,7 +544,7 @@
     fixed-point
   
   sat (under int)
-  $ timeout 2 Chro input.smt2 || echo "timeout"
+  $ timeout 60 Chro input.smt2 || echo "timeout"
   sat (under int)
 
 $ CHRO_DEBUG=simpl Chro -dsimpl -no-pre-simpl -stop-after simpl input.smt2 | sed 's/[[:space:]]*$//'

@@ -1,12 +1,12 @@
-(set-logic ALL)
+(set-logic QF_EIA)
 (declare-fun u () Int)
 (declare-fun y () Int)
 (declare-fun z () Int)
  
 (assert (and
-          (= (* (exp 2 z) (+ 1 (exp 2 u))) y)
+          (= (* (** 2 z) (+ 1 (** 2 u))) y)
           (<= y 20)
           (>= z 1)
-          (>= (exp 2 u) 3)
+          (>= (** 2 u) 3)
           ))
 (check-sat)

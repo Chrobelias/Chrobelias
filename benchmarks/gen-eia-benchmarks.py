@@ -17,7 +17,7 @@ class MODE(enum.Enum):
     STANDARD = "standard"
     BIG = "big"
 
-LOGIC = "ALL"
+LOGIC = "QF_EIA"
 COEFF_MIN = -10
 COEFF_MAX = 10
 CONST_MIN = 0
@@ -53,7 +53,7 @@ def format_coefficient_term(coeff: int, term: str) -> Optional[str]:
     return f"(* (- {abs(coeff)}) {term})"
 
 def generate_eia_mod_constraint(var: str, min_mod: int, max_mod: int, with_double: bool) -> str:
-    """Generate a divisibility constraint with (exp 2 _) and if <with_double>, then with exp (2 exp (_)).
+    """Generate a divisibility constraint with (** 2 _) and if <with_double>, then with exp (2 exp (_)).
     Modulus is at most <max_mod>."""
 
     lin_coeffs = [(random.randint(COEFF_MIN, COEFF_MAX)) for _ in range(3)]
@@ -66,8 +66,8 @@ def generate_eia_mod_constraint(var: str, min_mod: int, max_mod: int, with_doubl
     modulus = random.randint(min_mod, max_mod)
     rem = random.randint(0, modulus)
 
-    dexp_term = f"(exp 2 (exp 2 (+ {dexp_coeffs[0]} (* {dexp_coeffs[1]} {var}))))"
-    exp_term = f"(exp 2 (+ {exp_coeffs[0]} (* {exp_coeffs[1]} {var})))"
+    dexp_term = f"(** 2 (** 2 (+ {dexp_coeffs[0]} (* {dexp_coeffs[1]} {var}))))"
+    exp_term = f"(** 2 (+ {exp_coeffs[0]} (* {exp_coeffs[1]} {var})))"
     trivial_terms = [var, exp_term, dexp_term] if with_double else [var, exp_term, var]
     
     terms: List[str] = []

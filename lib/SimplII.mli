@@ -109,6 +109,7 @@ val engine_pows_only : Ast.t -> bool
 
 val run_basic_simplify
   :  ?env:Env.t
+  -> ?minimize:bool
   -> Ast.t
   -> [ `Sat of Env.t | `Unsat of Ast.t | `Unknown of Ast.t * Env.t ]
 

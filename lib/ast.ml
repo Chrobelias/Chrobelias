@@ -461,11 +461,12 @@ module Eia = struct
     fun lhs rhs kind ->
     match kind with
     | I ->
-      begin match lhs, rhs with
-      | Pow (Const c, lhs), Pow (Const d, rhs)
-        when Z.equal c d && Z.(geq (abs c) (of_int 2)) -> eq lhs rhs kind
-      | lhs, rhs -> eq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero) I
-      end
+      (* No cancellation of equal bases here: [b^l = b^r] is NOT equivalent
+         to [l = r] under the standard's total semantics -- both sides are 0
+         for any pair of negative exponents (x = -1, y = -2 satisfies
+         [2^x = 2^y]). This constructor runs at [Fe.to_ast] time, before the
+         totalization pass could ever see the power. *)
+      eq (add [ lhs; mul [ const Z.minus_one; rhs ] ]) (Const Z.zero) I
     | S -> eq lhs rhs S
   ;;
 

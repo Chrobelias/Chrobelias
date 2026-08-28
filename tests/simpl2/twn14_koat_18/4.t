@@ -110,6 +110,6 @@ $ cat input4.smt2
   
 
   $ timeout 5 Chro input4.smt2 || echo "timeout"
-  sat (under int)
+  sat (nia)
 
   $ export CHRO_DEBUG=simpl

@@ -1017,38 +1017,263 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         report_result2 (`Sat s);
         sat s ast ~env)
     else (
-      (* Standard [**] semantics, in two phases: the engine's partial Pow
-         relation is exact on nonnegative exponents, so a sat of the
-         original formula is a model under the total semantics too and the
-         exact pipeline keeps its full power. Only when it fails to find one
-         does the totalized case split run -- its verdicts (including unsat,
-         which the partial relation cannot be trusted for) are final.
-         Formulas the split leaves unchanged (all exponents provably
-         nonnegative, or no powers at all) solve once. *)
+      (* Standard [**] semantics: the engine's partial Pow relation is exact
+         only on nonnegative exponents, so powers it cannot express are
+         totalized by [std_exp_split] into guarded sign/parity disjunctions,
+         and the formula is decided on that split form -- sound by
+         construction. Formulas the split leaves unchanged (all exponents
+         provably nonnegative, or no powers at all) go straight through the
+         regular pipeline. *)
       let ast_split = SimplII.std_exp_split ast in
       let fallback ast =
         fun () ->
         report_result2 (`Unknown "nfa");
         unknown ast Env.empty
       in
+      (* A model coming out of a per-branch pipeline run (below) needs
+         confirmation: the pipeline's model export can be partial, and its
+         simplifier applies exponent laws (b^i * b^j = b^(i+j),
+         c * b^(e-1) = (c/b) * b^e) whose in-branch soundness rests on the
+         sign guards, so a Sat is only accepted once the model provably
+         satisfies the *original* formula. The check is a ground evaluator
+         independent of the simplifier -- the legacy laws live there, so a
+         model check that reuses it would vouch for itself. Everything the
+         evaluator cannot decide counts as unconfirmed. *)
+      let confirmed = function
+        | Sat (_, (_, env, get_model, _)) ->
+          let pins = Hashtbl.create 8 in
+          (* Variables eliminated by substitution are bound to *terms* in
+             the env (e.g. y := 2^z * (1 + 2^u)); collect those separately
+             and evaluate them on demand, or the evaluator would default a
+             determined variable to 0 and refute the genuine model. *)
+          let defs : (string, Z.t Ast.Eia.term) Hashtbl.t = Hashtbl.create 8 in
+          Env.fold env ~init:() ~f:(fun ~key ~data () ->
+            match data with
+            | Ast.TT (Ast.I, Ast.Eia.Const c) -> Hashtbl.replace pins key c
+            | Ast.TT (Ast.I, t) -> Hashtbl.replace defs key t
+            | _ -> ());
+          (match get_model tys with
+           | Result.Ok model ->
+             Map.iteri model ~f:(fun ~key ~data ->
+               match data with
+               | `Int c -> Hashtbl.replace pins key c
+               | `Str _ -> ())
+           | Result.Error _ -> ());
+          let visiting = Hashtbl.create 8 in
+          let rec term : Z.t Ast.Eia.term -> Z.t option = function
+            | Ast.Eia.Const c -> Some c
+            | Ast.Eia.Atom (Ast.Var (v, Ast.I)) ->
+              (match Hashtbl.find_opt pins v with
+               | Some c -> Some c
+               | None ->
+                 (* Unpinned variables default to 0: a total assignment
+                    that evaluates to true is a genuine model wherever its
+                    values came from, and partial solver models leave
+                    exactly the don't-care variables out. A failed or
+                    cyclic env definition degrades to the same default,
+                    which can only make confirmation fail, never lie. *)
+                 let fallback = Z.zero in
+                 (match Hashtbl.find_opt defs v with
+                  | Some t when not (Hashtbl.mem visiting v) ->
+                    Hashtbl.replace visiting v ();
+                    let r = term t in
+                    Hashtbl.remove visiting v;
+                    let c = Option.value ~default:fallback r in
+                    Hashtbl.replace pins v c;
+                    Some c
+                  | _ -> Some fallback))
+            | Ast.Eia.Add ts ->
+              List.fold_left
+                (fun acc t ->
+                   match acc, term t with
+                   | Some a, Some b -> Some (Z.add a b)
+                   | _ -> None)
+                (Some Z.zero)
+                ts
+            | Ast.Eia.Mul ts ->
+              List.fold_left
+                (fun acc t ->
+                   match acc, term t with
+                   | Some a, Some b -> Some (Z.mul a b)
+                   | _ -> None)
+                (Some Z.one)
+                ts
+            | Ast.Eia.Mod (t, z) -> Option.map (fun v -> Z.erem v z) (term t)
+            | Ast.Eia.Pow (b, e) ->
+              (match term b, term e with
+               | Some b, Some e ->
+                 if Z.(geq e zero)
+                 then
+                   if Z.(gt e (of_int 131072)) && Z.(gt (abs b) one)
+                   then None
+                   else Some (Utils.powz ~base:b e)
+                 else if Z.(equal (abs b) one)
+                 then Some (if Z.is_even e then Z.one else b)
+                 else Some Z.zero
+               | _ -> None)
+            | _ -> None
+          in
+          let rec ph : Ast.t -> bool option = function
+            | Ast.True -> Some true
+            | Ast.Land xs ->
+              List.fold_left
+                (fun acc x ->
+                   match acc, ph x with
+                   | Some a, Some b -> Some (a && b)
+                   | _ -> None)
+                (Some true)
+                xs
+            | Ast.Lor xs ->
+              List.fold_left
+                (fun acc x ->
+                   match acc, ph x with
+                   | Some a, Some b -> Some (a || b)
+                   | _ -> None)
+                (Some false)
+                xs
+            | Ast.Lnot x -> Option.map not (ph x)
+            | Ast.Eia (Ast.Eia.Eq (l, r, Ast.I)) ->
+              (match term l, term r with
+               | Some l, Some r -> Some (Z.equal l r)
+               | _ -> None)
+            | Ast.Eia (Ast.Eia.Neq (l, r, Ast.I)) ->
+              (match term l, term r with
+               | Some l, Some r -> Some (not (Z.equal l r))
+               | _ -> None)
+            | Ast.Eia (Ast.Eia.Leq (l, r)) ->
+              (match term l, term r with
+               | Some l, Some r -> Some (Z.leq l r)
+               | _ -> None)
+            | _ -> None
+          in
+          let rez = ph ast in
+          if Sys.getenv_opt "CHRO_CONFIRM_DEBUG" <> None
+          then
+            Printf.eprintf
+              "[confirm] pins=%s ph=%s\n%!"
+              (Hashtbl.fold (fun k v acc -> acc ^ k ^ "=" ^ Z.to_string v ^ " ") pins "")
+              (match rez with
+               | Some true -> "true"
+               | Some false -> "false"
+               | None -> "none");
+          rez = Some true
+        | Unsat _ | Unknown _ -> false
+      in
+      (* A branch unsat whose minimized core contains no power at all is
+         trusted: the deletion-based minimization re-verifies the core by
+         itself, and no rewrite manufactures powers out of pow-free atoms,
+         so that derivation holds under any pow semantics. Cores that do
+         mention powers may rest on the legacy laws and are not trusted. *)
+      let pow_free ph =
+        not
+          (Ast.fold
+             (fun acc -> function
+                | Ast.Eia eia ->
+                  acc
+                  || Ast.Eia.fold2
+                       (fun acc -> function
+                          | Ast.Eia.Pow _ -> true
+                          | _ -> acc)
+                       (fun acc _ -> acc)
+                       false
+                       eia
+                | _ -> acc)
+             false
+             ph)
+      in
+      (* Try a small case enumeration over the split's definition
+         disjunctions before the heavy pipeline. Every disjunct of the split
+         formula either carries its sign/parity guards or is power-free, so
+         the simplifier's verdict on a branch conjunction is exact: unsat on
+         every branch proves unsat, and any branch model is a model. Falls
+         through on an undecided branch or a large product. *)
+      let solve_split () =
+        let members =
+          match ast_split with
+          | Ast.Land xs -> xs
+          | ph -> [ ph ]
+        in
+        let defs, core =
+          List.partition
+            (function
+              | Ast.Lor _ -> true
+              | _ -> false)
+            members
+        in
+        (* The branch count is computed before materializing the product:
+           formulas bring their own disjunctions, and an eager cartesian
+           product over dozens of them allocates itself to death long
+           before any size check could reject it. *)
+        let branch_count =
+          List.fold_left
+            (fun acc -> function
+               | Ast.Lor arms when acc <= 16 -> acc * List.length arms
+               | _ -> acc)
+            1
+            defs
+        in
+        let quick =
+          (* Also size-gated: a branch conjunction goes through the full
+             simplifier fixpoint, which on CHC-sized inputs costs seconds
+             per branch. *)
+          if List.is_empty defs || branch_count > 16 || List.length core > 40
+          then None
+          else (
+            let branches =
+              List.fold_left
+                (fun acc -> function
+                   | Ast.Lor arms ->
+                     List.concat_map
+                       (fun sel -> List.map (fun arm -> arm :: sel) arms)
+                       acc
+                   | _ -> acc)
+                [ [] ]
+                defs
+            in
+            (* Branches are scanned with early exits: a Sat branch is a
+               model, and only an all-Unsat scan proves unsat -- so the
+               first undecided branch aborts the enumeration rather than
+               burning a full simplifier run per remaining branch. *)
+            let rec scan = function
+              | [] -> Some (unsat "presimpl int" ast_split)
+              | sel :: rest ->
+                (match
+                   SimplII.run_basic_simplify ~minimize:false (Ast.land_ (core @ sel))
+                 with
+                 | `Sat env -> Some (sat "presimpl int" ast_split ~env)
+                 | `Unsat _ -> scan rest
+                 | `Unknown _ ->
+                   (* The presimpl scan cannot decide branches that keep real
+                      powers, but splitting also costs the engine its exponent
+                      laws: substituting the fresh result variable turns
+                      2^z * (1 + 2^u) into the var-by-var product
+                      2^z * (1 + r), which no automaton expresses -- while
+                      inside this branch the sign guards make the laws sound
+                      on the *unsplit* conjunction. So the full pipeline runs
+                      on the branch, and its verdicts are vetted: Sat only if
+                      the ground evaluator confirms it against the original
+                      formula, unsat only on a pow-free core. *)
+                   let branch = Ast.land_ (core @ sel) in
+                   if not (SimplII.engine_pows_only branch)
+                   then None
+                   else (
+                     match
+                       try Some (check_eia_sat branch Env.empty) with
+                       | _ -> None
+                     with
+                     | Some (Sat _ as rez) when confirmed rez -> Some rez
+                     | Some (Unsat (_, ucore)) when pow_free ucore -> scan rest
+                     | _ -> None))
+            in
+            scan branches)
+        in
+        match quick with
+        | Some rez -> handle rez (fallback ast_split)
+        | None -> handle (check_eia_sat ast_split Env.empty) (fallback ast_split)
+      in
       if Stdlib.compare ast ast_split = 0
       then handle (check_eia_sat ast Env.empty) (fallback ast)
-      else if not (SimplII.engine_pows_only ast)
-      then
-        (* Powers outside the engine fragment make the NFA stage abort the
-           whole process on the un-split formula; only the split one can be
-           attempted. *)
-        handle (check_eia_sat ast_split Env.empty) (fallback ast_split)
-      else (
-        let phase1 =
-          try check_eia_sat ast Env.empty with
-          | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful
-          | _ -> unknown ast Env.empty
-        in
-        match phase1 with
-        | Sat _ as rez -> handle rez (fallback ast)
-        | Unsat _ | Unknown _ ->
-          handle (check_eia_sat ast_split Env.empty) (fallback ast_split)))
+      else solve_split ())
   with
   | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful
   | Nfa.Too_big_nfa ->
