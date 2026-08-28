@@ -41,7 +41,7 @@ standard.
   $ Chro -no-model zerozero.smt2
   sat (presimpl int)
 
-A negative constant exponent folds to 0 per the standard's truncated
+A negative constant exponent folds to 0 per the standard's Euclidean
 division.
 
   $ cat > negexp.smt2 <<-EOF
@@ -95,3 +95,24 @@ Euclidean, so `(mod -3 2)` is 1, never -1.
   > EOF
   $ Chro -no-model eucl2.smt2
   unsat (presimpl int)
+
+Regression for the NFA model decode/encode of negative values: Msb integer
+words are sign-symbol-first two's complement, and the decode used to read
+the sign symbol as a value bit (x = -4 printed as 4) while the encode
+emitted |n| behind a 0 sign. The range pins the model to exactly -4.
+
+  $ cat > negmodel.smt2 <<-EOF
+  > (set-logic ALL)
+  > (declare-const x Int)
+  > (assert (= (mod x 7) 3))
+  > (assert (<= x (- 1)))
+  > (assert (<= (- 5) x))
+  > (check-sat)
+  > (get-model)
+  > EOF
+  $ Chro -bound -1 -no-mod-eq negmodel.smt2
+  sat (simpl)
+  (
+     (define-fun x () Int
+      -4)
+  )

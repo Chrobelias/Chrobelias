@@ -52,7 +52,7 @@ The executable binary is available in the `_build` dir.
 ## Usage
 
 Supports `.smt2` files with 
-- `QF_EIA` with the binary `exp` exponentiation function from [Satisfiability Modulo Exponential Integer Arithmetic](https://arxiv.org/abs/2402.01501). Use `(set-logic ALL)` for files with exponentiation.
+- `QF_EIA` with the `**` exponentiation function as standardized in SMT-LIB Ints (April 2026); see also [Satisfiability Modulo Exponential Integer Arithmetic](https://arxiv.org/abs/2402.01501). Use `(set-logic QF_EIA)` for files with exponentiation.
 - `QF_SLIA` subclass corresponding to the logic $T_{\mathit{REln}}$ from [Semënov Arithmetic, Affine VASS, and String Constraints](https://arxiv.org/abs/2306.14593).  
 
 ```bash
@@ -110,7 +110,7 @@ git submodule update --init --recursive
 
 ## Acknowledgements
 
-We use custom SMT-lib v2.6 `exp` syntax and examples from [SwInE][4] by [Florian Frohn](https://ffrohn.github.io/) licensed under [LGPL v2.1][3].
+We use examples from [SwInE][4] by [Florian Frohn](https://ffrohn.github.io/) licensed under [LGPL v2.1][3].
 
 [1]: https://hub.docker.com/repository/docker/chrobelias/chrobelias
 [2]: https://github.com/Chrobelias/Chrobelias

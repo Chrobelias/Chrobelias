@@ -18,20 +18,89 @@
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (= (+ it159 (* (- 2) (** 2 (+ 1 it147)))) 0)
+    iter(1)= (and
+             (= (+ it159 (* (- 2) %stdexp2)) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0)
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
     Something ready to substitute
-        it159 -> (* 2 (** 2 (+ 1 it147)));
+        %stdexp2 -> (** 2 %stdexp1);
+        it159 -> (* 2 %stdexp2);
         
   [+simpl]
-    iter(3)= True
+    iter(2)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ (* (- 2) %stdexp2) it159) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ (* 2 %stdexp2) (* (- 2) (** 2 %stdexp1))) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ 1 it147);
+        %stdexp2 -> (** 2 %stdexp1);
+        it159 -> (* 2 %stdexp2);
+        
+  [+simpl]
+    iter(4)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    iter(5)= (<= (+ (- 1) (* (- 1) it147)) 0)
   [+simpl]
     fixed-point
   
-  sat (presimpl int)
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (= (+ it159 (* (- 2) %stdexp2)) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0)
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp2 -> (** 2 %stdexp1);
+        it159 -> (* 2 %stdexp2);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ (* (- 2) %stdexp2) it159) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ (* 2 %stdexp2) (* (- 2) (** 2 %stdexp1))) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ 1 it147);
+        %stdexp2 -> (** 2 %stdexp1);
+        it159 -> (* 2 %stdexp2);
+        
+  [+simpl]
+    iter(4)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    iter(5)= (<= (+ (- 1) (* (- 1) it147)) 0)
+  [+simpl]
+    fixed-point
+  
+  sat (under int)
 
   $ export CHRO_EIA=old
   $ timeout 2 Chro --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
@@ -39,20 +108,89 @@
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (= (+ it159 (* (- 2) (** 2 (+ 1 it147)))) 0)
+    iter(1)= (and
+             (= (+ it159 (* (- 2) %stdexp2)) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0)
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
     Something ready to substitute
-        it159 -> (* 2 (** 2 (+ 1 it147)));
+        %stdexp2 -> (** 2 %stdexp1);
+        it159 -> (* 2 %stdexp2);
         
   [+simpl]
-    iter(3)= True
+    iter(2)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ (* (- 2) %stdexp2) it159) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ (* 2 %stdexp2) (* (- 2) (** 2 %stdexp1))) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ 1 it147);
+        %stdexp2 -> (** 2 %stdexp1);
+        it159 -> (* 2 %stdexp2);
+        
+  [+simpl]
+    iter(4)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    iter(5)= (<= (+ (- 1) (* (- 1) it147)) 0)
   [+simpl]
     fixed-point
   
-  sat (presimpl int)
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (= (+ it159 (* (- 2) %stdexp2)) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0)
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp2 -> (** 2 %stdexp1);
+        it159 -> (* 2 %stdexp2);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= (+ (* (- 2) %stdexp2) it159) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (= (+ (* 2 %stdexp2) (* (- 2) (** 2 %stdexp1))) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ 1 it147);
+        %stdexp2 -> (** 2 %stdexp1);
+        it159 -> (* 2 %stdexp2);
+        
+  [+simpl]
+    iter(4)= (and
+             (= (+ (- 1) %stdexp1 (* (- 1) it147)) 0)
+             (<= (+ (- 1) (* (- 1) it147)) 0))
+  [+simpl]
+    iter(5)= (<= (+ (- 1) (* (- 1) it147)) 0)
+  [+simpl]
+    fixed-point
+  
+  sat (under int)
 
   $ cat > test.smt2 <<-EOF
   > (set-logic ALL)
@@ -72,20 +210,97 @@
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (= (+ (- 15) it1 (* 7 (** 2 (+ (- 1) it2)))) 0)
+    iter(1)= (and
+             (= (+ (- 15) it1 (* 7 %stdexp2)) 0)
+             (<= (+ 1 (* (- 1) it2)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it2)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
     Something ready to substitute
-        it1 -> (+ 15 (* (- 7) (** 2 (+ (- 1) it2))));
+        it1 -> (+ 15 (* (- 7) %stdexp2));
         
   [+simpl]
-    iter(3)= True
+    iter(2)= (and
+             (= (+ (- 15) (* 7 %stdexp2) it1) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it2)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ 1 (* (- 1) it2)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp2 -> (** 2 %stdexp1);
+        it1 -> (+ 15 (* (- 7) %stdexp2));
+        
+  [+simpl]
+    iter(3)= (and
+             (= (+ 1 %stdexp1 (* (- 1) it2)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ 1 (* (- 1) it2)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ (- 1) it2);
+        %stdexp2 -> (** 2 %stdexp1);
+        it1 -> (+ 15 (* (- 7) %stdexp2));
+        
+  [+simpl]
+    iter(4)= (and
+             (= (+ 1 %stdexp1 (* (- 1) it2)) 0)
+             (<= (+ 1 (* (- 1) it2)) 0))
+  [+simpl]
+    iter(5)= (<= (+ 1 (* (- 1) it2)) 0)
   [+simpl]
     fixed-point
   
-  sat (presimpl int)
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (= (+ (- 15) it1 (* 7 %stdexp2)) 0)
+             (<= (+ 1 (* (- 1) it2)) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it2)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        it1 -> (+ 15 (* (- 7) %stdexp2));
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ (- 15) (* 7 %stdexp2) it1) 0)
+             (= (+ 1 %stdexp1 (* (- 1) it2)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ 1 (* (- 1) it2)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp2 -> (** 2 %stdexp1);
+        it1 -> (+ 15 (* (- 7) %stdexp2));
+        
+  [+simpl]
+    iter(3)= (and
+             (= (+ 1 %stdexp1 (* (- 1) it2)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ 1 (* (- 1) it2)) 0))
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> (+ (- 1) it2);
+        %stdexp2 -> (** 2 %stdexp1);
+        it1 -> (+ 15 (* (- 7) %stdexp2));
+        
+  [+simpl]
+    iter(4)= (and
+             (= (+ 1 %stdexp1 (* (- 1) it2)) 0)
+             (<= (+ 1 (* (- 1) it2)) 0))
+  [+simpl]
+    iter(5)= (<= (+ 1 (* (- 1) it2)) 0)
+  [+simpl]
+    fixed-point
+  
+  sat (under int)
 
   $ export CHRO_DEBUG=simpl
   $ Chro -bound 0  --dsimpl --stop-after simpl ../../benchmarks/heapsort.c.koat_2.smt2 | sed 's/[[:space:]]*$//'

@@ -4,17 +4,98 @@
   
   [+simpl]
     iter(1)= (and
-             (<= (+ 14 (* (- 5) x) (* (- 8) (** 2 y)) (* (- 7) z)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 8) %stdexp2) (* (- 7) z)) 0)
              (= (+ (- 52) z y) 0)
-             (<= (+ (- 13) (* (- 5) x)) 0))
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (* (- 1) y) 0)
+             (= (+ %stdexp1 (* (- 1) y)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
+    Something ready to substitute
+        %stdexp1 -> y;
+        %stdexp2 -> (** 2 %stdexp1);
+        y -> (+ 52 (- z));
+        
+  [+simpl]
     iter(2)= (and
              (= (+ (- 52) y z) 0)
+             (= (+ %stdexp1 (* (- 1) y)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 8) %stdexp2) (* (- 7) z)) 0)
+             (<= (* (- 1) y) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (* 52 (- 1)) y (* (* (- 1) z) (- 1))) 0)
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 y))) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 7) z) (* (- 8) (** 2 %stdexp1))) 0)
+             (<= (+ (* 52 (- 1)) (* (* (- 1) z) (- 1))) 0))
+  [+simpl]
+    iter(4)= (and
+             (= (+ (** 2 y) (* (- 1) (** 2 (+ 52 (* (- 1) z))))) 0)
+             (<= (+ (- 52) z) 0)
              (<= (+ (- 13) (* (- 5) x)) 0)
              (<= (+ 14 (* (- 5) x) (* (- 7) z) (* (- 8) (** 2 y))) 0))
+  [+simpl]
+    iter(5)= (and
+             (<= (+ (- 52) z) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 7) z)
+                 (* (- 8) (** 2 (+ 52 (* (- 1) z))))) 0))
+  [+simpl]
+    fixed-point
+  
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (<= (+ 14 (* (- 5) x) (* (- 8) %stdexp2) (* (- 7) z)) 0)
+             (= (+ (- 52) z y) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (* (- 1) y) 0)
+             (= (+ %stdexp1 (* (- 1) y)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> y;
+        %stdexp2 -> (** 2 %stdexp1);
+        y -> (+ 52 (- z));
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ (- 52) y z) 0)
+             (= (+ %stdexp1 (* (- 1) y)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 8) %stdexp2) (* (- 7) z)) 0)
+             (<= (* (- 1) y) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (* 52 (- 1)) y (* (* (- 1) z) (- 1))) 0)
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 y))) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 7) z) (* (- 8) (** 2 %stdexp1))) 0)
+             (<= (+ (* 52 (- 1)) (* (* (- 1) z) (- 1))) 0))
+  [+simpl]
+    iter(4)= (and
+             (= (+ (** 2 y) (* (- 1) (** 2 (+ 52 (* (- 1) z))))) 0)
+             (<= (+ (- 52) z) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 7) z) (* (- 8) (** 2 y))) 0))
+  [+simpl]
+    iter(5)= (and
+             (<= (+ (- 52) z) 0)
+             (<= (+ (- 13) (* (- 5) x)) 0)
+             (<= (+ 14 (* (- 5) x) (* (- 7) z)
+                 (* (- 8) (** 2 (+ 52 (* (- 1) z))))) 0))
   [+simpl]
     fixed-point
   
@@ -45,16 +126,64 @@
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (= (+ (* n (** 2 n)) (* (- 1) (** 2 n) n)) 0)
+    iter(1)= (and
+             (= (+ (* n %stdexp2) (* (- 1) %stdexp2 n)) 0)
+             (<= (* (- 1) n) 0)
+             (= (+ %stdexp1 (* (- 1) n)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
-    iter(2)= True
+    Something ready to substitute
+        %stdexp1 -> n;
+        %stdexp2 -> (** 2 %stdexp1);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ %stdexp1 (* (- 1) n)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (* (- 1) n) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 n))) 0)
+             (<= (* (- 1) n) 0))
+  [+simpl]
+    iter(4)= (<= (* (- 1) n) 0)
   [+simpl]
     fixed-point
   
-  sat (presimpl int)
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (= (+ (* n %stdexp2) (* (- 1) %stdexp2 n)) 0)
+             (<= (* (- 1) n) 0)
+             (= (+ %stdexp1 (* (- 1) n)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> n;
+        %stdexp2 -> (** 2 %stdexp1);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ %stdexp1 (* (- 1) n)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (* (- 1) n) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 n))) 0)
+             (<= (* (- 1) n) 0))
+  [+simpl]
+    iter(4)= (<= (* (- 1) n) 0)
+  [+simpl]
+    fixed-point
+  
   $ cat > sum_join2.smt2 <<-EOF
   > (set-logic ALL)
   > (declare-fun n () Int)
@@ -66,7 +195,11 @@
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (distinct (+ (* (- 1) (** 2 n)) (** 2 n)) 0)
+    iter(1)= (and
+             (distinct (+ (* (- 1) %stdexp2) %stdexp2) 0)
+             (<= (* (- 1) n) 0)
+             (= (+ %stdexp1 (* (- 1) n)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
   [+simpl]
     Alphabet with extra char: 0
   
@@ -76,20 +209,20 @@
     fixed-point
   
   [+simpl]
-    contradicting clause: (distinct (+ (* (- 1) (** 2 n)) (** 2 n)) 0)
+    contradicting clause: (distinct (+ (* (- 1) %stdexp2) %stdexp2) 0)
   [+simpl]
     contradicting env:  
   [+simpl]
-    unsat core: (distinct (+ (* (- 1) (** 2 n)) (** 2 n)) 0)
+    unsat core: (distinct (+ (* (- 1) %stdexp2) %stdexp2) 0)
   
   [+simpl]
     Basic simplifications:
   
   [+simpl]
     iter(1)= (and
-             (<= (* (- 1) n) 0)
-             (= (+ %stdexp1 (* (- 1) n)) 0)
-             (distinct (+ (* (- 1) (** 2 %stdexp1)) (** 2 %stdexp1)) 0))
+             (distinct (+ (* (- 1) %stdexp2) %stdexp2) 0)
+             (<= (+ 1 n) 0)
+             (= %stdexp2 0))
   [+simpl]
     Alphabet with extra char: 0
   
@@ -99,10 +232,10 @@
     fixed-point
   
   [+simpl]
-    contradicting clause: (distinct (+ (* (- 1) (** 2 %stdexp1)) (** 2 %stdexp1)) 0)
+    contradicting clause: (distinct (+ (* (- 1) %stdexp2) %stdexp2) 0)
   [+simpl]
     contradicting env:  
   [+simpl]
-    unsat core: (distinct (+ (* (- 1) (** 2 %stdexp1)) (** 2 %stdexp1)) 0)
+    unsat core: (distinct (+ (* (- 1) %stdexp2) %stdexp2) 0)
   
   unsat (presimpl int)

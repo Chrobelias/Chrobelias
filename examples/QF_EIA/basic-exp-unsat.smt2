@@ -1,8 +1,8 @@
 ; unsat
-(set-logic ALL)
+(set-logic QF_EIA)
 (set-option :produce-models true)
 (declare-fun x () Int)
 
-(assert (> x (exp 2 x)))
+(assert (> x (** 2 x)))
 
 (check-sat)

@@ -142,11 +142,11 @@ $ cat input3.smt2
 
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 5 Chro input3.smt2 || echo "timeout"
-  sat (under int)
+  sat (nia)
 
 $ export CHRO_DEBUG=simpl
 $ /usr/bin/time -f "TIME: %U"
   $ Chro input3.smt2 --dir --dsimpl 2>&1 | sed 's/[[:space:]]*$//'
-  sat (under int)
+  sat (nia)
 
 

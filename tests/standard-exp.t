@@ -52,7 +52,7 @@ The pre-standard `exp` alias parses to the same term.
   $ Chro -no-model a5.smt2
   sat (presimpl int)
 
-A constant negative exponent under |m| > 1 is 0 (truncated division), and
+A constant negative exponent under |m| > 1 is 0 (Euclidean division of 1 by the positive power), and
 its negation is unsatisfiable.
 
   $ cat > a3.smt2 <<-EOF
@@ -117,7 +117,7 @@ is at least 1:
   $ Chro -no-model a14.smt2
   unsat (over)
 
-Under the standard's truncated division 2^-1 is 0, so 1000 * 2^x can never
+Under the standard's Euclidean division 2^-1 is (div 1 2) = 0, so 1000 * 2^x can never
 be 500 (the exact-rational reading would answer x = -1 here -- that is
 deliberately NOT what the standard prescribes).
 
@@ -186,7 +186,7 @@ value, everything with |b| >= 2 collapses to 0.
   > (check-sat)
   > EOF
   $ Chro -no-model a12.smt2
-  sat (under int)
+  sat (presimpl int)
 
   $ cat > a13.smt2 <<-EOF
   > (set-logic QF_EIA)

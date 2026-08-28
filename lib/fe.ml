@@ -175,15 +175,13 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
     let* expr, phs = to_eia_term expr in
     return (Ast.Eia.pow Ast.Eia.(const (Z.of_int 10)) expr) phs
   (* Exponentiation as standardized in SMT-LIB Ints (April 2026). "exp" is
-     the pre-standard spelling; kept as an alias while the benchmark
-     repositories still use it (Chrobelias/Chrobelias#257).
+     the pre-standard spelling; kept as an alias while the vendored
+     benchmark corpora still use it (Chrobelias/Chrobelias#257).
 
-     The engine's [Pow] relation is partial -- nonnegative exponents over
-     constant bases >= -1 (base -1 has dedicated [pow_minus_one] handling) --
-     while the standard [**] is total (e.g. [2 ** -3] is 0 and [-2 ** 3] is
-     -8). A syntactically negative constant exponent or a constant base
-     <= -2 is therefore rejected into the unsupported path here: an honest
-     unknown instead of an unsound verdict from the partial relation. *)
+     Constant-constant powers with a negative exponent fold right here by
+     the standard's rules; everything else the engine's partial relation
+     does not cover is totalized by [SimplII.std_exp_split] before
+     solving. *)
   | Expr.App ({ name = Symbol.Simple ("**" | "exp"); _ }, [ base; exp ]) ->
     let* base, phs = to_eia_term base in
     let* exp, phs' = to_eia_term exp in

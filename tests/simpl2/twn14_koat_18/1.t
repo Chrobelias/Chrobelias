@@ -268,5 +268,5 @@ $ /usr/bin/time -f "TIME: %U"
 
 $ /usr/bin/time -f "TIME: %U"
   $ Chro input1.smt2 | sed 's/[[:space:]]*$//'
-  sat (under int)
+  sat (nia)
 
