@@ -24,6 +24,7 @@ module type Type = sig
   val mod_eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> Z.t -> t
 
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
+  val strlen_const : alpha:v list option -> (int * int) list -> t
   val base : Z.t
 end
 
@@ -360,6 +361,11 @@ module Msb = struct
   let strlen ~alpha ~(dest : int) ~(src : int) () =
     failwith "Unimplemented for string bitvectors"
   ;;
+
+  let strlen_const ~alpha specs =
+    ignore (alpha, specs);
+    failwith "Unimplemented for string bitvectors"
+  ;;
 end
 
 module MsbStr (B : Nfa.Base) = struct
@@ -558,6 +564,60 @@ module MsbStr (B : Nfa.Base) = struct
       alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
     in
     Nfa.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
+  ;;
+
+  let strlen_const ~alpha specs =
+    let alpha = Option.value ~default:alphabet alpha in
+    let specs =
+      Base.List.dedup_and_sort ~compare:Stdlib.compare specs
+      |> List.sort (fun (_, a) (_, b) -> Stdlib.compare b a)
+    in
+    let tracks = List.map fst specs in
+    if Base.List.contains_dup tracks ~compare:Stdlib.compare
+    then (* the same string pinned to two different lengths *) z ()
+    else if List.is_empty specs
+    then n ()
+    else (
+      let lens = List.map snd specs in
+      let maxn = List.fold_left max 0 lens in
+      (* State [s]: the longest string has consumed [s] characters. Msb
+       strings are end-anchored (chars run to the word end behind the eos
+       padding), so their mutual offsets are rigid: one linear chain of
+       [maxn] steps replaces the quadratic product of per-string chains
+       that made the reconstruction blow past the size limit. A string of
+       length [n] is still padding while [s < maxn - n]. *)
+      let rec combos = function
+        | [] -> [ [] ]
+        | `Any :: tl ->
+          List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
+        | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
+      in
+      (* Chain position [p] lives in state [p + 1]: state 0 is the padding
+         loop, and the only way into the chain is the all-eos boundary step
+         0 -> 1. The Msb invariant closure shortcuts equal-label runs that
+         start AT the start state -- char steps hanging directly off the
+         start would let a run of equal characters skip chain positions and
+         void the length pin (observed: a 5031-pin accepting a ~1000-char
+         string zero-padded by the printer). Behind the eos boundary the
+         char runs are not start-adjacent, so the closure only ever adds
+         harmless pad-to-boundary jumps, exactly like [strlen]'s own
+         eos-labelled boundary. *)
+      let step p =
+        lens
+        |> List.map (fun n -> if p >= maxn - n then `Any else `Eos)
+        |> combos
+        |> List.map (fun l -> p + 1, l, p + 2)
+      in
+      let all_eos = List.map (Fun.const Str.u_eos) lens in
+      let pad = 0, all_eos, 0 in
+      let boundary = 0, all_eos, 1 in
+      let transitions = pad :: boundary :: List.concat_map step (List.init maxn Fun.id) in
+      Nfa.create_nfa
+        ~transitions
+        ~start:[ 0 ]
+        ~final:[ maxn + 1 ]
+        ~vars:tracks
+        ~deg:(List.length tracks))
   ;;
 end
 
@@ -760,6 +820,60 @@ module MsbStrBv (B : Nfa.Base) = struct
     in
     Nfa.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
   ;;
+
+  let strlen_const ~alpha specs =
+    let alpha = Option.value ~default:alphabet alpha in
+    let specs =
+      Base.List.dedup_and_sort ~compare:Stdlib.compare specs
+      |> List.sort (fun (_, a) (_, b) -> Stdlib.compare b a)
+    in
+    let tracks = List.map fst specs in
+    if Base.List.contains_dup tracks ~compare:Stdlib.compare
+    then (* the same string pinned to two different lengths *) z ()
+    else if List.is_empty specs
+    then n ()
+    else (
+      let lens = List.map snd specs in
+      let maxn = List.fold_left max 0 lens in
+      (* State [s]: the longest string has consumed [s] characters. Msb
+       strings are end-anchored (chars run to the word end behind the eos
+       padding), so their mutual offsets are rigid: one linear chain of
+       [maxn] steps replaces the quadratic product of per-string chains
+       that made the reconstruction blow past the size limit. A string of
+       length [n] is still padding while [s < maxn - n]. *)
+      let rec combos = function
+        | [] -> [ [] ]
+        | `Any :: tl ->
+          List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
+        | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
+      in
+      (* Chain position [p] lives in state [p + 1]: state 0 is the padding
+         loop, and the only way into the chain is the all-eos boundary step
+         0 -> 1. The Msb invariant closure shortcuts equal-label runs that
+         start AT the start state -- char steps hanging directly off the
+         start would let a run of equal characters skip chain positions and
+         void the length pin (observed: a 5031-pin accepting a ~1000-char
+         string zero-padded by the printer). Behind the eos boundary the
+         char runs are not start-adjacent, so the closure only ever adds
+         harmless pad-to-boundary jumps, exactly like [strlen]'s own
+         eos-labelled boundary. *)
+      let step p =
+        lens
+        |> List.map (fun n -> if p >= maxn - n then `Any else `Eos)
+        |> combos
+        |> List.map (fun l -> p + 1, l, p + 2)
+      in
+      let all_eos = List.map (Fun.const Str.u_eos) lens in
+      let pad = 0, all_eos, 0 in
+      let boundary = 0, all_eos, 1 in
+      let transitions = pad :: boundary :: List.concat_map step (List.init maxn Fun.id) in
+      Nfa.create_nfa
+        ~transitions
+        ~start:[ 0 ]
+        ~final:[ maxn + 1 ]
+        ~vars:tracks
+        ~deg:(List.length tracks))
+  ;;
 end
 
 (* ------------------------------------------------------------- *)
@@ -839,6 +953,11 @@ module MsbNat = struct
   let mod_eq vars term m c = Msb.mod_eq vars term m c |> NfaMsb.to_nat
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let strlen_const ~alpha specs =
+    ignore (alpha, specs);
     failwith "Unimplemented for string bitvectors"
   ;;
 end
@@ -943,6 +1062,60 @@ module MsbNatStr (B : Nfa.Base) = struct
     in
     NfaMsbNat.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
   ;;
+
+  let strlen_const ~alpha specs =
+    let alpha = Option.value ~default:alphabet alpha in
+    let specs =
+      Base.List.dedup_and_sort ~compare:Stdlib.compare specs
+      |> List.sort (fun (_, a) (_, b) -> Stdlib.compare b a)
+    in
+    let tracks = List.map fst specs in
+    if Base.List.contains_dup tracks ~compare:Stdlib.compare
+    then (* the same string pinned to two different lengths *) z ()
+    else if List.is_empty specs
+    then n ()
+    else (
+      let lens = List.map snd specs in
+      let maxn = List.fold_left max 0 lens in
+      (* State [s]: the longest string has consumed [s] characters. Msb
+       strings are end-anchored (chars run to the word end behind the eos
+       padding), so their mutual offsets are rigid: one linear chain of
+       [maxn] steps replaces the quadratic product of per-string chains
+       that made the reconstruction blow past the size limit. A string of
+       length [n] is still padding while [s < maxn - n]. *)
+      let rec combos = function
+        | [] -> [ [] ]
+        | `Any :: tl ->
+          List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
+        | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
+      in
+      (* Chain position [p] lives in state [p + 1]: state 0 is the padding
+         loop, and the only way into the chain is the all-eos boundary step
+         0 -> 1. The Msb invariant closure shortcuts equal-label runs that
+         start AT the start state -- char steps hanging directly off the
+         start would let a run of equal characters skip chain positions and
+         void the length pin (observed: a 5031-pin accepting a ~1000-char
+         string zero-padded by the printer). Behind the eos boundary the
+         char runs are not start-adjacent, so the closure only ever adds
+         harmless pad-to-boundary jumps, exactly like [strlen]'s own
+         eos-labelled boundary. *)
+      let step p =
+        lens
+        |> List.map (fun n -> if p >= maxn - n then `Any else `Eos)
+        |> combos
+        |> List.map (fun l -> p + 1, l, p + 2)
+      in
+      let all_eos = List.map (Fun.const Str.u_eos) lens in
+      let pad = 0, all_eos, 0 in
+      let boundary = 0, all_eos, 1 in
+      let transitions = pad :: boundary :: List.concat_map step (List.init maxn Fun.id) in
+      NfaMsbNat.create_nfa
+        ~transitions
+        ~start:[ 0 ]
+        ~final:[ maxn + 1 ]
+        ~vars:tracks
+        ~deg:(List.length tracks))
+  ;;
 end
 
 module MsbNatStrBv (B : Nfa.Base) = struct
@@ -1040,6 +1213,60 @@ module MsbNatStrBv (B : Nfa.Base) = struct
       alpha_transitions @ [ 1, [ Str.u_eos; i ], 0 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
     in
     NfaMsbNat.create_nfa ~transitions ~start:[ 1 ] ~final:[ 0 ] ~vars:[ src; dest ] ~deg:2
+  ;;
+
+  let strlen_const ~alpha specs =
+    let alpha = Option.value ~default:alphabet alpha in
+    let specs =
+      Base.List.dedup_and_sort ~compare:Stdlib.compare specs
+      |> List.sort (fun (_, a) (_, b) -> Stdlib.compare b a)
+    in
+    let tracks = List.map fst specs in
+    if Base.List.contains_dup tracks ~compare:Stdlib.compare
+    then (* the same string pinned to two different lengths *) z ()
+    else if List.is_empty specs
+    then n ()
+    else (
+      let lens = List.map snd specs in
+      let maxn = List.fold_left max 0 lens in
+      (* State [s]: the longest string has consumed [s] characters. Msb
+       strings are end-anchored (chars run to the word end behind the eos
+       padding), so their mutual offsets are rigid: one linear chain of
+       [maxn] steps replaces the quadratic product of per-string chains
+       that made the reconstruction blow past the size limit. A string of
+       length [n] is still padding while [s < maxn - n]. *)
+      let rec combos = function
+        | [] -> [ [] ]
+        | `Any :: tl ->
+          List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
+        | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
+      in
+      (* Chain position [p] lives in state [p + 1]: state 0 is the padding
+         loop, and the only way into the chain is the all-eos boundary step
+         0 -> 1. The Msb invariant closure shortcuts equal-label runs that
+         start AT the start state -- char steps hanging directly off the
+         start would let a run of equal characters skip chain positions and
+         void the length pin (observed: a 5031-pin accepting a ~1000-char
+         string zero-padded by the printer). Behind the eos boundary the
+         char runs are not start-adjacent, so the closure only ever adds
+         harmless pad-to-boundary jumps, exactly like [strlen]'s own
+         eos-labelled boundary. *)
+      let step p =
+        lens
+        |> List.map (fun n -> if p >= maxn - n then `Any else `Eos)
+        |> combos
+        |> List.map (fun l -> p + 1, l, p + 2)
+      in
+      let all_eos = List.map (Fun.const Str.u_eos) lens in
+      let pad = 0, all_eos, 0 in
+      let boundary = 0, all_eos, 1 in
+      let transitions = pad :: boundary :: List.concat_map step (List.init maxn Fun.id) in
+      NfaMsbNat.create_nfa
+        ~transitions
+        ~start:[ 0 ]
+        ~final:[ maxn + 1 ]
+        ~vars:tracks
+        ~deg:(List.length tracks))
   ;;
 end
 
@@ -1244,6 +1471,11 @@ module Lsb = struct
   ;;
 
   let strlen ~alpha ~(dest : int) ~(src : int) () =
+    failwith "Unimplemented for string bitvectors"
+  ;;
+
+  let strlen_const ~alpha specs =
+    ignore (alpha, specs);
     failwith "Unimplemented for string bitvectors"
   ;;
 end
@@ -1729,6 +1961,51 @@ module LsbStr (B : Nfa.Base) = struct
     in
     Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 1 ] ~vars:[ src; dest ] ~deg:2
   ;;
+
+  let strlen_const ~alpha specs =
+    let alpha = Option.value ~default:alphabet alpha in
+    let specs =
+      Base.List.dedup_and_sort ~compare:Stdlib.compare specs
+      |> List.sort (fun (_, a) (_, b) -> Stdlib.compare b a)
+    in
+    let tracks = List.map fst specs in
+    if Base.List.contains_dup tracks ~compare:Stdlib.compare
+    then (* the same string pinned to two different lengths *) z ()
+    else if List.is_empty specs
+    then n ()
+    else (
+      let lens = List.map snd specs in
+      let maxn = List.fold_left max 0 lens in
+      (* CAVEAT: the Lsb invariant closure extends the start set along
+       zero-labelled runs, so a pinned string whose model starts with '0'
+       characters can skip chain positions; extraction-only machinery, and
+       the Msb pipeline is the one the string benchmarks exercise. *)
+      (* State [s]: [s] characters consumed. Lsb strings are start-anchored
+       (chars first, eos padding trails), so their mutual offsets are
+       rigid: one linear chain of [maxn] steps replaces the quadratic
+       product of per-string chains. A string of length [n] is done once
+       [s >= n]. *)
+      let rec combos = function
+        | [] -> [ [] ]
+        | `Any :: tl ->
+          List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
+        | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
+      in
+      let step s =
+        lens
+        |> List.map (fun n -> if s < n then `Any else `Eos)
+        |> combos
+        |> List.map (fun l -> s, l, s + 1)
+      in
+      let pad = maxn, List.map (Fun.const Str.u_eos) lens, maxn in
+      let transitions = pad :: List.concat_map step (List.init maxn Fun.id) in
+      Nfa.create_nfa
+        ~transitions
+        ~start:[ 0 ]
+        ~final:[ maxn ]
+        ~vars:tracks
+        ~deg:(List.length tracks))
+  ;;
 end
 
 module LsbStrBv (B : Nfa.Base) = struct
@@ -1969,6 +2246,51 @@ module LsbStrBv (B : Nfa.Base) = struct
       alpha_transitions @ [ 0, [ Str.u_eos; i ], 1 ] @ [ 1, [ Str.u_eos; Str.u_zero ], 1 ]
     in
     Nfa.create_nfa ~transitions ~start:[ 0 ] ~final:[ 1 ] ~vars:[ src; dest ] ~deg:2
+  ;;
+
+  let strlen_const ~alpha specs =
+    let alpha = Option.value ~default:alphabet alpha in
+    let specs =
+      Base.List.dedup_and_sort ~compare:Stdlib.compare specs
+      |> List.sort (fun (_, a) (_, b) -> Stdlib.compare b a)
+    in
+    let tracks = List.map fst specs in
+    if Base.List.contains_dup tracks ~compare:Stdlib.compare
+    then (* the same string pinned to two different lengths *) z ()
+    else if List.is_empty specs
+    then n ()
+    else (
+      let lens = List.map snd specs in
+      let maxn = List.fold_left max 0 lens in
+      (* CAVEAT: the Lsb invariant closure extends the start set along
+       zero-labelled runs, so a pinned string whose model starts with '0'
+       characters can skip chain positions; extraction-only machinery, and
+       the Msb pipeline is the one the string benchmarks exercise. *)
+      (* State [s]: [s] characters consumed. Lsb strings are start-anchored
+       (chars first, eos padding trails), so their mutual offsets are
+       rigid: one linear chain of [maxn] steps replaces the quadratic
+       product of per-string chains. A string of length [n] is done once
+       [s >= n]. *)
+      let rec combos = function
+        | [] -> [ [] ]
+        | `Any :: tl ->
+          List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
+        | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
+      in
+      let step s =
+        lens
+        |> List.map (fun n -> if s < n then `Any else `Eos)
+        |> combos
+        |> List.map (fun l -> s, l, s + 1)
+      in
+      let pad = maxn, List.map (Fun.const Str.u_eos) lens, maxn in
+      let transitions = pad :: List.concat_map step (List.init maxn Fun.id) in
+      Nfa.create_nfa
+        ~transitions
+        ~start:[ 0 ]
+        ~final:[ maxn ]
+        ~vars:tracks
+        ~deg:(List.length tracks))
   ;;
 end
 

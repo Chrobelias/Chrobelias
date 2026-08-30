@@ -88,6 +88,7 @@ type t =
   | SSuffixOf of atom * atom
   | SContains of atom * atom
   | SLen of atom * atom
+  | SLenConst of (atom * int) list
   | Stoi of atom * atom
   | Itos of atom * atom
   | Rel of rel * polynom * Z.t
@@ -106,6 +107,7 @@ let sprefixof a b = SPrefixOf (a, b)
 let ssuffixof a b = SSuffixOf (a, b)
 let scontains a b = SContains (a, b)
 let slen a b = SLen (a, b)
+let slen_const specs = SLenConst specs
 let stoi a b = Stoi (a, b)
 let itos a b = Itos (a, b)
 let rel a b c = Rel (a, b, c)
@@ -168,6 +170,13 @@ let rec pp fmt = function
   | SRegRaw (atom, re) -> Format.fprintf fmt "(str.in.re.raw %a)" pp_atom atom
   | SLen (atom, atom') ->
     Format.fprintf fmt "@[(chrob.len %a %a)@]" pp_atom atom pp_atom atom'
+  | SLenConst specs ->
+    Format.fprintf
+      fmt
+      "@[(chrob.len.const%a)@]"
+      (Format.pp_print_list (fun fmt (atom, n) ->
+         Format.fprintf fmt " %a=%d" pp_atom atom n))
+      specs
   | Stoi (atom, atom') ->
     Format.fprintf fmt "@[(= %a (chrob.to.int %a))@]" pp_atom atom pp_atom atom'
   | Itos (atom, atom') ->
@@ -261,7 +270,7 @@ let pp_smtlib2 ppf ir =
         rhs;
       (* Format.eprintf "\nexists = @[%a@]\n\n%!" pp_old e; *)
       fprintf ppf ")@]" *)
-    | ( SLen _ | Stoi _ | SReg _ | SRegRaw _
+    | ( SLen _ | SLenConst _ | Stoi _ | SReg _ | SRegRaw _
       | SPrefixOf (_, _)
       | SContains (_, _)
       | SSuffixOf (_, _)
@@ -368,6 +377,7 @@ let rec equal ir ir' =
     List.equal ( = ) atoms atoms' && equal ir ir'
   | SReg (atom, regex), SReg (atom', regex') -> atom = atom' && regex = regex'
   | SRegRaw (atom, regex), SRegRaw (atom', regex') -> atom = atom' && regex = regex'
+  | SLenConst specs, SLenConst specs' -> specs = specs'
   | SPrefixOf (atom, atom'), SPrefixOf (atom'', atom''')
   | SContains (atom, atom'), SContains (atom'', atom''')
   | SSuffixOf (atom, atom'), SSuffixOf (atom'', atom''')
@@ -385,6 +395,7 @@ let rec map2 f fleaf ir =
   | SReg (_, _) -> fleaf ir
   | SRegRaw (_, _) -> fleaf ir
   | SLen (_, _) -> fleaf ir
+  | SLenConst _ -> fleaf ir
   | Stoi (_, _) -> fleaf ir
   | Itos (_, _) -> fleaf ir
   | SPrefixOf (_, _) | SSuffixOf (_, _) | SContains (_, _) -> fleaf ir
@@ -405,6 +416,7 @@ let rec fold f acc ir =
   | SReg (_, _) -> f acc ir
   | SRegRaw (_, _) -> f acc ir
   | SLen (_, _) -> f acc ir
+  | SLenConst _ -> f acc ir
   | Stoi (_, _) -> f acc ir
   | Itos (_, _) -> f acc ir
   | SPrefixOf (_, _) | SContains (_, _) | SSuffixOf (_, _) -> f acc ir
@@ -482,6 +494,7 @@ let collect_vars ir =
        | Reg (_, atoms) -> Set.union acc (atoms |> List.map as_var |> Set.of_list)
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
+       | SLenConst specs -> List.fold_left (fun acc (a, _) -> Set.add acc a) acc specs
        | SLen (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Stoi (atom, atom') -> Set.add (Set.add acc atom) atom'
        | Itos (atom, atom') -> Set.add (Set.add acc atom) atom'
@@ -518,6 +531,7 @@ let collect_atoms ir =
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
+       | SLenConst specs -> List.fold_left (fun acc (a, _) -> Set.add acc a) acc specs
        | SLen (atom, atom')
        | Stoi (atom, atom')
        | SPrefixOf (atom, atom')
@@ -543,6 +557,7 @@ let collect_free_atoms ir =
        | Reg (_, atoms) -> Set.union acc (atoms |> Set.of_list)
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
+       | SLenConst specs -> List.fold_left (fun acc (a, _) -> Set.add acc a) acc specs
        | SLen (atom, atom')
        | Stoi (atom, atom')
        | SPrefixOf (atom, atom')
@@ -568,6 +583,7 @@ let collect_free (ir : t) =
          term |> Map.keys |> List.map as_var |> Set.of_list |> Set.union acc
        | SReg (atom, _) -> Set.add acc atom
        | SRegRaw (atom, _) -> Set.add acc atom
+       | SLenConst specs -> List.fold_left (fun acc (a, _) -> Set.add acc a) acc specs
        | SLen (atom, atom')
        | Stoi (atom, atom')
        | Itos (atom, atom')
@@ -1118,6 +1134,7 @@ let pin_unconstrained_vars ir =
     | Rel (_, poly, _) -> Map.keys poly
     | Reg (_, atoms) -> atoms
     | SReg (a, _) | SRegRaw (a, _) -> [ a ]
+    | SLenConst specs -> List.map fst specs
     | SPrefixOf (a, b)
     | SSuffixOf (a, b)
     | SContains (a, b)

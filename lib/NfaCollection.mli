@@ -22,6 +22,7 @@ module type Type = sig
   val mod_eq : (Ir.atom, int) Map.t -> (Ir.atom, Z.t) Map.t -> Z.t -> Z.t -> t
 
   val strlen : alpha:v list option -> dest:int -> src:int -> unit -> t
+  val strlen_const : alpha:v list option -> (int * int) list -> t
   val base : Z.t
 end
 

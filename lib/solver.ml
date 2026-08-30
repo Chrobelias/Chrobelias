@@ -326,6 +326,10 @@ struct
            ~dest:(Map.find_exn vars atom')
            ~src:(Map.find_exn vars atom)
            ()
+       | Ir.SLenConst specs ->
+         NfaCollection.strlen_const
+           ~alpha
+           (List.map (fun (a, n) -> Map.find_exn vars a, n) specs)
        | _ -> failwith "unexpected due to Arithmetization")
       |> fun nfa ->
       trace_log "Done %a%!" Ir.pp ir;
@@ -945,6 +949,7 @@ struct
             then Map.mem map k
             else decide (fun x -> (not (Set.mem free_atoms (to_exp x))) || good x) k
       in
+      let pinned = ref [] in
       let f =
         f
         |> Ir.map (function
@@ -966,10 +971,19 @@ struct
           | SReg (atom, re) when Map.mem map atom -> Ir.true_
           | SRegRaw (atom, re) when Map.mem map atom -> Ir.true_
           | SLen (atom, atom') when is_exp atom' && filter atom' ->
-            let new_atom = Ir.internal () in
+            (* The exponent's value [v] is known (and [good], so it fits an
+               int): pin the string's length directly. Routing it through a
+               fresh variable equal to [base^v] -- the value the [strlen]
+               relation speaks -- builds a digit-chain automaton of [v]
+               states for the constant alone, which for v in the thousands
+               blows the product past every size limit and lost the model
+               entirely (see tests/short-model.t). All pins are gathered
+               into ONE [SLenConst] atom below: separate per-string chains
+               do not synchronize in the product (any pair of progress
+               counters is reachable), which is quadratic again. *)
             let v = get_val map (get_exp atom') in
-            Ir.land_
-              [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) (pow2z v) ]
+            pinned := (atom, Z.to_int v) :: !pinned;
+            Ir.true_
           | SLen (atom, atom') when (not (is_exp atom)) && filter atom ->
             let new_atom = Ir.internal () in
             let v = get_val map atom in
@@ -979,6 +993,11 @@ struct
             let v = get_val map atom' in
             Ir.land_ [ Ir.slen atom new_atom; Ir.eq (Map.singleton new_atom Z.one) v ]
           | x -> x)
+      in
+      let f =
+        match !pinned with
+        | [] -> f
+        | pins -> Ir.land_ [ f; Ir.slen_const pins ]
       in
       trace_log "Formula after substituting exponents: %a\n" Ir.pp f;
       let result = f |> Ir.simpl |> Ir.simpl_ineq in

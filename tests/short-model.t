@@ -23,18 +23,15 @@ inflated to the -huge cap:
   sat (nfa)
   model length: 1001
 
-A known gap, kept as a TODO: this instance (StrRElnc/REln/long
-benchmark_long_v2_w02_n01) provably has a short model -- the witness
-x = "971" repeated 1677 times (5031 characters), y = "73" repeated 500
-times (1000 characters) satisfies every assert and is accepted as a
-ground model by both z3 and cvc5 -- yet we answer sat and then fail to
-reconstruct any model. The exponent values are already committed
-minimally (str.len x = 5031, str.len y = 1000), but the final string
-rebuild pins a length by encoding the constant 10^5031 into an
-automaton, which exceeds every size limit. We need a smarter way to
-find short models: rebuild the string contents from the chosen path
-pieces directly instead of round-tripping the length through a
-10^length integer constant.
+A formerly failing case (StrRElnc/REln/long benchmark_long_v2_w02_n01):
+the string rebuild used to pin each length by encoding the constant
+10^5031 into an automaton, which exceeded every size limit, and the
+answer was sat followed by "no short model found (nfa)" -- even though
+the witness x = ("971")^1677, y = ("73")^500 is accepted as a ground
+model by both z3 and cvc5. The lengths are now pinned by a single
+SLenConst chain (one joint automaton for all pinned strings; separate
+per-string chains do not synchronize in the product), and the minimal
+model comes out.
 
   $ cat > gap.smt2 <<-EOF
   > (set-logic QF_SLIA)
@@ -51,6 +48,7 @@ pieces directly instead of round-tripping the length through a
   > (check-sat)
   > (get-model)
   > EOF
-  $ CHRO_NO_PARALLEL=1 Chro gap.smt2
+  $ CHRO_NO_PARALLEL=1 Chro gap.smt2 | awk 'NR==1 {print} /define-fun/ {name=$2; getline; gsub(/[ ")]/,""); print name, "length:", length($0)}'
   sat (nfa)
-  no short model found (nfa)
+  x length: 5031
+  y length: 1000
