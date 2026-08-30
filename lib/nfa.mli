@@ -97,7 +97,7 @@ module type Type = sig
 
   val run : t -> bool
   val re_accepts : v list -> t -> bool
-  val any_path : t -> int list -> (v list list * int) option
+  val any_path : ?prefer:int list -> t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
   val all_paths_of_len : t -> ?limit:int -> int -> v list list

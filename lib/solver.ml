@@ -1067,8 +1067,22 @@ struct
           ir
           |> eval_semenov
                (fun s order nfa model ->
+                  (* Fix the exponents of the eliminated layers to their
+                     smallest admissible values first: the reconstruction in
+                     [combine_model_pieces] later re-expands every layer with
+                     a path piece exactly as long as the value chosen here,
+                     so an arbitrary pick (this automaton no longer ties a
+                     value's digit width to the strlen it once bounded)
+                     inflates the model or overruns -huge outright. *)
+                  let prefer =
+                    List.rev order
+                    |> List.filter_map (function
+                      | Ir.Pow2 v -> Map.find s.vars (Ir.var v)
+                      | _ -> None)
+                  in
                   match
                     NfaNat.any_path
+                      ~prefer
                       nfa
                       (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
                   with
