@@ -1350,6 +1350,36 @@ let () =
       | Sat (_, (_, env, get_model, regexes)) ->
         sat_found := true;
         let tys = merge_tys state in
+        (* The retry cap of the shrinking re-solve must never sit below a
+           length the formula itself demands: shrinking to
+           [huge_const_for_model () = 120] against an explicit
+           [str.len x >= 1000] manufactures an unsat re-solve and the
+           misleading "no short model" on instances with plenty of short
+           models. Direct lower bounds are read off syntactically; bounds
+           reachable only through length arithmetic get headroom from the
+           multiplier. *)
+        let retry_len =
+          let floor =
+            Ast.fold
+              (fun acc -> function
+                 | Ast.Eia (Ast.Eia.Leq (Ast.Eia.Const c, Ast.Eia.Len _)) -> Z.max acc c
+                 | Ast.Eia
+                     (Ast.Eia.Leq
+                        ( Ast.Eia.Add
+                            [ Ast.Eia.Const c
+                            ; Ast.Eia.Mul [ Ast.Eia.Const m; Ast.Eia.Len _ ]
+                            ]
+                        , Ast.Eia.Const z ))
+                   when Z.(lt m zero) -> Z.max acc (Z.cdiv (Z.sub c z) (Z.neg m))
+                 | _ -> acc)
+              Z.zero
+              ast
+          in
+          let floor = Z.to_int (Z.min floor (Z.of_int 100_000)) in
+          max
+            (Config.huge_const_for_model ())
+            ((floor * 8) + Config.huge_const_for_model ())
+        in
         let rec shrink_model ?len () =
           let attempt, len =
             if Option.is_some len then 2, Option.get len else 1, Config.huge_path ()
@@ -1389,10 +1419,10 @@ let () =
           | Lics_Underapprox_unsuccessful ->
             config.bound_res <- -1;
             config.bound_states <- -1;
-            shrink_model ~len:(Config.huge_const_for_model ()) ()
+            shrink_model ~len:retry_len ()
           | Nfa.Too_big_nfa ->
             if attempt == 1
-            then shrink_model ~len:(Config.huge_const_for_model ()) ()
+            then shrink_model ~len:retry_len ()
             else printf "no short model found (nfa)\n%!"
         in
         let () =
@@ -1411,7 +1441,7 @@ let () =
             | Result.Error `Too_long -> shrink_model ()
             | Result.Error `No_model -> Format.printf "no model mode\n%!"
           with
-          | Nfa.Too_big_nfa -> shrink_model ~len:(Config.huge_const_for_model ()) ()
+          | Nfa.Too_big_nfa -> shrink_model ~len:retry_len ()
         in
         ()
     in

@@ -908,7 +908,7 @@ module type Type = sig
 
   val run : t -> bool
   val re_accepts : v list -> t -> bool
-  val any_path : t -> int list -> (v list list * int) option
+  val any_path : ?prefer:int list -> t -> int list -> (v list list * int) option
   val any_n_paths : t -> ?len:int -> int -> v list list
   val any_n_paths_range : t -> ?len:int -> int -> v list list
   val all_paths_of_len : t -> ?limit:int -> int -> v list list
@@ -1623,9 +1623,12 @@ struct
     |> remove_unreachable_from_final
   ;;
 
-  let any_path ?nozero (nfa : t) vars =
+  let any_path ?nozero ?(prefer = []) (nfa : t) vars =
     let transitions = nfa.transitions in
     let nozero = nozero |> Option.value ~default:false in
+    let key_order =
+      prefer @ (List.init nfa.deg Fun.id |> List.filter (fun i -> not (List.mem i prefer)))
+    in
     (*let q =
       let visited = Array.make (length nfa) false in
       let rec dfs len q =
@@ -1658,7 +1661,27 @@ struct
           else begin
             visited.(hd) <- true;
             let new_paths =
-              Array.get transitions hd |> List.map (fun part -> part :: path)
+              (* Expand cheapest symbols first: BFS already finds a path of
+                 minimal length, and with children visited in ascending label
+                 order the first accepting path is also the lexicographically
+                 smallest one read from the start side. On Msb automata the
+                 start side holds the most significant digits, so this picks
+                 the numerically smallest value of the minimal digit width --
+                 a model for [str.len x >= 1000] comes out as ~1000, not as an
+                 arbitrary four-digit number like 9001. The [prefer] tracks
+                 are compared first: the semenov reconstruction later commits
+                 to the values these tracks decode to (each eliminated power
+                 layer re-expands into a path piece exactly that long), so
+                 they must win the tie-break over ordinary variables. *)
+              Array.get transitions hd
+              |> (if List.is_empty vars && List.is_empty prefer
+                  then Fun.id
+                  else
+                    List.sort (fun (l1, _) (l2, _) ->
+                      Stdlib.compare
+                        (List.map (Label.get l1) key_order)
+                        (List.map (Label.get l2) key_order)))
+              |> List.map (fun part -> part :: path)
             in
             let path' =
               List.find_opt
@@ -2515,9 +2538,9 @@ module Msb (Label : L) = struct
     | false, other -> nfa |> minimize_strong |> shrink
   ;;
 
-  let any_path nfa =
+  let any_path ?prefer nfa =
     Debug.dump_nfa ~msg:"ANY PATH INPUT: %s" format_nfa nfa;
-    any_path ~nozero:true nfa
+    any_path ~nozero:true ?prefer nfa
   ;;
 
   let run nfa = any_path nfa [] |> Option.is_some
