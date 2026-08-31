@@ -971,16 +971,9 @@ struct
           | SReg (atom, re) when Map.mem map atom -> Ir.true_
           | SRegRaw (atom, re) when Map.mem map atom -> Ir.true_
           | SLen (atom, atom') when is_exp atom' && filter atom' ->
-            (* The exponent's value [v] is known (and [good], so it fits an
-               int): pin the string's length directly. Routing it through a
-               fresh variable equal to [base^v] -- the value the [strlen]
-               relation speaks -- builds a digit-chain automaton of [v]
-               states for the constant alone, which for v in the thousands
-               blows the product past every size limit and lost the model
-               entirely (see tests/short-model.t). All pins are gathered
-               into ONE [SLenConst] atom below: separate per-string chains
-               do not synchronize in the product (any pair of progress
-               counters is reachable), which is quadratic again. *)
+            (* Pin the known length directly: a fresh var equal to base^v
+               is a v-state constant automaton that blows the product. One
+               joint SLenConst below -- separate chains multiply. *)
             let v = get_val map (get_exp atom') in
             pinned := (atom, Z.to_int v) :: !pinned;
             Ir.true_
@@ -1086,13 +1079,8 @@ struct
           ir
           |> eval_semenov
                (fun s order nfa model ->
-                  (* Fix the exponents of the eliminated layers to their
-                     smallest admissible values first: the reconstruction in
-                     [combine_model_pieces] later re-expands every layer with
-                     a path piece exactly as long as the value chosen here,
-                     so an arbitrary pick (this automaton no longer ties a
-                     value's digit width to the strlen it once bounded)
-                     inflates the model or overruns -huge outright. *)
+                  (* Minimize the eliminated exponents first: each layer
+                     re-expands into a path piece exactly that long. *)
                   let prefer =
                     List.rev order
                     |> List.filter_map (function

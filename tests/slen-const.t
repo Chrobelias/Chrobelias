@@ -1,16 +1,8 @@
-Regression suite for the [SLenConst] length pinning in string model
-reconstruction (see also tests/short-model.t). Once the eliminated
-exponent values are known, the residual re-solve pins every string's
-length through one joint linear-chain automaton instead of a fresh
-variable equal to 10^length. Each test validates the produced model
-in-place: the length arithmetic and the regex membership are checked by
-awk on the actual model, so a wrong reconstruction fails loudly rather
-than by eyeballing thousand-character strings.
+SLenConst regression suite: reconstruction pins string lengths through
+one joint chain automaton (see tests/short-model.t). Each model is
+validated in-place by awk -- lengths and regex membership.
 
-Two strings under a rigid length coupling. The joint chain must hold
-their end-anchored offset (separate per-string chains would not
-synchronize in the product); the regexes force len y = 0 (mod 3) and
-len x even on top of the coupling.
+Two strings under a rigid length coupling.
 
   $ cat > t1.smt2 <<-EOF
   > (set-logic QF_SLIA)
@@ -37,11 +29,9 @@ len x even on top of the coupling.
   y len: 2004 regex-ok
   len x = len y + 6: yes
 
-A run of a single repeated character. This guards the chain's all-eos
-boundary step: the Msb invariant closure shortcuts equal-label runs
-hanging off the start state, so a chain whose char steps were
-start-adjacent would let "999...9" skip positions and print a string
-shorter than the pinned length.
+A run of one repeated character guards the chain's all-eos boundary
+step: without it the start-state closure collapses equal-label runs
+and the model comes out short.
 
   $ cat > t2.smt2 <<-EOF
   > (set-logic QF_SLIA)
@@ -60,9 +50,7 @@ shorter than the pinned length.
   sat (nfa)
   x len: 1000 all-nines
 
-Three strings sharing one chain, one of them pinned to length zero (the
-empty string is the n = 0 edge of the joint automaton and must not
-disturb the others' offsets).
+Three strings sharing one chain, one pinned to length zero.
 
   $ cat > t3.smt2 <<-EOF
   > (set-logic QF_SLIA)

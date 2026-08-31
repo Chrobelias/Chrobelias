@@ -1661,18 +1661,9 @@ struct
           else begin
             visited.(hd) <- true;
             let new_paths =
-              (* Expand cheapest symbols first: BFS already finds a path of
-                 minimal length, and with children visited in ascending label
-                 order the first accepting path is also the lexicographically
-                 smallest one read from the start side. On Msb automata the
-                 start side holds the most significant digits, so this picks
-                 the numerically smallest value of the minimal digit width --
-                 a model for [str.len x >= 1000] comes out as ~1000, not as an
-                 arbitrary four-digit number like 9001. The [prefer] tracks
-                 are compared first: the semenov reconstruction later commits
-                 to the values these tracks decode to (each eliminated power
-                 layer re-expands into a path piece exactly that long), so
-                 they must win the tie-break over ordinary variables. *)
+              (* Sorted expansion makes the first BFS hit the lex-smallest
+                 shortest path (numerically smallest on Msb); the [prefer]
+                 tracks win the tie-break. *)
               Array.get transitions hd
               |> (if List.is_empty vars && List.is_empty prefer
                   then Fun.id
