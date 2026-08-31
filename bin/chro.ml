@@ -1350,14 +1350,8 @@ let () =
       | Sat (_, (_, env, get_model, regexes)) ->
         sat_found := true;
         let tys = merge_tys state in
-        (* The retry cap of the shrinking re-solve must never sit below a
-           length the formula itself demands: shrinking to
-           [huge_const_for_model () = 120] against an explicit
-           [str.len x >= 1000] manufactures an unsat re-solve and the
-           misleading "no short model" on instances with plenty of short
-           models. Direct lower bounds are read off syntactically; bounds
-           reachable only through length arithmetic get headroom from the
-           multiplier. *)
+        (* Never cap the retry below a length the formula itself demands,
+           or the re-solve is unsat by construction. *)
         let retry_len =
           let floor =
             Ast.fold

@@ -1,11 +1,6 @@
-Model extraction prefers the numerically smallest witness: the BFS in
-Nfa.any_path expands cheap symbols first, so among the shortest accepting
-paths the lexicographically (and on Msb automata numerically) smallest one
-wins. Before this, a length-bounded variable got an arbitrary value of the
-minimal digit width -- the StrRElnc long benchmarks printed ~9000-character
-models for a 1000-character bound, and the shrinking fallback's retry cap
-of 120 then contradicted the explicit [str.len >= 1000], reporting the
-misleading "no short model" on instances with plenty of short models.
+Model extraction prefers the numerically smallest witness (sorted BFS in
+Nfa.any_path); the StrRElnc long benchmarks used to print ~9000-character
+models for a 1000-character bound, or "no short model" outright.
 
 A 1000-character length bound yields a near-minimal model, not one
 inflated to the -huge cap:
@@ -23,15 +18,10 @@ inflated to the -huge cap:
   sat (nfa)
   model length: 1001
 
-A formerly failing case (StrRElnc/REln/long benchmark_long_v2_w02_n01):
-the string rebuild used to pin each length by encoding the constant
-10^5031 into an automaton, which exceeded every size limit, and the
-answer was sat followed by "no short model found (nfa)" -- even though
-the witness x = ("971")^1677, y = ("73")^500 is accepted as a ground
-model by both z3 and cvc5. The lengths are now pinned by a single
-SLenConst chain (one joint automaton for all pinned strings; separate
-per-string chains do not synchronize in the product), and the minimal
-model comes out.
+Formerly failing (StrRElnc/REln/long benchmark_long_v2_w02_n01): the
+rebuild encoded each length as a 10^5031 constant automaton and gave up
+with "no short model found (nfa)". Lengths are now pinned by a single
+SLenConst chain and the minimal model comes out.
 
   $ cat > gap.smt2 <<-EOF
   > (set-logic QF_SLIA)

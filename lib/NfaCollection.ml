@@ -580,28 +580,18 @@ module MsbStr (B : Nfa.Base) = struct
     else (
       let lens = List.map snd specs in
       let maxn = List.fold_left max 0 lens in
-      (* State [s]: the longest string has consumed [s] characters. Msb
-       strings are end-anchored (chars run to the word end behind the eos
-       padding), so their mutual offsets are rigid: one linear chain of
-       [maxn] steps replaces the quadratic product of per-string chains
-       that made the reconstruction blow past the size limit. A string of
-       length [n] is still padding while [s < maxn - n]. *)
+      (* One joint chain pins every string at once: Msb strings are
+         end-anchored, so their offsets are rigid, while separate chains
+         multiply in the product. *)
       let rec combos = function
         | [] -> [ [] ]
         | `Any :: tl ->
           List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
         | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
       in
-      (* Chain position [p] lives in state [p + 1]: state 0 is the padding
-         loop, and the only way into the chain is the all-eos boundary step
-         0 -> 1. The Msb invariant closure shortcuts equal-label runs that
-         start AT the start state -- char steps hanging directly off the
-         start would let a run of equal characters skip chain positions and
-         void the length pin (observed: a 5031-pin accepting a ~1000-char
-         string zero-padded by the printer). Behind the eos boundary the
-         char runs are not start-adjacent, so the closure only ever adds
-         harmless pad-to-boundary jumps, exactly like [strlen]'s own
-         eos-labelled boundary. *)
+      (* The all-eos boundary step 0 -> 1 keeps char runs off the start
+         state, whose invariant closure collapses equal-label runs and
+         would void the pin. *)
       let step p =
         lens
         |> List.map (fun n -> if p >= maxn - n then `Any else `Eos)
@@ -835,28 +825,18 @@ module MsbStrBv (B : Nfa.Base) = struct
     else (
       let lens = List.map snd specs in
       let maxn = List.fold_left max 0 lens in
-      (* State [s]: the longest string has consumed [s] characters. Msb
-       strings are end-anchored (chars run to the word end behind the eos
-       padding), so their mutual offsets are rigid: one linear chain of
-       [maxn] steps replaces the quadratic product of per-string chains
-       that made the reconstruction blow past the size limit. A string of
-       length [n] is still padding while [s < maxn - n]. *)
+      (* One joint chain pins every string at once: Msb strings are
+         end-anchored, so their offsets are rigid, while separate chains
+         multiply in the product. *)
       let rec combos = function
         | [] -> [ [] ]
         | `Any :: tl ->
           List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
         | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
       in
-      (* Chain position [p] lives in state [p + 1]: state 0 is the padding
-         loop, and the only way into the chain is the all-eos boundary step
-         0 -> 1. The Msb invariant closure shortcuts equal-label runs that
-         start AT the start state -- char steps hanging directly off the
-         start would let a run of equal characters skip chain positions and
-         void the length pin (observed: a 5031-pin accepting a ~1000-char
-         string zero-padded by the printer). Behind the eos boundary the
-         char runs are not start-adjacent, so the closure only ever adds
-         harmless pad-to-boundary jumps, exactly like [strlen]'s own
-         eos-labelled boundary. *)
+      (* The all-eos boundary step 0 -> 1 keeps char runs off the start
+         state, whose invariant closure collapses equal-label runs and
+         would void the pin. *)
       let step p =
         lens
         |> List.map (fun n -> if p >= maxn - n then `Any else `Eos)
@@ -1077,28 +1057,18 @@ module MsbNatStr (B : Nfa.Base) = struct
     else (
       let lens = List.map snd specs in
       let maxn = List.fold_left max 0 lens in
-      (* State [s]: the longest string has consumed [s] characters. Msb
-       strings are end-anchored (chars run to the word end behind the eos
-       padding), so their mutual offsets are rigid: one linear chain of
-       [maxn] steps replaces the quadratic product of per-string chains
-       that made the reconstruction blow past the size limit. A string of
-       length [n] is still padding while [s < maxn - n]. *)
+      (* One joint chain pins every string at once: Msb strings are
+         end-anchored, so their offsets are rigid, while separate chains
+         multiply in the product. *)
       let rec combos = function
         | [] -> [ [] ]
         | `Any :: tl ->
           List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
         | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
       in
-      (* Chain position [p] lives in state [p + 1]: state 0 is the padding
-         loop, and the only way into the chain is the all-eos boundary step
-         0 -> 1. The Msb invariant closure shortcuts equal-label runs that
-         start AT the start state -- char steps hanging directly off the
-         start would let a run of equal characters skip chain positions and
-         void the length pin (observed: a 5031-pin accepting a ~1000-char
-         string zero-padded by the printer). Behind the eos boundary the
-         char runs are not start-adjacent, so the closure only ever adds
-         harmless pad-to-boundary jumps, exactly like [strlen]'s own
-         eos-labelled boundary. *)
+      (* The all-eos boundary step 0 -> 1 keeps char runs off the start
+         state, whose invariant closure collapses equal-label runs and
+         would void the pin. *)
       let step p =
         lens
         |> List.map (fun n -> if p >= maxn - n then `Any else `Eos)
@@ -1229,28 +1199,18 @@ module MsbNatStrBv (B : Nfa.Base) = struct
     else (
       let lens = List.map snd specs in
       let maxn = List.fold_left max 0 lens in
-      (* State [s]: the longest string has consumed [s] characters. Msb
-       strings are end-anchored (chars run to the word end behind the eos
-       padding), so their mutual offsets are rigid: one linear chain of
-       [maxn] steps replaces the quadratic product of per-string chains
-       that made the reconstruction blow past the size limit. A string of
-       length [n] is still padding while [s < maxn - n]. *)
+      (* One joint chain pins every string at once: Msb strings are
+         end-anchored, so their offsets are rigid, while separate chains
+         multiply in the product. *)
       let rec combos = function
         | [] -> [ [] ]
         | `Any :: tl ->
           List.concat_map (fun c -> List.map (fun rest -> c :: rest) (combos tl)) alpha
         | `Eos :: tl -> List.map (fun rest -> Str.u_eos :: rest) (combos tl)
       in
-      (* Chain position [p] lives in state [p + 1]: state 0 is the padding
-         loop, and the only way into the chain is the all-eos boundary step
-         0 -> 1. The Msb invariant closure shortcuts equal-label runs that
-         start AT the start state -- char steps hanging directly off the
-         start would let a run of equal characters skip chain positions and
-         void the length pin (observed: a 5031-pin accepting a ~1000-char
-         string zero-padded by the printer). Behind the eos boundary the
-         char runs are not start-adjacent, so the closure only ever adds
-         harmless pad-to-boundary jumps, exactly like [strlen]'s own
-         eos-labelled boundary. *)
+      (* The all-eos boundary step 0 -> 1 keeps char runs off the start
+         state, whose invariant closure collapses equal-label runs and
+         would void the pin. *)
       let step p =
         lens
         |> List.map (fun n -> if p >= maxn - n then `Any else `Eos)
@@ -1976,15 +1936,9 @@ module LsbStr (B : Nfa.Base) = struct
     else (
       let lens = List.map snd specs in
       let maxn = List.fold_left max 0 lens in
-      (* CAVEAT: the Lsb invariant closure extends the start set along
-       zero-labelled runs, so a pinned string whose model starts with '0'
-       characters can skip chain positions; extraction-only machinery, and
-       the Msb pipeline is the one the string benchmarks exercise. *)
-      (* State [s]: [s] characters consumed. Lsb strings are start-anchored
-       (chars first, eos padding trails), so their mutual offsets are
-       rigid: one linear chain of [maxn] steps replaces the quadratic
-       product of per-string chains. A string of length [n] is done once
-       [s >= n]. *)
+      (* Joint chain, start-anchored. CAVEAT: the Lsb closure follows
+         zero-labelled runs from the start, so models beginning with '0'
+         can skip positions. *)
       let rec combos = function
         | [] -> [ [] ]
         | `Any :: tl ->
@@ -2262,15 +2216,9 @@ module LsbStrBv (B : Nfa.Base) = struct
     else (
       let lens = List.map snd specs in
       let maxn = List.fold_left max 0 lens in
-      (* CAVEAT: the Lsb invariant closure extends the start set along
-       zero-labelled runs, so a pinned string whose model starts with '0'
-       characters can skip chain positions; extraction-only machinery, and
-       the Msb pipeline is the one the string benchmarks exercise. *)
-      (* State [s]: [s] characters consumed. Lsb strings are start-anchored
-       (chars first, eos padding trails), so their mutual offsets are
-       rigid: one linear chain of [maxn] steps replaces the quadratic
-       product of per-string chains. A string of length [n] is done once
-       [s >= n]. *)
+      (* Joint chain, start-anchored. CAVEAT: the Lsb closure follows
+         zero-labelled runs from the start, so models beginning with '0'
+         can skip positions. *)
       let rec combos = function
         | [] -> [ [] ]
         | `Any :: tl ->
