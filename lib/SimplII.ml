@@ -4741,7 +4741,6 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
 
 let eliminate_existence_quantifier (ast : Ast.t) : Ast.t =
   let open Ast in
-  let (module TS) = make_main_symantics Env.empty in
   let branches = eliminate_existence_quantifier_branches ast in
   List.of_seq branches |> List.map (fun x -> land_ x) |> lor_
 ;;
@@ -4800,7 +4799,6 @@ let is_linear_constraint = function
 let simplify_quantifiers (ast : Ast.t) =
   let open Ast in
   let rec aux = function
-    | True -> True
     | Ast.Exists (_, ast) as eq when is_linear_system ast ->
       eliminate_existence_quantifier eq
     | Ast.Exists (atoms, ast) when is_linear_constraint ast ->

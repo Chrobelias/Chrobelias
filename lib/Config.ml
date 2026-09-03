@@ -282,9 +282,6 @@ Basic options:
     ; ( "--qelim"
       , Arg.Unit (fun () -> config.simpl_quantifier_elim <- true)
       , "\tApply quantifier elimination for linear systems" )
-    ; ( "--no-qelim"
-      , Arg.Unit (fun () -> config.simpl_quantifier_elim <- false)
-      , "\tDon't use quantifier elimination" )
     ; ( "--over-nfa"
       , Arg.Unit (fun () -> config.over_nfa <- true)
       , "\tOverapproximate orderings within the NFA Solver" )
