@@ -36,7 +36,7 @@
     iter(1)= (and
              (= (+ (- 42) %r1) 0)
              (<= (* (- 1) (str.to.int x)) 0)
-             (= (mod (+ (str.to.int x) (* (- 1) %r1)) 11111) 0)
+             (divides 11111 (+ (str.to.int x) (* (- 1) %r1)))
              (<= (+ (- 11110) %r1) 0)
              (<= (* (- 1) %r1) 0))
   [+simpl]
@@ -49,20 +49,20 @@
   [+simpl]
     iter(2)= (and
              (= (+ (- 42) %r1) 0)
-             (= (mod (+ (* (- 1) %r1) (str.to.int x)) 11111) 0)
+             (divides 11111 (+ (* (- 1) %r1) (str.to.int x)))
              (<= (+ (- 11110) %r1) 0)
              (<= (* (- 1) %r1) 0)
              (<= (* (- 1) (str.to.int x)) 0))
   [+simpl]
     iter(3)= (and
-             (= (mod (+ (- 42) (str.to.int x)) 11111) 0)
+             (divides 11111 (+ (- 42) (str.to.int x)))
              (<= (* (- 1) (str.to.int x)) 0))
   [+simpl]
     fixed-point
   
   [+simpl]
     iter(0)= (and
-             (= (mod (+ (- 42) (str.to.int x)) 11111) 0)
+             (divides 11111 (+ (- 42) (str.to.int x)))
              (<= (* (- 1) (str.to.int x)) 0))
   [+simpl]
     Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
@@ -75,7 +75,7 @@
   
   [+simpl]
     iter(1)= (and
-             (= (mod (+ (- 42) x) 11111) 0)
+             (divides 11111 (+ (- 42) x))
              (<= (* (- 1) x) 0))
   [+simpl]
     Alphabet with extra char: 0
@@ -93,7 +93,7 @@
 $ cat 1.smt2
   $ CHRO_DEBUG=simpl Chro -no-over -bound 0  --dpresimpl --stop-after pre-simpl 1.smt2 | sed 's/[[:space:]]*$//'
   [+simpl]
-    iter(1)= (= (mod (mod (str.to.int x) 442271) 417677) 0)
+    iter(1)= (divides 417677 (mod (str.to.int x) 442271))
   [+simpl]
     Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
@@ -101,7 +101,7 @@ $ cat 1.smt2
     fixed-point
   
   [+simpl]
-    iter(0)= (= (mod (mod (str.to.int x) 442271) 417677) 0)
+    iter(0)= (divides 417677 (mod (str.to.int x) 442271))
   [+simpl]
     Alphabet with extra char:   0 1 2 3 4 5 6 7 8 9
   
@@ -109,7 +109,7 @@ $ cat 1.smt2
     fixed-point
   
   [+simpl]
-    iter(0)= (= (mod (mod @stoix 442271) 417677) 0)
+    iter(0)= (divides 417677 (mod @stoix 442271))
   [+simpl]
     Alphabet with extra char: 0
   
@@ -123,10 +123,10 @@ $ cat 1.smt2
     iter(1)= (and
              (= %r2 0)
              (<= (* (- 1) (str.to.int x)) 0)
-             (= (mod (+ %r1 (* (- 1) %r2)) 417677) 0)
+             (divides 417677 (+ %r1 (* (- 1) %r2)))
              (<= (+ (- 417676) %r2) 0)
              (<= (* (- 1) %r2) 0)
-             (= (mod (+ (str.to.int x) (* (- 1) %r1)) 442271) 0)
+             (divides 442271 (+ (str.to.int x) (* (- 1) %r1)))
              (<= (+ (- 442270) %r1) 0)
              (<= (* (- 1) %r1) 0))
   [+simpl]
@@ -139,8 +139,8 @@ $ cat 1.smt2
   [+simpl]
     iter(2)= (and
              (= %r2 0)
-             (= (mod (+ %r1 (* (- 1) %r2)) 417677) 0)
-             (= (mod (+ (* (- 1) %r1) (str.to.int x)) 442271) 0)
+             (divides 417677 (+ %r1 (* (- 1) %r2)))
+             (divides 442271 (+ (* (- 1) %r1) (str.to.int x)))
              (<= (+ (- 442270) %r1) 0)
              (<= (+ (- 417676) %r2) 0)
              (<= (* (- 1) %r1) 0)
@@ -148,8 +148,8 @@ $ cat 1.smt2
              (<= (* (- 1) (str.to.int x)) 0))
   [+simpl]
     iter(3)= (and
-             (= (mod %r1 417677) 0)
-             (= (mod (+ (* (- 1) %r1) (str.to.int x)) 442271) 0)
+             (divides 417677 %r1)
+             (divides 442271 (+ (* (- 1) %r1) (str.to.int x)))
              (<= (+ (- 442270) %r1) 0)
              (<= (* (- 1) %r1) 0)
              (<= (* (- 1) (str.to.int x)) 0))
@@ -158,8 +158,8 @@ $ cat 1.smt2
   
   [+simpl]
     iter(0)= (and
-             (= (mod %r1 417677) 0)
-             (= (mod (+ (* (- 1) %r1) (str.to.int x)) 442271) 0)
+             (divides 417677 %r1)
+             (divides 442271 (+ (* (- 1) %r1) (str.to.int x)))
              (<= (+ (- 442270) %r1) 0)
              (<= (* (- 1) %r1) 0)
              (<= (* (- 1) (str.to.int x)) 0))
@@ -174,8 +174,8 @@ $ cat 1.smt2
   
   [+simpl]
     iter(1)= (and
-             (= (mod %r1 417677) 0)
-             (= (mod (+ (* (- 1) %r1) x) 442271) 0)
+             (divides 417677 %r1)
+             (divides 442271 (+ (* (- 1) %r1) x))
              (<= (* (- 1) x) 0)
              (<= (+ (- 442270) %r1) 0)
              (<= (* (- 1) %r1) 0))
@@ -184,8 +184,8 @@ $ cat 1.smt2
   
   [+simpl]
     iter(2)= (and
-             (= (mod %r1 417677) 0)
-             (= (mod (+ (* (- 1) %r1) x) 442271) 0)
+             (divides 417677 %r1)
+             (divides 442271 (+ (* (- 1) %r1) x))
              (<= (+ (- 442270) %r1) 0)
              (<= (* (- 1) %r1) 0)
              (<= (* (- 1) x) 0))
@@ -193,8 +193,8 @@ $ cat 1.smt2
     fixed-point
   
   (and
-    (= (mod %r1 417677) 0)
-    (= (mod (+ (* (- 1) %r1) x) 442271) 0)
+    (divides 417677 %r1)
+    (divides 442271 (+ (* (- 1) %r1) x))
     (<= (+ (- 442270) %r1) 0)
     (<= (* (- 1) %r1) 0)
     (<= (* (- 1) x) 0))
