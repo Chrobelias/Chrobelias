@@ -278,7 +278,7 @@ Basic options:
       , "\tDon't try simplifications based on alpha-equivalence" )
     ; ( "--alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- true)
-         , "\tDO simplifications based on alpha-equivalence" ) *)
+      , "\tDO simplifications based on alpha-equivalence" ) *)
     ; ( "--qelim"
       , Arg.Unit (fun () -> config.simpl_quantifier_elim <- true)
       , "\tApply quantifier elimination for linear systems" )
