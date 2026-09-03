@@ -4458,6 +4458,12 @@ let get_mod_phi_of_system =
     Z.one
 ;;
 
+let first_n_numbers z =
+  let last = Z.(z - one) in
+  let rec aux i acc = if i > last then List.rev acc else aux Z.(i + one) (i :: acc) in
+  aux Z.zero []
+;;
+
 let var_exists varname conj =
   List.exists
     (function
@@ -4632,9 +4638,7 @@ let eliminate_one_var conj varname subst p l =
     let l = coeff in
     let slacks = slack_vars_in_term subst tau in
     let mod_phi = get_mod_phi_of_system conj in
-    let possible_vals =
-      List.init (Z.to_int Z.(Z.abs coeff * mod_phi)) Z.of_int |> List.to_seq
-    in
+    let possible_vals = first_n_numbers Z.(Z.abs coeff * mod_phi) |> List.to_seq in
     let* subst =
       if slacks = []
       then return subst
@@ -4653,7 +4657,6 @@ let eliminate_one_var conj varname subst p l =
       conj
       |> List.map (multiply_constraint_by_int coeff)
       |> List.map (substitute_vigorous_constraint varname coeff tau)
-      (* |> List.map (divide_constraint_by_p p) *)
       |> fun x -> divides (Z.abs coeff) tau :: x |> List.map (apply_symantics (module TS))
     in
     return (conj, subst, p, l)
@@ -4714,7 +4717,7 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
       in
       let branch = List.map (subst_eia subst) branch in
       let mod_phi = get_mod_phi_of_system branch in
-      let possible_vals = List.init (Z.to_int mod_phi) Z.of_int |> List.to_seq in
+      let possible_vals = first_n_numbers mod_phi |> List.to_seq in
       let rec loop env phi = function
         | [] -> return env
         | h :: tl when var_exists h phi ->
