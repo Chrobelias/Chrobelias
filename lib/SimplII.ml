@@ -4743,12 +4743,21 @@ let rec multiply_constraint_by_int int =
   | x -> x
 ;;
 
+let print_ph_list ?(margin = 160) ?(max_indent = 160) ?(buffer_size = 1024) pp lst =
+  let buf = Buffer.create buffer_size in
+  let fmt = Format.formatter_of_buffer buf in
+  Format.pp_set_margin fmt margin;
+  Format.pp_set_max_indent fmt max_indent;
+  List.iter (Format.fprintf fmt "%a\n" pp) lst;
+  Format.pp_print_flush fmt ();
+  print_string (Buffer.contents buf)
+;;
+
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test a ph_list =
     let ph_list = List.map (multiply_constraint_by_int a) ph_list in
-    let _ = List.map (Format.printf "%a\n" Ast.pp) ph_list in
-    ()
+    print_ph_list Ast.pp ph_list
   in
   let ph =
     TS.
@@ -4760,10 +4769,10 @@ let%expect_test _ =
   test (Z.of_int 5) ph;
   [%expect
     {|
-    (= (+ (* y 5) (* (* 2 x) 5)) 5)
-    (= (+ (* x 5) (* z 5) (* (* 2 y) 5)) 15)
+    (= (+ (* (- 1) 5) (* (* 2 x) 5) (* y 5)) 0)
+    (= (+ (* (- 3) 5) (* x 5) (* (* 2 y) 5) (* z 5)) 0)
 
-    (= (+ (* y 5) (* (* 2 z) 5)) 15)
+    (= (+ (* (- 3) 5) (* y 5) (* (* 2 z) 5)) 0)
     |}]
 ;;
 
@@ -4825,11 +4834,13 @@ let substitute_vigorous_constraint varname coeff tau ast =
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ph_list a tau x =
-    let ph_list = List.map (multiply_constraint_by_int a) ph_list in
-    let ph_list = List.map (substitute_vigorous_constraint x a tau) ph_list in
-    let ph_list = List.map (apply_symantics (module TS)) ph_list in
-    let _ = List.map (Format.printf "%a\n" Ast.pp) ph_list in
-    ()
+    let ph_list =
+      ph_list
+      |> List.map (multiply_constraint_by_int a)
+      |> List.map (substitute_vigorous_constraint x a tau)
+      |> List.map (apply_symantics (module TS))
+    in
+    print_ph_list Ast.pp ph_list
   in
   let ph =
     TS.
@@ -4842,8 +4853,8 @@ let%expect_test _ =
   [%expect
     {|
     True
-    (= (+ (* 2 z) (* 3 y)) 5)
-    (= (+ (* 2 y) (* 4 z)) 6)
+    (= (+ (- 5) (* 2 z) (* 3 y)) 0)
+    (= (+ (- 6) (* 2 y) (* 4 z)) 0)
     |}]
 ;;
 
@@ -4866,9 +4877,8 @@ let introduce_slacks conjs =
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ph_list =
-    let slack, ph = introduce_slacks ph_list in
-    let _ = List.map (Format.printf "%a\n" Ast.pp) ph in
-    ()
+    let _, ph = introduce_slacks ph_list in
+    print_ph_list Ast.pp ph
   in
   let ph =
     TS.
@@ -4880,13 +4890,10 @@ let%expect_test _ =
   test ph;
   [%expect
     {|
-    (= (+ (+ y (* 2 x)) _slack_1) 1)
-    (= (+ (+ x z (* 2 y)) _slack_2) 3)
-    (=
-                                                                        (+
-                                                                        (+ y
-                                                                        (* 2 z))
-                                                                        _slack_3) 3)
+    (= (+ (- 1) (* 2 x) y _slack_1) 0)
+    (= (+ (- 3) x (* 2 y) z _slack_2) 0)
+
+    (= (+ (- 3) y (* 2 z) _slack_3) 0)
     |}]
 ;;
 
@@ -5042,9 +5049,7 @@ let%expect_test _ =
           | _ -> assert false)
         ph_list
     in
-    Format.printf "Found:\n";
-    let _ = List.map (Format.printf "%s\n") found in
-    ()
+    print_ph_list Format.pp_print_string found
   in
   let ph =
     TS.
@@ -5056,10 +5061,9 @@ let%expect_test _ =
   test ph;
   [%expect
     {|
-   Found:
-   _slack_2
-   _slack_3
-   |}]
+    _slack_2
+    _slack_3
+    |}]
 ;;
 
 let eliminate_one_var conj varname subst p l =
@@ -5195,11 +5199,13 @@ let eliminate_existence_quantifier (ast : Ast.t) : Ast.t =
 let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ph_list a x tau =
-    let ph_list = List.map (multiply_constraint_by_int a) ph_list in
-    let ph_list = List.map (substitute_vigorous_constraint x a tau) ph_list in
-    let ph_list = List.map (apply_symantics (module TS)) ph_list in
-    let _ = List.map (Format.printf "%a\n" Ast.pp) ph_list in
-    ()
+    let ph_list =
+      ph_list
+      |> List.map (multiply_constraint_by_int a)
+      |> List.map (substitute_vigorous_constraint x a tau)
+      |> List.map (apply_symantics (module TS))
+    in
+    print_ph_list Ast.pp ph_list
   in
   let ph = TS.[ add [ mul [ const (-1); var "x0" ] ] = const (-55) ] in
   let tau =
@@ -5209,7 +5215,7 @@ let%expect_test _ =
       ]
   in
   test ph (Z.of_int 4) "x0" tau;
-  [%expect {| (= (* (- 1) x1) (- 3)) |}]
+  [%expect {| (= (+ 3 (* (- 1) x1)) 0) |}]
 ;;
 
 let rec is_linear_term =
@@ -5276,8 +5282,8 @@ let%expect_test _ =
   test ph;
   [%expect
     {|
-    (((divides 1 55) & (= x1 3)) | ((divides 4 (+ (- 217) (* (- 1) x1))) &
-    (= (* (- 1) x1) (- 3))))
+    ((= (+ (- 3) x1) 0) | ((divides 4 (+ (- 217) (* (- 1) x1))) & (= (+ 3
+                                                                     (* (- 1) x1)) 0)))
     |}]
 ;;
 
@@ -5299,11 +5305,7 @@ let%expect_test _ =
             ] ))
   in
   test ph;
-  [%expect
-    {|
-    (((divides 1 12) & (divides -1 (+ (- 22) x1))) | ((divides 1 (- 12)) &
-    (divides 4 (+ 76 (* (- 3) x1)))))
-    |}]
+  [%expect {| True |}]
 ;;
 
 let%expect_test _ =
@@ -5323,10 +5325,7 @@ let%expect_test _ =
   in
   test ph;
   [%expect
-    {|
-    (((divides 1 (- 6)) & (= x1 53)) | ((divides 4 (+ (- 29) x1)) & (= (* (- 1)
-                                                                       x1) (- 53))))
-    |}]
+    {| ((= (+ (- 53) x1) 0) | ((divides 4 (+ (- 29) x1)) & (= (+ 53 (* (- 1) x1)) 0))) |}]
 ;;
 
 let%expect_test _ =
@@ -5346,10 +5345,7 @@ let%expect_test _ =
   in
   test ph;
   [%expect
-    {|
-    (((divides 1 82) & (= (* (- 1) x1) (- 97))) | ((divides 4 (+ (- 425) x1)) &
-    (= x1 97)))
-    |}]
+    {| ((= (+ 97 (* (- 1) x1)) 0) | ((divides 4 (+ (- 425) x1)) & (= (+ (- 97) x1) 0))) |}]
 ;;
 
 let%expect_test _ =
@@ -5370,9 +5366,5 @@ let%expect_test _ =
             ] ))
   in
   test ph;
-  [%expect
-    {|
-    (((divides 1 (- 90)) & (divides 1 (+ 285 (* (- 3) x1)))) | ((divides 1 90) &
-    (divides -2 (+ (- 660) (* 7 x1)))))
-    |}]
+  [%expect {| True |}]
 ;;
