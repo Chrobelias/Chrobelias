@@ -4528,8 +4528,8 @@ let find_var_and_coeff varname =
     then begin
       let (module TS) = make_main_symantics Env.empty in
       let env = Env.extend_int_exn Env.empty varname (const Z.zero) in
-      let rest = subst_term env l in
-      let tau_no_x = TS.(add [ rest; mul [ const (-1); r ] ]) in
+      let tau = TS.(add [ l; mul [ const (-1); r ] ]) in
+      let tau_no_x = subst_term env tau in
       Some (coeff, tau_no_x)
     end
     else None
