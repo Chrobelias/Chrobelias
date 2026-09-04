@@ -470,8 +470,8 @@ struct
   let nfa_for_exponent s var newvar chrob =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
-    let bound_res = Config.config.bound_res in
     let segm c =
+      let bound_res = Config.residue_bound c in
       if bound_res >= 0 && bound_res < c
       then (
         Config.bounded_unsat := true;
