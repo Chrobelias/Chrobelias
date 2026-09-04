@@ -606,6 +606,9 @@ struct
   let proof_order return project s nfa order =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
+    (* Fresh fuel per ordering attempt: orderings are alternatives, not
+       stages, so a wasteful early order must not starve a later one. *)
+    Config.dyn_refuel ();
     let get_deg = Map.find_exn s.vars in
     let rec helper nfa remaining_order model =
       Debug.trace
