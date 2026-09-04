@@ -1491,60 +1491,18 @@ let () =
       (try
          if config.logic = `Eia && Ast.is_str ast
          then config.logic <- (if config.no_str_bv then `Str else `StrBv);
-         (* Deepening ladder: a truncated attempt (surfacing as a raised
-            [Lics_Underapprox_unsuccessful] or as an Unknown with the
-            truncation mark set) retries with a geometrically larger work
-            budget; the last rung is fully unbounded, preserving the
-            exactness contract. Explicit -bres/-bstates disable climbing
-            except for the pre-existing unbounded retry on the exception. *)
-         Config.dyn_scale := 1;
-         let dyn_active () =
-           config.dyn_bounds && config.bound_res < 0 && config.bound_states < 0
-         in
-         let go_unbounded () =
-           config.bound_res <- -1;
-           config.bound_states <- -1;
-           config.dyn_bounds <- false
-         in
-         (* Non-final rungs run silent; a result accepted early is printed
-            through the same reporting path afterwards. *)
-         let print_final = function
-           | Sat (s, _) -> report_result ~verbose:true (`Sat s)
-           | Unsat (s, _) -> report_result ~verbose:true (`Unsat s)
-           | Unknown _ -> report_result ~verbose:true (`Unknown "nfa")
-         in
-         let rec attempt ~last () =
-           Config.bounded_unsat := false;
-           Config.dyn_refuel ();
-           let climb () =
-             if !Config.dyn_scale < 512
-             then (
-               Config.dyn_scale := !Config.dyn_scale * 8;
-               attempt ~last:false ())
-             else (
-               go_unbounded ();
-               attempt ~last:true ())
-           in
-           match check_sat ~verbose:last state.tys ast with
-           | Unknown _ when (not last) && !Config.bounded_unsat && dyn_active () ->
-             climb ()
-           | rez ->
-             if not last then print_final rez;
-             rez
-           | exception Lics_Underapprox_unsuccessful ->
-             if (not last) && dyn_active ()
-             then climb ()
-             else if
-               config.bound_res >= 0 || config.bound_states >= 0 || config.dyn_bounds
-             then (
-               go_unbounded ();
-               attempt ~last:true ())
-             else raise Lics_Underapprox_unsuccessful
-         in
-         let rez = attempt ~last:(not (dyn_active ())) () in
+         let rez = check_sat ~verbose:true state.tys ast in
          if config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
        with
+       | Lics_Underapprox_unsuccessful ->
+         config.bound_res <- -1;
+         config.bound_states <- -1;
+         config.dyn_bounds <- false;
+         Config.bounded_unsat := false;
+         let rez = check_sat ~verbose:true state.tys ast in
+         if config.check_model then get_model ~noprint:true ast rez;
+         { state with last_result = Some rez }
        | exn ->
          Format.printf "unknown\n%!";
          Format.eprintf
