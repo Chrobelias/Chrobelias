@@ -1067,47 +1067,88 @@ struct
     let sat_if_no_unsupp arg = if had_unsupp then `Unknown else `Sat arg in
     let run_semenov = Ir.collect_vars ir |> Map.keys |> List.exists is_exp in
     if run_semenov
-    then
-      if Config.config.no_model
-      then
-        ir
-        |> eval_semenov
-             (fun _ _ nfa _ -> if NfaNat.run nfa then Some () else None)
-             (fun var nfa -> NfaNat.project [ var ] nfa)
-        |> function
-        | Some _ -> sat_if_no_unsupp (fun () -> Result.error `No_model)
-        | None -> `Unsat
-      else (
-        let res =
+    then (
+      (* The exponent elimination is the only consumer of the dynamic
+         bounds, so the deepening ladder lives right here: a rung that
+         truncated something and proved nothing re-runs this stage alone,
+         while the earlier pipeline stages and any surrounding DPLL search
+         keep their work. The truncation flag is scoped to the stage --
+         marks made by discarded rungs never taint the surrounding solve.
+         An untruncated refutation is exact on any rung; the final rung
+         runs unbounded. This gate also covers the no-model path, which
+         used to report a truncated (unfinished) refutation as unsat. *)
+      let once () =
+        if Config.config.no_model
+        then
           ir
           |> eval_semenov
-               (fun s order nfa model ->
-                  (* Minimize the eliminated exponents first: each layer
-                     re-expands into a path piece exactly that long. *)
-                  let prefer =
-                    List.rev order
-                    |> List.filter_map (function
-                      | Ir.Pow2 v -> Map.find s.vars (Ir.var v)
-                      | _ -> None)
-                  in
-                  match
-                    NfaNat.any_path
-                      ~prefer
-                      nfa
-                      (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
-                  with
-                  | Some path -> Some (s, order, path, model)
-                  | None -> None)
-               (fun _ nfa -> nfa)
-        in
-        begin match res with
-        | None -> if !Config.bounded_unsat then `Unknown else `Unsat
-        | Some (s, order, (model, len), models) ->
-          sat_if_no_unsupp (get_model_semenov ir s order (model, len) models)
-        (* (match get_model_semenov ir s order (model, len) models with
-             | `Cant_get_model -> `Sat (Result.Error `Too_long)
-             | `Ok x -> `Sat (Result.Ok x)) *)
-        end)
+               (fun _ _ nfa _ -> if NfaNat.run nfa then Some () else None)
+               (fun var nfa -> NfaNat.project [ var ] nfa)
+          |> function
+          | Some _ -> sat_if_no_unsupp (fun () -> Result.error `No_model)
+          | None -> if !Config.bounded_unsat then `Gated_unknown else `Unsat
+        else (
+          let res =
+            ir
+            |> eval_semenov
+                 (fun s order nfa model ->
+                    (* Minimize the eliminated exponents first: each layer
+                       re-expands into a path piece exactly that long. *)
+                    let prefer =
+                      List.rev order
+                      |> List.filter_map (function
+                        | Ir.Pow2 v -> Map.find s.vars (Ir.var v)
+                        | _ -> None)
+                    in
+                    match
+                      NfaNat.any_path
+                        ~prefer
+                        nfa
+                        (s.vars |> Map.filter_keys ~f:Ir.is_var |> Map.data)
+                    with
+                    | Some path -> Some (s, order, path, model)
+                    | None -> None)
+                 (fun _ nfa -> nfa)
+          in
+          match res with
+          | None -> if !Config.bounded_unsat then `Gated_unknown else `Unsat
+          | Some (s, order, (model, len), models) ->
+            sat_if_no_unsupp (get_model_semenov ir s order (model, len) models))
+      in
+      let saved_marks = !Config.bounded_unsat in
+      let saved_dyn = Config.config.dyn_bounds in
+      let dyn_active () =
+        Config.config.dyn_bounds
+        && Config.config.bound_res < 0
+        && Config.config.bound_states < 0
+      in
+      let rec rung () =
+        Config.bounded_unsat := false;
+        match once () with
+        | `Gated_unknown when dyn_active () ->
+          if !Config.dyn_scale < 512
+          then (
+            Config.dyn_scale := !Config.dyn_scale * 8;
+            rung ())
+          else (
+            Config.config.dyn_bounds <- false;
+            let r = rung () in
+            Config.config.dyn_bounds <- saved_dyn;
+            r)
+        | rez ->
+          let truncated = !Config.bounded_unsat in
+          (Config.bounded_unsat
+           := saved_marks
+              ||
+                match rez with
+                | `Sat _ -> false
+                | _ -> truncated);
+          (match rez with
+           | `Gated_unknown -> `Unknown
+           | (`Sat _ | `Unsat | `Unknown) as r -> r)
+      in
+      Config.dyn_scale := 1;
+      rung ())
     else (
       let free_vars = Ir.collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
