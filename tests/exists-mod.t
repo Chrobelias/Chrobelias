@@ -155,8 +155,8 @@ quotient track.
   > EOF
   $ Chro --dpresimpl --stop-after presimpl nested.smt2
   (and
-    (= (mod %r1 6) 0)
-    (= (mod (+ (* (- 1) %r1) x) 109) 0)
+    (divides 6 %r1)
+    (divides 109 (+ (* (- 1) %r1) x))
     (<= (+ (- 108) %r1) 0)
     (<= (* (- 1) %r1) 0)
     (<= (* (- 1) x) 0))
