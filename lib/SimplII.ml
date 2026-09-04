@@ -5170,11 +5170,19 @@ let%expect_test _ =
 
 let rec is_linear_term =
   let open Ast.Eia in
+  let has_one_variable xs =
+    let rec aux acc = function
+      | [] -> acc = 1
+      | Atom _ :: xs -> aux (acc + 1) xs
+      | x :: xs -> aux acc xs
+    in
+    aux 0 xs
+  in
   function
   | Const _ -> true
   | Atom _ -> true
   | Add xs -> List.for_all is_linear_term xs
-  | Mul xs -> List.for_all is_linear_term xs
+  | Mul xs -> List.for_all is_linear_term xs && has_one_variable xs
   | Mod (xs, _) -> is_linear_term xs
   | _ -> false
 ;;
@@ -5197,6 +5205,32 @@ let is_linear_constraint = function
   | _ -> false
 ;;
 
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test ph = Format.printf "%b\n" (is_linear_system ph) in
+  let ph0 =
+    TS.(
+      Ast.Land
+        [ add [ mul [ const (-1); var "x0" ] ] = const (-55)
+        ; add [ mul [ const 4; var "x0" ]; mul [ const (-1); var "x1" ] ] = const 217
+        ])
+  in
+  let ph1 =
+    TS.(
+      Ast.Land
+        [ add [ mul [ const (-1); var "x0"; var "x0" ] ] = const (-55)
+        ; add [ mul [ const 4; var "x0" ]; mul [ const (-1); var "x1" ] ] = const 217
+        ])
+  in
+  test ph0;
+  test ph1;
+  [%expect
+    {|
+    true
+    false
+    |}]
+;;
+
 let simplify_quantifiers (ast : Ast.t) =
   let open Ast in
   let rec aux = function
@@ -5217,7 +5251,7 @@ let%expect_test _ =
   let (module TS) = make_main_symantics Env.empty in
   let test ph =
     let set = simplify_quantifiers ph in
-    Format.printf "%a\n" Ast.pp set
+    print_ph_list Ast.pp [ set ]
   in
   let ph =
     TS.(
@@ -5230,10 +5264,7 @@ let%expect_test _ =
   in
   test ph;
   [%expect
-    {|
-    ((= (+ (- 3) x1) 0) | ((divides 4 (+ (- 217) (* (- 1) x1))) & (= (+ 3
-                                                                     (* (- 1) x1)) 0)))
-    |}]
+    {| ((= (+ (- 3) x1) 0) | ((divides 4 (+ (- 217) (* (- 1) x1))) & (= (+ 3 (* (- 1) x1)) 0))) |}]
 ;;
 
 let%expect_test _ =
