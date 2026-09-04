@@ -4277,8 +4277,9 @@ let rec multiply_constraint_by_int int =
       Ast.Eia
         (Eq (Mod (mul [ constz (Z.abs int); t ], Z.(abs (d * int))), constz Z.zero, I)))
   | Ast.Eia (Eq (l, Mod (t, d), I)) ->
-    Ast.Eia
-      (Eq (TS.(mul [ constz int; l ]), Mod (TS.(mul [ constz int; t ]), Z.(d * int)), I))
+    TS.(
+      Ast.Eia
+        (Eq (mul [ constz int; l ], Mod (mul [ constz int; t ], Z.(abs (d * int))), I)))
   | Ast.Eia (Eq (l, r, I)) ->
     Ast.Eia (Eq (TS.(mul [ constz int; l ]), TS.(mul [ constz int; r ]), I))
   | Ast.Eia (Leq (l, r)) when int > Z.zero ->
@@ -4345,7 +4346,6 @@ let coeff_of_var varname term =
         | _ :: _ -> Z.zero
       in
       scan Z.one false flat
-    | Mod (t, _) -> aux t
     | _ -> Z.zero
   in
   aux term
