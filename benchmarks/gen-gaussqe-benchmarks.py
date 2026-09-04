@@ -5,19 +5,12 @@ SMT-LIB Benchmark Generator for LIA Constraints under existence quantifier
 
 """
 
-from random import randint, choice
+from random import randint, choice, seed
+import argparse
+from time import time
 import os
-import sys
 
-num_of_vars = 2
-num_of_coeffs = 5
-num_of_files = 10
-vars_to_eliminate = num_of_vars // 2
-
-max_true_integer_value = 100
-min_true_integer_value = 0
-
-def generate_gl_matrix(n, max_coeff=5):
+def generate_gl_matrix(n, min_coeff, max_coeff):
     """Generates an n x n unimodular matrix (det = +/- 1) using LU style."""
     L = [[0]*n for _ in range(n)]
     U = [[0]*n for _ in range(n)]
@@ -27,8 +20,8 @@ def generate_gl_matrix(n, max_coeff=5):
         U[i][i] = choice([1, -1])
 
         for j in range(i + 1, n):
-            L[j][i] = randint(-max_coeff, max_coeff)
-            U[i][j] = randint(-max_coeff, max_coeff)
+            L[j][i] = randint(min_coeff, max_coeff)
+            U[i][j] = randint(min_coeff, max_coeff)
 
     A = [[0]*n for _ in range(n)]
     for i in range(n):
@@ -45,30 +38,30 @@ def generate_left_side(terms):
     return f"(+ {first_term} {right_term})"
 
 
-def generate_smt2(n_vars, filename, is_sat=True, max_coeff=5):
-    A = generate_gl_matrix(n_vars, max_coeff)
+def generate_smt2(args, filename, is_sat):
+    A = generate_gl_matrix(args.vars, args.min, args.max)
 
-    var_names = [f"x{i}" for i in range(n_vars)]
+    var_names = [f"x{i}" for i in range(args.vars)]
 
-    x_true = [randint(min_true_integer_value, max_true_integer_value) for _ in range(n_vars)]
+    x_true = [randint(args.min, args.max) for _ in range(args.vars)]
 
-    k = [sum(A[i][j] * x_true[j] for j in range(n_vars)) for i in range(n_vars)]
+    k = [sum(A[i][j] * x_true[j] for j in range(args.vars)) for i in range(args.vars)]
 
     lines = []
     lines.append("(set-info :smt-lib-version 2.6)")
     lines.append("(set-logic LIA)")
     lines.append("")
 
-    vars_decl = " ".join(f"({var_names[i]} Int)" for i in range(0, vars_to_eliminate))
-    for i in range(vars_to_eliminate, n_vars):
+    vars_decl = " ".join(f"({var_names[i]} Int)" for i in range(0, args.bounds))
+    for i in range(args.bounds, args.vars):
         lines.append(f"(declare-fun {var_names[i]} () Int)")
 
     lines.append(f"(assert (exists ({vars_decl})")
     lines.append("  (and")
 
-    for i in range(n_vars):
+    for i in range(args.vars):
         terms = []
-        for j in range(n_vars):
+        for j in range(args.vars):
             coeff = A[i][j]
             if coeff == 0:
                 continue
@@ -101,24 +94,32 @@ def generate_smt2(n_vars, filename, is_sat=True, max_coeff=5):
 
 def main():
     """Main function to generate all benchmark combinations."""
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--vars", type=int, required=True, help="Number of vars")
+    parser.add_argument("-n", "--num", type=int, required=True, help="Number of file generated")
+    parser.add_argument("-b", "--bounds", type=int, required=True, help="Number of bound variables")
+    parser.add_argument("--max", type=int, required=True, help="Max value possible for integers")
+    parser.add_argument("--min", type=int, required=True, help="Min value possible for integers")
+    parser.add_argument("--seed", type=str, required=False, default=int(time() * 1000), help="seed")
+
+    args = parser.parse_args()
+    seed(args.seed)
 
     output_dir = "gaussqe_benchmarks"
     os.makedirs(output_dir, exist_ok=True)
 
-    total_benchmarks = 0
-
     print("Starting GAUSSQE benchmarks generation...")
-
     print("=" * 80)
 
-    for i in range(num_of_files):
-        generate_smt2(n_vars=num_of_vars, filename=f"{output_dir}/bench_sat_{i}.smt2", is_sat=True, max_coeff=num_of_coeffs)
-        generate_smt2(n_vars=num_of_vars, filename=f"{output_dir}/bench_unsat_{i}.smt2", is_sat=False, max_coeff=num_of_coeffs)
+    for i in range(args.num):
+        generate_smt2(args, f"{output_dir}/bench_sat_{i}.smt2", True)
+        generate_smt2(args, f"{output_dir}/bench_unsat_{i}.smt2", False)
 
     print("\n" + "=" * 80)
     print("Benchmark Generation Complete!")
+    print(f"Seed: {args.seed}")
     print("=" * 80)
 
 if __name__ == "__main__":
     main()
-
