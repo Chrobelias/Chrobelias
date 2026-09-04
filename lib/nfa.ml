@@ -12,6 +12,19 @@ module Sequence = Base.Sequence
 exception Too_dense_graph
 
 let config = Config.config
+
+(* Effective -bstates for one ChrobakNF extraction over an automaton of [n]
+   states. Explicit -bstates wins; with dynamic bounds the O(n^2) offset
+   scan is kept within [Config.dyn_scan_budget] (scaled by the deepening
+   ladder), and small automata stay exact. *)
+let effective_bound_states n =
+  if config.bound_states >= 0 || not config.dyn_bounds
+  then config.bound_states
+  else (
+    let s = Config.dyn_scan_budget * !Config.dyn_scale in
+    if n * n <= s then -1 else int_of_float (sqrt (float_of_int s)))
+;;
+
 let trace_log fmt = Debug.trace "nfa" fmt
 
 exception Too_big_nfa
@@ -779,10 +792,11 @@ module Graph (Label : L) = struct
 
   let find_important_verticies graph =
     let bound x =
-      if config.bound_states > 0
+      let b = effective_bound_states (List.length x) in
+      if b > 0 && b < List.length x
       then (
         Config.bounded_unsat := true;
-        List.take config.bound_states x)
+        List.take b x)
       else x
     in
     find_strongly_connected_components graph
@@ -1487,10 +1501,11 @@ struct
   let find_c_d nfa (imp : (int, int) Map.t) =
     assert (Set.length nfa.start = 1);
     let n =
-      if config.bound_states > 2 && config.bound_states < length nfa
+      let b = effective_bound_states (length nfa) in
+      if b > 2 && b < length nfa
       then (
         Config.bounded_unsat := true;
-        max 2 config.bound_states)
+        max 2 b)
       else max 2 (length nfa)
     in
     let m = n * n in
@@ -1960,7 +1975,12 @@ module Lsb (Label : L) = struct
       (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
-    let result = find_c_d nfa important in
+    let result =
+      find_c_d nfa important
+      |> List.of_seq
+      |> List.sort (fun (_, c1) (_, c2) -> compare c1 c2)
+      |> List.to_seq
+    in
     (* trace_log "Chrobak output: "; *)
     (* trace_log *)
     (*   "%a\n" *)

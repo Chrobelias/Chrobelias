@@ -25,7 +25,6 @@ jobs:
       matrix:
         solver:
           - "bin/chro.exe"
-          - "bin/chro.exe -bres 2 -bstates 20"
           - "bin/ostrich2"
           - "bin/cvc5"
           - "bin/z3-noodler"

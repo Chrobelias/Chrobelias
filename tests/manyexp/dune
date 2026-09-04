@@ -8,3 +8,7 @@
 (cram
  (deps issue188.smt2)
  (applies_to issue188))
+
+(cram
+ (deps issue188.smt2 ../../examples/double_exp.smt2)
+ (applies_to dyn-bounds))
