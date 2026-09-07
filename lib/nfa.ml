@@ -14,10 +14,6 @@ exception Too_dense_graph
 
 let config = Config.config
 
-(* Effective -bstates for one ChrobakNF extraction over an automaton of [n]
-   states. Explicit -bstates wins; with dynamic bounds the O(n^2) offset
-   scan is kept within [Config.dyn_scan_budget] (scaled by the deepening
-   ladder), and small automata stay exact. *)
 let effective_bound_states n =
   if config.bound_states >= 0 || not config.dyn_bounds
   then config.bound_states

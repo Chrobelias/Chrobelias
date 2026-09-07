@@ -2,9 +2,6 @@ type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bound_res : int
   ; mutable bound_states : int
-    (* Derive bres/bstates from each built Chrobak automaton (cycle counts,
-       lengths, layer depth) instead of running unbounded; explicit -bres /
-       -bstates values still force static bounds. *)
   ; mutable dyn_bounds : bool
   ; mutable base : int option
   ; mutable dump_simpl : bool
@@ -146,12 +143,6 @@ let max_longest_path =
      | None -> exit 1)
 ;;
 
-(* Work budgets for the dynamic bres/bstates policy. [dyn_leaf_budget]
-   caps the number of leaves of one exponent-elimination tree (the residue
-   fan-out is split evenly across the remaining layers); [dyn_scan_budget]
-   caps the O(n^2) offset scan of one ChrobakNF extraction. The deepening
-   ladder multiplies [dyn_scale] on every truncated non-sat rung, so the
-   base values only decide how many rungs the ladder has. *)
 let dyn_leaf_budget =
   match Sys.getenv_opt "CHRO_DYN_LEAVES" with
   | None -> 64
@@ -165,16 +156,9 @@ let dyn_scan_budget =
 ;;
 
 let dyn_scale = ref 1
-
-(* Global expansion fuel for one solve attempt (one ladder rung): residue
-   fan-outs run exact while fuel lasts and floor at 2 afterwards, so total
-   work stays near [dyn_leaf_budget * dyn_scale] regardless of how many
-   layers, arcs and sub-automata multiply upstream. *)
 let dyn_fuel = ref 0
 let dyn_refuel () = dyn_fuel := dyn_leaf_budget * !dyn_scale
 
-(* Residue cap for a Chrobak arc with cycle length [c]: explicit -bres
-   wins; dynamic mode draws [c] from the fuel, -1 means uncapped. *)
 let residue_bound c =
   if config.bound_res >= 0 || not config.dyn_bounds
   then config.bound_res

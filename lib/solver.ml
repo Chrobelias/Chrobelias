@@ -606,8 +606,6 @@ struct
   let proof_order return project s nfa order =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
-    (* Fresh fuel per ordering attempt: orderings are alternatives, not
-       stages, so a wasteful early order must not starve a later one. *)
     Config.dyn_refuel ();
     let get_deg = Map.find_exn s.vars in
     let rec helper nfa remaining_order model =
@@ -1068,15 +1066,6 @@ struct
     let run_semenov = Ir.collect_vars ir |> Map.keys |> List.exists is_exp in
     if run_semenov
     then (
-      (* The exponent elimination is the only consumer of the dynamic
-         bounds, so the deepening ladder lives right here: a rung that
-         truncated something and proved nothing re-runs this stage alone,
-         while the earlier pipeline stages and any surrounding DPLL search
-         keep their work. The truncation flag is scoped to the stage --
-         marks made by discarded rungs never taint the surrounding solve.
-         An untruncated refutation is exact on any rung; the final rung
-         runs unbounded. This gate also covers the no-model path, which
-         used to report a truncated (unfinished) refutation as unsat. *)
       let once () =
         if Config.config.no_model
         then
@@ -1092,8 +1081,6 @@ struct
             ir
             |> eval_semenov
                  (fun s order nfa model ->
-                    (* Minimize the eliminated exponents first: each layer
-                       re-expands into a path piece exactly that long. *)
                     let prefer =
                       List.rev order
                       |> List.filter_map (function
