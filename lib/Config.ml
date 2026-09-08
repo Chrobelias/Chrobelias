@@ -143,7 +143,6 @@ let max_longest_path =
      | None -> exit 1)
 ;;
 
-(* Ladder starting budgets, tuned by benchmarks/tune-dyn-bounds.sh. *)
 let dyn_leaf_budget =
   match Sys.getenv_opt "CHRO_DYN_LEAVES" with
   | None -> 16
@@ -153,7 +152,6 @@ let dyn_leaf_budget =
      | None -> exit 1)
 ;;
 
-(* The state cap squared, as the ChrobakNF offset scan is O(n^2): 144 = cap 12. *)
 let dyn_scan_budget =
   match Sys.getenv_opt "CHRO_DYN_SCAN" with
   | None -> 144
@@ -174,9 +172,6 @@ let dyn_refuel () = dyn_fuel := dyn_leaf_budget * !dyn_scale
    -bstates stay global. *)
 let dyn_stage = ref false
 
-(* An explicit -bres or -bstates disables the dynamic bounds on both
-   dimensions and the ladder (Solver.dyn_active), so manual tuning is fully
-   static -- never one flag with the other dimension still dynamic. *)
 let dyn_enabled () =
   config.dyn_bounds && config.bound_res < 0 && config.bound_states < 0 && !dyn_stage
 ;;
