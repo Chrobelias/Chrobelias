@@ -314,10 +314,12 @@ struct
        | Ir.SReg (atom, reg) ->
          Extra.eval_sreg vars atom reg
          |> fun nfa ->
-         trace_log "(c, d)%!";
-         Seq.iter
-           (fun (c, d) -> trace_log "(%d, %d)%!" c d)
-           (NfaNat.chrobak (nfa |> Nfa.to_nat));
+         if Debug.flag ()
+         then (
+           trace_log "(c, d)%!";
+           Seq.iter
+             (fun (c, d) -> trace_log "(%d, %d)%!" c d)
+             (NfaNat.chrobak (nfa |> Nfa.to_nat)));
          nfa
        | Ir.SRegRaw (atom, reg) -> Extra.eval_sregraw vars atom reg
        | Ir.SLen (atom, atom') ->
@@ -1081,6 +1083,8 @@ struct
             ir
             |> eval_semenov
                  (fun s order nfa model ->
+                    (* Minimize the eliminated exponents first: each layer
+                       re-expands into a path piece exactly that long. *)
                     let prefer =
                       List.rev order
                       |> List.filter_map (function
@@ -1117,11 +1121,12 @@ struct
           then (
             Config.dyn_scale := !Config.dyn_scale * 8;
             rung ())
-          else (
-            Config.config.dyn_bounds <- false;
-            let r = rung () in
-            Config.config.dyn_bounds <- saved_dyn;
-            r)
+          else
+            Fun.protect
+              ~finally:(fun () -> Config.config.dyn_bounds <- saved_dyn)
+              (fun () ->
+                 Config.config.dyn_bounds <- false;
+                 rung ())
         | rez ->
           let truncated = !Config.bounded_unsat in
           (Config.bounded_unsat
@@ -1135,7 +1140,9 @@ struct
            | (`Sat _ | `Unsat | `Unknown) as r -> r)
       in
       Config.dyn_scale := 1;
-      rung ())
+      Fun.protect
+        ~finally:(fun () -> Config.bounded_unsat := saved_marks || !Config.bounded_unsat)
+        (fun () -> Config.in_dyn_stage rung))
     else (
       let free_vars = Ir.collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in

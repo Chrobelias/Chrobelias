@@ -28,3 +28,7 @@
 
 (cram
  (deps %{bin:Chro}))
+
+(cram
+ (deps dyn-bounds-lengths.smt2)
+ (applies_to dyn-bounds-lengths))

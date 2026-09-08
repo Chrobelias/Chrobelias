@@ -15,7 +15,7 @@ exception Too_dense_graph
 let config = Config.config
 
 let effective_bound_states n =
-  if config.bound_states >= 0 || not config.dyn_bounds
+  if config.bound_states >= 0 || not (Config.dyn_enabled ())
   then config.bound_states
   else (
     let s = Config.dyn_scan_budget * !Config.dyn_scale in
@@ -2027,7 +2027,7 @@ module Lsb (Label : L) = struct
     let result =
       find_c_d nfa important
       |> List.of_seq
-      |> List.sort (fun (_, c1) (_, c2) -> compare c1 c2)
+      |> List.sort (fun (_, period1) (_, period2) -> compare period1 period2)
       |> List.to_seq
     in
     (* trace_log "Chrobak output: "; *)
@@ -2371,7 +2371,12 @@ module MsbNat (Label : L) = struct
       (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
-    let result = find_c_d nfa important in
+    let result =
+      find_c_d nfa important
+      |> List.of_seq
+      |> List.sort (fun (_, period1) (_, period2) -> compare period1 period2)
+      |> List.to_seq
+    in
     trace_log "Chrobak output: ";
     trace_log
       "%a\n"
