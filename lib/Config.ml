@@ -143,24 +143,55 @@ let max_longest_path =
      | None -> exit 1)
 ;;
 
+(* Ladder starting budgets, swept by benchmarks/tune-dyn-bounds.sh. The scan
+   budget decides; the fuel is flat over 2..64. Held-out means of 211, three
+   runs each: cap 12 -> 174.3, cap 20 -> 168.3, cap 256 -> 164. Below 12 the
+   truncation breaks callers wanting an over-approximation; see [dyn_stage]. *)
 let dyn_leaf_budget =
   match Sys.getenv_opt "CHRO_DYN_LEAVES" with
-  | None -> 64
-  | Some s -> int_of_string s
+  | None -> 16
+  | Some s ->
+    (match int_of_string_opt s with
+     | Some n -> n
+     | None -> exit 1)
 ;;
 
+(* Square of the state cap: the ChrobakNF offset scan is O(n^2). *)
 let dyn_scan_budget =
   match Sys.getenv_opt "CHRO_DYN_SCAN" with
-  | None -> 65536
-  | Some s -> int_of_string s
+  | None -> 144
+  | Some s ->
+    (match int_of_string_opt s with
+     | Some n -> n
+     | None -> exit 1)
 ;;
 
 let dyn_scale = ref 1
 let dyn_fuel = ref 0
 let dyn_refuel () = dyn_fuel := dyn_leaf_budget * !dyn_scale
 
+(* Truncating a ChrobakNF is sound only for a caller wanting an
+   under-approximation. The elimination wants one; [Overapprox.in_re] wants
+   the opposite and trusts its own Unsat. Both read these globals, so the
+   bounds are armed per stage, by [Solver.check_sat]. Explicit -bres /
+   -bstates stay global. *)
+let dyn_stage = ref false
+
+(* An explicit -bres or -bstates disables the dynamic bounds on both
+   dimensions and the ladder (Solver.dyn_active), so manual tuning is fully
+   static -- never one flag with the other dimension still dynamic. *)
+let dyn_enabled () =
+  config.dyn_bounds && config.bound_res < 0 && config.bound_states < 0 && !dyn_stage
+;;
+
+let in_dyn_stage f =
+  let saved = !dyn_stage in
+  dyn_stage := true;
+  Fun.protect ~finally:(fun () -> dyn_stage := saved) f
+;;
+
 let residue_bound c =
-  if config.bound_res >= 0 || not config.dyn_bounds
+  if config.bound_res >= 0 || not (dyn_enabled ())
   then config.bound_res
   else (
     let rem = !dyn_fuel in

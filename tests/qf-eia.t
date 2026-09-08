@@ -113,9 +113,9 @@ Test EXP-solver simplified problems
      (define-fun v () Int
       0)
      (define-fun w () Int
-      205750000000000)
+      2057500000)
      (define-fun x () String
-      "1234500000000000")
+      "12345000000")
   )
 
   $ Chro ./examples/hash_130_137.smt2
