@@ -153,6 +153,7 @@ let dyn_leaf_budget =
      | None -> exit 1)
 ;;
 
+(* The state cap squared, as the ChrobakNF offset scan is O(n^2): 144 = cap 12. *)
 let dyn_scan_budget =
   match Sys.getenv_opt "CHRO_DYN_SCAN" with
   | None -> 144
