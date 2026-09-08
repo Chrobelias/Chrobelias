@@ -143,10 +143,7 @@ let max_longest_path =
      | None -> exit 1)
 ;;
 
-(* Ladder starting budgets, swept by benchmarks/tune-dyn-bounds.sh. The scan
-   budget decides; the fuel is flat over 2..64. Held-out means of 211, three
-   runs each: cap 12 -> 174.3, cap 20 -> 168.3, cap 256 -> 164. Below 12 the
-   truncation breaks callers wanting an over-approximation; see [dyn_stage]. *)
+(* Ladder starting budgets, tuned by benchmarks/tune-dyn-bounds.sh. *)
 let dyn_leaf_budget =
   match Sys.getenv_opt "CHRO_DYN_LEAVES" with
   | None -> 16
@@ -156,7 +153,6 @@ let dyn_leaf_budget =
      | None -> exit 1)
 ;;
 
-(* Square of the state cap: the ChrobakNF offset scan is O(n^2). *)
 let dyn_scan_budget =
   match Sys.getenv_opt "CHRO_DYN_SCAN" with
   | None -> 144
@@ -233,10 +229,12 @@ Basic options:
       , "\tUpper bound for integer underapproximation (negative disables)" )
     ; ( "-bres"
       , Arg.Int (fun n -> config.bound_res <- n)
-      , "<n>\tMaximal residue used in the NFA Solver" )
+      , "<n>\tStatic residue cap (debug); disables the dynamic bounds and the ladder, \
+         and may answer unknown or unsound unsat where the default is exact" )
     ; ( "-bstates"
       , Arg.Int (fun n -> config.bound_states <- n)
-      , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
+      , "<n>\tStatic ChrobakNF state cap (debug); disables the dynamic bounds and the \
+         ladder, and may answer unknown or unsound unsat where the default is exact" )
     ; ( "-no-dyn-bounds"
       , Arg.Unit (fun () -> config.dyn_bounds <- false)
       , "\tDisable deriving bres/bstates from each Chrobak automaton (run unbounded)" )
