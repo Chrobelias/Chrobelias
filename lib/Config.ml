@@ -167,9 +167,9 @@ let dyn_refuel () = dyn_fuel := dyn_leaf_budget * !dyn_scale
 
 (* Truncating a ChrobakNF is sound only for a caller wanting an
    under-approximation. The elimination wants one; [Overapprox.in_re] wants
-   the opposite and trusts its own Unsat. Both read these globals, so the
-   bounds are armed per stage, by [Solver.check_sat]. Explicit -bres /
-   -bstates stay global. *)
+   the opposite and trusts its own Unsat. So the bounds -- dynamic and
+   explicit alike -- apply only inside the elimination stage, armed by
+   [Solver.check_sat]; every other ChrobakNF stays exact. *)
 let dyn_stage = ref false
 
 let dyn_enabled () =
@@ -183,7 +183,9 @@ let in_dyn_stage f =
 ;;
 
 let residue_bound c =
-  if config.bound_res >= 0 || not (dyn_enabled ())
+  if not !dyn_stage
+  then -1
+  else if config.bound_res >= 0 || not (dyn_enabled ())
   then config.bound_res
   else (
     let rem = !dyn_fuel in
@@ -225,12 +227,12 @@ Basic options:
       , "\tUpper bound for integer underapproximation (negative disables)" )
     ; ( "-bres"
       , Arg.Int (fun n -> config.bound_res <- n)
-      , "<n>\tStatic residue cap (debug); disables the dynamic bounds and the ladder, \
-         and may answer unknown or unsound unsat where the default is exact" )
+      , "<n>\tStatic residue cap (debug); caps the exponent elimination only and \
+         disables the ladder, so it may answer unknown where the default is exact" )
     ; ( "-bstates"
       , Arg.Int (fun n -> config.bound_states <- n)
-      , "<n>\tStatic ChrobakNF state cap (debug); disables the dynamic bounds and the \
-         ladder, and may answer unknown or unsound unsat where the default is exact" )
+      , "<n>\tStatic ChrobakNF state cap (debug); caps the exponent elimination only and \
+         disables the ladder, so it may answer unknown where the default is exact" )
     ; ( "-no-dyn-bounds"
       , Arg.Unit (fun () -> config.dyn_bounds <- false)
       , "\tDisable deriving bres/bstates from each Chrobak automaton (run unbounded)" )

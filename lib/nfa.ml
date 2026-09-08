@@ -15,7 +15,9 @@ exception Too_dense_graph
 let config = Config.config
 
 let effective_bound_states n =
-  if config.bound_states >= 0 || not (Config.dyn_enabled ())
+  if not !Config.dyn_stage
+  then -1
+  else if config.bound_states >= 0 || not (Config.dyn_enabled ())
   then config.bound_states
   else (
     let s = Config.dyn_scan_budget * !Config.dyn_scale in
