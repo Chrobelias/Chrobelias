@@ -1,9 +1,10 @@
 QF_EIA tests with x, exp x and exp exp x using only NFAs
 
-This works bad on alpine since timeout returns [1].
-$ timeout 5 Chro ../manyexp/issue188.smt2 
-timeout
-[124]
+Dynamic bres/bstates solve this under default flags (it used to time out):
+
+  $ Chro -q -no-model ../manyexp/issue188.smt2
+  sat (under int)
+  no-model mode
 
 QF_EIA tests with x, exp x and exp exp x using underapproximations
 

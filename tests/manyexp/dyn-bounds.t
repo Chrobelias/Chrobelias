@@ -14,3 +14,15 @@ not unknown.
 
   $ timeout 30 Chro -q -no-model ../../examples/double_exp.smt2
   unsat (nfa)
+
+A forced-truncation refutation is not trusted: explicit -bres 2 caps the
+residue fan-out and switches the ladder off, so double_exp (unsat) comes
+out unknown rather than a wrong unsat.
+
+  $ Chro -q -no-model -bres 2 ../../examples/double_exp.smt2 2>/dev/null
+  unknown (nfa)
+
+-no-dyn-bounds runs the elimination unbounded and stays exact.
+
+  $ Chro -q -no-model -no-dyn-bounds ../../examples/double_exp.smt2
+  unsat (nfa)
