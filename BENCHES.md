@@ -47,7 +47,7 @@ To run only some of the solvers/suites, provide comma-separated
 regexes for the desired solvers/suites as follows:
 
 ```bash
-# Run only SwInE and ChrobELIAS with all configurations [ ; -under-all; -bres 2 -bstates 20]:
+# Run only SwInE and ChrobELIAS with all configurations [ ; -under-all]:
 docker run --rm -it \
   -e CHRO_SOLVERS="swine,chro.*"
   -v ./stats:/Chrobelias/stats \
@@ -69,7 +69,6 @@ docker run --rm -it \
 
 Here is the list of available `QF_EIA` solvers:
 * `chro.exe -q`
-* `chro.exe -q -bres 2 -bstates 20`
 * `swine`
 
 The list of `QF_EIA` benchmark suites:
@@ -78,7 +77,6 @@ The list of `QF_EIA` benchmark suites:
 
 The list of `QF_SLIA` solvers:
 * `chro.exe -q`
-* `chro.exe -q -bres 2 -bstates 20`
 * `chro.exe -under-all`
 * `ostrich2`
 * `cvc5`
