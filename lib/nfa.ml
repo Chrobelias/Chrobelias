@@ -12,13 +12,9 @@ module Sequence = Base.Sequence
     expected to catch it and degrade to unknown. *)
 exception Too_dense_graph
 
-let config = Config.config
-
 let effective_bound_states n =
-  if not !Config.dyn_stage
+  if not (Config.dyn_enabled ())
   then -1
-  else if config.bound_states >= 0 || not (Config.dyn_enabled ())
-  then config.bound_states
   else (
     let s = Config.dyn_scan_budget * !Config.dyn_scale in
     if n * n <= s then -1 else int_of_float (sqrt (float_of_int s)))

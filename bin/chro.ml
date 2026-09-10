@@ -996,10 +996,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                     | None, true ->
                       if !Config.bounded_unsat
                       then (
-                        trace_log
-                          "Can't decide with bres=%d and bstates=%d\n%!"
-                          config.bound_res
-                          config.bound_states;
+                        trace_log "Can't decide under the dynamic bounds\n%!";
                         raise Lics_Underapprox_unsuccessful)
                       else (
                         report_result2 (`Unknown "");
@@ -1411,8 +1408,6 @@ let () =
                  | Result.Error `No_model -> assert false)
           with
           | Lics_Underapprox_unsuccessful ->
-            config.bound_res <- -1;
-            config.bound_states <- -1;
             config.dyn_bounds <- false;
             shrink_model ~len:retry_len ()
           | Nfa.Too_big_nfa ->
@@ -1496,8 +1491,6 @@ let () =
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->
-         config.bound_res <- -1;
-         config.bound_states <- -1;
          config.dyn_bounds <- false;
          Config.bounded_unsat := false;
          let rez = check_sat ~verbose:true state.tys ast in

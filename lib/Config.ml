@@ -1,7 +1,5 @@
 type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
-  ; mutable bound_res : int
-  ; mutable bound_states : int
   ; mutable dyn_bounds : bool
   ; mutable base : int option
   ; mutable dump_simpl : bool
@@ -43,8 +41,6 @@ type config =
 
 let config =
   { antiprenex_mode = `All
-  ; bound_res = -1
-  ; bound_states = -1
   ; dyn_bounds = true
   ; base = None
   ; stop_after = `Solving
@@ -161,20 +157,30 @@ let dyn_scan_budget =
      | None -> exit 1)
 ;;
 
+(* Rungs the ladder may climb. Unlimited by default; capping it pins a
+   truncation level so the gate that turns a truncated refutation into
+   [unknown] can be exercised, which is all the old -bres / -bstates were
+   still good for. *)
+let dyn_max_rungs =
+  match Sys.getenv_opt "CHRO_DYN_RUNGS" with
+  | None -> max_int
+  | Some s ->
+    (match int_of_string_opt s with
+     | Some n -> n
+     | None -> exit 1)
+;;
+
 let dyn_scale = ref 1
 let dyn_fuel = ref 0
 let dyn_refuel () = dyn_fuel := dyn_leaf_budget * !dyn_scale
 
 (* Truncating a ChrobakNF is sound only for a caller wanting an
    under-approximation. The elimination wants one; [Overapprox.in_re] wants
-   the opposite and trusts its own Unsat. So the bounds -- dynamic and
-   explicit alike -- apply only inside the elimination stage, armed by
-   [Solver.check_sat]; every other ChrobakNF stays exact. *)
+   the opposite and trusts its own Unsat. So the bounds apply only inside the
+   elimination stage, armed by [Solver.check_sat]; every other ChrobakNF
+   stays exact. *)
 let dyn_stage = ref false
-
-let dyn_enabled () =
-  config.dyn_bounds && config.bound_res < 0 && config.bound_states < 0 && !dyn_stage
-;;
+let dyn_enabled () = config.dyn_bounds && !dyn_stage
 
 let in_dyn_stage f =
   let saved = !dyn_stage in
@@ -183,10 +189,8 @@ let in_dyn_stage f =
 ;;
 
 let residue_bound c =
-  if not !dyn_stage
+  if not (dyn_enabled ())
   then -1
-  else if config.bound_res >= 0 || not (dyn_enabled ())
-  then config.bound_res
   else (
     let rem = !dyn_fuel in
     let r = if rem <= 0 then 2 else min c (max 2 rem) in
@@ -225,17 +229,10 @@ Basic options:
     [ ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
       , "\tUpper bound for integer underapproximation (negative disables)" )
-    ; ( "-bres"
-      , Arg.Int (fun n -> config.bound_res <- n)
-      , "<n>\tStatic residue cap (debug); caps the exponent elimination only and \
-         disables the ladder, so it may answer unknown where the default is exact" )
-    ; ( "-bstates"
-      , Arg.Int (fun n -> config.bound_states <- n)
-      , "<n>\tStatic ChrobakNF state cap (debug); caps the exponent elimination only and \
-         disables the ladder, so it may answer unknown where the default is exact" )
     ; ( "-no-dyn-bounds"
       , Arg.Unit (fun () -> config.dyn_bounds <- false)
-      , "\tDisable deriving bres/bstates from each Chrobak automaton (run unbounded)" )
+      , "\tRun the exponent elimination unbounded instead of deriving its caps from each \
+         Chrobak automaton" )
     ; ( "-huge-c"
       , Arg.Int (fun n -> huge_const_config.const <- n)
       , Printf.sprintf
