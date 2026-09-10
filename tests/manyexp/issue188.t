@@ -8,7 +8,7 @@ Dynamic bres/bstates solve this under default flags (it used to time out):
 
 QF_EIA tests with x, exp x and exp exp x using underapproximations
 
-  $ timeout 5 Chro -bres 2 -bstates 10 ../manyexp/issue188.smt2 
+  $ timeout 5 Chro ../manyexp/issue188.smt2 
   sat (nfa)
   (
      (define-fun t () Int
@@ -23,7 +23,7 @@ QF_EIA tests with x, exp x and exp exp x using underapproximations
 
 The same tests with three exponentiated vars in the LSB mode
 
-  $ Chro -lsb -bres 2 -bstates 10 ../manyexp/issue188.smt2
+  $ Chro -lsb ../manyexp/issue188.smt2
   sat (nfa)
   (
      (define-fun t () Int
@@ -48,5 +48,5 @@ The same tests with three exponentiated vars in the LSB mode
   > (assert (>= t 35))
   > (check-sat)
   > EOF
-  $ Chro -bres 2 -bstates 10 test1.smt2
+  $ Chro test1.smt2
   sat (under int)
