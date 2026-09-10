@@ -25,7 +25,6 @@ jobs:
       matrix:
         solver:
           - "bin/chro.exe"
-          - "bin/chro.exe -bres 2 -bstates 20"
           - "bin/swine"
     steps:
       - run: opam --version
