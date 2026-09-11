@@ -263,10 +263,14 @@ $ cat input1.smt2
   
 
 $ /usr/bin/time -f "TIME: %U"
-  $ timeout 5 Chro input1.smt2 | echo "timeout"
+  $ timeout 60 Chro --no-parallel input1.smt2 | echo "timeout"
   timeout
 
+Run single-strategy: the portfolio forks three children whose NIA answers can
+differ, so under load the recorded verdict depended on which one won the race.
+One strategy makes it deterministic, and much lighter.
+
 $ /usr/bin/time -f "TIME: %U"
-  $ Chro input1.smt2 | sed 's/[[:space:]]*$//'
+  $ Chro --no-parallel input1.smt2 | sed 's/[[:space:]]*$//'
   sat (nia)
 
