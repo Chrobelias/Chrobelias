@@ -140,13 +140,14 @@ $ cat input3.smt2
     fixed-point
   
 
+
 $ /usr/bin/time -f "TIME: %U"
   $ timeout 60 Chro input3.smt2 || echo "timeout"
   sat (nia)
 
 $ export CHRO_DEBUG=simpl
 $ /usr/bin/time -f "TIME: %U"
-  $ Chro input3.smt2 --dir --dsimpl 2>&1 | sed 's/[[:space:]]*$//'
+  $ Chro --no-parallel input3.smt2 --dir --dsimpl 2>&1 | sed 's/[[:space:]]*$//'
   sat (nia)
 
 

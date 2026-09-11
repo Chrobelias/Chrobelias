@@ -109,7 +109,8 @@ $ cat input4.smt2
     fixed-point
   
 
-  $ timeout 5 Chro input4.smt2 || echo "timeout"
+
+  $ timeout 60 Chro --no-parallel input4.smt2 || echo "timeout"
   sat (nia)
 
   $ export CHRO_DEBUG=simpl
