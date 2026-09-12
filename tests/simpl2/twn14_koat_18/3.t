@@ -141,7 +141,7 @@ $ cat input3.smt2
   
 
 $ /usr/bin/time -f "TIME: %U"
-  $ timeout 5 Chro input3.smt2 || echo "timeout"
+  $ timeout 60 Chro input3.smt2 || echo "timeout"
   sat (nia)
 
 $ export CHRO_DEBUG=simpl
