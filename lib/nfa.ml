@@ -7,8 +7,9 @@ module Set = Base.Set.Poly
 module Map = Base.Map.Poly
 module Sequence = Base.Sequence
 
-(** Raised by [all_paths_of_len ~limit] when the BFS frontier exceeds [limit].
-    Callers passing [~limit] are expected to catch it and degrade to unknown. *)
+(** Raised by [all_paths_of_len ~limit] when the language holds more than
+    [limit] words of the requested length. Callers passing [~limit] are
+    expected to catch it and degrade to unknown. *)
 exception Too_dense_graph
 
 let config = Config.config
@@ -39,6 +40,15 @@ let rec pow a = function
   | n ->
     let b = pow a (n / 2) in
     b * b * if n mod 2 = 0 then 1 else a
+;;
+
+let rec seq_round_robin seqs () =
+  match seqs with
+  | [] -> Seq.Nil
+  | s :: rest ->
+    (match s () with
+     | Seq.Nil -> seq_round_robin rest ()
+     | Seq.Cons (x, tl) -> Seq.Cons (x, seq_round_robin (rest @ [ tl ])))
 ;;
 
 module type L = sig
@@ -1706,56 +1716,99 @@ struct
     | None -> None
   ;;
 
-  let any_n_paths_helper (nfa : t) ?len ?n ?limit sign =
-    let transitions = nfa.transitions in
-    let p =
-      let frontier = Queue.create () in
-      let rec bfs cool_paths =
-        let cool_paths_cnt = Set.length cool_paths in
-        match Queue.take_opt frontier with
-        | _ when Queue.length frontier >= Option.value ~default:Int.max_int limit ->
-          raise Too_dense_graph
-        | None -> cool_paths
-        | Some _ when Option.is_some n && cool_paths_cnt >= Option.get n -> cool_paths
-        | Some path when Option.is_some len && List.length path > Option.get len + 1 ->
-          bfs cool_paths
-        | Some path
-          when Option.is_some n
-               && List.length path > Array.length nfa.transitions * Option.get n ->
-          bfs cool_paths
-        | Some ((_, hd) :: _ as path) ->
-          let new_paths =
-            Array.get transitions hd |> List.map (fun part -> part :: path)
-          in
-          let cool_paths' =
-            List.filter (fun path' -> Set.mem nfa.final (List.hd path' |> snd)) new_paths
-            |> List.map (fun path' ->
-              path'
-              |> List.map (fun (label, q') -> label)
-              |> List.map (fun label -> Label.get label 0)
-              |> List.drop_while (( = ) Label.u_eos))
-            |> List.filter (fun path' ->
-              Option.is_none len || sign (List.length path') (Option.get len + 1))
-          in
-          let cool_paths = Set.union cool_paths (cool_paths' |> Set.of_list) in
-          List.iter (fun path' -> Queue.add path' frontier) new_paths;
-          bfs cool_paths
-        | Some [] -> failwith ""
+  let enum_words (nfa : t) ~max_len =
+    let max_len = Int.max 0 max_len in
+    let n_states = Array.length nfa.transitions in
+    let is_eos label = Label.get label 0 = Label.u_eos in
+    let fin =
+      let fin = Array.make n_states false in
+      let rev_eos = Array.make n_states [] in
+      Array.iteri
+        (fun q delta ->
+           List.iter
+             (fun (label, q') -> if is_eos label then rev_eos.(q') <- q :: rev_eos.(q'))
+             delta)
+        nfa.transitions;
+      let rec close q =
+        if not fin.(q)
+        then (
+          fin.(q) <- true;
+          List.iter close rev_eos.(q))
       in
-      Set.iter ~f:(fun q -> Queue.add [ Label.zero nfa.deg, q ] frontier) nfa.start;
-      bfs Set.empty
+      Set.iter ~f:close nfa.final;
+      fin
     in
-    p |> Set.to_list
+    let ok_rows = ref [| fin |] in
+    let ok_row k =
+      while Array.length !ok_rows <= k do
+        let rows = !ok_rows in
+        let prev = rows.(Array.length rows - 1) in
+        let next =
+          Array.map
+            (List.exists (fun (label, q') -> (not (is_eos label)) && prev.(q')))
+            nfa.transitions
+        in
+        ok_rows := Array.append rows [| next |]
+      done;
+      !ok_rows.(k)
+    in
+    fun len ->
+      if len < 0 || len > max_len
+      then Seq.empty
+      else (
+        let rec walk states k () =
+          if k = 0
+          then
+            if List.exists (fun q -> fin.(q)) states
+            then Seq.Cons ([], Seq.empty)
+            else Seq.Nil
+          else (
+            let succ_ok = ok_row (k - 1) in
+            states
+            |> List.concat_map (fun q -> nfa.transitions.(q))
+            |> List.filter_map (fun (label, q') ->
+              if (not (is_eos label)) && succ_ok.(q')
+              then Some (Label.get label 0, q')
+              else None)
+            |> Map.of_alist_multi
+            |> Map.to_alist
+            |> List.map (fun (c, qs) ->
+              Seq.map (fun w -> c :: w) (walk (List.sort_uniq compare qs) (k - 1)))
+            |> seq_round_robin
+            |> fun seq -> seq ())
+        in
+        walk (Set.to_list nfa.start) len |> Seq.map List.rev)
   ;;
 
-  let any_n_paths (nfa : t) ?len n = any_n_paths_helper nfa ?len ~n (fun x y -> x = y)
+  let enum_words_upto (nfa : t) ~max_len =
+    let enum = enum_words nfa ~max_len in
+    Seq.init (max_len + 1) Fun.id |> Seq.concat_map enum
+  ;;
+
+  let any_n_paths (nfa : t) ?len n =
+    (match len with
+     | Some len -> enum_words nfa ~max_len:len len
+     | None -> enum_words_upto nfa ~max_len:(length nfa * Int.max 1 n))
+    |> Seq.take (Int.max 0 n)
+    |> List.of_seq
+  ;;
 
   let any_n_paths_range (nfa : t) ?len n =
-    any_n_paths_helper nfa ?len ~n (fun x y -> x <= y)
+    let max_len =
+      match len with
+      | Some len -> len
+      | None -> length nfa * Int.max 1 n
+    in
+    enum_words_upto nfa ~max_len |> Seq.take (Int.max 0 n) |> List.of_seq
   ;;
 
   let all_paths_of_len (nfa : t) ?limit len =
-    any_n_paths_helper nfa ~len ?limit (fun x y -> x = y)
+    let words = enum_words nfa ~max_len:len len in
+    match limit with
+    | None -> List.of_seq words
+    | Some limit ->
+      let words = words |> Seq.take (limit + 1) |> List.of_seq in
+      if List.length words > limit then raise Too_dense_graph else words
   ;;
 
   let re_accepts path nfa =

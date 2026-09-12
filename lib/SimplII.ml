@@ -3225,10 +3225,6 @@ let under_str env alpha vars ast =
        | true -> NfaS.any_n_paths nfa ~len:length num
        | _ -> 0 -- length |> List.concat_map (fun x -> NfaS.any_n_paths nfa ~len:x num)))
     |> List.map (fun c -> List.to_seq c |> String.of_seq)
-    |> List.map (fun c ->
-      if String.length c > 0
-      then String.sub c 0 (String.length c - 1)
-      else c (* Format.printf ">>>>> %s\n%!" c; *))
     |> List.sort_uniq (fun x y ->
       match String.length x - String.length y with
       | 0 -> String.compare x y
