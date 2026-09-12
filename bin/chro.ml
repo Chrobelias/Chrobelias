@@ -1575,7 +1575,50 @@ let () =
     in
     ()
   in
-  if not config.parallel
+  let str_vars_present, nielsen_applicable =
+    match f with
+    | Error _ -> true, true
+    | Ok cmds ->
+      (try
+         let tys =
+           List.fold_left
+             (fun tys cmd ->
+                match cmd with
+                | Smtml.Ast.Declare_const { id; sort; _ }
+                | Smtml.Ast.Declare_fun { id; sort; args = [] } ->
+                  let id = Smtml.Symbol.to_string id in
+                  (match Smtml.Symbol.to_string sort with
+                   | "Int" -> Map.set ~key:id ~data:`Int tys
+                   | "String" -> Map.set ~key:id ~data:`Str tys
+                   | _ -> tys)
+                | _ -> tys)
+             Map.empty
+             cmds
+         in
+         let asts =
+           List.filter_map
+             (function
+               | Smtml.Ast.Assert e -> Some (Fe.to_ast tys e)
+               | _ -> None)
+             cmds
+         in
+         ( List.exists (fun ast -> Ast.get_str_vars ast <> []) asts
+         , List.exists
+             (Ast.forsome (function
+                | Ast.Eia (Ast.Eia.Eq (_, _, Ast.S) as eia) ->
+                  Ast.Eia.fold2
+                    (fun acc _ -> acc)
+                    (fun acc -> function
+                       | Ast.Eia.Concat _ -> true
+                       | _ -> acc)
+                    false
+                    eia
+                | _ -> false))
+             asts )
+       with
+       | _ -> true, true)
+  in
+  if (not config.parallel) || not str_vars_present
   then solve_all ()
   else (
     (* Run both strategies at once and keep the first definitive answer.
@@ -1608,6 +1651,11 @@ let () =
             config.nielsen <- true;
             deep_under () )
       ]
+    in
+    let strategies =
+      if nielsen_applicable
+      then strategies
+      else List.filter (fun (name, _) -> not (String.equal name "nielsen")) strategies
     in
     let children =
       List.map
