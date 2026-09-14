@@ -549,6 +549,9 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
   in
   let check_eia_sat ast e =
     trace_log "Checking eia sat (ast = %a)\n%!" Ast.pp_smtlib2 ast;
+    let ast =
+      if config.simpl_quantifier_elim then Lib.SimplII.simplify_quantifiers ast else ast
+    in
     let can_be_unk = ref false in
     let apporx_rez =
       unknown ast e

@@ -560,6 +560,8 @@ module Eia = struct
   ;;
 
   let pp fmt = function
+    | Eq (Mod (term, term'), Const z, I) when Z.equal z Z.zero ->
+      Format.fprintf fmt "@[(divides %a %a)@]" Z.pp_print term' pp_term term
     | Eq (term, term', _) -> Format.fprintf fmt "@[(= %a %a)@]" pp_term term pp_term term'
     | Neq (term, term', _) ->
       Format.fprintf fmt "@[(distinct %a %a)@]" pp_term term pp_term term'
@@ -759,6 +761,8 @@ let eia = function
     if Base.String.is_substring ~substring:b a then true_ else false_
   | eia -> Eia eia
 ;;
+
+let divides b a = Eia (Eia.Eq (Eia.Mod (a, b), Eia.Const Z.zero, I))
 
 let rec lnot = function
   | Lnot ast -> ast

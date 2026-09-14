@@ -2,6 +2,7 @@ type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable bound_res : int
   ; mutable bound_states : int
+  ; mutable bound_quantifier_elim : Z.t
   ; mutable base : int option
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
@@ -26,6 +27,7 @@ type config =
   ; mutable pre_simpl : bool
   ; mutable quiet : bool
   ; mutable simpl_alpha : bool
+  ; mutable simpl_quantifier_elim : bool
   ; mutable simpl_mono : bool
   ; mutable stop_after : [ `Pre_dpll | `Pre_simplify | `Simpl | `Solving ]
   ; mutable under_approx : int
@@ -44,6 +46,7 @@ let config =
   { antiprenex_mode = `All
   ; bound_res = -1
   ; bound_states = -1
+  ; bound_quantifier_elim = Z.of_int 1000000
   ; base = None
   ; stop_after = `Solving
   ; dump_pre_simpl = false
@@ -65,6 +68,7 @@ let config =
   ; no_str_bv = false
   ; quiet = false
   ; simpl_alpha = false
+  ; simpl_quantifier_elim = false
   ; simpl_mono = true
   ; with_check_sat = false
   ; with_info = true
@@ -178,6 +182,9 @@ Basic options:
     ; ( "-bstates"
       , Arg.Int (fun n -> config.bound_states <- n)
       , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
+    ; ( "-bqelim"
+      , Arg.String (fun s -> config.bound_quantifier_elim <- Z.of_string s)
+      , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
     ; ( "-huge-c"
       , Arg.Int (fun n -> huge_const_config.const <- n)
       , Printf.sprintf
@@ -277,6 +284,9 @@ Basic options:
     ; ( "--alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- true)
       , "\tDO simplifications based on alpha-equivalence" ) *)
+    ; ( "--qelim"
+      , Arg.Unit (fun () -> config.simpl_quantifier_elim <- true)
+      , "\tApply quantifier elimination for linear systems" )
     ; ( "--over-nfa"
       , Arg.Unit (fun () -> config.over_nfa <- true)
       , "\tOverapproximate orderings within the NFA Solver" )
