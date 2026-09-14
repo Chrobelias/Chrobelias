@@ -15,11 +15,10 @@ not unknown.
   $ timeout 30 Chro -q -no-model ../../examples/double_exp.smt2
   unsat (nfa)
 
-A truncated refutation is not trusted. CHRO_DYN_RUNGS caps the ladder, so
-the first rung is also the last: double_exp (unsat) comes out unknown
-rather than a wrong unsat.
+A truncated refutation is not trusted. CHRO_DYN_ATTEMPTS=1 allows no retry,
+so double_exp (unsat) comes out unknown rather than a wrong unsat.
 
-  $ CHRO_DYN_RUNGS=1 Chro -q -no-model ../../examples/double_exp.smt2
+  $ CHRO_DYN_ATTEMPTS=1 Chro -q -no-model ../../examples/double_exp.smt2
   (warning:  check annotation that says 'unsat')
   unknown (nfa)
 

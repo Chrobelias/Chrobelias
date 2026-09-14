@@ -1108,20 +1108,20 @@ struct
       in
       let saved_marks = !Config.bounded_unsat in
       let saved_dyn = Config.config.dyn_bounds in
-      let rec rung climbed =
+      let rec attempt tried =
         Config.bounded_unsat := false;
         match once () with
-        | `Gated_unknown when Config.dyn_enabled () && climbed < Config.dyn_max_rungs ->
+        | `Gated_unknown when Config.dyn_enabled () && tried < Config.dyn_max_attempts ->
           if !Config.dyn_scale < 512
           then (
             Config.dyn_scale := !Config.dyn_scale * 8;
-            rung (climbed + 1))
+            attempt (tried + 1))
           else
             Fun.protect
               ~finally:(fun () -> Config.config.dyn_bounds <- saved_dyn)
               (fun () ->
                  Config.config.dyn_bounds <- false;
-                 rung (climbed + 1))
+                 attempt (tried + 1))
         | rez ->
           let truncated = !Config.bounded_unsat in
           (Config.bounded_unsat
@@ -1137,7 +1137,7 @@ struct
       Config.dyn_scale := 1;
       Fun.protect
         ~finally:(fun () -> Config.bounded_unsat := saved_marks || !Config.bounded_unsat)
-        (fun () -> Config.in_dyn_stage (fun () -> rung 1)))
+        (fun () -> Config.in_dyn_stage (fun () -> attempt 1)))
     else (
       let free_vars = Ir.collect_free ir in
       let ir' = Ir.exists (free_vars |> Set.to_list) ir in
