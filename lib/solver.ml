@@ -319,7 +319,7 @@ struct
            trace_log "(c, d)%!";
            Seq.iter
              (fun (c, d) -> trace_log "(%d, %d)%!" c d)
-             (NfaNat.chrobak (nfa |> Nfa.to_nat)));
+             (NfaNat.chrobak (nfa |> Nfa.to_nat) |> fst));
          nfa
        | Ir.SRegRaw (atom, reg) -> Extra.eval_sregraw vars atom reg
        | Ir.SLen (atom, atom') ->
@@ -608,7 +608,7 @@ struct
   let proof_order return project s nfa order =
     let module Nfa = NfaNat in
     let module NfaCollection = NfaCollectionNat in
-    Config.dyn_refuel ();
+    Config.dyn_reset_budget ();
     let get_deg = Map.find_exn s.vars in
     let rec helper nfa remaining_order model =
       Debug.trace
