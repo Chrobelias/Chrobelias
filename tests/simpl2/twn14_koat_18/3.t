@@ -147,7 +147,7 @@ $ /usr/bin/time -f "TIME: %U"
 
 $ export CHRO_DEBUG=simpl
 $ /usr/bin/time -f "TIME: %U"
-  $ Chro --no-parallel input3.smt2 --dir --dsimpl 2>&1 | sed 's/[[:space:]]*$//'
+  $ Chro input3.smt2 --dir --dsimpl 2>&1 | sed 's/[[:space:]]*$//'
   sat (nia)
 
 
