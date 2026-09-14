@@ -130,7 +130,7 @@ end
 module type NatType = sig
   include Type
 
-  val chrobak : t -> (int * int) Seq.t
+  val chrobak : ?max_states:int -> t -> (int * int) Seq.t * int option
 
   val get_chrobaks_sub_nfas
     :  t

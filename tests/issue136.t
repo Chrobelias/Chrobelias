@@ -12,7 +12,6 @@
   > (get-model)
   > EOF
 
-  $ export CHRO_LONGEST_PATH=100
   $ Chro -no-over -bound 0 2.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   (
@@ -39,7 +38,6 @@
   > (get-model)
   > EOF
 
-  $ export CHRO_LONGEST_PATH=10000
   $ Chro 3.smt2 | sed 's/[[:space:]]*$//'
   sat (nfa)
   (

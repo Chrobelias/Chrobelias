@@ -958,7 +958,7 @@ end
 module type NatType = sig
   include Type
 
-  val chrobak : t -> (int * int) Seq.t
+  val chrobak : ?max_states:int -> t -> (int * int) Seq.t * int option
 
   val get_chrobaks_sub_nfas
     :  t
@@ -1502,17 +1502,26 @@ struct
     }
   ;;
 
-  let find_c_d nfa (imp : (int, int) Map.t) =
+  (* [max_states] limits the state count explicitly; omitting it defers to the
+     elimination stage's dynamic bound. Returns the progressions together with
+     [exhaustive_upto]: the offset scan enumerates every accepted length at or
+     below it, and [None] means nothing was limited so the result is complete.
+     Only lengths past that point can go missing, so a caller needing an
+     over-approximation compensates with one "len > exhaustive_upto" disjunct
+     rather than giving up the limit entirely. *)
+  let find_c_d ?(max_states = -1) nfa (imp : (int, int) Map.t) =
     assert (Set.length nfa.start = 1);
+    let limited = max_states >= 0 in
     let n =
-      let b = effective_bound_states (length nfa) in
+      let b = if limited then max_states else effective_bound_states (length nfa) in
       if b > 2 && b < length nfa
       then (
-        Config.bounded_unsat := true;
+        if not limited then Config.bounded_unsat := true;
         max 2 b)
       else max 2 (length nfa)
     in
     let m = n * n in
+    let exhaustive_upto = if n < length nfa then Some m else None in
     let t =
       Graph.reachable_in_range (Graph.reverse nfa.transitions) 0 (m - n - 1) nfa.final
       |> Array.of_list
@@ -1554,11 +1563,12 @@ struct
         not (List.exists (fun (c1, d) -> c mod d = c1 mod d && c >= c1) r2))
       |> List.map (fun c -> c, 0)
     in
-    r2 @ r1 |> Set.of_list |> Set.to_sequence |> Sequence.to_seq
+    r2 @ r1 |> Set.of_list |> Set.to_sequence |> Sequence.to_seq, exhaustive_upto
   ;;
 
   let find_c_d' nfa =
     find_c_d nfa (Set.to_list nfa.start |> List.map (fun a -> a, 0) |> Map.of_alist_exn)
+    |> fst
   ;;
 
   let split (nfa : t) =
@@ -2010,7 +2020,7 @@ module Lsb (Label : L) = struct
     result
   ;;
 
-  let chrobak nfa =
+  let chrobak ?(max_states = -1) nfa =
     Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa nfa;
     let important =
       Graph.find_important_verticies nfa.transitions
@@ -2022,8 +2032,9 @@ module Lsb (Label : L) = struct
       (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
+    let result, exhaustive_upto = find_c_d ~max_states nfa important in
     let result =
-      find_c_d nfa important
+      result
       |> List.of_seq
       |> List.sort (fun (_, period1) (_, period2) -> compare period1 period2)
       |> List.to_seq
@@ -2035,7 +2046,7 @@ module Lsb (Label : L) = struct
     (*      ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ") *)
     (*      (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b)) *)
     (*   result; *)
-    result
+    result, exhaustive_upto
   ;;
 
   let path_of_len2 (nfa : t) ~var ~len : v list option =
@@ -2132,7 +2143,7 @@ module Lsb (Label : L) = struct
       let model_piece =
         if no_model then fun _ -> Some ([], 0) else path_of_len chrobak_nfa ~vars ~exp:res
       in
-      return (nfa, chrobak chrobak_nfa, model_piece))
+      return (nfa, chrobak chrobak_nfa |> fst, model_piece))
   ;;
 
   let to_nat (nfa : t) : u = nfa
@@ -2357,7 +2368,7 @@ module MsbNat (Label : L) = struct
     result, start, path_nfa
   ;;
 
-  let chrobak nfa =
+  let chrobak ?(max_states = -1) nfa =
     Debug.dump_nfa ~msg:"Chrobak input: %s" format_nfa nfa;
     let important =
       Graph.find_important_verticies nfa.transitions
@@ -2369,8 +2380,9 @@ module MsbNat (Label : L) = struct
       (Format.pp_print_list ~pp_sep:Format.pp_print_space (fun fmt (a, b) ->
          Format.fprintf fmt "(%d: %d)" a b))
       (Map.to_alist important);
+    let result, exhaustive_upto = find_c_d ~max_states nfa important in
     let result =
-      find_c_d nfa important
+      result
       |> List.of_seq
       |> List.sort (fun (_, period1) (_, period2) -> compare period1 period2)
       |> List.to_seq
@@ -2382,7 +2394,7 @@ module MsbNat (Label : L) = struct
          ~pp_sep:(fun fmt () -> Format.fprintf fmt "; ")
          (fun fmt (a, b) -> Format.fprintf fmt "(%d, %d)" a b))
       (result |> List.of_seq);
-    result
+    result, exhaustive_upto
   ;;
 
   let path_of_len (nfa : t) ~vars ~exp total_len : (v list list * int) option =
@@ -2472,7 +2484,7 @@ module MsbNat (Label : L) = struct
               ~vars
               ~exp:res
         in
-        return (nfa, chrobak chrobak_nfa, model_piece))
+        return (nfa, chrobak chrobak_nfa |> fst, model_piece))
   ;;
 
   (*let to_nat (nfa : t) : u =
@@ -2527,7 +2539,7 @@ let%expect_test "find_c_d smoke test" =
     }
   in
   let imp = Map.of_alist_exn [ 0, 2; 1, 2 ] in
-  print (find_c_d nfa imp |> List.of_seq);
+  print (find_c_d nfa imp |> fst |> List.of_seq);
   [%expect {|1, 2|}]
 ;;
 

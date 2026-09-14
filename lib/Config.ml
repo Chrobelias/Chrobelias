@@ -5,7 +5,6 @@ type config =
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
-  ; mutable error_check : bool
   ; mutable good_for_minimize : int
   ; mutable good_for_shrinking : int
   ; mutable input_file : string
@@ -20,7 +19,6 @@ type config =
   ; mutable no_model : bool
   ; mutable no_str_bv : bool
   ; mutable over_approx : bool
-  ; mutable over_approx_early : bool
   ; mutable over_nfa : bool
   ; mutable pre_simpl : bool
   ; mutable quiet : bool
@@ -47,12 +45,10 @@ let config =
   ; dump_pre_simpl = false
   ; dump_simpl = false
   ; dump_ir = false
-  ; error_check = true
   ; good_for_minimize = 15
   ; good_for_shrinking = 20
   ; pre_simpl = true
   ; over_approx = true
-  ; over_approx_early = false
   ; over_nfa = false
   ; input_file = ""
   ; logic = `Eia
@@ -118,7 +114,6 @@ let huge_const_for_model () = huge_const_config.const_model
 let under2_config = { amin = 5; amax = 11; flat = -1 }
 let under_str_config = { max_len = 32; max_cnt = 32; max_envs = 8192 }
 let get_flat () = under2_config.flat
-let is_under2_enabled () = get_flat () >= 0
 let bounded_unsat = ref false
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
 let base = ref 10
@@ -128,15 +123,6 @@ let set_base ?ast_base () =
   := Option.value
        ~default:(Option.value ~default:(if config.logic = `Eia then 2 else 10) ast_base)
        config.base
-;;
-
-let max_longest_path =
-  match Sys.getenv_opt "CHRO_LONGEST_PATH" with
-  | None -> huge_path ()
-  | Some s ->
-    (match int_of_string_opt s with
-     | Some n -> n
-     | None -> exit 1)
 ;;
 
 let dyn_leaf_budget =
@@ -171,8 +157,8 @@ let dyn_max_rungs =
 ;;
 
 let dyn_scale = ref 1
-let dyn_fuel = ref 0
-let dyn_refuel () = dyn_fuel := dyn_leaf_budget * !dyn_scale
+let dyn_budget = ref 0
+let dyn_reset_budget () = dyn_budget := dyn_leaf_budget * !dyn_scale
 
 (* Truncating a ChrobakNF is sound only for a caller wanting an
    under-approximation. The elimination wants one; [Overapprox.in_re] wants
@@ -180,6 +166,21 @@ let dyn_refuel () = dyn_fuel := dyn_leaf_budget * !dyn_scale
    elimination stage, armed by [Solver.check_sat]; every other ChrobakNF
    stays exact. *)
 let dyn_stage = ref false
+
+(* State cap for the regex length folding in [Overapprox.in_re] and
+   [SimplII.arithmetize_in_re]. Capping there is safe only because
+   [Nfa.chrobak] reports how far its scan was exhaustive and both callers add
+   a "len > that" disjunct, which keeps the abstraction an over-approximation
+   -- the direction their [Unsat] relies on. *)
+let regex_cap =
+  match Sys.getenv_opt "CHRO_REGEX_CAP" with
+  | None -> 20
+  | Some s ->
+    (match int_of_string_opt s with
+     | Some n -> n
+     | None -> exit 1)
+;;
+
 let dyn_enabled () = config.dyn_bounds && !dyn_stage
 
 let in_dyn_stage f =
@@ -192,9 +193,9 @@ let residue_bound c =
   if not (dyn_enabled ())
   then -1
   else (
-    let rem = !dyn_fuel in
+    let rem = !dyn_budget in
     let r = if rem <= 0 then 2 else min c (max 2 rem) in
-    dyn_fuel := rem - min c r;
+    dyn_budget := rem - min c r;
     if r >= c then -1 else r)
 ;;
 
@@ -280,9 +281,6 @@ Basic options:
       (*; ( "-over"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , "\tSimple overapprox" )*)
-      (* ; ( "-over-early"
-      , Arg.Unit (fun () -> config.over_approx_early <- true)
-      , "\tSimple overapprox before underapprox II" ) *)
     ; ( "-under-all"
       , Arg.Unit (fun () -> config.under_str_all <- true)
       , "  \tApply string underapproximation for each string variable" )

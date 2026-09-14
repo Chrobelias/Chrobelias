@@ -212,7 +212,7 @@ let length_abstraction ast =
           if Bool.not (NfaStr.run nfa)
           then false_
           else (
-            let csds =
+            let csds, exhaustive_upto =
               let is_eos vec =
                 match Array.length vec with
                 | 1 -> Char.equal (Array.get vec 0) Nfa.Str10.u_eos
@@ -221,7 +221,15 @@ let length_abstraction ast =
               NfaStr.filter_map nfa (fun (label, q') ->
                 if is_eos label then Option.none else Option.some (label, q'))
               |> NfaStr.to_nat
-              |> NfaStr.chrobak
+              |> NfaStr.chrobak ~max_states:Config.regex_cap
+            in
+            (* A state limit can only hide lengths past this point, so the extra
+               disjunct keeps the union a superset of the real length set and
+               the [Unsat] below stays trustworthy. *)
+            let beyond =
+              match exhaustive_upto with
+              | None -> []
+              | Some m -> [ Ast.eia (leq (const (Z.of_int (m + 1))) (var (strlens s))) ]
             in
             csds
             |> Seq.map (fun (c, d) ->
@@ -233,7 +241,7 @@ let length_abstraction ast =
                     (eq (var (strlens s)) (add [ const c; mul [ const d; var n ] ]) Ast.I)
                 ])
             |> List.of_seq
-            |> Ast.lor_)
+            |> fun ds -> Ast.lor_ (ds @ beyond))
         | _ -> Ast.true_
       ;;
 
