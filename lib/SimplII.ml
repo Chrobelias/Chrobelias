@@ -2928,7 +2928,7 @@ let rewrite_via_concat { Info.all; _ } =
      conditional split of the same string, so five sites cost ~35 fresh
      variables and 2^5 branch combinations. Instead, all constant-offset sites
      on one variable share a single segmentation [v = g1 ++ ... ++ gk ++ tail]
-     cut at every offset any site needs, with one branch per length window
+     cut at every offset any site needs, with one branch per length interval
      [q_j <= |v| < q_j+1] handling the SMT-LIB out-of-range semantics. The
      branch guards are pure length constraints, which the skeleton length
      axioms resolve upfront when |v| is bounded.
