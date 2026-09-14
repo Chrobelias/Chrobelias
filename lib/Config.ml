@@ -77,12 +77,6 @@ let config =
 let () = if Sys.getenv_opt "CHRO_NO_PARALLEL" <> None then config.parallel <- false
 let is_quiet () = config.quiet
 
-type under2_config =
-  { mutable amin : int
-  ; mutable amax : int
-  ; mutable flat : int [@warning "-69"]
-  }
-
 type under_str_config =
   { mutable max_len : int
   ; mutable max_cnt : int
@@ -111,9 +105,7 @@ let huge_const_config = { const = 20; const_model = 120; path = 10000 }
 let huge_const () = huge_const_config.const
 let huge_path () = huge_const_config.path
 let huge_const_for_model () = huge_const_config.const_model
-let under2_config = { amin = 5; amax = 11; flat = -1 }
 let under_str_config = { max_len = 32; max_cnt = 32; max_envs = 8192 }
-let get_flat () = under2_config.flat
 let bounded_unsat = ref false
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }
 let base = ref 10
@@ -143,12 +135,11 @@ let dyn_scan_budget =
      | None -> exit 1)
 ;;
 
-(* Rungs the ladder may climb. Unlimited by default; capping it pins a
-   truncation level so the gate that turns a truncated refutation into
-   [unknown] can be exercised, which is all the old -bres / -bstates were
-   still good for. *)
-let dyn_max_rungs =
-  match Sys.getenv_opt "CHRO_DYN_RUNGS" with
+(* Retries the elimination may make before giving up. Unlimited by default;
+   capping it pins one truncation level, which is how the gate that turns a
+   truncated refutation into [unknown] is tested. *)
+let dyn_max_attempts =
+  match Sys.getenv_opt "CHRO_DYN_ATTEMPTS" with
   | None -> max_int
   | Some s ->
     (match int_of_string_opt s with
@@ -160,18 +151,16 @@ let dyn_scale = ref 1
 let dyn_budget = ref 0
 let dyn_reset_budget () = dyn_budget := dyn_leaf_budget * !dyn_scale
 
-(* Truncating a ChrobakNF is sound only for a caller wanting an
-   under-approximation. The elimination wants one; [Overapprox.in_re] wants
-   the opposite and trusts its own Unsat. So the bounds apply only inside the
-   elimination stage, armed by [Solver.check_sat]; every other ChrobakNF
-   stays exact. *)
+(* Truncation is sound only where the caller wants an under-approximation.
+   The elimination does; [Overapprox.in_re] wants the opposite and trusts its
+   own Unsat. So the bounds apply inside the elimination stage only, set by
+   [Solver.check_sat]; every other ChrobakNF stays exact. *)
 let dyn_stage = ref false
 
 (* State cap for the regex length folding in [Overapprox.in_re] and
-   [SimplII.arithmetize_in_re]. Capping there is safe only because
-   [Nfa.chrobak] reports how far its scan was exhaustive and both callers add
-   a "len > that" disjunct, which keeps the abstraction an over-approximation
-   -- the direction their [Unsat] relies on. *)
+   [SimplII.arithmetize_in_re]. Sound only because [Nfa.chrobak] reports
+   [exhaustive_upto] and both callers add a "len > that" disjunct, keeping the
+   abstraction an over-approximation. *)
 let regex_cap =
   match Sys.getenv_opt "CHRO_REGEX_CAP" with
   | None -> 20
