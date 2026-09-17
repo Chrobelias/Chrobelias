@@ -129,39 +129,29 @@ let set_base ?ast_base () =
        config.base
 ;;
 
-let dyn_leaf_budget =
-  match Sys.getenv_opt "CHRO_DYN_LEAVES" with
-  | None -> 16
+let env_int name default =
+  match Sys.getenv_opt name with
+  | None -> default
   | Some s ->
     (match int_of_string_opt s with
      | Some n -> n
      | None -> exit 1)
 ;;
 
-let dyn_scan_budget =
-  match Sys.getenv_opt "CHRO_DYN_SCAN" with
-  | None -> 144
-  | Some s ->
-    (match int_of_string_opt s with
-     | Some n -> n
-     | None -> exit 1)
-;;
+(* The residue pool [residue_bound] draws from and the state-scan budget
+   [effective_bound_states] derives its cap from: the dynamic-bounds
+   descendants of the old -bres / -bstates. Env var supplies the default,
+   the -dyn-bres / -dyn-bstates flags override it. *)
+let dyn_leaf_budget = ref (env_int "CHRO_DYN_LEAVES" 16)
+let dyn_scan_budget = ref (env_int "CHRO_DYN_SCAN" 144)
 
 (* Retries the elimination may make before giving up. Unlimited by default;
    capping it pins one truncation level, which is how the gate that turns a
    truncated refutation into [unknown] is tested. *)
-let dyn_max_attempts =
-  match Sys.getenv_opt "CHRO_DYN_ATTEMPTS" with
-  | None -> max_int
-  | Some s ->
-    (match int_of_string_opt s with
-     | Some n -> n
-     | None -> exit 1)
-;;
-
+let dyn_max_attempts = env_int "CHRO_DYN_ATTEMPTS" max_int
 let dyn_scale = ref 1
 let dyn_budget = ref 0
-let dyn_reset_budget () = dyn_budget := dyn_leaf_budget * !dyn_scale
+let dyn_reset_budget () = dyn_budget := !dyn_leaf_budget * !dyn_scale
 
 (* Truncation is sound only where the caller wants an under-approximation.
    The elimination does; [Overapprox.in_re] wants the opposite and trusts its
@@ -235,6 +225,18 @@ Basic options:
       , Arg.Unit (fun () -> config.dyn_bounds <- false)
       , "\tRun the exponent elimination unbounded instead of deriving its caps from each \
          Chrobak automaton" )
+    ; ( "-dyn-bstates"
+      , Arg.Int (fun n -> dyn_scan_budget := n)
+      , Printf.sprintf
+          "<n>\tState-scan budget for the dynamic bounds; the per-automaton state cap is \
+           its square root (DEFAULT n=%d)"
+          !dyn_scan_budget )
+    ; ( "-dyn-bres"
+      , Arg.Int (fun n -> dyn_leaf_budget := n)
+      , Printf.sprintf
+          "<n>\tResidue budget for the dynamic bounds, consumed across the exponent \
+           elimination (DEFAULT n=%d)"
+          !dyn_leaf_budget )
     ; ( "-huge"
       , Arg.Int (fun n -> huge_const_config.path <- n)
       , Printf.sprintf
