@@ -1,6 +1,9 @@
 type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable dyn_bounds : bool
+  ; mutable bound_res : int
+  ; mutable bound_states : int
+  ; mutable bound_quantifier_elim : Z.t
   ; mutable base : int option
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
@@ -41,6 +44,9 @@ type config =
 let config =
   { antiprenex_mode = `All
   ; dyn_bounds = true
+  ; bound_res = -1
+  ; bound_states = -1
+  ; bound_quantifier_elim = Z.of_int 1000000
   ; base = None
   ; stop_after = `Solving
   ; dump_pre_simpl = false
@@ -225,6 +231,15 @@ Basic options:
       , Arg.Unit (fun () -> config.dyn_bounds <- false)
       , "\tRun the exponent elimination unbounded instead of deriving its caps from each \
          Chrobak automaton" )
+    ; ( "-bres"
+      , Arg.Int (fun n -> config.bound_res <- n)
+      , "<n>\tMaximal residue used in the NFA Solver" )
+    ; ( "-bstates"
+      , Arg.Int (fun n -> config.bound_states <- n)
+      , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
+    ; ( "-bqelim"
+      , Arg.String (fun s -> config.bound_quantifier_elim <- Z.of_string s)
+      , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
     ; ( "-huge-c"
       , Arg.Int (fun n -> huge_const_config.const <- n)
       , Printf.sprintf

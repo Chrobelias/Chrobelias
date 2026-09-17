@@ -5231,12 +5231,68 @@ let%expect_test _ =
     |}]
 ;;
 
+let bound_ok (atoms : Ast.any_atom list) (ast : Ast.t) (bound : Z.t) : bool =
+  let pow_le base exp bound =
+    let rec aux acc b e =
+      if e = 0
+      then acc <= bound
+      else if acc > bound || b > bound
+      then false
+      else if e land 1 = 1
+      then (
+        let acc' = Z.mul acc b in
+        if acc' > bound then false else aux acc' b (e - 1))
+      else (
+        let b' = Z.mul b b in
+        if b' > bound then false else aux acc b' (e lsr 1))
+    in
+    aux Z.one base exp
+  in
+  let base =
+    Z.of_int
+      (match ast with
+       | Ast.Land xs -> List.length xs
+       | Ast.True -> 0
+       | _ -> 1)
+  in
+  let exp = List.length atoms in
+  if exp = 0
+  then Z.one <= bound
+  else if Z.sign base <= 0
+  then Z.zero <= bound
+  else if Z.(base <= one)
+  then Z.one <= bound
+  else pow_le base exp bound
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test atoms conj i = Format.printf "%b\n" (bound_ok atoms conj (Z.of_int i)) in
+  let atoms = [ Ast.Any_atom (Ast.Var ("x0", I)); Ast.Any_atom (Ast.Var ("x1", I)) ] in
+  let conj =
+    TS.(
+      Ast.Land
+        [ add [ mul [ const (-1); var "x0" ]; mul [ const (-1); var "x1" ] ] = const (-22)
+        ; add [ mul [ const (-4); var "x0" ]; mul [ const (-3); var "x1" ] ] = const (-76)
+        ])
+  in
+  test atoms conj 4;
+  test atoms conj 3;
+  [%expect
+    {|
+    true
+    false
+    |}]
+;;
+
 let simplify_quantifiers (ast : Ast.t) =
   let open Ast in
+  let bound = Config.config.bound_quantifier_elim in
   let rec aux = function
-    | Ast.Exists (_, ast) as eq when is_linear_system ast ->
-      eliminate_existence_quantifier eq
-    | Ast.Exists (atoms, ast) when is_linear_constraint ast ->
+    | Ast.Exists (atoms, ast) as eq when is_linear_system ast && bound_ok atoms ast bound
+      -> eliminate_existence_quantifier eq
+    | Ast.Exists (atoms, ast)
+      when is_linear_constraint ast && bound_ok atoms (Ast.Land [ ast ]) bound ->
       eliminate_existence_quantifier (exists atoms (Ast.Land [ ast ]))
     | Ast.Exists (atoms, ast) -> exists atoms (aux ast)
     | Ast.Lnot ast -> lnot (aux ast)
