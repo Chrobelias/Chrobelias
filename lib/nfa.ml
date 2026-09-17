@@ -16,7 +16,7 @@ let effective_bound_states n =
   if not (Config.dyn_enabled ())
   then -1
   else (
-    let s = Config.dyn_scan_budget * !Config.dyn_scale in
+    let s = !Config.dyn_scan_budget * !Config.dyn_scale in
     if n * n <= s then -1 else int_of_float (sqrt (float_of_int s)))
 ;;
 
