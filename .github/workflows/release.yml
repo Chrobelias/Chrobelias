@@ -143,3 +143,36 @@ jobs:
           files: |
             _build/default/bin/chro
           token: "${{ secrets.GITHUB_TOKEN }}"
+
+  smoke-test:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: examples
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Chro
+          path: bin
+
+      - run: chmod +x bin/chro
+
+      - name: Check the binary is static
+        run: |
+          file bin/chro
+          if ldd bin/chro; then
+            echo "Error: chro is dynamically linked"
+            exit 1
+          fi
+
+      - name: Solve a sat example
+        run: |
+          bin/chro examples/lnr-sat.smt2 | tee out.txt
+          [ "$(head -n1 out.txt | cut -d' ' -f1)" = sat ]
+
+      - name: Solve an unsat example
+        run: |
+          bin/chro examples/lnr-unsat.smt2 | tee out.txt
+          [ "$(head -n1 out.txt | cut -d' ' -f1)" = unsat ]
