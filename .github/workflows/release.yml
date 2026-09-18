@@ -6,8 +6,8 @@ concurrency:
 
 on:
   push:
-    branches:
-      - main
+#    branches:
+#      - main
   workflow_dispatch:
 
 permissions:
@@ -135,15 +135,6 @@ jobs:
           name: Chro
           path: _build/default/bin/chro
 
-      - name: Draft release
-        continue-on-error: true
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: |
-            _build/default/bin/chro
-          token: "${{ secrets.GITHUB_TOKEN }}"
-
   smoke-test:
     needs: release
     runs-on: ubuntu-latest
@@ -176,3 +167,21 @@ jobs:
         run: |
           bin/chro examples/lnr-unsat.smt2 | tee out.txt
           [ "$(head -n1 out.txt | cut -d' ' -f1)" = unsat ]
+
+  draft-release:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Chro
+          path: bin
+
+      - name: Draft release
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            bin/chro
+          token: "${{ secrets.GITHUB_TOKEN }}"
