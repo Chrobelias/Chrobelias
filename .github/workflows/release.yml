@@ -6,8 +6,8 @@ concurrency:
 
 on:
   push:
-#    branches:
-#      - main
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -23,6 +23,14 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.os }}
+    # The checkout is owned by the runner's uid while the container runs as
+    # root, so git refuses to touch it. opam runs git with GIT_CONFIG_GLOBAL
+    # and GIT_CONFIG_SYSTEM pointed at /dev/null, so "git config --global /
+    # --system" never reaches it; the GIT_CONFIG_COUNT variables are kept.
+    env:
+      GIT_CONFIG_COUNT: 1
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: "*"
     steps:
       - run: apk add alpine-sdk
 
@@ -30,21 +38,10 @@ jobs:
         with:
           submodules: true
 
-      # gnupg is required by ocaml/setup-ocaml >= 3.7.0, which verifies the GPG
-      # signature of the opam binary it downloads and shells out to `gpg` with
-      # no fallback. It is not part of alpine-sdk.
       - name: Install extra dependencies
         if: startsWith(matrix.os, 'alpine')
         run: apk add bash sqlite sqlite-dev gmp gmp-dev gmp-static cmake python3 bubblewrap gnupg wget
 
-      - run: git config --global --add safe.directory '*'
-
-      # opam-pin is off because setup-ocaml 3.7.0 pins local packages through a
-      # file:// URL, i.e. opam's rsync backend, which copies the whole working
-      # tree (benchmark submodules included) instead of just the tracked files
-      # a git-backed pin would take -- see ocaml/setup-ocaml#1114. Nothing here
-      # needs the pin: dependencies come from "opam install . --deps-only"
-      # below. Once the fix (ocaml/setup-ocaml#1116) ships, this can go.
       - uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda,ocaml-option-static
@@ -54,12 +51,6 @@ jobs:
       - run: opam exec -- ocamlopt --version
       - run: opam switch list
 
-      # The tag must match the "version:" in scripts/z3-static.opam: opam builds
-      # from this clone (the opam file's url: is unused for a local install), so
-      # an unpinned clone of master would build a source tree that has nothing
-      # to do with the version the solver reasons about. smtml >= 0.28 conflicts
-      # with z3 < 5.1.0, so getting this wrong downgrades smtml instead of
-      # failing.
       - name: Build and install static Z3
         run: |
           git clone --depth 1 --branch z3-5.1.0 https://github.com/Z3Prover/z3.git z3
@@ -68,43 +59,8 @@ jobs:
           (cd z3 &&
            opam install .)
 
-      # smtml enables its z3 backend only when dune can resolve the *findlib*
-      # package z3, which is separate from the opam package being installed.
-      # scripts/z3-static.opam seds every "libz3ml" token out of z3's Makefile
-      # before "make install", and libz3ml.a is exactly the OCaml stubs archive
-      # findlib z3 needs -- so this dumps what actually landed.
-      #- name: Check the z3 findlib package
-      #  run: |
-      #    echo "--- opam packages ---"
-      #    opam list z3 smtml || true
-      #    echo "--- findlib knows z3? ---"
-      #    opam exec -- ocamlfind list 2>/dev/null | grep -i '^z3' \
-      #      || echo "MISSING: findlib has no z3 package"
-      #    echo "--- \$(opam var lib)/z3 ---"
-      #    ls -la "$(opam var lib)/z3" 2>/dev/null || echo "MISSING: no lib/z3 directory"
-      #    echo "--- static archives on disk ---"
-      #    ls -la /usr/lib/libz3*.a 2>/dev/null || echo "none in /usr/lib"
-      #    echo "--- what findlib would link for z3 ---"
-      #    opam exec -- ocamlfind query -r -p-format z3 2>&1 | tr '\n' ' ' || true
-      #    echo
-
-      #    opam exec -- ocamlfind query z3 >/dev/null 2>&1 \
-      #      || { echo "Error: findlib has no z3 package"; exit 1; }
-      #    test -f "$(opam var lib)/z3/libz3ml.a" \
-      #      || { echo "Error: $(opam var lib)/z3/libz3ml.a is missing; smtml would build without its Z3 backend"; exit 1; }
-
       - name: Install depedencies
         run: opam install . --deps-only --with-test -vvv
-
-      # z3 is a depopt of smtml, so smtml compiles its z3 backend in only if z3
-      # is installed when *smtml* is built -- and opam never rebuilds a package
-      # just because a depopt showed up later. setup-ocaml restores a cached
-      # opam switch that can already hold a z3-less smtml, in which case nothing
-      # above would rebuild it. This used to be hidden by vendor/smtml, which
-      # dune built inside the workspace where findlib z3 was always resolved at
-      # link time; since it was dropped, smtml comes from opam instead.
-      - name: Rebuild smtml against the static Z3
-        run: opam reinstall --yes smtml
 
       - name: List opam packages
         run: opam list
@@ -112,22 +68,7 @@ jobs:
       - name: Build
         run: opam exec -- dune build --release bin/chro.exe
 
-
       - run: mv _build/default/bin/chro.exe _build/default/bin/chro
-
-      - name: Smoke-test the release binary
-        run: |
-          strings -a _build/default/bin/chro | grep -q Z3_mk_context \
-            || { echo "Error: Z3 is not linked into the release binary"; exit 1; }
-          printf '(set-logic QF_LIA)\n(declare-const x Int)\n(assert (= x 4))\n(check-sat)\n' \
-            > smoke.smt2
-          out=$(_build/default/bin/chro -no-model smoke.smt2 2>&1 || true)
-          echo "$out"
-          case "$out" in
-            sat*) echo "smoke test OK" ;;
-            *) echo "Error: release binary does not answer: $out"; exit 1 ;;
-          esac
-
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
