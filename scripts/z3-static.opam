@@ -20,10 +20,12 @@ build: [
 
 install: [
   [ "sed" "-i" "-e" "s/[^[:space:]]*dllz3ml.so[^[:space:]]*//g" "build/Makefile" ]
+  [ "cp" "build/api/ml/libz3ml-static.a" "build/api/ml/libz3ml.a" ]
+  [ "cp" "build/libz3-static.a" "build/libz3.a" ]
   [ make "-C" "build" "install" ]
   # The static build names the stubs archive libz3ml-static.a; findlib looks
   # for libz3ml.a beside the .cmxa, so install it there under that name.
-  [ "cp" "build/api/ml/libz3ml-static.a" "%{lib}%/z3/libz3ml.a" ]
+#  [ "cp" "build/api/ml/libz3ml-static.a" "%{lib}%/z3/libz3ml.a" ]
   [ "cp" "build/api/ml/libz3ml-static.a" "/usr/lib/libz3ml-static.a" ]
   [ "cp" "build/libz3-static.a" "/usr/lib/libz3-static.a" ]
 ]
