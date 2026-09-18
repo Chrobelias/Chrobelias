@@ -132,3 +132,44 @@ five-digit values.
      (define-fun y () Int
       20002)
   )
+
+[-huge n] says what may be printed, and it is now measured on the finished
+model rather than left to the constraints the re-solve adds: nothing reported
+holds a string of more than n characters, or an integer whose decimal expansion
+runs past n digits. 2 ** 100 needs 31 of them.
+
+  $ cat > pow100.smt2 <<-EOF
+  > (set-logic QF_EIA)
+  > (declare-const y Int)
+  > (assert (= y (** 2 100)))
+  > (check-sat)
+  > (get-model)
+  > EOF
+  $ Chro -huge 30 pow100.smt2
+  sat (under int)
+  no short model
+  $ Chro -huge 31 pow100.smt2
+  sat (under int)
+  (
+     (define-fun y () Int
+      1267650600228229401496703205376)
+  )
+
+Strings are measured the same way, in characters.
+
+  $ cat > twelve.smt2 <<-EOF
+  > (set-logic QF_S)
+  > (declare-const s String)
+  > (assert (>= (str.len s) 12))
+  > (check-sat)
+  > (get-model)
+  > EOF
+  $ Chro -huge 11 twelve.smt2
+  sat (under int)
+  no short model
+  $ Chro -huge 12 twelve.smt2
+  sat (under int)
+  (
+     (define-fun s () String
+      "000000000000")
+  )

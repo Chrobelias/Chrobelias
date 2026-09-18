@@ -1489,7 +1489,7 @@ let shrink_variables ast =
     (* TODO(Kakadu): maybe a syntax extension for better matching? *)
     (* TODO: detect base from variable usage  *)
     let good_enough_constant rhs =
-      Z.(lt zero rhs) && Z.lt rhs (Z.of_int (Config.huge_const ()))
+      Z.(lt zero rhs) && Z.lt rhs (Z.of_int (Config.huge_rewrite_const ()))
     ;;
 
     let leq l r =

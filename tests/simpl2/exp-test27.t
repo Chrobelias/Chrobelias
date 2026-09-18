@@ -1,7 +1,7 @@
   $ export CHRO_TRACE_OPT=1
   $ export CHRO_DEBUG=simpl:over
 
-  $ Chro -huge-c 100 --dpresimpl --stop-after simpl ../examples/exp-test27.smt2
+  $ Chro --dpresimpl --stop-after simpl ../examples/exp-test27.smt2
   [+simpl]
     iter(1)= (and
              (<= (+ (- 99) (str.len x)) 0)
@@ -171,7 +171,7 @@
     (chrob.len x (** 10 strlenx)))
 
   $ unset CHRO_TRACE_OPT
-  $ timeout 15 Chro ../examples/exp-test27.smt2 -huge-c 99
+  $ timeout 15 Chro ../examples/exp-test27.smt2
   [+simpl]
     iter(1)= (and
              (<= (+ (- 99) (str.len x)) 0)
