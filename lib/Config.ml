@@ -89,8 +89,7 @@ type under_str_config =
   }
 
 type huge_const_config =
-  { mutable const : int
-  ; mutable const_model : int
+  { mutable const_model : int
   ; mutable path : int
   }
 
@@ -101,8 +100,18 @@ type string_config =
   ; eos : char
   }
 
-let huge_const_config = { const = 20; const_model = 120; path = 10000 }
-let huge_const () = huge_const_config.const
+let huge_const_config = { const_model = 120; path = 10000 }
+
+(* Digits, in the solver's base, allowed for an integer in the constraints the
+   model shrinking adds before re-solving. Not a flag: it is a number the
+   re-solve has to stay small enough to answer, not a preference. Raising it to
+   [path] sends [z = 2 ** (2 ** x), x >= 100] back to exhausting memory. *)
+let huge_const () = 20
+
+(* The same question for the simplifier's rewrite [v <= c ==> base ** v <=
+   base ** c] is a different one: there the only requirement is that [base ** c]
+   can be built at all, which is why it does not share the number above. *)
+let huge_rewrite_const () = 100
 let huge_path () = huge_const_config.path
 let huge_const_for_model () = huge_const_config.const_model
 
@@ -226,15 +235,11 @@ Basic options:
       , Arg.Unit (fun () -> config.dyn_bounds <- false)
       , "\tRun the exponent elimination unbounded instead of deriving its caps from each \
          Chrobak automaton" )
-    ; ( "-huge-c"
-      , Arg.Int (fun n -> huge_const_config.const <- n)
-      , Printf.sprintf
-          "<n> \tAdmit integer constants with at most <n> digits (DEFAULT n=%d)"
-          (huge_const ()) )
     ; ( "-huge"
       , Arg.Int (fun n -> huge_const_config.path <- n)
       , Printf.sprintf
-          "<n> \tSearch a model with at most <n> symbols (DEFAULT n=%d)"
+          "<n> \tReport no model if more than <n> symbols needed for any variable in \
+           every model (DEFAULT n=%d)"
           (huge_path ()) )
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)

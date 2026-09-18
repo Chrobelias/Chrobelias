@@ -331,6 +331,27 @@ let calculate_model tys env model regexes =
 
 let print_model model = Format.printf "%s\n%!" (Model.to_string model)
 
+(* [-huge n] is a statement about what gets printed: no string longer than [n]
+   characters and no integer whose decimal expansion runs past [n] digits. The
+   measurement belongs on the finished model rather than on the constraints the
+   re-solve adds, because those are derived from the formula and can land above
+   [n] -- that is how a 101-character model came back under [-huge 100]. Names
+   [Model.pp] hides are not printed, so they are not measured. *)
+let model_within_len len model =
+  let decimal_fits z =
+    let z = Z.abs z in
+    (* A decimal expansion is never longer than the bit length, so anything
+       that fits in [len] bits is in range without building [10 ** len]. *)
+    Z.numbits z <= len || Z.lt z (Z.pow (Z.of_int 10) len)
+  in
+  Map.for_alli model ~f:(fun ~key ~data ->
+    String.starts_with ~prefix:"%" key
+    ||
+      match data with
+      | `Int z -> decimal_fits z
+      | `Str s -> String.length s <= len)
+;;
+
 let report_result ?(verbose = false) rez =
   let check_answer () =
     Format.printf "%!";
@@ -1413,6 +1434,8 @@ let () =
                 (match get_model tys with
                  | Result.Ok model ->
                    let model = calculate_model tys env model regexes in
+                   if (not noprint) && not (model_within_len (Config.huge_path ()) model)
+                   then raise Too_long_model;
                    print_model model;
                    if config.check_model then check_model tys ast model else ()
                  | Result.Error `Too_long -> printf "no short model\n%!"
@@ -1437,6 +1460,8 @@ let () =
                 get_model tys
                 |> Result.map (fun model ->
                   let model = calculate_model tys env model regexes in
+                  if (not noprint) && not (model_within_len (Config.huge_path ()) model)
+                  then raise Too_long_model;
                   print_model model;
                   if config.check_model then check_model tys ast model else ())
               with
