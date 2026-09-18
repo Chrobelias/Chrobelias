@@ -105,6 +105,9 @@ let huge_const_config = { const = 20; const_model = 120; path = 10000 }
 let huge_const () = huge_const_config.const
 let huge_path () = huge_const_config.path
 let huge_const_for_model () = huge_const_config.const_model
+
+(* Bits allowed in a constant power that the simplifier evaluates. *)
+let huge_pow_bits () = 1_000_000
 let under_str_config = { max_len = 32; max_cnt = 32; max_envs = 8192 }
 let bounded_unsat = ref false
 let string_config = { zero = '0'; one = '1'; null = Char.chr 0; eos = Char.chr 3 }

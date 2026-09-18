@@ -90,3 +90,45 @@ A tower that does fit is still evaluated and printed in full:
      (define-fun z () Int
       256)
   )
+
+Evaluating a constant power is bounded separately from [-huge], and not by a
+flag. [-huge] bounds how long a printed model may be and gets lowered by anyone
+who wants a short one; tying the two together would mean that asking for a
+shorter model stops the simplifier from working out 2 ** 40.
+
+  $ cat > small-pow.smt2 <<-EOF
+  > (set-logic QF_EIA)
+  > (declare-const y Int)
+  > (assert (= y (** 2 40)))
+  > (check-sat)
+  > (get-model)
+  > EOF
+  $ Chro -huge 16 small-pow.smt2
+  sat (presimpl int)
+  (
+     (define-fun y () Int
+      1099511627776)
+  )
+
+The same holds the other way round: a formula is decided through a power far
+wider than the model it answers with, so the two bounds cannot be one number.
+This one is settled through 2 ** 20000, six thousand digits, and reports two
+five-digit values.
+
+  $ cat > gap.smt2 <<-EOF
+  > (set-logic QF_EIA)
+  > (declare-const x Int)
+  > (declare-const y Int)
+  > (assert (= (** 2 y) (* 4 (** 2 x))))
+  > (assert (>= x 20000))
+  > (check-sat)
+  > (get-model)
+  > EOF
+  $ Chro gap.smt2
+  sat (nfa)
+  (
+     (define-fun x () Int
+      20000)
+     (define-fun y () Int
+      20002)
+  )

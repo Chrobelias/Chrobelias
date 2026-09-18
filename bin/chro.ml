@@ -1425,6 +1425,10 @@ let () =
             if attempt == 1
             then shrink_model ~len:retry_len ()
             else printf "no short model found (nfa)\n%!"
+          | Too_long_model | Solver.Too_long_model ->
+            if attempt == 1
+            then shrink_model ~len:retry_len ()
+            else printf "no short model\n%!"
         in
         let () =
           try
