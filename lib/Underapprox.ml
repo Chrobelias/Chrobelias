@@ -256,7 +256,7 @@ let check bound ast =
         then s_bound
         else if n > 8
         then
-          (* With this many exponent variables even a capped sample of the
+          (* With this many exponent variables even a bounded sample of the
              choice space is noise, and every candidate re-encodes the whole
              formula into Z3 -- skip straight to the exact engines. *)
           -1

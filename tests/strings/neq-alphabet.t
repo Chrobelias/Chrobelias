@@ -12,7 +12,7 @@ otherwise the complement drops satisfying assignments and the solver answers
   > (check-sat)
   > EOF
 
-  $ Chro --no-parallel ./1.smt2
+  $ Chro -no-parallel ./1.smt2
   sat (under int)
 
 The same, with a non-empty constant on the right-hand side.
@@ -25,7 +25,7 @@ The same, with a non-empty constant on the right-hand side.
   > (check-sat)
   > EOF
 
-  $ Chro --no-parallel ./2.smt2
+  $ Chro -no-parallel ./2.smt2
   sat (presimpl int)
 
 The py-conbyte idiom that first exposed this: every extracted character carries
@@ -43,7 +43,7 @@ complement for each of them.
   > (check-sat)
   > EOF
 
-  $ Chro --no-parallel ./3.smt2
+  $ Chro -no-parallel ./3.smt2
   sat (under int)
 
 The complement is also taken for negated regex memberships, so those need the
@@ -58,7 +58,7 @@ fix the complement of [str.to_re "-"] contained no digit strings at all.
   > (check-sat)
   > EOF
 
-  $ Chro --no-parallel ./4.smt2
+  $ Chro -no-parallel ./4.smt2
   sat (presimpl int)
 
 Guard in the other direction: widening the alphabet must not invent models.
@@ -73,5 +73,5 @@ unsat.
   > (check-sat)
   > EOF
 
-  $ Chro --no-parallel ./5.smt2
+  $ Chro -no-parallel ./5.smt2
   unsat (presimpl int)

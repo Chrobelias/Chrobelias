@@ -32,7 +32,7 @@ respect it. Here y is pinned between 10 and 13, hence y = 12.
     (<= (+ (- 13) y) 0)
     (<= (+ 10 (* (- 1) y)) 0)
     (exists (x) (= (+ (* (- 6) x) y) 0)))
-  $ Chro --info -no-over -bound -1 model.smt2
+  $ Chro -no-over -bound -1 model.smt2
   sat (nfa)
   (
      (define-fun y () Int
@@ -49,7 +49,7 @@ Without a multiple of 6 in the range the same formula is unsat.
   > (assert (<= y 17))
   > (check-sat)
   > EOF
-  $ Chro --info -no-over -bound -1 unsat.smt2
+  $ Chro -no-over -bound -1 unsat.smt2
   unsat (nfa)
 
 Each binder is handled on its own, and one whose coefficient is invertible
@@ -103,7 +103,7 @@ answers stay the same as without the rewrite: y = 4 is even, y = 5 is not.
   > (assert (= y 4))
   > (check-sat)
   > EOF
-  $ Chro --info -no-over -bound -1 neg.smt2
+  $ Chro -no-over -bound -1 neg.smt2
   unsat (nfa)
 
   $ cat > neg2.smt2 <<-EOF
@@ -113,7 +113,7 @@ answers stay the same as without the rewrite: y = 4 is even, y = 5 is not.
   > (assert (= y 5))
   > (check-sat)
   > EOF
-  $ Chro --info -no-over -bound -1 neg2.smt2
+  $ Chro -no-over -bound -1 neg2.smt2
   sat (nfa)
 
 The congruence the rewrite produces has the quantified variable on the other
@@ -135,7 +135,7 @@ be reduced on the way out. Here x = 2, y = 4 and 2^4 = 16 = 6 + 10.
     (= (+ y (* (- 1) (** 2 x))) 0)
     (<= (* (- 1) x) 0)
     (exists (k) (= (+ 6 (* 10 k) (* (- 1) (** 2 y))) 0)))
-  $ Chro --info -bound -1 exp.smt2
+  $ Chro -bound -1 exp.smt2
   sat (nfa)
 
 Lowering a `mod` leaves the quotient and the remainder as free variables of the
@@ -172,7 +172,7 @@ while 219 leaves 1, which 6 does not divide.
   > (assert (<= x 218))
   > (check-sat)
   > EOF
-  $ Chro --info -no-over -bound -1 nested-sat.smt2
+  $ Chro -no-over -bound -1 nested-sat.smt2
   sat (nfa)
 
   $ cat > nested-unsat.smt2 <<-EOF
@@ -183,5 +183,5 @@ while 219 leaves 1, which 6 does not divide.
   > (assert (<= x 219))
   > (check-sat)
   > EOF
-  $ Chro --info -no-over -bound -1 nested-unsat.smt2
+  $ Chro -no-over -bound -1 nested-unsat.smt2
   unsat (nfa)

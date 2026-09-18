@@ -221,7 +221,7 @@ let length_abstraction ast =
               NfaStr.filter_map nfa (fun (label, q') ->
                 if is_eos label then Option.none else Option.some (label, q'))
               |> NfaStr.to_nat
-              |> NfaStr.chrobak ~max_states:Config.regex_cap
+              |> NfaStr.chrobak ~max_states:Config.regex_bound
             in
             (* A state limit can only hide lengths past this point, so the extra
                disjunct keeps the union a superset of the real length set and

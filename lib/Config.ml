@@ -84,7 +84,7 @@ type under_str_config =
        round. The per-variable candidate count is [max_envs ** (1/m)] for [m]
        variables, so a single unconstrained variable gets thousands of
        candidates while three variables get a handful each -- balanced
-       against the size of the product instead of a flat per-variable cap. *)
+       against the size of the product instead of a flat per-variable bound. *)
   ; mutable max_envs : int
   }
 
@@ -138,15 +138,17 @@ let env_int name default =
      | None -> exit 1)
 ;;
 
-(* The residue pool [residue_bound] draws from and the state-scan budget
-   [effective_bound_states] derives its cap from: the dynamic-bounds
-   descendants of the old -bres / -bstates. Env var supplies the default,
-   the -dyn-bres / -dyn-bstates flags override it. *)
+(* Residues the exponent elimination may spend in total ([residue_bound]
+   draws from this one), and the state-scan budget [effective_bound_states]
+   takes the square root of for its per-automaton state bound. Precedence:
+   the -bres / -bstates flags, then the env var, then the default. Same names
+   as the flags removed in b40aed21, different meaning: those were static
+   bounds that switched the retry ladder off. *)
 let dyn_leaf_budget = ref (env_int "CHRO_DYN_LEAVES" 16)
 let dyn_scan_budget = ref (env_int "CHRO_DYN_SCAN" 144)
 
 (* Retries the elimination may make before giving up. Unlimited by default;
-   capping it pins one truncation level, which is how the gate that turns a
+   bounding it pins one truncation level, which is how the gate that turns a
    truncated refutation into [unknown] is tested. *)
 let dyn_max_attempts = env_int "CHRO_DYN_ATTEMPTS" max_int
 let dyn_scale = ref 1
@@ -159,12 +161,12 @@ let dyn_reset_budget () = dyn_budget := !dyn_leaf_budget * !dyn_scale
    [Solver.check_sat]; every other ChrobakNF stays exact. *)
 let dyn_stage = ref false
 
-(* State cap for the regex length folding in [Overapprox.in_re] and
+(* State bound for the regex length folding in [Overapprox.in_re] and
    [SimplII.arithmetize_in_re]. Sound only because [Nfa.chrobak] reports
    [exhaustive_upto] and both callers add a "len > that" disjunct, keeping the
    abstraction an over-approx. *)
-let regex_cap =
-  match Sys.getenv_opt "CHRO_REGEX_CAP" with
+let regex_bound =
+  match Sys.getenv_opt "CHRO_REGEX_BOUND" with
   | None -> 20
   | Some s ->
     (match int_of_string_opt s with
@@ -209,7 +211,6 @@ let max_under_const =
 ;;
 
 let parse_args () =
-  (* Printf.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let usage_msg =
     {|Chrobak normal form in Exponential Linear Integer Arithmetic and Strings.
 Usage: chro [options] <file.smt2>
@@ -217,139 +218,162 @@ Usage: chro [options] <file.smt2>
 Basic options:
 |}
   in
-  let rec spec_list =
-    [ ( "-bound"
-      , Arg.Int (fun n -> config.under_approx <- n)
-      , "\tUpper bound for integer underapprox (DEFAULT n=2; negative disables)" )
-    ; ( "-no-dyn"
-      , Arg.Unit (fun () -> config.dyn_bounds <- false)
-      , "\tDisable dynamic bounds for Chrobak pairs underapprox" )
-    ; ( "-bstates"
-      , Arg.Int (fun n -> dyn_scan_budget := n)
-      , Printf.sprintf
-          "<n>\tState budget for the dynamic Chrobak pairs underapprox (DEFAULT n=%d)"
-          !dyn_scan_budget )
-    ; ( "-bres"
-      , Arg.Int (fun n -> dyn_leaf_budget := n)
-      , Printf.sprintf
-          "<n>\tResidue budget for the dynamic bounds Chrobak pairs underapprox (DEFAULT \
-           n=%d)"
-          !dyn_leaf_budget )
-    ; ( "-huge"
-      , Arg.Int (fun n -> huge_const_config.path <- n)
-      , Printf.sprintf
-          "<n> \tReport no model in which some variable needs more than ⟨n⟩ symbols \
-           (DEFAULT n=%d)"
-          (huge_path ()) )
-    ; ( "-lsb"
-      , Arg.Unit (fun () -> config.mode <- `Lsb)
-      , "  \tUse least-significant-bit first representation" )
-      (* ; ( "-no-mod-eq"
-      , Arg.Unit (fun () -> config.mod_eq <- false)
-      , "\tDisable the congruence automaton: lower every 'mod' to a quotient and a \
-         remainder" ) *)
-    ; ( "-nielsen"
-      , Arg.Unit (fun () -> config.nielsen <- true)
-      , "\tEnable Nielsen transformations for word equations in the simplifier" )
-    ; ( "-no-model"
-      , Arg.Unit (fun () -> config.no_model <- true)
-      , "\tDisable model generation subroutines" )
-    ; ( "-no-over"
-      , Arg.Unit (fun () -> config.over_approx <- false)
-      , "\tDisable simple Z3 overapprox" )
-    ; ( "-no-str-under"
-      , Arg.Unit
-          (fun () ->
-            under_str_config.max_cnt <- -1;
-            under_str_config.max_len <- -1)
-      , "Disable string underapprox in concats" )
-    ; ( "-sbcnt"
-      , Arg.Int (fun n -> under_str_config.max_cnt <- n)
-      , "<n>\tUnderapprox strings in concats via first <n> words w.r.t. regexes (DEFAULT \
-         n=32)" )
-    ; ( "-sblen"
-      , Arg.Int (fun n -> under_str_config.max_len <- n)
-      , "<n>\tUnderapprox strings in concats via words of length at most <n> (DEFAULT \
-         n=32)" )
-    ; ( "-sbenvs"
-      , Arg.Int (fun n -> under_str_config.max_envs <- n)
-      , "<n>\tCap on candidate environments per string underapprox round (DEFAULT n=8192)"
-      )
-      (*; ( "-over"
-      , Arg.Unit (fun () -> config.over_approx <- true)
-      , "\tSimple overapprox" )*)
-    ; ( "-under-all"
-      , Arg.Unit (fun () -> config.under_str_all <- true)
-      , "  \tApply string underapprox for each string variable" )
-    ; ( "-budget"
-      , Arg.Float (fun x -> config.under_str_budget <- x)
-      , "<s>\tSeconds to spend on string underapprox (DEFAULT 1.0, negative for no limit)"
-      )
-    ; ( "-help"
-      , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tDisplay this list of options\n\nMiscellaneous:\n" )
-    ; ( "-q"
-      , Arg.Unit (fun () -> config.quiet <- true)
-      , "   \tPrint 'unknown' instead of Exceptions\t" )
-    ; ( "--apren"
-      , Arg.String
-          (function
-            | "push-reg" | "push_reg" -> config.antiprenex_mode <- `Push_re
-            | "all" -> config.antiprenex_mode <- `All
-            | "no" | "disable" -> config.antiprenex_mode <- `Disable
-            | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tAntiprenex mode [all; push-reg; disable]" )
-    ; ( "--stop-after"
-      , Arg.String
-          (function
-            | "predpll" | "pre_dpll" | "pre-dpll" -> config.stop_after <- `Pre_dpll
-            | "simpl" -> config.stop_after <- `Simpl
-            | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
-              config.stop_after <- `Pre_simplify
-            | s -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tStop after step [presimpl; pre-dpll; simpl]" )
-    ; ( "--check-model"
-      , Arg.Unit (fun () -> config.check_model <- true)
-      , "Сalculate a model and check its correctness" )
-    ; ( "--info"
-      , Arg.Unit (fun () -> config.with_info <- true)
-      , "\tDisplay (un)sat decision step" )
-    ; ( "--no-str-bv"
-      , Arg.Unit (fun () -> config.no_str_bv <- true)
-      , "\tSwitch labels encoding in nfa to 'char's" )
-    ; ( "--no-parallel"
-      , Arg.Unit (fun () -> config.parallel <- false)
-      , "Disable running the string-underapprox strategy and the normal one in parallel \
-         processes to take the first definitive answer" )
-      (* ; ( "--no-alpha"
-      , Arg.Unit (fun () -> config.simpl_alpha <- false)
-      , "\tDon't try simplifications based on alpha-equivalence" )
-    ; ( "--alpha"
-      , Arg.Unit (fun () -> config.simpl_alpha <- true)
-      , "\tDO simplifications based on alpha-equivalence" ) *)
-    ; ( "--over-nfa"
-      , Arg.Unit (fun () -> config.over_nfa <- true)
-      , "\tOverapproximate orderings within the NFA Solver" )
-    ; ( "--inner-dpll"
-      , Arg.Unit (fun () -> config.light_dpll <- true)
-      , "\tEnable the nested inner DPLL procedure for enumerating \
-         empty/number/not-a-number string states" )
-      (* ; "--no-mono", Arg.Unit (fun () -> config.simpl_mono <- false), "\t" *)
-    ; "--dsimpl", Arg.Unit (fun () -> config.dump_simpl <- true), "\tDump simplifications"
-    ; "--dir", Arg.Unit (fun () -> config.dump_ir <- true), "  \tDump IR"
-    ; ( "--dpresimpl"
-      , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
-      , "\tDump AST simplifications" )
-    ; ( "--help"
-      , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
-      , "\tDisplay this list of options" )
-      (* ; ( "--no-model-check"
-      , Arg.Unit (fun () -> config.check_model <- false)
-      , "\tSkip running model check after (get-model)" ) *)
-    ]
+  (* [Arg] renders an entry as "  <key> <doc>", so the description starts at
+     column [3 + length key], plus a leading "<n>" where the option takes an
+     argument. Padding every doc out to one column here keeps the table
+     aligned whatever the keys are; the per-entry tabs it replaces drifted
+     silently as soon as a longer key was added. *)
+  let align col specs =
+    let split doc =
+      let n = String.length doc in
+      let after_ph =
+        if n > 0 && doc.[0] = '<'
+        then (
+          match String.index_opt doc '>' with
+          | Some i -> i + 1
+          | None -> 0)
+        else 0
+      in
+      let rec skip i = if i < n && doc.[i] = ' ' then skip (i + 1) else i in
+      after_ph, skip after_ph
+    in
+    List.map
+      (fun (key, spec, doc) ->
+         if doc = ""
+         then key, spec, doc
+         else (
+           let ph_end, text = split doc in
+           let pad = max 1 (col - (3 + String.length key + ph_end)) in
+           ( key
+           , spec
+           , String.sub doc 0 ph_end
+             ^ String.make pad ' '
+             ^ String.sub doc text (String.length doc - text) )))
+      specs
   in
+  let specs = ref [] in
+  let help () = raise (Arg.Help (Arg.usage_string !specs usage_msg)) in
+  specs
+  := align
+       18
+       [ ( "-bound"
+         , Arg.Int (fun n -> config.under_approx <- n)
+         , Printf.sprintf
+             "<n> Bound for integer underapproximation (DEFAULT %d; <0 disables)"
+             config.under_approx )
+       ; ( "-lsb"
+         , Arg.Unit (fun () -> config.mode <- `Lsb)
+         , "Least-significant-bit-first representation" )
+       ; ( "-nielsen"
+         , Arg.Unit (fun () -> config.nielsen <- true)
+         , "Nielsen transformations for word equations in the simplifier" )
+       ; ( "-no-mod-eq"
+         , Arg.Unit (fun () -> config.mod_eq <- false)
+         , "Lower 'mod' to a quotient and remainder, not a congruence NFA" )
+       ; "-no-model", Arg.Unit (fun () -> config.no_model <- true), "Do not build models"
+       ; ( "-no-over"
+         , Arg.Unit (fun () -> config.over_approx <- false)
+         , "Do not run the Z3 overapproximation" )
+       ; ( "-no-str-under"
+         , Arg.Unit
+             (fun () ->
+               under_str_config.max_cnt <- -1;
+               under_str_config.max_len <- -1)
+         , "Do not underapproximate strings in concats" )
+       ; ( "-under-all"
+         , Arg.Unit (fun () -> config.under_str_all <- true)
+         , "Underapproximate every string variable" )
+       ; ( "-q"
+         , Arg.Unit (fun () -> config.quiet <- true)
+         , "Print 'unknown' instead of an exception" )
+       ; ( "-no-info"
+         , Arg.Unit (fun () -> config.with_info <- false)
+         , "Do not print the stage that decided (un)sat" )
+       ; "-help", Arg.Unit help, "Display this list of options\n\nTuning:\n"
+       ; ( "-apren"
+         , Arg.String
+             (function
+               | "push-reg" | "push_reg" -> config.antiprenex_mode <- `Push_re
+               | "all" -> config.antiprenex_mode <- `All
+               | "no" | "disable" -> config.antiprenex_mode <- `Disable
+               | _ -> help ())
+         , "Antiprenex mode [all; push-reg; disable]" )
+       ; ( "-bres"
+         , Arg.Int (fun n -> dyn_leaf_budget := n)
+         , Printf.sprintf
+             "<n> Total residues the exponent elimination may spend (DEFAULT %d)"
+             !dyn_leaf_budget )
+       ; ( "-bstates"
+         , Arg.Int (fun n -> dyn_scan_budget := n)
+         , Printf.sprintf
+             "<n> Exact if states^2 <= <n>, else sqrt <n> states (DEFAULT %d)"
+             !dyn_scan_budget )
+       ; ( "-no-dyn"
+         , Arg.Unit (fun () -> config.dyn_bounds <- false)
+         , "Run the exponent elimination unbounded" )
+       ; ( "-huge"
+         , Arg.Int (fun n -> huge_const_config.path <- n)
+         , Printf.sprintf
+             "<n> Search a model of at most <n> symbols (DEFAULT %d)"
+             (huge_path ()) )
+       ; ( "-sbcnt"
+         , Arg.Int (fun n -> under_str_config.max_cnt <- n)
+         , Printf.sprintf
+             "<n> Bound on word count in string underapproximation (DEFAULT %d)"
+             under_str_config.max_cnt )
+       ; ( "-sblen"
+         , Arg.Int (fun n -> under_str_config.max_len <- n)
+         , Printf.sprintf
+             "<n> Bound on word length in string underapproximation (DEFAULT %d)"
+             under_str_config.max_len )
+       ; ( "-sbenvs"
+         , Arg.Int (fun n -> under_str_config.max_envs <- n)
+         , Printf.sprintf
+             "<n> Bound on candidate environments per round (DEFAULT %d)"
+             under_str_config.max_envs )
+       ; ( "-budget"
+         , Arg.Float (fun x -> config.under_str_budget <- x)
+         , Printf.sprintf
+             "<s> Seconds of string underapproximation, <0 no limit (DEFAULT %g)"
+             config.under_str_budget )
+       ; ( "-no-parallel"
+         , Arg.Unit (fun () -> config.parallel <- false)
+         , "Do not race string underapproximation against the normal run" )
+       ; ( "-over-nfa"
+         , Arg.Unit (fun () -> config.over_nfa <- true)
+         , "Overapproximate orderings inside the NFA solver\n\nDebugging:\n" )
+       ; ( "--check-model"
+         , Arg.Unit (fun () -> config.check_model <- true)
+         , "Calculate a model and check its correctness" )
+       ; ( "--dsimpl"
+         , Arg.Unit (fun () -> config.dump_simpl <- true)
+         , "Dump the simplified IR" )
+       ; ( "--dir"
+         , Arg.Unit (fun () -> config.dump_ir <- true)
+         , "Dump the IR at each solver step" )
+       ; ( "--dpresimpl"
+         , Arg.Unit (fun () -> config.dump_pre_simpl <- true)
+         , "Dump the pre-simplified AST" )
+       ; ( "--stop-after"
+         , Arg.String
+             (function
+               | "predpll" | "pre_dpll" | "pre-dpll" -> config.stop_after <- `Pre_dpll
+               | "simpl" -> config.stop_after <- `Simpl
+               | "presimpl" | "pre_simpl" | "pre-simpl" | "simpl2" ->
+                 config.stop_after <- `Pre_simplify
+               | _ -> help ())
+         , "Stop after step [presimpl; pre-dpll; simpl]\n\n\
+            Tracing: CHRO_DEBUG=<tracer>[:<tracer>...] or CHRO_DEBUG=ANY, to stderr.\n" )
+         (* Accepted, not listed. [--no-str-bv] picks the [Str] string encoding
+            over [StrBv] and [--inner-dpll] enables the nested DPLL over string
+            states; both are internal switches with no reading for a user, and
+            [-help] already prints the table [--help] would. *)
+       ; "--no-str-bv", Arg.Unit (fun () -> config.no_str_bv <- true), ""
+       ; "--inner-dpll", Arg.Unit (fun () -> config.light_dpll <- true), ""
+       ; "--help", Arg.Unit help, ""
+       ];
   Arg.parse
-    spec_list
+    !specs
     (fun s ->
        if Sys.file_exists s
        then config.input_file <- s

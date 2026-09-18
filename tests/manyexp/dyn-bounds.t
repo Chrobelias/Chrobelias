@@ -1,8 +1,8 @@
 Dynamic bres/bstates: the residue fan-out of the exponent elimination
-draws from a global fuel budget (Config.residue_bound), and a deepening
+draws from a global budget (Config.residue_bound), and a deepening
 ladder re-solves with a bigger budget whenever a truncated attempt ends
 undecided -- so this three-exponent instance solves under default flags
-(it used to need explicit caps to finish at all).
+(it used to need explicit bounds to finish at all).
 
   $ timeout 30 Chro -q -no-model issue188.smt2
   sat (under int)
@@ -22,7 +22,7 @@ so double_exp (unsat) comes out unknown rather than a wrong unsat.
   (warning:  check annotation that says 'unsat')
   unknown (nfa)
 
--no-dyn-bounds runs the elimination unbounded and stays exact.
+-no-dyn runs the elimination unbounded and stays exact.
 
-  $ Chro -q -no-model -no-dyn-bounds ../../examples/double_exp.smt2
+  $ Chro -q -no-model -no-dyn ../../examples/double_exp.smt2
   unsat (nfa)

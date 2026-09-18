@@ -20,7 +20,7 @@ The core feeds the blocking clauses of the DPLL driver.
   > (check-sat)
   > EOF
 
-  $ Chro --info core.smt2
+  $ Chro core.smt2
   unsat (presimpl int)
 
   $ CHRO_DEBUG=simpl Chro core.smt2 2>&1 | grep -A6 'unsat core'

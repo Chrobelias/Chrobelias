@@ -1379,7 +1379,7 @@ let () =
       | Sat (_, (_, env, get_model, regexes)) ->
         sat_found := true;
         let tys = merge_tys state in
-        (* Never cap the retry below a length the formula itself demands,
+        (* Never bound the retry below a length the formula itself demands,
            or the re-solve is unsat by construction. *)
         let retry_len =
           let floor =

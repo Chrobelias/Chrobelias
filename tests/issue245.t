@@ -16,7 +16,7 @@ arithmetization sequence is lazy again and is no longer forced past the first
   > (get-model)
   > EOF
 
-  $ Chro --info slow.smt2
+  $ Chro slow.smt2
   sat (nfa)
   (
      (define-fun x () String
