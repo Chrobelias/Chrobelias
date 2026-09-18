@@ -73,8 +73,7 @@ jobs:
       # scripts/z3-static.opam seds every "libz3ml" token out of z3's Makefile
       # before "make install", and libz3ml.a is exactly the OCaml stubs archive
       # findlib z3 needs -- so this dumps what actually landed.
-      - name: Diagnose the z3 findlib package
-        continue-on-error: true
+      - name: Check the z3 findlib package
         run: |
           echo "--- opam packages ---"
           opam list z3 smtml || true
@@ -88,6 +87,11 @@ jobs:
           echo "--- what findlib would link for z3 ---"
           opam exec -- ocamlfind query -r -p-format z3 2>&1 | tr '\n' ' ' || true
           echo
+
+          opam exec -- ocamlfind query z3 >/dev/null 2>&1 \
+            || { echo "Error: findlib has no z3 package"; exit 1; }
+          test -f "$(opam var lib)/z3/libz3ml.a" \
+            || { echo "Error: $(opam var lib)/z3/libz3ml.a is missing; smtml would build without its Z3 backend"; exit 1; }
 
       - name: Install depedencies
         run: opam install . --deps-only --with-test -vvv
@@ -110,6 +114,19 @@ jobs:
 
 
       - run: mv _build/default/bin/chro.exe _build/default/bin/chro
+
+      - name: Smoke-test the release binary
+        run: |
+          strings -a _build/default/bin/chro | grep -q Z3_mk_context \
+            || { echo "Error: Z3 is not linked into the release binary"; exit 1; }
+          printf '(set-logic QF_LIA)\n(declare-const x Int)\n(assert (= x 4))\n(check-sat)\n' \
+            > smoke.smt2
+          out=$(_build/default/bin/chro -no-model smoke.smt2 2>&1 || true)
+          echo "$out"
+          case "$out" in
+            sat*) echo "smoke test OK" ;;
+            *) echo "Error: release binary does not answer: $out"; exit 1 ;;
+          esac
 
 
       - name: Upload Build Artifact
