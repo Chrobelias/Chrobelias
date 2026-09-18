@@ -81,6 +81,17 @@ let construct_model tys env model regexes =
     let open Ast in
     Debug.trace "Model" "Prefix %a\n%!" (Env.pp ~title:"prefix") prefix;
     Debug.trace "Model" "Model %s\n%!" (Model.to_string m);
+    let has_unfolded_pow : type a. a Eia.term -> bool =
+      let open Ast.Eia in
+      fun term ->
+        fold_term
+          (fun acc -> function
+             | Pow (Const _, Const _) -> true
+             | _ -> acc)
+          (fun acc _ -> acc)
+          false
+          term
+    in
     let prefix =
       let shrink_ir_model = Map.map_keys_exn m ~f:(fun s -> Any_atom (Ast.var s Ast.I)) in
       Env.enrich prefix shrink_ir_model
@@ -93,7 +104,7 @@ let construct_model tys env model regexes =
          | Eia.Str_const s -> Option.some (`Str s)
          | Eia.Atom (Var (v, _)) -> seek prefix v
          | Eia.Len (Eia.Atom (Var (v, _))) -> seek prefix ("strlen" ^ v)
-         | _ -> None)
+         | term -> if has_unfolded_pow term then raise Too_long_model else None)
       | None ->
         (match Env.lookup_string key prefix with
          | Some str ->
@@ -101,7 +112,7 @@ let construct_model tys env model regexes =
             | Eia.Const c -> Option.some (`Int c)
             | Eia.Str_const s -> Option.some (`Str s)
             | Eia.Atom (Var (v, _)) -> seek prefix v
-            | _ -> None)
+            | term -> if has_unfolded_pow term then raise Too_long_model else None)
          | None -> None)
     in
     let rec saturate env =

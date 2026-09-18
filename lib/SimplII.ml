@@ -10,6 +10,11 @@ let ( -- ) i j =
   aux j []
 ;;
 
+let pow_within_budget ~base:b e =
+  Z.(leq (abs b) one)
+  || (Z.fits_int e && Z.to_int e <= Config.huge_path () / Z.numbits (Z.abs b))
+;;
+
 let has_unsupported_nonlinearity =
   let open Ast.Eia in
   let not_a_const (type a) : a term -> bool = function
@@ -673,12 +678,16 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
         Eia.Pow (base, Eia.Mul [ e1; e2 ])
       | Mul ((Const c as base0) :: tl), Eia.Const e when Z.(geq e zero) ->
         mul [ pow base0 xs; pow (Mul tl) xs ]
-      | Eia.Const b, Eia.Const exp when Z.(exp > zero) && agressive |> Option.is_none ->
+      | Eia.Const b, Eia.Const exp
+        when Z.(exp > zero)
+             && agressive |> Option.is_none
+             && pow_within_budget ~base:b exp ->
         (try const (Z.to_int (Utils.powz ~base:b exp)) with
          | Z.Overflow -> Ast.Eia.Pow (base, xs))
       | Eia.Const b, Eia.Const exp
-        when Z.(exp > zero) && agressive |> Option.value ~default:false ->
-        constz (Utils.powz ~base:b exp)
+        when Z.(exp > zero)
+             && agressive |> Option.value ~default:false
+             && pow_within_budget ~base:b exp -> constz (Utils.powz ~base:b exp)
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 

@@ -42,3 +42,51 @@ SLenConst chain and the minimal model comes out.
   sat (nfa)
   x length: 5031
   y length: 1000
+
+A value that exists but cannot be written down reports the same way. Model
+construction used to substitute x = 100 into z and evaluate 2^(2^100) through
+Utils.powz, which squares its way up and exhausts memory: the answer was
+printed and (get-model) never returned. SimplII.pow now declines to build a
+constant past the path budget, and the power left symbolic is reported instead
+of being dropped from the model.
+
+  $ cat > tower.smt2 <<-EOF
+  > (set-logic QF_EIA)
+  > (declare-const x Int)
+  > (declare-const z Int)
+  > (assert (= z (** 2 (** 2 x))))
+  > (assert (>= x 100))
+  > (check-sat)
+  > (get-model)
+  > EOF
+  $ Chro tower.smt2
+  sat (under int)
+  no short model
+
+With the integer under-approximation off the same formula is decided by
+equality propagation, which reaches model construction by another route and
+needs the same guard:
+
+  $ Chro -bound -1 tower.smt2
+  sat (simpl)
+  no short model
+
+A tower that does fit is still evaluated and printed in full:
+
+  $ cat > small.smt2 <<-EOF
+  > (set-logic QF_EIA)
+  > (declare-const x Int)
+  > (declare-const z Int)
+  > (assert (= z (** 2 (** 2 x))))
+  > (assert (>= x 3))
+  > (check-sat)
+  > (get-model)
+  > EOF
+  $ Chro small.smt2
+  sat (under int)
+  (
+     (define-fun x () Int
+      3)
+     (define-fun z () Int
+      256)
+  )
