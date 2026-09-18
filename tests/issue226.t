@@ -12,7 +12,7 @@ disjunction over the boolean skeleton instead.
   > (check-sat)
   > EOF
 
-  $ Chro --info ite.smt2
+  $ Chro ite.smt2
   sat (under int)
 
 The same shape, but unsatisfiable: both branches are bounded below 10.
@@ -27,7 +27,7 @@ The same shape, but unsatisfiable: both branches are bounded below 10.
   > (check-sat)
   > EOF
 
-  $ Chro --info ite-unsat.smt2
+  $ Chro ite-unsat.smt2
   unsat (lengths)
 
 `ite` over plain integers, picking each branch in turn.
@@ -41,7 +41,7 @@ The same shape, but unsatisfiable: both branches are bounded below 10.
   > (check-sat)
   > EOF
 
-  $ Chro --info ite-int.smt2
+  $ Chro ite-int.smt2
   sat (under int)
 
   $ cat > ite-int-other.smt2 <<-EOF
@@ -53,7 +53,7 @@ The same shape, but unsatisfiable: both branches are bounded below 10.
   > (check-sat)
   > EOF
 
-  $ Chro --info ite-int-other.smt2
+  $ Chro ite-int-other.smt2
   sat (under int)
 
 Neither branch can produce 30, so this is unsat.
@@ -67,5 +67,5 @@ Neither branch can produce 30, so this is unsat.
   > (check-sat)
   > EOF
 
-  $ Chro --info ite-int-unsat.smt2
+  $ Chro ite-int-unsat.smt2
   unsat (nia)

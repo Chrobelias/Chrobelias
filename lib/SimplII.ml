@@ -2600,7 +2600,7 @@ let rec basic_simplify
      conjunction still simplifies to a contradiction (relative to the initial
      [env]). Every deletion is verified by re-running the simplifier, so no
      justification can be lost the way the old reachability-based "short env"
-     shortening used to lose cross-variable ones. Capped so a huge candidate
+     shortening used to lose cross-variable ones. Bounded so a huge candidate
      core does not trigger a quadratic pile of simplifier reruns. *)
   let minimize_core literals =
     let still_unsat = function
@@ -3278,11 +3278,11 @@ let under_str env alpha vars ast =
            variable gets thousands of candidates where three variables get a
            handful each, instead of a flat [max_cnt] for every arity. *)
         let per_var =
-          let cap = Config.under_str_config.max_envs in
+          let bound = Config.under_str_config.max_envs in
           let m = Set.length vars in
-          if cap < 0
+          if bound < 0
           then Config.under_str_config.max_cnt
-          else Int.max 2 (Float.to_int (Float.of_int cap ** (1. /. Float.of_int m)))
+          else Int.max 2 (Float.to_int (Float.of_int bound ** (1. /. Float.of_int m)))
         in
         (* [base^l], clamped against overflow. *)
         let space base l =
@@ -3314,7 +3314,7 @@ let under_str env alpha vars ast =
              so waiting for their exact-length round would push them past the
              caller's time budget. Later rounds still add exact-length
              coverage beyond the initial sample. *)
-          (* Regex-constrained variables keep the small flat cap: their
+          (* Regex-constrained variables keep the small flat bound: their
              candidates are pumped words whose length grows with the index,
              and every extra candidate makes both the substitution and the
              automata check on the residual superlinearly more expensive --
@@ -3324,7 +3324,7 @@ let under_str env alpha vars ast =
             if is_regex then min per_var Config.under_str_config.max_cnt else per_var
           in
           (* Multi-variable sets keep the legacy sampler: ranged rounds with
-             the flat cap. The balanced exact-length enumeration below is
+             the flat bound. The balanced exact-length enumeration below is
              only proven for singletons; for products it reshuffles which
              slice of the tuple space gets sampled and loses low-total-length
              witness pairs (the stringfuzz [("0s", "0")] models) that the
@@ -3855,14 +3855,14 @@ let std_exp_split ast =
         None
         ph
     in
-    let rec loop skipped fuel ast =
-      if fuel <= 0
+    let rec loop skipped splits_left ast =
+      if splits_left <= 0
       then ast
       else (
         match find_occ skipped ast with
         | None -> ast
         | Some p ->
-          let skip () = loop (Base.Set.Poly.add skipped (term_key p)) fuel ast in
+          let skip () = loop (Base.Set.Poly.add skipped (term_key p)) splits_left ast in
           if under_binder p ast
           then skip ()
           else (
@@ -3890,12 +3890,12 @@ let std_exp_split ast =
               let nonneg = Ast.eia (E.leq (E.Const Z.zero) e) in
               let negative = Ast.eia (E.leq e (E.Const Z.minus_one)) in
               if Z.(equal b one)
-              then loop skipped (fuel - 1) (subst (E.Const Z.one))
+              then loop skipped (splits_left - 1) (subst (E.Const Z.one))
               else if Z.(equal b zero)
               then
                 loop
                   skipped
-                  (fuel - 1)
+                  (splits_left - 1)
                   (case_split
                      [ [ x_is_zero ], E.Const Z.one
                      ; [ Ast.lnot x_is_zero ], E.Const Z.zero
@@ -3904,7 +3904,7 @@ let std_exp_split ast =
               then
                 loop
                   skipped
-                  (fuel - 1)
+                  (splits_left - 1)
                   (case_split [ [ even ], E.Const Z.one; [ odd ], E.Const Z.minus_one ])
               else if Z.(geq b (of_int 2)) && proven_nonneg e
               then skip ()
@@ -3914,7 +3914,7 @@ let std_exp_split ast =
                 let pu = E.Pow (E.Const b, u) in
                 loop
                   (Base.Set.Poly.add skipped (term_key pu))
-                  (fuel - 1)
+                  (splits_left - 1)
                   (case_split
                      [ [ nonneg; Ast.eia (E.eq u e Ast.I) ], pu
                      ; [ negative ], E.Const Z.zero
@@ -3925,7 +3925,7 @@ let std_exp_split ast =
                 let pu = E.Pow (E.Const (Z.abs b), u) in
                 loop
                   (Base.Set.Poly.add skipped (term_key pu))
-                  (fuel - 1)
+                  (splits_left - 1)
                   (case_split
                      [ [ nonneg; even; Ast.eia (E.eq u e Ast.I) ], pu
                      ; ( [ nonneg; odd; Ast.eia (E.eq u e Ast.I) ]
@@ -3936,7 +3936,7 @@ let std_exp_split ast =
               let sgn = if Z.is_even k then Z.one else Z.minus_one in
               loop
                 skipped
-                (fuel - 1)
+                (splits_left - 1)
                 (case_split
                    [ [ Ast.eia (E.eq bt (E.Const Z.zero) Ast.I) ], E.Const Z.zero
                    ; [ Ast.eia (E.eq bt (E.Const Z.one) Ast.I) ], E.Const Z.one
@@ -4512,7 +4512,7 @@ let arithmetize str_vars ast env =
           Nfa.String.filter_map nfa (fun (label, q') ->
             if is_eos label then Option.none else Option.some (label, q'))
           |> Nfa.String.to_nat
-          |> Nfa.String.chrobak ~max_states:Config.regex_cap
+          |> Nfa.String.chrobak ~max_states:Config.regex_bound
         in
         (* See Overapprox.in_re: the limit hides only lengths past this point. *)
         let beyond =

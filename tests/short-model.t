@@ -3,7 +3,7 @@ Nfa.any_path); the StrRElnc long benchmarks used to print ~9000-character
 models for a 1000-character bound, or "no short model" outright.
 
 A 1000-character length bound yields a near-minimal model, not one
-inflated to the -huge cap:
+inflated to the -huge bound:
 
   $ cat > long.smt2 <<-EOF
   > (set-logic QF_S)

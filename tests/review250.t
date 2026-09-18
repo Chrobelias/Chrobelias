@@ -12,7 +12,7 @@ SMT-LIB `(str.contains s t)` means "t occurs in s". The constant fold in
   > (check-sat)
   > EOF
 
-  $ Chro --info contains.smt2
+  $ Chro contains.smt2
   sat (presimpl int)
 
   $ cat > contains-neg.smt2 <<-EOF
@@ -21,7 +21,7 @@ SMT-LIB `(str.contains s t)` means "t occurs in s". The constant fold in
   > (check-sat)
   > EOF
 
-  $ Chro --info contains-neg.smt2
+  $ Chro contains-neg.smt2
   unsat (presimpl int)
 
 `(str.substr s m n)` is "" for a non-positive length, not the rest of the
@@ -36,7 +36,7 @@ because Dolmen rejects an out-of-int literal while parsing.)
   > (check-sat)
   > EOF
 
-  $ Chro --info substr-neg-len.smt2
+  $ Chro substr-neg-len.smt2
   unsat (presimpl str)
 
   $ cat > substr-neg-offset.smt2 <<-EOF
@@ -45,7 +45,7 @@ because Dolmen rejects an out-of-int literal while parsing.)
   > (check-sat)
   > EOF
 
-  $ Chro --info substr-neg-offset.smt2
+  $ Chro substr-neg-offset.smt2
   sat (presimpl str)
 
 The length is clamped to what is left of the string. The string goes through a
@@ -60,7 +60,7 @@ parsing.
   > (check-sat)
   > EOF
 
-  $ Chro --info substr-clamp.smt2
+  $ Chro substr-clamp.smt2
   sat (presimpl str)
 
   $ cat > substr-clamp-unsat.smt2 <<-EOF
@@ -71,7 +71,7 @@ parsing.
   > (check-sat)
   > EOF
 
-  $ Chro --info substr-clamp-unsat.smt2
+  $ Chro substr-clamp-unsat.smt2
   unsat (presimpl str)
 
 `check_card` counted terms it does not recognise (here `str.from_int`) as
@@ -84,7 +84,7 @@ contributing zero characters, which made `eq_str` "prove" a contradiction.
   > (check-sat)
   > EOF
 
-  $ Chro --info from-int.smt2
+  $ Chro from-int.smt2
   sat (presimpl int)
 
 An out-of-range `str.at` is "", so this is satisfiable. Encoding `str.at s i`
@@ -98,7 +98,7 @@ as `s = z1.y.z2 /\ |z1| = i /\ |y| = 1` alone forced `i` into range.
   > (check-sat)
   > EOF
 
-  $ Chro --info at-out-of-range.smt2
+  $ Chro at-out-of-range.smt2
   sat (presimpl int)
 
 An out-of-range `str.at` is only "", so demanding a character stays unsat.
@@ -111,7 +111,7 @@ An out-of-range `str.at` is only "", so demanding a character stays unsat.
   > (check-sat)
   > EOF
 
-  $ Chro --info at-out-of-range-unsat.smt2
+  $ Chro at-out-of-range-unsat.smt2
   unsat (presimpl str)
 
 In-range `str.at` still works.
@@ -122,7 +122,7 @@ In-range `str.at` still works.
   > (check-sat)
   > EOF
 
-  $ Chro --info at-in-range.smt2
+  $ Chro at-in-range.smt2
   sat (presimpl int)
 
 `b ** x = b ** y -> x = y` needs `b ** _` to be injective, which fails for the
@@ -134,7 +134,7 @@ bases 0 and 1 (and for a variable base that can take those values).
   > (check-sat)
   > EOF
 
-  $ Chro --info pow-base-one.smt2
+  $ Chro pow-base-one.smt2
   sat (presimpl int)
 
   $ cat > pow-base-zero.smt2 <<-EOF
@@ -143,7 +143,7 @@ bases 0 and 1 (and for a variable base that can take those values).
   > (check-sat)
   > EOF
 
-  $ Chro --info pow-base-zero.smt2
+  $ Chro pow-base-zero.smt2
   sat (presimpl int)
 
 The fold is still applied for a constant base of absolute value at least 2.
@@ -154,5 +154,5 @@ The fold is still applied for a constant base of absolute value at least 2.
   > (check-sat)
   > EOF
 
-  $ Chro --info pow-base-two.smt2
+  $ Chro pow-base-two.smt2
   unsat (presimpl int)
