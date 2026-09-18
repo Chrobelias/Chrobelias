@@ -10,11 +10,6 @@ let ( -- ) i j =
   aux j []
 ;;
 
-let pow_within_budget ~base:b e =
-  Z.(leq (abs b) one)
-  || (Z.fits_int e && Z.to_int e <= Config.huge_path () / Z.numbits (Z.abs b))
-;;
-
 let has_unsupported_nonlinearity =
   let open Ast.Eia in
   let not_a_const (type a) : a term -> bool = function
@@ -661,6 +656,21 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | c, xs -> Ast.Eia.mul (constz c :: List.sort compare_term xs)
 
     and pow base xs =
+      let pow_in_budget ~base:b e =
+        let budget = Z.of_int (Config.huge_pow_bits ()) in
+        let abs_b = Z.abs b in
+        if Z.leq abs_b Z.one
+        then Some (Utils.powz ~base:b e) (* 0, 1 and -1 stay one digit wide *)
+        else (
+          let nbits = Z.numbits abs_b in
+          if Z.gt (Z.mul e (Z.of_int (nbits - 1))) budget
+          then None
+          else if Z.leq (Z.mul e (Z.of_int nbits)) budget
+          then Some (Utils.powz ~base:b e)
+          else (
+            let v = Utils.powz ~base:b e in
+            if Z.leq (Z.of_int (Z.numbits v)) budget then Some v else None))
+      in
       match base, xs with
       | _, Eia.Const c when c = Z.zero -> const 1
       (* A negative constant exponent folds by the standard's rules: 0 for
@@ -678,16 +688,17 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
         Eia.Pow (base, Eia.Mul [ e1; e2 ])
       | Mul ((Const c as base0) :: tl), Eia.Const e when Z.(geq e zero) ->
         mul [ pow base0 xs; pow (Mul tl) xs ]
+      | Eia.Const b, Eia.Const exp when Z.(exp > zero) && agressive |> Option.is_none ->
+        (match pow_in_budget ~base:b exp with
+         | Some v ->
+           (try const (Z.to_int v) with
+            | Z.Overflow -> Ast.Eia.Pow (base, xs))
+         | None -> Ast.Eia.Pow (base, xs))
       | Eia.Const b, Eia.Const exp
-        when Z.(exp > zero)
-             && agressive |> Option.is_none
-             && pow_within_budget ~base:b exp ->
-        (try const (Z.to_int (Utils.powz ~base:b exp)) with
-         | Z.Overflow -> Ast.Eia.Pow (base, xs))
-      | Eia.Const b, Eia.Const exp
-        when Z.(exp > zero)
-             && agressive |> Option.value ~default:false
-             && pow_within_budget ~base:b exp -> constz (Utils.powz ~base:b exp)
+        when Z.(exp > zero) && agressive |> Option.value ~default:false ->
+        (match pow_in_budget ~base:b exp with
+         | Some v -> constz v
+         | None -> Ast.Eia.Pow (base, xs))
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
