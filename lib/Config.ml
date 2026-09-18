@@ -27,7 +27,7 @@ type config =
   ; mutable stop_after : [ `Pre_dpll | `Pre_simplify | `Simpl | `Solving ]
   ; mutable under_approx : int
   ; mutable under_str_all : bool
-    (* Run the string-under-approximation strategy and the normal one at the same
+    (* Run the string-under-approx strategy and the normal one at the same
        time, in separate processes, and take the first definitive answer. *)
   ; mutable parallel : bool
   ; mutable under_str_budget : float
@@ -153,7 +153,7 @@ let dyn_scale = ref 1
 let dyn_budget = ref 0
 let dyn_reset_budget () = dyn_budget := !dyn_leaf_budget * !dyn_scale
 
-(* Truncation is sound only where the caller wants an under-approximation.
+(* Truncation is sound only where the caller wants an under-approx.
    The elimination does; [Overapprox.in_re] wants the opposite and trusts its
    own Unsat. So the bounds apply inside the elimination stage only, set by
    [Solver.check_sat]; every other ChrobakNF stays exact. *)
@@ -162,7 +162,7 @@ let dyn_stage = ref false
 (* State cap for the regex length folding in [Overapprox.in_re] and
    [SimplII.arithmetize_in_re]. Sound only because [Nfa.chrobak] reports
    [exhaustive_upto] and both callers add a "len > that" disjunct, keeping the
-   abstraction an over-approximation. *)
+   abstraction an over-approx. *)
 let regex_cap =
   match Sys.getenv_opt "CHRO_REGEX_CAP" with
   | None -> 20
@@ -220,22 +220,20 @@ Basic options:
   let rec spec_list =
     [ ( "-bound"
       , Arg.Int (fun n -> config.under_approx <- n)
-      , "\tUpper bound for integer underapproximation (negative disables)" )
-    ; ( "-no-dyn-bounds"
+      , "\tUpper bound for integer underapprox (DEFAULT n=2; negative disables)" )
+    ; ( "-no-dyn"
       , Arg.Unit (fun () -> config.dyn_bounds <- false)
-      , "\tRun the exponent elimination unbounded instead of deriving its caps from each \
-         Chrobak automaton" )
-    ; ( "-dyn-bstates"
+      , "\tDisable dynamic bounds for Chrobak pairs underapprox" )
+    ; ( "-bstates"
       , Arg.Int (fun n -> dyn_scan_budget := n)
       , Printf.sprintf
-          "<n>\tState-scan budget for the dynamic bounds; the per-automaton state cap is \
-           its square root (DEFAULT n=%d)"
+          "<n>\tState budget for the dynamic Chrobak pairs underapprox (DEFAULT n=%d)"
           !dyn_scan_budget )
-    ; ( "-dyn-bres"
+    ; ( "-bres"
       , Arg.Int (fun n -> dyn_leaf_budget := n)
       , Printf.sprintf
-          "<n>\tResidue budget for the dynamic bounds, consumed across the exponent \
-           elimination (DEFAULT n=%d)"
+          "<n>\tResidue budget for the dynamic bounds Chrobak pairs underapprox (DEFAULT \
+           n=%d)"
           !dyn_leaf_budget )
     ; ( "-huge"
       , Arg.Int (fun n -> huge_const_config.path <- n)
@@ -246,10 +244,10 @@ Basic options:
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
       , "  \tUse least-significant-bit first representation" )
-    ; ( "-no-mod-eq"
+      (* ; ( "-no-mod-eq"
       , Arg.Unit (fun () -> config.mod_eq <- false)
       , "\tDisable the congruence automaton: lower every 'mod' to a quotient and a \
-         remainder" )
+         remainder" ) *)
     ; ( "-nielsen"
       , Arg.Unit (fun () -> config.nielsen <- true)
       , "\tEnable Nielsen transformations for word equations in the simplifier" )
@@ -264,29 +262,29 @@ Basic options:
           (fun () ->
             under_str_config.max_cnt <- -1;
             under_str_config.max_len <- -1)
-      , "Disable string underapproximations in concats" )
+      , "Disable string underapprox in concats" )
     ; ( "-sbcnt"
       , Arg.Int (fun n -> under_str_config.max_cnt <- n)
-      , "<n>\tUnderapproximate strings in concats via first <n> words w.r.t. regexes \
-         (DEFAULT n=32)" )
+      , "<n>\tUnderapprox strings in concats via first <n> words w.r.t. regexes (DEFAULT \
+         n=32)" )
     ; ( "-sblen"
       , Arg.Int (fun n -> under_str_config.max_len <- n)
-      , "<n>\tUnderapproximate strings in concats via words of length at most <n> \
-         (DEFAULT n=32)" )
+      , "<n>\tUnderapprox strings in concats via words of length at most <n> (DEFAULT \
+         n=32)" )
     ; ( "-sbenvs"
       , Arg.Int (fun n -> under_str_config.max_envs <- n)
-      , "<n>\tCap on candidate environments per string underapproximation round (DEFAULT \
-         n=8192)" )
+      , "<n>\tCap on candidate environments per string underapprox round (DEFAULT n=8192)"
+      )
       (*; ( "-over"
       , Arg.Unit (fun () -> config.over_approx <- true)
       , "\tSimple overapprox" )*)
     ; ( "-under-all"
       , Arg.Unit (fun () -> config.under_str_all <- true)
-      , "  \tApply string underapproximation for each string variable" )
+      , "  \tApply string underapprox for each string variable" )
     ; ( "-budget"
       , Arg.Float (fun x -> config.under_str_budget <- x)
-      , "<s>\tSeconds to spend on string under-approximations before falling through to \
-         the full check (DEFAULT 1.0, negative for no limit)" )
+      , "<s>\tSeconds to spend on string underapprox (DEFAULT 1.0, negative for no limit)"
+      )
     ; ( "-help"
       , Arg.Unit (fun () -> raise (Arg.Help (Arg.usage_string spec_list usage_msg)))
       , "\tDisplay this list of options\n\nMiscellaneous:\n" )
@@ -321,8 +319,8 @@ Basic options:
       , "\tSwitch labels encoding in nfa to 'char's" )
     ; ( "--no-parallel"
       , Arg.Unit (fun () -> config.parallel <- false)
-      , "Disable running the string-underapproximation strategy and the normal one in \
-         parallel processes to take the first definitive answer" )
+      , "Disable running the string-underapprox strategy and the normal one in parallel \
+         processes to take the first definitive answer" )
       (* ; ( "--no-alpha"
       , Arg.Unit (fun () -> config.simpl_alpha <- false)
       , "\tDon't try simplifications based on alpha-equivalence" )
