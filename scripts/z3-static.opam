@@ -3,7 +3,7 @@ opam-version: "2.0"
 # which satisfies none of smtml's z3 version constraints, so the solver
 # silently falls back to a pre-0.24 smtml that has no Smtml.Binder. Keep this
 # in sync with the tag cloned by .github/workflows/release.yml.
-version: "4.16.0"
+version: "5.1.0"
 maintainer: "weng@cs.jhu.edu"
 authors: "MSR"
 homepage: "https://github.com/Z3prover/z3"
@@ -20,8 +20,12 @@ build: [
 
 install: [
   [ "sed" "-i" "-e" "s/[^[:space:]]*dllz3ml.so[^[:space:]]*//g" "build/Makefile" ]
-  [ "sed" "-i" "-e" "s/[^[:space:]]*libz3ml[^[:space:]]*//g" "build/Makefile" ]
+  [ "cp" "build/api/ml/libz3ml-static.a" "build/api/ml/libz3ml.a" ]
+  [ "cp" "build/libz3-static.a" "build/libz3.a" ]
   [ make "-C" "build" "install" ]
+  # The static build names the stubs archive libz3ml-static.a; findlib looks
+  # for libz3ml.a beside the .cmxa, so install it there under that name.
+#  [ "cp" "build/api/ml/libz3ml-static.a" "%{lib}%/z3/libz3ml.a" ]
   [ "cp" "build/api/ml/libz3ml-static.a" "/usr/lib/libz3ml-static.a" ]
   [ "cp" "build/libz3-static.a" "/usr/lib/libz3-static.a" ]
 ]
@@ -43,5 +47,5 @@ conflicts: [
 synopsis: "Z3 solver"
 url {
   src:
-    "https://github.com/Z3Prover/z3/archive/refs/tags/z3-4.16.0.tar.gz"
+    "https://github.com/Z3Prover/z3/archive/refs/tags/z3-5.1.0.tar.gz"
 }

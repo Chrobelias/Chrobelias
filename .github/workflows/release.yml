@@ -6,8 +6,8 @@ concurrency:
 
 on:
   push:
-    branches:
-      - main
+#    branches:
+#      - main
   workflow_dispatch:
 
 permissions:
@@ -23,6 +23,14 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.os }}
+    # The checkout is owned by the runner's uid while the container runs as
+    # root, so git refuses to touch it. opam runs git with GIT_CONFIG_GLOBAL
+    # and GIT_CONFIG_SYSTEM pointed at /dev/null, so "git config --global /
+    # --system" never reaches it; the GIT_CONFIG_COUNT variables are kept.
+    env:
+      GIT_CONFIG_COUNT: 1
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: "*"
     steps:
       - run: apk add alpine-sdk
 
@@ -36,8 +44,6 @@ jobs:
       - name: Install extra dependencies
         if: startsWith(matrix.os, 'alpine')
         run: apk add bash sqlite sqlite-dev gmp gmp-dev gmp-static cmake python3 bubblewrap gnupg wget
-
-      - run: git config --global --add safe.directory $(pwd)
 
       # opam-pin is off because setup-ocaml 3.7.0 pins local packages through a
       # file:// URL, i.e. opam's rsync backend, which copies the whole working
@@ -73,21 +79,25 @@ jobs:
       # scripts/z3-static.opam seds every "libz3ml" token out of z3's Makefile
       # before "make install", and libz3ml.a is exactly the OCaml stubs archive
       # findlib z3 needs -- so this dumps what actually landed.
-      - name: Diagnose the z3 findlib package
-        continue-on-error: true
-        run: |
-          echo "--- opam packages ---"
-          opam list z3 smtml || true
-          echo "--- findlib knows z3? ---"
-          opam exec -- ocamlfind list 2>/dev/null | grep -i '^z3' \
-            || echo "MISSING: findlib has no z3 package"
-          echo "--- \$(opam var lib)/z3 ---"
-          ls -la "$(opam var lib)/z3" 2>/dev/null || echo "MISSING: no lib/z3 directory"
-          echo "--- static archives on disk ---"
-          ls -la /usr/lib/libz3*.a 2>/dev/null || echo "none in /usr/lib"
-          echo "--- what findlib would link for z3 ---"
-          opam exec -- ocamlfind query -r -p-format z3 2>&1 | tr '\n' ' ' || true
-          echo
+      #- name: Check the z3 findlib package
+      #  run: |
+      #    echo "--- opam packages ---"
+      #    opam list z3 smtml || true
+      #    echo "--- findlib knows z3? ---"
+      #    opam exec -- ocamlfind list 2>/dev/null | grep -i '^z3' \
+      #      || echo "MISSING: findlib has no z3 package"
+      #    echo "--- \$(opam var lib)/z3 ---"
+      #    ls -la "$(opam var lib)/z3" 2>/dev/null || echo "MISSING: no lib/z3 directory"
+      #    echo "--- static archives on disk ---"
+      #    ls -la /usr/lib/libz3*.a 2>/dev/null || echo "none in /usr/lib"
+      #    echo "--- what findlib would link for z3 ---"
+      #    opam exec -- ocamlfind query -r -p-format z3 2>&1 | tr '\n' ' ' || true
+      #    echo
+
+      #    opam exec -- ocamlfind query z3 >/dev/null 2>&1 \
+      #      || { echo "Error: findlib has no z3 package"; exit 1; }
+      #    test -f "$(opam var lib)/z3/libz3ml.a" \
+      #      || { echo "Error: $(opam var lib)/z3/libz3ml.a is missing; smtml would build without its Z3 backend"; exit 1; }
 
       - name: Install depedencies
         run: opam install . --deps-only --with-test -vvv
@@ -111,6 +121,19 @@ jobs:
 
       - run: mv _build/default/bin/chro.exe _build/default/bin/chro
 
+      #- name: Smoke-test the release binary
+      #  run: |
+      #    strings -a _build/default/bin/chro | grep -q Z3_mk_context \
+      #      || { echo "Error: Z3 is not linked into the release binary"; exit 1; }
+      #    printf '(set-logic QF_LIA)\n(declare-const x Int)\n(assert (= x 4))\n(check-sat)\n' \
+      #      > smoke.smt2
+      #    out=$(_build/default/bin/chro -no-model smoke.smt2 2>&1 || true)
+      #    echo "$out"
+      #    case "$out" in
+      #      sat*) echo "smoke test OK" ;;
+      #      *) echo "Error: release binary does not answer: $out"; exit 1 ;;
+      #    esac
+
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -118,11 +141,53 @@ jobs:
           name: Chro
           path: _build/default/bin/chro
 
+  smoke-test:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: examples
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Chro
+          path: bin
+
+      - run: chmod +x bin/chro
+
+      - name: Check the binary is static
+        run: |
+          file bin/chro
+          if ldd bin/chro; then
+            echo "Error: chro is dynamically linked"
+            exit 1
+          fi
+
+      - name: Solve a sat example
+        run: |
+          bin/chro examples/lnr-sat.smt2 | tee out.txt
+          [ "$(head -n1 out.txt | cut -d' ' -f1)" = sat ]
+
+      - name: Solve an unsat example
+        run: |
+          bin/chro examples/lnr-unsat.smt2 | tee out.txt
+          [ "$(head -n1 out.txt | cut -d' ' -f1)" = unsat ]
+
+  draft-release:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Chro
+          path: bin
+
       - name: Draft release
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           files: |
-            _build/default/bin/chro
+            bin/chro
           token: "${{ secrets.GITHUB_TOKEN }}"
