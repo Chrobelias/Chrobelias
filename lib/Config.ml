@@ -238,8 +238,8 @@ Basic options:
     ; ( "-huge"
       , Arg.Int (fun n -> huge_const_config.path <- n)
       , Printf.sprintf
-          "<n> \tReport no model if more than <n> symbols needed for any variable in \
-           every model (DEFAULT n=%d)"
+          "<n> \tReport no model in which some variable needs more than ⟨n⟩ symbols \
+           (DEFAULT n=%d)"
           (huge_path ()) )
     ; ( "-lsb"
       , Arg.Unit (fun () -> config.mode <- `Lsb)
