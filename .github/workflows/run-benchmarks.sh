@@ -9,32 +9,56 @@ timeout=$3;
 execut=$(echo $solver_with_flags | tr ' ' '\n' | head -n 1);
 solver=$(basename $execut);
 readarray -t flags < <(echo $solver_with_flags | tr ' ' '\n' | tail -n +2);
+
+NPROC=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1);
+: "${CORES_PER_RUN:=1}";
+: "${MEM_PER_RUN:=8192}";
+: "${JOBS:=$(( NPROC / CORES_PER_RUN ))}";
+[ "$JOBS" -ge 1 ] || JOBS=1;
+
+export timeout execut NPROC CORES_PER_RUN MEM_PER_RUN
+export FLAGS="${flags[*]}"
+
+run_one() {
+  local i="$1" slot="$2"
+  local flags; read -ra flags <<< "$FLAGS"
+  local tmp; tmp="$(mktemp)"
+  local pin=""
+  if [ "$CORES_PER_RUN" -gt 0 ]; then
+    local a=$(( (slot - 1) * CORES_PER_RUN ))
+    local b=$(( a + CORES_PER_RUN - 1 ))
+    [ "$b" -lt "$NPROC" ] && pin="taskset -c $a-$b"
+  fi
+  echo "$i"
+  set -m
+  (
+    [ "$MEM_PER_RUN" -gt 0 ] && ulimit -v $(( MEM_PER_RUN * 1024 ))
+    exec $pin timeout -k 2 -s SIGINT "$timeout" ./_build/default/"$execut" "${flags[@]}" "$i"
+  ) > "$tmp" 2>&1 &
+  local pid=$!
+  wait "$pid"; local res=$?
+  kill -9 -"$pid" 2>/dev/null
+  set +m
+  if [ "$res" -eq 124 ] || [ "$res" -eq 137 ]; then
+    echo timeout
+  elif grep -q "^sat" "$tmp"; then
+    echo sat
+  elif grep -q "^unsat" "$tmp"; then
+    echo unsat
+  elif grep -q "^timeout" "$tmp"; then
+    echo timeout
+  else
+    echo unknown
+  fi
+  rm -f "$tmp"
+}
+export -f run_one
+
 for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {last=$0} END {print last}'); do
   suitename=$(sed 's/\.//g' <<< ${suite:${#base} + 1} | sed 's/\///g');
   suitefile="res-$solver-$suitename.txt";
-  tempfile=".temp";
   START_TIME=$(date +%s)
-  for i in $suite"/"*.smt2; do
-    echo $i;
-    (timeout -k 2 $timeout time ./_build/default/$execut "${flags[@]}" $i) > $tempfile 2>&1 ;
-    res=$?;
-    # timeout's -k SIGKILL reaches only its direct child, and a solver stuck
-    # inside native Z3 defers the group SIGTERM forever, so stragglers (and
-    # their portfolio children) survive every instance that hits the limit.
-    # Sequential execution makes an unconditional per-instance sweep safe.
-    pkill -9 -f "_build/default/$execut" 2>/dev/null;
-    if [[ res -eq 124 || res -eq 137 ]]; then
-      echo timeout
-    elif grep -q "^sat" $tempfile; then
-      echo sat
-    elif grep -q "^unsat" $tempfile; then
-      echo unsat
-    elif grep -q "^timeout" $tempfile; then
-      echo timeout
-    else
-      echo unknown
-    fi
-  done | tee $suitefile;
+  printf '%s\n' "$suite"/*.smt2 | parallel --will-cite --keep-order -j "$JOBS" run_one {} {%} | tee "$suitefile";
   END_TIME=$(date +%s)
   DURATION=$(($END_TIME - $START_TIME))
   echo "Benchmarks $suitename completed by $solver in: $DURATION seconds with $execute"
