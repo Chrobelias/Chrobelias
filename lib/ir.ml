@@ -755,18 +755,15 @@ let exists_to_div =
     | ir -> [ ir ]
   in
   fun ir ->
-    if Config.config.mod_eq = false
-    then ir
-    else
-      map
-        (function
-          | Exists (atoms, body) ->
-            let atoms, conjs = fold_atoms atoms (conjuncts_of body) in
-            (match List.rev atoms with
-             | [] -> land_ conjs
-             | atoms -> exists atoms (land_ conjs))
-          | ir -> ir)
-        ir
+    map
+      (function
+        | Exists (atoms, body) ->
+          let atoms, conjs = fold_atoms atoms (conjuncts_of body) in
+          (match List.rev atoms with
+           | [] -> land_ conjs
+           | atoms -> exists atoms (land_ conjs))
+        | ir -> ir)
+      ir
 ;;
 
 (* let simpl1 ir =

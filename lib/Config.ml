@@ -10,11 +10,6 @@ type config =
   ; mutable input_file : string
   ; mutable logic : [ `Eia | `Str | `StrBv ]
   ; mutable mode : [ `Msb | `Lsb ]
-    (* Decide [t = c (mod m)] with the dedicated congruence automaton. Turning
-       this off lowers every [mod] to a quotient and a remainder instead, which
-       is what the solver did before the automaton existed -- the point of the
-       switch is to be able to compare the two. *)
-  ; mutable mod_eq : bool
   ; mutable nielsen : bool
   ; mutable no_model : bool
   ; mutable no_str_bv : bool
@@ -53,7 +48,6 @@ let config =
   ; input_file = ""
   ; logic = `Eia
   ; mode = `Msb
-  ; mod_eq = true
   ; nielsen = false
   ; no_model = false
   ; no_str_bv = false
@@ -267,9 +261,6 @@ Basic options:
        ; ( "-nielsen"
          , Arg.Unit (fun () -> config.nielsen <- true)
          , "Nielsen transformations for word equations in the simplifier" )
-       ; ( "-no-mod-eq"
-         , Arg.Unit (fun () -> config.mod_eq <- false)
-         , "Lower 'mod' to a quotient and remainder, not a congruence NFA" )
        ; "-no-model", Arg.Unit (fun () -> config.no_model <- true), "Do not build models"
        ; ( "-no-over"
          , Arg.Unit (fun () -> config.over_approx <- false)

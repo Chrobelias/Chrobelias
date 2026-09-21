@@ -110,8 +110,8 @@ emitted |n| behind a 0 sign. The range pins the model to exactly -4.
   > (check-sat)
   > (get-model)
   > EOF
-  $ Chro -bound -1 -no-mod-eq negmodel.smt2
-  sat (simpl)
+  $ Chro -bound -1 negmodel.smt2
+  sat (nfa)
   (
      (define-fun x () Int
       -4)
