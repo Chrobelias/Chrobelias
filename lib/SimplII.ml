@@ -2382,19 +2382,12 @@ let lower_mod ast =
       let zz = Ast.Eia.(Const z) in
       extend (leq (constz Z.zero) r);
       extend (lt r zz);
-      if Config.config.mod_eq
-      then
-        (* [r = t (mod z)] said as the congruence shape [Me] reads into an
-           [Ir.Div]: the remainder track stays range-bounded and no unbounded
-           quotient track is spent. Under [-no-mod-eq] the [Div] machinery is
-           off, so the classical [t = z*q + r] flattening remains. *)
-        extend
-          (eqz
-             (Ast.Eia.mod_ (add [ t; mul [ constz Z.minus_one; r ] ]) z)
-             (constz Z.zero))
-      else (
-        let q = var (gensym ~prefix:"%q" ()) in
-        extend (eqz t (add [ mul [ zz; q ]; r ])));
+      (* [r = t (mod z)] said as the congruence shape [Me] reads into an
+         [Ir.Div]: the remainder track stays range-bounded and no unbounded
+         quotient track is spent, which the classical [t = z*q + r] flattening
+         would cost. *)
+      extend
+        (eqz (Ast.Eia.mod_ (add [ t; mul [ constz Z.minus_one; r ] ]) z) (constz Z.zero));
       r
     ;;
   end
@@ -2404,8 +2397,7 @@ let lower_mod ast =
      automaton. Lowering it here would spend two fresh unbounded variables per
      occurrence -- which is exactly what quantifier elimination produces a lot
      of. Anything else, including a [mod] nested inside a term, still gets
-     lowered the usual way -- as does everything, congruence or not, under
-     [-no-mod-eq]. *)
+     lowered the usual way. *)
   let rec has_mod : 'a. 'a Ast.Eia.term -> bool =
     fun (type a) (t : a Ast.Eia.term) : bool ->
     match t with
@@ -2415,13 +2407,11 @@ let lower_mod ast =
     | _ -> false
   in
   let is_congruence ph =
-    Config.config.mod_eq
-    &&
-      match ph with
-      | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Mod (t, m), Ast.Eia.Const c, Ast.I))
-      | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Const c, Ast.Eia.Mod (t, m), Ast.I)) ->
-        Z.(geq c zero) && Z.(lt c (abs m)) && not (has_mod t)
-      | _ -> false
+    match ph with
+    | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Mod (t, m), Ast.Eia.Const c, Ast.I))
+    | Ast.Eia (Ast.Eia.Eq (Ast.Eia.Const c, Ast.Eia.Mod (t, m), Ast.I)) ->
+      Z.(geq c zero) && Z.(lt c (abs m)) && not (has_mod t)
+    | _ -> false
   in
   let rec walk ph =
     if is_congruence ph

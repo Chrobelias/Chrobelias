@@ -81,8 +81,12 @@ let aux_of_path
       end
   in
   let number =
+    if Label.u_eos = Label.u_zero
+    then number
+    else number |> List.drop_while (fun c -> c = Label.u_eos)
+  in
+  let number =
     number
-    |> List.drop_while (fun c -> c = Label.u_eos)
     |> List.map (fun c -> if c = Label.u_null || c = Label.u_eos then Label.u_zero else c)
   in
   sign, number
