@@ -14,7 +14,8 @@ matches_filter() {
 }
 
 eia_benchmarks=(
-  "benchmarks/QF_LIA"
+  "benchmarks/chrobelias/QF_EIA/LoAT"
+  "benchmarks/chrobelias/QF_EIA/PURRS"
   "benchmarks/chrobelias/QF_EIA/SIERPINSKI"
 )
 eia_solvers=(
@@ -39,8 +40,8 @@ for solver in "${eia_solvers[@]}"; do
 done
 
 slia_benchmarks=(
-  "benchmarks/chrobelias/QF_SLIA/stringfuzzregex"
-  "benchmarks/chrobelias/QF_SLIA/HashFunction"
+  "benchmarks/chrobelias/QF_SLIA/stringfuzz"
+  "benchmarks/chrobelias/QF_SLIA/Hash2"
   "benchmarks/chrobelias/QF_SLIA/StrRElnc"
 )
 slia_solvers=(
