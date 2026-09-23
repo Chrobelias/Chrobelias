@@ -43,6 +43,7 @@ slia_benchmarks=(
   "benchmarks/chrobelias/QF_SLIA/stringfuzz"
   "benchmarks/chrobelias/QF_SLIA/Hash2"
   "benchmarks/chrobelias/QF_SLIA/StrRElnc"
+  "benchmarks/chrobelias/QF_SLIA/FullStrInt"
 )
 slia_solvers=(
   "bin/chro.exe -q"
