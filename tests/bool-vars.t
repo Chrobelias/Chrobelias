@@ -220,3 +220,17 @@
   > SMT
   $ Chro --check-model all_branches_refuted.smt2
   unsat (nia)
+
+  $ cat > ite_eq_unsat.smt2 <<-SMT
+  > (set-logic ALL)
+  > (declare-const p Bool)
+  > (declare-const a Bool)
+  > (declare-const b Bool)
+  > (assert (= (ite p a b) (ite p b a)))
+  > (assert p)
+  > (assert a)
+  > (assert (not b))
+  > (check-sat)
+  > SMT
+  $ Chro --check-model ite_eq_unsat.smt2
+  unsat (nia)
