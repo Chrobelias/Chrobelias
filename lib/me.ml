@@ -621,7 +621,7 @@ let ir_of_ast env ast =
        | Unsupported_constraint s -> return (Ir.Unsupp s))
     | Unsupp (`Msg (s, _)) -> return (Ir.Unsupp s)
     | Unsupp (`Check _) -> return Ir.true_
-    | Pred s -> failf "Unexpected %s" s
+    | Pred s -> return (Ir.Unsupp s)
   in
   (*let ast =
     Env.fold

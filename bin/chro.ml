@@ -75,7 +75,7 @@ let rec fold_until_sat f acc seq =
      | Seq.Cons (x, rest) -> fold_until_sat f (f acc x) rest)
 ;;
 
-let construct_model tys env model regexes =
+let construct_model (tys : Model.tys) env model regexes =
   let module NfaS = Nfa.String in
   let join_int_model prefix m =
     let open Ast in
@@ -93,7 +93,13 @@ let construct_model tys env model regexes =
           term
     in
     let prefix =
-      let shrink_ir_model = Map.map_keys_exn m ~f:(fun s -> Any_atom (Ast.var s Ast.I)) in
+      let shrink_ir_model =
+        Map.filter_map m ~f:(function
+          | `Int z -> Some (`Int z)
+          | `Str s -> Some (`Str s)
+          | `Bool _ -> None)
+        |> Map.map_keys_exn ~f:(fun s -> Any_atom (Ast.var s Ast.I))
+      in
       Env.enrich prefix shrink_ir_model
     in
     let rec seek prefix key =
@@ -169,7 +175,7 @@ let construct_model tys env model regexes =
             else (
               try Z.to_int c with
               | Z.Overflow -> raise Too_long_model)
-          | _ -> assert false
+          | `Str _ | `Bool _ -> assert false
         in
         if Map.mem model string_var
         then None
@@ -196,6 +202,7 @@ let construct_model tys env model regexes =
         let data =
           match data with
           | `Str c -> `Str c
+          | `Bool b -> `Bool b
           | `Int d ->
             (match Map.find tys key with
              | Some `Str ->
@@ -213,6 +220,7 @@ let construct_model tys env model regexes =
                    List.nth l 0 |> List.rev |> List.to_seq |> String.of_seq)
                in
                `Str model
+             | Some `Bool -> `Bool Z.(d <> zero)
              | Some `Int | None -> `Int d)
         in
         let result =
@@ -232,6 +240,7 @@ let construct_model tys env model regexes =
             in
             `Str str
           | `Int d -> `Int d
+          | `Bool b -> `Bool b
         in
         Some (key, result))
     |> Map.of_alist_exn
@@ -271,7 +280,7 @@ let construct_model tys env model regexes =
         then (
           match data with
           | `Str -> Env.extend_string_exn env key (Ast.Eia.Str_const "")
-          | `Int -> Env.extend_int_exn env key (Ast.Eia.Const Z.zero))
+          | `Int | `Bool -> Env.extend_int_exn env key (Ast.Eia.Const Z.zero))
         else env)
       tys
   in
@@ -305,7 +314,12 @@ let construct_model tys env model regexes =
         | Some (`Str s), `Str -> Map.add_exn acc ~key ~data:(`Str s)
         | Some (`Int c), `Int -> Map.add_exn acc ~key ~data:(`Int c)
         | Some (`Int c), `Str -> Map.add_exn acc ~key ~data:(`Str (Z.to_string c))
-        | Some (`Str _), `Int | None, _ -> acc))
+        | Some (`Int c), `Bool -> Map.add_exn acc ~key ~data:(`Bool Z.(c <> zero))
+        | Some (`Bool b), `Bool -> Map.add_exn acc ~key ~data:(`Bool b)
+        | Some (`Str _), `Int
+        | Some (`Str _), `Bool
+        | Some (`Bool _), (`Int | `Str)
+        | None, _ -> acc))
     ~init:(Map.filter_keys ~f:(Map.mem tys) string_model)
     tys
 ;;
@@ -349,7 +363,8 @@ let model_within_len len model =
     ||
       match data with
       | `Int z -> decimal_fits z
-      | `Str s -> String.length s <= len)
+      | `Str s -> String.length s <= len
+      | `Bool _ -> true)
 ;;
 
 let report_result ?(verbose = false) rez =
@@ -1086,7 +1101,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
              Map.iteri model ~f:(fun ~key ~data ->
                match data with
                | `Int c -> Hashtbl.replace pins key c
-               | `Str _ -> ())
+               | `Str _ | `Bool _ -> ())
            | Result.Error _ -> ());
           let visiting = Hashtbl.create 8 in
           let rec term : Z.t Ast.Eia.term -> Z.t option = function
@@ -1326,6 +1341,7 @@ let check_model tys (ast : Ast.t) (model : Model.t) =
           match data with
           | `Int c -> eia (Eia.eq (Eia.atom (var key I)) (Ast.Eia.const c) I)
           | `Str c -> eia (Eia.eq (Eia.atom (var key S)) (Ast.Eia.str_const c) S)
+          | `Bool b -> if b then pred key else lnot (pred key)
         in
         Ast.land_ [ ast'; ast ])
       model
@@ -1421,7 +1437,8 @@ let () =
                        (Atom (Var (v, I)))
                        (Const
                           Z.(pow (Z.of_int !Lib.Config.base) (Lib.Config.huge_const ())))))
-                :: acc)
+                :: acc
+              | _, `Bool -> acc)
             |> Lib.Ast.land_
           in
           trace_log "Shrinked AST: @[%a@]\n%!" Ast.pp_smtlib2 shrinked_ast;
@@ -1484,6 +1501,7 @@ let () =
         match sort with
         | "Int" -> Map.set ~key:id ~data:`Int state.tys
         | "String" -> Map.set ~key:id ~data:`Str state.tys
+        | "Bool" -> Map.set ~key:id ~data:`Bool state.tys
         | _ -> state.tys
       in
       { state with tys }
@@ -1625,6 +1643,7 @@ let () =
                   (match Smtml.Symbol.to_string sort with
                    | "Int" -> Map.set ~key:id ~data:`Int tys
                    | "String" -> Map.set ~key:id ~data:`Str tys
+                   | "Bool" -> Map.set ~key:id ~data:`Bool tys
                    | _ -> tys)
                 | _ -> tys)
              Map.empty

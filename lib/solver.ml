@@ -1539,7 +1539,7 @@ let check_sat ir
         | Ir.Var v, _ -> Map.set acc ~key:v ~data
         | Ir.Pow2 v, `Int eia ->
           if Map.mem acc v then acc else Map.set acc ~key:v ~data:(`Int (logBaseZ eia))
-        | Ir.Pow2 _, `Str _ -> acc)
+        | Ir.Pow2 _, (`Str _ | `Bool _) -> acc)
       model
   in
   let on_no_strings ir =
@@ -1599,7 +1599,9 @@ let check_sat ir
                   in
                   `Int v
                 | Some `Str ->
-                  failwith "there is something strange: there is string variable in EIA")
+                  failwith "there is something strange: there is string variable in EIA"
+                | Some `Bool ->
+                  failwith "there is something strange: there is boolean variable in EIA")
               |> Map.map_keys_exn ~f:(function
                 | Ir.Pow2 atom -> atom
                 | Ir.Var atom -> atom) (*|> filter_internal*))
@@ -1691,7 +1693,9 @@ let check_sat ir
                     `Str (v |> string_of_path (module Nfa.Str (B)) string_of_char_list)
                   end
                 | `Str ->
-                  `Str (v |> string_of_path (module Nfa.Str (B)) string_of_char_list))
+                  `Str (v |> string_of_path (module Nfa.Str (B)) string_of_char_list)
+                | `Bool ->
+                  failwith "there is something strange: there is boolean variable in EIA")
               model
           in
           let model = flatten_pows_in_model model in
