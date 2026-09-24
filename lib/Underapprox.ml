@@ -324,12 +324,15 @@ let check bound ast =
                        match k.name, v with
                        | Smtml.Symbol.Simple s, Smtml.Value.Int n
                          when Bool.not (Map.mem acc s) -> Map.add_exn acc ~key:s ~data:n
-                       | Smtml.Symbol.Simple s, Smtml.Value.True
+                       | ( Smtml.Symbol.Simple s
+                         , ((Smtml.Value.True | Smtml.Value.False) as b) )
                          when Bool.not (Map.mem acc s) ->
-                         Map.add_exn acc ~key:s ~data:Z.one
-                       | Smtml.Symbol.Simple s, Smtml.Value.False
-                         when Bool.not (Map.mem acc s) ->
-                         Map.add_exn acc ~key:s ~data:Z.zero
+                         let data =
+                           match b with
+                           | Smtml.Value.True -> Z.one
+                           | _ -> Z.zero
+                         in
+                         Map.add_exn acc ~key:s ~data
                        | _ -> acc)
                     (Smtml.Z3_mappings.values_of_model m)
                     (Map.map env ~f:Z.of_int)
