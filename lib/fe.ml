@@ -406,6 +406,10 @@ and to_ast tys orig_expr : Ast.t =
       let lhs = to_ast tys lhs in
       let rhs = to_ast tys rhs in
       Ast.lor_ [ Ast.lnot lhs; rhs ]
+    | Expr.Binop (Ty.Ty_bool, Ty.Binop.Xor, lhs, rhs) ->
+      let lhs = to_ast tys lhs in
+      let rhs = to_ast tys rhs in
+      Ast.lor_ [ Ast.land_ [ lhs; Ast.lnot rhs ]; Ast.land_ [ Ast.lnot lhs; rhs ] ]
     (* Integer comparisons. *)
     | Expr.Relop (_ty, Ty.Relop.Eq, lhs, rhs) when is_str tys lhs || is_str tys rhs ->
       let build t c = Ast.eia (Ast.Eia.eq t c S) in
