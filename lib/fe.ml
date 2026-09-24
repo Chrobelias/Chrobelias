@@ -309,6 +309,7 @@ and to_ast tys orig_expr : Ast.t =
        | _ -> false)
     | Expr.Val Smtml.Value.True | Expr.Val Smtml.Value.False -> true
     | Expr.Relop _ -> true
+    | Expr.Triop (_, Ty.Triop.Ite, _, t, e) -> is_bool tys t || is_bool tys e
     | Expr.Unop (_, Ty.Unop.Not, e) -> is_bool tys e
     | Expr.Binop (_, (Ty.Binop.And | Ty.Binop.Or | Ty.Binop.Implies | Ty.Binop.Xor), l, r)
       -> is_bool tys l || is_bool tys r
