@@ -79,7 +79,7 @@ let apply_symnatics (module S : Smtml_symantics) =
     | Land xs -> S.land_ (List.map (helper pos) xs)
     | Lor xs -> S.lor_ (List.map (helper pos) xs)
     | Eia e -> helper_eia pos e
-    | Pred s -> assert false
+    | Pred s -> S.pred s
     | Exists (vs, ph) ->
       let vs =
         List.filter_map

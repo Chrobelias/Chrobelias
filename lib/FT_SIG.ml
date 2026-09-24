@@ -42,6 +42,7 @@ module type s_ph = sig
   val not : ph -> ph
   val true_ : ph
   val false_ : ph
+  val pred : string -> ph
   val eqz : term -> term -> ph
   val neqz : term -> term -> ph
   val eq_str : str -> str -> ph
@@ -138,6 +139,7 @@ end = struct
   let true_ = Expr.Bool.true_
   let false_ = Expr.Bool.false_
   let not = Expr.Bool.not
+  let pred s = Expr.symbol (Smtml.Symbol.make_const Smtml.Ty.Ty_bool s)
 
   let land_ = function
     | [] -> false_

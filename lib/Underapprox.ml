@@ -109,6 +109,7 @@ let make_collector () =
     let mod_ x _ = x
     let true_ = empty
     let false_ = empty
+    let pred _ = empty
 
     (* phormulas  *)
     let in_re _ _ = failwith __FILE__
@@ -151,7 +152,7 @@ let apply_symantics (type a) (module S : SYM with type repr = a) =
     | Lnot x -> S.not (helper x)
     | True -> S.true_
     | Eia e -> helper_eia e
-    | Pred s -> assert false
+    | Pred s -> S.pred s
     | Exists (vs, ph) ->
       let vs =
         List.filter_map
@@ -323,6 +324,12 @@ let check bound ast =
                        match k.name, v with
                        | Smtml.Symbol.Simple s, Smtml.Value.Int n
                          when Bool.not (Map.mem acc s) -> Map.add_exn acc ~key:s ~data:n
+                       | Smtml.Symbol.Simple s, Smtml.Value.True
+                         when Bool.not (Map.mem acc s) ->
+                         Map.add_exn acc ~key:s ~data:Z.one
+                       | Smtml.Symbol.Simple s, Smtml.Value.False
+                         when Bool.not (Map.mem acc s) ->
+                         Map.add_exn acc ~key:s ~data:Z.zero
                        | _ -> acc)
                     (Smtml.Z3_mappings.values_of_model m)
                     (Map.map env ~f:Z.of_int)

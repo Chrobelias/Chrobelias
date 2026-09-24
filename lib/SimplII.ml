@@ -187,6 +187,7 @@ module Id_symantics :
   let lt l r = Ast.eia (Ast.Eia.lt l r)
   let true_ = Ast.true_
   let false_ = Ast.false_
+  let pred = Ast.pred
   let prj = Fun.id
   let pow_minus_one t = pow (const (-1)) t
 
@@ -371,6 +372,7 @@ module Who_in_exponents_ = struct
   let bw _ = ( ++ )
   let true_ = empty
   let false_ = empty
+  let pred _ = empty
   let land_ = List.fold_left ( ++ ) empty
   let lor_ = List.fold_left ( ++ ) empty
   let not = Fun.id
@@ -418,7 +420,7 @@ let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) ast =
     | Lnot x -> S.not (helper x)
     | True -> S.true_
     | Eia e -> helper_eia e
-    | Pred s -> assert false
+    | Pred s -> S.pred s
     | Exists (vs, ph) ->
       (*let vs =
           List.filter_map
@@ -2494,6 +2496,7 @@ struct
   let bw _ = ( ++ )
   let true_ = empty
   let false_ = empty
+  let pred _ = empty
   let land_ = List.fold_left ( ++ ) empty
   let lor_ = List.fold_left ( ++ ) empty
   let not = Fun.id
@@ -4133,6 +4136,7 @@ let unfold_neq ast =
               match Map.find model v with
               | Some (`Str v) -> String.length v
               | Some (`Int v) -> assert false
+              | Some (`Bool _) -> assert false
               | None -> 0
             in
             let rec aux models =
