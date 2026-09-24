@@ -315,11 +315,7 @@ let construct_model (tys : Model.tys) env model regexes =
         | Some (`Int c), `Int -> Map.add_exn acc ~key ~data:(`Int c)
         | Some (`Int c), `Str -> Map.add_exn acc ~key ~data:(`Str (Z.to_string c))
         | Some (`Int c), `Bool -> Map.add_exn acc ~key ~data:(`Bool Z.(c <> zero))
-        | Some (`Bool b), `Bool -> Map.add_exn acc ~key ~data:(`Bool b)
-        | Some (`Str _), `Int
-        | Some (`Str _), `Bool
-        | Some (`Bool _), (`Int | `Str)
-        | None, _ -> acc))
+        | Some (`Str _), (`Int | `Bool) | None, _ -> acc))
     ~init:(Map.filter_keys ~f:(Map.mem tys) string_model)
     tys
 ;;

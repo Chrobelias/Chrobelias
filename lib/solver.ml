@@ -1568,7 +1568,7 @@ let check_sat ir
                   | Pow2 _ -> ""
                 in
                 match Map.find tys k' with
-                | None | Some `Int ->
+                | None | Some `Int | Some `Bool ->
                   (* Msb integer tracks are sign-symbol-first two's
                      complement, the same convention the [negate_symbol]
                      callers above decode; reading the sign symbol as a
@@ -1597,11 +1597,9 @@ let check_sat ir
                       in
                       logBase v |> Z.of_int
                   in
-                  `Int v
+                  if Map.find tys k' = Some `Bool then `Bool Z.(v <> zero) else `Int v
                 | Some `Str ->
-                  failwith "there is something strange: there is string variable in EIA"
-                | Some `Bool ->
-                  failwith "there is something strange: there is boolean variable in EIA")
+                  failwith "there is something strange: there is string variable in EIA")
               |> Map.map_keys_exn ~f:(function
                 | Ir.Pow2 atom -> atom
                 | Ir.Var atom -> atom) (*|> filter_internal*))
@@ -1695,7 +1693,14 @@ let check_sat ir
                 | `Str ->
                   `Str (v |> string_of_path (module Nfa.Str (B)) string_of_char_list)
                 | `Bool ->
-                  failwith "there is something strange: there is boolean variable in EIA")
+                  `Bool
+                    Z.(
+                      int_of_path
+                        (module Nfa.Str (B))
+                        z_of_char_list
+                        ?negate_symbol:Option.none
+                        v
+                      <> zero))
               model
           in
           let model = flatten_pows_in_model model in

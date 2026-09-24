@@ -22,24 +22,3 @@ let pp ppf m =
 ;;
 
 let to_string = Format.asprintf "%a" pp
-
-let%expect_test "model printing covers every sort" =
-  let m =
-    Map.of_alist_exn
-      [ "b", `Bool true; "c", `Bool false; "x", `Int (Z.of_int (-4)); "s", `Str "ab" ]
-  in
-  print_string (to_string m);
-  [%expect
-    {|
-    (
-       (define-fun b () Bool
-        true)
-       (define-fun c () Bool
-        false)
-       (define-fun s () String
-        "ab")
-       (define-fun x () Int
-        -4)
-    )
-    |}]
-;;

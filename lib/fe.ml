@@ -301,6 +301,21 @@ and to_ast tys orig_expr : Ast.t =
   (* Smtml Ty classification is kind of strange: it neither classifies the theory *)
   (* nor the return type. Let's introduce our own method for checking if the return *)
   (* type of the expr is string. *)
+  let rec is_bool tys expr =
+    match Expr.view expr with
+    | Expr.Symbol symbol ->
+      (match Base.Map.Poly.find tys (Symbol.to_string symbol) with
+       | Some `Bool -> true
+       | _ -> false)
+    | Expr.Val Smtml.Value.True | Expr.Val Smtml.Value.False -> true
+    | Expr.Relop _ -> true
+    | Expr.Unop (_, Ty.Unop.Not, e) -> is_bool tys e
+    | Expr.Binop (_, (Ty.Binop.And | Ty.Binop.Or | Ty.Binop.Implies | Ty.Binop.Xor), l, r)
+      -> is_bool tys l || is_bool tys r
+    | Expr.Naryop (_, (Ty.Naryop.Logand | Ty.Naryop.Logor), es) ->
+      List.exists (is_bool tys) es
+    | _ -> false
+  in
   let rec is_str tys expr =
     match Expr.view expr with
     | Expr.Triop (_, Ty.Triop.Ite, _, t, e) -> is_str tys t || is_str tys e
@@ -418,6 +433,14 @@ and to_ast tys orig_expr : Ast.t =
       extend phs;
       extend phs';
       build lhs rhs
+    | Expr.Relop (_ty, ((Ty.Relop.Eq | Ty.Relop.Ne) as rel), lhs, rhs)
+      when is_bool tys lhs || is_bool tys rhs ->
+      let lhs = to_ast tys lhs in
+      let rhs = to_ast tys rhs in
+      let iff =
+        Ast.land_ [ Ast.lor_ [ Ast.lnot lhs; rhs ]; Ast.lor_ [ lhs; Ast.lnot rhs ] ]
+      in
+      if rel = Ty.Relop.Eq then iff else Ast.lnot iff
     | Expr.Relop (_ty, rel, lhs, rhs) ->
       let build =
         match rel with
