@@ -194,3 +194,63 @@
      (define-fun x () Int
       3)
   )
+
+  $ cat > select_regime.smt2 <<-SMT
+  > (set-logic ALL)
+  > (declare-const p Bool)
+  > (declare-const q Bool)
+  > (declare-const r Bool)
+  > (declare-const x Int)
+  > (assert (or p q r))
+  > (assert (not (and p q)))
+  > (assert (not (and q r)))
+  > (assert (not (and p r)))
+  > (assert (=> p (and (= (mod x 7) 3) (<= 0 x) (<= x 2))))
+  > (assert (=> q (and (= (mod x 5) 4) (<= 10 x) (<= x 12))))
+  > (assert (=> r (and (= (mod x 7) 3) (<= (- 5) x) (<= x (- 1)))))
+  > (check-sat)
+  > (get-model)
+  > SMT
+  $ Chro --check-model select_regime.smt2
+  sat (under int)
+  (
+     (define-fun p () Bool
+      false)
+     (define-fun q () Bool
+      false)
+     (define-fun r () Bool
+      true)
+     (define-fun x () Int
+      -4)
+  )
+
+  $ cat > guarded_exp.smt2 <<-SMT
+  > (set-logic QF_EIA)
+  > (declare-const b Bool)
+  > (declare-const x Int)
+  > (assert (<= 0 x))
+  > (assert (or (and b (= (** 2 x) 1024)) (and (not b) (= (** 2 x) 33))))
+  > (check-sat)
+  > (get-model)
+  > SMT
+  $ Chro --check-model guarded_exp.smt2
+  sat (under int)
+  (
+     (define-fun b () Bool
+      true)
+     (define-fun x () Int
+      10)
+  )
+
+  $ cat > all_branches_refuted.smt2 <<-SMT
+  > (set-logic ALL)
+  > (declare-const p Bool)
+  > (declare-const q Bool)
+  > (declare-const x Int)
+  > (assert (or p q))
+  > (assert (=> p (and (= (mod x 4) 1) (= (mod x 6) 2))))
+  > (assert (=> q (and (< x 0) (> x 0))))
+  > (check-sat)
+  > SMT
+  $ Chro --check-model all_branches_refuted.smt2
+  unsat (nia)
