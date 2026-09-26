@@ -13,10 +13,12 @@ readarray -t flags < <(echo $solver_with_flags | tr ' ' '\n' | tail -n +2);
 NPROC=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1);
 : "${CORES_PER_RUN:=1}";
 : "${MEM_PER_RUN:=8192}";
+: "${NO_VMEM_CAP:=ostrich}";
+: "${OSTRICH_MEM_MB:=$MEM_PER_RUN}";
 : "${JOBS:=$(( NPROC / CORES_PER_RUN ))}";
 [ "$JOBS" -ge 1 ] || JOBS=1;
 
-export timeout execut NPROC CORES_PER_RUN MEM_PER_RUN
+export timeout execut NPROC CORES_PER_RUN MEM_PER_RUN NO_VMEM_CAP OSTRICH_MEM_MB
 export FLAGS="${flags[*]}"
 
 run_one() {
@@ -29,11 +31,17 @@ run_one() {
     local b=$(( a + CORES_PER_RUN - 1 ))
     [ "$b" -lt "$NPROC" ] && pin="taskset -c $a-$b"
   fi
+  local xmx=()
+  if [[ "$execut" =~ $NO_VMEM_CAP ]] && [ "$OSTRICH_MEM_MB" -gt 0 ]; then
+    xmx=("-Xmx${OSTRICH_MEM_MB}m")
+  fi
   echo "$i"
   set -m
   (
-    [ "$MEM_PER_RUN" -gt 0 ] && ulimit -v $(( MEM_PER_RUN * 1024 ))
-    exec $pin timeout -k 2 -s SIGINT "$timeout" ./_build/default/"$execut" "${flags[@]}" "$i"
+    if [ "$MEM_PER_RUN" -gt 0 ] && ! [[ "$execut" =~ $NO_VMEM_CAP ]]; then
+      ulimit -v $(( MEM_PER_RUN * 1024 ))
+    fi
+    exec $pin timeout -k 2 -s SIGINT "$timeout" ./_build/default/"$execut" "${xmx[@]}" "${flags[@]}" "$i"
   ) > "$tmp" 2>&1 &
   local pid=$!
   wait "$pid"; local res=$?
