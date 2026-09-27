@@ -14,11 +14,14 @@ suite=$base
 suitename=$(sed 's/\.//g' <<< $(basename $suite) | sed 's/\///g');
 suitefile="res_"$solver"_"$suitename".txt";
 echo "$solver results for $suitename:";
-unsat_c=$(grep unsat $suitefile | wc -l);
-sat_c=$(grep sat $suitefile | wc -l);
-unknown_c=$(grep unknown $suitefile | wc -l);
-echo "sat     : $((sat_c - unsat_c))";
+# Count verdict lines only (anchored at line start): benchmark file names may
+# contain "sat"/"unsat" (e.g. z3str2/regex-004-unsat-*.smt2) and must not be counted.
+sat_c=$(grep -cE '^sat( |$)' "$suitefile");
+unsat_c=$(grep -cE '^unsat( |$)' "$suitefile");
+unknown_c=$(grep -cE '^unknown( |$)' "$suitefile");
+timeout_c=$(grep -cE '^timeout( |$)' "$suitefile");
+echo "sat     : $sat_c";
 echo "unsat   : $unsat_c";
 echo "unknown : $unknown_c";
-echo "timeout : $(grep timeout $suitefile | wc -l)";
-echo "total   : $(grep smt2 $suitefile | wc -l)";
+echo "timeout : $timeout_c";
+echo "total   : $(grep -c '\.smt2$' "$suitefile")";
