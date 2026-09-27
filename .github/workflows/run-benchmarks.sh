@@ -50,9 +50,11 @@ run_one() {
   if [ "$res" -eq 124 ] || [ "$res" -eq 137 ]; then
     echo timeout
   elif grep -q "^sat" "$tmp"; then
-    echo sat
+    grep -m1 "^sat" "$tmp"
   elif grep -q "^unsat" "$tmp"; then
-    echo unsat
+    grep -m1 "^unsat" "$tmp"
+  elif grep -q "^unknown" "$tmp"; then
+    grep -m1 "^unknown" "$tmp"
   elif grep -q "^timeout" "$tmp"; then
     echo timeout
   else
