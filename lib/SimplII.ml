@@ -3229,6 +3229,9 @@ let under_str env alpha vars ast =
       | `Sat _ | `Unknown _ -> false)
     |> Set.of_list
   in
+  let is_internal c =
+    Char.equal c Config.string_config.null || Char.equal c Config.string_config.eos
+  in
   let get_strings_range nfa length ?(exact = false) num =
     let max_len = Config.under_str_config.max_len in
     (if length < 0
@@ -3238,6 +3241,7 @@ let under_str env alpha vars ast =
        | true -> NfaS.any_n_paths nfa ~len:length num
        | _ -> 0 -- length |> List.concat_map (fun x -> NfaS.any_n_paths nfa ~len:x num)))
     |> List.map (fun c -> List.to_seq c |> String.of_seq)
+    |> List.filter (fun s -> not (String.exists is_internal s))
     |> List.sort_uniq (fun x y ->
       match String.length x - String.length y with
       | 0 -> String.compare x y
@@ -3292,6 +3296,7 @@ let under_str env alpha vars ast =
             then Regex.dec |> String.to_seq |> List.of_seq
             else
               alpha
+              |> List.filter (Fun.negate is_internal)
               |> Set.of_list
               |> (fun x ->
               Seq.fold_left
