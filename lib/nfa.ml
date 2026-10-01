@@ -1881,19 +1881,41 @@ struct
     { nfa with start }
   ;;
 
+  let with_single_start nfa =
+    if Set.length nfa.start <= 1
+    then nfa
+    else (
+      let fresh = length nfa in
+      let delta =
+        Set.to_list nfa.start |> List.concat_map (fun q -> nfa.transitions.(q))
+      in
+      let final =
+        if Set.are_disjoint nfa.start nfa.final
+        then nfa.final
+        else Set.add nfa.final fresh
+      in
+      { transitions = Array.append nfa.transitions [| delta |]
+      ; start = Set.singleton fresh
+      ; final
+      ; deg = nfa.deg
+      ; is_dfa = false
+      })
+  ;;
+
   let deriv nfa vs =
     deriv_helper nfa vs
-    |> to_dfa ~alpha:(nfa |> alpha |> Set.to_list)
+    |> with_single_start
+    |> remove_unreachable_from_start
     |> remove_unreachable_from_final
   ;;
 
   let deriv_final : t -> v list -> t =
     fun nfa vs ->
-    let nfa = reverse nfa in
     let result =
-      deriv_helper nfa vs
+      deriv_helper (reverse nfa) vs
       |> reverse
-      |> to_dfa ~alpha:(nfa |> alpha |> Set.to_list)
+      |> with_single_start
+      |> remove_unreachable_from_start
       |> remove_unreachable_from_final
     in
     let transitions =
