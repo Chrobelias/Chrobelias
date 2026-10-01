@@ -37,15 +37,11 @@
     --tries=5
     --timeout=30
     --waitretry=10
-    https://github.com/ffrohn/swine-z3/releases/download/nightly/swine-z3-linux-static-fcc6b5311c2025b612cdeb800e1d8ce631d3a9aa.zip
+    https://github.com/ffrohn/swine-z3/releases/download/v0.2.0/swine-z3-linux-static-92ceb6ce8207f790ae2c6c5d43d2368a96192318.zip
     -O
     swine-z3-linux-static.zip)
    (run unzip -o -q swine-z3-linux-static.zip)
-   (run
-    cp
-    -f
-    swine-z3-linux-static-fcc6b5311c2025b612cdeb800e1d8ce631d3a9aa/swine-z3
-    swine)
+   (run cp -f swine-z3 swine)
    (run chmod +x ./swine)
    ;
    )))
