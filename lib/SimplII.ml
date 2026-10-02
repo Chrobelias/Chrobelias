@@ -3156,7 +3156,26 @@ let rewrite_via_concat { Info.all; _ } =
     let ast' = Rewrite.prj (ast |> apply_symantics_unsugared (module Rewrite)) in
     if Ast.is_simpl ast' then ast' else loop ast'
   in
+  let not_affix parts s t =
+    let u = Ast.Eia.atom (Ast.var (gensym ()) S) in
+    let w = Ast.Eia.atom (Ast.var (gensym ()) S) in
+    Id_symantics.land_
+      [ Id_symantics.eq_str t (Ast.Eia.concat (parts u w))
+      ; Id_symantics.leq (Ast.Eia.len u) (Ast.Eia.len s)
+      ; Id_symantics.lor_
+          [ Id_symantics.eqz (Ast.Eia.len u) (Ast.Eia.len s)
+          ; Id_symantics.eqz (Ast.Eia.len w) (Ast.Eia.Const Z.zero)
+          ]
+      ; Id_symantics.neq_str u s
+      ]
+  in
+  let negated = function
+    | Ast.Lnot (Ast.Eia (Ast.Eia.PrefixOf (s, t))) -> not_affix (fun u w -> [ u; w ]) s t
+    | Ast.Lnot (Ast.Eia (Ast.Eia.SuffixOf (s, t))) -> not_affix (fun u w -> [ w; u ]) s t
+    | ast -> ast
+  in
   fun ph ->
+    let ph = Ast.map negated ph in
     (try prepopulate_shared ph with
      | exn -> trace_log "prepopulate_shared gave up: %s" (Printexc.to_string exn));
     loop ph
