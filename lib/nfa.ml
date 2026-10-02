@@ -2757,3 +2757,42 @@ module ConvertStr (B : Base) = struct
 
   let str : String.t -> Lsb(Str(B)).t = fun nfa -> nfa
 end
+
+module String_lang_test = struct
+  module S = String
+
+  let words sigma n =
+    let rec of_len k =
+      if k = 0
+      then [ [] ]
+      else List.concat_map (fun w -> List.map (fun c -> c :: w) sigma) (of_len (k - 1))
+    in
+    List.init (n + 1) of_len
+    |> List.concat
+    |> List.sort (fun a b -> compare (List.length a, a) (List.length b, b))
+  ;;
+
+  let show w = if w = [] then "e" else Stdlib.String.of_seq (List.to_seq w)
+  let accepts nfa w = S.re_accepts (List.rev w) nfa
+
+  let print_lang ?(sigma = [ 'a'; 'b'; 'c' ]) ?(n = 2) nfa =
+    words sigma n
+    |> List.filter (accepts nfa)
+    |> List.map show
+    |> Stdlib.String.concat " "
+    |> Format.printf "[%s]\n"
+  ;;
+end
+
+let%expect_test "T6 Regex.mand with an Epsilon side" =
+  let open String_lang_test in
+  print_lang (S.of_regex (Regex.mand (Regex.str_to_re2 "ab") (Regex.str_to_re2 "b")));
+  print_lang (S.of_regex (Regex.mand Regex.epsilon (Regex.str_to_re2 "a")));
+  print_lang (S.of_regex (Regex.mand Regex.epsilon (Regex.kleene (Regex.str_to_re2 "a"))));
+  [%expect
+    {|
+    []
+    []
+    [e]
+    |}]
+;;
