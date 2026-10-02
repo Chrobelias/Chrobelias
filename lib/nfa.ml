@@ -2658,7 +2658,7 @@ module Msb (Label : L) = struct
     ; final = nfa.final
     ; start
     ; deg = nfa.deg
-    ; is_dfa = nfa.is_dfa
+    ; is_dfa = nfa.is_dfa && Set.length start <= 1
     }
     |> fun nfa ->
     Debug.dump_nfa ~msg:"after to_nat nfa %s" MsbNat.format_nfa nfa;
@@ -2832,6 +2832,28 @@ let%expect_test "T2 to_dfa result flagged is_dfa is deterministic" =
   let dfa = S.to_dfa ~alpha:(S.alpha nfa |> Set.to_list) nfa in
   Format.printf "is_dfa=%b nondet=%b\n" dfa.is_dfa (nondet dfa);
   [%expect {| is_dfa=true nondet=false |}]
+;;
+
+let%expect_test "T8 Msb.to_nat keeps a deterministic flag only when deterministic" =
+  let module M = Msb (Str (Base10)) in
+  let nfa =
+    M.create_dfa
+      ~transitions:
+        [ 0, [ '0' ], 1; 0, [ Config.string_config.eos ], 2; 1, [ '1' ], 3; 2, [ '1' ], 4 ]
+      ~start:0
+      ~final:[ 3 ]
+      ~vars:[ 0 ]
+      ~deg:1
+  in
+  let nat = M.to_nat nfa in
+  let inv = M.MsbNat.invert nat in
+  Format.printf
+    "starts=%d is_dfa=%b one_in_nat=%b one_in_complement=%b\n"
+    (Set.length nat.start)
+    nat.is_dfa
+    (M.MsbNat.re_accepts [ '1' ] nat)
+    (M.MsbNat.re_accepts [ '1' ] inv);
+  [%expect {| starts=2 is_dfa=false one_in_nat=true one_in_complement=false |}]
 ;;
 
 let%expect_test "T6 Regex.mand with an Epsilon side" =
