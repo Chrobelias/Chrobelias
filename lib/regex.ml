@@ -62,7 +62,6 @@ let rec mor r' s' =
 let rec mand r' s' =
   match r', s' with
   | Empty, _ | _, Empty -> Empty
-  | Epsilon, _ | _, Epsilon -> Epsilon
   | Mnot Empty, r | r, Mnot Empty -> r
   | Mand (r, s), t when t = s || t = r -> mand r s
   | t, Mand (r, s) when t = s || t = r -> mand r s
