@@ -1393,6 +1393,7 @@ struct
            |> Set.to_list)
         alpha
     in*)
+    let alpha = Option.map (List.filter (fun c -> c <> Label.u_null)) alpha in
     if nfa.is_dfa
     then nfa
     else (
@@ -2761,6 +2762,8 @@ end
 module String_lang_test = struct
   module S = String
 
+  let null = Config.string_config.null
+
   let words sigma n =
     let rec of_len k =
       if k = 0
@@ -2782,7 +2785,43 @@ module String_lang_test = struct
     |> Stdlib.String.concat " "
     |> Format.printf "[%s]\n"
   ;;
+
+  let nondet ?(sigma = [ 'a'; 'b'; 'c' ]) (nfa : S.t) =
+    Set.length nfa.start > 1
+    || Array.exists
+         (fun delta ->
+            List.exists
+              (fun c ->
+                 delta
+                 |> List.filter (fun (l, _) -> Str10.equal [| c |] l)
+                 |> List.map snd
+                 |> List.sort_uniq compare
+                 |> List.length
+                 > 1)
+              sigma)
+         nfa.transitions
+  ;;
 end
+
+let%expect_test "T1 to_dfa with the wildcard in alpha keeps the language" =
+  let open String_lang_test in
+  let nfa = S.of_regex (Regex.prefix "a") in
+  print_lang ~sigma:[ 'a'; 'b' ] nfa;
+  print_lang ~sigma:[ 'a'; 'b' ] (S.to_dfa ~alpha:[ 'a'; 'b'; null ] nfa);
+  [%expect
+    {|
+    [a aa ab]
+    [a aa ab]
+    |}]
+;;
+
+let%expect_test "T2 to_dfa result flagged is_dfa is deterministic" =
+  let open String_lang_test in
+  let nfa = S.of_regex (Regex.prefix "ab") in
+  let dfa = S.to_dfa ~alpha:(S.alpha nfa |> Set.to_list) nfa in
+  Format.printf "is_dfa=%b nondet=%b\n" dfa.is_dfa (nondet dfa);
+  [%expect {| is_dfa=true nondet=false |}]
+;;
 
 let%expect_test "T6 Regex.mand with an Epsilon side" =
   let open String_lang_test in
