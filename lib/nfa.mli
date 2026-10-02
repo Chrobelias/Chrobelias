@@ -181,6 +181,8 @@ module String : sig
   val path_of_len2 : t -> var:int -> len:int -> v list option
 end
 
+val complement_string : alpha:char list -> String.t -> String.t
+
 module ConvertStr (B : Base) : sig
   val lsb : Lsb(Str(B)).t -> Lsb(StrBv(B)).t
   val msb : Msb(Str(B)).t -> Msb(StrBv(B)).t
