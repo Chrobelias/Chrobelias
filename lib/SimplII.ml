@@ -4398,7 +4398,7 @@ let arithmetize str_vars ast env =
         in
         let rec do_concat (xs : string Ast.Eia.term list) =
           match xs with
-          | [ Ast.Eia.Str_const s; _ ]
+          | Ast.Eia.Str_const s :: _
             when String.for_all Base.Char.is_digit s |> Stdlib.not ->
             raise (Unsupp_concat s)
           | [ _; Ast.Eia.Str_const s ]
