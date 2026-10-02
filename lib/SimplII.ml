@@ -797,13 +797,16 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | Ast.Eia (Ast.Eia.Leq (lhs, rhs)) -> Ast.eia (Ast.Eia.gt lhs rhs)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
       | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) when Option.is_some alpha ->
-        Id_symantics.in_re_raw v (re |> Nfa.String.invert ?alpha)
+        Id_symantics.in_re_raw v (re |> Nfa.complement_string ~alpha:(Option.get alpha))
       | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) when Option.is_some alpha ->
-        Id_symantics.in_re_rawi v (re |> Nfa.String.invert ?alpha)
+        Id_symantics.in_re_rawi v (re |> Nfa.complement_string ~alpha:(Option.get alpha))
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
       | Ast.Eia (Ast.Eia.InRe (v, kind, re)) when Option.is_some alpha ->
         Ast.eia
-          (Ast.Eia.inreraw v kind (Nfa.String.invert ?alpha (Nfa.String.of_regex re)))
+          (Ast.Eia.inreraw
+             v
+             kind
+             (Nfa.complement_string ~alpha:(Option.get alpha) (Nfa.String.of_regex re)))
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, I)) -> Id_symantics.neqz lhs rhs
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, S)) -> Id_symantics.neq_str lhs rhs
       | Ast.Lnot x -> x
@@ -1093,7 +1096,9 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
         Id_symantics.in_re_raw
           v
-          (Regex.str_to_re c |> Nfa.String.of_regex |> Nfa.String.invert ?alpha)
+          (Regex.str_to_re c
+           |> Nfa.String.of_regex
+           |> Nfa.complement_string ~alpha:(Option.get alpha))
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
@@ -3479,6 +3484,12 @@ let split_concats ast =
       match l with
       | Ast.Eia.Concat xs -> split xs (NfaS.of_regex regex)
       | str -> Id_symantics.in_re l regex
+    ;;
+
+    let in_re_raw l nfa =
+      match l with
+      | Ast.Eia.Concat xs -> split xs nfa
+      | _ -> Id_symantics.in_re_raw l nfa
     ;;
 
     let rec str_len str =

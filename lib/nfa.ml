@@ -2717,6 +2717,18 @@ end
 module Str10 = Str (Base10)
 module String = Lsb (Str (Base10))
 
+let complement_string ~alpha nfa =
+  let eos = Config.string_config.eos in
+  let letters =
+    alpha
+    |> List.filter (fun c -> c <> eos && c <> Config.string_config.null)
+    |> List.fold_left (fun acc c -> Regex.mor acc (Regex.symbol [ c ])) Regex.empty
+  in
+  String.intersect
+    (String.invert ~alpha nfa)
+    (String.of_regex (Regex.concat (Regex.kleene letters) (Regex.kleene (Regex.symbol [ eos ]))))
+;;
+
 module ConvertStr (B : Base) = struct
   let strbv_of_str (str : Str(B).t) =
     let module Str = Str (B) in
@@ -2794,4 +2806,24 @@ let%expect_test "T6 Regex.mand with an Epsilon side" =
     []
     [e]
     |}]
+;;
+
+let%expect_test "T9 complement_string contains no eos before a letter" =
+  let open String_lang_test in
+  let eos = Config.string_config.eos in
+  let b = Regex.kleene (Regex.mor (Regex.symbol [ '0' ]) (Regex.symbol [ '1' ])) in
+  let inv = complement_string ~alpha:[ '0'; '1' ] (S.of_regex b) in
+  words [ '0'; '1'; eos ] 3
+  |> List.filter (fun w ->
+    let rec bad = function
+      | c :: (d :: _ as tl) -> (c = eos && d <> eos) || bad tl
+      | _ -> false
+    in
+    bad (List.rev w))
+  |> List.filter (accepts inv)
+  |> List.map (List.map (fun c -> if c = eos then '#' else c))
+  |> List.map show
+  |> Stdlib.String.concat " "
+  |> Format.printf "[%s]\n";
+  [%expect {| [] |}]
 ;;

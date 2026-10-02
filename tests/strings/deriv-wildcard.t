@@ -100,5 +100,5 @@
   sat (presimpl int)
   (
      (define-fun y () String
-      "aba")
+      "abb")
   )
