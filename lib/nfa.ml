@@ -1393,6 +1393,7 @@ struct
            |> Set.to_list)
         alpha
     in*)
+    let alpha = Option.map (List.filter (fun c -> c <> Label.u_null)) alpha in
     if nfa.is_dfa
     then nfa
     else (
@@ -1881,19 +1882,41 @@ struct
     { nfa with start }
   ;;
 
+  let with_single_start nfa =
+    if Set.length nfa.start <= 1
+    then nfa
+    else (
+      let fresh = length nfa in
+      let delta =
+        Set.to_list nfa.start |> List.concat_map (fun q -> nfa.transitions.(q))
+      in
+      let final =
+        if Set.are_disjoint nfa.start nfa.final
+        then nfa.final
+        else Set.add nfa.final fresh
+      in
+      { transitions = Array.append nfa.transitions [| delta |]
+      ; start = Set.singleton fresh
+      ; final
+      ; deg = nfa.deg
+      ; is_dfa = false
+      })
+  ;;
+
   let deriv nfa vs =
     deriv_helper nfa vs
-    |> to_dfa ~alpha:(nfa |> alpha |> Set.to_list)
+    |> with_single_start
+    |> remove_unreachable_from_start
     |> remove_unreachable_from_final
   ;;
 
   let deriv_final : t -> v list -> t =
     fun nfa vs ->
-    let nfa = reverse nfa in
     let result =
-      deriv_helper nfa vs
+      deriv_helper (reverse nfa) vs
       |> reverse
-      |> to_dfa ~alpha:(nfa |> alpha |> Set.to_list)
+      |> with_single_start
+      |> remove_unreachable_from_start
       |> remove_unreachable_from_final
     in
     let transitions =
@@ -2635,7 +2658,7 @@ module Msb (Label : L) = struct
     ; final = nfa.final
     ; start
     ; deg = nfa.deg
-    ; is_dfa = nfa.is_dfa
+    ; is_dfa = nfa.is_dfa && Set.length start <= 1
     }
     |> fun nfa ->
     Debug.dump_nfa ~msg:"after to_nat nfa %s" MsbNat.format_nfa nfa;
@@ -2695,6 +2718,18 @@ end
 module Str10 = Str (Base10)
 module String = Lsb (Str (Base10))
 
+let complement_string ~alpha nfa =
+  let eos = Config.string_config.eos in
+  let letters =
+    alpha
+    |> List.filter (fun c -> c <> eos && c <> Config.string_config.null)
+    |> List.fold_left (fun acc c -> Regex.mor acc (Regex.symbol [ c ])) Regex.empty
+  in
+  String.intersect
+    (String.invert ~alpha nfa)
+    (String.of_regex (Regex.concat (Regex.kleene letters) (Regex.kleene (Regex.symbol [ eos ]))))
+;;
+
 module ConvertStr (B : Base) = struct
   let strbv_of_str (str : Str(B).t) =
     let module Str = Str (B) in
@@ -2735,3 +2770,120 @@ module ConvertStr (B : Base) = struct
 
   let str : String.t -> Lsb(Str(B)).t = fun nfa -> nfa
 end
+
+module String_lang_test = struct
+  module S = String
+
+  let null = Config.string_config.null
+
+  let words sigma n =
+    let rec of_len k =
+      if k = 0
+      then [ [] ]
+      else List.concat_map (fun w -> List.map (fun c -> c :: w) sigma) (of_len (k - 1))
+    in
+    List.init (n + 1) of_len
+    |> List.concat
+    |> List.sort (fun a b -> compare (List.length a, a) (List.length b, b))
+  ;;
+
+  let show w = if w = [] then "e" else Stdlib.String.of_seq (List.to_seq w)
+  let accepts nfa w = S.re_accepts (List.rev w) nfa
+
+  let print_lang ?(sigma = [ 'a'; 'b'; 'c' ]) ?(n = 2) nfa =
+    words sigma n
+    |> List.filter (accepts nfa)
+    |> List.map show
+    |> Stdlib.String.concat " "
+    |> Format.printf "[%s]\n"
+  ;;
+
+  let nondet ?(sigma = [ 'a'; 'b'; 'c' ]) (nfa : S.t) =
+    Set.length nfa.start > 1
+    || Array.exists
+         (fun delta ->
+            List.exists
+              (fun c ->
+                 delta
+                 |> List.filter (fun (l, _) -> Str10.equal [| c |] l)
+                 |> List.map snd
+                 |> List.sort_uniq compare
+                 |> List.length
+                 > 1)
+              sigma)
+         nfa.transitions
+  ;;
+end
+
+let%expect_test "T1 to_dfa with the wildcard in alpha keeps the language" =
+  let open String_lang_test in
+  let nfa = S.of_regex (Regex.prefix "a") in
+  print_lang ~sigma:[ 'a'; 'b' ] nfa;
+  print_lang ~sigma:[ 'a'; 'b' ] (S.to_dfa ~alpha:[ 'a'; 'b'; null ] nfa);
+  [%expect {|
+    [a aa ab]
+    [a aa ab]
+    |}]
+;;
+
+let%expect_test "T2 to_dfa result flagged is_dfa is deterministic" =
+  let open String_lang_test in
+  let nfa = S.of_regex (Regex.prefix "ab") in
+  let dfa = S.to_dfa ~alpha:(S.alpha nfa |> Set.to_list) nfa in
+  Format.printf "is_dfa=%b nondet=%b\n" dfa.is_dfa (nondet dfa);
+  [%expect {| is_dfa=true nondet=false |}]
+;;
+
+let%expect_test "T8 Msb.to_nat keeps a deterministic flag only when deterministic" =
+  let module M = Msb (Str (Base10)) in
+  let nfa =
+    M.create_dfa
+      ~transitions:
+        [ 0, [ '0' ], 1; 0, [ Config.string_config.eos ], 2; 1, [ '1' ], 3; 2, [ '1' ], 4 ]
+      ~start:0
+      ~final:[ 3 ]
+      ~vars:[ 0 ]
+      ~deg:1
+  in
+  let nat = M.to_nat nfa in
+  let inv = M.MsbNat.invert nat in
+  Format.printf
+    "starts=%d is_dfa=%b one_in_nat=%b one_in_complement=%b\n"
+    (Set.length nat.start)
+    nat.is_dfa
+    (M.MsbNat.re_accepts [ '1' ] nat)
+    (M.MsbNat.re_accepts [ '1' ] inv);
+  [%expect {| starts=2 is_dfa=false one_in_nat=true one_in_complement=false |}]
+;;
+
+let%expect_test "T6 Regex.mand with an Epsilon side" =
+  let open String_lang_test in
+  print_lang (S.of_regex (Regex.mand (Regex.str_to_re2 "ab") (Regex.str_to_re2 "b")));
+  print_lang (S.of_regex (Regex.mand Regex.epsilon (Regex.str_to_re2 "a")));
+  print_lang (S.of_regex (Regex.mand Regex.epsilon (Regex.kleene (Regex.str_to_re2 "a"))));
+  [%expect {|
+    []
+    []
+    [e]
+    |}]
+;;
+
+let%expect_test "T9 complement_string contains no eos before a letter" =
+  let open String_lang_test in
+  let eos = Config.string_config.eos in
+  let b = Regex.kleene (Regex.mor (Regex.symbol [ '0' ]) (Regex.symbol [ '1' ])) in
+  let inv = complement_string ~alpha:[ '0'; '1' ] (S.of_regex b) in
+  words [ '0'; '1'; eos ] 3
+  |> List.filter (fun w ->
+    let rec bad = function
+      | c :: (d :: _ as tl) -> (c = eos && d <> eos) || bad tl
+      | _ -> false
+    in
+    bad (List.rev w))
+  |> List.filter (accepts inv)
+  |> List.map (List.map (fun c -> if c = eos then '#' else c))
+  |> List.map show
+  |> Stdlib.String.concat " "
+  |> Format.printf "[%s]\n";
+  [%expect {| [] |}]
+;;

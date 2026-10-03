@@ -797,13 +797,16 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | Ast.Eia (Ast.Eia.Leq (lhs, rhs)) -> Ast.eia (Ast.Eia.gt lhs rhs)
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
       | Ast.Eia (Ast.Eia.InReRaw (v, S, re)) when Option.is_some alpha ->
-        Id_symantics.in_re_raw v (re |> Nfa.String.invert ?alpha)
+        Id_symantics.in_re_raw v (re |> Nfa.complement_string ~alpha:(Option.get alpha))
       | Ast.Eia (Ast.Eia.InReRaw (v, I, re)) when Option.is_some alpha ->
-        Id_symantics.in_re_rawi v (re |> Nfa.String.invert ?alpha)
+        Id_symantics.in_re_rawi v (re |> Nfa.complement_string ~alpha:(Option.get alpha))
       (* TODO: this is a dishonest invert here. It actually uses 0-9$ as an alphabet. *)
       | Ast.Eia (Ast.Eia.InRe (v, kind, re)) when Option.is_some alpha ->
         Ast.eia
-          (Ast.Eia.inreraw v kind (Nfa.String.invert ?alpha (Nfa.String.of_regex re)))
+          (Ast.Eia.inreraw
+             v
+             kind
+             (Nfa.complement_string ~alpha:(Option.get alpha) (Nfa.String.of_regex re)))
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, I)) -> Id_symantics.neqz lhs rhs
       | Ast.Eia (Ast.Eia.Eq (lhs, rhs, S)) -> Id_symantics.neq_str lhs rhs
       | Ast.Lnot x -> x
@@ -1093,7 +1096,9 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | (v, Ast.Eia.Str_const c | Ast.Eia.Str_const c, v) when Option.is_some alpha ->
         Id_symantics.in_re_raw
           v
-          (Regex.str_to_re c |> Nfa.String.of_regex |> Nfa.String.invert ?alpha)
+          (Regex.str_to_re c
+           |> Nfa.String.of_regex
+           |> Nfa.complement_string ~alpha:(Option.get alpha))
       | eiat1, eiat2 when Ast.Eia.eq_term eiat1 eiat2 -> Ast.false_
       | Concat llhs, Concat lrhs
         when match llhs, lrhs with
@@ -3151,7 +3156,26 @@ let rewrite_via_concat { Info.all; _ } =
     let ast' = Rewrite.prj (ast |> apply_symantics_unsugared (module Rewrite)) in
     if Ast.is_simpl ast' then ast' else loop ast'
   in
+  let not_affix parts s t =
+    let u = Ast.Eia.atom (Ast.var (gensym ()) S) in
+    let w = Ast.Eia.atom (Ast.var (gensym ()) S) in
+    Id_symantics.land_
+      [ Id_symantics.eq_str t (Ast.Eia.concat (parts u w))
+      ; Id_symantics.leq (Ast.Eia.len u) (Ast.Eia.len s)
+      ; Id_symantics.lor_
+          [ Id_symantics.eqz (Ast.Eia.len u) (Ast.Eia.len s)
+          ; Id_symantics.eqz (Ast.Eia.len w) (Ast.Eia.Const Z.zero)
+          ]
+      ; Id_symantics.neq_str u s
+      ]
+  in
+  let negated = function
+    | Ast.Lnot (Ast.Eia (Ast.Eia.PrefixOf (s, t))) -> not_affix (fun u w -> [ u; w ]) s t
+    | Ast.Lnot (Ast.Eia (Ast.Eia.SuffixOf (s, t))) -> not_affix (fun u w -> [ w; u ]) s t
+    | ast -> ast
+  in
   fun ph ->
+    let ph = Ast.map negated ph in
     (try prepopulate_shared ph with
      | exn -> trace_log "prepopulate_shared gave up: %s" (Printexc.to_string exn));
     loop ph
@@ -3229,6 +3253,9 @@ let under_str env alpha vars ast =
       | `Sat _ | `Unknown _ -> false)
     |> Set.of_list
   in
+  let is_internal c =
+    Char.equal c Config.string_config.null || Char.equal c Config.string_config.eos
+  in
   let get_strings_range nfa length ?(exact = false) num =
     let max_len = Config.under_str_config.max_len in
     (if length < 0
@@ -3238,6 +3265,7 @@ let under_str env alpha vars ast =
        | true -> NfaS.any_n_paths nfa ~len:length num
        | _ -> 0 -- length |> List.concat_map (fun x -> NfaS.any_n_paths nfa ~len:x num)))
     |> List.map (fun c -> List.to_seq c |> String.of_seq)
+    |> List.filter (fun s -> not (String.exists is_internal s))
     |> List.sort_uniq (fun x y ->
       match String.length x - String.length y with
       | 0 -> String.compare x y
@@ -3292,6 +3320,7 @@ let under_str env alpha vars ast =
             then Regex.dec |> String.to_seq |> List.of_seq
             else
               alpha
+              |> List.filter (Fun.negate is_internal)
               |> Set.of_list
               |> (fun x ->
               Seq.fold_left
@@ -3474,6 +3503,12 @@ let split_concats ast =
       match l with
       | Ast.Eia.Concat xs -> split xs (NfaS.of_regex regex)
       | str -> Id_symantics.in_re l regex
+    ;;
+
+    let in_re_raw l nfa =
+      match l with
+      | Ast.Eia.Concat xs -> split xs nfa
+      | _ -> Id_symantics.in_re_raw l nfa
     ;;
 
     let rec str_len str =
@@ -4363,7 +4398,7 @@ let arithmetize str_vars ast env =
         in
         let rec do_concat (xs : string Ast.Eia.term list) =
           match xs with
-          | [ Ast.Eia.Str_const s; _ ]
+          | Ast.Eia.Str_const s :: _
             when String.for_all Base.Char.is_digit s |> Stdlib.not ->
             raise (Unsupp_concat s)
           | [ _; Ast.Eia.Str_const s ]
