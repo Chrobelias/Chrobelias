@@ -88,7 +88,7 @@ module type SYM0 = sig
         -> Ast.t
         -> (string, Nfa.String.t) Base.Map.Poly.t
         -> (Ast.t -> [ `Sat of unit -> Model.t | `Unknown ])
-        -> [ `Sat of unit -> Model.t | `Unknown ])
+        -> [ `Sat of Ast.t | `Unknown ])
     -> ph
 
   val pow_minus_one : term -> term
@@ -4174,6 +4174,24 @@ let unfold_neq ast =
               | Some (`Bool _) -> assert false
               | None -> 0
             in
+            let witness (a, b) =
+              let w =
+                Ast.land_
+                  [ Id_symantics.eq_str
+                      (Ast.Eia.atom (Ast.var lhs S))
+                      (Ast.Eia.str_const a)
+                  ; Id_symantics.eq_str
+                      (Ast.Eia.atom (Ast.var rhs S))
+                      (Ast.Eia.str_const b)
+                  ]
+              in
+              if String.equal a b
+              then None
+              else (
+                match check_sat (Ast.land_ [ orig_ast; w ]) with
+                | `Sat _ -> Some w
+                | `Unknown -> None)
+            in
             let rec aux models =
               let ast =
                 Ast.land_
@@ -4191,9 +4209,8 @@ let unfold_neq ast =
               | `Sat get_model ->
                 let model = get_model () in
                 let len = max (get_len model lhs) (get_len model rhs) in
-                begin match find_ineq_from_lengths len with
-                | Some (a, b) ->
-                  `Sat (fun () -> Map.of_alist_exn [ lhs, `Str a; rhs, `Str b ])
+                begin match Option.bind (find_ineq_from_lengths len) witness with
+                | Some w -> `Sat w
                 | None when List.length models > 10 -> `Unknown
                 | None ->
                   aux
@@ -4202,7 +4219,14 @@ let unfold_neq ast =
                 end
               | _ -> `Unknown
             in
-            aux []
+            let from_model =
+              match Map.find model lhs, Map.find model rhs with
+              | Some (`Str a), Some (`Str b) -> witness (a, b)
+              | _ -> None
+            in
+            match from_model with
+            | Some w -> `Sat w
+            | None -> aux []
           end
         in
         Ast.land_

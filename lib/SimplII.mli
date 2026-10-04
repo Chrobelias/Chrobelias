@@ -35,7 +35,7 @@ module type SYM0 = sig
         -> Ast.t
         -> (string, Nfa.String.t) Base.Map.Poly.t
         -> (Ast.t -> [ `Sat of unit -> Model.t | `Unknown ])
-        -> [ `Sat of unit -> Model.t | `Unknown ])
+        -> [ `Sat of Ast.t | `Unknown ])
     -> ph
 
   val pow_minus_one : term -> term
