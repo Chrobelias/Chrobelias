@@ -1070,12 +1070,12 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | Concat (x :: _ as llhs), y when x = y -> trim llhs [ y ]
       | x, Concat (y :: _ as lrhs) when x = y -> trim [ x ] lrhs
       | Concat llhs, Str_const _ ->
-        (match llhs with
-         | Str_const _ :: _ -> trim llhs [ rhs ]
+        (match llhs, List.rev llhs with
+         | Str_const _ :: _, _ | _, Str_const _ :: _ -> trim llhs [ rhs ]
          | _ -> if_with_nielsen (nielsen llhs [ rhs ]))
       | Str_const _, Concat lrhs ->
-        (match lrhs with
-         | Str_const _ :: _ -> trim [ lhs ] lrhs
+        (match lrhs, List.rev lrhs with
+         | Str_const _ :: _, _ | _, Str_const _ :: _ -> trim [ lhs ] lrhs
          | _ -> if_with_nielsen (nielsen [ lhs ] lrhs))
       | Concat llhs, Concat lrhs -> if_with_nielsen (nielsen llhs lrhs)
       | _ -> Id_symantics.eq_str lhs rhs
