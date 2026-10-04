@@ -624,7 +624,7 @@ type t =
           -> t
           -> (string, Nfa.String.t) Map.t
           -> (t -> [ `Sat of unit -> Model.t | `Unknown ])
-          -> [ `Sat of unit -> Model.t | `Unknown ]
+          -> [ `Sat of t | `Unknown ]
       ]
 
 let true_ = True

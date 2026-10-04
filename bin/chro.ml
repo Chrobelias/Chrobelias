@@ -743,7 +743,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                  ast
                  (Env.pp ~title:"")
                  env;
-               let orig_ast = ast in
+               let orig_ast = Ast.land_ (ast :: Env.to_eqs env) in
                let arithmetized_asts = SimplII.arithmetize str_vars ast env in
                fold_until_sat
                  (fun acc (ast, e, regexes) ->
@@ -767,51 +767,51 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                            match get_model tys with
                            | Result.Ok model ->
                              let model = construct_model tys env model regexes in
-                             begin
-                               let ( let* ) = Option.bind in
-                               match
-                                 List.fold_left
-                                   (fun acc post ->
-                                      let* acc = acc in
-                                      match
-                                        post model orig_ast regexes (fun ast ->
-                                          match (check_sat tys) ast with
-                                          | Sat (_, (_, env, get_model, regexes)) ->
-                                            `Sat
-                                              (fun () ->
-                                                begin
-                                                  let intm_model =
-                                                    calculate_model
-                                                      tys
-                                                      env
-                                                      (get_model tys |> Result.get_ok)
-                                                      regexes
-                                                  in
-                                                  intm_model
-                                                end)
-                                          | _ -> `Unknown)
-                                      with
-                                      | `Sat get_model ->
-                                        Some
-                                          (fun () ->
-                                            let model1 = acc () in
-                                            let model2 = get_model () in
-                                            (* Can be not disjoint. *)
-                                            merge_models model1 model2)
-                                      | `Unknown -> None)
-                                   (Some (fun () -> Map.empty))
-                                   post
-                               with
-                               | Some get_model' ->
-                                 let get_model tys =
-                                   let model1 = get_model tys |> Result.get_ok in
-                                   let model2 = get_model' () in
-                                   Result.ok (merge_models model1 model2)
-                                 in
-                                 sat s ast ~env ~get_model ~regexes
-                               | None ->
-                                 can_be_unk := true;
-                                 unknown ast Env.empty
+                             let check ast =
+                               match check_sat tys ast with
+                               | Sat (_, (_, env, get_model, regexes)) ->
+                                 `Sat
+                                   (fun () ->
+                                     calculate_model
+                                       tys
+                                       env
+                                       (get_model tys |> Result.get_ok)
+                                       regexes)
+                               | _ -> `Unknown
+                             in
+                             let ( let* ) = Option.bind in
+                             let witnesses =
+                               List.fold_left
+                                 (fun acc post ->
+                                    let* acc = acc in
+                                    match
+                                      post
+                                        model
+                                        (Ast.land_ (orig_ast :: acc))
+                                        regexes
+                                        check
+                                    with
+                                    | `Sat w -> Some (w :: acc)
+                                    | `Unknown -> None)
+                                 (Some [])
+                                 post
+                             in
+                             begin match
+                               Option.map
+                                 (fun ws -> check (Ast.land_ (orig_ast :: ws)))
+                                 witnesses
+                             with
+                             | Some (`Sat get_model') ->
+                               let get_model tys =
+                                 Result.ok
+                                   (merge_models
+                                      (get_model' ())
+                                      (get_model tys |> Result.get_ok))
+                               in
+                               sat s ast ~env ~get_model ~regexes
+                             | Some `Unknown | None ->
+                               can_be_unk := true;
+                               unknown ast Env.empty
                              end
                            | Result.Error _ ->
                              can_be_unk := true;
