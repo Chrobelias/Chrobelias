@@ -4404,7 +4404,7 @@ let arithmetize str_vars ast env =
       include Id_symantics
 
       let str_concat xs =
-        let handle_concat (lhs : str) (rhs : str) =
+        let handle_concat (lhs : str) (rhs : str) rhs_len =
           let u = gensym () in
           let v = gensym () in
           let lhs' = gensym () in
@@ -4417,7 +4417,7 @@ let arithmetize str_vars ast env =
                [ Ast.Eia.mul [ Ast.Eia.Atom (Ast.var lhs' I); pow2var v ]
                ; Ast.Eia.atom (Ast.var rhs' I)
                ]);
-          extend v (Ast.Eia.len rhs);
+          extend v rhs_len;
           Ast.Eia.sofi (Ast.Eia.Atom (Ast.var u I))
         in
         let rec do_concat (xs : string Ast.Eia.term list) =
@@ -4428,8 +4428,9 @@ let arithmetize str_vars ast env =
           | [ _; Ast.Eia.Str_const s ]
             when String.for_all Base.Char.is_digit s |> Stdlib.not ->
             raise (Unsupp_concat s)
-          | [ lhs1; rhs1 ] -> handle_concat lhs1 rhs1
-          | hd :: tl -> handle_concat hd (do_concat tl)
+          | [ lhs1; rhs1 ] -> handle_concat lhs1 rhs1 (Ast.Eia.len rhs1)
+          | hd :: tl ->
+            handle_concat hd (do_concat tl) (Ast.Eia.add (List.map Ast.Eia.len tl))
           | [] -> Id_symantics.str_const ""
         in
         try do_concat xs with
