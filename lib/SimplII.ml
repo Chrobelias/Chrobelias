@@ -4477,9 +4477,10 @@ let rec multiply_constraint_by_int int =
   let (module TS) = make_main_symantics Env.empty in
   function
   | ast when Z.(int = one) -> ast
-  | Ast.Eia (Eq (Mod (t, d), r, I)) ->
-    Ast.Eia
-      (Eq (Mod (TS.(mul [ constz int; t ]), Z.(d * int)), TS.(mul [ constz int; r ]), I))
+  | Ast.Eia (Eq (Mod (t, d), Const z, I)) when Z.(equal z zero) ->
+    TS.(
+      Ast.Eia
+        (Eq (Mod (mul [ constz (Z.abs int); t ], Z.(abs (d * int))), constz Z.zero, I)))
   | Ast.Eia (Eq (l, Mod (t, d), I)) ->
     Ast.Eia
       (Eq (TS.(mul [ constz int; l ]), Mod (TS.(mul [ constz int; t ]), Z.(d * int)), I))
@@ -4588,6 +4589,7 @@ let substitute_vigorous_constraint varname coeff tau ast =
         TS.(mul [ constz (Z.neg factor); tau ])
       | _ -> TS.mul (List.map aux ts)
       end
+    | Mod (t, d) -> TS.mod_ (aux t) d
     | Pow (b, e) -> TS.pow (aux b) (aux e)
     | t -> t
   in
@@ -4617,8 +4619,8 @@ let%expect_test _ =
   [%expect
     {|
     True
-    (= (+ (* 8 z) (* 12 y)) 20)
-    (= (+ (* 8 y) (* 16 z)) 24)
+    (= (+ (* 2 z) (* 3 y)) 5)
+    (= (+ (* 2 y) (* 4 z)) 6)
     |}]
 ;;
 
@@ -4726,7 +4728,7 @@ let%expect_test _ =
   test ph "x";
   [%expect {| 2 |}];
   test ph "z";
-  [%expect {| None |}];
+  [%expect {| 0 |}];
   test ph1 "x";
   [%expect {| 4 |}]
 ;;
@@ -4954,11 +4956,8 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
 let eliminate_existence_quantifier (ast : Ast.t) : Ast.t =
   let open Ast in
   let (module TS) = make_main_symantics Env.empty in
-  Format.printf "Before: %a\n" Ast.pp ast;
   let branches = eliminate_existence_quantifier_branches ast in
-  let ast = branches |> List.map (fun x -> land_ x) |> lor_ in
-  Format.printf "After: %a\n" Ast.pp ast;
-  ast
+  branches |> List.map (fun x -> land_ x) |> lor_
 ;;
 
 let%expect_test _ =
@@ -4978,7 +4977,7 @@ let%expect_test _ =
       ]
   in
   test ph (Z.of_int 4) "x0" tau;
-  [%expect {| (= (* (- 16) x1) (- 48)) |}]
+  [%expect {| (= (* (- 1) x1) (- 3)) |}]
 ;;
 
 let rec is_linear_term =
@@ -5045,9 +5044,8 @@ let%expect_test _ =
   test ph;
   [%expect
     {|
-    (((divides 1 55) & True & (= (* (- 1) x1) (- 3))) | ((divides 4 (+ (- 217)
-                                                                    (* (- 1) x1))) &
-    (= (* (- 4) x1) (- 12)) & True))
+    (((divides 1 55) & (= x1 3)) | ((divides 4 (+ (- 217) (* (- 1) x1))) &
+    (= (* (- 1) x1) (- 3))))
     |}]
 ;;
 
@@ -5071,8 +5069,8 @@ let%expect_test _ =
   test ph;
   [%expect
     {|
-    (((divides 1 (- 12)) & (divides 1 10) & True & (= 0 12)) | ((divides 4 48) &
-    (= (* (- 4) (mod (- 160) -16)) 0) & True & True))
+    (((divides 1 12) & (divides -1 (+ (- 22) x1))) | ((divides 1 (- 12)) &
+    (divides 4 (+ 76 (* (- 3) x1)))))
     |}]
 ;;
 
@@ -5094,8 +5092,8 @@ let%expect_test _ =
   test ph;
   [%expect
     {|
-    (((divides 1 (- 6)) & (= 0 6) & (= x1 53)) | ((divides 4 (+ (- 29) x1)) &
-    (= (* 4 x1) 212) & True))
+    (((divides 1 (- 6)) & (= x1 53)) | ((divides 4 (+ (- 29) x1)) & (= (* (- 1)
+                                                                       x1) (- 53))))
     |}]
 ;;
 
@@ -5117,8 +5115,8 @@ let%expect_test _ =
   test ph;
   [%expect
     {|
-    (((divides 1 (- 6)) & (= 0 6) & (= x1 53)) | ((divides 4 (+ (- 29) x1)) &
-    (= (* 4 x1) 212) & True))
+    (((divides 1 82) & (= (* (- 1) x1) (- 97))) | ((divides 4 (+ (- 425) x1)) &
+    (= x1 97)))
     |}]
 ;;
 
@@ -5131,17 +5129,18 @@ let%expect_test _ =
   let ph =
     TS.(
       Ast.Exists
-        ( [ Ast.Any_atom (Ast.Var ("x0", I)) ]
+        ( [ Ast.Any_atom (Ast.Var ("x0", I)); Ast.Any_atom (Ast.Var ("x1", I)) ]
         , Ast.Land
-            [ add [ mul [ const (-1); var "x0" ]; var "x1" ] = const 80
-            ; add [ mul [ const 2; var "x0" ]; mul [ const (-1); var "x1" ] ]
-              = const (-79)
+            [ add [ mul [ const (-1); var "x0" ]; mul [ const (-3); var "x1" ] ]
+              = const (-285)
+            ; add [ mul [ const (-2); var "x0" ]; mul [ const (-7); var "x1" ] ]
+              = const (-660)
             ] ))
   in
   test ph;
   [%expect
     {|
-    (((divides 1 (- 6)) & (= 0 6) & (= x1 53)) | ((divides 4 (+ (- 29) x1)) &
-    (= (* 4 x1) 212) & True))
+    (((divides 1 (- 90)) & (divides 1 (+ 285 (* (- 3) x1)))) | ((divides 1 90) &
+    (divides -2 (+ (- 660) (* 7 x1)))))
     |}]
 ;;
