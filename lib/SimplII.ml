@@ -4945,8 +4945,7 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
         | h :: tl -> loop env phi tl
       in
       let* env = loop Env.empty branch elim_vars in
-      let branch = List.map (subst_eia env) branch in
-      return branch
+      branch |> List.map (subst_eia env) |> List.filter (fun x -> x <> Ast.True) |> return
     | _ -> failwith "Expected a conjuction"
     end
   | _ -> failwith "Expected the existence quantifier"
