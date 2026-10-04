@@ -4588,7 +4588,6 @@ let substitute_vigorous_constraint varname coeff tau ast =
         TS.(mul [ constz (Z.neg factor); tau ])
       | _ -> TS.mul (List.map aux ts)
       end
-    | Mod (t, d) -> TS.mod_ (aux t) d
     | Pow (b, e) -> TS.pow (aux b) (aux e)
     | t -> t
   in
@@ -4683,9 +4682,8 @@ let get_mod_phi_of_system =
 let var_exists varname conj =
   List.exists
     (function
-      | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
-        coeff_of_var varname l <> Z.zero || coeff_of_var varname r <> Z.zero
-      | Ast.Eia (Ast.Eia.Leq (l, r)) ->
+      | Ast.Eia (Eq (Mod _, _, I)) -> false
+      | Ast.Eia (Eq (l, r, I)) ->
         coeff_of_var varname l <> Z.zero || coeff_of_var varname r <> Z.zero
       | _ -> false)
     conj
@@ -4736,6 +4734,7 @@ let%expect_test _ =
 let find_var_and_coeff varname =
   let open Ast.Eia in
   function
+  | Ast.Eia.Eq (Mod _, _, I) -> None
   | Ast.Eia.Eq (l, r, I) ->
     let coeff_l = coeff_of_var varname l in
     let coeff_r = coeff_of_var varname r in
@@ -4910,10 +4909,10 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
           eliminate_all subst conj p l tl
       in
       let* branch, subst = eliminate_all Env.empty conj_list Z.one Z.one elim_vars in
-      (* let _ = List.map (Format.printf "%a\n" Ast.pp) branch in *)
       let branch =
         List.map
           (function
+            | Ast.Eia (Ast.Eia.Eq (Mod _, _, I)) as t -> t
             | Ast.Eia (Ast.Eia.Eq (l, r, I)) as t -> begin
               slack_vars_in_term subst r @ slack_vars_in_term subst l
               |> List.find_opt (fun x -> Env.lookup_int x subst = None)
@@ -4956,8 +4955,11 @@ let eliminate_existence_quantifier_branches (ast : Ast.t) =
 let eliminate_existence_quantifier (ast : Ast.t) : Ast.t =
   let open Ast in
   let (module TS) = make_main_symantics Env.empty in
+  Format.printf "Before: %a\n" Ast.pp ast;
   let branches = eliminate_existence_quantifier_branches ast in
-  branches |> List.map (fun x -> land_ x) |> lor_
+  let ast = branches |> List.map (fun x -> land_ x) |> lor_ in
+  Format.printf "After: %a\n" Ast.pp ast;
+  ast
 ;;
 
 let%expect_test _ =
@@ -5132,8 +5134,9 @@ let%expect_test _ =
       Ast.Exists
         ( [ Ast.Any_atom (Ast.Var ("x0", I)) ]
         , Ast.Land
-            [ add [ mul [ const 1; var "x0" ]; mul [ const (-1); var "x1" ] ] = const 6
-            ; add [ mul [ const (-1); var "x0" ] ] = const (-62)
+            [ add [ mul [ const (-1); var "x0" ]; var "x1" ] = const 80
+            ; add [ mul [ const 2; var "x0" ]; mul [ const (-1); var "x1" ] ]
+              = const (-79)
             ] ))
   in
   test ph;
