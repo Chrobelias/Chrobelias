@@ -4666,7 +4666,25 @@ let arithmetize str_vars ast env =
        | Unsupp _ -> false)
       |> fun res -> res
     in
-    arithmetize_concats var_info str_vars ast
+    let total_len = function
+      | Concat xs -> Ast.Eia.add (List.map Ast.Eia.len xs)
+      | s -> Ast.Eia.len s
+    in
+    let plain_part = function
+      | Atom (Var (_, S)) | Str_const _ -> true
+      | _ -> false
+    in
+    let plain = function
+      | Concat xs -> List.for_all plain_part xs
+      | s -> plain_part s
+    in
+    let with_lengths = function
+      | Ast.Eia (Eq (lhs, rhs, S)) as ast when plain lhs && plain rhs ->
+        Ast.land_ [ ast; Ast.eia (Ast.Eia.eq (total_len lhs) (total_len rhs) Ast.I) ]
+      | ast -> ast
+    in
+    Ast.map with_lengths ast
+    |> arithmetize_concats var_info str_vars
     |> apply_symantics_unsugared (module M)
     |> arithmetize_conj str_vars
     |> fun ast ->
