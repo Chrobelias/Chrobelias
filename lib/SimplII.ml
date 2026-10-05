@@ -4995,7 +4995,7 @@ let%expect_test _ =
   in
   test ph;
   [%expect
-    {| ((= (+ (- 3) x1) 0) | ((divides 4 (+ (- 217) (* (- 1) x1))) & (= (+ 3 (* (- 1) x1)) 0))) |}]
+    {| ((= (+ (- 3) x1) 0) | ((= (mod (+ (- 217) (* (- 1) x1)) 4) 0) & (= (+ 3 (* (- 1) x1)) 0))) |}]
 ;;
 
 let%expect_test _ =
@@ -5036,7 +5036,7 @@ let%expect_test _ =
   in
   test ph;
   [%expect
-    {| ((= (+ (- 53) x1) 0) | ((divides 4 (+ (- 29) x1)) & (= (+ 53 (* (- 1) x1)) 0))) |}]
+    {| ((= (+ (- 53) x1) 0) | ((= (mod (+ (- 29) x1) 4) 0) & (= (+ 53 (* (- 1) x1)) 0))) |}]
 ;;
 
 let%expect_test _ =
@@ -5056,7 +5056,7 @@ let%expect_test _ =
   in
   test ph;
   [%expect
-    {| ((= (+ 97 (* (- 1) x1)) 0) | ((divides 4 (+ (- 425) x1)) & (= (+ (- 97) x1) 0))) |}]
+    {| ((= (+ 97 (* (- 1) x1)) 0) | ((= (mod (+ (- 425) x1) 4) 0) & (= (+ (- 97) x1) 0))) |}]
 ;;
 
 let%expect_test _ =
@@ -5109,7 +5109,7 @@ let%expect_test _ =
   test (Z.of_int 3) TS.(add [ mul [ const 4; var "x" ]; const 6 ] = const 0);
   [%expect
     {|
-    (divides 2 (+ (- 3) z))
+    (= (mod (+ (- 3) z) 2) 0)
     (= (+ 3 (* 2 x)) 0)
     None
     |}]
