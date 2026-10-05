@@ -184,7 +184,8 @@ Basic options:
       , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
     ; ( "-bqelim"
       , Arg.String (fun s -> config.bound_quantifier_elim <- Z.of_string s)
-      , "<n>\tMaximal number of states in NFAs used in ChrobakNF construction" )
+      , "<n>\tBound on the number of branches in quantifier elimination (DEFAULT \
+         n=1000000)" )
     ; ( "-huge-c"
       , Arg.Int (fun n -> huge_const_config.const <- n)
       , Printf.sprintf
