@@ -4619,6 +4619,80 @@ let%expect_test _ =
     |}]
 ;;
 
+let divide_term_by_int (p : Z.t) (term : Z.t Ast.Eia.term) : Z.t Ast.Eia.term option =
+  let open Ast.Eia in
+  let (module TS) = make_main_symantics Env.empty in
+  let d = Z.abs p in
+  let rec helper = function
+    | Const c when Z.(c mod d = zero) -> Some (TS.constz Z.(c / d))
+    | Mul (Const c :: rest) when Z.(c mod d = zero) ->
+      Some (TS.mul (TS.constz Z.(c / d) :: rest))
+    | Add ts ->
+      let rec all = function
+        | [] -> Some []
+        | t :: rest ->
+          begin match helper t with
+          | None -> None
+          | Some t' ->
+            begin match all rest with
+            | None -> None
+            | Some rest' -> Some (t' :: rest')
+            end
+          end
+      in
+      begin match all ts with
+      | Some ts' -> Some (TS.add ts')
+      | None -> None
+      end
+    | Mod (t, m) when Z.(m mod d = zero) ->
+      begin match helper t with
+      | Some t' -> Some (TS.mod_ t' Z.(m / d))
+      | None -> None
+      end
+    | t when Z.(d = one) -> Some t
+    | _ -> None
+  in
+  helper term
+;;
+
+let divide_constraint_by_int (p : Z.t) (ast : Ast.t) : Ast.t option =
+  let open Ast.Eia in
+  let d = Z.abs p in
+  match ast with
+  | Ast.True -> Some Ast.True
+  | Ast.Eia (Eq (Mod (t, m), Const z, I)) when Z.equal z Z.zero ->
+    if Z.(m mod d = zero)
+    then
+      begin match divide_term_by_int d t with
+      | Some t' -> Some (Ast.Eia (Eq (Mod (t', Z.(m / d)), Const Z.zero, I)))
+      | None -> None
+      end
+    else None
+  | Ast.Eia (Eq (l, r, I)) ->
+    begin match divide_term_by_int d l, divide_term_by_int d r with
+    | Some l', Some r' -> Some (Ast.Eia (Eq (l', r', I)))
+    | _ -> None
+    end
+  | _ -> None
+;;
+
+let divide_system_by_int (p : Z.t) (conj : Ast.t list) : Ast.t list =
+  let d = Z.abs p in
+  if Z.(d = one)
+  then conj
+  else begin
+    let divided = List.map (divide_constraint_by_int d) conj in
+    if List.for_all Option.is_some divided
+    then
+      List.map
+        (function
+          | Some x -> x
+          | None -> assert false)
+        divided
+    else conj
+  end
+;;
+
 let eliminate_one_var conj varname subst p l =
   let open Ast in
   let open NondeterministicMonad in
@@ -4657,6 +4731,8 @@ let eliminate_one_var conj varname subst p l =
       conj
       |> List.map (multiply_constraint_by_int coeff)
       |> List.map (substitute_vigorous_constraint varname coeff tau)
+      |> List.map (apply_symantics (module TS))
+      |> divide_system_by_int p
       |> fun x -> divides (Z.abs coeff) tau :: x |> List.map (apply_symantics (module TS))
     in
     return (conj, subst, p, l)
@@ -5002,4 +5078,39 @@ let%expect_test _ =
   in
   test ph;
   [%expect {| True |}]
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let ph =
+    TS.(
+      Ast.Exists
+        ( [ Ast.Any_atom (Ast.Var ("x0", I)); Ast.Any_atom (Ast.Var ("x1", I)) ]
+        , Ast.Land
+            [ add [ mul [ const 2; var "x0" ]; mul [ const 3; var "x1" ] ] = const 1
+            ; add [ mul [ const 5; var "x0" ]; mul [ const 7; var "x1" ] ] = var "z"
+            ] ))
+  in
+  Format.printf "%a\n" Ast.pp (simplify_quantifiers ph);
+  [%expect {| True |}]
+;;
+
+let%expect_test _ =
+  let (module TS) = make_main_symantics Env.empty in
+  let test p ast =
+    match divide_constraint_by_int p ast with
+    | Some ast -> Format.printf "%a\n" Ast.pp ast
+    | None -> Format.printf "None\n"
+  in
+  test
+    (Z.of_int 2)
+    (Ast.divides (Z.of_int 4) TS.(add [ mul [ const 2; var "z" ]; const (-6) ]));
+  test (Z.of_int 2) TS.(add [ mul [ const 4; var "x" ]; const 6 ] = const 0);
+  test (Z.of_int 3) TS.(add [ mul [ const 4; var "x" ]; const 6 ] = const 0);
+  [%expect
+    {|
+    (divides 2 (+ (- 3) z))
+    (= (+ 3 (* 2 x)) 0)
+    None
+    |}]
 ;;
