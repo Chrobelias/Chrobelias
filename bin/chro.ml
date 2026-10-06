@@ -618,9 +618,11 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
     Debug.trace "NFA" "Ast to NFA Solver: %a" Ast.pp_smtlib2 ast;
     match Me.ir_of_ast e ast with
     | Ok ir ->
+      if config.dump_ir then Format.printf "; translated IR\n%a\n%!" Ir.pp_smtlib2 ir;
       let ir = ir |> Ir.simpl |> Ir.simpl_ineq in
       let e, ir = if config.simpl_mono then Ir.simpl_monotonicty e ir else e, ir in
       let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
+      let ir = if config.simpl_quantifier_elim then Ir.simpl_quantifiers ir else ir in
       (match ir with
        | Lib.Ir.True -> sat "simpl" ast ~env:e
        | Lnot True -> unsat "simpl" ast

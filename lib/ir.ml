@@ -1378,8 +1378,9 @@ let coeff_of_var varname (poly : polynom) =
 let find_var_and_coeff varname = function
   | Rel (Eq, poly, c) ->
     begin match Map.find poly varname with
-    | Some coeff -> Some (coeff, Map.remove poly varname, c)
     | None -> None
+    | Some z when z = Z.zero -> None
+    | Some coeff -> Some (coeff, Map.remove poly varname, c)
     end
   | _ -> None
 ;;
@@ -1403,15 +1404,16 @@ let slack_vars_in_poly =
 ;;
 
 let apply_operation_to_constraint op = function
-  | Rel (Eq, poly, c) -> Rel (Eq, Map.map ~f:op poly, op c)
-  | Rel (Leq, poly, c) -> Rel (Leq, Map.map ~f:op poly, op c)
-  | Rel (Neq, poly, c) -> Rel (Neq, Map.map ~f:op poly, op c)
-  | Rel (Div d, poly, c) -> Rel (Div (op d), Map.map ~f:op poly, op c)
+  | Rel (Div d, poly, c) -> Rel (Div (op d), Map.map ~f:op poly, c)
+  | Rel (rel, poly, c) -> Rel (rel, Map.map ~f:op poly, op c)
   | t -> t
 ;;
 
 let multiply_constraint_by_int coeff = apply_operation_to_constraint (Z.mul coeff)
-let divide_constraint_by_int coeff = apply_operation_to_constraint (Z.div coeff)
+
+let divide_constraint_by_int coeff =
+  apply_operation_to_constraint (fun x -> Z.div x coeff)
+;;
 
 let substitute_vigorous_constraint varname coeff (tau_poly, tau_const) = function
   | Rel (rel, poly, c) as constr ->
@@ -1429,7 +1431,7 @@ let substitute_vigorous_constraint varname coeff (tau_poly, tau_const) = functio
             let s = Z.(e + d) in
             if Z.equal s Z.zero then Map.remove acc key else Map.set acc ~key ~data:s)
       in
-      Rel (rel, poly', Z.(c + (factor * tau_const)))
+      Rel (rel, poly', Z.(c - (factor * tau_const)))
     end
   | t -> t
 ;;
@@ -1464,8 +1466,8 @@ let eliminate_one_var conj varname subst p l =
       conj
       |> List.map (multiply_constraint_by_int coeff)
       |> List.map (substitute_vigorous_constraint varname coeff (tau, const))
-      |> List.map (divide_constraint_by_int coeff)
-      |> fun x -> Rel (Div Z.zero, tau, Z.abs coeff) :: x
+      |> List.map (divide_constraint_by_int p)
+      |> fun x -> Rel (Div (Z.abs coeff), tau, Z.zero) :: x
     in
     return (conj, subst, p, l)
 ;;
@@ -1595,7 +1597,7 @@ let bound_ok (atoms : atom list) (ast : t) (bound : Z.t) : bool =
   else pow_le base exp bound
 ;;
 
-let simplify_quantifiers (ir : t) =
+let simpl_quantifiers ir =
   let bound = Config.config.bound_quantifier_elim in
   let is_linear_atom = function
     | Var _ -> true

@@ -8,12 +8,14 @@ SMT-LIB Benchmark Generator for LIA Constraints under existence quantifier
 from random import randint, choice, seed
 import argparse
 from time import time
+import sys
 import os
+
 
 def generate_gl_matrix(n, min_coeff, max_coeff):
     """Generates an n x n unimodular matrix (det = +/- 1) using LU style."""
-    L = [[0]*n for _ in range(n)]
-    U = [[0]*n for _ in range(n)]
+    L = [[0] * n for _ in range(n)]
+    U = [[0] * n for _ in range(n)]
 
     for i in range(n):
         L[i][i] = choice([1, -1])
@@ -23,12 +25,13 @@ def generate_gl_matrix(n, min_coeff, max_coeff):
             L[j][i] = randint(min_coeff, max_coeff)
             U[i][j] = randint(min_coeff, max_coeff)
 
-    A = [[0]*n for _ in range(n)]
+    A = [[0] * n for _ in range(n)]
     for i in range(n):
         for j in range(n):
             A[i][j] = sum(L[i][k] * U[k][j] for k in range(n))
 
     return A
+
 
 def generate_left_side(terms):
     if len(terms) == 1:
@@ -52,6 +55,10 @@ def generate_smt2(args, filename, is_sat):
     lines.append("(set-logic LIA)")
     lines.append("")
 
+    if args.bounds > args.vars:
+        print("Bounds must be less then or equal to the number of vars")
+        sys.exit(1)
+
     vars_decl = " ".join(f"({var_names[i]} Int)" for i in range(0, args.bounds))
     for i in range(args.bounds, args.vars):
         lines.append(f"(declare-fun {var_names[i]} () Int)")
@@ -72,7 +79,6 @@ def generate_smt2(args, filename, is_sat):
             else:
                 terms.append(f"(* {coeff} {var_names[j]})")
 
-
         left_side = generate_left_side(terms)
         right_side = f"{k[i]}" if k[i] >= 0 else f"(- {- k[i]})"
 
@@ -92,16 +98,27 @@ def generate_smt2(args, filename, is_sat):
     expected = "sat" if is_sat else "unsat"
     print(f"Generated {filename} (Expected: {expected})")
 
+
 def main():
     """Main function to generate all benchmark combinations."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--vars", type=int, required=True, help="Number of vars")
-    parser.add_argument("-n", "--num", type=int, required=True, help="Number of file generated")
-    parser.add_argument("-b", "--bounds", type=int, required=True, help="Number of bound variables")
-    parser.add_argument("--max", type=int, required=True, help="Max value possible for integers")
-    parser.add_argument("--min", type=int, required=True, help="Min value possible for integers")
-    parser.add_argument("--seed", type=str, required=False, default=int(time() * 1000), help="seed")
+    parser.add_argument(
+        "-n", "--num", type=int, required=True, help="Number of file generated"
+    )
+    parser.add_argument(
+        "-b", "--bounds", type=int, required=True, help="Number of bound variables"
+    )
+    parser.add_argument(
+        "--max", type=int, required=True, help="Max value possible for integers"
+    )
+    parser.add_argument(
+        "--min", type=int, required=True, help="Min value possible for integers"
+    )
+    parser.add_argument(
+        "--seed", type=str, required=False, default=int(time() * 1000), help="seed"
+    )
 
     args = parser.parse_args()
     seed(args.seed)
@@ -120,6 +137,7 @@ def main():
     print("Benchmark Generation Complete!")
     print(f"Seed: {args.seed}")
     print("=" * 80)
+
 
 if __name__ == "__main__":
     main()
