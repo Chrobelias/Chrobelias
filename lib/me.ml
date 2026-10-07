@@ -684,6 +684,7 @@ let rec eia_of_ir : Ir.t -> Ast.t =
        eia (eq (mod_ lhs m) (const (Z.erem c m)) I))
   | Exists ([], lhs) -> eia_of_ir lhs
   | Exists (atoms, lhs) -> exists (List.map ir_atom_to_atom atoms) (eia_of_ir lhs)
+  | Ir.Unsupp s -> Ast.Unsupp (`Msg (s, Smtml.Expr.value Smtml.Value.False))
   | _ -> true_
 ;;
 
