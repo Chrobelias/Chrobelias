@@ -105,7 +105,7 @@ is at least 1:
   > (check-sat)
   > EOF
   $ Chro -no-model a9.smt2
-  unsat (over)
+  unsat (presimpl int)
 
   $ cat > a14.smt2 <<-EOF
   > (set-logic QF_EIA)

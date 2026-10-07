@@ -549,6 +549,26 @@ let dpll check_sat ?(verbose = false) ast =
        ())
 ;;
 
+let dnf check_sat ast =
+  let can_be_unk = ref false in
+  let unsat_reason = ref "bool" in
+  match
+    Ast.to_dnf_seq ast
+    |> Seq.find_map (fun conj ->
+      match check_sat conj with
+      | Sat _ as rez -> Some rez
+      | Unsat (s, _) ->
+        unsat_reason := reason s !unsat_reason;
+        None
+      | Unknown _ ->
+        can_be_unk := true;
+        None)
+  with
+  | Some rez -> rez
+  | None ->
+    if !can_be_unk then unknown Ast.true_ Env.empty else unsat !unsat_reason Ast.true_
+;;
+
 let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
   let report_result2 s = report_result ~verbose s in
   let check_nfa_sat ast e =
@@ -571,8 +591,8 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
           | `Unsat -> unsat "nfa" ast
           | `Unknown _ir -> unknown ast e))
     | Error s ->
-      report_result2 (`Unknown (Format.sprintf "(nfa) %s" s));
-      exit 0
+      trace_log "NFA Solver rejects the formula: %s\n%!" s;
+      unknown ast e
   in
   let ( <+> ) =
     fun rez f ->
@@ -634,9 +654,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
           match SimplII.check_nia e ast with
           | `Sat env -> sat "nia" ast ~env
           | `Unsat -> unsat "nia" ast
-          | `Unknown ->
-            report_result2 (`Unknown "nia");
-            exit 0)
+          | `Unknown -> unknown ast e)
         else unknown ast e
     in
     match apporx_rez with
@@ -953,7 +971,8 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         aux z3_light env
       in
       let light_dpll = if config.light_dpll then light_dpll else Fun.id in
-      match dpll (light_dpll arithmetize_and_check env) ~verbose:false ast with
+      let theory = light_dpll arithmetize_and_check env in
+      match if config.dpll then dpll theory ~verbose:false ast else dnf theory ast with
       | Sat _ as rez -> rez
       | Unknown _ as rez -> rez
       | Unsat _ as rez when not !can_be_unk -> rez
@@ -1060,6 +1079,22 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
          construction. Formulas the split leaves unchanged (all exponents
          provably nonnegative, or no powers at all) go straight through the
          regular pipeline. *)
+      let check_eia_sat ast e =
+        let boolean =
+          (not (Ast.is_conjunct ast))
+          && not
+               (Ast.forsome
+                  (function
+                    | Ast.Exists _ | Ast.Unsupp _ -> true
+                    | _ -> false)
+                  ast)
+        in
+        if boolean && config.dpll
+        then dpll (fun ast -> check_eia_sat ast e) ~verbose:false ast
+        else if boolean
+        then dnf (fun ast -> check_eia_sat ast e) ast
+        else check_eia_sat ast e
+      in
       let ast_split = SimplII.std_exp_split ast in
       let fallback ast =
         fun () ->

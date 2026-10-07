@@ -42,7 +42,7 @@ The same shape, but unsatisfiable: both branches are bounded below 10.
   > EOF
 
   $ Chro ite-int.smt2
-  sat (under int)
+  sat (presimpl int)
 
   $ cat > ite-int-other.smt2 <<-EOF
   > (set-logic ALL)
@@ -68,4 +68,4 @@ Neither branch can produce 30, so this is unsat.
   > EOF
 
   $ Chro ite-int-unsat.smt2
-  unsat (nia)
+  unsat (presimpl int)

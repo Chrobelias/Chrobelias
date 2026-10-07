@@ -23,4 +23,4 @@
   > (check-sat)
   > SMT
   $ Chro --check-model xor_unsat.smt2
-  unsat (nia)
+  unsat (bool)

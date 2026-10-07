@@ -135,6 +135,86 @@ $ export OCAMLRUNPARAM='b=0'
   [+simpl]
     Basic simplifications:
   
+  [+simpl]
+    iter(1)= (and
+             (distinct (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= %stdexp2 0)
+             (<= (+ 1 x) 0)
+             (<= (* y z) 0)
+             (<= (+ 1 %stdexp2) 0)
+             (distinct (+ %stdexp1 (* (- 1) x)) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp2 -> 0;
+        
+  [+simpl]
+    iter(2)= (and
+             (= %stdexp2 0)
+             (distinct (+ %stdexp1 (* (- 1) x)) 0)
+             (distinct (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (<= (+ 1 %stdexp2) 0)
+             (<= (+ 1 x) 0)
+             (<= (* y z) 0))
+  [+simpl]
+    iter(3)= (not True)
+  [+simpl]
+    fixed-point
+  
+  [+simpl]
+    contradicting clause: (<= (+ 1 %stdexp2) 0)
+  [+simpl]
+    contradicting env:  %stdexp2 -> 0; 
+  [+simpl]
+    unsat core: (and
+                (<= (+ 1 %stdexp2) 0)
+                (= %stdexp2 0))
+  
+  [+simpl]
+    Basic simplifications:
+  
+  [+simpl]
+    iter(1)= (and
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (distinct %stdexp2 0)
+             (<= (* (- 1) x) 0)
+             (<= (* y z) 0)
+             (<= (+ 1 %stdexp2) 0)
+             (= (+ %stdexp1 (* (- 1) x)) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
+  [+simpl]
+    Something ready to substitute
+        %stdexp1 -> x;
+        %stdexp2 -> (** 2 %stdexp1);
+        
+  [+simpl]
+    iter(2)= (and
+             (= (+ %stdexp1 (* (- 1) x)) 0)
+             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (distinct %stdexp2 0)
+             (<= (+ 1 %stdexp2) 0)
+             (<= (* (- 1) x) 0)
+             (<= (* y z) 0))
+  [+simpl]
+    iter(3)= (and
+             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 x))) 0)
+             (distinct (** 2 %stdexp1) 0)
+             (<= (+ 1 (** 2 %stdexp1)) 0)
+             (<= (* (- 1) x) 0)
+             (<= (* y z) 0))
+  [+simpl]
+    iter(4)= (and
+             (distinct (** 2 x) 0)
+             (<= (+ 1 (** 2 x)) 0)
+             (<= (* (- 1) x) 0)
+             (<= (* y z) 0))
+  [+simpl]
+    fixed-point
+  
   unsat (over)
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF

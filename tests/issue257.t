@@ -75,7 +75,7 @@ used to refute this satisfiable formula.
   > (check-sat)
   > EOF
   $ Chro -no-model -bound -1 orbounds.smt2
-  sat (nfa)
+  sat (presimpl int)
 
 Regression for the simplifier's constant fold of `mod`: SMT-LIB `mod` is
 Euclidean, so `(mod -3 2)` is 1, never -1.
