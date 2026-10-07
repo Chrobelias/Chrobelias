@@ -64,7 +64,7 @@
   > (check-sat)
   > SMT
   $ Chro --check-model eq_unsat.smt2
-  unsat (nia)
+  unsat (bool)
 
   $ cat > eq_negated_unsat.smt2 <<-SMT
   > (set-logic ALL)
@@ -76,7 +76,7 @@
   > (check-sat)
   > SMT
   $ Chro --check-model eq_negated_unsat.smt2
-  unsat (nia)
+  unsat (bool)
 
   $ cat > distinct_unsat.smt2 <<-SMT
   > (set-logic ALL)
@@ -88,7 +88,7 @@
   > (check-sat)
   > SMT
   $ Chro --check-model distinct_unsat.smt2
-  unsat (nia)
+  unsat (bool)
 
   $ cat > xor.smt2 <<-SMT
   > (set-logic ALL)
@@ -233,4 +233,4 @@
   > (check-sat)
   > SMT
   $ Chro --check-model ite_eq_unsat.smt2
-  unsat (nia)
+  unsat (bool)

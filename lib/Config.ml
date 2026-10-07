@@ -30,6 +30,7 @@ type config =
   ; mutable with_info : bool
   ; mutable check_model : bool
   ; mutable light_dpll : bool
+  ; mutable dpll : bool
   }
 
 let config =
@@ -62,6 +63,7 @@ let config =
   ; under_str_budget = 1.0
   ; check_model = false
   ; light_dpll = false
+  ; dpll = true
   }
 ;;
 
@@ -361,6 +363,9 @@ Basic options:
             [-help] already prints the table [--help] would. *)
        ; "--no-str-bv", Arg.Unit (fun () -> config.no_str_bv <- true), ""
        ; "--inner-dpll", Arg.Unit (fun () -> config.light_dpll <- true), ""
+       ; ( "-no-dpll"
+         , Arg.Unit (fun () -> config.dpll <- false)
+         , "Check every disjunct of the DNF instead of running DPLL(T)" )
        ; "--help", Arg.Unit help, ""
        ];
   Arg.parse
