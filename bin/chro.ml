@@ -479,11 +479,7 @@ let dpll check_sat ?(verbose = false) ast =
   let bool_to_eia s =
     match Map.find !bool_map s with
     | Some eia -> eia
-    | None ->
-      Format.kasprintf
-        failwith
-        "Unexpected state: predicate %s is in the original definition"
-        s
+    | None -> Ast.pred s
   in
   let of_bool_model ~map z3_model =
     Hashtbl.fold
