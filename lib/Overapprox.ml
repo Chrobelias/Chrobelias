@@ -56,6 +56,157 @@ let gensym base name =
   fv
 ;;
 
+(* [root b] is [(r, p)] with [b = r^p] and [r] minimal, for [b >= 2]. *)
+let root b =
+  let rec go p =
+    if p < 2
+    then b, 1
+    else (
+      let r = Z.root b p in
+      if Z.equal (Z.pow r p) b then r, p else go (p - 1))
+  in
+  go (Z.numbits b - 1)
+;;
+
+(* [linear t] is [Some (coefficients, constant)] when [t] is linear over
+   integer variables. *)
+let rec linear : Z.t Ast.Eia.term -> ((string, Z.t) Base.Map.Poly.t * Z.t) option =
+  let module M = Base.Map.Poly in
+  let add (m1, c1) (m2, c2) =
+    M.merge_skewed m1 m2 ~combine:(fun ~key:_ a b -> Z.add a b), Z.add c1 c2
+  in
+  let scale k (m, c) = M.map m ~f:(Z.mul k), Z.mul k c in
+  function
+  | Ast.Eia.Const c -> Some (M.empty, c)
+  | Ast.Eia.Atom (Ast.Var (x, Ast.I)) -> Some (M.singleton x Z.one, Z.zero)
+  | Ast.Eia.Add ts ->
+    List.fold_left
+      (fun acc t ->
+         match acc, linear t with
+         | Some a, Some b -> Some (add a b)
+         | _ -> None)
+      (Some (M.empty, Z.zero))
+      ts
+  | Ast.Eia.Mul ts ->
+    List.fold_left
+      (fun acc t ->
+         match acc, linear t with
+         | Some (m, c), Some b when M.is_empty m -> Some (scale c b)
+         | Some a, Some (m, c) when M.is_empty m -> Some (scale c a)
+         | _ -> None)
+      (Some (M.empty, Z.one))
+      ts
+  | _ -> None
+;;
+
+(* Constraints between the powers in the cache, added to the NIA formula
+   that overapproximates the formula [ast]. For bases 2 <= b < c:
+
+   - b^x and c^x with the same exponent variable: x <= 0 or c b^x <= b c^x,
+     that is, b^(x-1) <= c^(x-1).
+
+   - b = r^p and c = r^q with a common root r, and an equation
+     al x + be y + d = 0 among the conjuncts of [ast] that gives
+     q y = k p x + m with integers k >= 1, 0 <= m <= 64: for x >= 0 also
+     y >= 0 and c^y = r^m (b^x)^k. Only the linear consequences are added,
+     x < 0 or c^y = r^m b^x when k = 1, and x < 0 or r^m b^x <= c^y when
+     k >= 2: with the product (b^x)^k, Z3 took seconds on relaxations that
+     are satisfiable. *)
+let constraints_between_powers ast =
+  let module M = Base.Map.Poly in
+  let powers =
+    Base.Map.to_alist !cache
+    |> List.filter_map (fun (fv, (x, b)) ->
+      if Z.(geq b (of_int 2)) then Some (fv, x, b) else None)
+  in
+  let same_exponent =
+    List.concat_map
+      (fun (fb, x, b) ->
+         List.filter_map
+           (fun (fc, x', c) ->
+              if String.equal x x' && Z.lt b c
+              then
+                Some
+                  Symantics.(
+                    lor_
+                      [ var x <= constz Z.zero
+                      ; mul [ constz c; var fb ] <= mul [ constz b; var fc ]
+                      ])
+              else None)
+           powers)
+      powers
+  in
+  let equations =
+    (match ast with
+     | Ast.Land xs -> xs
+     | ph -> [ ph ])
+    |> List.filter_map (function
+      | Ast.Eia (Ast.Eia.Eq (l, r, Ast.I)) ->
+        (match linear l, linear r with
+         | Some (ml, cl), Some (mr, cr) ->
+           let m =
+             M.merge_skewed ml (M.map mr ~f:Z.neg) ~combine:(fun ~key:_ a b -> Z.add a b)
+             |> M.filter ~f:(fun a -> not (Z.equal a Z.zero))
+           in
+           (match M.to_alist m with
+            | [ (x, al); (y, be) ] -> Some (x, al, y, be, Z.sub cl cr)
+            | _ -> None)
+         | _ -> None)
+      | _ -> None)
+  in
+  let common_root =
+    List.concat_map
+      (fun (x, al, y, be, d) ->
+         List.concat_map
+           (fun (fb, u, b) ->
+              List.filter_map
+                (fun (fc, v, c) ->
+                   (* u al_u + v al_v + d = 0, with u the exponent of b *)
+                   let coefficients =
+                     if String.equal u x && String.equal v y
+                     then Some (al, be)
+                     else if String.equal u y && String.equal v x
+                     then Some (be, al)
+                     else None
+                   in
+                   match coefficients with
+                   | None -> None
+                   | Some (al_u, al_v) ->
+                     let r, p = root b
+                     and r', q = root c in
+                     let qz = Z.of_int q in
+                     let k_num = Z.neg (Z.mul qz al_u)
+                     and k_den = Z.mul al_v (Z.of_int p) in
+                     let m_num = Z.neg (Z.mul qz d) in
+                     if
+                       Z.equal r r'
+                       && Z.(equal (rem k_num k_den) zero)
+                       && Z.(equal (rem m_num al_v) zero)
+                     then (
+                       let k = Z.div k_num k_den
+                       and m = Z.div m_num al_v in
+                       if Z.(geq k one && geq m zero && leq m (of_int 64))
+                       then (
+                         let rm_b =
+                           Symantics.(mul [ constz (Z.pow r (Z.to_int m)); var fb ])
+                         in
+                         Some
+                           Symantics.(
+                             lor_
+                               [ var u < constz Z.zero
+                               ; (if Z.equal k Z.one
+                                  then var fc = rm_b
+                                  else rm_b <= var fc)
+                               ]))
+                       else None)
+                     else None)
+                powers)
+           powers)
+      equations
+  in
+  same_exponent @ common_root
+;;
+
 exception Bitwise_op
 exception String_op
 exception Difficult_Exp_op
@@ -129,7 +280,7 @@ let check ast =
   in
   cache := Base.Map.empty (module Base.String);
   let _repr = apply_symnatics (module Symantics) ast in
-  let whole = _repr :: formulas_of_cache () in
+  let whole = (_repr :: formulas_of_cache ()) @ constraints_between_powers ast in
   Format.pp_print_flush Format.std_formatter ();
   trace_log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
   match Utils.z3_check_with_restarts ~budget_ms:200_000 whole with
