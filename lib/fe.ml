@@ -564,19 +564,25 @@ let sym_to_pred (s : Symbol.t) =
   | _ -> assert false
 ;;
 
+let bool_true = Smtml.Typed.Unsafe.unwrap Smtml.Typed.Bool.true_
+let bool_false = Smtml.Typed.Unsafe.unwrap Smtml.Typed.Bool.false_
+let bool_not e = Smtml.Typed.(Unsafe.unwrap (Bool.not (Unsafe.wrap e)))
+let bool_and l r = Smtml.Typed.(Unsafe.unwrap (Bool.and_ (Unsafe.wrap l) (Unsafe.wrap r)))
+let bool_or l r = Smtml.Typed.(Unsafe.unwrap (Bool.or_ (Unsafe.wrap l) (Unsafe.wrap r)))
+
 let rec of_ast = function
-  | Ast.True -> Smtml.Expr.Bool.true_
-  | Land [] -> Smtml.Expr.Bool.true_
+  | Ast.True -> bool_true
+  | Land [] -> bool_true
   | Land (h :: tl) ->
     let h = of_ast h in
     let tl = List.map of_ast tl in
-    List.fold_left Smtml.Expr.Bool.and_ h tl
-  | Lor [] -> Smtml.Expr.Bool.false_
+    List.fold_left bool_and h tl
+  | Lor [] -> bool_false
   | Lor (h :: tl) ->
     let h = of_ast h in
     let tl = List.map of_ast tl in
-    List.fold_left Smtml.Expr.Bool.or_ h tl
-  | Lnot el -> Smtml.Expr.Bool.not (of_ast el)
+    List.fold_left bool_or h tl
+  | Lnot el -> bool_not (of_ast el)
   | Exists (atoms, body) ->
     Smtml.Expr.exists
       (List.map
