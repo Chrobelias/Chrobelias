@@ -46,7 +46,7 @@
   > (get-model)
   > SMT
   $ Chro --check-model eq.smt2
-  sat (under int)
+  sat (presimpl int)
   (
      (define-fun a () Bool
       true)
@@ -100,7 +100,7 @@
   > (get-model)
   > SMT
   $ Chro --check-model xor.smt2
-  sat (under int)
+  sat (presimpl int)
   (
      (define-fun a () Bool
       true)
@@ -118,7 +118,7 @@
   > (get-model)
   > SMT
   $ Chro --check-model ite.smt2
-  sat (under int)
+  sat (presimpl int)
   (
      (define-fun b () Bool
       false)
