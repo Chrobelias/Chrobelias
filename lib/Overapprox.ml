@@ -132,13 +132,7 @@ let check ast =
   let whole = _repr :: formulas_of_cache () in
   Format.pp_print_flush Format.std_formatter ();
   trace_log "@[whole: @[<v>%a@]@]\n%!" (Format.pp_print_list Smtml.Expr.pp) whole;
-  let module Z3 = Smtml.Z3_mappings.Solver in
-  (* let module Z3 = Smtml.Cvc5_mappings.Solver in *)
-  let solver =
-    Z3.make ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42)) ()
-  in
-  Z3.reset solver;
-  match Z3.check solver ~assumptions:whole with
+  match Utils.z3_check_with_restarts ~budget_ms:200_000 whole with
   | `Unsat ->
     if tracing_on then Format.printf "Early Unsat in %s\n%!" __FILE__;
     `Unsat
@@ -146,7 +140,7 @@ let check ast =
     trace_log "Can't decide in %s%!" __FILE__;
     if tracing_on then Format.printf "`Unknown  in %s\n%!" __FILE__;
     `Unknown ast
-  | `Sat when tracing_on ->
+  | `Sat solver when tracing_on ->
     Format.printf "Early SAT in %s ~~> Unknown\n%!" __FILE__;
     let () =
       match Smtml.Z3_mappings.Solver.model solver with
@@ -157,7 +151,7 @@ let check ast =
       | None -> ()
     in
     `Unknown ast
-  | `Sat -> `Unknown ast
+  | `Sat _ -> `Unknown ast
 ;;
 
 let check ast =

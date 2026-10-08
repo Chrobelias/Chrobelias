@@ -2762,15 +2762,10 @@ let check_nia env ast =
   (* trace_log "ast2=@[%a@]" Ast.pp_smtlib2 ast; *)
   let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
   trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
-  let solver =
-    Z3.make
-      ~logic:Smtml.Logic.QF_NIA
-      ()
-      ~params:Smtml.Params.(default () $ (Timeout, 200000) $ (Random_seed, 42))
-  in
-  Z3.reset solver;
-  match Z3.check solver ~assumptions:[ ph ] with
-  | `Sat ->
+  match
+    Utils.z3_check_with_restarts ~logic:Smtml.Logic.QF_NIA ~budget_ms:200_000 [ ph ]
+  with
+  | `Sat solver ->
     (match Z3.model solver with
      | None -> assert false
      | Some m ->
