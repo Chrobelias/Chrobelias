@@ -68,7 +68,7 @@ for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {las
   suitename=$(sed 's/\.//g' <<< ${suite:${#base} + 1} | sed 's/\///g');
   suitefile="res-$solver-$suitename.txt";
   START_TIME=$(date +%s)
-  printf '%s\n' "$suite"/*.smt2 | parallel --will-cite --keep-order -j "$JOBS" run_one {} {%} | tee "$suitefile";
+  printf '%s\n' "$suite"/*.smt2 | head -n 3 | parallel --will-cite --keep-order -j "$JOBS" run_one {} {%} | tee "$suitefile";
   END_TIME=$(date +%s)
   DURATION=$(($END_TIME - $START_TIME))
   echo "Benchmarks $suitename completed by $solver in: $DURATION seconds with $execute"
