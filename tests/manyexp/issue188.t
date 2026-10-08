@@ -49,4 +49,4 @@ The same tests with three exponentiated vars in the LSB mode
   > (check-sat)
   > EOF
   $ Chro test1.smt2
-  sat (nfa)
+  sat (under int)

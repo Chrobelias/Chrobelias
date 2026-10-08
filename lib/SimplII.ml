@@ -2623,7 +2623,7 @@ let rec basic_simplify
     "Alphabet with extra char: %a\n%!"
     Format.(pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf " ") pp_print_char)
     alpha;
-  let rec loop step (env : Env.t) ast =
+  let rec loop ?prev step (env : Env.t) ast =
     let (module Symantics) = make_main_symantics ~alpha ~with_nielsen env in
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
@@ -2635,9 +2635,14 @@ let rec basic_simplify
     let __ _ = trace_log "env2 = %a" (Env.pp ~title:"") env2 in
     let __ () = trace_log "ast2 = @[%a@]" Ast.pp_smtlib2 ast2 in
     let next_step = next step in
+    let repeated =
+      match prev with
+      | Some prev -> Ast.equal prev ast2
+      | None -> false
+    in
     match
       ( Env.length env2 > Env.length env
-      , Ast.equal ast ast2
+      , Ast.equal ast ast2 || repeated
       , Ast.equal Ast.True ast2 || Ast.equal Ast.false_ ast2 )
     with
     | true, equal, _ ->
@@ -2647,7 +2652,7 @@ let rec basic_simplify
       loop next_step (Env.merge_exn env2 env) ast2
     | false, false, false ->
       trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
-      loop next_step env ast2
+      loop ~prev:ast next_step env ast2
     | false, equal, _ ->
       if not equal then trace_log "iter(%a)= @[%a@]" pp_step next_step Ast.pp_smtlib2 ast2;
       trace_log "fixed-point\n";
@@ -2675,22 +2680,6 @@ let rec basic_simplify
          | (atomic :: _ as contras), trues ->
            trace_log "contradicting clause: %a" Ast.pp_smtlib2 atomic;
            trace_log "contradicting env: %a" (Env.pp ~title:"") env;
-           (* Every literal that substitutes to [True] under [env] stays in the
-              candidate core: the literals that produced a binding substitute
-              to [True] under it, so this keeps the core's justification
-              closed -- [atomic] is false under [env] and the retained
-              literals force [env]. Restricting to the variables reachable
-              from [atomic] through env equations used to drop cross-variable
-              justifications (e.g. [y = ""] derived from [|x| <= 0] and
-              [|x| = |y|]), and the resulting satisfiable "core" became a DPLL
-              blocking clause that excluded sat assignments.
-
-              [minimize_core] then shrinks the candidate by verified
-              deletions. It is seeded with every contradicting literal, not
-              just [atomic]: refuting the first one found may need a long
-              chain of justifications while another falls to a two-literal
-              core, and deletion filtering can only ever reach cores that are
-              subsets of its seed. *)
            let candidate = contras @ trues in
            let core_literals =
              if minimize && List.length candidate <= max_minimized_core_size
@@ -2940,23 +2929,6 @@ let rewrite_via_concat { Info.all; _ } =
     ;;
   end
   in
-  (* Shared positional decomposition. py-conbyte-style formulas probe the same
-     string at many constant offsets ([str.substr s 0 1], [str.at s 3], ...);
-     lowering each site through [split_vars] mints an independent seven-variable
-     conditional split of the same string, so five sites cost ~35 fresh
-     variables and 2^5 branch combinations. Instead, all constant-offset sites
-     on one variable share a single segmentation [v = g1 ++ ... ++ gk ++ tail]
-     cut at every offset any site needs, with one branch per length interval
-     [q_j <= |v| < q_j+1] handling the SMT-LIB out-of-range semantics. The
-     branch guards are pure length constraints, which the skeleton length
-     axioms resolve upfront when |v| is bounded.
-
-     Sharing happens by pre-populating [substr_cache]/[at_cache] before the
-     rewrite: sites the collector recognized hit the cache, everything else
-     falls back to [split_vars]. A missed cache key (a term the rewriter
-     normalizes differently than the input) only loses the sharing, never
-     soundness: the fallback encoding is still emitted, and the orphaned shared
-     variables stay consistent with it. *)
   let prepopulate_shared ast =
     let module PSet = Base.Set.Poly in
     let site_of_term term =

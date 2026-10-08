@@ -481,16 +481,35 @@ let dpll check_sat ?(verbose = false) ast =
     | Some eia -> eia
     | None -> Ast.pred s
   in
+  let is_theory_atom s = Map.mem !bool_map s in
   let of_bool_model ~map z3_model =
     Hashtbl.fold
       (fun sym value acc ->
-         match value with
-         | Smtml.Value.True -> map (Fe.sym_to_pred sym) :: acc
-         | Smtml.Value.False -> Ast.lnot (map (Fe.sym_to_pred sym)) :: acc
-         | _ -> acc)
+         let s = Fe.sym_to_pred sym in
+         if not (is_theory_atom s)
+         then acc
+         else (
+           match value with
+           | Smtml.Value.True -> map s :: acc
+           | Smtml.Value.False -> Ast.lnot (map s) :: acc
+           | _ -> acc))
       z3_model
       []
     |> Ast.land_
+  in
+  let bool_values z3_model =
+    Hashtbl.fold
+      (fun sym value acc ->
+         let s = Fe.sym_to_pred sym in
+         if is_theory_atom s
+         then acc
+         else (
+           match value with
+           | Smtml.Value.True -> (s, true) :: acc
+           | Smtml.Value.False -> (s, false) :: acc
+           | _ -> acc))
+      z3_model
+      []
   in
   let unsat_reason = ref "bool" in
   let can_be_unk = ref false in
@@ -506,9 +525,16 @@ let dpll check_sat ?(verbose = false) ast =
       let candidate = of_bool_model ~map:bool_to_eia model in
       Debug.trace "DPLL" "Trying %a%!" Ast.pp_smtlib2 candidate;
       (match check_sat candidate with
-       | Sat (s, _) as result ->
+       | Sat (s, (sat_ast, env, get_model, regexes)) ->
          report_result ~verbose (`Sat s);
-         result
+         let bools = bool_values model in
+         let get_model tys =
+           Result.map
+             (fun m ->
+                List.fold_left (fun m (s, b) -> Map.set m ~key:s ~data:(`Bool b)) m bools)
+             (get_model tys)
+         in
+         Sat (s, (sat_ast, env, get_model, regexes))
        | Unsat (s, core) ->
          (*Debug.trace "DPLL" "Unsat core: %a\n%!" Ast.pp_smtlib2 core;*)
          unsat_reason := reason s !unsat_reason;
@@ -569,8 +595,24 @@ let dnf check_sat ast =
     if !can_be_unk then unknown Ast.true_ Env.empty else unsat !unsat_reason Ast.true_
 ;;
 
+let solve_bool check_sat ast =
+  if config.dpll then dpll check_sat ~verbose:false ast else dnf check_sat ast
+;;
+
 let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
   let report_result2 s = report_result ~verbose s in
+  (* What an unknown answer reports: the NFA Solver's rejection message or
+     the NIA check giving up, whichever happened last; plain "nfa"
+     otherwise. *)
+  let unknown_reason = ref "nfa" in
+  (* A DPLL(T) or DNF candidate whose automaton outgrows the size limit is
+     undecided; the search goes on with the other candidates. *)
+  let candidate check ast =
+    try check ast with
+    | Nfa.Too_big_nfa ->
+      unknown_reason := "too big nfa during the computations";
+      unknown ast Env.empty
+  in
   let check_nfa_sat ast e =
     trace_log "Checking nfa sat (ast = %a)\n%!" Ast.pp_smtlib2 ast;
     Debug.trace "NFA" "Ast to NFA Solver: %a" Ast.pp_smtlib2 ast;
@@ -592,6 +634,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
           | `Unknown _ir -> unknown ast e))
     | Error s ->
       trace_log "NFA Solver rejects the formula: %s\n%!" s;
+      unknown_reason := Format.sprintf "(nfa) %s" s;
       unknown ast e
   in
   let ( <+> ) =
@@ -654,7 +697,9 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
           match SimplII.check_nia e ast with
           | `Sat env -> sat "nia" ast ~env
           | `Unsat -> unsat "nia" ast
-          | `Unknown -> unknown ast e)
+          | `Unknown ->
+            unknown_reason := "nia";
+            unknown ast e)
         else unknown ast e
     in
     match apporx_rez with
@@ -971,8 +1016,8 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         aux z3_light env
       in
       let light_dpll = if config.light_dpll then light_dpll else Fun.id in
-      let theory = light_dpll arithmetize_and_check env in
-      match if config.dpll then dpll theory ~verbose:false ast else dnf theory ast with
+      let theory = candidate (light_dpll arithmetize_and_check env) in
+      match solve_bool theory ast with
       | Sat _ as rez -> rez
       | Unknown _ as rez -> rez
       | Unsat _ as rez when not !can_be_unk -> rez
@@ -1013,7 +1058,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                 begin if Seq.is_empty seq_of_variants
                 then
                   handle (check_string_sat e ast) (fun () ->
-                    report_result2 (`Unknown "nfa");
+                    report_result2 (`Unknown !unknown_reason);
                     unknown ast Env.empty)
                 else
                   (* Under-approximations first: cheap, they can only answer [Sat],
@@ -1079,37 +1124,29 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
          construction. Formulas the split leaves unchanged (all exponents
          provably nonnegative, or no powers at all) go straight through the
          regular pipeline. *)
-      let check_eia_sat ast e =
+      let check_eia_sat_bool ast e =
         let boolean =
           (not (Ast.is_conjunct ast))
-          && not
-               (Ast.forsome
-                  (function
-                    | Ast.Exists _ | Ast.Unsupp _ -> true
-                    | _ -> false)
-                  ast)
+          && (not
+                (Ast.forsome
+                   (function
+                     | Ast.Exists _ | Ast.Unsupp _ -> true
+                     | _ -> false)
+                   ast))
+          && config.stop_after = `Solving
+          && (not config.dump_pre_simpl)
+          && not config.dump_simpl
         in
-        if boolean && config.dpll
-        then dpll (fun ast -> check_eia_sat ast e) ~verbose:false ast
-        else if boolean
-        then dnf (fun ast -> check_eia_sat ast e) ast
+        if boolean
+        then solve_bool (candidate (fun ast -> check_eia_sat ast e)) ast
         else check_eia_sat ast e
       in
       let ast_split = SimplII.std_exp_split ast in
       let fallback ast =
         fun () ->
-        report_result2 (`Unknown "nfa");
+        report_result2 (`Unknown !unknown_reason);
         unknown ast Env.empty
       in
-      (* A model coming out of a per-branch pipeline run (below) needs
-         confirmation: the pipeline's model export can be partial, and its
-         simplifier applies exponent laws (b^i * b^j = b^(i+j),
-         c * b^(e-1) = (c/b) * b^e) whose in-branch soundness rests on the
-         sign guards, so a Sat is only accepted once the model provably
-         satisfies the *original* formula. The check is a ground evaluator
-         independent of the simplifier -- the legacy laws live there, so a
-         model check that reuses it would vouch for itself. Everything the
-         evaluator cannot decide counts as unconfirmed. *)
       let confirmed = function
         | Sat (_, (_, env, get_model, _)) ->
           let pins = Hashtbl.create 8 in
@@ -1137,12 +1174,6 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
               (match Hashtbl.find_opt pins v with
                | Some c -> Some c
                | None ->
-                 (* Unpinned variables default to 0: a total assignment
-                    that evaluates to true is a genuine model wherever its
-                    values came from, and partial solver models leave
-                    exactly the don't-care variables out. A failed or
-                    cyclic env definition degrades to the same default,
-                    which can only make confirmation fail, never lie. *)
                  let fallback = Z.zero in
                  (match Hashtbl.find_opt defs v with
                   | Some t when not (Hashtbl.mem visiting v) ->
@@ -1230,11 +1261,6 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
           rez = Some true
         | Unsat _ | Unknown _ -> false
       in
-      (* A branch unsat whose minimized core contains no power at all is
-         trusted: the deletion-based minimization re-verifies the core by
-         itself, and no rewrite manufactures powers out of pow-free atoms,
-         so that derivation holds under any pow semantics. Cores that do
-         mention powers may rest on the legacy laws and are not trusted. *)
       let pow_free ph =
         not
           (Ast.fold
@@ -1252,12 +1278,6 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
              false
              ph)
       in
-      (* Try a small case enumeration over the split's definition
-         disjunctions before the heavy pipeline. Every disjunct of the split
-         formula either carries its sign/parity guards or is power-free, so
-         the simplifier's verdict on a branch conjunction is exact: unsat on
-         every branch proves unsat, and any branch model is a model. Falls
-         through on an undecided branch or a large product. *)
       let solve_split () =
         let members =
           match ast_split with
@@ -1271,10 +1291,6 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
               | _ -> false)
             members
         in
-        (* The branch count is computed before materializing the product:
-           formulas bring their own disjunctions, and an eager cartesian
-           product over dozens of them allocates itself to death long
-           before any size check could reject it. *)
         let branch_count =
           List.fold_left
             (fun acc -> function
@@ -1314,16 +1330,6 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                  | `Sat env -> Some (sat "presimpl int" ast_split ~env)
                  | `Unsat _ -> scan rest
                  | `Unknown _ ->
-                   (* The presimpl scan cannot decide branches that keep real
-                      powers, but splitting also costs the engine its exponent
-                      laws: substituting the fresh result variable turns
-                      2^z * (1 + 2^u) into the var-by-var product
-                      2^z * (1 + r), which no automaton expresses -- while
-                      inside this branch the sign guards make the laws sound
-                      on the *unsplit* conjunction. So the full pipeline runs
-                      on the branch, and its verdicts are vetted: Sat only if
-                      the ground evaluator confirms it against the original
-                      formula, unsat only on a pow-free core. *)
                    let branch = Ast.land_ (core @ sel) in
                    if not (SimplII.engine_pows_only branch)
                    then None
@@ -1343,7 +1349,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         | None -> handle (check_eia_sat ast_split Env.empty) (fallback ast_split)
       in
       if Stdlib.compare ast ast_split = 0
-      then handle (check_eia_sat ast Env.empty) (fallback ast)
+      then handle (check_eia_sat_bool ast Env.empty) (fallback ast)
       else solve_split ())
   with
   | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful

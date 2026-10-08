@@ -332,6 +332,9 @@ Basic options:
        ; ( "-no-parallel"
          , Arg.Unit (fun () -> config.parallel <- false)
          , "Do not race string underapproximation against the normal run" )
+         (* ; ( "-no-dpll"
+         , Arg.Unit (fun () -> config.dpll <- false)
+         , "Check every disjunct of the DNF instead of running DPLL(T)" ) *)
        ; ( "-over-nfa"
          , Arg.Unit (fun () -> config.over_nfa <- true)
          , "Overapproximate orderings inside the NFA solver\n\nDebugging:\n" )
@@ -363,9 +366,6 @@ Basic options:
             [-help] already prints the table [--help] would. *)
        ; "--no-str-bv", Arg.Unit (fun () -> config.no_str_bv <- true), ""
        ; "--inner-dpll", Arg.Unit (fun () -> config.light_dpll <- true), ""
-       ; ( "-no-dpll"
-         , Arg.Unit (fun () -> config.dpll <- false)
-         , "Check every disjunct of the DNF instead of running DPLL(T)" )
        ; "--help", Arg.Unit help, ""
        ];
   Arg.parse
