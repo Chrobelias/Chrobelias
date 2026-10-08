@@ -687,10 +687,17 @@ let rec eia_of_ir : Ir.t -> Ast.t =
   | Ir.Unsupp s -> Ast.Unsupp (`Msg (s, Smtml.Expr.value Smtml.Value.False))
   (* No AST counterpart: kept as a hole, which [Overapprox] relaxes by
      polarity. Turning it into [true] made a negated one [false]. *)
-  | ( Reg _ | SReg _ | SRegRaw _ | SPrefixOf _ | SSuffixOf _ | SContains _ | SLen _
-    | SLenConst _ | Stoi _ | Itos _ ) as ir ->
-    Ast.Unsupp
-      (`Msg (Format.asprintf "%a" Ir.pp ir, Smtml.Expr.value Smtml.Value.False))
+  | ( Reg _
+    | SReg _
+    | SRegRaw _
+    | SPrefixOf _
+    | SSuffixOf _
+    | SContains _
+    | SLen _
+    | SLenConst _
+    | Stoi _
+    | Itos _ ) as ir ->
+    Ast.Unsupp (`Msg (Format.asprintf "%a" Ir.pp ir, Smtml.Expr.value Smtml.Value.False))
 ;;
 
 let%expect_test "a negated IR leaf without AST counterpart is not false" =
@@ -699,7 +706,8 @@ let%expect_test "a negated IR leaf without AST counterpart is not false" =
   (match Overapprox.check ast with
    | `Unsat -> print_endline "overapprox: unsat"
    | _ -> print_endline "overapprox: not unsat");
-  [%expect {|
+  [%expect
+    {|
     (not (unsupp: (chrob.len x n), false))
     overapprox: not unsat
     |}]
