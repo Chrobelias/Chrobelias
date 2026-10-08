@@ -33,28 +33,27 @@ module Symantics : Smtml_symantics = struct
   ;;
 end
 
-let cache : (string, string, _) Base.Map.t ref = ref (Base.Map.empty (module Base.String))
-let extend vk vv = cache := Base.Map.add_exn !cache ~key:vk ~data:vv
+(* A power b^x with a variable exponent becomes the variable exp_b_x; the
+   cache maps that name to (x, b). It used to be keyed by x alone, so 3^x
+   got the variable of 2^x, which no longer overapproximates the formula. *)
+let cache : (string, string * Z.t, _) Base.Map.t ref =
+  ref (Base.Map.empty (module Base.String))
+;;
 
-(* MS: Config.base () must be replaced with a base taken from the phormula *)
+(* (b - 1) x < b^x for every integer x when b >= 2, b^x being 0 for x < 0. *)
 let formulas_of_cache () =
   Base.Map.to_sequence !cache
-  |> Base.Sequence.map ~f:(fun (x, fv) ->
-    Symantics.(mul [ constz Z.(of_int !Config.base - one); var x ] < var fv))
+  |> Base.Sequence.filter_map ~f:(fun (fv, (x, base)) ->
+    if Z.(geq base (of_int 2))
+    then Some Symantics.(mul [ constz Z.(base - one); var x ] < var fv)
+    else None)
   |> Base.Sequence.to_list
 ;;
 
-let gensym base =
-  let n = ref 0 in
-  let prefix = Format.asprintf "exp_%a_" Z.pp_print base in
-  fun name ->
-    match Base.Map.find_exn !cache name with
-    | exception Base.Not_found_s _ ->
-      incr n;
-      let ans = Printf.sprintf "%s%s" prefix name in
-      extend name ans;
-      ans
-    | x -> x
+let gensym base name =
+  let fv = Format.asprintf "exp_%a_%s" Z.pp_print base name in
+  cache := Base.Map.set !cache ~key:fv ~data:(name, base);
+  fv
 ;;
 
 exception Bitwise_op
