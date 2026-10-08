@@ -13,7 +13,7 @@ Basic QF_EIA tests
   sat (under int)
   unsat (nfa)
   sat (nfa)
-  unsat (nfa)
+  unsat (over)
   sat (presimpl int)
 
 Basic QF_EIA tests using only NFAs
