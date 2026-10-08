@@ -15,3 +15,14 @@ val powerset : 'a list -> 'a list list
 val powerset_seq : 'a list -> 'a list Seq.t
 val strings_of_len : int -> string list -> string list
 val with_extra_char : char Set.t -> char list
+val luby : int -> int
+
+(** [z3_check_with_restarts ?logic ~budget_ms assumptions] checks [assumptions]
+    with Z3, retrying with a new seed after a time slot of [luby i] seconds,
+    within [budget_ms] in total. [`Sat] carries the solver of the attempt that
+    answered, for its model. *)
+val z3_check_with_restarts
+  :  ?logic:Smtml.Logic.t
+  -> budget_ms:int
+  -> Smtml.Expr.t list
+  -> [ `Sat of Smtml.Z3_mappings.solver | `Unsat | `Unknown ]

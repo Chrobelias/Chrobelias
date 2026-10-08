@@ -104,3 +104,43 @@ let with_extra_char alpha =
   in
   Set.union alpha extra_char |> Set.to_list
 ;;
+
+(* The Luby sequence 1 1 2 1 1 2 4 1 1 2 1 1 2 4 8 ..., [i >= 1]. *)
+let rec luby i =
+  let rec width k = if (1 lsl k) - 1 >= i then k else width (k + 1) in
+  let k = width 1 in
+  if i = (1 lsl k) - 1 then 1 lsl (k - 1) else luby (i - (1 lsl (k - 1)) + 1)
+;;
+
+let%expect_test "luby" =
+  List.init 15 (fun i -> luby (i + 1)) |> List.iter (Printf.printf "%d ");
+  [%expect {| 1 1 2 1 1 2 4 1 1 2 1 1 2 4 8 |}]
+;;
+
+let z3_check_with_restarts ?logic ~budget_ms assumptions =
+  let module Z3 = Smtml.Z3_mappings.Solver in
+  let make ~timeout ~seed =
+    Z3.make
+      ?logic
+      ~params:Smtml.Params.(default () $ (Timeout, timeout) $ (Random_seed, seed))
+      ()
+  in
+  let rec loop i spent =
+    if spent >= budget_ms
+    then `Unknown
+    else (
+      let timeout = min (luby i * 1000) (budget_ms - spent) in
+      let seed = if i = 1 then 42 else i - 2 in
+      let solver = make ~timeout ~seed in
+      Z3.reset solver;
+      match Z3.check solver ~assumptions with
+      | `Sat -> `Sat solver
+      | `Unsat -> `Unsat
+      | `Unknown ->
+        Debug.trace "z3" "attempt %d (seed %d, %d ms): unknown" i seed timeout;
+        loop (i + 1) (spent + timeout))
+  in
+  Fun.protect
+    ~finally:(fun () -> ignore (make ~timeout:budget_ms ~seed:42))
+    (fun () -> loop 1 0)
+;;
