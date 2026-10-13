@@ -4524,7 +4524,7 @@ let arithmetize str_vars ast env =
       else (
         trace_log "Arithmetizing regex ... for variable %s" s;
         let strlens = strlens s in
-        let csds, exhaustive_upto =
+        let csds, _ =
           let is_eos vec =
             match Array.length vec with
             | 1 -> Char.equal (Array.get vec 0) Nfa.Str10.u_eos
@@ -4533,14 +4533,7 @@ let arithmetize str_vars ast env =
           Nfa.String.filter_map nfa (fun (label, q') ->
             if is_eos label then Option.none else Option.some (label, q'))
           |> Nfa.String.to_nat
-          |> Nfa.String.chrobak ~max_states:Config.regex_bound
-        in
-        (* See Overapprox.in_re: the limit hides only lengths past this point. *)
-        let beyond =
-          match exhaustive_upto with
-          | None -> []
-          | Some m ->
-            [ Ast.eia (Ast.Eia.leq (Ast.Eia.const (Z.of_int (m + 1))) (atomi strlens)) ]
+          |> Nfa.String.chrobak
         in
         let const = Ast.Eia.const in
         csds
@@ -4556,7 +4549,7 @@ let arithmetize str_vars ast env =
                    Ast.I)
             ])
         |> List.of_seq
-        |> fun ds -> Ast.lor_ (ds @ beyond))
+        |> Ast.lor_)
     in
     let rec arithmetize_conj str_vars : Ast.t -> Ast.t =
       fun ast ->
