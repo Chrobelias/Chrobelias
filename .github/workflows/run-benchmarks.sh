@@ -105,7 +105,7 @@ run_one() {
   if [ "$res" -eq 124 ] || [ "$res" -eq 137 ]; then
     verdict=timeout
   else
-    line=$(grep -m1 -E '^(sat|unsat|unknown|timeout)' "$tmp")
+    line=$(grep -m1 -E '^(sat|unsat|unknown|timeout)([[:space:]]|$)' "$tmp")
     case "$line" in
       sat*) verdict=sat ;;
       unsat*) verdict=unsat ;;
@@ -136,6 +136,7 @@ for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {las
   suitefile="$RESULTS_DIR/res-$label-$suitename.tsv"
   START_TIME=$(date +%s)
   printf '%s\n' "$suite"/*.smt2 |
+    if [ "${PER_SUITE:-0}" -gt 0 ]; then head -n "$PER_SUITE"; else cat; fi |
     parallel --will-cite --keep-order -j "$JOBS" run_one {} {%} "$suitename" |
     tee "$suitefile"
   END_TIME=$(date +%s)
