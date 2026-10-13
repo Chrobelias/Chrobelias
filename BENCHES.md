@@ -29,7 +29,7 @@ To check that each solver has executed smoke tests:
 
 ```bash
 $ ls ./stats/ | wc -l
-27
+26
 ```
 
 ## Benchmarking
