@@ -653,6 +653,10 @@ struct
           match x_eq_1_model with
           | Some model -> Option.some model
           | None ->
+            let next =
+              List.find_opt (fun t -> is_exp t || Ir.eq_atom t x') tl
+              |> Option.value ~default:next
+            in
             project_exp s nfa x next
             |> Seq.map (fun (nfa, model_part) ->
               helper (project (get_deg x) nfa) tl (model_part :: model))
