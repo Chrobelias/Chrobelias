@@ -42,7 +42,7 @@ def generate_left_side(terms):
 
 
 def generate_smt2(args, filename, is_sat):
-    A = generate_gl_matrix(args.vars, args.min, args.max)
+    A = generate_gl_matrix(args.vars, args.mincoeff, args.maxcoeff)
 
     var_names = [f"x{i}" for i in range(args.vars)]
 
@@ -82,6 +82,8 @@ def generate_smt2(args, filename, is_sat):
         left_side = generate_left_side(terms)
         right_side = f"{k[i]}" if k[i] >= 0 else f"(- {- k[i]})"
 
+        rel_sign = choice(["=", "<="])
+
         lines.append(f"    (= {left_side} {right_side})")
 
     if not is_sat:
@@ -115,6 +117,12 @@ def main():
     )
     parser.add_argument(
         "--min", type=int, required=True, help="Min value possible for integers"
+    )
+    parser.add_argument(
+        "--maxcoeff", type=int, required=True, help="Max value possible for coefficents"
+    )
+    parser.add_argument(
+        "--mincoeff", type=int, required=True, help="Min value possible for coefficents"
     )
     parser.add_argument(
         "--seed", type=str, required=False, default=int(time() * 1000), help="seed"
