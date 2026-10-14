@@ -1504,57 +1504,62 @@ let eliminate_existence_quantifier_branches (ir : t) =
     in
     !slack_vars, new_conjs
   in
-  match ir with
-  | Exists (elim_vars, ast) ->
-    begin match ast with
-    | Land conj_list ->
-      let slack, conj_list = introduce_slacks conj_list in
-      let rec eliminate_all subst conj p l = function
-        | [] -> return (conj, subst)
-        | h :: tl ->
-          let* conj, subst, p, l = eliminate_one_var conj h subst p l in
-          eliminate_all subst conj p l tl
-      in
-      let* branch, subst = eliminate_all Map.empty conj_list Z.one Z.one elim_vars in
-      let branch =
-        List.map
-          (function
-            | Rel (Eq, poly, c) as t -> begin
-              slack_vars_in_poly poly
-              |> List.find_opt (fun x -> Map.mem subst x)
-              |> function
-              | Some varname ->
-                let poly' = Map.remove poly (Var varname) in
-                begin match coeff_of_var (Var varname) poly with
-                | coeff when coeff > Z.zero -> Rel (Leq, poly', c)
-                | c -> Rel (Leq, Map.map poly' ~f:(Z.mul Z.minus_one), c)
-                end
-              | None -> t
+  let helper xs elim_vars =
+    let slack, conj_list = introduce_slacks xs in
+    let rec eliminate_all subst conj p l = function
+      | [] -> return (conj, subst)
+      | h :: tl ->
+        let* conj, subst, p, l = eliminate_one_var conj h subst p l in
+        eliminate_all subst conj p l tl
+    in
+    let* branch, subst = eliminate_all Map.empty conj_list Z.one Z.one elim_vars in
+    let branch =
+      List.map
+        (function
+          | Rel (Eq, poly, c) as t -> begin
+            slack_vars_in_poly poly
+            |> List.find_opt (fun x -> Map.mem subst x)
+            |> function
+            | Some varname ->
+              let poly' = Map.remove poly (Var varname) in
+              begin match coeff_of_var (Var varname) poly with
+              | coeff when coeff > Z.zero -> Rel (Leq, poly', c)
+              | c -> Rel (Leq, Map.map poly' ~f:(Z.mul Z.minus_one), c)
               end
-            | t -> t)
-          branch
-      in
-      let branch = List.map (subst_ir subst) branch in
-      let mod_phi = get_mod_phi_of_system branch in
-      let possible_vals = first_n_numbers mod_phi |> List.to_seq in
-      let rec loop env phi = function
-        | [] -> return env
-        | Var key :: tl when var_exists (Var key) phi ->
-          let* data = possible_vals in
-          let env = Map.set env ~key ~data in
-          loop env phi tl
-        | h :: tl -> loop env phi tl
-      in
-      let helper_filter = function
-        | Rel (Div o, _, z) when Z.(o = one && z = zero) -> false
-        | True -> false
-        | t -> true
-      in
-      let* env = loop Map.empty branch elim_vars in
-      branch |> List.map (subst_ir env) |> List.filter helper_filter |> return
-    | _ -> failwith "Expected a conjuction"
-    end
-  | _ -> failwith "Expected the existence quantifier"
+            | None -> t
+            end
+          | t -> t)
+        branch
+    in
+    let branch = List.map (subst_ir subst) branch in
+    let mod_phi = get_mod_phi_of_system branch in
+    let possible_vals = first_n_numbers mod_phi |> List.to_seq in
+    let rec loop env phi = function
+      | [] -> return env
+      | Var key :: tl when var_exists (Var key) phi ->
+        let* data = possible_vals in
+        let env = Map.set env ~key ~data in
+        loop env phi tl
+      | h :: tl -> loop env phi tl
+    in
+    let helper_filter = function
+      | Rel (Div o, _, z) when Z.(o = one && z = zero) -> false
+      | True -> false
+      | t -> true
+    in
+    let* env = loop Map.empty branch elim_vars in
+    branch |> List.map (subst_ir env) |> List.filter helper_filter |> return
+  in
+  (* Format.printf "%a\n" pp ir; *)
+    match ir with
+    | Exists (elim_vars, xs) ->
+      (* Format.printf "%a\n" pp xs; *)
+      begin match xs with
+      | Land conj_list -> helper conj_list elim_vars
+      | Rel (_, _, _) as rel -> helper [ rel ] elim_vars
+      | _ -> failwith "Expected a conjuction"
+      end
+    | _ -> failwith "Expected the existence quantifier"
 ;;
 
 let eliminate_existence_quantifier : t -> t =
