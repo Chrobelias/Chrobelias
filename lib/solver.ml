@@ -892,12 +892,27 @@ struct
              exp
              Ir.pp_atom
              prev_var;
+           let complete () =
+             let rec from_prev = function
+               | [] -> []
+               | a :: tl as l -> if Ir.eq_atom a prev_var then l else from_prev tl
+             in
+             let below = from_prev past_order in
+             mapVals
+             |> Map.filter_keys ~f:(fun key ->
+               List.exists
+                 (function
+                   | Ir.Var v -> v = key
+                   | _ -> false)
+                 below)
+             |> Map.map_keys_exn ~f:Ir.var
+           in
            (try
               let path_len = len_of_var exp - len_of_var prev_var in
               if path_len > Config.huge_path ()
               then
                 (* let () = Format.eprintf "Calculated path_len = %d\n%!" path_len in *)
-                Result.Error (mapVals |> Map.map_keys_exn ~f:Ir.var)
+                Result.Error (complete (), mapVals |> Map.map_keys_exn ~f:Ir.var)
               else (
                 let model2 = part path_len |> Option.get in
                 let new_model, new_len =
@@ -908,7 +923,7 @@ struct
                 let mapVals = new_model |> Base.List.zip_exn vars |> Map.of_alist_exn in
                 helper mapVals new_len tl (exp :: past_order) parts)
             with
-            | _ -> Result.Error (mapVals |> Map.map_keys_exn ~f:Ir.var)))
+            | _ -> Result.Error (complete (), mapVals |> Map.map_keys_exn ~f:Ir.var)))
     in
     let mapVals = Base.List.zip_exn vars model |> Map.of_alist_exn in
     helper mapVals len order [] models |> Result.map (Map.map_keys_exn ~f:Ir.var)
@@ -1008,7 +1023,7 @@ struct
       trace_log "Formula after simplifications: %a" Ir.pp f;
       result
     in
-    let get_model_simpl map ir =
+    let get_model_simpl ?(model_vars_only = false) map ir =
       let model_vars = Ir.collect_model_vars ir |> Map.keys in
       let map_true_model_vars =
         map
@@ -1020,7 +1035,13 @@ struct
       then Some signed_map
       else (
         let ir_map = apply ~light:true signed_map ir in
-        let partial_model = Ir.get_partial_model ir_map in
+        (* Equalities over other atoms, e.g., over powers too large to
+           evaluate, do not give values of the model variables. *)
+        let partial_model =
+          Ir.get_partial_model ir_map
+          |> List.filter (fun (var, _) ->
+            (not model_vars_only) || List.exists (Ir.eq_atom var) model_vars)
+        in
         match List.equal Ir.eq_atom model_vars (partial_model |> List.map fst) with
         | true ->
           Some
@@ -1030,10 +1051,16 @@ struct
         | false -> None)
     in
     match combine_model_pieces s (List.rev order) (model, len) models with
-    | Result.Error map ->
-      (match get_model_simpl map f with
-       | Some m -> Result.Ok m
-       | None -> Result.Error `Too_long)
+    | Result.Error (complete, map) ->
+      (* First the variables whose digits are all known; every value in
+         [complete] is the value in a model, so only the equalities over
+         the model variables are read. *)
+        (match get_model_simpl ~model_vars_only:true complete f with
+         | Some m -> Result.Ok m
+         | None ->
+           (match get_model_simpl map f with
+            | Some m -> Result.Ok m
+            | None -> Result.Error `Too_long))
     | Result.Ok map ->
       (match get_model_simpl map f with
        | Some m -> Result.Ok m
