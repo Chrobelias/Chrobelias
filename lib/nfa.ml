@@ -1163,58 +1163,53 @@ struct
   ;;
 
   let shrink (nfa : t) =
-    let rec remove_duplicates l =
-      let rec contains l (label', state') =
-        match l with
-        | [] -> false
-        | (label, state) :: xs ->
-          (Label.equal label label' && state = state') || contains xs (label', state')
-      in
-      match l with
-      | [] -> []
-      | x :: xs ->
-        let acc = remove_duplicates xs in
-        if contains acc x then acc else x :: acc
+    let letters =
+      Label.alphabet
+      |> List.filter (fun c -> c <> Label.u_null || c = Label.u_zero)
+      |> List.sort_uniq compare
+    in
+    (* [Label.equal] ignores tracks unconstrained in either label; merging
+       needs the same constrained tracks as well. *)
+    let same l1 l2 =
+      Label.equal l1 l2
+      && List.for_all (fun j -> Label.is_any_at j l1 = Label.is_any_at j l2) (0 -- nfa.deg)
+    in
+    let merge_track labels i =
+      labels
+      |> List.fold_left
+           (fun groups l ->
+              let key = Label.project [ i ] l in
+              let rec add = function
+                | [] -> [ key, [ l ] ]
+                | (k, ls) :: tl when same k key -> (k, l :: ls) :: tl
+                | g :: tl -> g :: add tl
+              in
+              add groups)
+           []
+      |> List.concat_map (fun (key, ls) ->
+        if List.exists (Label.is_any_at i) ls
+        then [ key ]
+        else (
+          let symbols = List.map (fun l -> Label.get l i) ls in
+          if List.for_all (fun c -> List.mem c symbols) letters then [ key ] else ls))
+    in
+    (* Every merge removes labels, so an unchanged count means a fixpoint. *)
+    let rec merge labels =
+      let labels' = List.fold_left merge_track labels (0 -- nfa.deg) in
+      if List.length labels' = List.length labels then labels else merge labels'
     in
     let shrink delta =
-      if List.is_empty delta
-      then delta
-      else
-        delta
-        |> List.map (fun (label1, q1) ->
-          ( 0 -- nfa.deg
-            |> List.fold_left
-                 (fun acc i ->
-                    let label1 = acc in
-                    let symbol1 = Label.get label1 i in
-                    let label1' = Label.project [ i ] label1 in
-                    let flag = ref false in
-                    let symbols =
-                      List.fold_left
-                        (fun acc (label2, q2) ->
-                           if q1 = q2 && Label.equal label2 label1'
-                           then
-                             if Label.is_any_at i label2
-                             then (
-                               flag := true;
-                               acc)
-                             else (
-                               let symbol2 = Label.get label2 i in
-                               Set.add acc symbol2)
-                           else acc)
-                        (Set.singleton symbol1)
-                        delta
-                    in
-                    if
-                      !flag
-                      || Label.alphabet
-                         |> List.take !Config.base
-                         |> List.for_all (fun c -> Set.mem symbols c)
-                    then label1'
-                    else label1)
-                 label1
-          , q1 ))
-        |> remove_duplicates
+      delta
+      |> List.map (fun (label, q) -> q, label)
+      |> Map.of_alist_multi
+      |> Map.to_alist
+      |> List.concat_map (fun (q, labels) ->
+        labels
+        |> List.fold_left
+             (fun acc l -> if List.exists (same l) acc then acc else l :: acc)
+             []
+        |> merge
+        |> List.map (fun l -> l, q))
     in
     let transitions' =
       Array.map shrink nfa.transitions
