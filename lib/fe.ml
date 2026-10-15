@@ -139,10 +139,17 @@ and to_regex orig_expr =
     let rhs = to_regex rhs in
     Regex.mand lhs rhs
   | Expr.Unop (_ty, Ty.Unop.Regexp_loop (l, r), stmt) ->
+    (* ((_ re.loop l r) e) is e^l | ... | e^r: l copies of e followed by r - l optional
+       ones, and the empty language for r < l (SMT-LIB). Adding r optional copies, as
+       before, also accepted up to l + r copies. *)
     let stmt = to_regex stmt in
-    let lhs = List.init l (fun _ -> stmt) |> List.fold_left Regex.concat Regex.epsilon in
-    let rhs = List.init r (fun _ -> Regex.opt stmt) |> List.fold_left Regex.concat lhs in
-    rhs
+    if r < l
+    then Regex.empty
+    else (
+      let lhs =
+        List.init l (fun _ -> stmt) |> List.fold_left Regex.concat Regex.epsilon
+      in
+      List.init (r - l) (fun _ -> Regex.opt stmt) |> List.fold_left Regex.concat lhs)
   | Expr.Unop (_ty, Ty.Unop.Regexp_opt, expr) -> to_regex expr |> Regex.opt
   | Expr.Unop (_ty, Ty.Unop.Regexp_plus, expr) -> to_regex expr |> Regex.plus
   | Expr.Unop (_ty, Ty.Unop.Regexp_star, expr) -> to_regex expr |> Regex.kleene
