@@ -270,7 +270,8 @@ Basic options:
        ; "-no-model", Arg.Unit (fun () -> config.no_model <- true), "Do not build models"
        ; ( "-bqelim"
          , Arg.String (fun s -> config.bound_quantifier_elim <- Z.of_string s)
-         , "<n>\tBound branches for quantifier elimination" )
+         , "<n>\tBound on the number of branches in quantifier elimination (DEFAULT \
+            n=1000000)" )
        ; ( "-no-over"
          , Arg.Unit (fun () -> config.over_approx <- false)
          , "Do not run the Z3 overapproximation" )
