@@ -18,6 +18,7 @@ type config =
   ; mutable pre_simpl : bool
   ; mutable quiet : bool
   ; mutable simpl_alpha : bool
+  ; mutable simpl_quantifier_elim : bool
   ; mutable simpl_mono : bool
   ; mutable stop_after : [ `Pre_dpll | `Pre_simplify | `Simpl | `Solving ]
   ; mutable under_approx : int
@@ -54,6 +55,7 @@ let config =
   ; no_str_bv = false
   ; quiet = false
   ; simpl_alpha = false
+  ; simpl_quantifier_elim = false
   ; simpl_mono = true
   ; with_check_sat = false
   ; with_info = true
@@ -309,6 +311,12 @@ Basic options:
          , Printf.sprintf
              "<n> Search a model of at most <n> symbols (DEFAULT %d)"
              (huge_path ()) )
+       ; ( "--qelim"
+         , Arg.Unit (fun () -> config.simpl_quantifier_elim <- true)
+         , "\tApply quantifier elimination for linear systems" )
+       ; ( "--no-qelim"
+         , Arg.Unit (fun () -> config.simpl_quantifier_elim <- false)
+         , "\tDon't use quantifier elimination" )
        ; ( "-sbcnt"
          , Arg.Int (fun n -> under_str_config.max_cnt <- n)
          , Printf.sprintf
