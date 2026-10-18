@@ -405,12 +405,7 @@ struct
   include FT_SIG.Sugar (Who_in_exponents_)
 end
 
-let gensym =
-  let n = ref 0 in
-  fun ?(prefix = "eee") () ->
-    incr n;
-    Printf.sprintf "%s%d" prefix !n
-;;
+let gensym = Utils.gensym
 
 let apply_symantics (type a) (module S : SYM_SUGAR with type ph = a) ast =
   let helperT, helperS = apply_term_symantics (module S) in
