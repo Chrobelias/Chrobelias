@@ -1,6 +1,7 @@
 type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable dyn_bounds : bool
+  ; mutable bound_quantifier_elim : Z.t
   ; mutable base : int option
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
@@ -37,6 +38,7 @@ type config =
 let config =
   { antiprenex_mode = `All
   ; dyn_bounds = true
+  ; bound_quantifier_elim = Z.of_int 1000000
   ; base = None
   ; stop_after = `Solving
   ; dump_pre_simpl = false
@@ -266,6 +268,9 @@ Basic options:
          , Arg.Unit (fun () -> config.nielsen <- true)
          , "Nielsen transformations for word equations in the simplifier" )
        ; "-no-model", Arg.Unit (fun () -> config.no_model <- true), "Do not build models"
+       ; ( "-bqelim"
+         , Arg.String (fun s -> config.bound_quantifier_elim <- Z.of_string s)
+         , "<n>\tBound branches for quantifier elimination" )
        ; ( "-no-over"
          , Arg.Unit (fun () -> config.over_approx <- false)
          , "Do not run the Z3 overapproximation" )
