@@ -1617,6 +1617,7 @@ let simpl_quantifiers ir =
     | SSuffixOf (x, y) -> is_linear_atom x && is_linear_atom y
     | SContains (x, y) -> is_linear_atom x && is_linear_atom y
     | SLen (x, y) -> is_linear_atom x && is_linear_atom y
+    | SLenConst xs -> List.for_all (fun (atom, _) -> is_linear_atom atom) xs
     | Stoi (x, y) -> is_linear_atom x && is_linear_atom y
     | Itos (x, y) -> is_linear_atom x && is_linear_atom y
     | Rel (_, _, _) -> true
