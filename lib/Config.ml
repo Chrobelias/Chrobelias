@@ -314,9 +314,6 @@ Basic options:
        ; ( "--qelim"
          , Arg.Unit (fun () -> config.simpl_quantifier_elim <- true)
          , "\tApply quantifier elimination for linear systems" )
-       ; ( "--no-qelim"
-         , Arg.Unit (fun () -> config.simpl_quantifier_elim <- false)
-         , "\tDon't use quantifier elimination" )
        ; ( "-sbcnt"
          , Arg.Int (fun n -> under_str_config.max_cnt <- n)
          , Printf.sprintf
