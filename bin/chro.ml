@@ -622,7 +622,9 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
       let ir = ir |> Ir.simpl |> Ir.simpl_ineq in
       let e, ir = if config.simpl_mono then Ir.simpl_monotonicty e ir else e, ir in
       let ir = if config.simpl_alpha then Simpl_alpha.simplify ir else ir in
-      let ir = if config.simpl_quantifier_elim then Ir.simpl_quantifiers ir else ir in
+      let ir =
+        if config.simpl_quantifier_elim then Ir.simpl_quantifiers ir |> Ir.simpl else ir
+      in
       (match ir with
        | Lib.Ir.True -> sat "simpl" ast ~env:e
        | Lnot True -> unsat "simpl" ast

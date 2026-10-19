@@ -1602,35 +1602,36 @@ let bound_ok (atoms : atom list) (ast : t) (bound : Z.t) : bool =
   else pow_le base exp bound
 ;;
 
+let split_non_linear_parts ir : atom list * atom list =
+  let pow_vars, var_vars =
+    fold
+      (fun (pow_vars, var_vars) -> function
+         | Rel (_, poly, _) ->
+           Map.fold poly ~init:(pow_vars, var_vars) ~f:(fun ~key ~data (p, v) ->
+             match key with
+             | Pow2 x -> Set.add p x, v
+             | Var x -> p, Set.add v x)
+         | _ -> pow_vars, var_vars)
+      (Set.empty, Set.empty)
+      ir
+  in
+  let nonlin = Set.to_list pow_vars |> List.map var in
+  let lin = Set.to_list (Set.diff var_vars pow_vars) |> List.map var in
+  nonlin, lin
+;;
+
 let simpl_quantifiers ir =
   let bound = Config.config.bound_quantifier_elim in
-  let is_linear_atom = function
-    | Var _ -> true
-    | Pow2 _ -> false
-  in
-  let rec is_linear = function
-    | True -> true
-    | Reg (_, xs) -> List.for_all is_linear_atom xs
-    | SReg (x, _) -> is_linear_atom x
-    | SRegRaw (x, _) -> is_linear_atom x
-    | SPrefixOf (x, y) -> is_linear_atom x && is_linear_atom y
-    | SSuffixOf (x, y) -> is_linear_atom x && is_linear_atom y
-    | SContains (x, y) -> is_linear_atom x && is_linear_atom y
-    | SLen (x, y) -> is_linear_atom x && is_linear_atom y
-    | SLenConst xs -> List.for_all (fun (atom, _) -> is_linear_atom atom) xs
-    | Stoi (x, y) -> is_linear_atom x && is_linear_atom y
-    | Itos (x, y) -> is_linear_atom x && is_linear_atom y
-    | Rel (_, _, _) -> true
-    | Lnot x -> is_linear x
-    | Land xs -> List.for_all is_linear xs
-    | Lor xs -> List.for_all is_linear xs
-    | Exists (xs, x) -> List.for_all is_linear_atom xs && is_linear x
-    | Unsupp _ -> true
-  in
   let rec aux = function
-    | Exists (atoms, x) as eq when is_linear eq && bound_ok atoms x bound ->
-      eliminate_existence_quantifier eq
-    | Exists (atoms, x) -> exists atoms (aux x)
+    | Exists (atoms, x) ->
+      let nonlin, lin = split_non_linear_parts x in
+      let elim_atoms = List.filter (fun a -> List.mem a lin) atoms in
+      let keep_atoms = List.filter (fun a -> List.mem a nonlin) atoms in
+      if elim_atoms = [] || not (bound_ok elim_atoms x bound)
+      then exists atoms (aux x)
+      else (
+        let dnf = eliminate_existence_quantifier (Exists (elim_atoms, x)) in
+        if keep_atoms = [] then dnf else exists keep_atoms dnf)
     | Lnot x -> lnot (aux x)
     | Land x -> land_ (List.map aux x)
     | Lor x -> lor_ (List.map aux x)
