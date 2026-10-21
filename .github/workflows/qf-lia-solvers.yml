@@ -30,7 +30,7 @@ jobs:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -52,10 +52,12 @@ jobs:
       - name: Build
         run: opam exec -- dune build @all
 
-      - name: Run ${{ matrix.solver }} on purrs benchmarks
+      - name: Run ${{ matrix.solver }} on LoAT and PURRS benchmarks
         run: |
-          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/QF_LIA $TIMEOUT
+          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_EIA/LoAT $TIMEOUT
+          ./.github/workflows/run-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_EIA/PURRS $TIMEOUT
 
       - name: Get stats
         run: |
-          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/QF_LIA
+          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_EIA/LoAT
+          ./.github/workflows/stat-benchmarks.sh "${{ matrix.solver }}" benchmarks/chrobelias/QF_EIA/PURRS
