@@ -1,5 +1,5 @@
   $ export CHRO_DEBUG=simpl
-  $ timeout 2 Chro -no-over -bound 0 --dsimpl ../../benchmarks/QF_LIA/PURRS/purrs02.smt2 --stop-after presimpl #| sed 's/[[:space:]]*$//'
+  $ timeout 2 Chro -no-over -bound 0 --dsimpl ../../tests/data/purrs02.smt2 --stop-after presimpl #| sed 's/[[:space:]]*$//'
   [+simpl]
     Basic simplifications:
   

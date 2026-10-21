@@ -1,4 +1,4 @@
-  $ cp ../../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/twn14.koat_27.smt2 input.smt2
+  $ cp ../../../tests/data/twn14.koat_27.smt2 input.smt2
   $ export OCAMLRUNPARAM='b=0'
   $ Chro input.smt2 | sed 's/[[:space:]]*$//'
   sat (nia)

@@ -171,7 +171,7 @@ let rec simplify : Ir.t -> Ir.t = function
   | Unsupp _ as x -> x
   | Land xs ->
     (* We simplify only conjuncts because interesting test needs it.
-      benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2
+      benchmarks/chrobelias/QF_EIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_2.smt2
     *)
     let xs = List.map simplify xs in
     Land (Base.List.dedup_and_sort ~compare:alpha_compare xs)
