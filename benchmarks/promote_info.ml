@@ -1,7 +1,7 @@
 (*
    Use as:
 
-   find benchmarks/QF_LIA/LoAT -iname '*.smt2' | dune exec benchmarks/promote_info.exe -- -t 5 -
+   find benchmarks/chrobelias/QF_EIA/LoAT -iname '*.smt2' | dune exec benchmarks/promote_info.exe -- -t 5 -
 *)
 
 let () = Printexc.record_backtrace true

@@ -1,4 +1,4 @@
-  $ cp ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_311.smt2 input.smt2
+  $ cp ../../tests/data/realheapsort_step2.koat_311.smt2 input.smt2
 
 
   $ CHRO_DEBUG=simpl Chro --dsimpl --stop-after simpl input.smt2 | sed 's/[[:space:]]*$//'
