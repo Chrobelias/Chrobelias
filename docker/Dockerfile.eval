@@ -4,11 +4,14 @@
 # the GitHub release named by CHRO_VERSION.
 #
 #   git submodule update --init benchmarks/chrobelias
-#   docker build -f Dockerfile.eval -t chrobelias-eval:v1.2.0 .
-#   docker run --rm -v "$PWD/results:/Chrobelias/results" \
-#     -v "$PWD/stats:/Chrobelias/stats" chrobelias-eval:v1.2.0
+#   docker build -f docker/Dockerfile.eval \
+#     --build-arg REPO_COMMIT="$(git rev-parse HEAD)" \
+#     --build-arg BENCH_COMMIT="$(git -C benchmarks/chrobelias rev-parse HEAD)" \
+#     -t chrobelias/chrobelias-evaluation:1.2.2 .
+#
+# See BENCHES.md for running it.
 FROM ubuntu:24.04
-ARG CHRO_VERSION=v1.2.0
+ARG CHRO_VERSION=v1.2.2
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       ca-certificates wget unzip parallel time util-linux python3 python3-matplotlib \
@@ -30,4 +33,7 @@ RUN mkdir -p release _build/default/bin && cd _build/default/bin \
  && rm -rf *.zip swine-z3 cvc5-Linux-x86_64-static z3-5.1.0-x64-glibc-2.39 ostrich-2.1-x64-linux-static
 RUN wget -q https://github.com/Chrobelias/Chrobelias/releases/download/${CHRO_VERSION}/chro -O release/chro \
  && chmod +x release/chro
+ARG REPO_COMMIT=
+ARG BENCH_COMMIT=
+ENV REPO_COMMIT=$REPO_COMMIT BENCH_COMMIT=$BENCH_COMMIT
 CMD ["/Chrobelias/bench.sh"]
