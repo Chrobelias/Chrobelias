@@ -17,14 +17,14 @@ The image is built for x86_64 Linux.
 To fetch the image:
 
 ```bash
-docker pull chrobelias/chrobelias-evaluation:1.2.2
+docker pull chrobelias/chrobelias-evaluation:1.2.3
 ```
 
 Without network access, load the image from the archive on [Zenodo][2]
 instead:
 
 ```bash
-docker load -i chrobelias-evaluation-1.2.2.tar.gz
+docker load -i chrobelias-evaluation-1.2.3.tar.gz
 ```
 
 The container runs as root, so on Linux the directories it writes
@@ -39,7 +39,7 @@ To run the first 3 benchmarks of each suite with every solver and a 1s timeout:
 docker run --rm \
   -v "$PWD/results-smoke:/Chrobelias/results-smoke" \
   -v "$PWD/stats-smoke:/Chrobelias/stats" \
-  chrobelias/chrobelias-evaluation:1.2.2 /Chrobelias/smoke-test.sh
+  chrobelias/chrobelias-evaluation:1.2.3 /Chrobelias/smoke-test.sh
 ```
 
 To check that every solver has run on every benchmark family (2 solvers on
@@ -63,7 +63,7 @@ docker run --rm \
   -e CORES_PER_RUN=1 \
   -v "$PWD/results:/Chrobelias/results" \
   -v "$PWD/stats:/Chrobelias/stats" \
-  chrobelias/chrobelias-evaluation:1.2.2
+  chrobelias/chrobelias-evaluation:1.2.3
 ```
 
 The full run takes about 150 CPU hours, most of them spent by cvc5, Z3 and
@@ -97,7 +97,7 @@ docker run --rm -e CORES_PER_RUN=1 \
   -e CHRO_BENCHMARKS="SIERPINSKI,PURRS,LoAT,Hash2,StrRElnc,stringfuzz" \
   -v "$PWD/results:/Chrobelias/results" \
   -v "$PWD/stats:/Chrobelias/stats" \
-  chrobelias/chrobelias-evaluation:1.2.2
+  chrobelias/chrobelias-evaluation:1.2.3
 
 # Only SwInE on LoAT:
 docker run --rm -e CORES_PER_RUN=1 \
@@ -105,7 +105,7 @@ docker run --rm -e CORES_PER_RUN=1 \
   -e CHRO_BENCHMARKS="LoAT" \
   -v "$PWD/results:/Chrobelias/results" \
   -v "$PWD/stats:/Chrobelias/stats" \
-  chrobelias/chrobelias-evaluation:1.2.2
+  chrobelias/chrobelias-evaluation:1.2.3
 ```
 
 `QF_EIA` solvers:
@@ -149,7 +149,7 @@ docker run --rm \
   -e CORES_PER_RUN=1 -e JOBS=4 -e MEM_PER_RUN=8192 \
   -v "$PWD/results:/Chrobelias/results" \
   -v "$PWD/stats:/Chrobelias/stats" \
-  chrobelias/chrobelias-evaluation:1.2.2
+  chrobelias/chrobelias-evaluation:1.2.3
 ```
 
 Make sure that `JOBS * MEM_PER_RUN` fits into the RAM of the machine, so that
@@ -164,7 +164,7 @@ more results directories:
 docker run --rm \
   -v "$PWD/results:/Chrobelias/results" \
   -v "$PWD/tables:/Chrobelias/tables" \
-  chrobelias/chrobelias-evaluation:1.2.2 \
+  chrobelias/chrobelias-evaluation:1.2.3 \
   python3 scripts/make_tables.py tables results
 ```
 
@@ -178,7 +178,7 @@ contradict the expected `(set-info :status ...)` of a benchmark:
 ```bash
 docker run --rm \
   -v "$PWD/results:/Chrobelias/results" \
-  chrobelias/chrobelias-evaluation:1.2.2 \
+  chrobelias/chrobelias-evaluation:1.2.3 \
   python3 scripts/check_results.py results .
 ```
 
@@ -188,7 +188,7 @@ To re-run Chrobelias with `--check-model` on every instance it answered `sat`
 ```bash
 docker run --rm \
   -v "$PWD/results:/Chrobelias/results" \
-  chrobelias/chrobelias-evaluation:1.2.2 \
+  chrobelias/chrobelias-evaluation:1.2.3 \
   ./scripts/check-models.sh results 4
 ```
 
@@ -207,10 +207,10 @@ checkout is copied into the image:
 git clone https://github.com/Chrobelias/Chrobelias.git
 cd Chrobelias
 git submodule update --init benchmarks/chrobelias
-docker build -f docker/Dockerfile.eval --build-arg CHRO_VERSION=v1.2.2 \
+docker build -f docker/Dockerfile.eval --build-arg CHRO_VERSION=v1.2.3 \
   --build-arg REPO_COMMIT="$(git rev-parse HEAD)" \
   --build-arg BENCH_COMMIT="$(git -C benchmarks/chrobelias rev-parse HEAD)" \
-  -t chrobelias/chrobelias-evaluation:1.2.2 .
+  -t chrobelias/chrobelias-evaluation:1.2.3 .
 ```
 
 The image does not contain `.git`; `REPO_COMMIT` and `BENCH_COMMIT` record the
@@ -220,7 +220,7 @@ commits in `results/environment.txt`.
 into the image. To check the binary:
 
 ```bash
-docker run --rm chrobelias/chrobelias-evaluation:1.2.2 \
+docker run --rm chrobelias/chrobelias-evaluation:1.2.3 \
   ./release/chro examples/lnr-unsat.smt2
 ```
 
@@ -229,8 +229,8 @@ The output must start with `unsat`.
 To save the image for offline use:
 
 ```bash
-docker save chrobelias/chrobelias-evaluation:1.2.2 |
-  gzip >chrobelias-evaluation-1.2.2.tar.gz
+docker save chrobelias/chrobelias-evaluation:1.2.3 |
+  gzip >chrobelias-evaluation-1.2.3.tar.gz
 ```
 
 [1]: https://hub.docker.com/r/chrobelias/chrobelias-evaluation
