@@ -84,7 +84,7 @@ The available tracers are `alpha`, `ast`, `chro`, `DPLL`, `env`, `LICS`, `me`,
 ### Examples
 - `sat` problem from [TPDB_ITS_Termination](https://github.com/ffrohn/QF_EIA/tree/master/LoAT/TPDB_ITS_Termination)
 ```bash
-./_build/default/bin/chro.exe benchmarks/QF_LIA/LoAT/TPDB_ITS_Termination/PastaC1.jar-obl-8.smt2_9.smt2
+./_build/default/bin/chro.exe benchmarks/chrobelias/QF_EIA/LoAT/TPDB_ITS_Termination/PastaC1.jar-obl-8.smt2_9.smt2
 ```
 - `unsat` problem $x\in\mathtt{16}\cdot(\mathtt{000}\cup\mathtt{999})^{\ast}\land y\in\mathtt{9}\cdot(\mathtt{9})^{\ast}\land |x| =$ to_int $(y) + 1$
 ```bash
