@@ -695,7 +695,15 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         if config.logic = `Eia
         then (
           match SimplII.check_nia e ast with
-          | `Sat env -> sat "nia" ast ~env
+          | `Sat env ->
+            let env =
+              Env.merge
+                ~sf:(fun ~key:_ ~data1 ~data2:_ -> data1)
+                ~zf:(fun ~key:_ ~data1 ~data2:_ -> data1)
+                env
+                e
+            in
+            sat "nia" ast ~env
           | `Unsat -> unsat "nia" ast
           | `Unknown ->
             unknown_reason := "nia";
