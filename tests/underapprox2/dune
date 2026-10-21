@@ -12,7 +12,7 @@
 (cram
  (applies_to purrs02mini)
  (deps
-  ../../benchmarks/QF_LIA/PURRS/purrs02.smt2
+  ../../tests/data/purrs02.smt2
   ;purrs02mini.smt2
   ))
 

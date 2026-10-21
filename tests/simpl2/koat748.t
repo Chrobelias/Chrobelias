@@ -1,4 +1,4 @@
-  $ cp ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_748.smt2 input.smt2
+  $ cp ../../tests/data/a.03.koat_748.smt2 input.smt2
 
   $ export CHRO_DEBUG=simpl CHRO_OMIT_Z3_MODEL=1
   $ Chro --dsimpl --stop-after pre-simpl input.smt2 | sed 's/[[:space:]]*$//'
