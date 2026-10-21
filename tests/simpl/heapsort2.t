@@ -518,5 +518,5 @@ Run solver
   $ timeout 2  Chro ../../benchmarks/heapsort.c.koat_2.smt2
   sat (under int)
 
-  $ Chro --dsimpl ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_617.smt2
+  $ Chro --dsimpl ../../tests/data/realheapsort_step2.koat_617.smt2
   sat (presimpl int)

@@ -279,8 +279,8 @@ let prepare_script ?(opp = Swine) ~script () =
     let smt2file = Printf.sprintf "%s/%s%s" config.path file config.suffix in
     let pretty_file =
       smt2file
-      |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/QF_LIA/LoAT/"
-      |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/QF_LIA/"
+      |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/chrobelias/QF_EIA/LoAT/"
+      |> Base.String.chop_prefix_if_exists ~prefix:"benchmarks/chrobelias/QF_EIA/"
       |> Base.String.chop_prefix_if_exists
            ~prefix:"benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln//"
       |> Base.String.chop_prefix_if_exists
