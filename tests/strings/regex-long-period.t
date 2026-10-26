@@ -23,3 +23,14 @@
 
   $ Chro -no-parallel to-int.smt2 | cut -d' ' -f1
   unsat
+
+  $ cat > len-ok.smt2 <<-EOF
+  > (set-logic QF_SLIA)
+  > (declare-fun x () String)
+  > (assert (str.in_re x (re.+ (str.to_re "aaaaaaaaaaaaaaaaaaaaaaa"))))
+  > (assert (= (str.len x) 414))
+  > (check-sat)
+  > EOF
+
+  $ Chro -no-parallel len-ok.smt2 | cut -d' ' -f1
+  sat

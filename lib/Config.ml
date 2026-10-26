@@ -170,6 +170,8 @@ let regex_bound =
      | None -> exit 1)
 ;;
 
+let regex_limit = ref true
+let regex_limited = ref false
 let dyn_enabled () = config.dyn_bounds && !dyn_stage
 
 let in_dyn_stage f =
