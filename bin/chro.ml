@@ -7,6 +7,7 @@ open Lib
 
 exception Too_long_model
 exception Lics_Underapprox_unsuccessful
+exception Regex_limit_unsound
 
 let () = Printexc.record_backtrace true
 let config = Config.config
@@ -599,6 +600,21 @@ let solve_bool check_sat ast =
   if config.dpll then dpll check_sat ~verbose:false ast else dnf check_sat ast
 ;;
 
+let with_model (model : Model.t) ast =
+  Map.fold
+    ~init:ast
+    ~f:(fun ~key ~data ast ->
+      let open Ast in
+      let ast' =
+        match data with
+        | `Int c -> eia (Eia.eq (Eia.atom (var key I)) (Ast.Eia.const c) I)
+        | `Str c -> eia (Eia.eq (Eia.atom (var key S)) (Ast.Eia.str_const c) S)
+        | `Bool b -> if b then pred key else lnot (pred key)
+      in
+      Ast.land_ [ ast'; ast ])
+    model
+;;
+
 let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
   let report_result2 s = report_result ~verbose s in
   (* What an unknown answer reports: the NFA Solver's rejection message or
@@ -827,6 +843,33 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                       (match check_eia_sat ast e with
                        | Sat (s, (ast, env, get_model, _)) -> begin
                          let env = Env.merge_exn env e in
+                         let limited_model_ok () =
+                           match get_model tys with
+                           | Result.Ok model ->
+                             (try
+                                let model = construct_model tys env model regexes in
+                                let padded =
+                                  Map.exists model ~f:(function
+                                    | `Str s -> String.contains s Config.string_config.eos
+                                    | `Int _ | `Bool _ -> false)
+                                in
+                                if padded then raise Regex_limit_unsound;
+                                Config.regex_limit := false;
+                                Config.regex_limited := false;
+                                Fun.protect
+                                  ~finally:(fun () ->
+                                    Config.regex_limit := true;
+                                    Config.regex_limited := true)
+                                  (fun () ->
+                                     match check_sat tys (with_model model orig_ast) with
+                                     | Sat _ -> true
+                                     | Unsat _ | Unknown _ -> false)
+                              with
+                              | _ -> false)
+                           | Result.Error _ -> false
+                         in
+                         if !Config.regex_limited && not (limited_model_ok ())
+                         then raise Regex_limit_unsound;
                          let result = sat s ast ~env ~get_model ~regexes in
                          if List.is_empty post
                          then result
@@ -1361,6 +1404,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
       else solve_split ())
   with
   | Lics_Underapprox_unsuccessful -> raise Lics_Underapprox_unsuccessful
+  | Regex_limit_unsound -> raise Regex_limit_unsound
   | Nfa.Too_big_nfa ->
     report_result2 (`Unknown "too big nfa during the computations");
     unknown ast Env.empty
@@ -1373,20 +1417,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
 ;;
 
 let check_model tys (ast : Ast.t) (model : Model.t) =
-  let ast =
-    Map.fold
-      ~init:ast
-      ~f:(fun ~key ~data ast ->
-        let open Ast in
-        let ast' =
-          match data with
-          | `Int c -> eia (Eia.eq (Eia.atom (var key I)) (Ast.Eia.const c) I)
-          | `Str c -> eia (Eia.eq (Eia.atom (var key S)) (Ast.Eia.str_const c) S)
-          | `Bool b -> if b then pred key else lnot (pred key)
-        in
-        Ast.land_ [ ast'; ast ])
-      model
-  in
+  let ast = with_model model ast in
   smt_status := Some `Unknown;
   trace_log "Checking model correctness;\n  ast=%a\n%!" Ast.pp_smtlib2 ast;
   try
@@ -1502,6 +1533,9 @@ let () =
           | Lics_Underapprox_unsuccessful ->
             config.dyn_bounds <- false;
             shrink_model ~len:retry_len ()
+          | Regex_limit_unsound ->
+            Config.regex_limit := false;
+            shrink_model ~len:retry_len ()
           | Nfa.Too_big_nfa ->
             if attempt == 1
             then shrink_model ~len:retry_len ()
@@ -1582,17 +1616,25 @@ let () =
       let common_base = Lib.Ast.find_common_base ast |> Option.map Z.to_int in
       let () = Lib.Config.set_base ?ast_base:common_base () in
       trace_log "Base now is %d\n%!" !Lib.Config.base;
+      let rec check () =
+        Config.regex_limited := false;
+        try check_sat ~verbose:true state.tys ast with
+        | Regex_limit_unsound ->
+          Config.regex_limit := false;
+          check ()
+      in
+      Config.regex_limit := true;
       (try
          if config.logic = `Eia && Ast.is_str ast
          then config.logic <- (if config.no_str_bv then `Str else `StrBv);
-         let rez = check_sat ~verbose:true state.tys ast in
+         let rez = check () in
          if config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
        with
        | Lics_Underapprox_unsuccessful ->
          config.dyn_bounds <- false;
          Config.bounded_unsat := false;
-         let rez = check_sat ~verbose:true state.tys ast in
+         let rez = check () in
          if config.check_model then get_model ~noprint:true ast rez;
          { state with last_result = Some rez }
        | exn ->
