@@ -7,11 +7,13 @@
 #   docker build -f docker/Dockerfile.eval \
 #     --build-arg REPO_COMMIT="$(git rev-parse HEAD)" \
 #     --build-arg BENCH_COMMIT="$(git -C benchmarks/chrobelias rev-parse HEAD)" \
-#     -t chrobelias/chrobelias-evaluation:1.2.2 .
+#     -t chrobelias/chrobelias-evaluation:1.2.3 .
 #
 # See BENCHES.md for running it.
 FROM ubuntu:24.04
-ARG CHRO_VERSION=v1.2.2
+ARG CHRO_VERSION=v1.2.3
+# The paper's numbers come from 1.2.2; the image has its binary as well.
+ARG CHRO_PAPER_VERSION=v1.2.2
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       ca-certificates wget unzip parallel time util-linux python3 python3-matplotlib \
@@ -32,7 +34,8 @@ RUN mkdir -p release _build/default/bin && cd _build/default/bin \
  && cp -r ostrich-2.1-x64-linux-static/target target && chmod +x ostrich2 \
  && rm -rf *.zip swine-z3 cvc5-Linux-x86_64-static z3-5.1.0-x64-glibc-2.39 ostrich-2.1-x64-linux-static
 RUN wget -q https://github.com/Chrobelias/Chrobelias/releases/download/${CHRO_VERSION}/chro -O release/chro \
- && chmod +x release/chro
+ && wget -q https://github.com/Chrobelias/Chrobelias/releases/download/${CHRO_PAPER_VERSION}/chro -O release/chro-1.2.2 \
+ && chmod +x release/chro release/chro-1.2.2
 ARG REPO_COMMIT=
 ARG BENCH_COMMIT=
 ENV REPO_COMMIT=$REPO_COMMIT BENCH_COMMIT=$BENCH_COMMIT
