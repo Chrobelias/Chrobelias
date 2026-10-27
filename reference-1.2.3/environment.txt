@@ -1,0 +1,25 @@
+date: 2026-10-26T19:07:23+00:00
+host: Linux 686542ccf196 5.15.0-139-generic #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+CPU(s):                               4
+Model name:                           Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+Thread(s) per core:                   1
+Core(s) per socket:                   4
+Socket(s):                            1
+CPU(s) scaling MHz:                   26%
+               total        used        free      shared  buff/cache   available
+Mem:              62          14          33           0          16          48
+repo: 
+benchmarks: 
+TIMEOUT=60s CORES_PER_RUN=1 JOBS=auto MEM_PER_RUN=8192
+3eda39f7605472ae758a4a187473e6f5c110d7bfe04016c1cf66905bc7a4f7af  ./release/chro
+c572e2608824aaca94a026601f4853516b92e3cca068d4a2861a56685390787f  ./_build/default/bin/swine
+d4c534360e602f07adcbb2aafbe833e73ce1e7c6f2572cb7eee03de73d6e2e5b  ./_build/default/bin/cvc5
+b4e0b3483ce37817230b20d6cad48390eb6a3aefde1d93342ad6dc763f24bc23  ./_build/default/bin/z3
+0d124d7f7228ac991f0cbba1c1ef7847770fbe279ad7484eee4daa74e2f468fe  ./_build/default/bin/z3-noodler
+bf6cb799c3ed11ce420a0ada9bc66c0dd52f4ca9163a006449d6cadf3de650ac  ./_build/default/bin/target/native-image/ostrich
+cvc5 1.4.0 [git b432cd7 on branch HEAD]
+Z3 version 5.1.0 - 64 bit
+Z3 version 5.1.0 - 64 bit - build hashcode 1ffd452c310e2b9ec27c63647c49598ea297ab57 - mata hashcode d28368a6957a1606162aea3fbe77345f6e1e13d5
+Build SHA: 92ceb6ce8207f790ae2c6c5d43d2368a96192318 (CLEAN)
+Z3 version: 4.15.4.0 f4e5402194fb60616caca081bce34b1a59c1b6a1 z3-4.15.4-1-gf4e540219

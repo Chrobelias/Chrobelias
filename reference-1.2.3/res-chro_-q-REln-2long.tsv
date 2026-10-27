@@ -1,0 +1,90 @@
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n01.smt2	sat	nfa	2.786	1.39	121736	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n02.smt2	unsat	lengths	0.048	0.03	47008	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n03.smt2	sat	nfa	0.305	0.15	51888	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n04.smt2	unsat	lengths	0.049	0.02	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n05.smt2	sat	nfa	0.309	0.16	51008	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n06.smt2	sat	nfa	1.457	0.72	79384	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n07.smt2	unsat	over	0.069	0.04	49732	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n08.smt2	timeout		60.017	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n09.smt2	unsat	lengths	0.050	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n10.smt2	unsat	nfa	43.289	21.55	234408	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n11.smt2	unsat	lengths	0.048	0.02	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n12.smt2	unsat	nfa	0.541	0.26	57504	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n13.smt2	sat	nfa	2.778	1.37	107864	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n14.smt2	timeout		60.013	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n15.smt2	sat	nfa	0.228	0.11	50504	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n16.smt2	sat	nfa	0.174	0.09	53968	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n17.smt2	sat	nfa	1.472	0.72	88708	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n18.smt2	unsat	lengths	0.048	0.02	47008	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n19.smt2	sat	nfa	0.190	0.09	51936	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n20.smt2	sat	nfa	0.118	0.05	51948	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n21.smt2	sat	nfa	0.178	0.08	50488	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n22.smt2	sat	nfa	10.527	5.19	251616	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n23.smt2	unsat	lengths	0.047	0.02	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n24.smt2	unsat	lengths	0.047	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n25.smt2	timeout		60.033	0.01	47004	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n26.smt2	timeout		60.019	0.02	47004	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n27.smt2	unsat	lengths	0.152	0.02	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n28.smt2	timeout		60.023	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n29.smt2	sat	nfa	5.208	2.54	143508	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w02_n30.smt2	unsat	over	0.065	0.03	49508	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n01.smt2	unsat	nfa	2.041	1.02	99252	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n02.smt2	unsat	over	0.066	0.04	50528	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n03.smt2	unsat	over	0.066	0.03	49876	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n04.smt2	unsat	lengths	0.046	0.02	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n05.smt2	sat	nfa	24.962	12.46	1107008	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n06.smt2	sat	nfa	15.312	7.53	364348	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n07.smt2	unsat	over	0.066	0.03	50528	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n08.smt2	unsat	nfa	2.493	1.24	132776	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n09.smt2	unsat	over	0.065	0.03	49948	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n10.smt2	sat	nfa	42.010	20.94	401872	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n11.smt2	unsat	lengths	0.049	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n12.smt2	unsat	lengths	0.047	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n13.smt2	timeout		60.023	0.01	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n14.smt2	unsat	nfa	0.466	0.16	52488	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n15.smt2	unsat	over	0.066	0.04	50540	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n16.smt2	sat	nfa	0.114	0.06	50160	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n17.smt2	unsat	over	0.068	0.04	50616	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n18.smt2	timeout		60.024	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n19.smt2	timeout		60.044	0.02	47004	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n20.smt2	unsat	over	0.074	0.04	49776	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n21.smt2	unsat	lengths	0.046	0.03	47000	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n22.smt2	unsat	lengths	0.047	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n23.smt2	unsat	over	0.066	0.04	50624	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n24.smt2	unsat	over	0.063	0.03	49956	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n25.smt2	unsat	over	0.067	0.04	50636	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n26.smt2	unsat	lengths	0.051	0.03	47008	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n27.smt2	timeout		60.023	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n28.smt2	unsat	lengths	0.152	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n29.smt2	timeout		60.044	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w03_n30.smt2	unsat	lengths	0.110	0.03	47008	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n01.smt2	unsat	lengths	0.047	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n02.smt2	timeout		60.016	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n03.smt2	unsat	lengths	0.168	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n04.smt2	unsat	lengths	0.173	0.02	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n05.smt2	unsat	lengths	0.172	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n06.smt2	unsat	nfa	10.107	5.01	69156	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n07.smt2	sat	nfa	0.294	0.14	51160	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n08.smt2	timeout		60.005	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n09.smt2	unsat	over	0.103	0.03	49780	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n10.smt2	unsat	over	0.065	0.04	49776	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n11.smt2	unsat	lengths	0.046	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n12.smt2	sat	nfa	0.375	0.18	51676	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n13.smt2	unsat	lengths	0.048	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n14.smt2	unsat	lengths	0.047	0.02	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n15.smt2	unsat	over	0.066	0.03	49724	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n16.smt2	unsat	over	0.065	0.03	49764	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n17.smt2	unsat	over	0.066	0.04	50588	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n18.smt2	timeout		60.005	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n19.smt2	unsat	lengths	0.067	0.02	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n20.smt2	unsat	nfa	0.552	0.27	57720	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n21.smt2	unsat	over	0.066	0.04	50616	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n22.smt2	sat	nfa	5.491	2.70	140408	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n23.smt2	unsat	nfa	1.193	0.60	55292	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n24.smt2	unsat	lengths	0.047	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n25.smt2	unsat	lengths	0.049	0.03	47004	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n26.smt2	unsat	over	0.091	0.04	49868	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n27.smt2	unsat	over	0.069	0.04	49772	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n28.smt2	timeout		60.005	0.02	47008	124
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n29.smt2	unsat	over	0.196	0.03	50616	0
+chro_-q	REln-2long	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-2/long/benchmark_long_v2_w04_n30.smt2	unsat	nfa	0.796	0.26	53704	0

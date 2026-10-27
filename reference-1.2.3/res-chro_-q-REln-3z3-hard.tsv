@@ -1,0 +1,60 @@
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n01.smt2	unsat	nfa	0.227	0.12	53836	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n02.smt2	timeout		60.026	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n03.smt2	sat	nfa	0.743	0.37	61632	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n04.smt2	unsat	nfa	0.128	0.06	51672	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n05.smt2	unsat	nfa	7.336	3.66	374496	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n06.smt2	sat	nfa	2.097	1.01	103012	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n07.smt2	timeout		60.018	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n08.smt2	unsat	nfa	15.587	7.66	438920	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n09.smt2	timeout		60.018	0.01	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n10.smt2	unsat	nfa	1.867	0.92	81632	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n11.smt2	timeout		60.020	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n12.smt2	unsat	nfa	13.060	6.50	249628	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n13.smt2	timeout		60.045	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n14.smt2	timeout		60.044	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n15.smt2	unsat	nfa	0.338	0.17	53496	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n16.smt2	timeout		60.016	0.01	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n17.smt2	timeout		60.036	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n18.smt2	sat	nfa	0.203	0.09	52744	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n19.smt2	unsat	nfa	0.116	0.06	51152	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n20.smt2	unsat	nfa	0.095	0.06	50700	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n21.smt2	unsat	nfa	0.888	0.44	77924	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n22.smt2	unsat	nfa	23.656	11.74	536628	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n23.smt2	unsat	nfa	16.858	8.28	385308	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n24.smt2	sat	nfa	0.674	0.17	58568	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n25.smt2	unsat	nfa	0.647	0.33	63704	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n26.smt2	sat	nfa	0.460	0.24	55120	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n27.smt2	unsat	nfa	22.061	10.96	471808	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n28.smt2	timeout		60.052	0.01	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n29.smt2	sat	nfa	3.204	1.59	56988	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w02_n30.smt2	timeout		60.023	0.01	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n01.smt2	timeout		60.015	0.01	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n02.smt2	timeout		60.023	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n03.smt2	timeout		60.049	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n04.smt2	timeout		60.022	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n05.smt2	unsat	nfa	0.230	0.11	53456	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n06.smt2	unsat	nfa	0.410	0.21	61452	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n07.smt2	unsat	nfa	16.328	8.11	1474376	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n08.smt2	timeout		60.052	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n09.smt2	unsat	nfa	2.758	1.38	204664	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n10.smt2	unsat	nfa	0.671	0.33	61156	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n11.smt2	unsat	nfa	1.743	0.87	68460	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n12.smt2	timeout		60.018	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n13.smt2	unsat	nfa	0.831	0.30	62232	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n14.smt2	timeout		60.023	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n15.smt2	unsat	nfa	42.426	21.08	1565704	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n16.smt2	sat	nfa	2.312	0.90	58608	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n17.smt2	timeout		60.028	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n18.smt2	unsat	nfa	1.900	0.95	97660	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n19.smt2	sat	nfa	2.019	1.00	54352	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n20.smt2	timeout		60.013	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n21.smt2	timeout		60.014	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n22.smt2	unsat	over	0.070	0.04	49620	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n23.smt2	timeout		60.008	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n24.smt2	timeout		60.023	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n25.smt2	timeout		60.039	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n26.smt2	timeout		60.028	0.02	47004	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n27.smt2	timeout		60.007	0.02	47008	124
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n28.smt2	unsat	nfa	0.215	0.11	53036	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n29.smt2	unsat	nfa	0.692	0.34	63268	0
+chro_-q	REln-3z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-3/z3-hard/benchmark_hard_v3_w03_n30.smt2	unsat	nfa	6.432	3.19	534548	0

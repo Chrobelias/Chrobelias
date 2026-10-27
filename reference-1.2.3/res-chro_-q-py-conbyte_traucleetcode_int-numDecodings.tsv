@@ -1,0 +1,139 @@
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/100.smt2	timeout		60.024	0.03	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/101.smt2	timeout		60.020	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/102.smt2	unsat	presimpl int	0.040	0.03	47144	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/103.smt2	timeout		60.009	0.03	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/104.smt2	timeout		60.010	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/105.smt2	unsat	presimpl int	0.048	0.02	47084	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/106.smt2	unsat	presimpl int	0.063	0.03	47084	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/107.smt2	timeout		60.020	0.03	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/108.smt2	unsat	presimpl int	0.055	0.03	46724	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/109.smt2	timeout		60.011	0.03	46832	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/110.smt2	timeout		60.006	0.03	47080	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/111.smt2	timeout		60.018	0.03	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/112.smt2	unsat	presimpl int	0.045	0.03	47148	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/113.smt2	timeout		60.018	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/114.smt2	timeout		60.017	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/115.smt2	unsat	presimpl int	0.039	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/116.smt2	timeout		60.017	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/117.smt2	timeout		60.016	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/118.smt2	unsat	presimpl int	0.040	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/119.smt2	unsat	presimpl int	0.076	0.02	47076	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/120.smt2	timeout		60.016	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/121.smt2	timeout		60.019	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/122.smt2	timeout		60.013	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/123.smt2	unsat	presimpl int	0.048	0.02	47084	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/124.smt2	timeout		60.011	0.02	47080	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/125.smt2	timeout		60.013	0.02	46752	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/126.smt2	unsat	presimpl int	0.042	0.03	46864	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/127.smt2	unsat	presimpl int	0.047	0.02	47076	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/128.smt2	timeout		60.012	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/129.smt2	timeout		60.017	0.02	47012	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/130.smt2	timeout		60.022	0.02	47012	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/131.smt2	unsat	presimpl int	0.040	0.02	47008	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/132.smt2	timeout		60.015	0.03	47080	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/133.smt2	timeout		60.021	0.02	47012	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/134.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/137.smt2	timeout		60.012	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/138.smt2	timeout		60.005	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/139.smt2	unsat	presimpl int	0.040	0.02	47008	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/140.smt2	timeout		60.019	0.02	47012	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/141.smt2	timeout		60.009	0.02	47008	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/142.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/143.smt2	sat	under str	0.236	0.12	48696	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/144.smt2	sat	under str	0.216	0.10	48492	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/148.smt2	timeout		60.019	0.02	47080	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/149.smt2	timeout		60.012	0.02	47080	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/150.smt2	unsat	presimpl int	0.091	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/151.smt2	timeout		60.028	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/152.smt2	timeout		60.015	0.02	47152	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/153.smt2	unsat	presimpl int	0.042	0.02	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/154.smt2	unsat	presimpl int	0.052	0.02	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/155.smt2	timeout		60.018	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/156.smt2	unsat	presimpl int	0.042	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/157.smt2	timeout		60.021	0.03	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/158.smt2	timeout		60.023	0.02	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/159.smt2	unsat	presimpl int	0.042	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/160.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/161.smt2	timeout		60.022	0.03	47176	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/162.smt2	unsat	presimpl int	0.069	0.03	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/163.smt2	unsat	presimpl int	0.046	0.02	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/164.smt2	timeout		60.019	0.02	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/165.smt2	timeout		60.031	0.03	47112	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/166.smt2	timeout		60.018	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/167.smt2	unsat	presimpl int	0.047	0.03	47144	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/168.smt2	unsat	presimpl int	0.043	0.03	47144	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/169.smt2	timeout		60.019	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/170.smt2	unsat	presimpl int	0.071	0.02	47144	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/171.smt2	timeout		60.016	0.03	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/172.smt2	timeout		60.019	0.03	47176	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/173.smt2	unsat	presimpl int	0.044	0.03	47240	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/174.smt2	timeout		60.015	0.03	47176	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/175.smt2	timeout		60.022	0.02	47176	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/176.smt2	unsat	presimpl int	0.074	0.03	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/177.smt2	unsat	presimpl int	0.045	0.03	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/178.smt2	timeout		60.018	0.03	47176	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/179.smt2	timeout		60.030	0.03	47244	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/180.smt2	timeout		60.021	0.03	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/181.smt2	unsat	presimpl int	0.049	0.03	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/182.smt2	unsat	presimpl int	0.045	0.03	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/183.smt2	timeout		60.019	0.02	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/184.smt2	unsat	presimpl int	0.067	0.03	47180	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/185.smt2	unsat	presimpl int	0.037	0.02	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/186.smt2	timeout		60.018	0.03	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/187.smt2	unsat	presimpl int	0.049	0.02	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/188.smt2	timeout		60.021	0.02	47080	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/189.smt2	timeout		60.024	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/190.smt2	unsat	presimpl int	0.043	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/191.smt2	timeout		60.019	0.02	47144	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/192.smt2	timeout		60.022	0.02	47080	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/193.smt2	unsat	presimpl int	0.053	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/194.smt2	unsat	presimpl int	0.042	0.02	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/195.smt2	timeout		60.022	0.02	47088	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/196.smt2	timeout		60.012	0.02	47144	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/197.smt2	timeout		60.027	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/198.smt2	unsat	presimpl int	0.065	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/199.smt2	unsat	presimpl int	0.040	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/200.smt2	timeout		60.021	0.03	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/201.smt2	unsat	presimpl int	0.043	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/202.smt2	timeout		60.023	0.02	47144	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/203.smt2	timeout		60.006	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/204.smt2	unsat	presimpl int	0.054	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/205.smt2	timeout		60.024	0.03	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/206.smt2	timeout		60.016	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/207.smt2	unsat	presimpl int	0.061	0.03	47148	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/208.smt2	unsat	presimpl int	0.040	0.03	47144	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/209.smt2	timeout		60.020	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/210.smt2	timeout		60.008	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/211.smt2	timeout		60.012	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/212.smt2	unsat	presimpl int	0.067	0.03	47144	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/213.smt2	unsat	presimpl int	0.044	0.02	47148	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/214.smt2	timeout		60.021	0.02	47148	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/215.smt2	unsat	presimpl int	0.040	0.03	47148	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/216.smt2	unsat	presimpl int	0.037	0.03	47112	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/217.smt2	timeout		60.019	0.03	47116	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/74.smt2	timeout		60.019	0.03	47184	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/75.smt2	timeout		60.019	0.03	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/76.smt2	unsat	presimpl int	0.063	0.03	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/77.smt2	timeout		60.016	0.02	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/78.smt2	timeout		60.030	0.03	47240	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/79.smt2	unsat	presimpl int	0.046	0.03	47144	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/80.smt2	timeout		60.019	0.03	47176	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/81.smt2	timeout		60.020	0.03	47176	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/82.smt2	unsat	presimpl int	0.056	0.03	47240	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/83.smt2	unsat	presimpl int	0.047	0.03	47240	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/84.smt2	timeout		60.021	0.03	47240	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/85.smt2	timeout		60.016	0.03	47144	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/86.smt2	timeout		60.009	0.02	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/87.smt2	unsat	presimpl int	0.055	0.03	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/88.smt2	unsat	presimpl int	0.041	0.03	47176	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/89.smt2	timeout		60.019	0.02	47112	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/90.smt2	timeout		60.023	0.02	47144	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/91.smt2	unsat	presimpl int	0.055	0.03	47144	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/92.smt2	timeout		60.030	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/93.smt2	timeout		60.017	0.02	47084	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/94.smt2	unsat	presimpl int	0.053	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/95.smt2	timeout		60.005	0.02	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/96.smt2	timeout		60.007	0.02	47180	124
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/97.smt2	unsat	presimpl int	0.046	0.02	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/98.smt2	unsat	presimpl int	0.042	0.03	47080	0
+chro_-q	py-conbyte_traucleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-numDecodings/99.smt2	timeout		60.005	0.02	47084	124

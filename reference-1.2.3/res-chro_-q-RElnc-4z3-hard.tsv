@@ -1,0 +1,30 @@
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n01.smt2	timeout		60.021	0.02	47008	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n02.smt2	unsat	over	0.878	0.20	53020	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n03.smt2	timeout		60.021	0.03	47008	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n04.smt2	timeout		60.028	0.03	47004	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n05.smt2	unsat	presimpl int	0.332	0.08	52180	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n06.smt2	unsat	presimpl int	0.167	0.07	51880	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n07.smt2	timeout		60.029	0.02	47004	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n08.smt2	unsat	presimpl int	0.781	0.11	52260	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n09.smt2	timeout		60.067	0.02	47004	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n10.smt2	timeout		60.061	0.02	47004	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n11.smt2	unsat	lengths	6.573	2.15	217724	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n12.smt2	timeout		60.034	0.02	47004	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n13.smt2	timeout		60.016	0.02	47008	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n14.smt2	unsat	lengths	0.253	0.03	47004	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n15.smt2	timeout		60.058	0.01	47004	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n16.smt2	unsat	presimpl int	0.699	0.09	51712	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n17.smt2	timeout		60.052	0.02	47008	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n18.smt2	unsat	presimpl int	0.439	0.07	51908	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n19.smt2	sat	under str	0.596	0.10	61652	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n20.smt2	unsat	presimpl int	0.130	0.05	51440	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n21.smt2	unsat	presimpl int	4.468	1.49	75084	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n22.smt2	unsat	presimpl int	0.240	0.06	51660	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n23.smt2	unsat	presimpl int	0.177	0.06	51920	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n24.smt2	timeout		60.019	0.02	47004	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n25.smt2	unsat	over	0.475	0.15	52760	0
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n26.smt2	timeout		60.028	0.02	47008	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n27.smt2	timeout		60.005	0.02	47008	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n28.smt2	timeout		60.028	0.02	47004	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n29.smt2	timeout		60.027	0.02	47008	124
+chro_-q	RElnc-4z3-hard	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/z3-hard/benchmark_hard_v4_w02_n30.smt2	unsat	presimpl int	6.991	2.29	87780	0
