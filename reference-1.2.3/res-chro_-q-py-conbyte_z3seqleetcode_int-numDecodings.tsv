@@ -1,0 +1,16 @@
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/101.smt2	timeout		60.013	0.02	47084	124
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/104.smt2	unsat	presimpl int	0.041	0.03	47080	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/105.smt2	unsat	presimpl int	0.050	0.02	47080	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/109.smt2	unsat	presimpl int	0.040	0.02	47008	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/110.smt2	sat	under str	0.201	0.10	48588	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/114.smt2	unsat	presimpl int	0.043	0.03	47240	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/115.smt2	unsat	presimpl int	0.048	0.03	47176	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/74.smt2	unsat	presimpl int	0.045	0.03	47180	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/75.smt2	unsat	presimpl int	0.047	0.03	47176	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/76.smt2	timeout		60.019	0.02	47180	124
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/81.smt2	unsat	presimpl int	0.048	0.03	47240	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/82.smt2	unsat	presimpl int	0.044	0.03	47240	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/83.smt2	timeout		60.005	0.02	47244	124
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/84.smt2	unsat	presimpl int	0.049	0.03	47108	0
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/85.smt2	timeout		60.005	0.03	47116	124
+chro_-q	py-conbyte_z3seqleetcode_int-numDecodings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3seq/leetcode_int-numDecodings/88.smt2	timeout		60.005	0.03	47240	124

@@ -1,0 +1,669 @@
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_111.smt2_0.smt2	sat	under int	0.050	0.04	60488	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_115.smt2_0.smt2	sat	under int	0.042	0.03	55680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_119.smt2_0.smt2	sat	presimpl int	0.032	0.02	46756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_128.smt2_0.smt2	unsat	nfa	0.075	0.06	67600	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_128.smt2_1.smt2	sat	under int	0.047	0.02	55904	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_0.smt2	sat	under int	0.047	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_1.smt2	unsat	bool	0.042	0.03	52540	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_100.smt2	sat	under int	0.050	0.04	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_101.smt2	unsat	bool	0.048	0.03	54744	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_103.smt2	sat	under int	0.058	0.04	62564	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_104.smt2	unsat	over	0.044	0.03	57844	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_105.smt2	unsat	over	0.044	0.03	57840	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_106.smt2	unsat	bool	0.058	0.03	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_107.smt2	unsat	bool	0.043	0.03	54628	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_108.smt2	unsat	bool	0.047	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_109.smt2	unsat	bool	0.042	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_11.smt2	sat	under int	0.467	0.41	71232	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_110.smt2	unsat	bool	0.047	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_111.smt2	unsat	bool	0.058	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_112.smt2	unsat	bool	0.043	0.03	54708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_113.smt2	unsat	bool	0.042	0.03	54704	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_114.smt2	unsat	bool	0.042	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_115.smt2	unsat	bool	0.043	0.03	54760	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_116.smt2	unsat	bool	0.043	0.03	54832	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_117.smt2	unsat	bool	0.043	0.03	54836	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_118.smt2	sat	under int	0.044	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_119.smt2	sat	under int	0.043	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_12.smt2	sat	under int	0.050	0.04	62460	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_120.smt2	unsat	bool	0.041	0.02	52540	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_121.smt2	sat	under int	0.044	0.03	59556	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_122.smt2	unsat	over	0.086	0.07	82656	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_123.smt2	sat	under int	0.234	0.21	69056	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_124.smt2	sat	under int	0.050	0.03	62424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_125.smt2	unsat	bool	0.041	0.03	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_126.smt2	sat	under int	0.050	0.04	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_127.smt2	unsat	bool	0.042	0.03	54668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_128.smt2	sat	under int	0.355	0.33	71012	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_129.smt2	sat	under int	0.078	0.04	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_13.smt2	unsat	bool	0.045	0.03	54720	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_130.smt2	unsat	bool	0.049	0.03	54724	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_132.smt2	sat	under int	0.073	0.04	62768	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_133.smt2	sat	under int	0.056	0.03	62572	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_134.smt2	unsat	bool	0.043	0.03	54844	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_136.smt2	unsat	bool	0.043	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_137.smt2	unsat	bool	0.044	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_138.smt2	sat	under int	0.130	0.12	67420	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_139.smt2	sat	under int	0.054	0.04	62676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_140.smt2	unsat	bool	0.046	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_141.smt2	sat	under int	0.053	0.04	62676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_142.smt2	sat	under int	0.404	0.36	72108	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_143.smt2	sat	under int	0.053	0.04	62704	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_144.smt2	unsat	bool	0.046	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_146.smt2	unsat	bool	0.047	0.04	54972	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_147.smt2	unsat	bool	0.043	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_148.smt2	unsat	bool	0.043	0.03	54880	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_149.smt2	sat	under int	0.052	0.04	62660	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_15.smt2	sat	under int	0.050	0.03	62552	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_150.smt2	unsat	bool	0.045	0.03	54940	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_151.smt2	sat	under int	0.051	0.04	62564	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_152.smt2	unsat	bool	0.042	0.03	54792	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_153.smt2	unsat	bool	0.043	0.03	54792	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_154.smt2	unsat	bool	0.044	0.03	54964	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_156.smt2	unsat	bool	0.041	0.03	54668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_157.smt2	unsat	over	0.279	0.25	69472	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_159.smt2	sat	under int	0.072	0.06	67560	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_16.smt2	unsat	bool	0.043	0.03	54628	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_160.smt2	sat	under int	0.048	0.04	62404	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_161.smt2	unsat	bool	0.047	0.03	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_162.smt2	sat	under int	0.050	0.04	62424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_163.smt2	unsat	bool	0.041	0.03	54668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_164.smt2	sat	under int	0.126	0.11	68348	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_165.smt2	sat	under int	0.050	0.04	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_166.smt2	unsat	bool	0.043	0.03	54744	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_168.smt2	sat	under int	0.050	0.04	62564	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_17.smt2	unsat	bool	0.042	0.03	54760	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_170.smt2	sat	under int	0.151	0.12	68520	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_171.smt2	sat	under int	0.054	0.04	62572	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_172.smt2	unsat	bool	0.042	0.03	54844	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_173.smt2	sat	under int	0.059	0.04	62660	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_179.smt2	unsat	bool	0.045	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_18.smt2	unsat	bool	0.042	0.03	54704	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_180.smt2	sat	under int	0.114	0.10	67844	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_181.smt2	sat	under int	0.052	0.04	62668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_182.smt2	unsat	bool	0.073	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_185.smt2	sat	under int	0.053	0.04	62684	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_186.smt2	unsat	over	0.050	0.03	57848	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_187.smt2	unsat	over	0.046	0.03	57848	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_188.smt2	unsat	bool	0.041	0.03	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_189.smt2	unsat	bool	0.058	0.03	54684	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_19.smt2	unsat	bool	0.043	0.03	54684	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_190.smt2	unsat	bool	0.063	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_191.smt2	unsat	bool	0.042	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_192.smt2	unsat	bool	0.043	0.03	54760	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_193.smt2	unsat	bool	0.042	0.03	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_194.smt2	unsat	bool	0.045	0.03	54704	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_195.smt2	unsat	bool	0.043	0.03	54704	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_196.smt2	unsat	bool	0.047	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_197.smt2	unsat	bool	0.055	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_198.smt2	unsat	bool	0.044	0.03	54836	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_199.smt2	unsat	bool	0.043	0.03	54832	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_20.smt2	unsat	bool	0.045	0.03	54832	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_200.smt2	unsat	bool	0.065	0.03	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_201.smt2	unsat	bool	0.043	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_202.smt2	unsat	bool	0.048	0.03	54828	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_203.smt2	unsat	bool	0.045	0.02	54828	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_204.smt2	unsat	bool	0.045	0.03	54896	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_205.smt2	unsat	bool	0.050	0.03	54892	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_206.smt2	unsat	bool	0.051	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_207.smt2	unsat	bool	0.046	0.03	54760	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_208.smt2	unsat	bool	0.043	0.02	54656	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_209.smt2	unsat	bool	0.052	0.03	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_21.smt2	sat	under int	0.049	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_210.smt2	sat	under int	0.047	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_211.smt2	sat	under int	0.068	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_212.smt2	unsat	bool	0.043	0.03	52540	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_213.smt2	sat	under int	0.047	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_214.smt2	sat	under int	0.089	0.08	68204	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_215.smt2	sat	under int	0.051	0.04	62408	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_216.smt2	unsat	bool	0.056	0.03	54636	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_217.smt2	sat	under int	0.052	0.04	62420	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_218.smt2	sat	under int	0.263	0.25	69692	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_219.smt2	sat	under int	0.051	0.04	62460	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_22.smt2	unsat	bool	0.042	0.03	52340	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_220.smt2	unsat	bool	0.043	0.03	54672	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_221.smt2	sat	under int	0.051	0.04	62268	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_223.smt2	unsat	bool	0.045	0.03	54792	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_224.smt2	sat	under int	0.340	0.31	71136	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_225.smt2	sat	under int	0.050	0.04	62560	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_226.smt2	unsat	bool	0.045	0.03	54848	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_229.smt2	sat	under int	0.050	0.04	62668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_23.smt2	sat	under int	0.046	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_231.smt2	unsat	bool	0.044	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_232.smt2	sat	under int	0.398	0.37	71020	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_233.smt2	sat	under int	0.052	0.04	62660	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_234.smt2	unsat	bool	0.043	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_235.smt2	sat	under int	0.053	0.04	62672	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_236.smt2	sat	under int	0.060	0.04	68456	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_237.smt2	unsat	bool	0.041	0.02	52548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_239.smt2	sat	under int	0.078	0.05	68480	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_241.smt2	sat	under int	0.102	0.09	88020	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_242.smt2	sat	under int	0.131	0.11	82180	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_243.smt2	unsat	bool	0.043	0.03	54688	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_244.smt2	sat	under int	0.125	0.11	100092	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_246.smt2	sat	under int	0.044	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_247.smt2	sat	under int	0.045	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_248.smt2	unsat	bool	0.041	0.02	52540	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_25.smt2	sat	under int	0.098	0.08	68028	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_250.smt2	sat	under int	0.131	0.11	68068	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_251.smt2	sat	under int	0.064	0.03	62404	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_252.smt2	unsat	bool	0.043	0.02	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_254.smt2	unsat	bool	0.040	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_255.smt2	unsat	bool	0.045	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_256.smt2	sat	under int	0.389	0.36	70412	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_257.smt2	sat	under int	0.049	0.03	62456	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_258.smt2	unsat	bool	0.042	0.03	54720	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_26.smt2	sat	under int	0.051	0.03	62424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_260.smt2	sat	under int	0.606	0.59	72220	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_261.smt2	sat	under int	0.052	0.03	62564	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_262.smt2	unsat	bool	0.045	0.03	54848	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_264.smt2	sat	under int	0.347	0.33	71624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_265.smt2	sat	under int	0.075	0.04	62088	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_266.smt2	unsat	bool	0.049	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_267.smt2	sat	under int	0.053	0.04	62668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_268.smt2	unsat	bool	0.046	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_269.smt2	unsat	bool	0.050	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_27.smt2	unsat	bool	0.043	0.02	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_270.smt2	unsat	bool	0.044	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_271.smt2	unsat	bool	0.044	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_272.smt2	sat	under int	0.052	0.04	62552	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_273.smt2	unsat	bool	0.043	0.03	54792	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_274.smt2	unsat	bool	0.042	0.03	54796	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_275.smt2	unsat	bool	0.044	0.03	54796	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_276.smt2	unsat	bool	0.046	0.03	54924	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_277.smt2	sat	under int	0.049	0.04	62424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_278.smt2	unsat	bool	0.061	0.02	54676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_279.smt2	unsat	over	0.258	0.24	71148	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_281.smt2	sat	under int	0.064	0.04	68452	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_282.smt2	unsat	over	0.087	0.07	82624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_283.smt2	sat	under int	0.320	0.30	70576	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_284.smt2	sat	under int	0.051	0.04	62272	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_285.smt2	unsat	bool	0.042	0.03	54636	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_286.smt2	sat	under int	0.055	0.04	62292	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_290.smt2	sat	under int	0.301	0.28	70500	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_291.smt2	sat	under int	0.064	0.03	62340	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_292.smt2	unsat	bool	0.043	0.03	54732	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_296.smt2	sat	under int	0.054	0.03	62416	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_297.smt2	sat	under int	0.247	0.22	69300	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_298.smt2	sat	under int	0.062	0.04	62420	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_299.smt2	unsat	bool	0.044	0.02	54848	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_3.smt2	sat	under int	0.043	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_30.smt2	sat	under int	0.051	0.04	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_302.smt2	sat	under int	0.053	0.04	62496	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_304.smt2	sat	under int	0.167	0.15	69272	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_305.smt2	sat	under int	0.064	0.03	62516	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_306.smt2	unsat	bool	0.044	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_31.smt2	sat	under int	0.106	0.09	68800	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_311.smt2	sat	under int	0.371	0.33	71128	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_312.smt2	sat	under int	0.055	0.04	62536	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_313.smt2	unsat	bool	0.046	0.03	54904	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_314.smt2	sat	under int	0.053	0.04	62572	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_318.smt2	unsat	bool	0.045	0.03	54920	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_319.smt2	sat	under int	0.085	0.07	67644	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_32.smt2	sat	under int	0.049	0.04	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_320.smt2	sat	under int	0.057	0.04	62624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_321.smt2	unsat	bool	0.044	0.03	54972	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_323.smt2	unsat	bool	0.044	0.03	54944	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_324.smt2	unsat	bool	0.048	0.04	55176	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_325.smt2	unsat	bool	0.043	0.03	54924	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_326.smt2	sat	under int	0.053	0.04	62520	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_327.smt2	unsat	bool	0.044	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_328.smt2	unsat	bool	0.047	0.03	54968	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_329.smt2	unsat	bool	0.046	0.02	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_33.smt2	unsat	bool	0.050	0.03	54724	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_330.smt2	unsat	bool	0.042	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_332.smt2	unsat	bool	0.063	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_333.smt2	unsat	bool	0.054	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_334.smt2	unsat	bool	0.062	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_335.smt2	unsat	bool	0.044	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_337.smt2	unsat	bool	0.046	0.03	54804	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_338.smt2	unsat	bool	0.043	0.03	54800	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_339.smt2	unsat	bool	0.046	0.03	54800	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_34.smt2	sat	under int	0.063	0.04	62560	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_340.smt2	unsat	bool	0.050	0.03	54928	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_342.smt2	unsat	over	0.281	0.26	69556	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_343.smt2	unsat	bool	0.047	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_344.smt2	unsat	bool	0.052	0.03	54676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_345.smt2	unsat	bool	0.046	0.03	54676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_346.smt2	sat	under int	0.045	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_347.smt2	unsat	over	0.580	0.54	71160	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_348.smt2	sat	under int	0.044	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_349.smt2	sat	under int	0.045	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_35.smt2	unsat	bool	0.043	0.03	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_350.smt2	unsat	bool	0.042	0.03	52540	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_352.smt2	sat	under int	0.045	0.03	59556	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_353.smt2	unsat	over	0.090	0.08	82660	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_354.smt2	sat	under int	0.063	0.04	70148	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_355.smt2	sat	under int	0.075	0.06	67692	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_356.smt2	sat	under int	0.049	0.04	62412	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_357.smt2	unsat	bool	0.041	0.03	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_358.smt2	sat	under int	0.050	0.04	62428	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_36.smt2	unsat	bool	0.041	0.02	54708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_360.smt2	unsat	bool	0.042	0.02	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_361.smt2	unsat	bool	0.042	0.03	54676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_362.smt2	sat	under int	0.228	0.22	69228	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_363.smt2	sat	under int	0.050	0.03	62460	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_364.smt2	unsat	bool	0.043	0.03	54720	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_366.smt2	sat	under int	0.051	0.03	62552	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_368.smt2	unsat	bool	0.044	0.02	54792	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_369.smt2	unsat	bool	0.042	0.03	54796	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_37.smt2	unsat	bool	0.043	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_370.smt2	unsat	bool	0.042	0.02	54796	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_371.smt2	sat	under int	0.605	0.59	73960	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_372.smt2	sat	under int	0.077	0.03	62568	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_373.smt2	unsat	bool	0.044	0.03	54852	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_377.smt2	unsat	bool	0.048	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_378.smt2	unsat	bool	0.045	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_379.smt2	sat	under int	0.385	0.36	71636	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_38.smt2	unsat	bool	0.066	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_380.smt2	sat	under int	0.055	0.04	61392	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_381.smt2	unsat	bool	0.043	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_382.smt2	sat	under int	0.053	0.04	62660	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_383.smt2	unsat	bool	0.046	0.04	54944	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_384.smt2	unsat	bool	0.044	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_386.smt2	unsat	bool	0.045	0.03	54924	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_388.smt2	unsat	over	0.291	0.28	71172	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_389.smt2	unsat	bool	0.043	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_39.smt2	unsat	bool	0.043	0.03	54708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_391.smt2	sat	under int	0.535	0.50	70488	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_392.smt2	sat	under int	0.052	0.03	62264	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_393.smt2	unsat	bool	0.051	0.02	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_394.smt2	sat	under int	0.064	0.04	62288	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_397.smt2	unsat	bool	0.049	0.03	54676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_398.smt2	sat	under int	0.224	0.21	69500	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_399.smt2	sat	under int	0.056	0.04	62284	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_4.smt2	sat	under int	0.421	0.40	69948	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_40.smt2	unsat	bool	0.045	0.03	54684	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_400.smt2	unsat	bool	0.045	0.03	54732	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_404.smt2	sat	under int	0.100	0.08	67448	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_405.smt2	sat	under int	0.052	0.04	62412	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_406.smt2	unsat	bool	0.043	0.03	54848	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_408.smt2	sat	under int	0.051	0.04	62496	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_41.smt2	unsat	bool	0.044	0.03	54708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_410.smt2	sat	under int	0.422	0.37	70412	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_411.smt2	sat	under int	0.052	0.04	62512	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_412.smt2	unsat	bool	0.044	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_416.smt2	unsat	bool	0.043	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_417.smt2	unsat	bool	0.048	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_418.smt2	sat	under int	0.101	0.09	68216	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_419.smt2	sat	under int	0.052	0.04	62532	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_42.smt2	unsat	bool	0.044	0.03	54836	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_420.smt2	unsat	bool	0.044	0.03	54900	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_421.smt2	sat	under int	0.054	0.04	62576	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_424.smt2	sat	under int	0.083	0.07	67652	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_425.smt2	sat	under int	0.056	0.04	62640	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_426.smt2	unsat	bool	0.045	0.03	54964	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_428.smt2	unsat	bool	0.044	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_429.smt2	unsat	bool	0.045	0.03	54916	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_43.smt2	unsat	bool	0.044	0.03	54836	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_430.smt2	unsat	bool	0.046	0.03	55188	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_431.smt2	unsat	bool	0.064	0.03	54920	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_432.smt2	sat	under int	0.058	0.03	62520	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_433.smt2	unsat	bool	0.047	0.04	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_434.smt2	unsat	bool	0.047	0.03	54972	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_436.smt2	unsat	bool	0.055	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_437.smt2	unsat	bool	0.048	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_438.smt2	unsat	bool	0.048	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_439.smt2	unsat	bool	0.049	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_44.smt2	unsat	bool	0.046	0.02	54496	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_440.smt2	sat	under int	0.052	0.04	62356	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_441.smt2	unsat	bool	0.048	0.03	54804	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_442.smt2	unsat	bool	0.043	0.03	54804	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_443.smt2	unsat	bool	0.048	0.03	54928	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_444.smt2	unsat	bool	0.047	0.03	54800	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_446.smt2	unsat	over	0.283	0.26	69688	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_447.smt2	unsat	bool	0.060	0.03	54676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_448.smt2	unsat	bool	0.042	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_45.smt2	unsat	bool	0.044	0.02	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_450.smt2	unsat	over	0.550	0.53	72080	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_451.smt2	sat	under int	0.043	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_452.smt2	sat	under int	0.042	0.03	59540	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_453.smt2	unsat	bool	0.042	0.02	52540	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_455.smt2	unsat	over	0.086	0.07	82656	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_456.smt2	unsat	over	0.098	0.08	82648	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_457.smt2	sat	under int	0.053	0.04	62656	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_458.smt2	sat	under int	0.052	0.03	62424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_459.smt2	unsat	bool	0.042	0.03	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_46.smt2	unsat	bool	0.041	0.03	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_460.smt2	sat	under int	0.049	0.04	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_461.smt2	sat	under int	0.136	0.12	68384	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_462.smt2	sat	under int	0.070	0.03	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_463.smt2	unsat	bool	0.044	0.03	54720	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_464.smt2	sat	under int	0.050	0.04	62564	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_465.smt2	unsat	bool	0.046	0.03	54792	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_466.smt2	unsat	bool	0.044	0.03	54796	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_467.smt2	sat	under int	0.230	0.21	70204	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_468.smt2	sat	under int	0.054	0.04	62572	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_469.smt2	unsat	bool	0.050	0.03	54844	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_47.smt2	sat	under int	0.050	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_470.smt2	sat	under int	0.052	0.04	62660	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_471.smt2	unsat	bool	0.043	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_472.smt2	sat	under int	0.278	0.26	70280	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_473.smt2	sat	under int	0.051	0.04	62672	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_474.smt2	unsat	bool	0.044	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_476.smt2	unsat	bool	0.046	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_477.smt2	unsat	bool	0.052	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_478.smt2	sat	under int	0.079	0.06	67844	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_479.smt2	sat	under int	0.055	0.04	62708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_48.smt2	sat	under int	0.044	0.03	59544	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_480.smt2	unsat	bool	0.044	0.03	54908	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_481.smt2	sat	under int	0.054	0.04	62684	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_482.smt2	unsat	bool	0.045	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_483.smt2	unsat	bool	0.047	0.03	54972	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_485.smt2	unsat	bool	0.050	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_486.smt2	unsat	bool	0.046	0.03	54780	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_487.smt2	unsat	bool	0.048	0.02	54744	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_489.smt2	unsat	bool	0.060	0.03	54796	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_49.smt2	unsat	bool	0.044	0.02	52540	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_490.smt2	unsat	bool	0.048	0.03	54924	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_492.smt2	unsat	bool	0.042	0.03	54668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_493.smt2	unsat	over	0.304	0.28	70456	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_494.smt2	unsat	bool	0.045	0.03	54668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_495.smt2	unsat	bool	0.046	0.03	54668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_497.smt2	sat	under int	0.091	0.08	67560	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_498.smt2	sat	under int	0.052	0.03	62408	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_499.smt2	unsat	bool	0.041	0.02	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_5.smt2	sat	under int	0.049	0.03	62408	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_501.smt2	unsat	bool	0.044	0.03	54672	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_502.smt2	sat	under int	0.175	0.16	69136	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_503.smt2	sat	under int	0.047	0.03	62440	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_504.smt2	unsat	bool	0.048	0.03	54732	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_505.smt2	sat	under int	0.051	0.03	62564	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_506.smt2	unsat	bool	0.064	0.02	54804	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_507.smt2	unsat	bool	0.042	0.03	54800	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_508.smt2	unsat	bool	0.045	0.03	54804	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_509.smt2	sat	under int	0.386	0.36	70716	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_51.smt2	sat	under int	0.537	0.51	72308	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_510.smt2	sat	under int	0.053	0.03	62572	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_511.smt2	unsat	bool	0.062	0.03	54844	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_512.smt2	sat	under int	0.051	0.03	62656	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_513.smt2	sat	under int	0.166	0.15	68936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_514.smt2	sat	under int	0.054	0.04	62672	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_515.smt2	unsat	bool	0.044	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_516.smt2	sat	under int	0.074	0.04	62684	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_519.smt2	sat	under int	0.102	0.08	68288	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_52.smt2	sat	under int	0.050	0.03	62424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_520.smt2	sat	under int	0.068	0.04	62696	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_521.smt2	unsat	bool	0.044	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_525.smt2	unsat	bool	0.065	0.03	54920	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_526.smt2	unsat	bool	0.047	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_527.smt2	sat	under int	0.169	0.16	69524	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_528.smt2	sat	under int	0.056	0.04	62752	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_529.smt2	unsat	bool	0.049	0.03	54968	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_53.smt2	unsat	bool	0.048	0.03	54632	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_530.smt2	sat	under int	0.056	0.04	62732	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_531.smt2	unsat	bool	0.045	0.03	55064	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_532.smt2	unsat	bool	0.065	0.03	54920	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_534.smt2	unsat	bool	0.044	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_535.smt2	unsat	bool	0.048	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_536.smt2	unsat	bool	0.046	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_537.smt2	unsat	bool	0.046	0.03	54964	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_539.smt2	unsat	bool	0.052	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_540.smt2	unsat	bool	0.046	0.03	54928	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_541.smt2	unsat	bool	0.049	0.03	54856	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_542.smt2	unsat	bool	0.044	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_544.smt2	unsat	bool	0.046	0.03	54900	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_545.smt2	sat	under int	0.057	0.04	62424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_546.smt2	unsat	bool	0.053	0.03	54672	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_547.smt2	unsat	bool	0.042	0.03	54672	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_548.smt2	unsat	over	0.271	0.25	69604	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_549.smt2	sat	under int	0.046	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_55.smt2	unsat	bool	0.048	0.03	54668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_550.smt2	unsat	bool	0.045	0.03	54828	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_551.smt2	unsat	bool	0.042	0.03	54708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_552.smt2	unsat	bool	0.045	0.02	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_553.smt2	unsat	bool	0.041	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_554.smt2	unsat	bool	0.043	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_555.smt2	unsat	bool	0.043	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_556.smt2	unsat	bool	0.043	0.03	54684	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_557.smt2	unsat	bool	0.041	0.03	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_558.smt2	unsat	bool	0.041	0.02	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_559.smt2	unsat	bool	0.048	0.02	54624	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_56.smt2	sat	under int	0.243	0.21	69352	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_560.smt2	unsat	bool	0.041	0.03	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_561.smt2	unsat	bool	0.044	0.03	54704	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_562.smt2	unsat	bool	0.044	0.03	54760	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_563.smt2	unsat	bool	0.043	0.03	54756	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_564.smt2	unsat	bool	0.043	0.02	54832	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_565.smt2	unsat	bool	0.043	0.03	54832	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_566.smt2	unsat	bool	0.043	0.03	54832	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_567.smt2	unsat	bool	0.042	0.03	54760	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_568.smt2	unsat	bool	0.041	0.02	54708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_569.smt2	unsat	bool	0.042	0.02	54680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_57.smt2	sat	under int	0.051	0.04	62436	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_570.smt2	unsat	bool	0.042	0.02	54760	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_571.smt2	unsat	bool	0.076	0.02	54700	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_572.smt2	unsat	bool	0.045	0.03	54788	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_58.smt2	unsat	bool	0.041	0.03	54724	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_6.smt2	unsat	bool	0.042	0.03	54636	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_61.smt2	sat	under int	0.580	0.54	72212	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_62.smt2	sat	under int	0.057	0.03	62572	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_63.smt2	unsat	bool	0.042	0.03	54844	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_66.smt2	sat	under int	0.055	0.03	62660	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_67.smt2	sat	under int	0.144	0.12	68984	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_68.smt2	sat	under int	0.055	0.04	62668	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_69.smt2	unsat	bool	0.045	0.03	54860	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_7.smt2	sat	under int	0.050	0.03	62424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_70.smt2	sat	under int	0.053	0.04	62680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_73.smt2	sat	under int	0.307	0.29	70620	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_74.smt2	sat	under int	0.059	0.04	62704	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_75.smt2	unsat	bool	0.045	0.03	54908	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_77.smt2	unsat	bool	0.047	0.03	54976	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_78.smt2	unsat	bool	0.045	0.03	54880	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_79.smt2	unsat	bool	0.047	0.03	54880	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_81.smt2	unsat	bool	0.043	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_82.smt2	unsat	bool	0.052	0.03	54900	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_83.smt2	unsat	bool	0.045	0.03	54864	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_84.smt2	sat	under int	0.053	0.04	62560	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_85.smt2	unsat	bool	0.045	0.03	54924	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_86.smt2	unsat	bool	0.044	0.03	54792	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_87.smt2	unsat	bool	0.045	0.03	54792	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_88.smt2	sat	under int	0.066	0.03	62064	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_89.smt2	unsat	bool	0.046	0.03	53972	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_90.smt2	unsat	over	0.297	0.28	70920	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_91.smt2	sat	under int	0.042	0.03	59548	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_92.smt2	sat	under int	0.056	0.04	62620	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_93.smt2	sat	under int	0.057	0.04	62408	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_94.smt2	unsat	bool	0.043	0.03	54636	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_97.smt2	sat	under int	0.048	0.04	62420	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_170.smt2_99.smt2	sat	under int	0.234	0.21	69304	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_0.smt2	unsat	bool	0.046	0.03	52596	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_1.smt2	sat	under int	0.046	0.03	58968	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_100.smt2	unsat	bool	0.046	0.03	54964	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_102.smt2	unsat	bool	0.047	0.03	55200	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_103.smt2	unsat	bool	0.052	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_105.smt2	unsat	bool	0.047	0.03	54976	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_106.smt2	unsat	bool	0.045	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_108.smt2	unsat	bool	0.057	0.03	54940	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_109.smt2	unsat	bool	0.046	0.02	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_11.smt2	sat	under int	0.047	0.03	59000	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_111.smt2	sat	nfa	0.112	0.09	64404	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_13.smt2	sat	under int	0.159	0.13	65040	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_14.smt2	sat	under int	0.047	0.04	59040	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_15.smt2	unsat	bool	0.048	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_16.smt2	sat	under int	0.049	0.03	59088	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_17.smt2	unsat	bool	0.041	0.03	52600	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_19.smt2	sat	under int	0.053	0.04	60916	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_20.smt2	sat	under int	0.046	0.03	58976	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_21.smt2	unsat	bool	0.050	0.03	54872	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_22.smt2	sat	under int	0.053	0.04	59000	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_23.smt2	sat	under int	0.142	0.12	63596	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_24.smt2	sat	under int	0.048	0.03	59040	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_25.smt2	unsat	bool	0.054	0.03	54884	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_29.smt2	sat	under int	0.049	0.03	59088	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_30.smt2	sat	under int	0.057	0.04	61252	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_31.smt2	sat	under int	0.054	0.03	59108	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_32.smt2	unsat	bool	0.045	0.03	54896	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_33.smt2	sat	under int	0.052	0.04	59116	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_38.smt2	unsat	bool	0.044	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_39.smt2	sat	under int	0.066	0.04	61420	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_40.smt2	sat	under int	0.049	0.03	59164	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_41.smt2	unsat	bool	0.042	0.03	54960	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_43.smt2	unsat	bool	0.047	0.04	55188	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_45.smt2	unsat	bool	0.052	0.03	54984	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_46.smt2	unsat	bool	0.061	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_48.smt2	unsat	bool	0.052	0.03	54936	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_49.smt2	unsat	bool	0.048	0.03	54880	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_5.smt2	sat	under int	0.054	0.03	60700	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_50.smt2	sat	under int	0.051	0.03	58968	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_51.smt2	sat	nfa	0.090	0.06	64088	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_52.smt2	unsat	bool	0.053	0.03	52628	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_54.smt2	sat	nfa	0.060	0.04	63052	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_55.smt2	sat	under int	0.047	0.03	58980	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_56.smt2	unsat	bool	0.061	0.03	54872	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_57.smt2	sat	under int	0.051	0.04	58992	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_58.smt2	sat	under int	0.052	0.04	60924	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_59.smt2	sat	under int	0.055	0.04	59040	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_6.smt2	sat	under int	0.047	0.04	58980	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_60.smt2	unsat	bool	0.045	0.03	54892	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_62.smt2	unsat	bool	0.043	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_63.smt2	sat	nfa	0.076	0.05	63412	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_64.smt2	sat	under int	0.051	0.04	59112	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_65.smt2	unsat	bool	0.045	0.03	54912	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_66.smt2	sat	under int	0.050	0.04	59120	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_67.smt2	sat	nfa	0.069	0.05	63460	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_68.smt2	sat	under int	0.051	0.04	59148	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_69.smt2	unsat	bool	0.049	0.04	54960	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_7.smt2	unsat	bool	0.058	0.02	54876	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_71.smt2	unsat	bool	0.039	0.03	54916	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_72.smt2	unsat	bool	0.054	0.04	55068	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_73.smt2	sat	under int	0.055	0.04	59088	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_74.smt2	unsat	bool	0.049	0.03	54984	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_76.smt2	unsat	bool	0.078	0.04	54940	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_77.smt2	unsat	bool	0.043	0.03	54880	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_78.smt2	sat	under int	0.054	0.03	58968	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_79.smt2	sat	nfa	0.110	0.09	64500	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_80.smt2	unsat	bool	0.042	0.03	52596	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_81.smt2	sat	under int	0.048	0.03	58628	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_83.smt2	sat	nfa	0.064	0.04	62976	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_84.smt2	sat	under int	0.046	0.03	58636	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_85.smt2	unsat	bool	0.044	0.03	54904	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_87.smt2	sat	under int	0.050	0.03	58476	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_88.smt2	sat	under int	0.067	0.04	60776	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_89.smt2	sat	under int	0.058	0.03	58700	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_90.smt2	unsat	bool	0.044	0.03	54888	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_91.smt2	sat	under int	0.048	0.04	58748	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_93.smt2	sat	nfa	0.064	0.05	64052	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_94.smt2	sat	under int	0.050	0.04	58532	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_95.smt2	unsat	bool	0.059	0.03	54876	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_97.smt2	sat	under int	0.050	0.04	58788	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_98.smt2	sat	under int	0.136	0.12	65056	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_179.smt2_99.smt2	sat	under int	0.054	0.04	58824	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_298.smt2_0.smt2	unsat	over	0.555	0.49	110264	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_298.smt2_1.smt2	sat	under int	0.056	0.04	62064	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_298.smt2_2.smt2	unsat	over	0.074	0.06	70908	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_298.smt2_3.smt2	unsat	over	0.077	0.06	70908	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_10.smt2	sat	under int	0.045	0.03	56240	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_11.smt2	sat	under int	0.041	0.03	56308	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_12.smt2	unsat	over	0.141	0.13	74468	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_14.smt2	sat	under int	0.052	0.03	61908	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_15.smt2	sat	under int	0.052	0.04	61912	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_16.smt2	unsat	over	0.461	0.44	110312	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_17.smt2	sat	under int	0.081	0.07	76124	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_18.smt2	unsat	over	0.159	0.15	98876	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_2.smt2	sat	under int	0.042	0.03	56300	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_20.smt2	unsat	over	0.070	0.05	70380	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_21.smt2	sat	under int	0.051	0.04	61912	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_22.smt2	sat	under int	0.052	0.03	61912	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_23.smt2	unsat	over	0.148	0.14	75504	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_24.smt2	sat	under int	0.072	0.04	61904	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_25.smt2	sat	under int	0.044	0.03	56304	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_26.smt2	sat	under int	0.042	0.03	56172	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_27.smt2	sat	under int	0.042	0.02	56172	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_28.smt2	unsat	nia	0.062	0.05	59164	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_3.smt2	unsat	presimpl int	0.056	0.05	57644	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_30.smt2	unsat	nia	0.041	0.03	55912	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_31.smt2	sat	under int	0.049	0.03	56300	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_32.smt2	unsat	nia	0.041	0.03	54912	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_33.smt2	unsat	nia	0.041	0.02	54828	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_5.smt2	unsat	nia	0.044	0.03	55720	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_6.smt2	unsat	nia	0.071	0.03	55928	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_7.smt2	sat	under int	0.042	0.03	56172	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_8.smt2	sat	under int	0.043	0.03	56172	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_300.smt2_9.smt2	unsat	nia	0.066	0.05	59136	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_0.smt2	sat	under int	0.041	0.03	56300	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_1.smt2	unsat	nia	0.041	0.02	55720	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_10.smt2	unsat	nia	0.065	0.05	59176	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_11.smt2	sat	under int	0.044	0.03	56236	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_12.smt2	sat	under int	0.042	0.03	56308	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_13.smt2	unsat	over	0.150	0.13	74316	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_15.smt2	sat	under int	0.064	0.04	61916	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_16.smt2	sat	under int	0.051	0.04	61916	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_17.smt2	unsat	over	0.155	0.14	74592	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_18.smt2	sat	under int	0.054	0.04	61948	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_19.smt2	sat	under int	0.054	0.04	59336	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_2.smt2	sat	under int	0.042	0.03	56300	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_20.smt2	unsat	over	0.507	0.45	108968	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_21.smt2	sat	under int	0.088	0.07	69040	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_23.smt2	unsat	over	0.070	0.05	64080	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_24.smt2	sat	under int	0.054	0.04	61912	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_26.smt2	unsat	over	0.150	0.14	74620	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_27.smt2	sat	under int	0.050	0.04	61896	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_29.smt2	unsat	nia	0.043	0.03	55932	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_3.smt2	sat	under int	0.036	0.03	56300	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_31.smt2	sat	under int	0.041	0.03	56176	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_32.smt2	unsat	nia	0.077	0.06	59320	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_33.smt2	sat	under int	0.041	0.03	56304	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_35.smt2	unsat	nia	0.042	0.03	55720	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_4.smt2	unsat	presimpl int	0.055	0.04	57644	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_6.smt2	unsat	nia	0.044	0.03	55916	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_7.smt2	unsat	nia	0.042	0.02	55724	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_301.smt2_8.smt2	sat	under int	0.041	0.03	56176	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_0.smt2	sat	under int	0.056	0.04	63044	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_1.smt2	unsat	over	0.080	0.06	70912	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_10.smt2	sat	under int	0.058	0.05	62104	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_12.smt2	unsat	over	0.512	0.48	110060	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_13.smt2	sat	under int	0.093	0.04	60680	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_14.smt2	sat	under int	0.064	0.04	62200	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_15.smt2	unsat	over	3.806	3.70	131708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_17.smt2	sat	under int	0.264	0.25	95708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_18.smt2	sat	under int	0.267	0.24	95708	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_19.smt2	unsat	over	4.055	4.03	130336	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_2.smt2	unsat	over	0.083	0.06	70916	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_20.smt2	sat	nia	1.444	1.35	102848	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_21.smt2	unsat	over	1.378	1.33	102692	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_23.smt2	sat	under int	0.262	0.24	97368	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_24.smt2	sat	under int	0.257	0.24	97400	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_25.smt2	unsat	over	4.056	3.79	126336	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_26.smt2	sat	under int	0.259	0.25	97568	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_27.smt2	unsat	over	1.261	1.23	101164	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_28.smt2	sat	under int	0.062	0.05	61468	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_29.smt2	sat	under int	0.057	0.04	62104	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_30.smt2	sat	under int	0.062	0.04	62108	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_31.smt2	unsat	over	0.514	0.48	110084	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_4.smt2	sat	under int	0.060	0.05	63076	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_5.smt2	unsat	over	0.511	0.47	110264	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_7.smt2	unsat	over	0.078	0.07	71448	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_8.smt2	unsat	over	0.081	0.07	71268	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_303.smt2_9.smt2	unsat	over	0.079	0.07	71012	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_304.smt2_0.smt2	unsat	over	0.495	0.48	110388	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_304.smt2_1.smt2	sat	under int	0.061	0.04	60444	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_304.smt2_2.smt2	unsat	over	0.075	0.06	70920	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_304.smt2_3.smt2	unsat	over	0.077	0.06	70920	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_1.smt2	unsat	over	0.074	0.06	70908	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_11.smt2	unsat	over	0.496	0.48	110048	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_12.smt2	sat	under int	0.061	0.05	60676	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_13.smt2	sat	under int	0.060	0.04	62232	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_14.smt2	unsat	over	3.877	3.73	127004	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_16.smt2	sat	under int	0.261	0.24	95796	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_17.smt2	sat	under int	0.261	0.25	95748	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_18.smt2	unsat	over	4.174	4.05	129408	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_19.smt2	sat	nia	1.378	1.35	102744	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_2.smt2	unsat	over	0.079	0.06	70908	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_20.smt2	unsat	over	1.431	1.35	102768	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_22.smt2	sat	under int	0.256	0.24	97428	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_23.smt2	sat	under int	0.257	0.24	97424	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_24.smt2	unsat	over	3.783	3.73	130448	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_25.smt2	sat	under int	0.261	0.25	97484	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_26.smt2	unsat	over	1.287	1.24	103040	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_29.smt2	sat	under int	0.063	0.05	62104	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_3.smt2	sat	under int	0.058	0.05	62004	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_30.smt2	unsat	over	0.525	0.48	110036	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_32.smt2	unsat	over	0.078	0.06	71020	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_33.smt2	sat	under int	0.057	0.04	61956	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_4.smt2	sat	under int	0.056	0.04	62008	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_5.smt2	unsat	over	0.480	0.46	110168	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_6.smt2	sat	under int	0.061	0.04	61464	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_7.smt2	unsat	over	0.080	0.07	71460	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_8.smt2	unsat	over	0.079	0.06	71276	0
+chro_-q	CHC_Comp_22_LIA_Lin	benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_LIA_Lin/chc-LIA-Lin_305.smt2_9.smt2	sat	under int	0.058	0.05	62108	0

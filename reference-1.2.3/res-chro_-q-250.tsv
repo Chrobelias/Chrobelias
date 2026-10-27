@@ -1,0 +1,7 @@
+chro_-q	250	benchmarks/chrobelias/QF_EIA/SIERPINSKI/250/problem15_1.smt2	sat	nfa	0.901	0.84	101028	0
+chro_-q	250	benchmarks/chrobelias/QF_EIA/SIERPINSKI/250/problem15_2.smt2	sat	nfa	0.421	0.40	101260	0
+chro_-q	250	benchmarks/chrobelias/QF_EIA/SIERPINSKI/250/problem31.smt2	unsat	nfa	0.057	0.04	61116	0
+chro_-q	250	benchmarks/chrobelias/QF_EIA/SIERPINSKI/250/problem31_13.smt2	sat	nfa	0.097	0.06	65192	0
+chro_-q	250	benchmarks/chrobelias/QF_EIA/SIERPINSKI/250/problem31_5.smt2	sat	nfa	0.062	0.05	65148	0
+chro_-q	250	benchmarks/chrobelias/QF_EIA/SIERPINSKI/250/problem44_13.smt2	unsat	nfa	20.077	20.05	99832	0
+chro_-q	250	benchmarks/chrobelias/QF_EIA/SIERPINSKI/250/problem6.smt2	sat	nfa	1.369	1.35	107780	0

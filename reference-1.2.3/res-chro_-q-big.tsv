@@ -1,0 +1,100 @@
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_double_n01_big.smt2	sat	under int	0.041	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_double_n02_big.smt2	sat	nfa	3.473	3.21	309856	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_double_n03_big.smt2	unsat	nia	0.039	0.03	56032	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_double_n04_big.smt2	sat	nfa	2.935	2.86	271064	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_double_n05_big.smt2	sat	under int	0.047	0.02	56416	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_single_n01_big.smt2	sat	nfa	5.041	4.98	332084	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_single_n02_big.smt2	sat	under int	0.041	0.02	56416	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_single_n03_big.smt2	sat	under int	0.041	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_single_n04_big.smt2	sat	under int	0.041	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_105_single_n05_big.smt2	sat	nfa	20.621	19.98	1155932	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_double_n01_big.smt2	sat	nfa	0.404	0.39	66832	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_double_n02_big.smt2	sat	nfa	1.918	1.87	103976	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_double_n03_big.smt2	unsat	over	0.256	0.19	101156	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_double_n04_big.smt2	unsat	nfa	0.251	0.24	101132	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_double_n05_big.smt2	unsat	nfa	1.148	1.11	109556	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_single_n01_big.smt2	sat	nfa	0.149	0.13	69588	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_single_n02_big.smt2	sat	under int	0.059	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_single_n03_big.smt2	sat	nfa	0.196	0.18	68212	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_single_n04_big.smt2	sat	under int	0.041	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_15_single_n05_big.smt2	unsat	presimpl int	0.032	0.02	47068	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_double_n01_big.smt2	timeout		60.049	58.73	589924	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_double_n02_big.smt2	unknown		31.065	29.95	7386816	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_double_n03_big.smt2	sat	nfa	24.031	22.90	205192	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_double_n04_big.smt2	unsat	nia	0.041	0.03	56040	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_double_n05_big.smt2	sat	nfa	2.493	2.44	111176	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_single_n01_big.smt2	unsat	nia	0.040	0.03	56032	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_single_n02_big.smt2	sat	nfa	0.448	0.43	81892	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_single_n03_big.smt2	sat	nfa	0.467	0.45	90644	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_single_n04_big.smt2	sat	under int	0.040	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_25_single_n05_big.smt2	sat	under int	0.041	0.03	56416	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_double_n01_big.smt2	sat	nfa	1.245	1.09	114964	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_double_n02_big.smt2	unsat	presimpl int	0.033	0.02	47068	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_double_n03_big.smt2	timeout		60.010	57.52	125788	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_double_n04_big.smt2	timeout		60.041	57.21	517260	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_double_n05_big.smt2	sat	nfa	8.714	8.53	216012	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_single_n01_big.smt2	sat	nfa	0.492	0.47	71936	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_single_n02_big.smt2	unsat	nfa	0.063	0.05	65244	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_single_n03_big.smt2	sat	nfa	0.256	0.24	71028	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_single_n04_big.smt2	sat	nfa	0.515	0.48	77620	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_35_single_n05_big.smt2	unsat	over	0.055	0.04	65264	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_double_n01_big.smt2	sat	nfa	0.732	0.71	90920	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_double_n02_big.smt2	unsat	over	0.956	0.92	109600	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_double_n03_big.smt2	unsat	presimpl int	0.031	0.02	47068	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_double_n04_big.smt2	unsat	nfa	6.082	5.95	74880	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_double_n05_big.smt2	timeout		60.050	58.81	854416	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_single_n01_big.smt2	sat	nfa	0.482	0.46	75540	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_single_n02_big.smt2	sat	nfa	0.516	0.50	78696	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_single_n03_big.smt2	sat	under int	0.040	0.03	56416	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_single_n04_big.smt2	sat	nfa	0.741	0.71	87140	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_45_single_n05_big.smt2	unsat	nia	0.040	0.02	56028	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_double_n01_big.smt2	sat	nfa	0.259	0.24	69592	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_double_n02_big.smt2	timeout		60.024	59.58	279068	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_double_n03_big.smt2	sat	nfa	1.804	1.72	125036	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_double_n04_big.smt2	timeout		60.041	57.98	500724	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_double_n05_big.smt2	timeout		60.130	57.53	2826760	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_single_n01_big.smt2	sat	nfa	3.476	3.42	311264	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_single_n02_big.smt2	sat	nfa	0.772	0.74	83672	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_single_n03_big.smt2	sat	nfa	0.429	0.41	68444	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_single_n04_big.smt2	sat	under int	0.041	0.03	56416	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_55_single_n05_big.smt2	sat	nfa	2.033	1.97	208912	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_double_n01_big.smt2	unsat	nia	0.040	0.02	56032	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_double_n02_big.smt2	sat	nfa	0.339	0.33	104256	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_double_n03_big.smt2	unsat	over	0.056	0.04	65244	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_double_n04_big.smt2	timeout		60.044	57.98	701572	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_double_n05_big.smt2	unsat	nia	0.044	0.03	56172	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_single_n01_big.smt2	sat	under int	0.040	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_single_n02_big.smt2	unsat	over	0.055	0.04	65224	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_single_n03_big.smt2	sat	nfa	0.457	0.43	76816	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_single_n04_big.smt2	unsat	presimpl int	0.033	0.02	47064	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_65_single_n05_big.smt2	unsat	presimpl int	0.033	0.02	47068	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_double_n01_big.smt2	timeout		60.040	59.27	614860	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_double_n02_big.smt2	sat	nfa	59.373	59.12	498924	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_double_n03_big.smt2	timeout		60.017	57.31	183900	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_double_n04_big.smt2	unsat	nfa	1.111	1.03	108720	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_double_n05_big.smt2	sat	nfa	1.569	1.53	164144	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_single_n01_big.smt2	sat	under int	0.041	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_single_n02_big.smt2	sat	nfa	6.551	6.37	253276	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_single_n03_big.smt2	sat	nfa	6.996	6.78	588004	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_single_n04_big.smt2	unsat	nia	0.040	0.03	56028	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_75_single_n05_big.smt2	sat	under int	0.061	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_double_n01_big.smt2	timeout		60.121	58.31	2405048	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_double_n02_big.smt2	unsat	presimpl int	0.031	0.02	47068	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_double_n03_big.smt2	sat	nfa	0.627	0.61	83416	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_double_n04_big.smt2	timeout		60.014	58.88	188948	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_double_n05_big.smt2	unsat	nia	0.042	0.03	56028	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_single_n01_big.smt2	unsat	nia	0.040	0.03	56032	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_single_n02_big.smt2	sat	nfa	0.701	0.65	82048	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_single_n03_big.smt2	unsat	nfa	38.388	37.87	80772	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_single_n04_big.smt2	sat	nfa	0.219	0.20	70464	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_85_single_n05_big.smt2	sat	under int	0.041	0.03	56416	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_double_n01_big.smt2	unsat	nia	0.040	0.03	56164	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_double_n02_big.smt2	unsat	nfa	0.062	0.05	65256	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_double_n03_big.smt2	sat	nfa	0.741	0.69	100564	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_double_n04_big.smt2	timeout		60.021	58.08	271236	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_double_n05_big.smt2	timeout		60.328	60.27	5322624	124
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_single_n01_big.smt2	sat	under int	0.040	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_single_n02_big.smt2	sat	under int	0.039	0.03	56412	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_single_n03_big.smt2	unsat	presimpl int	0.032	0.02	47064	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_single_n04_big.smt2	unsat	nia	0.040	0.03	56028	0
+chro_-q	big	benchmarks/chrobelias/QF_EIA/SIERPINSKI/big/sier_95_single_n05_big.smt2	unsat	presimpl int	0.032	0.02	47068	0

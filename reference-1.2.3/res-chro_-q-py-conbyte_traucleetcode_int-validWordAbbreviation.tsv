@@ -1,0 +1,8 @@
+chro_-q	py-conbyte_traucleetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-validWordAbbreviation/19.smt2	sat	under int	0.528	0.25	51472	0
+chro_-q	py-conbyte_traucleetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-validWordAbbreviation/20.smt2	sat	under str	1.275	0.63	62076	0
+chro_-q	py-conbyte_traucleetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-validWordAbbreviation/23.smt2	unsat	presimpl int	0.048	0.02	47008	0
+chro_-q	py-conbyte_traucleetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-validWordAbbreviation/24.smt2	sat	under str	0.062	0.04	47012	0
+chro_-q	py-conbyte_traucleetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-validWordAbbreviation/25.smt2	sat	under int	1.794	0.87	54192	0
+chro_-q	py-conbyte_traucleetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-validWordAbbreviation/26.smt2	sat	under str	1.528	0.75	62420	0
+chro_-q	py-conbyte_traucleetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-validWordAbbreviation/27.smt2	timeout		60.005	0.02	47012	124
+chro_-q	py-conbyte_traucleetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/leetcode_int-validWordAbbreviation/28.smt2	sat	nfa	0.260	0.12	50988	0

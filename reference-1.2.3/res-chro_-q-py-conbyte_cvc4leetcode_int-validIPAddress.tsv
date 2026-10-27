@@ -1,0 +1,20 @@
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/0.smt2	unknown		0.053	0.04	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/1.smt2	unknown		0.053	0.04	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/10.smt2	unknown		0.051	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/11.smt2	unknown		0.051	0.04	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/12.smt2	unsat	presimpl int	0.034	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/13.smt2	sat	under str	0.051	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/14.smt2	unsat	presimpl str	0.041	0.03	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/15.smt2	unsat	presimpl str	0.057	0.02	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/16.smt2	unknown		0.051	0.04	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/17.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/18.smt2	unsat	presimpl int	0.040	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/19.smt2	unsat	presimpl int	0.040	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/2.smt2	unknown		0.059	0.03	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/3.smt2	unknown		0.054	0.04	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/4.smt2	unknown		0.078	0.04	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/5.smt2	unknown		0.050	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/6.smt2	unknown		0.054	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/7.smt2	unknown		0.052	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/8.smt2	unknown		0.056	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validIPAddress	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validIPAddress/9.smt2	unknown		0.062	0.04	47008	0

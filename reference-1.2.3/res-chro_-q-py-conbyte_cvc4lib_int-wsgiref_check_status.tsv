@@ -1,0 +1,5 @@
+chro_-q	py-conbyte_cvc4lib_int-wsgiref_check_status	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-wsgiref_check_status/0.smt2	unknown		0.124	0.11	54716	0
+chro_-q	py-conbyte_cvc4lib_int-wsgiref_check_status	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-wsgiref_check_status/1.smt2	unknown		0.049	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-wsgiref_check_status	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-wsgiref_check_status/2.smt2	unknown	nfa	0.039	0.03	54804	0
+chro_-q	py-conbyte_cvc4lib_int-wsgiref_check_status	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-wsgiref_check_status/3.smt2	unknown	nfa	0.038	0.03	54944	0
+chro_-q	py-conbyte_cvc4lib_int-wsgiref_check_status	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-wsgiref_check_status/4.smt2	unsat	presimpl int	0.031	0.01	47072	0

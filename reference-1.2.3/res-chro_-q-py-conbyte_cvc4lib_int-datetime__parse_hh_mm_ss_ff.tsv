@@ -1,0 +1,48 @@
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/0.smt2	timeout		60.024	0.02	47084	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/1.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/10.smt2	unsat	presimpl int	0.051	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/11.smt2	timeout		60.019	0.02	47008	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/12.smt2	timeout		60.006	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/13.smt2	timeout		60.012	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/14.smt2	unsat	presimpl int	0.034	0.02	47004	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/15.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/16.smt2	sat	nfa	0.195	0.10	51660	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/17.smt2	sat	under str	0.557	0.27	59016	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/18.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/19.smt2	sat	under str	0.056	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/2.smt2	timeout		60.010	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/20.smt2	sat	under str	0.051	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/21.smt2	timeout		60.018	0.02	47008	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/22.smt2	timeout		60.017	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/23.smt2	timeout		60.010	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/24.smt2	timeout		60.023	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/25.smt2	timeout		60.018	0.03	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/26.smt2	timeout		60.022	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/27.smt2	timeout		60.026	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/28.smt2	unsat	presimpl int	0.049	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/29.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/3.smt2	timeout		60.018	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/30.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/31.smt2	timeout		60.029	0.02	47008	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/32.smt2	timeout		60.020	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/33.smt2	timeout		60.011	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/34.smt2	timeout		60.031	0.02	47008	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/35.smt2	unsat	presimpl int	0.040	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/36.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/37.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/38.smt2	unsat	presimpl int	0.036	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/39.smt2	sat	under str	0.068	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/4.smt2	timeout		60.021	0.02	47016	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/40.smt2	sat	under str	0.066	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/41.smt2	sat	under str	0.099	0.05	47396	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/42.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/43.smt2	timeout		60.026	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/44.smt2	sat	under str	0.103	0.05	47616	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/45.smt2	unsat	lengths	0.070	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/46.smt2	unsat	lengths	0.065	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/47.smt2	unsat	lengths	0.055	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/5.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/6.smt2	timeout		60.007	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/7.smt2	timeout		60.005	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/8.smt2	timeout		60.006	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_hh_mm_ss_ff	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_hh_mm_ss_ff/9.smt2	unsat	lengths	0.080	0.03	47008	0
