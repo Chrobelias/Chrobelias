@@ -11,7 +11,7 @@
 
 (cram
  (applies_to bad)
- (deps ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/size02.koat_83.smt2))
+ (deps ../../tests/data/size02.koat_83.smt2))
 
 (cram
  (applies_to issue150)
@@ -34,21 +34,19 @@
  (applies_to heapsort))
 
 (cram
- (deps ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_15.smt2)
+ (deps ../../tests/data/a.03.koat_15.smt2)
  (applies_to a03koat15))
 
 (cram
- (deps
-  ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/heapsort.c.koat_29.smt2)
+ (deps ../../tests/data/heapsort.c.koat_29.smt2)
  (applies_to heapsort29))
 
 (cram
- (deps ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/a.03.koat_748.smt2)
+ (deps ../../tests/data/a.03.koat_748.smt2)
  (applies_to koat748))
 
 (cram
- (deps
-  ../../benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_311.smt2)
+ (deps ../../tests/data/realheapsort_step2.koat_311.smt2)
  (applies_to realheapsort311))
 
 (cram

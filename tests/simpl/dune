@@ -11,8 +11,7 @@
 
 (cram
  (applies_to heapsort2)
- (deps
-  %{project_root}/benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity/realheapsort_step2.koat_617.smt2))
+ (deps %{project_root}/tests/data/realheapsort_step2.koat_617.smt2))
 
 (cram
  (applies_to alpha)

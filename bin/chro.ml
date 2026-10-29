@@ -136,6 +136,21 @@ let construct_model (tys : Model.tys) env model regexes =
       in
       if Env.equal env' env then env' else saturate env'
     in
+    let prefix =
+      Env.fold prefix ~init:prefix ~f:(fun ~key ~data acc ->
+        match data, Env.lookup_int ("strlen" ^ key) prefix with
+        | TT (Ast.I, Eia.Const z), Some (Eia.Const len)
+          when Z.geq z Z.zero && Z.leq len (Z.of_int (Config.huge_path ())) ->
+          let s = Z.to_string z in
+          if String.length s > Z.to_int len
+          then acc
+          else
+            Env.set_string_exn
+              acc
+              key
+              (Eia.Str_const (String.make (Z.to_int len - String.length s) '0' ^ s))
+        | _ -> acc)
+    in
     let prefix = saturate prefix in
     let unknown_vars =
       Env.fold
@@ -157,7 +172,13 @@ let construct_model (tys : Model.tys) env model regexes =
       match seek prefix key with
       | Some value -> Map.set acc ~key ~data:value
       | None -> acc)
-    |> Map.filter_keys ~f:(Fun.negate is_internal)
+    |> Map.filter_mapi ~f:(fun ~key ~data ->
+      if not (is_internal key)
+      then Some data
+      else (
+        match Env.lookup_string key prefix with
+        | Some (Eia.Str_const s) -> Some (`Str s)
+        | _ -> None))
   in
   let prefix = "strlen" in
   let strlenvar var = prefix ^ var in
@@ -187,6 +208,12 @@ let construct_model (tys : Model.tys) env model regexes =
             if data = 0
             then []
             else
+              NfaS.filter_map regex (fun (label, q') ->
+                if
+                  Array.length label = 1 && Char.equal (Array.get label 0) Nfa.Str10.u_eos
+                then None
+                else Some (label, q'))
+              |> fun regex ->
               NfaS.path_of_len2 ~var:0 ~len:data regex
               |> function
               | Some path -> path
@@ -1518,7 +1545,7 @@ let () =
           try
             match check_sat tys shrinked_ast with
             | Unknown _ | Unsat _ -> printf "no short model\n%!"
-            | Sat (_, (_, env, get_model, _regexes)) ->
+            | Sat (_, (_, env, get_model, regexes)) ->
               (* let tys = merge_tys state in *)
                 (match get_model tys with
                  | Result.Ok model ->
