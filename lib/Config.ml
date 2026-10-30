@@ -1,6 +1,7 @@
 type config =
   { mutable antiprenex_mode : [ `All | `Push_re | `Disable ]
   ; mutable dyn_bounds : bool
+  ; mutable bound_quantifier_elim : Z.t
   ; mutable base : int option
   ; mutable dump_simpl : bool
   ; mutable dump_pre_simpl : bool
@@ -18,6 +19,7 @@ type config =
   ; mutable pre_simpl : bool
   ; mutable quiet : bool
   ; mutable simpl_alpha : bool
+  ; mutable simpl_quantifier_elim : bool
   ; mutable simpl_mono : bool
   ; mutable stop_after : [ `Pre_dpll | `Pre_simplify | `Simpl | `Solving ]
   ; mutable under_approx : int
@@ -36,6 +38,7 @@ type config =
 let config =
   { antiprenex_mode = `All
   ; dyn_bounds = true
+  ; bound_quantifier_elim = Z.of_int 1000000
   ; base = None
   ; stop_after = `Solving
   ; dump_pre_simpl = false
@@ -54,6 +57,7 @@ let config =
   ; no_str_bv = false
   ; quiet = false
   ; simpl_alpha = false
+  ; simpl_quantifier_elim = false
   ; simpl_mono = true
   ; with_check_sat = false
   ; with_info = true
@@ -266,6 +270,10 @@ Basic options:
          , Arg.Unit (fun () -> config.nielsen <- true)
          , "Nielsen transformations for word equations in the simplifier" )
        ; "-no-model", Arg.Unit (fun () -> config.no_model <- true), "Do not build models"
+       ; ( "-bqelim"
+         , Arg.String (fun s -> config.bound_quantifier_elim <- Z.of_string s)
+         , "<n>\tBound on the number of branches in quantifier elimination (DEFAULT \
+            n=1000000)" )
        ; ( "-no-over"
          , Arg.Unit (fun () -> config.over_approx <- false)
          , "Do not run the Z3 overapproximation" )
@@ -311,6 +319,9 @@ Basic options:
          , Printf.sprintf
              "<n> Search a model of at most <n> symbols (DEFAULT %d)"
              (huge_path ()) )
+       ; ( "--qelim"
+         , Arg.Unit (fun () -> config.simpl_quantifier_elim <- true)
+         , "\tApply quantifier elimination for linear systems" )
        ; ( "-sbcnt"
          , Arg.Int (fun n -> under_str_config.max_cnt <- n)
          , Printf.sprintf
