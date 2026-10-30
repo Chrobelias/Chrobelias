@@ -188,10 +188,12 @@ let construct_model (tys : Model.tys) env model regexes =
             then []
             else
               NfaS.filter_map regex (fun (label, q') ->
-                if Array.length label = 1 && Char.equal (Array.get label 0) Nfa.Str10.u_eos
+                if
+                  Array.length label = 1 && Char.equal (Array.get label 0) Nfa.Str10.u_eos
                 then None
                 else Some (label, q'))
-              |> fun regex -> NfaS.path_of_len2 ~var:0 ~len:data regex
+              |> fun regex ->
+              NfaS.path_of_len2 ~var:0 ~len:data regex
               |> function
               | Some path -> path
               | None ->
