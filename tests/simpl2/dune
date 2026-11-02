@@ -38,8 +38,7 @@
  (applies_to a03koat15))
 
 (cram
- (deps
-  ../../tests/data/heapsort.c.koat_29.smt2)
+ (deps ../../tests/data/heapsort.c.koat_29.smt2)
  (applies_to heapsort29))
 
 (cram
@@ -47,8 +46,7 @@
  (applies_to koat748))
 
 (cram
- (deps
-  ../../tests/data/realheapsort_step2.koat_311.smt2)
+ (deps ../../tests/data/realheapsort_step2.koat_311.smt2)
  (applies_to realheapsort311))
 
 (cram
