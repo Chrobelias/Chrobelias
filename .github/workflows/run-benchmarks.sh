@@ -28,7 +28,10 @@
 #   MEM_PER_RUN    MB of address space per process via ulimit -v (default 8192);
 #   NO_VMEM_LIMIT  regex of executables that get no ulimit -v (default ostrich);
 #                  these get -Xmx$OSTRICH_MEM_MB m instead;
-#   RESULTS_DIR    directory for the res-*.tsv files (default .).
+#   RESULTS_DIR    directory for the res-*.tsv files (default .);
+#   PER_SUITE      run only the first PER_SUITE instances of every suite;
+#   SAMPLE         run only every SAMPLE-th instance of every suite (the 1st,
+#                  the (SAMPLE+1)-th, ... in the order of the file names).
 
 set +e +o pipefail
 
@@ -137,6 +140,7 @@ for suite in $(find $base -type d | sort | awk '$0 !~ last "/" {print last} {las
   START_TIME=$(date +%s)
   printf '%s\n' "$suite"/*.smt2 |
     if [ "${PER_SUITE:-0}" -gt 0 ]; then head -n "$PER_SUITE"; else cat; fi |
+    if [ "${SAMPLE:-1}" -gt 1 ]; then awk -v k="$SAMPLE" 'NR % k == 1'; else cat; fi |
     parallel --will-cite --keep-order -j "$JOBS" run_one {} {%} "$suitename" |
     tee "$suitefile"
   END_TIME=$(date +%s)
