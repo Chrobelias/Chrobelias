@@ -1,0 +1,77 @@
+name: Smoke test benchmarks
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+  # TODO: drop pull_request once this job is stable.
+  pull_request:
+
+jobs:
+  smoke-benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: dockerhub
+            image: chrobelias/chrobelias-evaluation:1.2.4
+          - source: build
+            image: chrobelias-evaluation:ci
+    env:
+      IMAGE: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Pull the image
+        if: matrix.source == 'dockerhub'
+        run: docker pull "$IMAGE"
+
+      - name: Fetch the benchmarks
+        if: matrix.source == 'build'
+        run: git submodule update --init --depth 1 benchmarks/chrobelias
+
+      # Before anything writes to the workspace: COPY . takes all of it.
+      - name: Build the image
+        if: matrix.source == 'build'
+        run: |
+          docker build -f docker/Dockerfile.eval \
+            --build-arg CHRO_VERSION=v1.2.4 \
+            --build-arg REPO_COMMIT="$(git rev-parse HEAD)" \
+            --build-arg BENCH_COMMIT="$(git -C benchmarks/chrobelias rev-parse HEAD)" \
+            -t "$IMAGE" .
+
+      - name: Smoke test
+        run: |
+          docker run --rm \
+            -v "$PWD/results-smoke:/Chrobelias/results-smoke" \
+            -v "$PWD/stats-smoke:/Chrobelias/stats" \
+            "$IMAGE" /Chrobelias/smoke-test.sh
+
+      - name: Build the tables
+        run: |
+          docker run --rm \
+            -v "$PWD/results-smoke:/Chrobelias/results-smoke" \
+            -v "$PWD/tables:/Chrobelias/tables" \
+            "$IMAGE" python3 scripts/make_tables.py tables results-smoke
+          docker run --rm \
+            -v "$PWD/results-smoke:/Chrobelias/results-smoke" \
+            "$IMAGE" python3 scripts/stages_table.py results-smoke
+
+      - name: Check the output
+        run: python3 scripts/check_smoke.py results-smoke stats-smoke tables
+
+      - name: Upload the output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.source }}
+          path: |
+            results-smoke
+            stats-smoke
+            tables
