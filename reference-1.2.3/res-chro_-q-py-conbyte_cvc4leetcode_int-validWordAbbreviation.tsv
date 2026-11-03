@@ -1,0 +1,26 @@
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/0.smt2	timeout		60.021	0.02	47208	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/1.smt2	timeout		60.017	0.03	47212	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/10.smt2	timeout		60.011	0.02	47080	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/11.smt2	timeout		60.020	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/12.smt2	timeout		60.023	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/13.smt2	timeout		60.020	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/14.smt2	sat	nfa	1.152	0.58	54020	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/15.smt2	sat	under str	0.059	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/16.smt2	sat	under int	0.071	0.03	51284	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/17.smt2	sat	under str	0.054	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/18.smt2	sat	under str	0.056	0.03	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/19.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/2.smt2	timeout		60.016	0.02	47212	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/20.smt2	timeout		60.016	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/21.smt2	sat	under str	0.221	0.11	47096	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/22.smt2	sat	under str	0.309	0.15	59828	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/23.smt2	sat	under str	0.062	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/24.smt2	sat	presimpl str	0.035	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/25.smt2	sat	under str	0.059	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/3.smt2	timeout		60.011	0.02	47080	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/4.smt2	timeout		60.007	0.02	47084	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/5.smt2	timeout		60.021	0.03	47080	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/6.smt2	timeout		60.017	0.02	47084	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/7.smt2	timeout		60.008	0.03	47084	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/8.smt2	timeout		60.005	0.03	47084	124
+chro_-q	py-conbyte_cvc4leetcode_int-validWordAbbreviation	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-validWordAbbreviation/9.smt2	timeout		60.005	0.02	47080	124

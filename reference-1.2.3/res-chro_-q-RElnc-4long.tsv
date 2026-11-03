@@ -1,0 +1,30 @@
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n01.smt2	unsat	presimpl int	0.452	0.08	50552	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n02.smt2	unsat	lengths	0.066	0.03	47004	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n03.smt2	timeout		60.029	0.02	47008	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n04.smt2	timeout		60.030	0.02	47008	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n05.smt2	unsat	presimpl int	0.153	0.05	51700	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n06.smt2	timeout		60.010	0.02	47004	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n07.smt2	timeout		60.046	0.02	47004	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n08.smt2	timeout		60.034	0.02	47004	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n09.smt2	unsat	presimpl int	0.141	0.05	51488	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n10.smt2	unsat	over	0.162	0.05	52020	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n11.smt2	timeout		60.043	0.02	47008	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n12.smt2	unsat	presimpl int	0.315	0.11	52208	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n13.smt2	unsat	lengths	0.071	0.03	47004	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n14.smt2	unsat	over	0.462	0.16	52832	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n15.smt2	timeout		60.025	0.02	47008	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n16.smt2	timeout		60.025	0.03	47004	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n17.smt2	unsat	presimpl int	0.189	0.06	51900	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n18.smt2	timeout		60.067	0.02	47004	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n19.smt2	unsat	lengths	25.024	8.24	688672	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n20.smt2	unsat	presimpl int	0.862	0.15	52700	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n21.smt2	timeout		60.028	0.02	47004	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n22.smt2	timeout		60.010	0.02	47004	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n23.smt2	timeout		60.020	0.02	47008	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n24.smt2	unsat	presimpl int	0.299	0.06	50392	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n25.smt2	timeout		60.005	0.02	47008	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n26.smt2	timeout		60.014	0.02	47008	124
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n27.smt2	unsat	lengths	0.182	0.02	47004	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n28.smt2	unsat	presimpl int	0.227	0.07	49936	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n29.smt2	unsat	over	1.226	0.41	72216	0
+chro_-q	RElnc-4long	benchmarks/chrobelias/QF_SLIA/StrRElnc/RElnc-4/long/benchmark_long_v4_w02_n30.smt2	timeout		60.005	0.02	47004	124

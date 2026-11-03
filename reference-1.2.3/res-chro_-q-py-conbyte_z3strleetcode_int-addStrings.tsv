@@ -1,0 +1,4 @@
+chro_-q	py-conbyte_z3strleetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3str/leetcode_int-addStrings/26.smt2	sat	under str	0.090	0.05	47104	0
+chro_-q	py-conbyte_z3strleetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3str/leetcode_int-addStrings/32.smt2	sat	under str	0.082	0.04	47008	0
+chro_-q	py-conbyte_z3strleetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3str/leetcode_int-addStrings/41.smt2	sat	under str	0.069	0.04	47008	0
+chro_-q	py-conbyte_z3strleetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_z3str/leetcode_int-addStrings/65.smt2	sat	under str	0.092	0.05	47164	0

@@ -1,0 +1,37 @@
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs01.smt2	unknown		1.239	1.20	90664	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs02.smt2	unsat	presimpl int	0.032	0.02	47068	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs03.smt2	unknown	nfa	0.040	0.03	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs04.smt2	unknown	nfa	0.040	0.03	55468	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs05.smt2	unsat	presimpl int	0.035	0.02	47068	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs06.smt2	unsat	presimpl int	0.033	0.02	47068	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs07.smt2	timeout		62.004	0.00	1616	137
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs08.smt2	unsat	nia	0.061	0.05	66888	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs09.smt2	unknown	nfa	0.050	0.03	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs10.smt2	unknown	nfa	0.039	0.03	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs11.smt2	unsat	over	0.241	0.20	102968	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs12.smt2	unknown	nfa	0.040	0.03	55468	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs13.smt2	unknown	nfa	0.041	0.02	55468	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs14.smt2	unknown	nfa	0.040	0.02	55468	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs15.smt2	unknown	nfa	0.039	0.02	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs16.smt2	unknown	nfa	0.039	0.03	55792	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs17.smt2	unknown	nfa	0.043	0.03	55812	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs18.smt2	unsat	over	0.168	0.13	79164	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs19.smt2	unsat	over	0.182	0.17	83404	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs20.smt2	unknown	nia	6.979	6.88	186436	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs21.smt2	unsat	presimpl int	0.033	0.01	47072	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs22.smt2	unsat	presimpl int	0.032	0.02	47068	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs23.smt2	unknown		1.881	1.84	82668	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs24.smt2	unknown	nfa	0.040	0.02	55468	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs25.smt2	unsat	presimpl int	0.031	0.02	47068	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs26.smt2	unsat	presimpl int	0.032	0.02	47068	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs27.smt2	unsat	over	0.052	0.04	64348	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs28.smt2	unsat	presimpl int	0.031	0.02	47068	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs29.smt2	unknown	nfa	0.039	0.02	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs30.smt2	unknown	nfa	0.040	0.03	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs31.smt2	unknown	nfa	0.039	0.02	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs32.smt2	unknown	nfa	0.039	0.02	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs33.smt2	unknown	nfa	0.039	0.02	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs34.smt2	unknown	nfa	0.039	0.03	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs35.smt2	unknown	nfa	0.039	0.02	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs36.smt2	unknown	nfa	0.039	0.02	55464	0
+chro_-q	PURRS	benchmarks/chrobelias/QF_EIA/PURRS/purrs37.smt2	unknown	nfa	0.040	0.02	55468	0

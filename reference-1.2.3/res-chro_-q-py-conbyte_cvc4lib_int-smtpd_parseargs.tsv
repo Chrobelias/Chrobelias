@@ -1,0 +1,27 @@
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/0.smt2	unsat	presimpl str	0.041	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/1.smt2	unknown		0.056	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/10.smt2	unsat	presimpl str	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/11.smt2	unsat	presimpl str	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/12.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/13.smt2	unsat	presimpl str	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/14.smt2	unsat	presimpl int	0.060	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/15.smt2	sat	under str	0.049	0.03	47012	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/16.smt2	unknown		0.049	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/17.smt2	unsat	presimpl str	0.045	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/18.smt2	unsat	presimpl str	0.053	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/19.smt2	unsat	presimpl str	0.064	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/2.smt2	unsat	presimpl str	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/20.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/21.smt2	unsat	presimpl str	0.048	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/22.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/23.smt2	unsat	presimpl str	0.056	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/24.smt2	unknown		0.056	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/25.smt2	unsat	presimpl str	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/26.smt2	unsat	presimpl int	0.063	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/3.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/4.smt2	unknown		0.053	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/5.smt2	unknown		0.052	0.04	47012	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/6.smt2	sat	under str	0.062	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/7.smt2	sat	presimpl str	0.035	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/8.smt2	unknown		0.050	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-smtpd_parseargs	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-smtpd_parseargs/9.smt2	unsat	presimpl str	0.052	0.02	47008	0

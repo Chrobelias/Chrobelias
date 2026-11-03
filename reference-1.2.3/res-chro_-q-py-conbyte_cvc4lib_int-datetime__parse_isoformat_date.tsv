@@ -1,0 +1,8 @@
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_isoformat_date	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date/0.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_isoformat_date	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date/1.smt2	timeout		60.023	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_isoformat_date	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date/2.smt2	timeout		60.021	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_isoformat_date	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date/3.smt2	timeout		60.019	0.02	47008	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_isoformat_date	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date/4.smt2	timeout		60.011	0.02	47008	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_isoformat_date	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date/5.smt2	timeout		60.006	0.02	47012	124
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_isoformat_date	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date/6.smt2	sat	nfa	3.685	1.84	54704	0
+chro_-q	py-conbyte_cvc4lib_int-datetime__parse_isoformat_date	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-datetime__parse_isoformat_date/7.smt2	sat	under str	0.049	0.02	47008	0

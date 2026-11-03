@@ -1,0 +1,150 @@
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test1.smt2	timeout		60.016	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test10.smt2	timeout		60.020	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test11.smt2	timeout		60.043	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test12.smt2	timeout		60.028	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test13.smt2	timeout		60.053	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test14.smt2	timeout		60.021	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test15.smt2	timeout		60.036	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test16.smt2	timeout		60.028	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test17.smt2	timeout		60.033	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test18.smt2	timeout		60.037	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test19.smt2	timeout		60.034	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test2.smt2	timeout		60.018	0.03	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test20.smt2	timeout		60.056	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test21.smt2	timeout		60.046	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test22.smt2	timeout		60.055	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test23.smt2	timeout		60.055	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test24.smt2	timeout		60.055	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test25.smt2	timeout		60.042	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test3.smt2	timeout		60.064	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test4.smt2	timeout		60.025	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test5.smt2	timeout		60.020	0.01	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test6.smt2	timeout		60.048	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test7.smt2	timeout		60.050	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test8.smt2	timeout		60.043	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head-tail_test9.smt2	timeout		60.046	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test1.smt2	timeout		60.047	0.01	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test10.smt2	timeout		60.056	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test11.smt2	timeout		60.053	0.01	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test12.smt2	timeout		60.056	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test13.smt2	timeout		60.032	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test14.smt2	timeout		60.026	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test15.smt2	timeout		60.018	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test16.smt2	timeout		60.034	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test17.smt2	timeout		60.016	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test18.smt2	timeout		60.054	0.03	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test19.smt2	timeout		60.054	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test2.smt2	timeout		60.040	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test20.smt2	timeout		60.014	0.03	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test21.smt2	timeout		60.040	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test22.smt2	timeout		60.048	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test23.smt2	timeout		60.016	0.03	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test24.smt2	timeout		60.029	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test25.smt2	timeout		60.045	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test3.smt2	timeout		60.021	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test4.smt2	timeout		60.048	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test5.smt2	timeout		60.027	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test6.smt2	timeout		60.021	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test7.smt2	timeout		60.013	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test8.smt2	timeout		60.038	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_head_test9.smt2	timeout		60.037	0.01	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test1.smt2	timeout		60.021	0.03	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test10.smt2	timeout		60.052	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test11.smt2	timeout		60.011	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test12.smt2	timeout		60.021	0.02	46984	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test13.smt2	timeout		60.023	0.02	46992	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test14.smt2	timeout		60.026	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test15.smt2	timeout		60.019	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test16.smt2	timeout		60.025	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test17.smt2	timeout		60.016	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test18.smt2	sat	nfa	45.808	22.71	2689700	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test19.smt2	timeout		60.033	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test2.smt2	timeout		60.016	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test20.smt2	timeout		60.038	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test21.smt2	timeout		60.017	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test22.smt2	timeout		60.024	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test23.smt2	timeout		60.043	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test24.smt2	timeout		60.048	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test25.smt2	timeout		60.020	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test3.smt2	timeout		60.037	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test4.smt2	timeout		60.021	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test5.smt2	timeout		60.022	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test6.smt2	timeout		60.009	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test7.smt2	timeout		60.016	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test8.smt2	timeout		60.018	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/all_tail_test9.smt2	timeout		60.044	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test1.smt2	sat	nfa	9.493	4.73	252980	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test10.smt2	sat	nfa	8.277	4.13	107468	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test11.smt2	sat	nfa	52.279	25.94	197960	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test12.smt2	sat	nfa	16.353	8.02	592812	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test13.smt2	sat	nfa	17.653	8.82	215628	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test14.smt2	timeout		60.015	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test15.smt2	sat	nfa	23.697	11.83	190500	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test16.smt2	sat	nfa	6.541	3.26	158028	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test17.smt2	sat	nfa	46.465	23.20	187596	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test18.smt2	timeout		60.022	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test19.smt2	sat	nfa	9.911	4.94	163952	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test2.smt2	timeout		60.016	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test20.smt2	sat	nfa	16.466	8.08	550228	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test21.smt2	sat	nfa	4.116	2.05	76636	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test22.smt2	timeout		60.015	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test23.smt2	sat	nfa	28.976	14.26	203900	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test24.smt2	sat	nfa	4.476	2.23	178744	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test25.smt2	sat	nfa	6.256	3.11	117220	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test3.smt2	sat	nfa	11.957	5.97	163416	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test4.smt2	sat	nfa	41.762	20.76	178432	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test5.smt2	sat	nfa	8.514	4.25	128624	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test6.smt2	timeout		60.014	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test7.smt2	sat	nfa	3.133	1.57	103188	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test8.smt2	timeout		60.013	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head-tail_test9.smt2	sat	nfa	16.360	8.16	130504	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test1.smt2	sat	nfa	1.719	0.86	78068	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test10.smt2	timeout		60.024	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test11.smt2	timeout		60.014	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test12.smt2	sat	nfa	16.341	8.04	221480	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test13.smt2	sat	nfa	21.802	10.83	993020	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test14.smt2	sat	nfa	5.485	2.68	107744	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test15.smt2	timeout		60.028	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test16.smt2	sat	nfa	3.996	1.99	130492	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test17.smt2	sat	nfa	10.814	5.39	239820	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test18.smt2	timeout		60.032	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test19.smt2	sat	nfa	2.542	1.27	61088	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test2.smt2	sat	nfa	7.979	3.96	148692	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test20.smt2	sat	nfa	13.649	6.80	171400	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test21.smt2	sat	nfa	4.698	2.32	93000	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test22.smt2	sat	nfa	4.035	2.00	102808	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test23.smt2	sat	nfa	33.286	16.59	110568	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test24.smt2	sat	nfa	3.108	1.55	117268	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test25.smt2	sat	nfa	8.698	4.35	80968	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test3.smt2	timeout		60.015	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test4.smt2	timeout		60.019	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test5.smt2	sat	nfa	6.690	3.31	93248	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test6.smt2	sat	nfa	5.643	2.82	70168	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test7.smt2	sat	nfa	6.185	3.06	93800	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test8.smt2	sat	nfa	6.649	3.32	104840	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_head_test9.smt2	sat	nfa	11.114	5.51	116500	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test1.smt2	timeout		60.023	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test10.smt2	sat	nfa	25.908	12.86	173564	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test11.smt2	unsat	nfa	0.327	0.16	62276	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test12.smt2	sat	nfa	0.676	0.34	59712	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test13.smt2	sat	nfa	35.249	17.55	208836	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test14.smt2	sat	nfa	1.940	0.97	94136	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test15.smt2	sat	nfa	7.895	3.85	147032	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test16.smt2	sat	nfa	4.832	2.41	109504	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test17.smt2	sat	nfa	10.264	5.11	153756	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test18.smt2	sat	nfa	7.694	3.79	83760	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test19.smt2	sat	nfa	8.059	4.03	91876	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test2.smt2	sat	nfa	14.863	7.29	193052	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test20.smt2	sat	nfa	10.871	5.43	122504	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test21.smt2	timeout		60.051	0.02	47004	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test22.smt2	sat	nfa	6.881	3.43	99252	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test23.smt2	sat	nfa	22.183	10.93	271360	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test24.smt2	sat	nfa	10.044	4.98	134336	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test25.smt2	sat	nfa	41.848	20.89	282088	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test3.smt2	sat	nfa	14.736	7.32	143916	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test4.smt2	sat	nfa	48.835	24.12	226236	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test5.smt2	sat	nfa	7.943	3.96	99164	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test6.smt2	sat	nfa	22.100	11.03	242192	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test7.smt2	sat	nfa	8.744	4.36	159064	0
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test8.smt2	timeout		60.005	0.02	47008	124
+chro_-q	original_long	benchmarks/chrobelias/QF_SLIA/Hash2/original_long/flatten_tail_test9.smt2	sat	nfa	14.154	7.07	157812	0

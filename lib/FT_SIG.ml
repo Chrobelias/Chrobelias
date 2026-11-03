@@ -136,19 +136,21 @@ end = struct
     | Bwxor -> Expr.binop Ty.Ty_int Ty.Binop.Xor l r
   ;;
 
-  let true_ = Expr.Bool.true_
-  let false_ = Expr.Bool.false_
-  let not = Expr.Bool.not
+  let true_ = Typed.Unsafe.unwrap Typed.Bool.true_
+  let false_ = Typed.Unsafe.unwrap Typed.Bool.false_
+  let not e = Typed.(Unsafe.unwrap (Bool.not (Unsafe.wrap e)))
+  let and_ l r = Typed.(Unsafe.unwrap (Bool.and_ (Unsafe.wrap l) (Unsafe.wrap r)))
+  let or_ l r = Typed.(Unsafe.unwrap (Bool.or_ (Unsafe.wrap l) (Unsafe.wrap r)))
   let pred s = Expr.symbol (Smtml.Symbol.make_const Smtml.Ty.Ty_bool s)
 
   let land_ = function
     | [] -> false_
-    | h :: tl -> List.fold_left Expr.Bool.and_ h tl
+    | h :: tl -> List.fold_left and_ h tl
   ;;
 
   let lor_ = function
     | [] -> true_
-    | h :: tl -> List.fold_left Expr.Bool.or_ h tl
+    | h :: tl -> List.fold_left or_ h tl
   ;;
 
   let var s = Expr.symbol (Smtml.Symbol.make_var Smtml.Ty.Ty_int s)

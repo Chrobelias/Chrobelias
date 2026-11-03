@@ -1,0 +1,194 @@
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/100.smt2	unknown		27.074	26.81	8097764	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/101.smt2	unknown		27.604	26.90	8097764	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/107.smt2	unknown		27.165	26.85	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/108.smt2	unknown		27.102	26.83	8097720	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/11.smt2	unknown		26.763	26.53	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/113.smt2	unknown		27.095	26.63	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/115.smt2	unknown		26.660	26.48	8097632	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/117.smt2	unsat	presimpl str	0.151	0.11	47220	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/121.smt2	unknown		27.228	26.60	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/124.smt2	unknown		26.547	26.29	8097716	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/125.smt2	unknown		26.751	26.52	8097696	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/127.smt2	unsat	presimpl str	0.168	0.10	47220	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/13.smt2	unknown		27.373	27.08	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/134.smt2	unknown		27.958	27.02	8097624	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/136.smt2	unknown		26.967	26.76	8097628	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/139.smt2	unknown		27.045	26.72	8097612	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/141.smt2	unknown		27.126	26.87	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/142.smt2	unknown		27.428	26.70	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/144.smt2	unknown		26.749	26.54	8097672	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/146.smt2	unknown		27.145	26.57	8097664	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/147.smt2	unknown		27.284	26.82	8097672	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/151.smt2	unknown		27.696	27.33	8097664	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/154.smt2	unknown		27.131	26.68	8097800	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/157.smt2	unknown		26.775	26.32	8097652	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/158.smt2	unknown		26.942	26.72	8097656	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/159.smt2	unknown		27.078	26.56	8097688	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/16.smt2	unknown		26.906	26.68	8097752	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/164.smt2	unknown		27.208	26.60	8097652	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/166.smt2	unknown		26.683	26.47	8097648	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/167.smt2	unknown		27.521	26.99	8097756	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/168.smt2	unknown		26.729	26.49	8097652	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/172.smt2	unknown		27.075	26.47	8097672	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/181.smt2	unsat	lengths	0.310	0.18	50400	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/182.smt2	unknown		26.587	26.32	8097772	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/183.smt2	unknown		27.179	26.66	8097772	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/186.smt2	unknown		26.666	26.44	8097772	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/188.smt2	unknown		26.926	26.30	8097772	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/189.smt2	unknown		26.999	26.77	8097776	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/190.smt2	unknown		27.180	26.67	8097772	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/191.smt2	unknown		26.518	26.31	8097772	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/192.smt2	unknown		27.253	26.62	8097640	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/198.smt2	unsat	presimpl str	0.150	0.10	47244	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/199.smt2	unknown		26.995	26.63	8097784	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/2.smt2	unknown		28.014	27.59	8097716	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/20.smt2	unknown		27.707	27.04	8097636	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/203.smt2	unknown		26.765	26.44	8097788	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/209.smt2	unknown		26.571	26.35	8097784	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/21.smt2	unknown		26.930	26.57	8097636	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/210.smt2	unknown		26.863	26.28	8097788	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/211.smt2	unknown		26.573	26.27	8097784	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/212.smt2	unknown		27.015	26.71	8097784	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/217.smt2	unsat	presimpl str	0.156	0.10	47240	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/221.smt2	unknown		27.094	26.60	8097704	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/222.smt2	unknown		26.796	26.23	8097704	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/228.smt2	unknown		26.462	26.20	8097704	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/231.smt2	unknown		26.657	26.33	8097708	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/233.smt2	unknown		26.682	26.28	8097780	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/234.smt2	unsat	lengths	0.281	0.16	49552	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/235.smt2	unknown		26.942	26.36	8097732	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/236.smt2	unknown		26.805	26.57	8097732	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/238.smt2	unknown		26.515	26.27	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/240.smt2	unknown		27.213	26.64	8097744	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/243.smt2	unknown		26.803	26.53	8097736	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/244.smt2	unknown		27.146	26.56	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/249.smt2	unknown		26.764	26.43	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/250.smt2	unknown		26.272	25.96	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/253.smt2	unknown		26.577	26.28	8097716	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/254.smt2	unknown		26.968	26.33	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/257.smt2	unknown		26.574	26.34	8097716	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/259.smt2	unknown		26.523	26.09	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/26.smt2	unknown		26.856	26.60	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/262.smt2	unknown		26.898	26.51	8097720	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/264.smt2	unknown		27.108	26.54	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/265.smt2	unknown		26.300	25.90	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/27.smt2	unsat	lengths	0.569	0.31	54416	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/271.smt2	unknown		26.612	26.36	8097788	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/272.smt2	unsat	lengths	0.214	0.13	48416	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/274.smt2	unknown		26.741	26.54	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/277.smt2	unknown		26.777	26.20	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/278.smt2	unknown		26.988	26.49	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/28.smt2	unknown		27.177	26.91	8097780	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/280.smt2	unknown		26.393	26.11	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/281.smt2	unknown		27.100	26.49	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/282.smt2	unknown		26.625	26.18	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/285.smt2	unsat	lengths	0.204	0.12	48292	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/286.smt2	unknown		26.679	26.44	8097756	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/287.smt2	unknown		26.655	26.47	8097680	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/288.smt2	unknown		27.257	26.58	8097688	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/289.smt2	unsat	lengths	0.201	0.13	48324	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/29.smt2	unknown		27.355	26.90	8097656	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/290.smt2	unknown		26.253	26.02	8097736	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/292.smt2	unknown		26.624	26.22	8097764	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/294.smt2	unknown		26.553	25.99	8097780	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/297.smt2	unsat	lengths	0.199	0.13	48344	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/3.smt2	unknown		27.183	26.71	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/300.smt2	unknown		26.328	26.00	8097688	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/301.smt2	unknown		26.073	25.85	8097680	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/302.smt2	unknown		26.688	26.06	8097684	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/304.smt2	unknown		26.512	26.14	8097688	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/305.smt2	unknown		26.107	25.88	8097680	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/312.smt2	unknown		26.153	25.93	8097704	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/313.smt2	unknown		26.827	26.21	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/317.smt2	unknown		27.235	26.66	8097760	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/318.smt2	unknown		26.813	26.57	8097728	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/32.smt2	unknown		27.075	26.76	8097644	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/321.smt2	unknown		27.050	26.37	8097780	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/323.smt2	unknown		26.400	26.03	8097696	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/324.smt2	unknown		27.091	26.75	8097696	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/327.smt2	unknown		26.302	26.06	8097696	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/329.smt2	unknown		26.986	26.37	8097696	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/331.smt2	unknown		26.958	26.61	8097700	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/332.smt2	unknown		27.221	26.85	8097696	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/334.smt2	unknown		26.808	26.49	8097696	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/335.smt2	unsat	lengths	0.163	0.11	47260	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/336.smt2	unknown		26.799	26.20	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/337.smt2	unknown		26.352	25.98	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/338.smt2	unknown		26.116	25.89	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/339.smt2	unknown		27.093	26.86	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/340.smt2	unknown		26.472	25.92	8097704	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/342.smt2	unknown		26.685	26.19	8097728	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/343.smt2	unknown		25.970	25.69	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/346.smt2	unknown		26.667	26.30	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/349.smt2	unknown		26.859	26.27	8097732	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/355.smt2	unknown		26.364	25.84	8097736	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/357.smt2	unknown		26.062	25.83	8097732	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/359.smt2	unknown		26.619	26.22	8097732	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/361.smt2	unsat	lengths	0.132	0.09	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/368.smt2	unknown		26.463	25.80	8097716	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/374.smt2	unsat	presimpl str	0.095	0.08	47116	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/375.smt2	unsat	lengths	0.117	0.09	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/378.smt2	unknown		26.127	25.82	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/38.smt2	unknown		27.986	27.67	8097668	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/380.smt2	unknown		26.120	25.86	8097664	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/382.smt2	unknown		26.078	25.47	8097648	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/384.smt2	unsat	presimpl str	0.100	0.07	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/385.smt2	unknown		26.454	25.93	8097252	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/386.smt2	unknown		0.127	0.11	47116	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/388.smt2	unsat	presimpl int	0.084	0.06	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/391.smt2	unknown		0.103	0.09	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/392.smt2	unknown		0.102	0.09	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/393.smt2	unknown		0.103	0.08	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/397.smt2	unsat	presimpl int	0.090	0.07	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/398.smt2	unknown		0.097	0.09	47112	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/399.smt2	unsat	presimpl int	0.045	0.03	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/401.smt2	unknown		0.506	0.49	91276	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/402.smt2	unknown		0.106	0.09	49604	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/403.smt2	unknown		0.066	0.05	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/405.smt2	unknown		0.059	0.05	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/406.smt2	unsat	presimpl int	0.044	0.03	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/407.smt2	unsat	presimpl str	0.044	0.02	47076	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/408.smt2	unsat	presimpl int	0.045	0.03	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/41.smt2	unknown		27.028	26.76	8097676	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/410.smt2	unsat	presimpl int	0.041	0.02	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/413.smt2	unknown		0.056	0.04	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/415.smt2	unsat	presimpl int	0.040	0.03	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/416.smt2	unsat	presimpl str	0.041	0.03	47080	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/42.smt2	unknown		27.280	26.66	8097680	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/420.smt2	unknown		0.061	0.05	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/423.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/424.smt2	unsat	presimpl str	0.040	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/430.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/431.smt2	unsat	presimpl str	0.040	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/432.smt2	unsat	presimpl int	0.040	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/434.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/435.smt2	unknown		0.056	0.04	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/436.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/438.smt2	unsat	presimpl int	0.039	0.02	47012	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/44.smt2	unknown		27.268	27.03	8097756	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/45.smt2	unknown		27.438	26.93	8097736	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/49.smt2	unknown		27.086	26.74	8097676	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/50.smt2	unknown		27.280	26.68	8097788	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/52.smt2	unknown		27.393	27.12	8097676	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/53.smt2	unsat	presimpl str	0.202	0.12	47408	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/54.smt2	unsat	lengths	0.537	0.30	54016	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/56.smt2	unknown		27.227	26.83	8097688	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/57.smt2	unknown		27.293	26.89	8097660	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/59.smt2	unknown		27.155	26.55	8097636	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/6.smt2	unknown		26.906	26.68	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/60.smt2	unknown		27.278	26.94	8097576	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/65.smt2	unsat	lengths	0.512	0.28	54000	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/67.smt2	unknown		26.790	26.56	8097772	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/7.smt2	unknown		27.043	26.44	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/72.smt2	unknown		27.093	26.71	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/74.smt2	unknown		27.009	26.66	8097724	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/79.smt2	unknown		26.493	26.25	8097764	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/8.smt2	unknown		27.212	26.60	8097712	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/85.smt2	unknown		27.068	26.65	8097760	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/89.smt2	unknown		26.528	26.25	8097760	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/90.smt2	unknown		26.623	26.29	8097760	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/91.smt2	unsat	lengths	0.488	0.26	53336	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/93.smt2	unknown		26.886	26.27	8097680	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/96.smt2	unknown		26.996	26.67	8097768	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/97.smt2	unknown		25.977	25.78	8097768	0
+chro_-q	py-conbyte_cvc4lib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-ipaddress__ip_int_from_string/99.smt2	unknown		20.799	20.66	8097584	0

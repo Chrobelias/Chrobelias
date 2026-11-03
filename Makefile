@@ -8,25 +8,25 @@ test: dune test
 
 gentests: genCHCcomp22lia genTPDB_ITS_Termination genTPDB_ITS_Complexity genPURRS gen-tests-string gen-EXP
 
-genCHCcomp22lia: DIR = QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
+genCHCcomp22lia: DIR = chrobelias/QF_EIA/LoAT/CHC_Comp_22_23_LIA_Lin
 genCHCcomp22lia:
 	mkdir -p benchmarks/tests/$(DIR)
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
 	dune b @benchmarks/tests/$(DIR)/fmt --au 2> /dev/null || exit 0
 
-genTPDB_ITS_Termination: DIR = QF_LIA/LoAT/TPDB_ITS_Termination
+genTPDB_ITS_Termination: DIR = chrobelias/QF_EIA/LoAT/TPDB_ITS_Termination
 genTPDB_ITS_Termination:
 	mkdir -p benchmarks/tests/$(DIR)
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
 	dune b @benchmarks/tests/$(DIR)/fmt --au 2> /dev/null || exit 0
 
-genTPDB_ITS_Complexity: DIR = QF_LIA/LoAT/TPDB_ITS_Complexity
+genTPDB_ITS_Complexity: DIR = chrobelias/QF_EIA/LoAT/TPDB_ITS_Complexity
 genTPDB_ITS_Complexity:
 	mkdir -p benchmarks/tests/$(DIR)
 	dune exec benchmarks/gen.exe -- -ddc 5 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
 	dune b @benchmarks/tests/$(DIR)/fmt --au 2> /dev/null || exit 0
 
-genPURRS: DIR = QF_LIA/PURRS
+genPURRS: DIR = chrobelias/QF_EIA/PURRS
 genPURRS:
 	mkdir -p benchmarks/tests/$(DIR)
 	dune exec benchmarks/gen.exe -- -ddc 4 -t 2 benchmarks/$(DIR) -o benchmarks/tests/$(DIR)
@@ -133,10 +133,10 @@ gen-EXP:
 	dune b @benchmarks/tests/EXP-solver/fmt --au 2> /dev/null || exit 0
 
 promote_benchmarks: promote_benchmarks_string
-	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin
-	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Complexity
-	$(MAKE) fast -C benchmarks/tests/QF_LIA/LoAT/TPDB_ITS_Termination
-	$(MAKE) fast -C benchmarks/tests/QF_LIA/PURRS
+	$(MAKE) fast -C benchmarks/tests/chrobelias/QF_EIA/LoAT/CHC_Comp_22_23_LIA_Lin
+	$(MAKE) fast -C benchmarks/tests/chrobelias/QF_EIA/LoAT/TPDB_ITS_Complexity
+	$(MAKE) fast -C benchmarks/tests/chrobelias/QF_EIA/LoAT/TPDB_ITS_Termination
+	$(MAKE) fast -C benchmarks/tests/chrobelias/QF_EIA/PURRS
 
 gen-chrobelias:
 	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp z3 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-ln/ -b bench-chrobelias-str-ln.sh
@@ -145,10 +145,10 @@ gen-chrobelias:
 	dune exec benchmarks/gen.exe -- -ddc 6 -t 60 -opp cvc5 benchmarks/chrobelias/QF_SLIA/2025-generated-strreln/str-reln-very-huge/ -b bench-chrobelias-str-reln-very-huge.sh
 
 make_bench_scripts:
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/QF_LIA/LoAT/CHC_Comp_22_LIA_Lin -b bench_LIA_Lin.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/QF_LIA/LoAT/TPDB_ITS_Termination -b bench_Termination.sh
-	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/QF_LIA/LoAT/TPDB_ITS_Complexity -b bench_Complexity.sh
-	dune exec benchmarks/gen.exe -- -ddc 4 -t 60 -opp swine benchmarks/QF_LIA/PURRS -b bench_PURRS.sh
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/chrobelias/QF_EIA/LoAT/CHC_Comp_22_23_LIA_Lin -b bench_LIA_Lin.sh
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/chrobelias/QF_EIA/LoAT/TPDB_ITS_Termination -b bench_Termination.sh
+	dune exec benchmarks/gen.exe -- -ddc 5 -t 60 -opp swine benchmarks/chrobelias/QF_EIA/LoAT/TPDB_ITS_Complexity -b bench_Complexity.sh
+	dune exec benchmarks/gen.exe -- -ddc 4 -t 60 -opp swine benchmarks/chrobelias/QF_EIA/PURRS -b bench_PURRS.sh
 	# string
 	# dune exec benchmarks/gen.exe -- -ddc 4 -t 60 benchmarks/QF_SLIA/20230329-denghang -b bench_s_denghang.sh
 	# dune exec benchmarks/gen.exe -- -ddc 5 -t 60 benchmarks/QF_SLIA/20230329-woorpje-lu/track05 -b bench_s_woorpje-05.sh

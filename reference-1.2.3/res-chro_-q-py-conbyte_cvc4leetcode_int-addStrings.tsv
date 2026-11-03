@@ -1,0 +1,541 @@
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/0.smt2	timeout		60.016	0.02	47080	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/1.smt2	unsat	presimpl int	0.038	0.02	47080	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/10.smt2	timeout		60.011	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/100.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/101.smt2	unsat	presimpl int	0.042	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/102.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/103.smt2	timeout		60.016	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/104.smt2	timeout		60.012	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/105.smt2	timeout		60.006	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/106.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/107.smt2	unsat	presimpl int	0.037	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/108.smt2	timeout		60.018	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/109.smt2	timeout		60.006	0.03	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/11.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/110.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/111.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/112.smt2	unsat	lengths	0.088	0.05	47116	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/113.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/114.smt2	timeout		60.006	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/115.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/116.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/117.smt2	timeout		60.008	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/118.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/119.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/12.smt2	timeout		60.010	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/120.smt2	unsat	presimpl int	0.036	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/121.smt2	unsat	lengths	0.086	0.04	47244	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/122.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/123.smt2	timeout		60.022	0.03	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/124.smt2	timeout		60.015	0.02	47016	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/125.smt2	unsat	presimpl int	0.050	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/126.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/127.smt2	timeout		60.017	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/128.smt2	timeout		60.018	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/129.smt2	timeout		60.008	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/13.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/130.smt2	timeout		60.012	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/131.smt2	unsat	presimpl int	0.045	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/132.smt2	unsat	presimpl int	0.037	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/133.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/134.smt2	timeout		60.006	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/135.smt2	timeout		60.018	0.03	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/136.smt2	unsat	presimpl int	0.045	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/137.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/138.smt2	sat	under str	0.160	0.08	48164	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/139.smt2	timeout		60.011	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/14.smt2	sat	under str	0.096	0.05	47128	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/140.smt2	timeout		60.015	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/141.smt2	unsat	presimpl int	0.050	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/142.smt2	timeout		60.017	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/143.smt2	timeout		60.009	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/144.smt2	timeout		60.023	0.03	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/145.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/146.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/147.smt2	timeout		60.019	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/148.smt2	unsat	presimpl int	0.040	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/149.smt2	unsat	lengths	0.120	0.06	48120	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/15.smt2	sat	under str	0.092	0.05	47040	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/150.smt2	timeout		60.017	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/151.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/152.smt2	timeout		60.023	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/153.smt2	unsat	presimpl int	0.040	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/154.smt2	unsat	lengths	0.105	0.06	47788	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/155.smt2	timeout		60.017	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/156.smt2	timeout		60.024	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/157.smt2	unsat	presimpl int	0.039	0.03	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/158.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/159.smt2	timeout		60.021	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/16.smt2	unsat	lengths	0.071	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/160.smt2	timeout		60.009	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/161.smt2	unsat	presimpl int	0.050	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/162.smt2	unsat	lengths	0.117	0.06	47984	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/163.smt2	timeout		60.018	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/164.smt2	timeout		60.015	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/165.smt2	timeout		60.013	0.03	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/166.smt2	unsat	presimpl int	0.040	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/167.smt2	timeout		60.012	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/168.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/169.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/17.smt2	sat	under str	0.076	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/170.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/171.smt2	sat	under str	0.094	0.05	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/172.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/173.smt2	unsat	lengths	0.071	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/174.smt2	timeout		60.017	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/175.smt2	unsat	lengths	0.061	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/176.smt2	sat	under str	0.076	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/177.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/178.smt2	unsat	presimpl int	0.039	0.02	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/179.smt2	timeout		60.007	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/18.smt2	sat	under str	0.091	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/180.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/181.smt2	timeout		60.027	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/182.smt2	unsat	presimpl int	0.043	0.02	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/183.smt2	unsat	lengths	0.098	0.05	47444	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/184.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/185.smt2	timeout		60.016	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/186.smt2	timeout		60.015	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/187.smt2	unsat	presimpl int	0.046	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/188.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/189.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/19.smt2	sat	under str	0.064	0.03	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/190.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/191.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/192.smt2	timeout		60.022	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/193.smt2	timeout		60.012	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/194.smt2	unsat	presimpl int	0.049	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/195.smt2	unsat	lengths	0.097	0.05	47564	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/196.smt2	timeout		60.022	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/197.smt2	timeout		60.006	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/198.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/199.smt2	unsat	presimpl int	0.039	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/2.smt2	timeout		60.014	0.02	47084	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/20.smt2	sat	presimpl str	0.054	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/200.smt2	unsat	lengths	0.088	0.04	47248	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/201.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/202.smt2	timeout		60.014	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/203.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/204.smt2	timeout		60.008	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/205.smt2	timeout		60.024	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/206.smt2	timeout		60.020	0.03	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/207.smt2	unsat	presimpl int	0.041	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/208.smt2	unsat	lengths	0.105	0.05	47764	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/209.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/21.smt2	timeout		60.019	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/210.smt2	timeout		60.024	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/211.smt2	timeout		60.024	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/212.smt2	unsat	presimpl int	0.046	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/213.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/214.smt2	timeout		60.015	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/215.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/216.smt2	timeout		60.027	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/217.smt2	timeout		60.022	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/218.smt2	unsat	presimpl int	0.038	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/219.smt2	timeout		60.025	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/22.smt2	unsat	presimpl int	0.047	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/220.smt2	timeout		60.009	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/221.smt2	timeout		60.016	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/222.smt2	timeout		60.024	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/223.smt2	unsat	presimpl int	0.050	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/224.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/225.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/226.smt2	timeout		60.010	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/227.smt2	timeout		60.018	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/228.smt2	unsat	presimpl int	0.045	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/229.smt2	unsat	presimpl int	0.035	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/23.smt2	timeout		60.018	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/230.smt2	sat	under str	1.269	0.62	59976	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/231.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/232.smt2	timeout		60.013	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/233.smt2	unsat	presimpl int	0.038	0.03	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/234.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/235.smt2	timeout		60.022	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/236.smt2	timeout		60.014	0.02	47152	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/237.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/238.smt2	timeout		60.006	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/239.smt2	timeout		60.023	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/24.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/240.smt2	unsat	presimpl int	0.041	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/241.smt2	timeout		60.017	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/242.smt2	timeout		60.010	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/243.smt2	timeout		60.023	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/244.smt2	unsat	presimpl int	0.038	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/245.smt2	unsat	lengths	0.124	0.07	48412	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/246.smt2	timeout		60.013	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/247.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/248.smt2	timeout		60.049	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/249.smt2	unsat	presimpl int	0.047	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/25.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/250.smt2	unsat	lengths	0.115	0.06	48136	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/251.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/252.smt2	timeout		60.016	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/253.smt2	timeout		60.017	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/254.smt2	unsat	presimpl int	0.048	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/255.smt2	timeout		60.016	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/256.smt2	timeout		60.018	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/257.smt2	timeout		60.016	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/258.smt2	unsat	presimpl int	0.038	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/259.smt2	unsat	lengths	0.128	0.07	48168	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/26.smt2	unsat	presimpl int	0.039	0.02	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/260.smt2	timeout		60.016	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/261.smt2	timeout		60.023	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/262.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/263.smt2	unsat	presimpl int	0.049	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/264.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/265.smt2	timeout		60.021	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/266.smt2	timeout		60.018	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/267.smt2	unsat	presimpl int	0.046	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/268.smt2	timeout		60.012	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/269.smt2	unsat	presimpl int	0.037	0.02	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/27.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/270.smt2	unsat	presimpl str	0.055	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/271.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/272.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/273.smt2	unsat	presimpl int	0.045	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/274.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/275.smt2	unsat	presimpl str	0.038	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/276.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/277.smt2	timeout		60.015	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/278.smt2	unsat	presimpl int	0.042	0.03	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/279.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/28.smt2	timeout		60.017	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/280.smt2	timeout		60.019	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/281.smt2	timeout		60.023	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/282.smt2	unsat	presimpl int	0.038	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/283.smt2	unsat	lengths	0.102	0.05	47644	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/284.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/285.smt2	timeout		60.018	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/286.smt2	timeout		60.023	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/287.smt2	unsat	presimpl int	0.050	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/288.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/289.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/29.smt2	timeout		60.018	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/290.smt2	timeout		60.035	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/291.smt2	unsat	presimpl int	0.049	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/292.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/293.smt2	timeout		60.025	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/294.smt2	timeout		60.013	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/295.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/296.smt2	unsat	lengths	0.104	0.06	47768	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/297.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/298.smt2	timeout		60.024	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/299.smt2	timeout		60.023	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/3.smt2	timeout		60.019	0.02	47084	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/30.smt2	timeout		60.024	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/300.smt2	unsat	presimpl int	0.047	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/301.smt2	unsat	lengths	0.095	0.05	47576	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/302.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/303.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/304.smt2	timeout		60.022	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/305.smt2	unsat	presimpl int	0.038	0.03	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/306.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/307.smt2	timeout		60.023	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/308.smt2	timeout		60.023	0.03	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/309.smt2	unsat	presimpl int	0.046	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/31.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/310.smt2	unsat	lengths	0.114	0.06	48128	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/311.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/312.smt2	timeout		60.023	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/313.smt2	timeout		60.023	0.03	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/314.smt2	unsat	presimpl int	0.040	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/315.smt2	timeout		60.018	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/316.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/317.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/318.smt2	unsat	presimpl int	0.048	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/319.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/32.smt2	timeout		60.005	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/320.smt2	timeout		60.015	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/321.smt2	timeout		60.023	0.02	47152	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/322.smt2	unsat	presimpl int	0.047	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/323.smt2	unsat	lengths	0.106	0.05	47764	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/324.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/325.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/326.smt2	timeout		60.018	0.02	47152	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/327.smt2	unsat	presimpl int	0.039	0.03	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/328.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/329.smt2	timeout		60.022	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/33.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/330.smt2	timeout		60.024	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/331.smt2	timeout		60.022	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/332.smt2	timeout		60.022	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/333.smt2	unsat	presimpl int	0.052	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/334.smt2	unsat	presimpl int	0.041	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/335.smt2	timeout		60.017	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/336.smt2	timeout		60.021	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/337.smt2	timeout		60.019	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/338.smt2	unsat	presimpl int	0.047	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/339.smt2	unsat	presimpl int	0.038	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/34.smt2	timeout		60.018	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/340.smt2	timeout		60.028	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/341.smt2	timeout		60.020	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/342.smt2	timeout		60.022	0.03	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/343.smt2	unsat	presimpl int	0.046	0.02	47148	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/344.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/345.smt2	timeout		60.023	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/346.smt2	timeout		60.013	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/347.smt2	unsat	presimpl int	0.038	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/348.smt2	unsat	lengths	0.138	0.07	48408	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/349.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/35.smt2	unsat	presimpl int	0.047	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/350.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/351.smt2	timeout		60.008	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/352.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/353.smt2	unsat	lengths	0.115	0.06	48100	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/354.smt2	timeout		60.016	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/355.smt2	timeout		60.022	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/356.smt2	unsat	presimpl int	0.039	0.02	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/357.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/358.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/359.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/36.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/360.smt2	unsat	presimpl int	0.047	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/361.smt2	timeout		60.016	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/362.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/363.smt2	timeout		60.016	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/364.smt2	unsat	presimpl int	0.047	0.03	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/365.smt2	unsat	lengths	0.114	0.06	47972	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/366.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/367.smt2	timeout		60.023	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/368.smt2	timeout		60.014	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/369.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/37.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/370.smt2	timeout		60.009	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/371.smt2	timeout		60.020	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/372.smt2	timeout		60.005	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/373.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/374.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/375.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/376.smt2	timeout		60.005	0.02	47016	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/377.smt2	unsat	presimpl int	0.038	0.02	46976	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/378.smt2	timeout		60.016	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/379.smt2	timeout		60.013	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/38.smt2	timeout		60.019	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/380.smt2	unsat	presimpl int	0.041	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/381.smt2	unsat	lengths	0.122	0.06	48084	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/382.smt2	timeout		60.011	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/383.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/384.smt2	timeout		60.021	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/385.smt2	unsat	presimpl int	0.047	0.03	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/386.smt2	unsat	lengths	0.106	0.06	47700	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/387.smt2	timeout		60.013	0.02	46736	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/388.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/389.smt2	timeout		60.009	0.02	47016	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/39.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/390.smt2	unsat	presimpl int	0.038	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/391.smt2	unsat	lengths	0.096	0.06	47568	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/392.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/393.smt2	timeout		60.014	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/394.smt2	unsat	presimpl int	0.038	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/395.smt2	timeout		60.014	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/396.smt2	timeout		60.016	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/397.smt2	timeout		60.023	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/398.smt2	unsat	presimpl int	0.039	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/399.smt2	timeout		60.023	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/4.smt2	timeout		60.025	0.02	47112	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/40.smt2	unsat	presimpl int	0.036	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/400.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/401.smt2	timeout		60.027	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/402.smt2	unsat	presimpl int	0.042	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/403.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/404.smt2	timeout		60.023	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/405.smt2	unsat	presimpl int	0.048	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/406.smt2	unsat	lengths	0.116	0.06	48128	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/407.smt2	timeout		60.015	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/408.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/409.smt2	timeout		60.025	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/41.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/410.smt2	unsat	presimpl int	0.048	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/411.smt2	unsat	lengths	0.104	0.05	47796	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/412.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/413.smt2	timeout		60.023	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/414.smt2	unsat	presimpl int	0.047	0.03	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/415.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/416.smt2	timeout		60.007	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/417.smt2	timeout		60.024	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/418.smt2	unsat	presimpl int	0.047	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/419.smt2	timeout		60.019	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/42.smt2	timeout		60.007	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/420.smt2	timeout		60.009	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/421.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/422.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/423.smt2	unsat	presimpl int	0.050	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/424.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/425.smt2	timeout		60.029	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/426.smt2	timeout		60.008	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/427.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/428.smt2	unsat	presimpl int	0.040	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/429.smt2	unsat	presimpl int	0.038	0.03	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/43.smt2	timeout		60.021	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/430.smt2	timeout		60.016	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/431.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/432.smt2	timeout		60.015	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/433.smt2	unsat	presimpl int	0.056	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/434.smt2	unsat	lengths	0.153	0.07	48452	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/435.smt2	timeout		60.014	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/436.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/437.smt2	timeout		60.006	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/438.smt2	unsat	presimpl int	0.037	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/439.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/44.smt2	unsat	presimpl int	0.048	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/440.smt2	timeout		60.014	0.03	47084	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/441.smt2	timeout		60.013	0.03	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/442.smt2	unsat	presimpl int	0.039	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/443.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/444.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/445.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/446.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/447.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/448.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/449.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/45.smt2	timeout		60.021	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/450.smt2	unsat	presimpl int	0.048	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/451.smt2	timeout		60.018	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/452.smt2	timeout		60.005	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/453.smt2	timeout		60.024	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/454.smt2	unsat	presimpl int	0.037	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/455.smt2	unsat	lengths	0.120	0.06	48096	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/456.smt2	timeout		60.014	0.02	46808	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/457.smt2	timeout		60.008	0.02	46788	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/458.smt2	timeout		60.013	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/459.smt2	unsat	presimpl int	0.047	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/46.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/460.smt2	unsat	lengths	0.104	0.06	47748	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/461.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/462.smt2	timeout		60.021	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/463.smt2	timeout		60.011	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/464.smt2	unsat	presimpl int	0.047	0.03	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/465.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/466.smt2	timeout		60.015	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/467.smt2	timeout		60.020	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/468.smt2	unsat	presimpl int	0.038	0.03	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/469.smt2	timeout		60.015	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/47.smt2	timeout		60.022	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/470.smt2	timeout		60.023	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/471.smt2	timeout		60.026	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/472.smt2	unsat	presimpl int	0.048	0.03	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/473.smt2	unsat	lengths	0.128	0.07	48420	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/474.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/475.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/476.smt2	timeout		60.019	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/477.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/478.smt2	unsat	lengths	0.117	0.06	48140	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/479.smt2	timeout		60.006	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/48.smt2	timeout		60.023	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/480.smt2	timeout		60.023	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/481.smt2	unsat	presimpl int	0.049	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/482.smt2	unsat	lengths	0.116	0.06	48128	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/483.smt2	timeout		60.020	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/484.smt2	timeout		60.029	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/485.smt2	timeout		60.009	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/486.smt2	unsat	presimpl int	0.048	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/487.smt2	unsat	lengths	0.131	0.06	48428	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/488.smt2	timeout		60.018	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/489.smt2	timeout		60.015	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/49.smt2	unsat	presimpl int	0.049	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/490.smt2	timeout		60.019	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/491.smt2	unsat	presimpl int	0.041	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/492.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/493.smt2	timeout		60.022	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/494.smt2	timeout		60.025	0.03	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/495.smt2	timeout		60.025	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/496.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/497.smt2	timeout		60.006	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/498.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/499.smt2	timeout		60.011	0.02	47152	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/5.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/50.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/500.smt2	unsat	presimpl int	0.038	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/501.smt2	timeout		60.008	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/502.smt2	timeout		60.011	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/503.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/504.smt2	unsat	lengths	0.115	0.06	48096	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/505.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/506.smt2	timeout		60.023	0.02	47016	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/507.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/508.smt2	unsat	presimpl int	0.049	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/509.smt2	unsat	lengths	0.104	0.05	47748	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/51.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/510.smt2	timeout		60.021	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/511.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/512.smt2	unsat	presimpl int	0.049	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/513.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/514.smt2	timeout		60.022	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/515.smt2	timeout		60.022	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/516.smt2	unsat	presimpl int	0.048	0.03	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/517.smt2	unsat	lengths	0.114	0.06	48092	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/518.smt2	timeout		60.026	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/519.smt2	timeout		60.013	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/52.smt2	unsat	lengths	0.081	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/520.smt2	timeout		60.014	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/521.smt2	unsat	presimpl int	0.048	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/522.smt2	timeout		60.013	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/523.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/524.smt2	timeout		60.007	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/525.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/526.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/527.smt2	timeout		60.014	0.02	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/528.smt2	unsat	presimpl int	0.040	0.02	47148	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/529.smt2	unsat	lengths	0.126	0.07	48348	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/53.smt2	timeout		60.012	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/530.smt2	timeout		60.011	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/531.smt2	timeout		60.022	0.02	47152	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/532.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/533.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/534.smt2	unsat	lengths	0.122	0.06	48088	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/535.smt2	timeout		60.014	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/536.smt2	timeout		60.006	0.03	47116	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/537.smt2	unsat	presimpl int	0.046	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/538.smt2	unsat	lengths	0.132	0.07	48408	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/539.smt2	timeout		60.008	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/54.smt2	unsat	lengths	0.059	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/540.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/55.smt2	timeout		60.020	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/56.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/57.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/58.smt2	sat	under str	0.074	0.04	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/59.smt2	unsat	lengths	0.068	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/6.smt2	timeout		60.006	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/60.smt2	timeout		60.005	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/61.smt2	unsat	lengths	0.064	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/62.smt2	unsat	presimpl str	0.040	0.02	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/63.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/64.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/65.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/66.smt2	unsat	presimpl int	0.037	0.02	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/67.smt2	unsat	presimpl str	0.040	0.03	47012	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/68.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/69.smt2	sat	under str	0.060	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/7.smt2	timeout		60.018	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/70.smt2	unsat	presimpl str	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/71.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/72.smt2	unsat	presimpl int	0.042	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/73.smt2	unsat	presimpl int	0.118	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/74.smt2	unsat	presimpl int	0.037	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/75.smt2	unsat	presimpl str	0.037	0.02	47004	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/76.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/77.smt2	sat	under str	0.048	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/78.smt2	timeout		60.014	0.02	47112	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/79.smt2	unsat	presimpl int	0.041	0.02	47144	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/8.smt2	timeout		60.028	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/80.smt2	timeout		60.017	0.02	47152	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/81.smt2	timeout		60.014	0.02	47144	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/82.smt2	timeout		60.023	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/83.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/84.smt2	timeout		60.017	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/85.smt2	timeout		60.010	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/86.smt2	timeout		60.018	0.03	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/87.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/88.smt2	unsat	lengths	0.108	0.06	47752	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/89.smt2	timeout		60.013	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/9.smt2	timeout		60.025	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/90.smt2	timeout		60.016	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/91.smt2	timeout		60.014	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/92.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/93.smt2	timeout		60.014	0.02	47008	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/94.smt2	timeout		60.019	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/95.smt2	timeout		60.017	0.02	47148	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/96.smt2	unsat	presimpl int	0.049	0.03	47008	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/97.smt2	unsat	lengths	0.103	0.06	47652	0
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/98.smt2	timeout		60.005	0.02	47012	124
+chro_-q	py-conbyte_cvc4leetcode_int-addStrings	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/leetcode_int-addStrings/99.smt2	timeout		60.007	0.02	47012	124

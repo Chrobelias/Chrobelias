@@ -1,0 +1,10 @@
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/0.smt2	unknown		4.280	4.25	257216	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/1.smt2	unknown		4.464	4.30	258304	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/2.smt2	unknown		4.387	4.37	353000	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/3.smt2	unknown		4.236	4.22	341144	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/4.smt2	unknown		4.472	4.46	305984	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/5.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/6.smt2	sat	under str	0.049	0.03	47008	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/7.smt2	unknown		4.672	4.65	380640	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/8.smt2	unknown		4.638	4.62	369696	0
+chro_-q	py-conbyte_cvc4lib_int-http_parse_request	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-http_parse_request/9.smt2	unsat	presimpl int	0.068	0.02	47008	0

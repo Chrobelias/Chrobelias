@@ -33,7 +33,7 @@ jobs:
       - run: opam --version
       - run: opam exec -- ocamlopt --version
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
 

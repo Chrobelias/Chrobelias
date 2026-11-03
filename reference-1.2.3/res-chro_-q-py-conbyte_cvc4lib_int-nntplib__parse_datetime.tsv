@@ -1,0 +1,2 @@
+chro_-q	py-conbyte_cvc4lib_int-nntplib__parse_datetime	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-nntplib__parse_datetime/0.smt2	timeout		60.006	0.02	47084	124
+chro_-q	py-conbyte_cvc4lib_int-nntplib__parse_datetime	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_cvc4/lib_int-nntplib__parse_datetime/1.smt2	timeout		60.005	0.02	47084	124

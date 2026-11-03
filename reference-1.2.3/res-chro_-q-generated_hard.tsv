@@ -1,0 +1,100 @@
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_00.smt2	sat	under str	0.081	0.05	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_01.smt2	unsat	nfa	0.116	0.06	51856	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_02.smt2	sat	under str	0.089	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_03.smt2	unsat	nfa	0.142	0.08	53056	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_04.smt2	unsat	nfa	0.122	0.06	51840	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_05.smt2	unsat	nfa	0.232	0.12	57136	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_06.smt2	unsat	nfa	0.131	0.05	51060	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_07.smt2	unsat	nfa	0.154	0.08	53016	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_08.smt2	unsat	nfa	0.115	0.06	51992	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_015_045_09.smt2	sat	under str	0.088	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_00.smt2	unsat	nfa	0.150	0.08	53572	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_01.smt2	unsat	nfa	0.183	0.08	55480	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_02.smt2	sat	under str	0.248	0.13	47524	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_03.smt2	sat	under str	0.090	0.05	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_04.smt2	unsat	nfa	0.144	0.07	52992	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_05.smt2	sat	under str	0.185	0.09	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_06.smt2	sat	under str	0.106	0.05	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_07.smt2	unsat	nfa	0.166	0.07	54612	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_08.smt2	unsat	nfa	0.163	0.08	53856	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_045_075_09.smt2	sat	under str	0.150	0.07	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_00.smt2	unsat	nfa	0.151	0.07	53664	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_01.smt2	sat	under str	0.062	0.03	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_02.smt2	sat	under str	0.082	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_03.smt2	unsat	nfa	0.146	0.08	52940	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_04.smt2	sat	under str	0.111	0.05	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_05.smt2	unsat	nfa	0.179	0.08	54108	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_06.smt2	unsat	nfa	0.171	0.09	54360	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_07.smt2	sat	under str	0.087	0.03	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_08.smt2	sat	under str	0.169	0.08	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_075_105_09.smt2	unsat	nfa	0.182	0.10	56304	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_00.smt2	sat	under str	0.113	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_01.smt2	unsat	nfa	0.245	0.12	56864	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_02.smt2	sat	under str	0.087	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_03.smt2	sat	under str	0.158	0.07	47000	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_04.smt2	sat	under str	0.136	0.07	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_05.smt2	sat	under str	0.200	0.10	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_06.smt2	sat	under str	0.324	0.16	47364	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_07.smt2	unsat	nfa	0.251	0.12	57484	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_08.smt2	unsat	nfa	0.282	0.15	61648	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_105_135_09.smt2	unsat	nfa	0.178	0.09	54376	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_00.smt2	unsat	nfa	0.216	0.11	56644	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_01.smt2	sat	under str	0.255	0.12	47300	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_02.smt2	sat	under str	0.102	0.05	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_03.smt2	sat	under str	0.615	0.30	48644	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_04.smt2	sat	under str	0.138	0.07	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_05.smt2	sat	under str	0.096	0.05	47008	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_06.smt2	sat	under str	0.130	0.06	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_07.smt2	sat	under str	0.102	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_08.smt2	unsat	nfa	0.387	0.20	67072	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_135_165_09.smt2	sat	under str	0.236	0.11	47240	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_00.smt2	unsat	nfa	0.376	0.19	63152	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_01.smt2	sat	under str	1.581	0.79	49124	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_02.smt2	sat	under str	0.102	0.05	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_03.smt2	sat	under str	0.204	0.10	47204	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_04.smt2	unsat	nfa	0.259	0.12	57096	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_05.smt2	sat	nfa	0.970	0.48	65612	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_06.smt2	unsat	nfa	0.215	0.11	56836	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_07.smt2	sat	under str	0.177	0.09	47000	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_08.smt2	unsat	nfa	0.259	0.13	59140	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_165_195_09.smt2	sat	under str	0.121	0.06	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_00.smt2	sat	under str	0.136	0.07	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_01.smt2	sat	under str	0.616	0.30	48224	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_02.smt2	sat	under str	0.146	0.07	47008	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_03.smt2	unsat	nfa	0.419	0.20	67860	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_04.smt2	sat	under str	0.192	0.10	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_05.smt2	unsat	nfa	0.268	0.13	60188	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_06.smt2	sat	under str	0.228	0.11	47364	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_07.smt2	sat	under str	0.261	0.11	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_08.smt2	sat	under str	0.166	0.08	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_195_225_09.smt2	sat	under str	0.129	0.06	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_00.smt2	sat	under str	0.227	0.11	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_01.smt2	sat	under str	0.209	0.10	47096	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_02.smt2	sat	under str	0.204	0.10	47084	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_03.smt2	unsat	nfa	0.293	0.14	58564	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_04.smt2	sat	under str	0.091	0.04	47000	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_05.smt2	sat	under str	0.081	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_06.smt2	sat	under str	0.086	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_07.smt2	unsat	nfa	0.546	0.28	74528	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_08.smt2	unsat	nfa	0.436	0.22	72324	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_225_255_09.smt2	sat	nfa	6.725	3.35	113852	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_00.smt2	unsat	nfa	1.547	0.77	143384	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_01.smt2	sat	under str	0.155	0.08	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_02.smt2	unsat	nfa	0.378	0.19	63736	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_03.smt2	sat	under str	0.067	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_04.smt2	sat	under str	0.071	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_05.smt2	sat	under str	0.143	0.07	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_06.smt2	unsat	nfa	0.318	0.17	60884	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_07.smt2	unsat	nfa	0.490	0.23	65088	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_08.smt2	sat	under str	0.078	0.04	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_255_285_09.smt2	unsat	nfa	0.385	0.20	62564	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_00.smt2	sat	under str	0.146	0.06	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_01.smt2	sat	under str	0.059	0.03	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_02.smt2	sat	under str	0.264	0.13	47240	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_03.smt2	sat	under str	0.095	0.05	47004	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_04.smt2	sat	under str	1.133	0.57	49072	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_05.smt2	unsat	nfa	0.356	0.18	62400	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_06.smt2	sat	under str	0.200	0.10	47108	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_07.smt2	unsat	nfa	0.377	0.19	65332	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_08.smt2	sat	under str	0.161	0.08	47008	0
+chro_-q	generated_hard	benchmarks/chrobelias/QF_SLIA/Hash2/generated_hard/hashmod_285_315_09.smt2	sat	under str	0.113	0.06	47004	0

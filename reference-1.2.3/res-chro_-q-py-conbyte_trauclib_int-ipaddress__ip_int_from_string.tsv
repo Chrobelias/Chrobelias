@@ -1,0 +1,229 @@
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/0.smt2	unknown		26.946	26.79	8097564	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/1.smt2	unsat	lengths	0.607	0.32	55388	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/10.smt2	unknown		26.711	26.48	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/102.smt2	unknown		26.722	26.50	8097648	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/103.smt2	unknown		27.797	26.85	8097764	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/104.smt2	unsat	lengths	0.422	0.23	52800	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/105.smt2	unknown		27.198	26.89	8097728	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/106.smt2	unknown		27.096	26.89	8097628	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/109.smt2	unknown		27.174	26.97	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/110.smt2	unknown		27.656	26.79	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/111.smt2	unknown		27.078	26.72	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/112.smt2	unknown		26.815	26.57	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/114.smt2	unknown		26.933	26.70	8097720	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/116.smt2	unknown		27.293	26.54	8097728	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/118.smt2	unsat	lengths	0.405	0.23	52752	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/119.smt2	unknown		26.985	26.73	8097728	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/12.smt2	unknown		27.062	26.82	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/120.smt2	unknown		27.197	26.60	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/122.smt2	unknown		27.232	26.75	8097688	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/123.smt2	unknown		26.994	26.75	8097744	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/126.smt2	unknown		27.147	26.85	8097684	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/128.smt2	unknown		27.249	26.68	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/129.smt2	unsat	lengths	0.416	0.23	52060	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/130.smt2	unknown		26.898	26.49	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/131.smt2	unknown		26.856	26.60	8097628	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/132.smt2	unknown		26.985	26.66	8097632	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/133.smt2	unknown		27.689	26.94	8097628	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/135.smt2	unknown		27.187	26.88	8097628	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/137.smt2	unknown		26.700	26.44	8097612	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/138.smt2	unknown		26.646	26.43	8097632	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/14.smt2	unsat	lengths	0.612	0.33	54888	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/140.smt2	unsat	lengths	0.353	0.20	51584	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/143.smt2	unknown		27.228	26.63	8097660	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/145.smt2	unknown		26.872	26.33	8097772	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/148.smt2	unknown		27.054	26.67	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/149.smt2	unknown		26.784	26.45	8097660	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/15.smt2	unknown		27.634	27.01	8097644	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/150.smt2	unknown		27.362	26.92	8097660	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/152.smt2	unknown		26.556	26.32	8097656	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/153.smt2	unsat	lengths	0.340	0.19	51352	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/155.smt2	unknown		27.062	26.85	8097700	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/156.smt2	unsat	lengths	0.332	0.19	51244	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/160.smt2	unknown		27.119	26.64	8097652	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/161.smt2	unknown		27.344	26.72	8097652	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/162.smt2	unknown		26.756	26.45	8097660	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/163.smt2	unknown		26.894	26.64	8097656	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/165.smt2	unknown		27.177	26.68	8097652	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/169.smt2	unsat	presimpl str	0.180	0.10	47248	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/17.smt2	unknown		27.538	26.91	8097768	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/170.smt2	unsat	lengths	0.333	0.19	50932	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/171.smt2	unknown		26.886	26.66	8097688	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/173.smt2	unknown		26.543	26.29	8097572	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/174.smt2	unknown		27.214	26.72	8097656	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/175.smt2	unknown		27.101	26.49	8097604	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/176.smt2	unknown		26.711	26.50	8097616	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/177.smt2	unknown		26.629	26.37	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/178.smt2	unknown		27.141	26.58	8097552	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/179.smt2	unsat	presimpl str	0.151	0.10	47236	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/18.smt2	unknown		27.497	26.80	8097640	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/180.smt2	unknown		26.812	26.59	8097552	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/184.smt2	unknown		27.086	26.72	8097772	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/185.smt2	unknown		27.169	26.79	8097772	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/187.smt2	unknown		26.917	26.29	8097772	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/19.smt2	unknown		26.964	26.74	8097636	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/193.smt2	unknown		26.789	26.50	8097768	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/194.smt2	unsat	presimpl str	0.162	0.10	47240	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/195.smt2	unsat	lengths	0.295	0.17	50040	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/196.smt2	unknown		26.698	26.28	8097556	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/197.smt2	unknown		26.926	26.34	8097524	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/200.smt2	unsat	lengths	0.282	0.17	49964	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/201.smt2	unknown		26.124	25.87	8097784	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/202.smt2	unknown		26.677	26.40	8097792	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/204.smt2	unknown		27.180	26.67	8097788	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/205.smt2	unknown		27.053	26.46	8097788	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/206.smt2	unknown		26.697	26.44	8097784	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/207.smt2	unknown		26.646	26.42	8097756	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/208.smt2	unknown		27.141	26.38	8097784	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/213.smt2	unsat	presimpl str	0.145	0.10	47240	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/214.smt2	unsat	lengths	0.272	0.16	49884	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/215.smt2	unknown		26.713	26.31	8097772	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/216.smt2	unknown		26.795	26.48	8097760	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/218.smt2	unknown		26.621	26.34	8097796	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/219.smt2	unsat	lengths	0.261	0.16	49496	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/22.smt2	unknown		27.570	26.98	8097764	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/220.smt2	unknown		26.874	26.58	8097704	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/223.smt2	unknown		27.228	26.62	8097692	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/224.smt2	unknown		27.199	26.76	8097704	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/225.smt2	unknown		26.585	26.35	8097708	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/226.smt2	unknown		26.462	26.18	8097704	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/227.smt2	unknown		26.826	26.21	8097704	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/229.smt2	unknown		26.595	26.34	8097696	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/23.smt2	unknown		27.293	26.95	8097780	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/230.smt2	unknown		26.825	26.48	8097704	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/232.smt2	unsat	lengths	0.252	0.15	49336	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/237.smt2	unknown		27.181	26.58	8097740	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/239.smt2	unknown		26.578	26.34	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/24.smt2	unknown		27.270	26.87	8097640	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/241.smt2	unknown		26.954	26.67	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/242.smt2	unknown		26.671	26.42	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/245.smt2	unknown		27.091	26.45	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/246.smt2	unknown		27.217	26.76	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/247.smt2	unsat	lengths	0.245	0.15	49092	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/248.smt2	unknown		26.801	26.45	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/25.smt2	unknown		27.176	26.95	8097640	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/251.smt2	unknown		26.841	26.22	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/252.smt2	unknown		26.719	26.48	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/255.smt2	unknown		27.083	26.59	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/256.smt2	unknown		26.712	26.46	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/258.smt2	unknown		26.865	26.54	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/260.smt2	unsat	presimpl str	0.121	0.09	47176	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/261.smt2	unsat	lengths	0.231	0.14	49072	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/263.smt2	unknown		27.003	26.61	8097708	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/266.smt2	unknown		27.648	26.89	8097656	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/267.smt2	unknown		26.412	26.20	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/268.smt2	unknown		26.598	26.19	8097744	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/269.smt2	unknown		26.830	26.59	8097796	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/270.smt2	unsat	presimpl str	0.128	0.09	47144	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/273.smt2	unknown		26.831	26.15	8097720	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/275.smt2	unknown		26.141	25.90	8097672	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/276.smt2	unknown		26.752	26.43	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/279.smt2	unknown		26.243	25.99	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/283.smt2	unknown		27.202	26.40	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/284.smt2	unknown		26.141	25.91	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/291.smt2	unknown		26.635	26.24	8097768	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/293.smt2	unknown		26.295	26.06	8097760	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/295.smt2	unknown		26.940	26.30	8097780	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/296.smt2	unknown		26.589	26.28	8097784	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/298.smt2	unknown		26.763	26.11	8097684	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/299.smt2	unknown		26.706	26.28	8097680	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/30.smt2	unknown		27.103	26.82	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/303.smt2	unknown		26.459	26.19	8097680	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/306.smt2	unknown		26.756	26.31	8097684	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/307.smt2	unknown		26.554	26.16	8097680	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/308.smt2	unknown		26.918	26.45	8097680	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/309.smt2	unknown		26.612	26.29	8097692	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/31.smt2	unknown		27.627	26.97	8097648	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/310.smt2	unsat	presimpl str	0.116	0.09	47112	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/311.smt2	unsat	lengths	0.187	0.12	48072	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/314.smt2	unknown		26.812	26.49	8097664	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/315.smt2	unknown		26.796	26.48	8097652	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/316.smt2	unknown		26.630	26.34	8097776	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/319.smt2	unknown		26.764	26.35	8097664	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/320.smt2	unsat	presimpl str	0.125	0.09	47112	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/322.smt2	unsat	lengths	0.163	0.11	47428	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/325.smt2	unknown		26.839	26.22	8097696	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/326.smt2	unknown		27.140	26.60	8097696	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/328.smt2	unknown		26.767	26.50	8097700	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/33.smt2	unknown		27.074	26.82	8097648	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/330.smt2	unknown		26.870	26.25	8097696	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/333.smt2	unknown		26.930	26.47	8097696	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/34.smt2	unknown		26.728	26.50	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/341.smt2	unknown		26.632	26.10	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/344.smt2	unknown		26.038	25.72	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/345.smt2	unknown		26.369	25.86	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/347.smt2	unknown		26.844	26.41	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/348.smt2	unsat	lengths	0.144	0.10	47112	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/35.smt2	unknown		27.596	27.18	8097656	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/350.smt2	unknown		26.153	25.89	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/351.smt2	unknown		26.304	25.89	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/352.smt2	unknown		26.857	26.19	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/353.smt2	unknown		26.487	26.07	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/354.smt2	unknown		26.193	25.96	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/356.smt2	unknown		26.619	26.20	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/358.smt2	unknown		26.643	26.04	8097732	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/36.smt2	unknown		27.204	26.89	8097668	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/360.smt2	unknown		26.543	26.18	8097736	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/362.smt2	unknown		26.743	26.41	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/363.smt2	unknown		26.332	25.72	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/364.smt2	unknown		26.269	26.05	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/365.smt2	unknown		26.669	26.24	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/366.smt2	unknown		26.495	26.18	8097720	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/367.smt2	unknown		26.158	25.70	8097720	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/369.smt2	unknown		26.690	26.18	8097720	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/37.smt2	unknown		27.038	26.71	8097664	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/370.smt2	unknown		26.273	25.87	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/371.smt2	unknown		25.982	25.70	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/372.smt2	unknown		26.540	26.07	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/373.smt2	unknown		26.315	25.90	8097716	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/376.smt2	unknown		26.711	26.16	8097736	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/377.smt2	unknown		25.978	25.72	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/379.smt2	unknown		26.106	25.76	8097684	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/381.smt2	unknown		25.871	25.64	8097696	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/383.smt2	unknown		27.176	26.24	8097588	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/387.smt2	unsat	presimpl int	0.090	0.08	47112	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/389.smt2	unknown		0.116	0.10	47112	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/39.smt2	unknown		26.621	26.37	8097740	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/390.smt2	unknown		0.110	0.10	47116	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/394.smt2	unknown		0.101	0.09	47112	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/395.smt2	unsat	presimpl int	0.089	0.07	47108	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/396.smt2	unknown		0.106	0.10	47112	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/399.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/4.smt2	unknown		27.123	26.90	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/40.smt2	unsat	lengths	0.561	0.31	54252	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/400.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/43.smt2	unknown		27.292	26.86	8097676	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/46.smt2	unknown		27.687	27.04	8097676	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/47.smt2	unknown		27.064	26.84	8097676	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/48.smt2	unknown		27.235	26.96	8097676	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/5.smt2	unknown		27.434	26.75	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/51.smt2	unknown		27.605	27.03	8097680	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/55.smt2	unknown		27.115	26.76	8097640	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/58.smt2	unknown		27.476	26.89	8097652	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/61.smt2	unknown		27.269	27.00	8097572	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/62.smt2	unknown		27.119	26.70	8097556	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/63.smt2	unsat	presimpl str	0.196	0.12	47408	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/64.smt2	unknown		27.051	26.83	8097768	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/66.smt2	unknown		27.352	26.73	8097776	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/68.smt2	unknown		27.161	26.91	8097776	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/69.smt2	unknown		27.384	26.83	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/70.smt2	unknown		27.215	26.88	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/71.smt2	unknown		27.301	26.71	8097596	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/73.smt2	unknown		27.421	26.95	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/75.smt2	unknown		27.215	26.89	8097724	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/76.smt2	unknown		27.115	26.79	8097612	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/77.smt2	unknown		27.135	26.50	8097720	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/78.smt2	unsat	lengths	0.489	0.27	53416	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/80.smt2	unknown		26.982	26.67	8097760	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/81.smt2	unknown		26.880	26.52	8097636	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/82.smt2	unknown		26.698	26.43	8097760	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/83.smt2	unknown		27.271	26.61	8097760	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/84.smt2	unknown		26.569	26.29	8097760	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/86.smt2	unknown		27.121	26.65	8097756	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/87.smt2	unknown		26.624	26.29	8097628	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/88.smt2	unknown		27.815	27.13	8097760	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/9.smt2	unknown		27.206	26.93	8097712	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/92.smt2	unknown		26.867	26.51	8097764	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/94.smt2	unknown		25.522	25.35	8097604	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/95.smt2	unknown		24.414	24.09	8097764	0
+chro_-q	py-conbyte_trauclib_int-ipaddress__ip_int_from_string	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-ipaddress__ip_int_from_string/98.smt2	unknown		23.198	23.05	8097772	0

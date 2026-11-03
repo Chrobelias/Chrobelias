@@ -1,0 +1,23 @@
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/20.smt2	unsat	presimpl int	0.047	0.04	47280	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/21.smt2	unsat	presimpl int	0.051	0.03	47248	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/22.smt2	unsat	presimpl int	0.047	0.03	47248	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/23.smt2	unknown		0.069	0.05	47248	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/24.smt2	unknown		0.099	0.04	47164	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/27.smt2	unsat	presimpl int	0.047	0.03	47280	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/28.smt2	unsat	presimpl int	0.051	0.03	47248	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/32.smt2	unsat	presimpl int	0.034	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/33.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/34.smt2	unsat	presimpl int	0.034	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/35.smt2	unknown		0.052	0.03	47004	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/36.smt2	unsat	presimpl int	0.059	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/38.smt2	unsat	presimpl int	0.038	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/39.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/40.smt2	unsat	presimpl int	0.039	0.03	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/41.smt2	unsat	presimpl int	0.041	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/42.smt2	unknown		0.072	0.04	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/43.smt2	unsat	presimpl int	0.035	0.02	47012	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/44.smt2	unsat	presimpl int	0.035	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/45.smt2	unsat	presimpl int	0.039	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/46.smt2	unsat	presimpl int	0.036	0.02	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/47.smt2	unknown		0.052	0.04	47008	0
+chro_-q	py-conbyte_trauclib_int-email__parsedate_tz	benchmarks/chrobelias/QF_SLIA/FullStrInt/py-conbyte_trauc/lib_int-email__parsedate_tz/48.smt2	unsat	presimpl int	0.033	0.02	47012	0

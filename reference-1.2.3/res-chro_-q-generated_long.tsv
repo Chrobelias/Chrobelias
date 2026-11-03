@@ -1,0 +1,100 @@
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_00.smt2	sat	nfa	10.900	5.44	537204	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_01.smt2	sat	nfa	0.320	0.16	58080	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_02.smt2	timeout		60.013	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_03.smt2	sat	nfa	28.973	14.43	1110428	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_04.smt2	sat	nfa	18.197	8.94	1090248	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_05.smt2	sat	nfa	40.328	20.13	2046468	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_06.smt2	sat	nfa	24.596	12.04	994788	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_07.smt2	sat	nfa	38.566	19.24	1680480	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_08.smt2	sat	nfa	43.712	21.52	1624000	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_015_045_09.smt2	timeout		60.014	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_00.smt2	unsat	nfa	0.645	0.33	99584	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_01.smt2	unsat	nfa	0.227	0.12	60928	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_02.smt2	unsat	lengths	0.048	0.03	47004	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_03.smt2	unsat	nfa	0.245	0.12	61484	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_04.smt2	timeout		60.014	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_05.smt2	sat	nfa	51.694	25.77	1073432	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_06.smt2	sat	nfa	27.594	13.55	869588	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_07.smt2	sat	nfa	30.593	15.22	1355324	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_08.smt2	sat	nfa	27.465	13.47	1141864	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_045_075_09.smt2	sat	nfa	2.509	1.25	112948	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_00.smt2	timeout		60.015	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_01.smt2	timeout		60.013	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_02.smt2	timeout		60.020	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_03.smt2	unsat	lengths	0.049	0.03	47004	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_04.smt2	unsat	lengths	0.049	0.03	47004	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_05.smt2	sat	nfa	38.926	19.08	1360708	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_06.smt2	timeout		60.013	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_07.smt2	timeout		60.051	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_08.smt2	unsat	nfa	0.357	0.10	55916	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_075_105_09.smt2	sat	nfa	40.815	20.36	2022616	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_00.smt2	timeout		60.044	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_01.smt2	timeout		60.020	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_02.smt2	sat	nfa	48.487	23.85	1650032	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_03.smt2	unsat	lengths	0.145	0.02	47004	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_04.smt2	timeout		60.023	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_05.smt2	sat	nfa	28.824	14.36	1068600	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_06.smt2	sat	nfa	24.617	12.29	1102088	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_07.smt2	sat	nfa	38.958	19.16	1450624	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_08.smt2	timeout		60.017	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_105_135_09.smt2	timeout		60.024	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_00.smt2	timeout		60.013	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_01.smt2	timeout		60.015	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_02.smt2	timeout		60.010	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_03.smt2	timeout		60.024	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_04.smt2	timeout		60.025	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_05.smt2	sat	nfa	38.052	18.70	1246112	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_06.smt2	timeout		60.021	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_07.smt2	timeout		60.048	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_08.smt2	sat	nfa	7.397	3.61	253624	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_135_165_09.smt2	sat	nfa	3.696	1.84	165952	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_00.smt2	sat	nfa	26.128	12.99	1139836	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_01.smt2	timeout		60.014	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_02.smt2	sat	nfa	54.195	27.01	1856228	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_03.smt2	timeout		60.056	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_04.smt2	sat	nfa	41.409	20.64	1832516	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_05.smt2	timeout		60.014	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_06.smt2	unsat	nfa	0.454	0.23	75544	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_07.smt2	timeout		60.015	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_08.smt2	timeout		60.020	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_165_195_09.smt2	timeout		60.045	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_00.smt2	timeout		60.026	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_01.smt2	unsat	lengths	0.049	0.03	47004	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_02.smt2	timeout		60.011	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_03.smt2	timeout		60.020	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_04.smt2	sat	nfa	23.537	11.66	628752	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_05.smt2	timeout		60.018	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_06.smt2	sat	nfa	14.035	7.01	702272	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_07.smt2	timeout		60.019	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_08.smt2	sat	nfa	11.713	5.83	374440	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_195_225_09.smt2	sat	nfa	35.876	17.90	813132	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_00.smt2	sat	nfa	59.479	29.67	1558180	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_01.smt2	unsat	nfa	0.270	0.14	60264	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_02.smt2	timeout		60.024	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_03.smt2	timeout		60.012	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_04.smt2	sat	nfa	7.587	3.76	224032	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_05.smt2	timeout		60.024	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_06.smt2	timeout		60.024	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_07.smt2	sat	nfa	3.404	1.61	121796	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_08.smt2	timeout		60.024	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_225_255_09.smt2	unsat	nfa	1.871	0.87	168304	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_00.smt2	timeout		60.026	0.02	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_01.smt2	timeout		60.048	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_02.smt2	sat	nfa	45.828	22.86	1143124	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_03.smt2	timeout		60.015	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_04.smt2	sat	nfa	24.352	12.12	614452	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_05.smt2	sat	nfa	45.211	22.51	2030324	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_06.smt2	timeout		60.048	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_07.smt2	sat	nfa	36.070	17.91	1307024	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_08.smt2	timeout		60.012	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_255_285_09.smt2	unsat	nfa	4.480	2.18	392020	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_00.smt2	timeout		60.017	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_01.smt2	timeout		60.012	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_02.smt2	timeout		60.015	0.01	47004	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_03.smt2	timeout		60.020	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_04.smt2	sat	nfa	15.516	7.62	385412	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_05.smt2	timeout		60.027	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_06.smt2	timeout		60.020	0.02	47008	124
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_07.smt2	sat	nfa	16.491	8.18	639984	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_08.smt2	unsat	nfa	2.400	1.19	224300	0
+chro_-q	generated_long	benchmarks/chrobelias/QF_SLIA/Hash2/generated_long/hashmod_285_315_09.smt2	timeout		60.005	0.02	47008	124

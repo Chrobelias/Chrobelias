@@ -1,0 +1,30 @@
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n01.smt2	unsat	over	0.198	0.04	49584	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n02.smt2	unsat	over	0.084	0.04	49656	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n03.smt2	timeout		60.016	29.41	8100348	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n04.smt2	timeout		60.015	0.02	47004	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n05.smt2	timeout		60.015	0.02	47008	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n06.smt2	timeout		60.060	0.02	47004	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n07.smt2	unsat	lengths	0.125	0.03	47008	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n08.smt2	sat	under str	2.213	1.05	115460	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n09.smt2	unsat	over	0.120	0.04	49660	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n10.smt2	sat	nfa	10.400	5.03	127004	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n11.smt2	sat	under str	0.785	0.36	98292	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n12.smt2	timeout		60.042	0.02	47008	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n13.smt2	timeout		60.014	0.02	47008	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n14.smt2	timeout		60.018	0.02	47008	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n15.smt2	sat	under str	0.839	0.42	126828	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n16.smt2	sat	nfa	3.177	1.58	124688	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n17.smt2	timeout		60.017	0.02	47004	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n18.smt2	sat	nfa	2.177	0.97	86856	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n19.smt2	sat	under str	0.690	0.32	143932	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n20.smt2	timeout		60.020	0.02	47008	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n21.smt2	timeout		60.030	0.02	47008	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n22.smt2	timeout		60.013	0.02	47004	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n23.smt2	unsat	over	0.079	0.04	49684	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n24.smt2	sat	under str	2.892	1.39	124864	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n25.smt2	timeout		60.005	0.02	47008	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n26.smt2	timeout		60.007	0.02	47004	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n27.smt2	timeout		60.005	0.02	47008	124
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n28.smt2	unsat	over	0.081	0.04	49600	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n29.smt2	unsat	lengths	0.054	0.03	47004	0
+chro_-q	REln-4random	benchmarks/chrobelias/QF_SLIA/StrRElnc/REln-4/random/benchmark_random_v4_w02_n30.smt2	unsat	lengths	0.051	0.03	47008	0
