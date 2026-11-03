@@ -8,8 +8,6 @@ on:
   push:
     branches:
       - main
-  # TODO: drop pull_request once this job is stable.
-  pull_request:
 
 jobs:
   smoke-benchmarks:
