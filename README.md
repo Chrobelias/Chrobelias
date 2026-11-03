@@ -6,7 +6,7 @@
 
 # Chrobelias - Chrobak normal form in Exponential Linear Integer Arithmetic and Strings
 
-__ChrobELIAS__ is an smt-solver for the existential **E**xponential-**L**inear **I**nteger **A**rithmetic with regular constraints $\langle\mathbb{N}; 0, 1, +, x\mapsto 2^x, \mathscr{R}, =,\leq\rangle$.
+__Chrobelias__ is an smt-solver for the existential **E**xponential-**L**inear **I**nteger **A**rithmetic with regular constraints $\langle\mathbb{N}; 0, 1, +, x\mapsto 2^x, \mathscr{R}, =,\leq\rangle$.
 The solver implements the decision procedure for [existential generalised Semёnov arithmetic](https://arxiv.org/abs/2306.14593)
 from [Quantifier Elimination for Regular Integer Linear-Exponential Programming](https://ieeexplore.ieee.org/abstract/document/11186186),
 where Chrobak Normal Form of sub-NFAs is used to linearise exponential occurrences of the variables.
@@ -28,7 +28,7 @@ opam init --bare
 opam switch create 5.3.0+flambda --packages=ocaml-variants.5.3.0+options,ocaml-option-flambda --yes
 ```
 
-ChrobELIAS is built as follows:
+Chrobelias is built as follows:
 
 ```bash
 # Clone the Chrobelias repository.
@@ -40,7 +40,7 @@ cd Chrobelias
 # Initialize submodules with the benchmarks.
 git submodule update --init --recursive
 
-# Installing ChrobELIAS dependencies.
+# Installing Chrobelias dependencies.
 opam install . --deps-only --with-test
 
 # Building the project and its tests.
@@ -59,7 +59,7 @@ Supports `.smt2` files with
 ./_build/default/bin/chro.exe <path-to-smt2-file>
 ```
 
-Simple `.smt2` files for ChrobELIAS can be found in [benchmarks](https://github.com/Chrobelias/Chrobelias/tree/main/benchmarks) and [examples](https://github.com/Chrobelias/Chrobelias/tree/main/examples).
+Simple `.smt2` files for Chrobelias can be found in [benchmarks](https://github.com/Chrobelias/Chrobelias/tree/main/benchmarks) and [examples](https://github.com/Chrobelias/Chrobelias/tree/main/examples).
 
 ### Debug output
 
@@ -99,7 +99,7 @@ The available tracers are `alpha`, `ast`, `chro`, `DPLL`, `env`, `LICS`, `me`,
 - M. R. Starchak. [Quantifier Elimination for Regular Integer Linear-Exponential Programming](https://ieeexplore.ieee.org/document/11186186), In _Proc. of LICS'25_, Singapore, 2025, pp. 44-56.
 ## Benchmarks
 
-For evaluation of ChrobELIAS on several `QF_EIA` and `QF_SLIA` benchmarks, see [Docker evaluation image available on DockerHub](https://hub.docker.com/repository/docker/chrobelias/chrobelias-evaluation). More information at [BENCHES.md](BENCHES.md).
+For evaluation of Chrobelias on several `QF_EIA` and `QF_SLIA` benchmarks, see [Docker evaluation image available on DockerHub](https://hub.docker.com/repository/docker/chrobelias/chrobelias-evaluation). More information at [BENCHES.md](BENCHES.md).
 
 Benchmark sets can be accessed and cloned as Git submodules using the following command:
 
