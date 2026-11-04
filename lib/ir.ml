@@ -1640,6 +1640,22 @@ let simpl_quantifiers ir =
   aux ir
 ;;
 
+let%expect_test "qelim eliminates purely-linear vars, keeps exponents" =
+  let poly l = Map.of_alist_exn (List.map (fun (k, v) -> k, Z.of_int v) l) in
+  let ir =
+    exists
+      [ Var "x3"; Var "x4" ]
+      (land_
+         [ Rel (Eq, poly [ Var "x3", 1; Pow2 "x1", 1 ], Z.of_int 5)
+         ; Rel (Leq, poly [ Var "x4", 1; Pow2 "x2", 1 ], Z.of_int 10)
+         ; Rel (Leq, poly [ Var "x3", 1; Var "x4", 1 ], Z.of_int 3)
+         ])
+  in
+  Format.printf "%a@." pp (simpl_quantifiers ir);
+  [%expect
+    {| ((( = 0) & ( = 0) & (-1_slack_2 + 1pow2(x1) + 1pow2(x2) <= -1)) | (( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -1) & ( = 0)) | ((-1pow2(x1) =(mod -1) -2) & ( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -12) & ( = 0)) | ((-1pow2(x2) =(mod 1) -10) & (-1pow2(x1) + -1pow2(x2) <= -1) & ( = 0) & ( = 0))) |}]
+;;
+
 (** Habermehl's 2024 monotonicity simplification  *)
 let simpl_monotonicty e ir =
   let is_bounded qvar ir =
