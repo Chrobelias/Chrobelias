@@ -19,7 +19,11 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - "alpine:latest"
+          # Not latest: the musl 1.2.6 of Alpine 3.24 makes the static binary of
+          # OCaml 5.3 abort at startup on Intel CPUs with AMX, because the
+          # runtime asks for a too small signal stack (fixed in OCaml 5.5.1,
+          # ocaml/ocaml#14933).
+          - "alpine:3.23"
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.os }}
