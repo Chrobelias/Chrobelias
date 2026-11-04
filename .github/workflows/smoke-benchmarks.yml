@@ -38,11 +38,7 @@ jobs:
       - name: Build the image
         if: matrix.source == 'build'
         run: |
-          docker build -f docker/Dockerfile.eval \
-            --build-arg CHRO_VERSION=v1.2.4 \
-            --build-arg REPO_COMMIT="$(git rev-parse HEAD)" \
-            --build-arg BENCH_COMMIT="$(git -C benchmarks/chrobelias rev-parse HEAD)" \
-            -t "$IMAGE" .
+          docker build -f docker/Dockerfile.eval --build-arg CHRO_VERSION=v1.2.4 -t "$IMAGE" .
 
       - name: Smoke test
         run: |
