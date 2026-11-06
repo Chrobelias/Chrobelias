@@ -1656,6 +1656,184 @@ let%expect_test "qelim eliminates purely-linear vars, keeps exponents" =
     {| ((( = 0) & ( = 0) & (-1_slack_2 + 1pow2(x1) + 1pow2(x2) <= -1)) | (( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -1) & ( = 0)) | ((-1pow2(x1) =(mod -1) -2) & ( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -12) & ( = 0)) | ((-1pow2(x2) =(mod 1) -10) & (-1pow2(x1) + -1pow2(x2) <= -1) & ( = 0) & ( = 0))) |}]
 ;;
 
+let%test_module "gaussqe (IR)" =
+  (module struct
+    let poly l = Map.of_alist_exn (List.map (fun (k, v) -> k, Z.of_int v) l)
+    let show ir = Format.printf "%a@." pp ir
+
+    let%expect_test "coeff_of_var" =
+      let ph = poly [ Var "x", 2; Var "y", 1 ] in
+      List.iter
+        (fun v -> Format.printf "%s@." (Z.to_string (coeff_of_var (Var v) ph)))
+        [ "y"; "x"; "z" ];
+      [%expect
+        {|
+        1
+        2
+        0
+        |}]
+    ;;
+
+    let%expect_test "var_exists" =
+      let ph =
+        [ Rel (Eq, poly [ Var "x", 2; Var "y", 1 ], Z.of_int 1)
+        ; Rel (Eq, poly [ Var "x", 1; Var "y", 2; Var "z", 1 ], Z.of_int 3)
+        ; Rel (Eq, poly [ Var "y", 1; Var "z", 2 ], Z.of_int 3)
+        ]
+      in
+      List.iter
+        (fun v -> Format.printf "%b@." (var_exists (Var v) ph))
+        [ "y"; "x"; "z"; "q" ];
+      [%expect
+        {|
+        true
+        true
+        true
+        false
+        |}]
+    ;;
+
+    let%expect_test "find_var_and_coeff" =
+      let ph =
+        [ Rel (Eq, poly [ Var "x", 2; Var "y", 1 ], Z.of_int 1)
+        ; Rel (Eq, poly [ Var "x", 1; Var "y", 2; Var "z", 1 ], Z.of_int 3)
+        ; Rel (Eq, poly [ Var "y", 1; Var "z", 2 ], Z.of_int 3)
+        ]
+      in
+      List.iter
+        (fun c ->
+           match find_var_and_coeff (Var "y") c with
+           | Some (coeff, tau, const) ->
+             Format.printf
+               "coeff=%s tau=%a const=%s@."
+               (Z.to_string coeff)
+               pp_polynom
+               tau
+               (Z.to_string const)
+           | None -> Format.printf "None@.")
+        ph;
+      [%expect
+        {|
+        coeff=1 tau=((* 2 x) )
+         const=1
+        coeff=2 tau=((+ x z ) )
+         const=3
+        coeff=1 tau=((* 2 z) )
+         const=3
+        |}]
+    ;;
+
+    let%expect_test "slack_vars_in_poly" =
+      let show_slacks p =
+        Format.printf
+          "[%a]@."
+          (Format.pp_print_list ~pp_sep:Format.pp_print_space Format.pp_print_string)
+          (slack_vars_in_poly p)
+      in
+      show_slacks (poly [ Var "x", 2; Var "y", 1; Var "_slack_1", 1 ]);
+      show_slacks (poly [ Var "x", 2; Var "y", 1; Var "_slack_2", 1 ]);
+      show_slacks (poly [ Var "x", 2; Var "y", 1 ]);
+      [%expect
+        {|
+        [_slack_1]
+        [_slack_2]
+        []
+        |}]
+    ;;
+
+    let%expect_test "divide_constraint_by_int" =
+      (* 2 | (4z - 6) *)
+      show
+        (divide_constraint_by_int
+           (Z.of_int 2)
+           (Rel (Div (Z.of_int 4), poly [ Var "z", 2 ], Z.of_int (-6))));
+      (* (4x - 6 = 0) / 2 *)
+      show
+        (divide_constraint_by_int
+           (Z.of_int 2)
+           (Rel (Eq, poly [ Var "x", 4 ], Z.of_int (-6))));
+      (* (4x - 6 = 0) / 3 : not exact (AST returned None, IR truncates) *)
+      show
+        (divide_constraint_by_int
+           (Z.of_int 3)
+           (Rel (Eq, poly [ Var "x", 4 ], Z.of_int (-6))));
+      [%expect
+        {|
+        (1z =(mod 2) -6)
+        (2x = -3)
+        (1x = -2)
+        |}]
+    ;;
+
+    let%expect_test "bound_ok" =
+      let atoms = [ Var "x0"; Var "x1" ] in
+      let conj =
+        land_
+          [ Rel (Eq, poly [ Var "x0", -1; Var "x1", -1 ], Z.of_int (-22))
+          ; Rel (Eq, poly [ Var "x0", -4; Var "x1", -3 ], Z.of_int (-76))
+          ]
+      in
+      Format.printf "%b@." (bound_ok atoms conj (Z.of_int 4));
+      Format.printf "%b@." (bound_ok atoms conj (Z.of_int 3));
+      [%expect
+        {|
+        true
+        false
+        |}]
+    ;;
+
+    let%expect_test "simpl_quantifiers: one var" =
+      show
+        (simpl_quantifiers
+           (exists
+              [ Var "x0" ]
+              (land_
+                 [ Rel (Eq, poly [ Var "x0", -1 ], Z.of_int (-55))
+                 ; Rel (Eq, poly [ Var "x0", 4; Var "x1", -1 ], Z.of_int 217)
+                 ])));
+      [%expect {| ((( = 0) & (1x1 = 3)) | ((-1x1 =(mod 4) 0) & (-1x1 = -3) & ( = 0))) |}]
+    ;;
+
+    let%expect_test "simpl_quantifiers: two vars, unique solution" =
+      show
+        (simpl_quantifiers
+           (exists
+              [ Var "x0"; Var "x1" ]
+              (land_
+                 [ Rel (Eq, poly [ Var "x0", -1; Var "x1", -1 ], Z.of_int (-22))
+                 ; Rel (Eq, poly [ Var "x0", -4; Var "x1", -3 ], Z.of_int (-76))
+                 ])));
+      [%expect
+        {| ((( =(mod 1) -12) & ( = 0) & ( = 0)) | (( =(mod -1) 36) & ( = 0) & ( = 0))) |}]
+    ;;
+
+    let%expect_test "simpl_quantifiers: positive pivot" =
+      show
+        (simpl_quantifiers
+           (exists
+              [ Var "x0" ]
+              (land_
+                 [ Rel (Eq, poly [ Var "x0", 1 ], Z.of_int 6)
+                 ; Rel (Eq, poly [ Var "x0", -4; Var "x1", 1 ], Z.of_int 29)
+                 ])));
+      [%expect {| ((( = 0) & (1x1 = 53)) | ((1x1 =(mod 4) 0) & (-1x1 = -53) & ( = 0))) |}]
+    ;;
+
+    let%expect_test "simpl_quantifiers: free var on rhs" =
+      show
+        (simpl_quantifiers
+           (exists
+              [ Var "x0"; Var "x1" ]
+              (land_
+                 [ Rel (Eq, poly [ Var "x0", 2; Var "x1", 3 ], Z.of_int 1)
+                 ; Rel (Eq, poly [ Var "x0", 5; Var "x1", 7; Var "z", -1 ], Z.zero)
+                 ])));
+      [%expect
+        {| (((3z =(mod -1) 15) & ( = 0) & ( = 0)) | ((-3z =(mod 1) -35) & ( = 0) & ( = 0))) |}]
+    ;;
+  end)
+;;
+
 (** Habermehl's 2024 monotonicity simplification  *)
 let simpl_monotonicty e ir =
   let is_bounded qvar ir =
