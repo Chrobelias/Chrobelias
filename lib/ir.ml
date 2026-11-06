@@ -1516,16 +1516,15 @@ let eliminate_existence_quantifier_branches (ir : t) =
     let branch =
       List.map
         (function
-          | Rel (Eq, poly, c) as t -> begin
+          | Rel (Eq, poly, rhs) as t -> begin
             slack_vars_in_poly poly
-            |> List.find_opt (fun x -> Map.mem subst x)
+            |> List.find_opt (fun x -> not (Map.mem subst x))
             |> function
             | Some varname ->
               let poly' = Map.remove poly (Var varname) in
-              begin match coeff_of_var (Var varname) poly with
-              | coeff when coeff > Z.zero -> Rel (Leq, poly', c)
-              | c -> Rel (Leq, Map.map poly' ~f:(Z.mul Z.minus_one), c)
-              end
+              if Z.gt (coeff_of_var (Var varname) poly) Z.zero
+              then Rel (Leq, poly', rhs)
+              else Rel (Leq, Map.map poly' ~f:Z.neg, Z.neg rhs)
             | None -> t
             end
           | t -> t)
@@ -1826,7 +1825,7 @@ let%test_module "gaussqe (IR)" =
       in
       Format.printf "%a@." pp (simpl_quantifiers ir);
       [%expect
-        {| ((( = 0) & ( = 0) & (-1_slack_2 + 1pow2(x1) + 1pow2(x2) <= -1)) | (( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -1) & ( = 0)) | (( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -12) & ( = 0)) | ((-1pow2(x1) + -1pow2(x2) <= -1) & ( = 0) & ( = 0))) |}]
+        {| ((( = 0) & ( = 0) & (-1pow2(x1) + -1pow2(x2) <= -12)) | (( = 0) & (1pow2(x1) + 1pow2(x2) <= 12) & ( = 0)) | (( = 0) & (1pow2(x1) + 1pow2(x2) <= 12) & ( = 0)) | ((1pow2(x1) + 1pow2(x2) = 12) & ( = 0) & ( = 0))) |}]
     ;;
   end)
 ;;
