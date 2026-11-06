@@ -144,3 +144,10 @@ let z3_check_with_restarts ?logic ~budget_ms assumptions =
     ~finally:(fun () -> ignore (make ~timeout:budget_ms ~seed:42))
     (fun () -> loop 1 0)
 ;;
+
+let gensym =
+  let n = ref 0 in
+  fun ?(prefix = "eee") () ->
+    incr n;
+    Printf.sprintf "%s%d" prefix !n
+;;

@@ -26,3 +26,5 @@ val z3_check_with_restarts
   -> budget_ms:int
   -> Smtml.Expr.t list
   -> [ `Sat of Smtml.Z3_mappings.solver | `Unsat | `Unknown ]
+
+val gensym : ?prefix:string -> unit -> string
