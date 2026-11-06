@@ -1543,7 +1543,7 @@ let eliminate_existence_quantifier_branches (ir : t) =
       | h :: tl -> loop env phi tl
     in
     let helper_filter = function
-      | Rel (Div o, _, z) when Z.(o = one && z = zero) -> false
+      | Rel (Div o, _, _) when Z.equal (Z.abs o) Z.one -> false
       | True -> false
       | t -> true
     in
@@ -1638,26 +1638,11 @@ let simpl_quantifiers ir =
   aux ir
 ;;
 
-let%expect_test "qelim eliminates purely-linear vars, keeps exponents" =
-  let poly l = Map.of_alist_exn (List.map (fun (k, v) -> k, Z.of_int v) l) in
-  let ir =
-    exists
-      [ Var "x3"; Var "x4" ]
-      (land_
-         [ Rel (Eq, poly [ Var "x3", 1; Pow2 "x1", 1 ], Z.of_int 5)
-         ; Rel (Leq, poly [ Var "x4", 1; Pow2 "x2", 1 ], Z.of_int 10)
-         ; Rel (Leq, poly [ Var "x3", 1; Var "x4", 1 ], Z.of_int 3)
-         ])
-  in
-  Format.printf "%a@." pp (simpl_quantifiers ir);
-  [%expect
-    {| ((( = 0) & ( = 0) & (-1_slack_2 + 1pow2(x1) + 1pow2(x2) <= -1)) | (( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -1) & ( = 0)) | ((-1pow2(x1) =(mod -1) -2) & ( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -12) & ( = 0)) | ((-1pow2(x2) =(mod 1) -10) & (-1pow2(x1) + -1pow2(x2) <= -1) & ( = 0) & ( = 0))) |}]
-;;
-
 let%test_module "gaussqe (IR)" =
   (module struct
     let poly l = Map.of_alist_exn (List.map (fun (k, v) -> k, Z.of_int v) l)
-    let show ir = Format.printf "%a@." pp ir
+    let show ir = Format.printf "%a@." pp (simpl ir)
+    let show_raw ir = Format.printf "%a@." pp ir
 
     let%expect_test "coeff_of_var" =
       let ph = poly [ Var "x", 2; Var "y", 1 ] in
@@ -1741,17 +1726,17 @@ let%test_module "gaussqe (IR)" =
 
     let%expect_test "divide_constraint_by_int" =
       (* 2 | (4z - 6) *)
-      show
+      show_raw
         (divide_constraint_by_int
            (Z.of_int 2)
            (Rel (Div (Z.of_int 4), poly [ Var "z", 2 ], Z.of_int (-6))));
       (* (4x - 6 = 0) / 2 *)
-      show
+      show_raw
         (divide_constraint_by_int
            (Z.of_int 2)
            (Rel (Eq, poly [ Var "x", 4 ], Z.of_int (-6))));
       (* (4x - 6 = 0) / 3 : not exact (AST returned None, IR truncates) *)
-      show
+      show_raw
         (divide_constraint_by_int
            (Z.of_int 3)
            (Rel (Eq, poly [ Var "x", 4 ], Z.of_int (-6))));
@@ -1789,7 +1774,7 @@ let%test_module "gaussqe (IR)" =
                  [ Rel (Eq, poly [ Var "x0", -1 ], Z.of_int (-55))
                  ; Rel (Eq, poly [ Var "x0", 4; Var "x1", -1 ], Z.of_int 217)
                  ])));
-      [%expect {| ((( = 0) & (1x1 = 3)) | ((-1x1 =(mod 4) 0) & (-1x1 = -3) & ( = 0))) |}]
+      [%expect {| ((1x1 = 3) | ((-1x1 =(mod 4) 0) & (-1x1 = -3))) |}]
     ;;
 
     let%expect_test "simpl_quantifiers: two vars, unique solution" =
@@ -1801,8 +1786,7 @@ let%test_module "gaussqe (IR)" =
                  [ Rel (Eq, poly [ Var "x0", -1; Var "x1", -1 ], Z.of_int (-22))
                  ; Rel (Eq, poly [ Var "x0", -4; Var "x1", -3 ], Z.of_int (-76))
                  ])));
-      [%expect
-        {| ((( =(mod 1) -12) & ( = 0) & ( = 0)) | (( =(mod -1) 36) & ( = 0) & ( = 0))) |}]
+      [%expect {| true |}]
     ;;
 
     let%expect_test "simpl_quantifiers: positive pivot" =
@@ -1814,7 +1798,7 @@ let%test_module "gaussqe (IR)" =
                  [ Rel (Eq, poly [ Var "x0", 1 ], Z.of_int 6)
                  ; Rel (Eq, poly [ Var "x0", -4; Var "x1", 1 ], Z.of_int 29)
                  ])));
-      [%expect {| ((( = 0) & (1x1 = 53)) | ((1x1 =(mod 4) 0) & (-1x1 = -53) & ( = 0))) |}]
+      [%expect {| ((1x1 = 53) | ((1x1 =(mod 4) 0) & (-1x1 = -53))) |}]
     ;;
 
     let%expect_test "simpl_quantifiers: free var on rhs" =
@@ -1826,8 +1810,23 @@ let%test_module "gaussqe (IR)" =
                  [ Rel (Eq, poly [ Var "x0", 2; Var "x1", 3 ], Z.of_int 1)
                  ; Rel (Eq, poly [ Var "x0", 5; Var "x1", 7; Var "z", -1 ], Z.zero)
                  ])));
+      [%expect {| true |}]
+    ;;
+
+    let%expect_test "qelim eliminates purely-linear vars, keeps exponents" =
+      let poly l = Map.of_alist_exn (List.map (fun (k, v) -> k, Z.of_int v) l) in
+      let ir =
+        exists
+          [ Var "x3"; Var "x4" ]
+          (land_
+             [ Rel (Eq, poly [ Var "x3", 1; Pow2 "x1", 1 ], Z.of_int 5)
+             ; Rel (Leq, poly [ Var "x4", 1; Pow2 "x2", 1 ], Z.of_int 10)
+             ; Rel (Leq, poly [ Var "x3", 1; Var "x4", 1 ], Z.of_int 3)
+             ])
+      in
+      Format.printf "%a@." pp (simpl_quantifiers ir);
       [%expect
-        {| (((3z =(mod -1) 15) & ( = 0) & ( = 0)) | ((-3z =(mod 1) -35) & ( = 0) & ( = 0))) |}]
+        {| ((( = 0) & ( = 0) & (-1_slack_2 + 1pow2(x1) + 1pow2(x2) <= -1)) | (( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -1) & ( = 0)) | (( = 0) & (-1_slack_1 + -1pow2(x1) + -1pow2(x2) <= -12) & ( = 0)) | ((-1pow2(x1) + -1pow2(x2) <= -1) & ( = 0) & ( = 0))) |}]
     ;;
   end)
 ;;
