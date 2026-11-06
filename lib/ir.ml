@@ -1550,16 +1550,14 @@ let eliminate_existence_quantifier_branches (ir : t) =
     let* env = loop Map.empty branch elim_vars in
     branch |> List.map (subst_ir env) |> List.filter helper_filter |> return
   in
-  (* Format.printf "%a\n" pp ir; *)
-    match ir with
-    | Exists (elim_vars, xs) ->
-      (* Format.printf "%a\n" pp xs; *)
-      begin match xs with
-      | Land conj_list -> helper conj_list elim_vars
-      | Rel (_, _, _) as rel -> helper [ rel ] elim_vars
-      | _ -> failwith "Expected a conjuction"
-      end
-    | _ -> failwith "Expected the existence quantifier"
+  match ir with
+  | Exists (elim_vars, xs) ->
+    begin match xs with
+    | Land conj_list -> helper conj_list elim_vars
+    | Rel (_, _, _) as rel -> helper [ rel ] elim_vars
+    | _ -> failwith "Expected a conjuction"
+    end
+  | _ -> failwith "Expected the existence quantifier"
 ;;
 
 let eliminate_existence_quantifier : t -> t =
