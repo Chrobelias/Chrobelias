@@ -1364,9 +1364,8 @@ let get_mod_phi_of_system =
 ;;
 
 let first_n_numbers z =
-  let last = Z.(z - one) in
-  let rec aux i acc = if i > last then List.rev acc else aux Z.(i + one) (i :: acc) in
-  aux Z.zero []
+  let rec aux i () = if Z.geq i z then Seq.Nil else Seq.Cons (i, aux Z.(i + one)) in
+  aux Z.zero
 ;;
 
 let coeff_of_var varname (poly : polynom) =
@@ -1438,16 +1437,16 @@ let substitute_vigorous_constraint varname coeff (tau_poly, tau_const) = functio
 
 let eliminate_one_var conj varname subst p l =
   let open NondeterministicMonad in
-  let eqs = List.filter_map (find_var_and_coeff varname) conj in
-  if eqs = []
+  let eqs = List.to_seq conj |> Seq.filter_map (find_var_and_coeff varname) in
+  if Seq.is_empty eqs
   then return (conj, subst, p, l)
   else
-    let* coeff, tau, const = List.to_seq eqs in
+    let* coeff, tau, const = eqs in
     let p = l in
     let l = coeff in
     let slacks = slack_vars_in_poly tau in
     let mod_phi = get_mod_phi_of_system conj in
-    let possible_vals = first_n_numbers Z.(Z.abs coeff * mod_phi) |> List.to_seq in
+    let possible_vals = first_n_numbers Z.(Z.abs coeff * mod_phi) in
     let* subst =
       if slacks = []
       then return subst
@@ -1464,9 +1463,11 @@ let eliminate_one_var conj varname subst p l =
     in
     let conj =
       conj
-      |> List.map (multiply_constraint_by_int coeff)
-      |> List.map (substitute_vigorous_constraint varname coeff (tau, const))
-      |> List.map (divide_constraint_by_int p)
+      |> List.map (fun c ->
+        c
+        |> multiply_constraint_by_int coeff
+        |> substitute_vigorous_constraint varname coeff (tau, const)
+        |> divide_constraint_by_int p)
       |> fun x -> Rel (Div (Z.abs coeff), tau, Z.zero) :: x
     in
     return (conj, subst, p, l)
@@ -1532,7 +1533,7 @@ let eliminate_existence_quantifier_branches (ir : t) =
     in
     let branch = List.map (subst_ir subst) branch in
     let mod_phi = get_mod_phi_of_system branch in
-    let possible_vals = first_n_numbers mod_phi |> List.to_seq in
+    let possible_vals = first_n_numbers mod_phi in
     let rec loop env phi = function
       | [] -> return env
       | Var key :: tl when var_exists (Var key) phi ->
@@ -1562,7 +1563,7 @@ let eliminate_existence_quantifier_branches (ir : t) =
 let eliminate_existence_quantifier : t -> t =
   fun ir ->
   let branches = eliminate_existence_quantifier_branches ir in
-  List.of_seq branches |> List.map (fun x -> land_ x) |> lor_
+  Seq.fold_left (fun acc b -> land_ b :: acc) [] branches |> List.rev |> lor_
 ;;
 
 let bound_ok (atoms : atom list) (ast : t) (bound : Z.t) : bool =
