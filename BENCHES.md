@@ -6,8 +6,8 @@ Arithmetic and String Constraints" by Georgii Belianin and Mikhail Starchak
 
 * Artifact (Zenodo): https://doi.org/10.5281/zenodo.23369563
 * Docker image (Docker Hub): https://hub.docker.com/r/chrobelias/chrobelias-evaluation
-  (`chrobelias/chrobelias-evaluation:1.2.4`, the same image as on Zenodo)
-* Source code: https://github.com/Chrobelias/Chrobelias (release `v1.2.4`)
+  (`chrobelias/chrobelias-evaluation:1.2.5`, the same image as on Zenodo)
+* Source code: https://github.com/Chrobelias/Chrobelias (release `v1.2.5`)
 * Benchmarks: https://github.com/Chrobelias/benchmarks
 * Badges applied for: **Available**, **Functional**, **Reusable**
 
@@ -18,15 +18,15 @@ exponential integer arithmetic (`QF_EIA`) and for the quantifier-free formulas o
 
 | File on Zenodo | Contents |
 |---|---|
-| `chrobelias-evaluation-1.2.4.tar.gz` | the Docker image `chrobelias/chrobelias-evaluation:1.2.4` (x86-64), also on Docker Hub |
-| `chrobelias-evaluation-1.2.4.tar.gz.sha256` | its checksum |
+| `chrobelias-evaluation-1.2.5.tar.gz` | the Docker image `chrobelias/chrobelias-evaluation:1.2.5` (x86-64), also on Docker Hub |
+| `chrobelias-evaluation-1.2.5.tar.gz.sha256` | its checksum |
 | `README.md`, `LICENSE` | this file, the licenses |
-| `chrobelias-1.2.4-src.tar.gz`, `chrobelias-1.2.2-src.tar.gz` | the source code of Chrobelias |
+| `chrobelias-1.2.5-src.tar.gz`, `chrobelias-1.2.2-src.tar.gz` | the source code of Chrobelias |
 | `paper-results.tar.gz` | the raw results: `paper-results/` (the runs reported in the paper), `reference-1.2.3/` and `reference-1.2.4/` (our runs, see [Section 6](#6-claims-of-the-paper)); the first two are also in the image |
 
 The image contains, in its working directory `/Chrobelias`:
 
-* `release/chro`: Chrobelias 1.2.4; `release/chro-1.2.2`: the version named in
+* `release/chro`: Chrobelias 1.2.5; `release/chro-1.2.2`: the version named in
   the paper;
 * `_build/default/bin/`: SwInE 0.2.0 (`swine`), cvc5 1.4.0, OSTRICH 2.1
   (`ostrich2`), Z3 5.1.0, Z3-Noodler 1.7.0, the same binaries as in the
@@ -68,16 +68,16 @@ first (this needs network access), e.g. `sudo apt-get install docker.io`.
 Load the image from the Zenodo file:
 
 ```bash
-sha256sum -c chrobelias-evaluation-1.2.4.tar.gz.sha256
-docker load -i chrobelias-evaluation-1.2.4.tar.gz
-IMG=chrobelias/chrobelias-evaluation:1.2.4
+sha256sum -c chrobelias-evaluation-1.2.5.tar.gz.sha256
+docker load -i chrobelias-evaluation-1.2.5.tar.gz
+IMG=chrobelias/chrobelias-evaluation:1.2.5
 ```
 
 or pull the same image from Docker Hub (this needs network access):
 
 ```bash
-docker pull chrobelias/chrobelias-evaluation:1.2.4
-IMG=chrobelias/chrobelias-evaluation:1.2.4
+docker pull chrobelias/chrobelias-evaluation:1.2.5
+IMG=chrobelias/chrobelias-evaluation:1.2.5
 ```
 
 Run all commands below in an empty directory whose path has no spaces. The
@@ -254,7 +254,12 @@ run including FullStrInt (Section 5.2) gives them.
 ## 7. Differences from the Paper
 
 **Version.** The paper names Chrobelias 1.2.2; the artifact runs the release
-1.2.4 (commit `a18365848`), which fixes three problems of 1.2.2:
+1.2.5 (commit `be11a9254`). Its solver code is that of 1.2.4 (commit
+`a18365848`); only the static binary is built against musl 1.2.5 instead of
+1.2.6, with which the 1.2.4 binary aborts at startup on Intel CPUs with AMX
+([#292](https://github.com/Chrobelias/Chrobelias/pull/292)). The runs of 1.2.4
+below (`reference-1.2.4/`) therefore hold for 1.2.5. 1.2.4 fixes three
+problems of 1.2.2:
 
 * [#288](https://github.com/Chrobelias/Chrobelias/pull/288): models from the
   `nia` stage printed the variables eliminated by the presimplification as 0,
@@ -355,7 +360,7 @@ solvers (`bin/cvc5`, `bin/ostrich2`, `bin/z3`, `bin/z3-noodler`,
 `bin/swine`). **New solvers** are added to `eia_solvers` or `slia_solvers` in
 `bench.sh`, and to `CONFIGS` in `scripts/make_tables.py` for a column heading.
 
-**Building from source.** `chrobelias-1.2.4-src.tar.gz` contains the OCaml
+**Building from source.** `chrobelias-1.2.5-src.tar.gz` contains the OCaml
 source (`lib/`: the solver, `bin/chro.ml`: the command-line tool, `tests/`:
 the cram tests). It builds with OCaml 5.3 and opam (network access is needed
 for the opam packages):

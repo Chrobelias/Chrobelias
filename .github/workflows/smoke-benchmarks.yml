@@ -8,6 +8,18 @@ on:
   push:
     branches:
       - main
+  # Only for the files the smoke test runs.
+  pull_request:
+    paths:
+      - .github/workflows/smoke-benchmarks.yml
+      - .github/workflows/run-benchmarks.sh
+      - .github/workflows/stat-benchmarks.sh
+      - .dockerignore
+      - docker/**
+      - bench.sh
+      - smoke-test.sh
+      - scripts/**
+      - benchmarks/chrobelias
 
 jobs:
   smoke-benchmarks:
@@ -18,12 +30,18 @@ jobs:
       matrix:
         include:
           - source: dockerhub
-            image: chrobelias/chrobelias-evaluation:1.2.4
+            image: chrobelias/chrobelias-evaluation:1.2.5
           - source: build
             image: chrobelias-evaluation:ci
     env:
       IMAGE: ${{ matrix.image }}
     steps:
+      # Chrobelias built with musl 1.2.6 aborts on CPUs with AMX (#292).
+      - name: CPU
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          echo "amx: $(grep -ow 'amx_[a-z0-9]*' /proc/cpuinfo | sort -u | tr '\n' ' ')"
+
       - uses: actions/checkout@v6
 
       - name: Pull the image
@@ -39,7 +57,7 @@ jobs:
         if: matrix.source == 'build'
         run: |
           docker build -f docker/Dockerfile.eval \
-            --build-arg CHRO_VERSION=v1.2.4 \
+            --build-arg CHRO_VERSION=v1.2.5 \
             --build-arg REPO_COMMIT="$(git rev-parse HEAD)" \
             --build-arg BENCH_COMMIT="$(git -C benchmarks/chrobelias rev-parse HEAD)" \
             -t "$IMAGE" .
