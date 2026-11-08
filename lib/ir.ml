@@ -1741,7 +1741,7 @@ let%test_module "gaussqe (IR)" =
            (Rel (Eq, poly [ Var "x", 4 ], Z.of_int (-6))));
       [%expect
         {|
-        (1z =(mod 2) -6)
+        (1z =(mod 2) -3)
         (2x = -3)
         (1x = -2)
         |}]
@@ -1773,7 +1773,7 @@ let%test_module "gaussqe (IR)" =
                  [ Rel (Eq, poly [ Var "x0", -1 ], Z.of_int (-55))
                  ; Rel (Eq, poly [ Var "x0", 4; Var "x1", -1 ], Z.of_int 217)
                  ])));
-      [%expect {| ((1x1 = 3) | ((-1x1 =(mod 4) 0) & (-1x1 = -3))) |}]
+      [%expect {| ((1x1 = 3) | ((-1x1 =(mod 4) 217) & (-1x1 = -3))) |}]
     ;;
 
     let%expect_test "simpl_quantifiers: two vars, unique solution" =
@@ -1797,7 +1797,7 @@ let%test_module "gaussqe (IR)" =
                  [ Rel (Eq, poly [ Var "x0", 1 ], Z.of_int 6)
                  ; Rel (Eq, poly [ Var "x0", -4; Var "x1", 1 ], Z.of_int 29)
                  ])));
-      [%expect {| ((1x1 = 53) | ((1x1 =(mod 4) 0) & (-1x1 = -53))) |}]
+      [%expect {| ((1x1 = 53) | ((1x1 =(mod 4) 29) & (-1x1 = -53))) |}]
     ;;
 
     let%expect_test "simpl_quantifiers: free var on rhs" =
