@@ -367,7 +367,7 @@ $ cat input.smt2
              (<= (+ (* 2 i3) (* (- 1) it92)) 0)
              (<= (* 2 i3) 0))
   [+simpl]
-    iter(6)= (not True)
+    iter(6)= (not true)
   [+simpl]
     fixed-point
   

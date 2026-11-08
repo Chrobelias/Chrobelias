@@ -26,7 +26,7 @@
                        (* x (** 2 n))) 0)
              (<= (+ 1 (* (- 1) n)) 0))
   [+simpl]
-    iter(4)= (not True)
+    iter(4)= (not true)
   [+simpl]
     fixed-point
   

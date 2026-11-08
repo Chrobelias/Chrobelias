@@ -16,7 +16,7 @@
   [+simpl]
     iter(2)= (= (+ (- 13) x y) 0)
   [+simpl]
-    iter(3)= True
+    iter(3)= true
   [+simpl]
     fixed-point
   
@@ -99,7 +99,7 @@
   [+simpl]
     iter(2)= (= (+ 1 (* (- 1) i4) it19 it23) 0)
   [+simpl]
-    iter(3)= True
+    iter(3)= true
   [+simpl]
     fixed-point
   
@@ -152,7 +152,7 @@
   [+simpl]
     iter(4)= (= (+ (* (- 3) it200) (* 3 z) (* it200 3) (* (* (- 1) z) 3)) 0)
   [+simpl]
-    iter(5)= True
+    iter(5)= true
   [+simpl]
     fixed-point
   

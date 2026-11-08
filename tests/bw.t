@@ -4,12 +4,12 @@ $ export OCAMLRUNPARAM='b=0'
 $ export CHRO_TRACE_OPT=1 CHRO_DEBUG=1
   $ Chro --dpresimpl --stop-after simpl ./bw.smt2
   (and
-    (= (+ (- 7) (5 | 3)) 0)
-    (= (+ (- 1) (5 & 3)) 0))
+    (= (+ (- 7) (bwor 5 3)) 0)
+    (= (+ (- 1) (bwand 5 3)) 0))
 
 Why automata gives unsat?
   $ Chro --dpresimpl ./bw.smt2
   (and
-    (= (+ (- 7) (5 | 3)) 0)
-    (= (+ (- 1) (5 & 3)) 0))
+    (= (+ (- 7) (bwor 5 3)) 0)
+    (= (+ (- 1) (bwand 5 3)) 0))
   sat (nfa)

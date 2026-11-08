@@ -52,7 +52,7 @@ Should be (<= x 2)
     Basic simplifications:
   
   [+simpl]
-    iter(1)= True
+    iter(1)= true
   [+simpl]
     Alphabet with extra char: 0
   
@@ -78,7 +78,7 @@ Should be (<= x 2)
     Alphabet with extra char: 0
   
   [+simpl]
-    iter(2)= True
+    iter(2)= true
   [+simpl]
     fixed-point
   
@@ -525,7 +525,7 @@ $ CHRO_DEBUG=simpl Chro -pre-simpl -dsimpl -stop-after pre-simpl hack1.smt2 | se
         it376 -> (+ (* 3 it361) (* (- 2) (** it362 3)));
         
   [+simpl]
-    iter(3)= True
+    iter(3)= true
   [+simpl]
     fixed-point
   

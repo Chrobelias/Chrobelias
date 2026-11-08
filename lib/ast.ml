@@ -26,8 +26,19 @@ let compare_any_atom l r =
   | Any_atom (Var (v1, _)), Any_atom (Var (v2, _)) -> String.compare v1 v2
 ;;
 
+let pp_symbol ppf n =
+  let simple c =
+    match c with
+    | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> true
+    | _ -> String.contains "~!@$%^&*_-+=<>.?/" c
+  in
+  if n <> "" && String.for_all simple n && not (n.[0] >= '0' && n.[0] <= '9')
+  then Format.pp_print_string ppf n
+  else Format.fprintf ppf "|%s|" n
+;;
+
 let pp_atom ppf = function
-  | Var (n, _) -> Format.fprintf ppf "%s" n
+  | Var (n, _) -> pp_symbol ppf n
 ;;
 
 let pp_any_atom ppf = function
@@ -187,9 +198,9 @@ module Eia = struct
         "@[(* %a)@]"
         (Format.pp_print_list pp_term ~pp_sep:Format.pp_print_space)
         xs
-    | Bwor (a, b) -> Format.fprintf ppf "(%a | %a)" pp_term a pp_term b
-    | Bwxor (a, b) -> Format.fprintf ppf "(%a ^ %a)" pp_term a pp_term b
-    | Bwand (a, b) -> Format.fprintf ppf "(%a & %a)" pp_term a pp_term b
+    | Bwor (a, b) -> Format.fprintf ppf "(bwor %a %a)" pp_term a pp_term b
+    | Bwxor (a, b) -> Format.fprintf ppf "(bwxor %a %a)" pp_term a pp_term b
+    | Bwand (a, b) -> Format.fprintf ppf "(bwand %a %a)" pp_term a pp_term b
     | Pow (a, b) -> Format.fprintf ppf "(** %a %a)" pp_term a pp_term b
     | Len2 a -> Format.fprintf ppf "@[(chrob.len %a)@]" pp_term a
     | Mod (t, z) -> Format.fprintf ppf "(mod %a %a)" pp_term t Z.pp_print z
@@ -632,8 +643,8 @@ let true_ = True
 let pp_smtlib2 =
   let open Format in
   let rec pp ppf = function
-    | True -> Format.fprintf ppf "True"
-    | Pred a -> Format.fprintf ppf "(P %s)" a
+    | True -> Format.fprintf ppf "true"
+    | Pred a -> pp_symbol ppf a
     | Lnot a -> Format.fprintf ppf "(not %a)" pp a
     | Land irs ->
       Format.fprintf ppf "@[<v 2>(and@,";
@@ -655,13 +666,25 @@ let pp_smtlib2 =
       Format.fprintf
         ppf
         "(exists (%a) %a)"
-        (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf " ") pp_any_atom)
+        (Format.pp_print_list
+           ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+           (fun ppf -> function
+             | Any_atom (Var (n, I)) -> Format.fprintf ppf "(%a Int)" pp_symbol n
+             | Any_atom (Var (n, S)) -> Format.fprintf ppf "(%a String)" pp_symbol n))
         a
         pp
         b
     | Eia eia -> fprintf ppf "%a" Eia.pp eia
-    | Unsupp (`Msg (s, e)) -> fprintf ppf "(unsupp: %s, %a)" s Smtml.Expr.pp e
-    | Unsupp (`Check _) -> Format.fprintf ppf "(unsupp: post check)"
+    | Unsupp (`Msg (s, _)) ->
+      fprintf
+        ppf
+        "true ; unsupported: %s@\n"
+        (String.map
+           (function
+             | '\n' -> ' '
+             | c -> c)
+           s)
+    | Unsupp (`Check _) -> fprintf ppf "true ; post check@\n"
   in
   pp
 ;;

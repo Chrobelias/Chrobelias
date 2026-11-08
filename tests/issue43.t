@@ -19,14 +19,14 @@ fifth: the second occurrence comes out as `(not (P $2))`.
 
   $ CHRO_DEBUG=DPLL Chro dpll.smt2 2>&1 | grep -A9 'Into Z3 added'
     Into Z3 added: (and
-                   (P $0)
+                   $0
                    (or
                      (and
-                       (P $1)
-                       (P $2))
+                       $1
+                       $2)
                      (and
-                       (P $3)
-                       (not (P $2)))))
+                       $3
+                       (not $2))))
   [+DPLL]
 
 A disjunction whose branches are all refuted by the theory.

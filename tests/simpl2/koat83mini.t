@@ -6,7 +6,7 @@ This test doesn't simplify (not True)
     Basic simplifications:
   
   [+simpl]
-    iter(1)= (not True)
+    iter(1)= (not true)
   [+simpl]
     Alphabet with extra char: 0
   

@@ -19,7 +19,7 @@
   [+simpl]
     iter(2)= (= (+ (- 12345) x) 0)
   [+simpl]
-    iter(3)= True
+    iter(3)= true
   [+simpl]
     fixed-point
   

@@ -204,7 +204,7 @@
     Alphabet with extra char: 0
   
   [+simpl]
-    iter(2)= (not True)
+    iter(2)= (not true)
   [+simpl]
     fixed-point
   
@@ -227,7 +227,7 @@
     Alphabet with extra char: 0
   
   [+simpl]
-    iter(2)= (not True)
+    iter(2)= (not true)
   [+simpl]
     fixed-point
   

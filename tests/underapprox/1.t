@@ -186,7 +186,7 @@ $ echo '77*2^2+42*2^2' | bc
   [+simpl]
     iter(2)= (= a "ab")
   [+simpl]
-    iter(3)= True
+    iter(3)= true
   [+simpl]
     fixed-point
   

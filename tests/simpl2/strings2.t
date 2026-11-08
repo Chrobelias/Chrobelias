@@ -25,7 +25,7 @@ $ export CHRO_DEBUG=simpl
              (= "123" y)
              (= y "321"))
   [+simpl]
-    iter(3)= (not True)
+    iter(3)= (not true)
   [+simpl]
     fixed-point
   

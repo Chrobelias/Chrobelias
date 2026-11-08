@@ -9,7 +9,7 @@
         a -> "abc";
         
   [+simpl]
-    iter(3)= True
+    iter(3)= true
   [+simpl]
     fixed-point
   
@@ -25,7 +25,7 @@
         a -> "-1099";
         
   [+simpl]
-    iter(3)= True
+    iter(3)= true
   [+simpl]
     fixed-point
   
@@ -41,7 +41,7 @@
         a -> "-1090";
         
   [+simpl]
-    iter(3)= (not True)
+    iter(3)= (not true)
   [+simpl]
     fixed-point
   

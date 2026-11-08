@@ -66,7 +66,7 @@
              (= (+ (- 1) (* (- 1) x) z) 0)
              (<= (+ (- 2) w) 0))
   [+simpl]
-    iter(3)= (not True)
+    iter(3)= (not true)
   [+simpl]
     fixed-point
   

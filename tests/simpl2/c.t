@@ -28,7 +28,7 @@
              (= (+ (- 2) x (* (- 1) y)) 0)
              (= (* (- 2) z) 0))
   [+simpl]
-    iter(3)= True
+    iter(3)= true
   [+simpl]
     fixed-point
   

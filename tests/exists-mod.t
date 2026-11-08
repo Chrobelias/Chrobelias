@@ -13,7 +13,7 @@ small direct `NfaCollection.mod_eq` automaton.
   > (check-sat)
   > EOF
   $ Chro --dpresimpl --stop-after presimpl divides.smt2
-  (exists (x) (= (+ (* (- 2) x) y) 0))
+  (exists ((x Int)) (= (+ (* (- 2) x) y) 0))
 
 The congruence is what constrains the rest of the formula, so a model has to
 respect it. Here y is pinned between 10 and 13, hence y = 12.
@@ -31,7 +31,7 @@ respect it. Here y is pinned between 10 and 13, hence y = 12.
   (and
     (<= (+ (- 13) y) 0)
     (<= (+ 10 (* (- 1) y)) 0)
-    (exists (x) (= (+ (* (- 6) x) y) 0)))
+    (exists ((x Int)) (= (+ (* (- 6) x) y) 0)))
   $ Chro -no-over -bound -1 model.smt2
   sat (nfa)
   (
@@ -64,10 +64,10 @@ disappears completely instead of turning into a modulo 1.
   > (check-sat)
   > EOF
   $ Chro --dpresimpl --stop-after presimpl many.smt2
-  (exists (x w v) (and
-                    (= (+ (- 2) (* (- 1) v) y z) 0)
-                    (= (+ (- 1) (* (- 6) w) z) 0)
-                    (= (+ (* (- 4) x) y) 0)))
+  (exists ((x Int) (w Int) (v Int)) (and
+                                      (= (+ (- 2) (* (- 1) v) y z) 0)
+                                      (= (+ (- 1) (* (- 6) w) z) 0)
+                                      (= (+ (* (- 4) x) y) 0)))
 
 Shapes the rewrite has to leave alone: a variable used more than once, one
 under an exponent, and a binder below a negation (that is a universal
@@ -80,9 +80,9 @@ quantifier, not an existential one).
   > (check-sat)
   > EOF
   $ Chro --dpresimpl --stop-after presimpl kept.smt2
-  (exists (x) (and
-                (= (+ (* (- 2) x) y) 0)
-                (<= (+ (- 5) x) 0)))
+  (exists ((x Int)) (and
+                      (= (+ (* (- 2) x) y) 0)
+                      (<= (+ (- 5) x) 0)))
 
   $ cat > pow.smt2 <<-EOF
   > (set-logic ALL)
@@ -91,7 +91,7 @@ quantifier, not an existential one).
   > (check-sat)
   > EOF
   $ Chro --dpresimpl --stop-after presimpl pow.smt2
-  (exists (x) (= (+ y (* (- 2) (** 2 x))) 0))
+  (exists ((x Int)) (= (+ y (* (- 2) (** 2 x))) 0))
 
 A negated binder still gets the usual lowering of the whole `mod`, so the
 answers stay the same as without the rewrite: y = 4 is even, y = 5 is not.
@@ -134,7 +134,7 @@ be reduced on the way out. Here x = 2, y = 4 and 2^4 = 16 = 6 + 10.
   (and
     (= (+ y (* (- 1) (** 2 x))) 0)
     (<= (* (- 1) x) 0)
-    (exists (k) (= (+ 6 (* 10 k) (* (- 1) (** 2 y))) 0)))
+    (exists ((k Int)) (= (+ 6 (* 10 k) (* (- 1) (** 2 y))) 0)))
   $ Chro -bound -1 exp.smt2
   sat (nfa)
 
