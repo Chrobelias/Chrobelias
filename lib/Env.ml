@@ -102,9 +102,10 @@ let occurs_var_exn =
            | Some t -> helper env v t)
       | Const _ -> ()
       | Eia.Add xs | Eia.Mul xs -> List.iter (helper env v) xs
-      | Eia.Pow (l, r) ->
+      | Eia.Pow (l, r) | Eia.Bwand (l, r) | Eia.Bwor (l, r) | Eia.Bwxor (l, r) ->
         helper env v l;
         helper env v r
+      | Eia.Mod (l, _) -> helper env v l
       | Iofs x | Len x -> fs () x
       | Len2 (Atom (Ast.Var (v2, S))) -> if String.equal v v2 then raise_occurs v
       | x ->
