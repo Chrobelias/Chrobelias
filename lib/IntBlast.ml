@@ -339,7 +339,45 @@ let rec tr st env e =
        let q = fresh_bv st (w - k) in
        assume st (a === (p2 k *** q) +++ fresh_bv st k);
        T (q, BV w)
-     | None -> fail "%s by non-constant" op)
+     | None ->
+       let r, x, e = fresh_bv st w, var (), E.pow (c (Z.of_int 2)) b in
+       let small = b <<< c (Z.of_int w) in
+       let body =
+         if op = "bvshl"
+         then r === E.mul [ a; e ] +++ neg (p2 w *** x)
+         else a === E.mul [ r; e ] +++ x
+       in
+       assume
+         st
+         (lor_
+            [ land_ [ small; c Z.zero <== x; x <<< e; body ]
+            ; land_ [ lnot small; r === c Z.zero ]
+            ]);
+       T (r, BV w))
+  | L [ A (("bvsdiv" | "bvsrem" | "bvsmod") as op); a; b ] ->
+    let (a, w), (b, _) = bv a, bv b in
+    (match const b with
+     | Some d when Z.gt d Z.zero && Z.lt d (p2 (w - 1)) ->
+       let n, q, r, res =
+         fresh_bv st w, fresh_bv st w, fresh st Z.zero (Z.pred d), fresh_bv st w
+       in
+       let m, zero = c (p2 w), c Z.zero in
+       let pos = a <<< c (p2 (w - 1)) in
+       let v = if op = "bvsdiv" then q else r in
+       let neg_res =
+         if op = "bvsmod"
+         then
+           lor_
+             [ land_ [ r === zero; res === zero ]
+             ; land_ [ zero <<< r; res === c d +++ neg r ]
+             ]
+         else lor_ [ res +++ v === zero; res +++ v === m ]
+       in
+       assume st (lor_ [ land_ [ pos; n === a ]; land_ [ lnot pos; n === m +++ neg a ] ]);
+       assume st (n === (d *** q) +++ r);
+       assume st (lor_ [ land_ [ pos; res === v ]; land_ [ lnot pos; neg_res ] ]);
+       T (res, BV w)
+     | _ -> fail "%s by a non-positive constant" op)
   | L (A (("bvand" | "bvor" | "bvxor") as op) :: x :: xs) ->
     let x, w = bv x in
     let g =
@@ -370,28 +408,20 @@ let commands src =
   let st = ref { sorts = []; env = []; reads = []; side = [] } in
   let stack = ref [] in
   let decl x s =
+    let v = E.atom (int_var x) in
     !st.env
     <- ( x
        , match s with
-         | Bool -> F (pred x)
+         | Bool -> F (v === c Z.one)
          | Arr e -> Ar (x, e)
-         | Int | BV _ -> T (E.atom (int_var x), s) )
+         | Int | BV _ -> T (v, s) )
        :: !st.env;
     match s with
     | Arr _ -> []
-    | Bool ->
-      [ Smtml.Ast.Declare_const
-          { id = sym Smtml.Ty.Ty_bool x; sort = sym Smtml.Ty.Ty_bool "Bool" }
-      ]
     | _ ->
       (match s with
-       | BV w ->
-         assume
-           !st
-           (land_
-              [ c Z.zero <== E.atom (int_var x)
-              ; E.atom (int_var x) <== c (Z.pred (p2 w))
-              ])
+       | BV w -> assume !st (land_ [ c Z.zero <== v; v <== c (Z.pred (p2 w)) ])
+       | Bool -> assume !st (land_ [ c Z.zero <== v; v <== c Z.one ])
        | _ -> ());
       [ Smtml.Ast.Declare_const
           { id = sym Smtml.Ty.Ty_int x; sort = sym Smtml.Ty.Ty_int "Int" }
