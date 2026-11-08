@@ -1454,7 +1454,14 @@ let () =
       let src = In_channel.with_open_bin config.input_file In_channel.input_all in
       if Lib.IntBlast.applies src
       then (
-        try Ok (Lib.IntBlast.commands src) with
+        try
+          let cmds = Lib.IntBlast.commands src in
+          if config.dump_blast
+          then (
+            Lib.IntBlast.dump cmds;
+            exit 0);
+          Ok cmds
+        with
         | Lib.IntBlast.Unsupported msg ->
           Format.printf "unknown\n%!";
           Format.eprintf "(unsupported: %s)\n%!" msg;

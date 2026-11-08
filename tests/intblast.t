@@ -125,7 +125,7 @@
   > EOF
 
   $ Chro sel_unsat.smt2
-  unsat (nia)
+  unsat (presimpl int)
 
   $ cat > sel_sat.smt2 <<-'EOF'
   > (set-logic QF_ABV)

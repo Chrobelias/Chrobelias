@@ -85,6 +85,7 @@ type state =
   ; mutable env : (string * value) list
   ; mutable reads : (string * (Z.t E.term * Z.t E.term) list) list
   ; mutable side : Ast.t list
+  ; mutable norms : ((Z.t E.term * int) * Z.t E.term) list
   }
 
 let counter = ref 0
@@ -103,8 +104,42 @@ let var () =
   E.atom (int_var (Printf.sprintf "%%ib%d" !counter))
 ;;
 
+let bounds = Hashtbl.create 64
+
+let bound v lo hi =
+  match v with
+  | E.Atom (Var (n, _)) -> Hashtbl.replace bounds n (lo, hi)
+  | _ -> ()
+;;
+
+let rec itv : Z.t E.term -> (Z.t * Z.t) option = function
+  | E.Const z -> Some (z, z)
+  | E.Atom (Var (n, _)) -> Hashtbl.find_opt bounds n
+  | E.Add ts ->
+    List.fold_left
+      (fun acc t ->
+         match acc, itv t with
+         | Some (a, b), Some (x, y) -> Some (Z.add a x, Z.add b y)
+         | _ -> None)
+      (Some (Z.zero, Z.zero))
+      ts
+  | E.Mul ts ->
+    List.fold_left
+      (fun acc t ->
+         match acc, itv t with
+         | Some (a, b), Some (x, y) ->
+           let cs = [ Z.mul a x; Z.mul a y; Z.mul b x; Z.mul b y ] in
+           Some
+             (List.fold_left Z.min (List.hd cs) cs, List.fold_left Z.max (List.hd cs) cs)
+         | _ -> None)
+      (Some (Z.one, Z.one))
+      ts
+  | _ -> None
+;;
+
 let fresh st lo hi =
   let v = var () in
+  bound v lo hi;
   assume st (land_ [ c lo <== v; v <== c hi ]);
   v
 ;;
@@ -116,14 +151,56 @@ let define st t =
   | E.Atom _ | E.Const _ -> t
   | _ ->
     let v = var () in
+    Option.iter (fun (lo, hi) -> bound v lo hi) (itv t);
     assume st (v === t);
     v
 ;;
 
-let wrap st w t lo hi =
-  let r = fresh_bv st w in
-  assume st (r === t +++ neg (p2 w *** fresh st lo hi));
+let norm st w t =
+  match List.assoc_opt (t, w) st.norms with
+  | Some r -> r
+  | None ->
+    let m = p2 w in
+    let r =
+      match itv t with
+      | Some (l, h) when Z.equal (Z.fdiv l m) (Z.fdiv h m) ->
+        define st (t +++ c (Z.neg (Z.mul (Z.fdiv l m) m)))
+      | i ->
+        let r = fresh_bv st w in
+        let q =
+          match i with
+          | Some (l, h) -> fresh st (Z.fdiv l m) (Z.fdiv h m)
+          | None -> var ()
+        in
+        assume st (r === t +++ neg (m *** q));
+        r
+    in
+    st.norms <- ((t, w), r) :: st.norms;
+    r
+;;
+
+let extract st a w i j =
+  let r = fresh_bv st (i - j + 1) in
+  assume
+    st
+    (a === E.add [ p2 (i + 1) *** fresh_bv st (w - i - 1); p2 j *** r; fresh_bv st j ]);
   r
+;;
+
+let mask st a w m =
+  let rec go j acc =
+    if j >= w
+    then acc
+    else if not (Z.testbit m j)
+    then go (j + 1) acc
+    else (
+      let i = ref j in
+      while !i + 1 < w && Z.testbit m (!i + 1) do
+        incr i
+      done;
+      go (!i + 1) ((p2 j *** extract st a w !i j) :: acc))
+  in
+  E.add (c Z.zero :: go 0 [])
 ;;
 
 let rec sort st = function
@@ -161,12 +238,17 @@ let rec tr st env e =
     | T (t, s) -> t, s
     | _ -> fail "expected term: %a" pp e
   in
-  let bv e =
+  let raw e =
     match t e with
     | t, BV w -> t, w
     | _ -> fail "expected bit-vector: %a" pp e
   in
+  let bv e =
+    let t, w = raw e in
+    norm st w t, w
+  in
   let bvs = List.map (fun x -> fst (bv x)) in
+  let raws = List.map (fun x -> fst (raw x)) in
   let scmp strict a b w =
     let h = c (p2 (w - 1)) in
     let cmp = if strict then a <<< b else a <== b in
@@ -217,12 +299,16 @@ let rec tr st env e =
      | F a, F b -> F (lor_ [ land_ [ i; a ]; land_ [ lnot i; b ] ])
      | T (a, s), T (b, _) ->
        let r = var () in
+       (match itv a, itv b with
+        | Some (l1, h1), Some (l2, h2) -> bound r (Z.min l1 l2) (Z.max h1 h2)
+        | _ -> ());
        assume st (lor_ [ land_ [ i; r === a ]; land_ [ lnot i; r === b ] ]);
        T (r, s)
      | _ -> fail "ite over arrays")
   | L [ A (("=" | "distinct") as op); a; b ] ->
     let r =
       match go a, go b with
+      | T (a, BV w), T (b, _) -> norm st w a === norm st w b
       | T (a, _), T (b, _) -> a === b
       | F a, F b -> lor_ [ land_ [ a; b ]; land_ [ lnot a; lnot b ] ]
       | _ -> fail "array equality"
@@ -235,7 +321,11 @@ let rec tr st env e =
       | Ar (n, s) -> n, s
       | _ -> fail "select on non-array %a" pp a
     in
-    let i = define st (fst (t i)) in
+    let i =
+      match t i with
+      | i, BV w -> norm st w i
+      | i, _ -> define st i
+    in
     let rs = Option.value ~default:[] (List.assoc_opt n st.reads) in
     (match List.assoc_opt i rs with
      | Some v -> T (v, s)
@@ -281,11 +371,7 @@ let rec tr st env e =
   | L [ L [ A "_"; A "extract"; A i; A j ]; a ] ->
     let a, w = bv a in
     let i, j = int_of_string i, int_of_string j in
-    let r = fresh_bv st (i - j + 1) in
-    assume
-      st
-      (a === E.add [ p2 (i + 1) *** fresh_bv st (w - i - 1); p2 j *** r; fresh_bv st j ]);
-    T (r, BV (i - j + 1))
+    T (extract st a w i j, BV (i - j + 1))
   | L (A "concat" :: x :: xs) ->
     let t, w =
       List.fold_left
@@ -297,26 +383,26 @@ let rec tr st env e =
     in
     T (t, BV w)
   | L (A "bvadd" :: x :: xs) ->
-    let x, w = bv x in
-    T (List.fold_left (fun acc y -> wrap st w (acc +++ y) Z.zero Z.one) x (bvs xs), BV w)
+    let x, w = raw x in
+    T (List.fold_left ( +++ ) x (raws xs), BV w)
   | L [ A "bvsub"; a; b ] ->
-    let (a, w), (b, _) = bv a, bv b in
-    T (wrap st w (a +++ neg b) Z.minus_one Z.zero, BV w)
+    let (a, w), (b, _) = raw a, raw b in
+    T (a +++ neg b, BV w)
   | L [ A "bvneg"; a ] ->
-    let a, w = bv a in
-    T (wrap st w (neg a) Z.minus_one Z.zero, BV w)
+    let a, w = raw a in
+    T (neg a, BV w)
   | L [ A "bvnot"; a ] ->
-    let a, w = bv a in
+    let a, w = raw a in
     T (c (Z.pred (p2 w)) +++ neg a, BV w)
   | L (A "bvmul" :: x :: xs) ->
-    let x, w = bv x in
+    let x, w = raw x in
     let mul acc y =
       match const acc, const y with
-      | Some k, _ -> wrap st w (k *** y) Z.zero (Z.max Z.zero (Z.pred k))
-      | _, Some k -> wrap st w (k *** acc) Z.zero (Z.max Z.zero (Z.pred k))
-      | _ -> wrap st w (E.mul [ acc; y ]) Z.zero (Z.pred (p2 w))
+      | Some k, _ -> k *** y
+      | _, Some k -> k *** acc
+      | _ -> E.mul [ norm st w acc; norm st w y ]
     in
-    T (List.fold_left mul x (bvs xs), BV w)
+    T (List.fold_left mul x (raws xs), BV w)
   | L [ A (("bvudiv" | "bvurem") as op); a; b ] ->
     let (a, w), (b, _) = bv a, bv b in
     (match const b with
@@ -331,14 +417,35 @@ let rec tr st env e =
     let (a, w), (b, _) = bv a, bv b in
     (match const b with
      | Some k when Z.geq k (Z.of_int w) -> T (c Z.zero, BV w)
-     | Some k when op = "bvshl" ->
-       let k = Z.to_int k in
-       T (wrap st w (p2 k *** a) Z.zero (Z.pred (p2 k)), BV w)
+     | Some k when op = "bvshl" -> T (p2 (Z.to_int k) *** a, BV w)
      | Some k ->
        let k = Z.to_int k in
        let q = fresh_bv st (w - k) in
        assume st (a === (p2 k *** q) +++ fresh_bv st k);
        T (q, BV w)
+     | None
+       when match itv b with
+            | Some (lo, hi) -> Z.leq (Z.sub hi lo) (Z.of_int 64)
+            | None -> false ->
+       let lo, hi = Option.get (itv b) in
+       let r = fresh_bv st w in
+       let x =
+         if op = "bvshl"
+         then fresh st Z.zero (Z.pred (p2 (Z.to_int (Z.min hi (Z.of_int w)))))
+         else var ()
+       in
+       let case k =
+         if Z.geq k (Z.of_int w)
+         then r === c Z.zero
+         else (
+           let k = Z.to_int k in
+           if op = "bvshl"
+           then r === (p2 k *** a) +++ neg (p2 w *** x)
+           else land_ [ c Z.zero <== x; x <<< c (p2 k); a === (p2 k *** r) +++ x ])
+       in
+       let ks = List.init (Z.to_int (Z.sub hi lo) + 1) (fun i -> Z.add lo (Z.of_int i)) in
+       assume st (lor_ (List.map (fun k -> land_ [ b === c k; case k ]) ks));
+       T (r, BV w)
      | None ->
        let r, x, e = fresh_bv st w, var (), E.pow (c (Z.of_int 2)) b in
        let small = b <<< c (Z.of_int w) in
@@ -380,11 +487,20 @@ let rec tr st env e =
      | _ -> fail "%s by a non-positive constant" op)
   | L (A (("bvand" | "bvor" | "bvxor") as op) :: x :: xs) ->
     let x, w = bv x in
-    let g =
-      match op with
-      | "bvand" -> E.bwand
-      | "bvor" -> E.bwor
-      | _ -> E.bwxor
+    let g a b =
+      match const a, const b with
+      | None, None ->
+        (match op with
+         | "bvand" -> E.bwand a b
+         | "bvor" -> E.bwor a b
+         | _ -> E.bwxor a b)
+      | ca, cb ->
+        let a, m = if ca = None then a, Option.get cb else b, Option.get ca in
+        let x = mask st a w m in
+        (match op with
+         | "bvand" -> x
+         | "bvor" -> a +++ c m +++ neg x
+         | _ -> a +++ c m +++ (Z.of_int (-2) *** x))
     in
     T (List.fold_left g x (bvs xs), BV w)
   | L (A (("+" | "*") as op) :: xs) ->
@@ -405,23 +521,28 @@ let rec tr st env e =
 let sym ty s = Smtml.Symbol.make_const ty s
 
 let commands src =
-  let st = ref { sorts = []; env = []; reads = []; side = [] } in
+  let st = ref { sorts = []; env = []; reads = []; side = []; norms = [] } in
   let stack = ref [] in
   let decl x s =
     let v = E.atom (int_var x) in
     !st.env
     <- ( x
        , match s with
-         | Bool -> F (v === c Z.one)
+         | Bool -> F (pred x)
          | Arr e -> Ar (x, e)
          | Int | BV _ -> T (v, s) )
        :: !st.env;
     match s with
     | Arr _ -> []
+    | Bool ->
+      [ Smtml.Ast.Declare_const
+          { id = sym Smtml.Ty.Ty_bool x; sort = sym Smtml.Ty.Ty_bool "Bool" }
+      ]
     | _ ->
       (match s with
-       | BV w -> assume !st (land_ [ c Z.zero <== v; v <== c (Z.pred (p2 w)) ])
-       | Bool -> assume !st (land_ [ c Z.zero <== v; v <== c Z.one ])
+       | BV w ->
+         bound v Z.zero (Z.pred (p2 w));
+         assume !st (land_ [ c Z.zero <== v; v <== c (Z.pred (p2 w)) ])
        | _ -> ());
       [ Smtml.Ast.Declare_const
           { id = sym Smtml.Ty.Ty_int x; sort = sym Smtml.Ty.Ty_int "Int" }
@@ -483,4 +604,33 @@ let applies src =
        let rec go i = i + m <= n && (String.sub src i m = k || go (i + 1)) in
        go 0)
     [ "BitVec"; "declare-sort" ]
+;;
+
+let dump cmds =
+  let declared = Hashtbl.create 16 in
+  let p fmt = Format.printf (fmt ^^ "@.") in
+  List.iter
+    (function
+      | Smtml.Ast.Declare_const { id; sort } ->
+        Hashtbl.replace declared (Smtml.Symbol.to_string id) ();
+        p
+          "(declare-fun %a () %a)"
+          pp_symbol
+          (Smtml.Symbol.to_string id)
+          Smtml.Symbol.pp
+          sort
+      | Smtml.Ast.Assert e ->
+        let ast = Fe.to_ast Base.Map.Poly.empty e in
+        Base.Set.iter (collect_free_vars ast) ~f:(fun v ->
+          if not (Hashtbl.mem declared v)
+          then (
+            Hashtbl.replace declared v ();
+            p "(declare-fun %a () Int)" pp_symbol v));
+        p "@[<v 2>(assert@,%a)@]" pp_smtlib2 ast
+      | Smtml.Ast.Check_sat _ -> p "(check-sat)"
+      | Smtml.Ast.Get_model -> p "(get-model)"
+      | Smtml.Ast.Push n -> p "(push %d)" n
+      | Smtml.Ast.Pop n -> p "(pop %d)" n
+      | _ -> ())
+    cmds
 ;;

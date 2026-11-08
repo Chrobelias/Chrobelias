@@ -3,6 +3,7 @@ type config =
   ; mutable dyn_bounds : bool
   ; mutable base : int option
   ; mutable dump_simpl : bool
+  ; mutable dump_blast : bool
   ; mutable dump_pre_simpl : bool
   ; mutable dump_ir : bool
   ; mutable good_for_minimize : int
@@ -40,6 +41,7 @@ let config =
   ; stop_after = `Solving
   ; dump_pre_simpl = false
   ; dump_simpl = false
+  ; dump_blast = false
   ; dump_ir = false
   ; good_for_minimize = 15
   ; good_for_shrinking = 20
@@ -343,6 +345,9 @@ Basic options:
        ; ( "--dsimpl"
          , Arg.Unit (fun () -> config.dump_simpl <- true)
          , "Dump the simplified IR" )
+       ; ( "--dblast"
+         , Arg.Unit (fun () -> config.dump_blast <- true)
+         , "Dump the int-blasted script" )
        ; ( "--dir"
          , Arg.Unit (fun () -> config.dump_ir <- true)
          , "Dump the IR at each solver step" )
