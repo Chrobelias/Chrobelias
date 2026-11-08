@@ -557,13 +557,24 @@ and to_ast tys orig_expr : Ast.t =
   | UnsupportedException (m, e) -> Ast.Unsupp (`Msg (m, e))
 ;;
 
-let to_ast a b =
-  extras := [];
-  let ast = to_ast a b in
-  Ast.land_ (ast :: !extras)
+let pred_to_sym s = Expr.symbol (Symbol.make_const Ty.Ty_bool s)
+let blasted = Hashtbl.create 16
+
+let blast ast =
+  let name = Printf.sprintf "%%blast%d" (Hashtbl.length blasted) in
+  Hashtbl.add blasted name ast;
+  Smtml.Ast.Assert (pred_to_sym name)
 ;;
 
-let pred_to_sym s = Expr.symbol (Symbol.make_const Ty.Ty_bool s)
+let to_ast a b =
+  match Expr.view b with
+  | Expr.Symbol s when Hashtbl.mem blasted (Symbol.to_string s) ->
+    Hashtbl.find blasted (Symbol.to_string s)
+  | _ ->
+    extras := [];
+    let ast = to_ast a b in
+    Ast.land_ (ast :: !extras)
+;;
 
 let sym_to_pred (s : Symbol.t) =
   match s with

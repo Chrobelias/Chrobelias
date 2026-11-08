@@ -1450,7 +1450,16 @@ let () =
     | Result.Error (`Msg msg) ->
       Format.eprintf "%s\n%!" msg;
       exit 1
-    | Ok file -> Smtml.Parse.from_file file
+    | Ok file ->
+      let src = In_channel.with_open_bin config.input_file In_channel.input_all in
+      if Lib.IntBlast.applies src
+      then (
+        try Ok (Lib.IntBlast.commands src) with
+        | Lib.IntBlast.Unsupported msg ->
+          Format.printf "unknown\n%!";
+          Format.eprintf "(unsupported: %s)\n%!" msg;
+          exit 0)
+      else Smtml.Parse.from_file file
   in
   let exec ({ prev; _ } as state) =
     let get_model ?(noprint = false) ast (rez : rez) =
