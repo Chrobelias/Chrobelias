@@ -1358,7 +1358,7 @@ end
 let get_mod_phi_of_system =
   List.fold_left
     (fun acc -> function
-       | Rel (Div d, _, z) when Z.(z = zero) -> Z.lcm acc d
+       | Rel (Div d, _, _) -> Z.lcm acc d
        | _ -> acc)
     Z.one
 ;;
@@ -1392,8 +1392,10 @@ let var_exists varname conj =
     conj
 ;;
 
+let slack_prefix = "_slack_"
+
 let slack_vars_in_poly =
-  let has_slack = String.starts_with ~prefix:"_slack_" in
+  let has_slack = String.starts_with ~prefix:slack_prefix in
   let check_atom ~key ~data acc =
     match key with
     | Var s when has_slack s -> s :: acc
@@ -1403,7 +1405,7 @@ let slack_vars_in_poly =
 ;;
 
 let apply_operation_to_constraint op = function
-  | Rel (Div d, poly, c) -> Rel (Div (op d), Map.map ~f:op poly, c)
+  | Rel (Div d, poly, c) -> Rel (Div (op d), Map.map ~f:op poly, op c)
   | Rel (rel, poly, c) -> Rel (rel, Map.map ~f:op poly, op c)
   | t -> t
 ;;
@@ -1438,39 +1440,36 @@ let substitute_vigorous_constraint varname coeff (tau_poly, tau_const) = functio
 let eliminate_one_var conj varname subst p l =
   let open NondeterministicMonad in
   let eqs = List.to_seq conj |> Seq.filter_map (find_var_and_coeff varname) in
-  if Seq.is_empty eqs
-  then return (conj, subst, p, l)
-  else
-    let* coeff, tau, const = eqs in
-    let p = l in
-    let l = coeff in
-    let slacks = slack_vars_in_poly tau in
-    let mod_phi = get_mod_phi_of_system conj in
-    let possible_vals = first_n_numbers Z.(Z.abs coeff * mod_phi) in
-    let* subst =
-      if slacks = []
-      then return subst
-      else begin
-        let rec loop acc = function
-          | [] -> return acc
-          | key :: xs ->
-            let* data = possible_vals in
-            let acc = Map.set acc ~key ~data in
-            loop acc xs
-        in
-        loop subst slacks
-      end
-    in
-    let conj =
-      conj
-      |> List.map (fun c ->
-        c
-        |> multiply_constraint_by_int coeff
-        |> substitute_vigorous_constraint varname coeff (tau, const)
-        |> divide_constraint_by_int p)
-      |> fun x -> Rel (Div (Z.abs coeff), tau, Z.zero) :: x
-    in
-    return (conj, subst, p, l)
+  let* coeff, tau, const = eqs in
+  let p = l in
+  let l = coeff in
+  let slacks = slack_vars_in_poly tau in
+  let mod_phi = get_mod_phi_of_system conj in
+  let possible_vals = first_n_numbers Z.(Z.abs coeff * mod_phi) in
+  let* subst =
+    if slacks = []
+    then return subst
+    else begin
+      let rec loop acc = function
+        | [] -> return acc
+        | key :: xs ->
+          let* data = possible_vals in
+          let acc = Map.set acc ~key ~data in
+          loop acc xs
+      in
+      loop subst slacks
+    end
+  in
+  let conj =
+    conj
+    |> List.map (fun c ->
+      c
+      |> multiply_constraint_by_int coeff
+      |> substitute_vigorous_constraint varname coeff (tau, const)
+      |> divide_constraint_by_int p)
+    |> fun x -> Rel (Div (Z.abs coeff), tau, const) :: x
+  in
+  return (conj, subst, p, l)
 ;;
 
 let subst_ir subst (ir : t) : t =
@@ -1496,7 +1495,7 @@ let eliminate_existence_quantifier_branches (ir : t) =
       List.map
         (function
           | Rel (Leq, poly, c) ->
-            let y = gensym ~prefix:"_slack_" () in
+            let y = gensym ~prefix:slack_prefix () in
             let poly' = Map.set poly ~key:(Var y) ~data:Z.one in
             slack_vars := y :: !slack_vars;
             Rel (Eq, poly', c)
