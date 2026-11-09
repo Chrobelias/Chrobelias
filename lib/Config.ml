@@ -73,6 +73,14 @@ let config =
    labels, models and debug traces depend on which child answers first, which
    under load makes the expected outputs flap. Same idea as CHRO_OMIT_Z3_MODEL. *)
 let () = if Sys.getenv_opt "CHRO_NO_PARALLEL" <> None then config.parallel <- false
+
+type under2_config =
+  { mutable amin : int
+  ; mutable amax : int
+  ; mutable flat : int
+  }
+
+let under2_config = { amin = 0; amax = 1; flat = -1 }
 let is_quiet () = config.quiet
 
 type under_str_config =
@@ -261,6 +269,11 @@ Basic options:
          , Printf.sprintf
              "<n> Bound for integer underapproximation (DEFAULT %d; <0 disables)"
              config.under_approx )
+       ; ( "-flat"
+         , Arg.Int (fun n -> under2_config.flat <- n)
+         , "<n> Underapproximate multiplied variables by n+1 alternating powers (<0 disables)" )
+       ; "-amin", Arg.Int (fun n -> under2_config.amin <- n), "<n> Lowest offset for -flat"
+       ; "-amax", Arg.Int (fun n -> under2_config.amax <- n), "<n> Highest offset for -flat"
        ; ( "-lsb"
          , Arg.Unit (fun () -> config.mode <- `Lsb)
          , "Least-significant-bit-first representation" )

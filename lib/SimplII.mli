@@ -113,4 +113,5 @@ val run_basic_simplify
   -> Ast.t
   -> [ `Sat of Env.t | `Unsat of Ast.t | `Unknown of Ast.t * Env.t ]
 
+val run_under2 : Ast.t -> [ `Sat of Env.t | `Unknown of Ast.t * Env.t ] list
 val check_nia : Env.t -> Ast.t -> [> `Sat of Env.t | `Unknown | `Unsat ]

@@ -522,14 +522,63 @@ let dpll check_sat ?(verbose = false) ast =
   let can_be_unk = ref false in
   Debug.trace "DPLL" "Theory ast: %a\n%!" Ast.pp_smtlib2 ast;
   let assumptions = ast |> to_bool_skeleton ~allow_new:true in
+  let implicant model =
+    let value = Hashtbl.create 64 in
+    Hashtbl.iter
+      (fun sym v ->
+         match v with
+         | Smtml.Value.True -> Hashtbl.replace value (Fe.sym_to_pred sym) true
+         | Smtml.Value.False -> Hashtbl.replace value (Fe.sym_to_pred sym) false
+         | _ -> ())
+      model;
+    let exception Opaque in
+    let rec ev = function
+      | Ast.True -> true
+      | Pred s -> Option.value (Hashtbl.find_opt value s) ~default:false
+      | Lnot x -> not (ev x)
+      | Land xs -> List.for_all ev xs
+      | Lor xs -> List.exists ev xs
+      | _ -> raise_notrace Opaque
+    in
+    let rec need = function
+      | Ast.True -> []
+      | Pred s when is_theory_atom s -> [ s, ev (Pred s) ]
+      | Pred _ -> []
+      | Lnot x -> need x
+      | (Land xs | Lor xs) as t ->
+        let v = ev t in
+        (match t, v with
+         | Land _, true | Lor _, false -> List.concat_map need xs
+         | _ ->
+           List.filter (fun x -> ev x = v) xs
+           |> List.map need
+           |> List.fold_left
+                (fun acc l ->
+                   match acc with
+                   | Some a when List.length a <= List.length l -> acc
+                   | _ -> Some l)
+                None
+           |> Option.get)
+      | _ -> raise_notrace Opaque
+    in
+    match need assumptions with
+    | lits ->
+      let lits = Base.List.dedup_and_sort ~compare:Stdlib.compare lits in
+      let mk map = Ast.land_ (List.map (fun (s, b) -> if b then map s else Ast.lnot (map s)) lits) in
+      Some (mk Ast.pred, mk bool_to_eia)
+    | exception Opaque -> None
+  in
   let rec dpll new_assumptions solver =
     Debug.trace "DPLL" "Into Z3 added: %a%!" Ast.pp_smtlib2 new_assumptions;
     Z3.add solver [ new_assumptions |> Fe.of_ast ];
     match Z3.check solver ~assumptions:[] with
     | `Sat ->
       let model = Z3.model solver |> Option.get |> Smtml.Z3_mappings.values_of_model in
-      let skeletoned_candidate = of_bool_model ~map:Ast.pred model in
-      let candidate = of_bool_model ~map:bool_to_eia model in
+      let skeletoned_candidate, candidate =
+        match implicant model with
+        | Some p -> p
+        | None -> of_bool_model ~map:Ast.pred model, of_bool_model ~map:bool_to_eia model
+      in
       Debug.trace "DPLL" "Trying %a%!" Ast.pp_smtlib2 candidate;
       (match check_sat candidate with
        | Sat (s, (sat_ast, env, get_model, regexes)) ->
@@ -698,6 +747,21 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         | `Unsat s -> unsat s ast
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
+      <+> (fun ast e ->
+      if Config.under2_config.flat < 0
+      then unknown ast e
+      else (
+        let found =
+          List.find_map
+            (function
+              | `Sat env -> Some (sat "under II" ast ~env)
+              | `Unknown (ast', e') ->
+                (match check_nfa_sat ast' e' with
+                 | Sat (_, r) -> Some (Sat ("under II", r))
+                 | _ -> None))
+            (SimplII.run_under2 ast)
+        in
+        Option.value found ~default:(unknown ast e)))
       <+> (fun ast e ->
       if config.over_approx
       then (

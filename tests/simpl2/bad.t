@@ -80,18 +80,19 @@ $ export OCAMLRUNPARAM='b=0'
              (<= (* (- 1) x) 0)
              (<= (* y z) 0))
   [+simpl]
-    iter(3)= (and
-             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 x))) 0)
-             (<= (+ 1 (** 2 %stdexp1)) 0)
-             (<= (* (- 1) x) 0)
-             (<= (* y z) 0))
-  [+simpl]
-    iter(4)= (and
-             (<= (+ 1 (** 2 x)) 0)
-             (<= (* (- 1) x) 0)
-             (<= (* y z) 0))
+    iter(3)= (not true)
   [+simpl]
     fixed-point
+  
+  [+simpl]
+    contradicting clause: (<= (+ 1 %stdexp2) 0)
+  [+simpl]
+    contradicting env:  %stdexp1 -> x; %stdexp2 -> (** 2 %stdexp1); 
+  [+simpl]
+    unsat core: (and
+                (<= (+ 1 %stdexp2) 0)
+                (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+                (= (+ %stdexp1 (* (- 1) x)) 0))
   
   [+simpl]
     Basic simplifications:
@@ -100,42 +101,36 @@ $ export OCAMLRUNPARAM='b=0'
     iter(1)= (and
              (<= (* z y) 0)
              (<= (+ 1 %stdexp2) 0)
-             (<= (* (- 1) x) 0)
-             (= (+ %stdexp1 (* (- 1) x)) 0)
-             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0))
+             (<= (+ 1 x) 0)
+             (= %stdexp2 0))
   [+simpl]
     Alphabet with extra char: 0
   
   [+simpl]
     Something ready to substitute
-        %stdexp1 -> x;
-        %stdexp2 -> (** 2 %stdexp1);
+        %stdexp2 -> 0;
         
   [+simpl]
     iter(2)= (and
-             (= (+ %stdexp1 (* (- 1) x)) 0)
-             (= (+ %stdexp2 (* (- 1) (** 2 %stdexp1))) 0)
+             (= %stdexp2 0)
              (<= (+ 1 %stdexp2) 0)
-             (<= (* (- 1) x) 0)
+             (<= (+ 1 x) 0)
              (<= (* y z) 0))
   [+simpl]
-    iter(3)= (and
-             (= (+ (** 2 %stdexp1) (* (- 1) (** 2 x))) 0)
-             (<= (+ 1 (** 2 %stdexp1)) 0)
-             (<= (* (- 1) x) 0)
-             (<= (* y z) 0))
-  [+simpl]
-    iter(4)= (and
-             (<= (+ 1 (** 2 x)) 0)
-             (<= (* (- 1) x) 0)
-             (<= (* y z) 0))
+    iter(3)= (not true)
   [+simpl]
     fixed-point
   
   [+simpl]
-    Basic simplifications:
+    contradicting clause: (<= (+ 1 %stdexp2) 0)
+  [+simpl]
+    contradicting env:  %stdexp2 -> 0; 
+  [+simpl]
+    unsat core: (and
+                (<= (+ 1 %stdexp2) 0)
+                (= %stdexp2 0))
   
-  unsat (over)
+  unsat (presimpl int)
 The single exponent is not bad
   $ cat > TODO3.smt2 <<-EOF
   > (set-logic ALL)

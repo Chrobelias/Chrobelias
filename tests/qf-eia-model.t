@@ -1,7 +1,7 @@
 Basic QF_EIA model tests
 
   $ Chro ./qf-eia-model.smt2
-  sat (nfa)
+  sat (under int)
   (
      (define-fun x1 () Int
       8)

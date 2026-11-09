@@ -704,16 +704,6 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | _ -> Ast.Eia.Pow (base, xs)
     ;;
 
-    let mod_ lhs rhs =
-      match lhs, rhs with
-      (* Euclidean, like SMT-LIB [mod] and the [NfaCollection] congruence
-         automata: the result lies in [0, |rhs|) whatever the sign of [lhs].
-         [Z.( mod )] is truncated division and would fold [(mod (- 3) 2)]
-         to [-1] where every other layer of the solver says [1]. *)
-      | Ast.Eia.Const lhs, rhs -> Id_symantics.constz (Z.erem lhs rhs)
-      | lhs, rhs -> Id_symantics.mod_ lhs rhs
-    ;;
-
     let add xs =
       let collect_inside_add xs =
         let extend h tl =
@@ -787,6 +777,57 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | x -> mul [ const (-1); x ]
     ;;
 
+    let rec mod_ lhs m =
+      let dvd a = Z.(equal (erem a m) zero) in
+      let red = function
+        | Eia.Const c when Z.(geq (abs c) m) -> Eia.Const (Z.erem c m)
+        | Eia.Mul (Eia.Const k :: _) when dvd k -> Eia.Const Z.zero
+        | Eia.Mod (t, a) when dvd a -> t
+        | t -> t
+      in
+      match lhs with
+      | Eia.Const c -> constz (Z.erem c m)
+      | _ when Z.(leq m zero) -> Id_symantics.mod_ lhs m
+      | _ when Z.equal m Z.one -> const 0
+      | Eia.Mod (t, a) when dvd a -> mod_ t m
+      | Eia.Mul (Eia.Const k :: _) when dvd k -> const 0
+      | Eia.Mul (Eia.Const k :: ts) when Z.(gt (gcd k m) one) ->
+        let g = Z.gcd k m in
+        mul [ constz g; mod_ (mul (constz (Z.divexact k g) :: ts)) (Z.divexact m g) ]
+      | Eia.Add ts ->
+        let ts' = List.map red ts in
+        if List.equal Eia.eq_term ts ts'
+        then Id_symantics.mod_ lhs m
+        else mod_ (add ts') m
+      | _ -> Id_symantics.mod_ lhs m
+    ;;
+
+    let rec bw k a b =
+      let a, b =
+        match a, b with
+        | Eia.Const _, _ -> b, a
+        | _ when compare_term a b > 0 -> b, a
+        | _ -> a, b
+      in
+      let z = Z.equal in
+      match k, a, b with
+      | FT_SIG.Bwand, Eia.Const x, Eia.Const y -> constz (Z.logand x y)
+      | FT_SIG.Bwor, Eia.Const x, Eia.Const y -> constz (Z.logor x y)
+      | FT_SIG.Bwxor, Eia.Const x, Eia.Const y -> constz (Z.logxor x y)
+      | FT_SIG.Bwand, _, Eia.Const c when z c Z.zero -> const 0
+      | (FT_SIG.Bwor | FT_SIG.Bwxor), t, Eia.Const c when z c Z.zero -> t
+      | FT_SIG.Bwand, t, Eia.Const c when z c Z.minus_one -> t
+      | FT_SIG.Bwor, _, Eia.Const c when z c Z.minus_one -> const (-1)
+      | (FT_SIG.Bwand | FT_SIG.Bwor), _, _ when Eia.eq_term a b -> a
+      | FT_SIG.Bwxor, _, _ when Eia.eq_term a b -> const 0
+      | FT_SIG.Bwand, t, Eia.Const c when Z.(gt c zero && z (logand c (succ c)) zero) ->
+        mod_ t (Z.succ c)
+      | FT_SIG.Bwand, _, _ when Eia.eq_term (add [ a; b ]) (const (-1)) -> const 0
+      | FT_SIG.Bwor, _, _ -> add [ a; b; negate (bw FT_SIG.Bwand a b) ]
+      | FT_SIG.Bwxor, _, _ -> add [ a; b; mul [ const (-2); bw FT_SIG.Bwand a b ] ]
+      | _ -> Id_symantics.bw k a b
+    ;;
+
     (** Formulas *)
     let exists var ph = Ast.exists var ph
 
@@ -845,7 +886,7 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
 
     let lor_ x = Ast.lor_ x
 
-    let relop op l r =
+    let rec relop op l r =
       let ofop =
         match op with
         | Leq -> fun x y -> eia (Eia.leq x y)
@@ -861,15 +902,39 @@ let make_main_symantics ?alpha ?agressive ?(with_nielsen = false) env =
       | Eia.(Add (Atom (Var (v1, _)) :: Mul [ Const c; Atom (Var (v2, _)) ] :: tl)), rhs
         when String.equal v1 v2 && c = Z.minus_one -> ofop (Eia.add tl) rhs
       | Eia.Add ls, Eia.Add rs -> ofop (add (ls @ List.map negate rs)) (constz Z.zero)
-      | Eia.Add (Const c :: tl), Const n -> ofop (add tl) (constz Z.(n - c))
+      | Eia.Add (Const c :: tl), Const n -> relop op (add tl) (constz Z.(n - c))
       | Const c, Add (Const n :: tl) -> ofop (add (List.map negate tl)) (constz Z.(n - c))
       | Const c, Add xs -> ofop (add (List.map negate xs)) (constz Z.(-c))
+      | Mul [ Const k; (Mod _ | Pow _) as t ], Const c when Z.equal k Z.minus_one ->
+        if op = Eq then relop Eq t (constz (Z.neg c)) else relop Leq (constz (Z.neg c)) t
       | Pow (basel, powl), Pow (baser, powr) when basel = baser -> ofop powl powr
       | Eia.Pow (Eia.(Const base), Eia.Add (Const n :: etail)), _
         when Z.(n < zero) && Z.fits_int n ->
         ofop
           (Eia.Pow (Eia.(Const base), Eia.add etail))
           (mul [ pow (constz base) (constz (Z.abs n)); r ])
+      | Mod (_, m), Const c when Z.(gt m zero) ->
+        (match op with
+         | Eq when Z.(lt c zero || geq c m) -> false_
+         | Leq when Z.(geq c (pred m)) -> true_
+         | Leq when Z.(lt c zero) -> false_
+         | _ -> ofop l r)
+      | Const c, Mod (_, m) when Z.(gt m zero) && op = Leq ->
+        if Z.(leq c zero) then true_ else if Z.(geq c m) then false_ else ofop l r
+      | Pow (Const b, e), Const c when Z.(equal b (of_int 2)) ->
+        (match op with
+         | _ when Z.(lt c zero) -> false_
+         | Eq when Z.(geq c one) && Z.(equal (logand c (pred c)) zero) ->
+           relop Eq e (const (Z.log2 c))
+         | Eq when Z.(gt c one) -> false_
+         | Leq when Z.(geq c one) -> relop Leq e (const (Z.log2 c))
+         | _ -> ofop l r)
+      | Const c, Pow (Const b, e) when Z.(equal b (of_int 2)) && op = Leq ->
+        if Z.(leq c zero)
+        then true_
+        else if Z.(equal c one)
+        then relop Leq (const 0) e
+        else relop Leq (const (Z.log2 (Z.pred c) + 1)) e
       | _ -> ofop l r
     ;;
 
@@ -2582,6 +2647,74 @@ let alpha_with_extra_char ast =
   Utils.with_extra_char alpha
 ;;
 
+let range_reduce ast =
+  let open Ast.Eia in
+  match ast with
+  | Ast.Land xs ->
+    let bs = Hashtbl.create 8 in
+    let upd v lo hi =
+      let l0, h0 = Option.value (Hashtbl.find_opt bs v) ~default:(None, None) in
+      let mx f a b =
+        match a, b with
+        | Some a, Some b -> Some (f a b)
+        | a, None | None, a -> a
+      in
+      Hashtbl.replace bs v (mx Z.max l0 lo, mx Z.min h0 hi)
+    in
+    List.iter
+      (function
+        | Ast.Eia (Leq (Atom (Ast.Var (v, _)), Const c)) -> upd v None (Some c)
+        | Ast.Eia (Leq (Mul [ Const k; Atom (Ast.Var (v, _)) ], Const c)) when Z.sign k > 0 ->
+          upd v None (Some (Z.fdiv c k))
+        | Ast.Eia (Leq (Mul [ Const k; Atom (Ast.Var (v, _)) ], Const c)) when Z.sign k < 0 ->
+          upd v (Some (Z.cdiv c k)) None
+        | _ -> ())
+      xs;
+    let rec itv = function
+      | Const c -> Some (c, c)
+      | Atom (Ast.Var (v, _)) ->
+        (match Hashtbl.find_opt bs v with
+         | Some (Some l, Some h) -> Some (l, h)
+         | _ -> None)
+      | Add ts ->
+        List.fold_left
+          (fun acc t ->
+             match acc, itv t with
+             | Some (l, h), Some (l', h') -> Some (Z.add l l', Z.add h h')
+             | _ -> None)
+          (Some (Z.zero, Z.zero))
+          ts
+      | Mul [ Const k; t ] ->
+        Option.map
+          (fun (l, h) ->
+             let a, b = Z.mul k l, Z.mul k h in
+             Z.min a b, Z.max a b)
+          (itv t)
+      | Mod (_, m) when Z.sign m > 0 -> Some (Z.zero, Z.pred m)
+      | Bwand (a, b) ->
+        (match itv a, itv b with
+         | Some (la, ha), Some (lb, hb) when Z.sign la >= 0 && Z.sign lb >= 0 ->
+           Some (Z.zero, Z.min ha hb)
+         | _ -> None)
+      | _ -> None
+    in
+    let rw = function
+      | Mod (t, m) as e when Z.sign m > 0 ->
+        (match itv t with
+         | Some (l, h) when Z.equal (Z.fdiv l m) (Z.fdiv h m) ->
+           let q = Z.fdiv l m in
+           if Z.equal q Z.zero then t else add [ t; Const (Z.neg (Z.mul q m)) ]
+         | _ -> e)
+      | e -> e
+    in
+    Ast.map
+      (function
+        | Ast.Eia e -> Ast.Eia (Ast.Eia.map2 Fun.id rw Fun.id e)
+        | p -> p)
+      ast
+  | _ -> ast
+;;
+
 let rec basic_simplify
           step
           ?multiple
@@ -2628,6 +2761,7 @@ let rec basic_simplify
     let rez = apply_symantics (module Symantics) ast in
     let ast2 = Symantics.prj rez in
     let ast2 = if Ast.is_conjunct ast2 then propagate_exponents ast2 else ast2 in
+    let ast2 = range_reduce ast2 in
     let __ _ = trace_log "Ast after propagate_exponents: @[%a@]" Ast.pp_smtlib2 ast2 in
     let var_info = apply_symantics (module Who_in_exponents) ast in
     (* Format.printf "%s: info = @[%a@]\n%!" __FUNCTION__ Info.pp_hum var_info; *)
@@ -2681,6 +2815,40 @@ let rec basic_simplify
            trace_log "contradicting clause: %a" Ast.pp_smtlib2 atomic;
            trace_log "contradicting env: %a" (Env.pp ~title:"") env;
            let candidate = contras @ trues in
+           let candidate =
+             if List.length candidate <= max_minimized_core_size
+             then candidate
+             else (
+               let vs = List.map (fun l -> l, Ast.collect_vars l) candidate in
+               let rec grow seen =
+                 let seen' =
+                   List.fold_left
+                     (fun acc (_, v) ->
+                        if Base.Set.is_empty (Base.Set.inter acc v) then acc else Base.Set.union acc v)
+                     seen
+                     vs
+                 in
+                 if Base.Set.length seen' = Base.Set.length seen then seen else grow seen'
+               in
+               let comp = grow (Ast.collect_vars atomic) in
+               let part =
+                 List.filter_map
+                   (fun (l, v) ->
+                      if Base.Set.is_empty v || not (Base.Set.is_empty (Base.Set.inter comp v))
+                      then Some l
+                      else None)
+                   vs
+               in
+               if List.compare_lengths part candidate < 0
+                  && (match
+                        basic_simplify [] ?multiple ~with_nielsen ~minimize:false env (Ast.land_ part)
+                      with
+                      | `Unsat _ -> true
+                      | _ -> false)
+               then part
+               else candidate)
+           in
+           let trues = List.filter (fun l -> List.memq l candidate) trues in
            let core_literals =
              if minimize && List.length candidate <= max_minimized_core_size
              then minimize_core candidate
@@ -2740,6 +2908,88 @@ let collect_regexes ast =
     []
     ast
   |> Map.of_alist_multi
+;;
+
+let find_vars_for_under2 ast =
+  let module S = Base.Set.Poly in
+  let fz acc = function
+    | Ast.Eia.Mul ts ->
+      let pow = List.exists (function Ast.Eia.Pow (Const c, _) -> Z.(geq c (of_int 2)) | _ -> false) ts in
+      let vs = List.filter_map (function Ast.Eia.Atom (Var (v, I)) -> Some v | _ -> None) ts in
+      if pow || List.length vs > 1 then List.fold_left S.add acc vs else acc
+    | _ -> acc
+  in
+  Ast.fold
+    (fun acc -> function
+       | Ast.Eia (Ast.Eia.Eq (l, r, I)) ->
+         Ast.Eia.fold_term fz (fun acc _ -> acc) (Ast.Eia.fold_term fz (fun acc _ -> acc) acc r) l
+       | Eia (Leq (l, r)) ->
+         Ast.Eia.fold_term fz (fun acc _ -> acc) (Ast.Eia.fold_term fz (fun acc _ -> acc) acc r) l
+       | _ -> acc)
+    S.empty
+    ast
+;;
+
+let try_under2_heuristics ast =
+  let defs = ref [] in
+  let module Rewrite = struct
+    include Id_symantics
+
+    let mul terms =
+      Id_symantics.mul
+        (List.map
+           (function
+             | (Ast.Eia.Atom (Var _) | Pow (Const _, _) | Const _) as t -> t
+             | t ->
+               let x = gensym ~prefix:"%under2" () in
+               defs := Id_symantics.eqz (var x) t :: !defs;
+               Id_symantics.var x)
+           terms)
+    ;;
+  end
+  in
+  let ast = apply_symantics_unsugared (module Rewrite) ast in
+  let ast = Ast.land_ (ast :: !defs) in
+  let vars = find_vars_for_under2 ast in
+  trace_log "vars_for_under2: %s" (String.concat " " (Base.Set.to_list vars));
+  let ( let* ) xs f = List.concat_map f xs in
+  let { Config.amin; amax; flat } = Config.under2_config in
+  let offsets = List.init (max 0 (amax - amin + 1)) (( + ) amin) in
+  Base.Set.Poly.fold
+    ~f:(fun acc name ->
+      let* env, phs = acc in
+      let* a = offsets in
+      let us = List.init (flat + 1) (fun _ -> gensym ~prefix:"%under2" ()) in
+      let sum =
+        List.mapi
+          (fun i u ->
+             let p = Id_symantics.(pow (const 2) (var u)) in
+             if i mod 2 = 1 then Id_symantics.(mul [ const (-1); p ]) else p)
+          us
+      in
+      let rec desc = function
+        | u :: (v :: _ as tl) -> Id_symantics.leq (Id_symantics.var v) (Id_symantics.var u) :: desc tl
+        | [ u ] -> [ Id_symantics.leq (Id_symantics.const 0) (Id_symantics.var u) ]
+        | [] -> []
+      in
+      [ Env.extend_int_exn env name (Ast.Eia.Add (Id_symantics.const a :: sum)), desc us @ phs ])
+    ~init:[ Env.empty, [] ]
+    vars
+  |> List.map (fun (e, phs) -> subst e (Ast.land_ (ast :: phs)))
+;;
+
+let run_under2 ast =
+  List.filter_map
+    (fun ast ->
+       match basic_simplify [ 1 ] Env.empty ast with
+       | `Unsat _ -> None
+       | `Sat env -> Some (`Sat env)
+       | `Unknown (ast, env, info, _) ->
+         let ast = flatten info ast in
+         (match has_unsupported_nonlinearity ast with
+          | Ok () -> Some (`Unknown (ast, env))
+          | Error _ -> None))
+    (try_under2_heuristics ast)
 ;;
 
 let check_nia env ast =

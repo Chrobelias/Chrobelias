@@ -13,7 +13,7 @@ standard-exp.t.
   > (get-model)
   > EOF
   $ Chro basic.smt2
-  sat (under int)
+  sat (presimpl int)
   (
      (define-fun x () Int
       4)
@@ -28,7 +28,7 @@ The pre-standard alias parses to the same term.
   > (check-sat)
   > EOF
   $ Chro -no-model alias.smt2
-  sat (under int)
+  sat (presimpl int)
 
 `(** m 0)` is 1 for every base, including 0 -- this fold agrees with the
 standard.
@@ -61,7 +61,7 @@ A negative constant base goes through |base| with a parity sign split.
   > (check-sat)
   > EOF
   $ Chro -q -no-model negbase.smt2
-  sat (under int)
+  sat (presimpl int)
 
 Regression for `Ir.simpl_ineq`: single-variable bounds must be collected only
 from the top-level conjunctive spine. Collecting `x = 1` out of the dead arm

@@ -55,17 +55,12 @@ $ cat len1.smt2
   
   [+simpl]
     iter(1)= (and
-             (<= (+ 1001 (* (- 1) (str.len y))) 0)
-             (<= (+ 1 (str.len x) (* (- 1) (str.len y))) 0)
-             (<= (+ 2 (* (- 1) (str.len x))) 0))
-  [+simpl]
-    Alphabet with extra char: 0
-  
-  [+simpl]
-    iter(2)= (and
              (<= (+ 1 (str.len x) (* (- 1) (str.len y))) 0)
              (<= (+ 2 (* (- 1) (str.len x))) 0)
              (<= (+ 1001 (* (- 1) (str.len y))) 0))
+  [+simpl]
+    Alphabet with extra char: 0
+  
   [+simpl]
     fixed-point
   

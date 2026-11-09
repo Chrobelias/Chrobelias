@@ -158,9 +158,7 @@ $ echo '77*2^2+42*2^2' | bc
   > (check-sat)
   > EOF
   $ Chro  --dsimpl --stop-after simpl test.smt2 | sed 's/[[:space:]]*$//'
-  (assert (= (+ (* (- 1) %0) x1 )  0) )
-  (assert ((re.* (re.union (str.to.re "0") (re.union (str.to.re "2") (re.union (str.to.re "1") (str.to.re "7")))))))
-  
+  sat (presimpl int)
 
   $ cat > test.smt2 <<-EOF
   > (set-logic ALL)

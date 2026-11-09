@@ -146,10 +146,10 @@ runs past n digits. 2 ** 100 needs 31 of them.
   > (get-model)
   > EOF
   $ Chro -huge 30 pow100.smt2
-  sat (under int)
+  sat (presimpl int)
   no short model
   $ Chro -huge 31 pow100.smt2
-  sat (under int)
+  sat (presimpl int)
   (
      (define-fun y () Int
       1267650600228229401496703205376)

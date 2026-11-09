@@ -61,10 +61,10 @@
     (strlenx int 9))
   [+over]
     Length abstraction result:  (and
-                                (<= (* (- 1) @@re_len1) 0)
-                                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
                                 (= (mod (mod (str.to.int x) 29) 11) 0)
                                 (<= (+ (- 99) strlenx) 0)
+                                (<= (* (- 1) @@re_len1) 0)
+                                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
                                 (<= (* (- 1) (str.to.int x)) 0)
                                 (<= (* (- 1) strlenx) 0)) 
   [+simpl]
@@ -72,9 +72,9 @@
   
   [+simpl]
     iter(1)= (and
-             (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re ""))))))))))))))
              (= %r2 0)
              (<= (+ (- 99) (str.len x)) 0)
+             (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re ""))))))))))))))
              (<= (* (- 1) (str.to.int x)) 0)
              (= (mod (+ %r1 (* (- 1) %r2)) 11) 0)
              (<= (+ (- 10) %r2) 0)
@@ -227,10 +227,10 @@
   
   [+over]
     Length abstraction result:  (and
-                                (<= (* (- 1) @@re_len1) 0)
-                                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
                                 (= (mod (mod (str.to.int x) 29) 11) 0)
                                 (<= (+ (- 99) strlenx) 0)
+                                (<= (* (- 1) @@re_len1) 0)
+                                (= (+ (- 9) strlenx (* (- 2) @@re_len1)) 0)
                                 (<= (* (- 1) (str.to.int x)) 0)
                                 (<= (* (- 1) strlenx) 0)) 
   [+simpl]
@@ -238,9 +238,9 @@
   
   [+simpl]
     iter(1)= (and
-             (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re ""))))))))))))))
              (= %r2 0)
              (<= (+ (- 99) (str.len x)) 0)
+             (str.in_re x (re.++ (str.to.re "6") (re.++ (str.to.re "2") (re.++ (re.* (re.++ (str.to.re "6") (str.to.re "2"))) (re.++ (str.to.re "2") (re.++ (str.to.re "8") (re.++ (re.* (re.++ (str.to.re "2") (str.to.re "8"))) (re.++ (str.to.re "5") (re.++ (str.to.re "4") (re.++ (str.to.re "3") (re.++ (str.to.re "2") (re.++ (str.to.re "1") (re.* (str.to.re ""))))))))))))))
              (<= (* (- 1) (str.to.int x)) 0)
              (= (mod (+ %r1 (* (- 1) %r2)) 11) 0)
              (<= (+ (- 10) %r2) 0)

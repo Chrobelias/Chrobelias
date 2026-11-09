@@ -23,7 +23,7 @@ guarded formulas keep the engine's exact fragment. Related: issue257.t
   > (get-model)
   > EOF
   $ Chro a1.smt2
-  sat (under int)
+  sat (presimpl int)
   (
      (define-fun x () Int
       4)
@@ -38,7 +38,7 @@ The pre-standard `exp` alias parses to the same term.
   > (check-sat)
   > EOF
   $ Chro -no-model alias.smt2
-  sat (under int)
+  sat (presimpl int)
 
 == Constant corner cases ==
 
@@ -105,7 +105,7 @@ is at least 1:
   > (check-sat)
   > EOF
   $ Chro -no-model a9.smt2
-  unsat (over)
+  unsat (presimpl int)
 
   $ cat > a14.smt2 <<-EOF
   > (set-logic QF_EIA)
@@ -163,7 +163,7 @@ A negative base |m| >= 2 alternates sign with the exponent's parity:
   > (check-sat)
   > EOF
   $ Chro -no-model a10.smt2
-  sat (under int)
+  sat (presimpl int)
 
   $ cat > a11.smt2 <<-EOF
   > (set-logic QF_EIA)
@@ -172,7 +172,7 @@ A negative base |m| >= 2 alternates sign with the exponent's parity:
   > (check-sat)
   > EOF
   $ Chro -no-model a11.smt2
-  unsat (nfa)
+  unsat (presimpl int)
 
 == Variable bases under constant negative exponents ==
 

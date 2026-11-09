@@ -200,7 +200,7 @@
   > (get-model)
   > SMT
   $ Chro --check-model guarded_exp.smt2
-  sat (under int)
+  sat (presimpl int)
   (
      (define-fun b () Bool
       true)

@@ -1,9 +1,9 @@
 Basic QF_EIA tests
 
   $ Chro ./qf-eia.smt2
-  sat (under int)
-  unsat (nfa)
-  unsat (nfa)
+  sat (presimpl int)
+  unsat (presimpl int)
+  unsat (presimpl int)
   sat (under int)
   unsat (nfa)
   sat (under int)
@@ -19,9 +19,9 @@ Basic QF_EIA tests
 Basic QF_EIA tests using only NFAs
 
   $ Chro -bound -1 -no-over ./qf-eia.smt2
-  sat (nfa)
-  unsat (nfa)
-  unsat (nfa)
+  sat (presimpl int)
+  unsat (presimpl int)
+  unsat (presimpl int)
   sat (nfa)
   unsat (nfa)
   sat (nfa)
@@ -37,9 +37,9 @@ Basic QF_EIA tests using only NFAs
 Same basic QF_EIA tests using only NFAs but in the LSB mode
 
   $ Chro -lsb -bound -1 -no-over ./qf-eia.smt2
-  sat (nfa)
-  unsat (nfa)
-  unsat (nfa)
+  sat (presimpl int)
+  unsat (presimpl int)
+  unsat (presimpl int)
   sat (nfa)
   unsat (nfa)
   sat (nfa)
