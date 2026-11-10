@@ -23,6 +23,7 @@ val luby : int -> int
     answered, for its model. *)
 val z3_check_with_restarts
   :  ?logic:Smtml.Logic.t
+  -> ?unit_ms:int
   -> budget_ms:int
   -> Smtml.Expr.t list
   -> [ `Sat of Smtml.Z3_mappings.solver | `Unsat | `Unknown ]

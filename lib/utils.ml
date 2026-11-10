@@ -117,7 +117,7 @@ let%expect_test "luby" =
   [%expect {| 1 1 2 1 1 2 4 1 1 2 1 1 2 4 8 |}]
 ;;
 
-let z3_check_with_restarts ?logic ~budget_ms assumptions =
+let z3_check_with_restarts ?logic ?(unit_ms = 1000) ~budget_ms assumptions =
   let module Z3 = Smtml.Z3_mappings.Solver in
   let make ~timeout ~seed =
     Z3.make
@@ -129,11 +129,12 @@ let z3_check_with_restarts ?logic ~budget_ms assumptions =
     if spent >= budget_ms
     then `Unknown
     else (
-      let timeout = min (luby i * 1000) (budget_ms - spent) in
+      let timeout = min (luby i * unit_ms) (budget_ms - spent) in
       let seed = if i = 1 then 42 else i - 2 in
       let solver = make ~timeout ~seed in
       Z3.reset solver;
-      match Z3.check solver ~assumptions with
+      Z3.add solver assumptions;
+      match Z3.check solver ~assumptions:[] with
       | `Sat -> `Sat solver
       | `Unsat -> `Unsat
       | `Unknown ->

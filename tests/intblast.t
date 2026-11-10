@@ -45,7 +45,7 @@
   > EOF
 
   $ Chro query.smt2
-  sat (under int)
+  sat (nia)
 
   $ cat > slt_wrap.smt2 <<-'EOF'
   > (set-logic QF_BV)
@@ -56,7 +56,7 @@
   > EOF
 
   $ Chro slt_wrap.smt2
-  sat (under int)
+  sat (nia)
 
   $ cat > sext_neg.smt2 <<-'EOF'
   > (set-logic QF_BV)
@@ -67,7 +67,7 @@
   > EOF
 
   $ Chro sext_neg.smt2
-  unsat (presimpl int)
+  unsat (nia)
 
   $ cat > add_ovf2.smt2 <<-'EOF'
   > (set-logic QF_BV)
@@ -100,7 +100,7 @@
   > EOF
 
   $ Chro mul.smt2
-  sat (under int)
+  sat (nia)
 
   $ cat > udiv.smt2 <<-'EOF'
   > (set-logic QF_BV)
@@ -111,7 +111,7 @@
   > EOF
 
   $ Chro udiv.smt2
-  sat (under int)
+  sat (nia)
 
   $ cat > sel_unsat.smt2 <<-'EOF'
   > (set-logic QF_ABV)
@@ -125,7 +125,7 @@
   > EOF
 
   $ Chro sel_unsat.smt2
-  unsat (presimpl int)
+  unsat (nia)
 
   $ cat > sel_sat.smt2 <<-'EOF'
   > (set-logic QF_ABV)
@@ -138,7 +138,7 @@
   > EOF
 
   $ Chro sel_sat.smt2
-  sat (under int)
+  sat (nia)
 
   $ cat > big.smt2 <<-'EOF'
   > (declare-fun x () Int)

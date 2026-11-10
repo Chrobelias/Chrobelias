@@ -2992,7 +2992,46 @@ let run_under2 ast =
     (try_under2_heuristics ast)
 ;;
 
-let check_nia env ast =
+let nia_expr ast =
+  let module M = struct
+    include Id_symantics
+
+    let pow_minus_one t = add [ const 1; mul [ const (-2); mod_ t (Z.of_int 2) ] ]
+  end
+  in
+  apply_symantics_unsugared (module M) ast
+  |> lower_mod
+  |> apply_symantics (make_smtml_symantics Utils.Map.empty)
+;;
+
+let nia_core ast =
+  let lits = match ast with Ast.Land xs -> xs | x -> [ x ] in
+  try
+    let ctx = Z3.mk_context [] in
+    let fs =
+      Format.asprintf "%a" (Smtml.Z3_mappings.Smtlib.pp ?name:None ?logic:None ?status:None) (List.map nia_expr lits)
+      |> fun s -> Z3.SMT.parse_smtlib2_string ctx s [] [] [] []
+      |> Z3.AST.ASTVector.to_expr_list
+    in
+    if List.compare_lengths fs lits <> 0 then None
+    else (
+      let ps = List.mapi (fun i _ -> Z3.Boolean.mk_const_s ctx (Printf.sprintf "%%core%d" i)) fs in
+      let solver = Z3.Solver.mk_solver_s ctx "QF_NIA" in
+      let prm = Z3.Params.mk_params ctx in
+      Z3.Params.add_int prm (Z3.Symbol.mk_string ctx "timeout") 20_000;
+      Z3.Params.add_bool prm (Z3.Symbol.mk_string ctx "core.minimize") true;
+      Z3.Solver.set_parameters solver prm;
+      Z3.Solver.add solver (List.map2 (Z3.Boolean.mk_implies ctx) ps fs);
+      match Z3.Solver.check solver ps with
+      | Z3.Solver.UNSATISFIABLE ->
+        let core = Z3.Solver.get_unsat_core solver in
+        Some (List.filteri (fun i _ -> List.exists (Z3.Expr.equal (List.nth ps i)) core) lits |> Ast.land_)
+      | _ -> None)
+  with
+  | _ -> None
+;;
+
+let check_nia ?(logic = Some Smtml.Logic.QF_NIA) ?unit_ms env ast =
   let module Z3 = Smtml.Z3_mappings.Solver in
   let to_normal_env =
     Base.Map.Poly.fold ~init:Env.empty ~f:(fun ~key ~data acc ->
@@ -3000,20 +3039,10 @@ let check_nia env ast =
       let open Ast in
       Env.extend_exn acc (Var (key, I)) (Eia.Const data))
   in
-  (* trace_log "ast1=@[%a@]" Ast.pp_smtlib2 ast; *)
-  let module M = struct
-    include Id_symantics
-
-    let pow_minus_one t = add [ const 1; mul [ const (-2); mod_ t (Z.of_int 2) ] ]
-  end
-  in
-  let ast = apply_symantics_unsugared (module M) ast in
-  let ast = lower_mod ast in
-  (* trace_log "ast2=@[%a@]" Ast.pp_smtlib2 ast; *)
-  let ph = apply_symantics (make_smtml_symantics Utils.Map.empty) ast in
+  let ph = nia_expr ast in
   trace_log "Into Z3 goes: @[%a@]\n%!" Smtml.Expr.pp ph;
   match
-    Utils.z3_check_with_restarts ~logic:Smtml.Logic.QF_NIA ~budget_ms:200_000 [ ph ]
+    Utils.z3_check_with_restarts ?logic ?unit_ms ~budget_ms:200_000 [ ph ]
   with
   | `Sat solver ->
     (match Z3.model solver with

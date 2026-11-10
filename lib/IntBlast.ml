@@ -83,8 +83,9 @@ type value =
 type state =
   { mutable sorts : string list
   ; mutable env : (string * value) list
-  ; mutable reads : (string * (Z.t E.term * Z.t E.term) list) list
+  ; mutable reads : (string * (Z.t E.term list * Z.t E.term) list) list
   ; mutable side : Ast.t list
+  ; mutable funs : (string * sort) list
   ; mutable norms : ((Z.t E.term * int) * Z.t E.term) list
   }
 
@@ -105,6 +106,9 @@ let var () =
 ;;
 
 let bounds = Hashtbl.create 64
+
+let vals = Hashtbl.create 64
+let bits = Hashtbl.create 64
 
 let bound v lo hi =
   match v with
@@ -203,6 +207,42 @@ let mask st a w m =
   E.add (c Z.zero :: go 0 [])
 ;;
 
+let barrel st shl a w b =
+  let hi = Option.fold ~none:(p2 w) ~some:snd (itv b) in
+  let n = Z.numbits (Z.min hi (Z.of_int (w - 1))) in
+  let bs = List.init n (fun _ -> fresh st Z.zero Z.one) in
+  let sum = E.add (c Z.zero :: List.mapi (fun i x -> p2 i *** x) bs) in
+  let layer (s, i) x =
+    let k = 1 lsl i in
+    let s' = fresh_bv st w in
+    let t = fresh st Z.zero (Z.pred (p2 k)) in
+    let u, v = if shl then s', (p2 k *** s) +++ neg (p2 w *** t) else s, (p2 k *** s') +++ t in
+    assume st (lor_ [ land_ [ x === c Z.zero; s' === s ]; land_ [ x === c Z.one; u === v ] ]);
+    s', i + 1
+  in
+  let s, _ = List.fold_left layer (a, 0) bs in
+  if Z.lt hi (p2 n)
+  then (
+    assume st (b === sum);
+    s)
+  else (
+    let h = fresh st Z.zero (Z.fdiv hi (p2 n)) in
+    let r = fresh_bv st w in
+    assume
+      st
+      (land_
+         [ b === sum +++ (p2 n *** h)
+         ; lor_ [ land_ [ h === c Z.zero; r === s ]; land_ [ c Z.one <== h; r === c Z.zero ] ]
+         ]);
+    r)
+;;
+
+let signed st w x =
+  let s = fresh st (Z.neg (p2 (w - 1))) (Z.pred (p2 (w - 1))) in
+  assume st (s === x +++ neg (p2 w *** fresh st Z.zero Z.one));
+  s
+;;
+
 let rec sort st = function
   | A "Bool" -> Bool
   | A "Int" -> Int
@@ -228,6 +268,32 @@ let lit a =
 
 let rec tr st env e =
   let go = tr st env in
+  let read n s is =
+    let is =
+      List.map
+        (fun i ->
+          match go i with
+          | T (i, BV w) -> norm st w i
+          | T (i, _) -> define st i
+          | _ -> fail "non-term index %a" pp i)
+        is
+    in
+    let rs = Option.value ~default:[] (List.assoc_opt n st.reads) in
+    match List.assoc_opt is rs with
+    | Some v -> T (v, s)
+    | None ->
+      let v =
+        match s with
+        | BV w -> fresh_bv st w
+        | _ -> var ()
+      in
+      List.iter
+        (fun (js, u) ->
+          assume st (lor_ ((v === u) :: List.map2 (fun i j -> lnot (i === j)) is js)))
+        rs;
+      st.reads <- (n, (is, v) :: rs) :: List.remove_assoc n st.reads;
+      T (v, s)
+  in
   let f e =
     match go e with
     | F f -> f
@@ -302,6 +368,9 @@ let rec tr st env e =
        (match itv a, itv b with
         | Some (l1, h1), Some (l2, h2) -> bound r (Z.min l1 l2) (Z.max h1 h2)
         | _ -> ());
+       (match a, b, r with
+        | E.Const x, E.Const y, E.Atom (Var (n, _)) -> Hashtbl.replace vals n [ x; y ]
+        | _ -> ());
        assume st (lor_ [ land_ [ i; r === a ]; land_ [ lnot i; r === b ] ]);
        T (r, s)
      | _ -> fail "ite over arrays")
@@ -316,28 +385,16 @@ let rec tr st env e =
     F (if op = "=" then r else lnot r)
   | L (A "=" :: x :: xs) -> F (land_ (List.map (fun y -> f (L [ A "="; x; y ])) xs))
   | L [ A "select"; a; i ] ->
-    let n, s =
-      match go a with
-      | Ar (n, s) -> n, s
-      | _ -> fail "select on non-array %a" pp a
-    in
-    let i =
-      match t i with
-      | i, BV w -> norm st w i
-      | i, _ -> define st i
-    in
-    let rs = Option.value ~default:[] (List.assoc_opt n st.reads) in
-    (match List.assoc_opt i rs with
-     | Some v -> T (v, s)
-     | None ->
-       let v =
-         match s with
-         | BV w -> fresh_bv st w
-         | _ -> var ()
-       in
-       List.iter (fun (j, u) -> assume st (lor_ [ lnot (i === j); v === u ])) rs;
-       st.reads <- (n, (i, v) :: rs) :: List.remove_assoc n st.reads;
-       T (v, s))
+    (match go a with
+     | Ar (n, s) -> read n s [ i ]
+     | _ -> fail "select on non-array %a" pp a)
+  | L (A n :: is) when List.mem_assoc n st.funs ->
+    (match List.assoc n st.funs with
+     | Bool ->
+       (match read n (BV 1) is with
+        | T (v, _) -> F (v === c Z.one)
+        | v -> v)
+     | s -> read n s is)
   | L
       [ A
           (("bvule" | "bvult" | "bvuge" | "bvugt" | "bvsle" | "bvslt" | "bvsge" | "bvsgt")
@@ -403,6 +460,13 @@ let rec tr st env e =
       | _ -> E.mul [ norm st w acc; norm st w y ]
     in
     T (List.fold_left mul x (raws xs), BV w)
+  | L [ A (("bvsmul_noovfl" | "bvsmul_noudfl") as op); a; b ] ->
+    let (a, w), (b, _) = bv a, bv b in
+    let p = E.mul [ signed st w a; signed st w b ] in
+    F
+      (if op = "bvsmul_noovfl"
+       then p <== c (Z.pred (p2 (w - 1)))
+       else c (Z.neg (p2 (w - 1))) <== p)
   | L [ A (("bvudiv" | "bvurem") as op); a; b ] ->
     let (a, w), (b, _) = bv a, bv b in
     (match const b with
@@ -446,21 +510,7 @@ let rec tr st env e =
        let ks = List.init (Z.to_int (Z.sub hi lo) + 1) (fun i -> Z.add lo (Z.of_int i)) in
        assume st (lor_ (List.map (fun k -> land_ [ b === c k; case k ]) ks));
        T (r, BV w)
-     | None ->
-       let r, x, e = fresh_bv st w, var (), E.pow (c (Z.of_int 2)) b in
-       let small = b <<< c (Z.of_int w) in
-       let body =
-         if op = "bvshl"
-         then r === E.mul [ a; e ] +++ neg (p2 w *** x)
-         else a === E.mul [ r; e ] +++ x
-       in
-       assume
-         st
-         (lor_
-            [ land_ [ small; c Z.zero <== x; x <<< e; body ]
-            ; land_ [ lnot small; r === c Z.zero ]
-            ]);
-       T (r, BV w))
+     | None -> T (barrel st (op = "bvshl") a w b, BV w))
   | L [ A (("bvsdiv" | "bvsrem" | "bvsmod") as op); a; b ] ->
     let (a, w), (b, _) = bv a, bv b in
     (match const b with
@@ -484,23 +534,101 @@ let rec tr st env e =
        assume st (n === (d *** q) +++ r);
        assume st (lor_ [ land_ [ pos; res === v ]; land_ [ lnot pos; neg_res ] ]);
        T (res, BV w)
-     | _ -> fail "%s by a non-positive constant" op)
+     | _ ->
+       let z = c Z.zero in
+       let sa, sb = signed st w a, signed st w b in
+       let pa, pb = z <== sa, z <== sb in
+       let ab x =
+         let n = fresh st Z.zero (p2 (w - 1)) in
+         assume st (lor_ [ land_ [ z <== x; n === x ]; land_ [ x <<< z; n === neg x ] ]);
+         n
+       in
+       let na, nb = ab sa, ab sb in
+       let q, r = fresh_bv st w, fresh_bv st w in
+       assume st (na === E.mul [ nb; q ] +++ r);
+       assume st (lor_ [ land_ [ nb === z; q === c (Z.pred (p2 w)) ]; r <<< nb ]);
+       let same = lor_ [ land_ [ pa; pb ]; land_ [ lnot pa; lnot pb ] ] in
+       let cases =
+         match op with
+         | "bvsdiv" -> [ same, q; lnot same, neg q ]
+         | "bvsrem" -> [ pa, r; lnot pa, neg r ]
+         | _ ->
+           let nz = z <<< r in
+           [ r === z, z
+           ; land_ [ nz; same; pa ], r
+           ; land_ [ nz; same; lnot pa ], neg r
+           ; land_ [ nz; lnot same; pa ], r +++ sb
+           ; land_ [ nz; lnot same; lnot pa ], sb +++ neg r
+           ]
+       in
+       let v = var () in
+       assume st (lor_ (List.map (fun (g, x) -> land_ [ g; v === x ]) cases));
+       T (norm st w v, BV w))
   | L (A (("bvand" | "bvor" | "bvxor") as op) :: x :: xs) ->
     let x, w = bv x in
+    let cst a m =
+      let x = mask st a w m in
+      match op with
+      | "bvand" -> x
+      | "bvor" -> a +++ c m +++ neg x
+      | _ -> a +++ c m +++ (Z.of_int (-2) *** x)
+    in
+    let vs = function
+      | E.Atom (Var (n, _)) -> Hashtbl.find_opt vals n
+      | _ -> None
+    in
+    let split a ms b =
+      let r = fresh_bv st w in
+      assume st (lor_ (List.map (fun m -> land_ [ a === c m; r === cst b m ]) ms));
+      r
+    in
     let g a b =
-      match const a, const b with
-      | None, None ->
-        (match op with
-         | "bvand" -> E.bwand a b
-         | "bvor" -> E.bwor a b
-         | _ -> E.bwxor a b)
-      | ca, cb ->
-        let a, m = if ca = None then a, Option.get cb else b, Option.get ca in
-        let x = mask st a w m in
-        (match op with
-         | "bvand" -> x
-         | "bvor" -> a +++ c m +++ neg x
-         | _ -> a +++ c m +++ (Z.of_int (-2) *** x))
+      match const a, const b, vs a, vs b with
+      | Some m, _, _, _ -> cst b m
+      | _, Some m, _, _ -> cst a m
+      | _, _, Some ms, _ -> split a ms b
+      | _, _, _, Some ms -> split b ms a
+      | _ ->
+        let n t = Z.numbits (Option.fold ~none:(Z.pred (p2 w)) ~some:snd (itv t)) in
+        let k = if op = "bvand" then min (n a) (n b) else max (n a) (n b) in
+        if max (n a) (n b) > 64
+        then (
+          match op with
+          | "bvand" -> E.bwand a b
+          | "bvor" -> E.bwor a b
+          | _ -> E.bwxor a b)
+        else (
+          let dec t =
+            let bs =
+              match Hashtbl.find_opt bits t with
+              | Some bs -> bs
+              | None ->
+                let bs = List.init (n t) (fun _ -> fresh st Z.zero Z.one) in
+                assume st (t === E.add (c Z.zero :: List.mapi (fun i x -> p2 i *** x) bs));
+                Hashtbl.replace bits t bs;
+                bs
+            in
+            List.init k (fun i -> Option.value (List.nth_opt bs i) ~default:(c Z.zero))
+          in
+          let one x y =
+            let r = fresh st Z.zero Z.one in
+            let s = x +++ y in
+            assume
+              st
+              (land_
+                 (match op with
+                  | "bvand" -> [ r <== x; r <== y; s <== (c Z.one +++ r) ]
+                  | "bvor" -> [ x <== r; y <== r; r <== s ]
+                  | _ ->
+                    [ r <== s
+                    ; s <== (c (Z.of_int 2) +++ neg r)
+                    ; x +++ neg y <== r
+                    ; y +++ neg x <== r
+                    ]));
+            r
+          in
+          let rs = List.map2 one (dec a) (dec b) in
+          E.add (c Z.zero :: List.mapi (fun i x -> p2 i *** x) rs))
     in
     T (List.fold_left g x (bvs xs), BV w)
   | L (A (("+" | "*") as op) :: xs) ->
@@ -521,7 +649,7 @@ let rec tr st env e =
 let sym ty s = Smtml.Symbol.make_const ty s
 
 let commands src =
-  let st = ref { sorts = []; env = []; reads = []; side = []; norms = [] } in
+  let st = ref { sorts = []; env = []; reads = []; side = []; funs = []; norms = [] } in
   let stack = ref [] in
   let decl x s =
     let v = E.atom (int_var x) in
@@ -560,6 +688,9 @@ let commands src =
         []
       | L [ A "declare-const"; A x; s ] | L [ A "declare-fun"; A x; L []; s ] ->
         decl x (sort !st s)
+      | L [ A "declare-fun"; A x; L _; s ] ->
+        !st.funs <- (x, sort !st s) :: !st.funs;
+        []
       | L [ A "define-fun"; A x; L []; _; e ] ->
         !st.env <- (x, tr !st [] e) :: !st.env;
         []

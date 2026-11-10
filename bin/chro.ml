@@ -64,6 +64,27 @@ let sat
 
 let unsat desc core = Unsat (desc, core)
 let unknown ast env = Unknown (ast, env)
+let blasted = ref false
+
+let nfa_only = Sys.getenv_opt "CHRO_NFA" <> None
+
+let exact_lia ast =
+  !blasted
+  && (not nfa_only)
+  && not
+       (Ast.forsome
+          (function
+            | Ast.Eia eia ->
+              Ast.Eia.fold2
+                (fun acc -> function
+                   | Ast.Eia.Pow _ | Bwand _ | Bwor _ | Bwxor _ -> true
+                   | _ -> acc)
+                (fun acc _ -> acc)
+                false
+                eia
+            | _ -> false)
+          ast)
+;;
 
 (* Like [Seq.fold_left], but stops as soon as the accumulator is [Sat] instead
    of forcing the rest of a lazy — and potentially expensive — sequence. *)
@@ -721,12 +742,37 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
     | `Unknown (ast, e) -> unknown ast e
   in
   let check_eia_sat ast e =
+    let core ast = Option.value (SimplII.nia_core ast) ~default:ast in
+    let ast0 = ast in
     trace_log "Checking eia sat (ast = %a)\n%!" Ast.pp_smtlib2 ast;
     let can_be_unk = ref false in
+    let nia ast e =
+      if config.logic <> `Eia || nfa_only
+      then unknown ast e
+      else (
+        match
+          if exact_lia ast
+          then SimplII.check_nia ~logic:None ~unit_ms:200_000 e ast
+          else SimplII.check_nia e ast
+        with
+          | `Sat env ->
+            let env =
+              Env.merge
+                ~sf:(fun ~key:_ ~data1 ~data2:_ -> data1)
+                ~zf:(fun ~key:_ ~data1 ~data2:_ -> data1)
+                env
+                e
+            in
+            sat "nia" ast ~env
+          | `Unsat -> unsat "nia" (if exact_lia ast then ast else core ast0)
+          | `Unknown ->
+            unknown_reason := "nia";
+            unknown ast e)
+    in
     let apporx_rez =
       unknown ast e
       <+> (fun ast e ->
-      if not config.pre_simpl
+      if (not config.pre_simpl) || exact_lia ast
       then unknown ast e
       else lift "presimpl int" ast (SimplII.run_basic_simplify ~env:e ast))
       <+> (fun ast e ->
@@ -735,7 +781,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
       <+> (fun ast e ->
       if config.stop_after = `Pre_simplify then exit 0 else unknown ast e)
       <+> (fun ast e ->
-      if config.under_approx >= 0
+      if config.under_approx >= 0 && not (exact_lia ast)
       then (
         let merge =
           Env.merge
@@ -744,7 +790,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         in
         match Underapprox.check config.under_approx ast with
         | `Sat (s, e0) -> sat s ast ~env:(merge e0 e)
-        | `Unsat s -> unsat s ast
+        | `Unsat s -> unsat s (core ast0)
         | `Unknown _ -> unknown ast e)
       else unknown ast e)
       <+> (fun ast e ->
@@ -763,7 +809,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         in
         Option.value found ~default:(unknown ast e)))
       <+> (fun ast e ->
-      if config.over_approx
+      if config.over_approx && not (exact_lia ast)
       then (
         match Overapprox.check ast with
         | `Sat _ -> unknown ast e
@@ -772,29 +818,14 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
       else unknown ast e)
       <+> fun ast e ->
       match SimplII.has_unsupported_nonlinearity ast with
-      | Result.Ok () -> unknown ast e
+      | Result.Ok () when not (exact_lia ast) -> unknown ast e
+      | Result.Ok () -> nia ast e
       | Error terms ->
         trace_log "@[<v 2>";
         trace_log "@[Non linear arithmetic between@]@,";
         List.iteri (fun i -> trace_log "@[%d) %a@]@," i Ast.pp_term_smtlib2) terms;
         trace_log "@]@,";
-        if config.logic = `Eia
-        then (
-          match SimplII.check_nia e ast with
-          | `Sat env ->
-            let env =
-              Env.merge
-                ~sf:(fun ~key:_ ~data1 ~data2:_ -> data1)
-                ~zf:(fun ~key:_ ~data1 ~data2:_ -> data1)
-                env
-                e
-            in
-            sat "nia" ast ~env
-          | `Unsat -> unsat "nia" ast
-          | `Unknown ->
-            unknown_reason := "nia";
-            unknown ast e)
-        else unknown ast e
+        nia ast e
     in
     match apporx_rez with
     | Unknown (ast, e) ->
@@ -1255,6 +1286,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                      | _ -> false)
                    ast))
           && config.stop_after = `Solving
+          && (not (exact_lia ast))
           && (not config.dump_pre_simpl)
           && not config.dump_simpl
         in
@@ -1390,7 +1422,7 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
                   acc
                   || Ast.Eia.fold2
                        (fun acc -> function
-                          | Ast.Eia.Pow _ -> true
+                          | Ast.Eia.Pow _ | Bwand _ | Bwor _ | Bwxor _ -> true
                           | _ -> acc)
                        (fun acc _ -> acc)
                        false
@@ -1520,6 +1552,7 @@ let () =
       then (
         try
           let cmds = Lib.IntBlast.commands src in
+          blasted := true;
           if config.dump_blast
           then (
             Lib.IntBlast.dump cmds;

@@ -114,4 +114,5 @@ val run_basic_simplify
   -> [ `Sat of Env.t | `Unsat of Ast.t | `Unknown of Ast.t * Env.t ]
 
 val run_under2 : Ast.t -> [ `Sat of Env.t | `Unknown of Ast.t * Env.t ] list
-val check_nia : Env.t -> Ast.t -> [> `Sat of Env.t | `Unknown | `Unsat ]
+val nia_core : Ast.t -> Ast.t option
+val check_nia : ?logic:Smtml.Logic.t option -> ?unit_ms:int -> Env.t -> Ast.t -> [> `Sat of Env.t | `Unknown | `Unsat ]
