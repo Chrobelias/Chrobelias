@@ -1746,7 +1746,10 @@ let check_sat ir
        would be read as [2 ** v] whatever the base. For any other base, use
        the digit automata of the string path, which are parameterised by the
        base. *)
-    trace_log "Base %d is not 2: running the base-%d digit automata" !Config.base !Config.base;
+    trace_log
+      "Base %d is not 2: running the base-%d digit automata"
+      !Config.base
+      !Config.base;
     on_strings ~logic:(if Config.config.no_str_bv then `Str else `StrBv) ir
   | (`Str | `StrBv) as logic -> on_strings ~logic ir
 ;;
