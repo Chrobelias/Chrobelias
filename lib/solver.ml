@@ -1639,7 +1639,7 @@ let check_sat ir
     | `Unsat -> `Unsat
     | `Unknown -> `Unknown ir
   in
-  let on_strings ir =
+  let on_strings ~logic ir =
     let checker =
       let wrap f =
         fun ir ->
@@ -1657,7 +1657,7 @@ let check_sat ir
         let base = Z.of_int !Config.base
       end
       in
-      match Config.config.logic, Config.config.mode with
+      match logic, Config.config.mode with
       | `Str, `Lsb ->
         trace_log "Running string LSB mode";
         if !Config.base = 10
@@ -1740,6 +1740,16 @@ let check_sat ir
     | `Unknown -> `Unknown ir
   in
   match Config.config.logic with
-  | `Eia -> on_no_strings ir
-  | `Str | `StrBv -> on_strings ir
+  | `Eia when !Config.base = 2 -> on_no_strings ir
+  | `Eia ->
+    (* The integer automata ([Lsb]/[Msb] over [Nfa.Bv]) are binary: [Pow2 v]
+       would be read as [2 ** v] whatever the base. For any other base, use
+       the digit automata of the string path, which are parameterised by the
+       base. *)
+    trace_log
+      "Base %d is not 2: running the base-%d digit automata"
+      !Config.base
+      !Config.base;
+    on_strings ~logic:(if Config.config.no_str_bv then `Str else `StrBv) ir
+  | (`Str | `StrBv) as logic -> on_strings ~logic ir
 ;;
