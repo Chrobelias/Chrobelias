@@ -1697,6 +1697,20 @@ let check_sat ir
           end
           in
           let* model = model () in
+          (* Digit d of base b is the symbol [Char.chr (Char.code '0' + d)],
+             also for b > 10, so read it arithmetically, not with
+             [Z.of_string]; negative values are the (b - 1)'s complement. *)
+          let b = !Config.base in
+          let z_of_digits =
+            List.fold_left
+              (fun acc c ->
+                 let d = Char.code c - Char.code '0' in
+                 Z.((acc * of_int b) + of_int d))
+              Z.zero
+          in
+          let digit_negate c =
+            Char.chr (Char.code '0' + (b - 1) - (Char.code c - Char.code '0'))
+          in
           let model =
             Map.mapi
               ~f:(fun ~key:k ~data:v ->
@@ -1711,8 +1725,8 @@ let check_sat ir
                     `Int
                       (int_of_path
                          (module Nfa.Str (B))
-                         z_of_char_list
-                         ~negate_symbol:char_negate
+                         z_of_digits
+                         ~negate_symbol:digit_negate
                          v)
                     (*let s = v |> z_of_list_str in
                     if String.length s > 0 then `Int (Z.of_string s) else `Int Z.zero*)
