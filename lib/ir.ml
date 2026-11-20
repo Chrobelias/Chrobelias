@@ -1443,7 +1443,9 @@ let eliminate_one_var conj varname subst p l =
   let* coeff, tau, const = eqs in
   let p = l in
   let l = coeff in
-  let slacks = slack_vars_in_poly tau |> List.filter (fun key -> not (Map.mem subst key)) in
+  let slacks =
+    slack_vars_in_poly tau |> List.filter (fun key -> not (Map.mem subst key))
+  in
   let mod_phi = get_mod_phi_of_system conj in
   let possible_vals = first_n_numbers Z.(Z.abs coeff * mod_phi) in
   let* subst =
@@ -1559,12 +1561,6 @@ let eliminate_existence_quantifier_branches (ir : t) =
   | _ -> failwith "Expected the existence quantifier"
 ;;
 
-let eliminate_existence_quantifier : t -> t =
-  fun ir ->
-  let branches = eliminate_existence_quantifier_branches ir in
-  Seq.fold_left (fun acc b -> land_ b :: acc) [] branches |> List.rev |> lor_
-;;
-
 let bound_ok (atoms : atom list) (ast : t) (bound : Z.t) : bool =
   let pow_le base exp bound =
     let rec aux acc b e =
@@ -1617,14 +1613,28 @@ let split_non_linear_parts ir : atom list * atom list =
   nonlin, lin
 ;;
 
+let eliminate_existence_quantifier : t -> t =
+  fun ir ->
+  let rec loop acc branches =
+    match branches () with
+    | Seq.Nil -> lor_ acc
+    | Seq.Cons (branch, branches) ->
+      (match simpl (land_ branch) with
+       | True -> True
+       | Lnot True -> loop acc branches
+       | branch -> loop (branch :: acc) branches)
+  in
+  let branches = eliminate_existence_quantifier_branches ir in
+  loop [] branches
+;;
+
 let simpl_quantifiers ir =
-  let bound = Config.config.bound_quantifier_elim in
   let rec aux = function
     | Exists (atoms, x) ->
       let nonlin, lin = split_non_linear_parts x in
       let elim_atoms = List.filter (fun a -> List.mem a lin) atoms in
       let keep_atoms = List.filter (fun a -> List.mem a nonlin) atoms in
-      if elim_atoms = [] || not (bound_ok elim_atoms x bound)
+      if elim_atoms = []
       then exists atoms (aux x)
       else (
         let dnf = eliminate_existence_quantifier (Exists (elim_atoms, x)) in
