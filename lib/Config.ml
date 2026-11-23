@@ -20,6 +20,7 @@ type config =
   ; mutable quiet : bool
   ; mutable simpl_alpha : bool
   ; mutable simpl_quantifier_elim : bool
+  ; mutable simpl_free_vars : bool
   ; mutable simpl_mono : bool
   ; mutable stop_after : [ `Pre_dpll | `Pre_simplify | `Simpl | `Solving ]
   ; mutable under_approx : int
@@ -58,6 +59,7 @@ let config =
   ; quiet = false
   ; simpl_alpha = false
   ; simpl_quantifier_elim = false
+  ; simpl_free_vars = false
   ; simpl_mono = true
   ; with_check_sat = false
   ; with_info = true
@@ -320,6 +322,9 @@ Basic options:
        ; ( "--qelim"
          , Arg.Unit (fun () -> config.simpl_quantifier_elim <- true)
          , "\tApply quantifier elimination for linear systems" )
+       ; ( "--free-elim"
+         , Arg.Unit (fun () -> config.simpl_free_vars <- true)
+         , "\tApply elimination of all linearly occuring variables using QE" )
        ; ( "-sbcnt"
          , Arg.Int (fun n -> under_str_config.max_cnt <- n)
          , Printf.sprintf

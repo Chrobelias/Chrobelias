@@ -643,7 +643,13 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         unknown_reason := "qelim bound";
         unknown ast e)
       else begin
-        let ir = if config.simpl_quantifier_elim then Ir.simpl_quantifiers ir else ir in
+        let ir =
+          if config.simpl_free_vars
+          then Ir.simpl_free_vars ir
+          else if config.simpl_quantifier_elim
+          then Ir.simpl_quantifiers ir
+          else ir
+        in
         match ir with
         | Lib.Ir.True -> sat "simpl" ast ~env:e
         | Lnot True -> unsat "simpl" ast

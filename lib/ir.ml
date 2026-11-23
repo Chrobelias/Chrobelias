@@ -1647,6 +1647,20 @@ let simpl_quantifiers ir =
   aux ir
 ;;
 
+(* Eliminates only linearly occuring free variables while also removing original quantifers *)
+let simpl_free_vars ir =
+  let rec linear_fv = function
+    | Lnot x -> linear_fv x
+    | Land x -> List.fold_left (fun acc x -> (linear_fv x) @ acc) [] x
+    | Lor x -> List.fold_left (fun acc x -> (linear_fv x) @ acc) [] x
+    | Rel (rel, poly, c) -> Map.keys poly
+    | t -> []
+  in
+  let ir = simpl_quantifiers ir in
+  let atoms = linear_fv ir in
+  simpl_quantifiers (Exists (atoms, ir))
+;;
+
 let%test_module "gaussqe (IR)" =
   (module struct
     let poly l = Map.of_alist_exn (List.map (fun (k, v) -> k, Z.of_int v) l)
