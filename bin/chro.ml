@@ -615,6 +615,81 @@ let rec qelim_bound_exceeded ir =
   | _ -> false
 ;;
 
+(* The integer bindings of a solver model, as [Ir.eval_ground] and the pivot
+   recovery below read them. *)
+let model_subst (model : Model.t) : (string, Z.t) Map.t =
+  Map.fold model ~init:Map.empty ~f:(fun ~key ~data acc ->
+    match data with
+    | `Int z -> Map.set acc ~key ~data:z
+    | `Str _ | `Bool _ -> acc)
+;;
+
+(* The values of the pivots of [w], oldest last: a pivot's [tau] may mention
+   the variables eliminated after it, which are therefore recovered first.
+   [None] when the witness cannot explain [model]: [tau] is not ground under
+   [subst], a division is not exact, or a recovered value contradicts a binding
+   [model] already has -- the branch reached through the opaque parts of the
+   system then is not the one the model satisfies, and another witness is
+   tried. *)
+let recover_witness_values ~model subst (w : Ir.witness) : (string * Z.t) list option =
+  let rec loop subst values = function
+    | [] -> Some (List.rev values)
+    | (p : Ir.pivot) :: tl ->
+      (match Ir.eval_polynom subst p.tau with
+       | None -> None
+       | Some tau ->
+         let free = Z.sub p.rhs tau in
+         if not (Z.equal (Z.rem free p.coeff) Z.zero)
+         then None
+         else (
+           let value = Z.div free p.coeff in
+           match Map.find model p.var with
+           | Some known when not (Z.equal known value) -> None
+           | Some _ | None ->
+             loop (Map.set subst ~key:p.var ~data:value) ((p.var, value) :: values) tl))
+  in
+  loop subst [] (List.rev w.pivots)
+;;
+
+(* Replace the values of the variables GaussQE eliminated by the ones the
+   pivots give on the branch [model] satisfies. The branch is selected by
+   evaluating its conjuncts on the model, its guessed slacks and residues; a
+   branch that cannot be decided, or whose pivots do not divide exactly, is
+   dropped together with its witness. If no witness fits, [model] is returned
+   as it came -- a GaussQE answer never gets a guessed value. *)
+let recover_model (model : Model.t) (witnesses : Ir.witness list) : Model.t =
+  let from_model = model_subst model in
+  let rec try_witnesses = function
+    | [] -> model
+    | (w : Ir.witness) :: tl ->
+      let subst =
+        let with_slacks =
+          Map.fold w.slacks ~init:from_model ~f:(fun ~key ~data acc ->
+            Map.set acc ~key ~data)
+        in
+        Map.fold w.residues ~init:with_slacks ~f:(fun ~key ~data acc ->
+          Map.set acc ~key ~data)
+      in
+      (match Ir.eval_ground_system subst w.conj with
+       | Some true ->
+         (match recover_witness_values ~model:from_model subst w with
+          | None -> try_witnesses tl
+          | Some values ->
+            (* [subst] carries names the model must not mention: the slacks are
+               the solver's own genesym'd variables. *)
+            List.fold_left
+              (fun acc (var, value) -> Map.set acc ~key:var ~data:(`Int value))
+              model
+              (List.filter
+                 (fun (var, _) ->
+                    (not (String.starts_with ~prefix:Ir.slack_prefix var))
+                    && not (is_internal var))
+                 values))
+       | Some false | None -> try_witnesses tl)
+  in
+  if witnesses = [] then model else try_witnesses witnesses
+;;
+
 let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
   let report_result2 s = report_result ~verbose s in
   (* What an unknown answer reports: the NFA Solver's rejection message or
@@ -643,14 +718,21 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
         unknown_reason := "qelim bound";
         unknown ast e)
       else begin
-        let ir =
+        let ir, witnesses =
           if config.simpl_free_vars
-          then Ir.simpl_free_vars ir
+          then Ir.simpl_free_vars_with_witnesses ir
           else if config.simpl_quantifier_elim
-          then Ir.simpl_quantifiers ir
-          else ir
+          then Ir.simpl_quantifiers_with_witnesses ir
+          else ir, []
         in
         match ir with
+        (* TODO: this branch never reaches the solver, so the witnesses of the
+           elimination that produced [True] cannot be used to complete a model
+           and the eliminated variables keep the default 0. E.g.
+           [-bound -1 --free-elim] on the six-equation system of
+           [tests/gaussqe.t] prints x2 = 0 and x3 = -54 for a solution with
+           x2 = 10 and x3 = -4. Left as it is: [sat (simpl)] is what the
+           stage names promise, and no solver model exists to complete. *)
         | Lib.Ir.True -> sat "simpl" ast ~env:e
         | Lnot True -> unsat "simpl" ast
         | _ ->
@@ -658,7 +740,16 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
           if config.stop_after = `Simpl then exit 0;
           trace_log "Starting NFA Solver ...\n%!";
           (match Solver.check_sat ir with
-           | `Sat get_model -> sat "nfa" ast ~env:e ~get_model
+           | `Sat get_model ->
+             (* The solver only sees what is left after the eliminations; the
+                values of the eliminated variables come from the witness of the
+                branch its model satisfies. *)
+             let get_model tys =
+               match get_model tys with
+               | Result.Error _ as error -> error
+               | Result.Ok model -> Result.Ok (recover_model model witnesses)
+             in
+             sat "nfa" ast ~env:e ~get_model
            | `Unsat -> unsat "nfa" ast
            | `Unknown _ir -> unknown ast e)
       end

@@ -1485,13 +1485,40 @@ let substitute_vigorous_constraint varname coeff (tau_poly, tau_const) = functio
   | t -> t
 ;;
 
+(* The pivot equality [coeff * x + tau = rhs] as it was when [x] was
+   eliminated, so that solving for [x] afterwards gives
+   [x = (rhs - tau) / coeff]. [tau] is the rest of the equation and may still
+   mention variables eliminated later, hence pivots are recovered backwards. *)
+type pivot =
+  { var : string
+  ; coeff : Z.t
+  ; tau : polynom
+  ; rhs : Z.t
+  }
+
+(* What GaussQE did on one non-deterministic branch: the pivots in elimination
+   order, the slack values it guessed (= [subst] of [eliminate_all]), the
+   residues it guessed for the variables that occur only in [Div] atoms
+   (= [env] of the branch loop), and the disjunct that is left. *)
+type witness =
+  { pivots : pivot list
+  ; slacks : (string, Z.t) Map.t
+  ; residues : (string, Z.t) Map.t
+  ; conj : t list
+  }
+
+(* The fifth component is the pivot that was used. An atom without an equation
+   in the system has nothing to solve for, so no pivot is recorded for it. *)
 let eliminate_one_var conj varname subst p l =
   let open NondeterministicMonad in
   let eqs = List.filter_map (find_var_and_coeff varname) conj in
   match eqs with
-  | [] -> return (conj, subst, p, l)
+  | [] -> return (conj, subst, p, l, None)
   | eqs ->
     let* coeff, tau, const = List.to_seq eqs in
+    (* Captured here, before the pivot constraint multiplies, substitutes and
+       divides the system below. The elimination variables are [Var]s only. *)
+    let pivot = { var = name varname; coeff; tau; rhs = const } in
     let p = l in
     let l = coeff in
     let slacks =
@@ -1521,7 +1548,7 @@ let eliminate_one_var conj varname subst p l =
       |> divide_system_by_int p
       |> fun x -> Rel (Div (Z.abs coeff), tau, const) :: x
     in
-    return (conj, subst, p, l)
+    return (conj, subst, p, l, Some pivot)
 ;;
 
 let subst_ir subst (ir : t) : t =
@@ -1538,7 +1565,88 @@ let subst_ir subst (ir : t) : t =
   | ir -> ir
 ;;
 
-let eliminate_linear_atoms_branches (conjs : t list) (elim_vars : atom list) =
+(* [Pow2 k] is [base ** k] in the IR (see [Me.eia_of_ir]). An exponent this
+   large is not a value any model carries, and computing it would only burn
+   memory, so such an atom is read as not ground instead. *)
+let max_eval_exponent = 4096
+
+(* The value of [poly] under [subst], or [None] when some atom of [poly] has
+   no value in [subst], i.e. when the polynomial is not ground. *)
+let eval_polynom (subst : (string, Z.t) Map.t) (poly : polynom) : Z.t option =
+  let leaf = function
+    | Var key -> Map.find subst key
+    | Pow2 key ->
+      (match Map.find subst key with
+       | Some e when Z.geq e Z.zero && Z.leq e (Z.of_int max_eval_exponent) ->
+         Some (Z.pow (Z.of_int !Config.base) (Z.to_int e))
+       | Some _ | None -> None)
+  in
+  Map.fold
+    poly
+    ~init:(Some Z.zero : Z.t option)
+    ~f:(fun ~key ~data acc ->
+      match acc with
+      | None -> None
+      | Some acc ->
+        (match leaf key with
+         | None -> None
+         | Some value -> Some Z.(acc + (data * value))))
+;;
+
+(* Decide [ir] on the values of [subst] without going through [simpl], whose
+   congruence cases do not cover every ground shape. [None] means the formula
+   is not ground -- some atom still mentions a variable [subst] does not bind,
+   or something that is not arithmetic -- and is never a guess. A [Div] by
+   zero reads as the equality [poly = c], the convention [simpl] uses for a
+   congruence with an empty polynomial. *)
+let rec eval_ground (subst : (string, Z.t) Map.t) (ir : t) : bool option =
+  match ir with
+  | True -> Some true
+  | Lnot ir -> Option.map (fun b -> not b) (eval_ground subst ir)
+  | Land irs -> eval_ground_system subst irs
+  | Lor irs ->
+    (* [Some true] as soon as one arm holds, [Some false] only when all fail. *)
+    let rec loop unknown = function
+      | [] -> if unknown then None else Some false
+      | ir :: tl ->
+        (match eval_ground subst ir with
+         | Some true -> Some true
+         | Some false -> loop unknown tl
+         | None -> loop true tl)
+    in
+    loop false irs
+  | Rel (rel, poly, c) ->
+    (match eval_polynom subst poly with
+     | None -> None
+     | Some value ->
+       (match rel with
+        | Eq -> Some (Z.equal value c)
+        | Neq -> Some (not (Z.equal value c))
+        | Leq -> Some (Z.leq value c)
+        | Div d ->
+          (* [poly = c (mod d)], so the residue of [poly - c] is what counts. *)
+          if Z.equal d Z.zero
+          then Some (Z.equal value c)
+          else Some (Z.equal (Z.rem (Z.sub value c) d) Z.zero)))
+  | _ -> None
+
+and eval_ground_system (subst : (string, Z.t) Map.t) (conj : t list) : bool option =
+  (* [Some false] as soon as one conjunct fails, [Some true] only if all hold. *)
+  let rec loop unknown = function
+    | [] -> if unknown then None else Some true
+    | ir :: tl ->
+      (match eval_ground subst ir with
+       | Some false -> Some false
+       | Some true -> loop unknown tl
+       | None -> loop true tl)
+  in
+  loop false conj
+;;
+
+(* Every branch carries the record of the eliminations that produced it. *)
+let eliminate_linear_atoms_witnesses (conjs : t list) (elim_vars : atom list)
+  : witness Seq.t
+  =
   let open NondeterministicMonad in
   let introduce_slacks conjs =
     let slack_vars = ref [] in
@@ -1557,13 +1665,20 @@ let eliminate_linear_atoms_branches (conjs : t list) (elim_vars : atom list) =
     new_conjs
   in
   let conj_list = introduce_slacks conjs in
-  let rec eliminate_all subst conj p l = function
-    | [] -> return (conj, subst)
+  let rec eliminate_all subst conj p l pivots = function
+    | [] -> return (conj, subst, List.rev pivots)
     | h :: tl ->
-      let* conj, subst, p, l = eliminate_one_var conj h subst p l in
-      eliminate_all subst conj p l tl
+      let* conj, subst, p, l, pivot = eliminate_one_var conj h subst p l in
+      let pivots =
+        match pivot with
+        | None -> pivots
+        | Some pivot -> pivot :: pivots
+      in
+      eliminate_all subst conj p l pivots tl
   in
-  let* branch, subst = eliminate_all Map.empty conj_list Z.one Z.one elim_vars in
+  let* branch, subst, pivots =
+    eliminate_all Map.empty conj_list Z.one Z.one [] elim_vars
+  in
   let branch =
     List.map
       (function
@@ -1598,7 +1713,14 @@ let eliminate_linear_atoms_branches (conjs : t list) (elim_vars : atom list) =
     | t -> true
   in
   let* env = loop Map.empty branch elim_vars in
-  branch |> List.map (subst_ir env) |> List.filter helper_filter |> return
+  let conj = branch |> List.map (subst_ir env) |> List.filter helper_filter in
+  return { pivots; slacks = subst; residues = env; conj }
+;;
+
+(* The branches on their own; the projection of
+   [eliminate_linear_atoms_witnesses] onto its [conj] component. *)
+let eliminate_linear_atoms_branches (conjs : t list) (elim_vars : atom list) =
+  Seq.map (fun (w : witness) -> w.conj) (eliminate_linear_atoms_witnesses conjs elim_vars)
 ;;
 
 let conjuncts_of = function
@@ -1686,10 +1808,35 @@ let eliminate_existence_quantifier : t -> t =
   fun ir -> branches_to_formula (eliminate_existence_quantifier_branches ir)
 ;;
 
+(* The fold of [branches_to_formula], keeping the witness of every disjunct:
+   the [witness list] is index-aligned with the disjuncts of the formula, and
+   each witness carries the simplified branch as its [conj] so that a caller can
+   re-test it against a model. Written out rather than shared with
+   [branches_to_formula] so that the latter stays exactly as it was. *)
+let branches_to_formula_with_witnesses (branches : witness Seq.t) : t * witness list =
+  let rec loop acc ws branches =
+    match branches () with
+    | Seq.Nil -> lor_ acc, List.rev ws
+    | Seq.Cons (w, branches) ->
+      (match simpl (land_ w.conj) with
+       | True -> True, [ w ]
+       | Lnot True -> loop acc ws branches
+       | branch -> loop (branch :: acc) ({ w with conj = [ branch ] } :: ws) branches)
+  in
+  loop [] [] branches
+;;
+
 (* The same as [eliminate_existence_quantifier], but driven by a bare
    conjunction and an explicit atom list instead of an [Exists] node. *)
 let eliminate_linear_atoms (conjs : t list) (atoms : atom list) : t =
   branches_to_formula (eliminate_linear_atoms_branches conjs atoms)
+;;
+
+(* [eliminate_linear_atoms] with the witnesses of the surviving disjuncts. *)
+let eliminate_linear_atoms_with_witnesses (conjs : t list) (atoms : atom list)
+  : t * witness list
+  =
+  branches_to_formula_with_witnesses (eliminate_linear_atoms_witnesses conjs atoms)
 ;;
 
 let simpl_quantifiers ir =
@@ -1743,6 +1890,48 @@ let eliminate_free_vars (ir : t) =
 ;;
 
 let simpl_free_vars ir = eliminate_free_vars (simpl_quantifiers ir)
+
+(* [simpl_quantifiers] with witnesses. The recursion down [Land], [Lor],
+   [Lnot] and nested [Exists] can open any number of elimination sites, each
+   with a witness list of its own, so a single witness list is only well
+   defined when the top-level dispatch below is the one site -- the shape
+   [simpl_quantifiers] elaborates with a single [eliminate_existence_quantifier]
+   call. Otherwise the formula alone is returned, with no witnesses. *)
+let simpl_quantifiers_with_witnesses (ir : t) : t * witness list =
+  match ir with
+  | Exists (atoms, x) ->
+    let nonlin, lin = split_non_linear_parts x in
+    let elim_atoms = List.filter (fun a -> List.mem a lin) atoms in
+    let keep_atoms = List.filter (fun a -> List.mem a nonlin) atoms in
+    begin match elim_atoms, conjuncts_of x with
+    | [], _ | _, None -> simpl_quantifiers ir, []
+    | _ :: _, Some conjs ->
+      let ir, ws = eliminate_linear_atoms_with_witnesses conjs elim_atoms in
+      (if keep_atoms = [] then ir else exists keep_atoms ir), ws
+    end
+  | _ -> simpl_quantifiers ir, []
+;;
+
+(* [simpl_free_vars] with witnesses, under the same single-site restriction:
+   [eliminate_free_vars] recurses through [Lor] and [Land], and the [Land]
+   case is one site only when [linear_fv] of the whole conjunction is
+   non-empty; with no free linear variable no conjunct has a site either. *)
+let simpl_free_vars_with_witnesses (ir : t) : t * witness list =
+  match simpl_quantifiers ir with
+  | Land conjs as ir ->
+    (* [linear_fv (land_ conjs)], not [linear_fv ir]: [land_] drops the trivial
+       conjuncts and this is the conjunction [eliminate_free_vars] measures. *)
+    begin match linear_fv (land_ conjs) with
+    | [] -> eliminate_free_vars ir, []
+    | atoms -> eliminate_linear_atoms_with_witnesses conjs atoms
+    end
+  | Rel (_, _, _) as r ->
+    begin match linear_fv r with
+    | [] -> r, []
+    | atoms -> eliminate_linear_atoms_with_witnesses [ r ] atoms
+    end
+  | ir -> eliminate_free_vars ir, []
+;;
 
 let%test_module "gaussqe (IR)" =
   (module struct
@@ -1937,6 +2126,63 @@ let%test_module "gaussqe (IR)" =
       Format.printf "%a@." pp (simpl_quantifiers ir);
       [%expect
         {| ((1pow2(x1) + 1pow2(x2) = 12) | (1pow2(x1) + 1pow2(x2) <= 12) | (1pow2(x1) + 1pow2(x2) <= 12) | (-1pow2(x1) + -1pow2(x2) <= -12)) |}]
+    ;;
+
+    let%expect_test "eval_ground" =
+      let subst = Map.of_alist_exn [ "x", Z.of_int 3; "y", Z.of_int (-1) ] in
+      let decide ir =
+        match eval_ground subst ir with
+        | Some true -> "true"
+        | Some false -> "false"
+        | None -> "unknown"
+      in
+      let cases =
+        (* A congruence is [poly = c (mod d)], so [poly - c] is what divides. *)
+        [ Rel (Div (Z.of_int 2), poly [ Var "x", 1 ], Z.of_int 7)
+        ; Rel (Div (Z.of_int 2), poly [ Var "x", 1 ], Z.of_int 6)
+        ; Rel (Eq, poly [ Var "x", 1 ], Z.of_int 3)
+        ; Rel (Neq, poly [ Var "x", 1 ], Z.of_int 3)
+        ; Rel (Leq, poly [ Var "x", 1 ], Z.of_int 2)
+          (* Degenerate atoms that [simpl] cannot decide on its own. *)
+        ; Rel (Eq, Map.empty, Z.zero)
+        ; Rel (Eq, Map.empty, Z.of_int 5)
+        ; Rel (Div Z.zero, Map.empty, Z.zero)
+        ; Rel (Div Z.zero, poly [ Var "x", 1 ], Z.of_int 3)
+        ; Rel (Div Z.zero, poly [ Var "x", 1 ], Z.of_int 2)
+          (* [Pow2 k] is [base ** k]; a negative exponent is left undecided. *)
+        ; Rel (Eq, poly [ Pow2 "x", 1 ], Z.pow (Z.of_int !Config.base) 3)
+        ; Rel (Eq, poly [ Pow2 "y", 1 ], Z.zero)
+          (* Not ground: a variable the substitution does not bind. *)
+        ; Rel (Eq, poly [ Var "z", 1 ], Z.zero)
+          (* Connectives short-circuit on the value that is already decided. *)
+        ; Land [ Rel (Eq, poly [ Var "x", 1 ], Z.of_int 3); Lnot True ]
+        ; Lor [ Rel (Eq, poly [ Var "x", 1 ], Z.of_int 4); Unsupp "s" ]
+        ; Lor
+            [ Rel (Eq, poly [ Var "x", 1 ], Z.of_int 4)
+            ; Rel (Eq, poly [ Var "z", 1 ], Z.of_int 4)
+            ]
+        ]
+      in
+      List.iteri (fun i ir -> Format.printf "case %d: %s@." (i + 1) (decide ir)) cases;
+      [%expect
+        {|
+        case 1: true
+        case 2: false
+        case 3: true
+        case 4: false
+        case 5: false
+        case 6: true
+        case 7: false
+        case 8: true
+        case 9: true
+        case 10: false
+        case 11: true
+        case 12: unknown
+        case 13: unknown
+        case 14: false
+        case 15: unknown
+        case 16: unknown
+        |}]
     ;;
   end)
 ;;
