@@ -128,7 +128,7 @@ let land_ = function
 ;;
 
 let lor_ = function
-  | [] -> true_
+  | [] -> Lnot True
   | [ ast ] -> ast
   | asts when List.exists (( = ) True) asts -> True
   | asts ->
