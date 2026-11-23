@@ -776,6 +776,9 @@ let simpl ir =
       -> true_
     | Rel (Leq, term, c) when Map.length term = 0 && Z.(c >= zero) -> true_
     | Rel (Leq, term, c) when Map.length term = 0 && Z.(c < zero) -> false_
+    | Rel (Div m, term, c) when Map.for_all ~f:(fun v -> Z.(equal v zero)) term ->
+      if Z.(equal m zero) then of_bool Z.(equal c zero)
+      else of_bool Z.(equal (Z.rem c m) zero)
     | Rel (Eq, term, c) when Map.length term = 1 ->
       let _, coeff = Map.min_elt_exn term in
       (match Z.(coeff = zero) with
@@ -1392,6 +1395,21 @@ let var_exists varname conj =
     conj
 ;;
 
+let residue_guessable varname conj =
+  let appears = ref false in
+  let ok =
+    List.for_all
+      (function
+        | Rel (Div _, poly, _) ->
+          if coeff_of_var varname poly <> Z.zero then appears := true;
+          true
+        | Rel (_, poly, _) -> coeff_of_var varname poly = Z.zero
+        | _ -> true)
+      conj
+  in
+  ok && !appears
+;;
+
 let slack_prefix = "_slack_"
 
 let slack_vars_in_poly =
@@ -1405,23 +1423,53 @@ let slack_vars_in_poly =
 ;;
 
 let apply_operation_to_constraint op = function
-  | Rel (Div d, poly, c) -> Rel (Div (op d), Map.map ~f:op poly, op c)
+  | Rel (Div d, poly, c) -> Rel (Div (Z.abs (op d)), Map.map ~f:op poly, op c)
   | Rel (rel, poly, c) -> Rel (rel, Map.map ~f:op poly, op c)
   | t -> t
 ;;
 
 let multiply_constraint_by_int coeff = apply_operation_to_constraint (Z.mul coeff)
 
-let divide_constraint_by_int coeff =
-  apply_operation_to_constraint (fun x -> Z.div x coeff)
+let divide_constraint_by_int d (ir : t) : t option =
+  let d = Z.abs d in
+  let exact x = Z.equal (Z.rem x d) Z.zero in
+  match ir with
+  | Rel (rel, poly, c) ->
+    let modulus_ok =
+      match rel with
+      | Div m -> exact m
+      | Leq | Eq | Neq -> true
+    in
+    if (not modulus_ok) || (not (exact c)) || Map.exists ~f:(fun x -> not (exact x)) poly
+    then None
+    else
+      Some
+        (Rel
+           ( (match rel with
+              | Div m -> Div Z.(m / d)
+              | rel -> rel)
+           , Map.map ~f:(fun x -> Z.div x d) poly
+           , Z.div c d ))
+  | t -> Some t
+;;
+
+let divide_system_by_int d (conj : t list) : t list =
+  let d = Z.abs d in
+  if Z.equal d Z.one
+  then conj
+  else (
+    let divided = List.map (divide_constraint_by_int d) conj in
+    if List.for_all Option.is_some divided
+    then List.filter_map Fun.id divided
+    else conj)
 ;;
 
 let substitute_vigorous_constraint varname coeff (tau_poly, tau_const) = function
   | Rel (rel, poly, c) as constr ->
     begin match Map.find poly varname with
     | None -> constr
+    | Some b when not (Z.equal (Z.rem b coeff) Z.zero) -> constr
     | Some b ->
-      assert (Z.equal Z.(b mod coeff) Z.zero);
       let factor = Z.div b coeff in
       let poly' =
         Map.fold tau_poly ~init:(Map.remove poly varname) ~f:(fun ~key ~data acc ->
@@ -1439,39 +1487,41 @@ let substitute_vigorous_constraint varname coeff (tau_poly, tau_const) = functio
 
 let eliminate_one_var conj varname subst p l =
   let open NondeterministicMonad in
-  let eqs = List.to_seq conj |> Seq.filter_map (find_var_and_coeff varname) in
-  let* coeff, tau, const = eqs in
-  let p = l in
-  let l = coeff in
-  let slacks =
-    slack_vars_in_poly tau |> List.filter (fun key -> not (Map.mem subst key))
-  in
-  let mod_phi = get_mod_phi_of_system conj in
-  let possible_vals = first_n_numbers Z.(Z.abs coeff * mod_phi) in
-  let* subst =
-    if slacks = []
-    then return subst
-    else begin
-      let rec loop acc = function
-        | [] -> return acc
-        | key :: xs ->
-          let* data = possible_vals in
-          let acc = Map.set acc ~key ~data in
-          loop acc xs
-      in
-      loop subst slacks
-    end
-  in
-  let conj =
-    conj
-    |> List.map (fun c ->
-      c
-      |> multiply_constraint_by_int coeff
-      |> substitute_vigorous_constraint varname coeff (tau, const)
-      |> divide_constraint_by_int p)
-    |> fun x -> Rel (Div (Z.abs coeff), tau, const) :: x
-  in
-  return (conj, subst, p, l)
+  let eqs = List.filter_map (find_var_and_coeff varname) conj in
+  match eqs with
+  | [] -> return (conj, subst, p, l)
+  | eqs ->
+    let* coeff, tau, const = List.to_seq eqs in
+    let p = l in
+    let l = coeff in
+    let slacks =
+      slack_vars_in_poly tau |> List.filter (fun key -> not (Map.mem subst key))
+    in
+    let mod_phi = get_mod_phi_of_system conj in
+    let possible_vals = first_n_numbers Z.(Z.abs coeff * mod_phi) in
+    let* subst =
+      if slacks = []
+      then return subst
+      else begin
+        let rec loop acc = function
+          | [] -> return acc
+          | key :: xs ->
+            let* data = possible_vals in
+            let acc = Map.set acc ~key ~data in
+            loop acc xs
+        in
+        loop subst slacks
+      end
+    in
+    let conj =
+      conj
+      |> List.map (fun constr ->
+        multiply_constraint_by_int coeff constr
+        |> substitute_vigorous_constraint varname coeff (tau, const))
+      |> divide_system_by_int p
+      |> fun x -> Rel (Div (Z.abs coeff), tau, const) :: x
+    in
+    return (conj, subst, p, l)
 ;;
 
 let subst_ir subst (ir : t) : t =
@@ -1488,7 +1538,7 @@ let subst_ir subst (ir : t) : t =
   | ir -> ir
 ;;
 
-let eliminate_existence_quantifier_branches (ir : t) =
+let eliminate_linear_atoms_branches (conjs : t list) (elim_vars : atom list) =
   let open NondeterministicMonad in
   let introduce_slacks conjs =
     let slack_vars = ref [] in
@@ -1504,61 +1554,67 @@ let eliminate_existence_quantifier_branches (ir : t) =
           | other -> other)
         conjs
     in
-    !slack_vars, new_conjs
+    new_conjs
   in
-  let helper xs elim_vars =
-    let slack, conj_list = introduce_slacks xs in
-    let rec eliminate_all subst conj p l = function
-      | [] -> return (conj, subst)
-      | h :: tl ->
-        let* conj, subst, p, l = eliminate_one_var conj h subst p l in
-        eliminate_all subst conj p l tl
-    in
-    let* branch, subst = eliminate_all Map.empty conj_list Z.one Z.one elim_vars in
-    let branch =
-      List.map
-        (function
-          | Rel (Eq, poly, rhs) as t -> begin
-            slack_vars_in_poly poly
-            |> List.find_opt (fun x -> not (Map.mem subst x))
-            |> function
-            | Some varname ->
-              let poly' = Map.remove poly (Var varname) in
-              if Z.gt (coeff_of_var (Var varname) poly) Z.zero
-              then Rel (Leq, poly', rhs)
-              else Rel (Leq, Map.map poly' ~f:Z.neg, Z.neg rhs)
-            | None -> t
-            end
-          | t -> t)
-        branch
-    in
-    let branch = List.map (subst_ir subst) branch in
-    let mod_phi = get_mod_phi_of_system branch in
-    let possible_vals = first_n_numbers mod_phi in
-    let rec loop env phi = function
-      | [] -> return env
-      | Var key :: tl when var_exists (Var key) phi ->
-        let* data = possible_vals in
-        let env = Map.set env ~key ~data in
-        loop env phi tl
-      | h :: tl -> loop env phi tl
-    in
-    let helper_filter = function
-      | Rel (Div o, _, _) when Z.equal (Z.abs o) Z.one -> false
-      | True -> false
-      | t -> true
-    in
-    let* env = loop Map.empty branch elim_vars in
-    branch |> List.map (subst_ir env) |> List.filter helper_filter |> return
+  let conj_list = introduce_slacks conjs in
+  let rec eliminate_all subst conj p l = function
+    | [] -> return (conj, subst)
+    | h :: tl ->
+      let* conj, subst, p, l = eliminate_one_var conj h subst p l in
+      eliminate_all subst conj p l tl
   in
+  let* branch, subst = eliminate_all Map.empty conj_list Z.one Z.one elim_vars in
+  let branch =
+    List.map
+      (function
+        | Rel (Eq, poly, rhs) as t -> begin
+          slack_vars_in_poly poly
+          |> List.find_opt (fun x -> not (Map.mem subst x))
+          |> function
+          | Some varname ->
+            let poly' = Map.remove poly (Var varname) in
+            if Z.gt (coeff_of_var (Var varname) poly) Z.zero
+            then Rel (Leq, poly', rhs)
+            else Rel (Leq, Map.map poly' ~f:Z.neg, Z.neg rhs)
+          | None -> t
+          end
+        | t -> t)
+      branch
+  in
+  let branch = List.map (subst_ir subst) branch in
+  let mod_phi = get_mod_phi_of_system branch in
+  let possible_vals = first_n_numbers mod_phi in
+  let rec loop env phi = function
+    | [] -> return env
+    | Var key :: tl when residue_guessable (Var key) phi ->
+      let* data = possible_vals in
+      let env = Map.set env ~key ~data in
+      loop env phi tl
+    | h :: tl -> loop env phi tl
+  in
+  let helper_filter = function
+    | Rel (Div o, _, _) when Z.equal (Z.abs o) Z.one -> false
+    | True -> false
+    | t -> true
+  in
+  let* env = loop Map.empty branch elim_vars in
+  branch |> List.map (subst_ir env) |> List.filter helper_filter |> return
+;;
+
+let conjuncts_of = function
+  | Land conjs -> Some conjs
+  | True -> Some []
+  | Rel (_, _, _) as rel -> Some [ rel ]
+  | _ -> None
+;;
+
+let eliminate_existence_quantifier_branches (ir : t) =
   match ir with
-  | Exists (elim_vars, xs) ->
-    begin match xs with
-    | Land conj_list -> helper conj_list elim_vars
-    | Rel (_, _, _) as rel -> helper [ rel ] elim_vars
-    | _ -> failwith "Expected a conjuction"
-    end
-  | _ -> failwith "Expected the existence quantifier"
+  | Exists (elim_vars, body) ->
+    (match conjuncts_of body with
+     | Some conjs -> eliminate_linear_atoms_branches conjs elim_vars
+     | None -> Seq.return [ ir ])
+  | _ -> Seq.return [ ir ]
 ;;
 
 let bound_ok (atoms : atom list) (ast : t) (bound : Z.t) : bool =
@@ -1613,8 +1669,7 @@ let split_non_linear_parts ir : atom list * atom list =
   nonlin, lin
 ;;
 
-let eliminate_existence_quantifier : t -> t =
-  fun ir ->
+let branches_to_formula branches =
   let rec loop acc branches =
     match branches () with
     | Seq.Nil -> lor_ acc
@@ -1624,8 +1679,17 @@ let eliminate_existence_quantifier : t -> t =
        | Lnot True -> loop acc branches
        | branch -> loop (branch :: acc) branches)
   in
-  let branches = eliminate_existence_quantifier_branches ir in
   loop [] branches
+;;
+
+let eliminate_existence_quantifier : t -> t =
+  fun ir -> branches_to_formula (eliminate_existence_quantifier_branches ir)
+;;
+
+(* The same as [eliminate_existence_quantifier], but driven by a bare
+   conjunction and an explicit atom list instead of an [Exists] node. *)
+let eliminate_linear_atoms (conjs : t list) (atoms : atom list) : t =
+  branches_to_formula (eliminate_linear_atoms_branches conjs atoms)
 ;;
 
 let simpl_quantifiers ir =
@@ -1636,9 +1700,14 @@ let simpl_quantifiers ir =
       let keep_atoms = List.filter (fun a -> List.mem a nonlin) atoms in
       if elim_atoms = []
       then exists atoms (aux x)
-      else (
-        let dnf = eliminate_existence_quantifier (Exists (elim_atoms, x)) in
-        if keep_atoms = [] then dnf else exists keep_atoms dnf)
+      else
+        begin match conjuncts_of x with
+        | None ->
+          exists atoms (aux x)
+        | Some _ ->
+          let dnf = eliminate_existence_quantifier (Exists (elim_atoms, x)) in
+          if keep_atoms = [] then dnf else exists keep_atoms dnf
+        end
     | Lnot x -> lnot (aux x)
     | Land x -> land_ (List.map aux x)
     | Lor x -> lor_ (List.map aux x)
@@ -1647,19 +1716,33 @@ let simpl_quantifiers ir =
   aux ir
 ;;
 
-(* Eliminates only linearly occuring free variables while also removing original quantifers *)
-let simpl_free_vars ir =
-  let rec linear_fv = function
-    | Lnot x -> linear_fv x
-    | Land x -> List.fold_left (fun acc x -> (linear_fv x) @ acc) [] x
-    | Lor x -> List.fold_left (fun acc x -> (linear_fv x) @ acc) [] x
-    | Rel (rel, poly, c) -> Map.keys poly
-    | t -> []
-  in
-  let ir = simpl_quantifiers ir in
-  let atoms = linear_fv ir in
-  simpl_quantifiers (Exists (atoms, ir))
+let linear_fv ir =
+  let _, lin = split_non_linear_parts ir in
+  let free = collect_free ir in
+  List.filter (fun a -> Set.mem free a) lin
 ;;
+
+let eliminate_free_vars (ir : t) =
+  let rec aux = function
+    | Lor xs -> lor_ (List.map aux xs)
+    | Land conjs ->
+      begin match linear_fv (land_ conjs) with
+      | [] -> land_ (List.map aux conjs)
+      | atoms -> eliminate_linear_atoms conjs atoms
+      end
+    | Rel (_, _, _) as r ->
+      begin match linear_fv r with
+      | [] -> r
+      | atoms -> eliminate_linear_atoms [ r ] atoms
+      end
+    (* Projection is existential: it cannot descend below a negation. *)
+    | Lnot _ -> ir
+    | t -> t
+  in
+  aux ir
+;;
+
+let simpl_free_vars ir = eliminate_free_vars (simpl_quantifiers ir)
 
 let%test_module "gaussqe (IR)" =
   (module struct
@@ -1748,18 +1831,22 @@ let%test_module "gaussqe (IR)" =
     ;;
 
     let%expect_test "divide_constraint_by_int" =
+      let show_opt = function
+        | Some ir -> show_raw ir
+        | None -> Format.printf "None@."
+      in
       (* 2 | (4z - 6) *)
-      show_raw
+      show_opt
         (divide_constraint_by_int
            (Z.of_int 2)
            (Rel (Div (Z.of_int 4), poly [ Var "z", 2 ], Z.of_int (-6))));
       (* (4x - 6 = 0) / 2 *)
-      show_raw
+      show_opt
         (divide_constraint_by_int
            (Z.of_int 2)
            (Rel (Eq, poly [ Var "x", 4 ], Z.of_int (-6))));
-      (* (4x - 6 = 0) / 3 : not exact (AST returned None, IR truncates) *)
-      show_raw
+      (* (4x - 6 = 0) / 3 : not exact, so nothing is divided *)
+      show_opt
         (divide_constraint_by_int
            (Z.of_int 3)
            (Rel (Eq, poly [ Var "x", 4 ], Z.of_int (-6))));
@@ -1767,7 +1854,7 @@ let%test_module "gaussqe (IR)" =
         {|
         (1z =(mod 2) -3)
         (2x = -3)
-        (1x = -2)
+        None
         |}]
     ;;
 
