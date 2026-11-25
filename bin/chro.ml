@@ -655,12 +655,13 @@ let recover_witness_values ~model subst (w : Ir.witness) : (string * Z.t) list o
    pivots give on the branch [model] satisfies. The branch is selected by
    evaluating its conjuncts on the model, its guessed slacks and residues; a
    branch that cannot be decided, or whose pivots do not divide exactly, is
-   dropped together with its witness. If no witness fits, [model] is returned
-   as it came -- a GaussQE answer never gets a guessed value. *)
-let recover_model (model : Model.t) (witnesses : Ir.witness list) : Model.t =
+   dropped together with its witness. [None] means no witness fits: the caller
+   must then answer without a model, not keep the defaults [construct_model]
+   assigns to the variables the elimination removed. *)
+let recover_model_opt (model : Model.t) (witnesses : Ir.witness list) : Model.t option =
   let from_model = model_subst model in
   let rec try_witnesses = function
-    | [] -> model
+    | [] -> None
     | (w : Ir.witness) :: tl ->
       let subst =
         let with_slacks =
@@ -677,17 +678,25 @@ let recover_model (model : Model.t) (witnesses : Ir.witness list) : Model.t =
           | Some values ->
             (* [subst] carries names the model must not mention: the slacks are
                the solver's own genesym'd variables. *)
-            List.fold_left
-              (fun acc (var, value) -> Map.set acc ~key:var ~data:(`Int value))
-              model
-              (List.filter
-                 (fun (var, _) ->
-                    (not (String.starts_with ~prefix:Ir.slack_prefix var))
-                    && not (is_internal var))
-                 values))
+            Some
+              (List.fold_left
+                 (fun acc (var, value) -> Map.set acc ~key:var ~data:(`Int value))
+                 model
+                 (List.filter
+                    (fun (var, _) ->
+                       (not (String.starts_with ~prefix:Ir.slack_prefix var))
+                       && not (is_internal var))
+                    values)))
        | Some false | None -> try_witnesses tl)
   in
-  if witnesses = [] then model else try_witnesses witnesses
+  try_witnesses witnesses
+;;
+
+(* The solver path always has a model for the variables that survived the
+   elimination, so it keeps that model when no witness fits; the eliminated
+   variables then keep the defaults [construct_model] assigns. *)
+let recover_model model witnesses =
+  Option.value (recover_model_opt model witnesses) ~default:model
 ;;
 
 let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
@@ -726,14 +735,19 @@ let rec check_sat ?(verbose = false) (tys : Model.tys) ast : rez =
           else ir, []
         in
         match ir with
-        (* TODO: this branch never reaches the solver, so the witnesses of the
-           elimination that produced [True] cannot be used to complete a model
-           and the eliminated variables keep the default 0. E.g.
-           [-bound -1 --free-elim] on the six-equation system of
-           [tests/gaussqe.t] prints x2 = 0 and x3 = -54 for a solution with
-           x2 = 10 and x3 = -4. Left as it is: [sat (simpl)] is what the
-           stage names promise, and no solver model exists to complete. *)
-        | Lib.Ir.True -> sat "simpl" ast ~env:e
+        (* The formula was decided before the solver ran, so there is no solver
+           model to complete: the eliminated variables come from the witnesses
+           alone, and [construct_model] then resolves the presimpl environment
+           and defaults whatever is still free. *)
+        | Lib.Ir.True ->
+          (match recover_model_opt Map.empty witnesses with
+           | None -> sat "simpl" ast ~env:e
+           | Some model ->
+             sat
+               "simpl"
+               ast
+               ~env:e
+               ~get_model:(fun _ -> Result.Ok model))
         | Lnot True -> unsat "simpl" ast
         | _ ->
           if config.dump_simpl then Format.printf "%a\n%!" Ir.pp_smtlib2 ir;

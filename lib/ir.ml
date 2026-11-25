@@ -1808,11 +1808,11 @@ let eliminate_existence_quantifier : t -> t =
   fun ir -> branches_to_formula (eliminate_existence_quantifier_branches ir)
 ;;
 
-(* The fold of [branches_to_formula], keeping the witness of every disjunct:
-   the [witness list] is index-aligned with the disjuncts of the formula, and
-   each witness carries the simplified branch as its [conj] so that a caller can
-   re-test it against a model. Written out rather than shared with
-   [branches_to_formula] so that the latter stays exactly as it was. *)
+(* The fold of [branches_to_formula], keeping one witness per surviving
+   disjunct. The disjuncts are accumulated in reverse, but a witness is not
+   looked up by position: each carries its own simplified branch as [conj], so
+   a caller tests the witnesses one by one. Written out rather than shared
+   with [branches_to_formula] so that the latter stays exactly as it was. *)
 let branches_to_formula_with_witnesses (branches : witness Seq.t) : t * witness list =
   let rec loop acc ws branches =
     match branches () with
@@ -1891,12 +1891,15 @@ let eliminate_free_vars (ir : t) =
 
 let simpl_free_vars ir = eliminate_free_vars (simpl_quantifiers ir)
 
-(* [simpl_quantifiers] with witnesses. The recursion down [Land], [Lor],
-   [Lnot] and nested [Exists] can open any number of elimination sites, each
-   with a witness list of its own, so a single witness list is only well
-   defined when the top-level dispatch below is the one site -- the shape
-   [simpl_quantifiers] elaborates with a single [eliminate_existence_quantifier]
-   call. Otherwise the formula alone is returned, with no witnesses. *)
+(* [simpl_quantifiers] with witnesses. In [simpl_quantifiers] the recursion
+   down [Land], [Lor], [Lnot] and nested [Exists] can open any number of
+   elimination sites, each with a witness list of its own, so a single witness
+   list is only well defined when the top-level dispatch below is the one
+   site -- the shape [simpl_quantifiers] elaborates with a single
+   [eliminate_existence_quantifier] call. Otherwise the formula alone is
+   returned, with no witnesses. The [Lnot] case stays witness-free on purpose:
+   a witness there would describe a model of the negated formula, not of this
+   one. *)
 let simpl_quantifiers_with_witnesses (ir : t) : t * witness list =
   match ir with
   | Exists (atoms, x) ->
@@ -1912,12 +1915,18 @@ let simpl_quantifiers_with_witnesses (ir : t) : t * witness list =
   | _ -> simpl_quantifiers ir, []
 ;;
 
-(* [simpl_free_vars] with witnesses, under the same single-site restriction:
-   [eliminate_free_vars] recurses through [Lor] and [Land], and the [Land]
-   case is one site only when [linear_fv] of the whole conjunction is
-   non-empty; with no free linear variable no conjunct has a site either. *)
-let simpl_free_vars_with_witnesses (ir : t) : t * witness list =
+(* [simpl_free_vars] with witnesses. The arms of a [Lor] are simplified
+   independently and their witness lists concatenated: the disjunction is
+   [True] exactly when some arm is, and that arm's witness is the one that
+   explains a model. A [Land] is a single elimination site when [linear_fv] of
+   the whole conjunction is non-empty ([land_], not the raw conjunct list,
+   because [land_] drops trivial conjuncts); with no free linear variable no
+   conjunct has a site either. *)
+let rec simpl_free_vars_with_witnesses (ir : t) : t * witness list =
   match simpl_quantifiers ir with
+  | Lor xs ->
+    let ys = List.map simpl_free_vars_with_witnesses xs in
+    lor_ (List.map fst ys), List.concat_map snd ys
   | Land conjs as ir ->
     (* [linear_fv (land_ conjs)], not [linear_fv ir]: [land_] drops the trivial
        conjuncts and this is the conjunction [eliminate_free_vars] measures. *)
