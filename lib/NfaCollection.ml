@@ -176,6 +176,54 @@ let mod_eq_prepare vars term m =
 ;;
 
 (* ------------------------------------------------------------- *)
+(* --------------- Shared state spaces of a.x ~ c --------------- *)
+(* ------------------------------------------------------------- *)
+
+(* The states of [a.x = c] and [a.x <= c] are integers and their edges depend
+   only on the coefficients; [c] just picks where the search starts. So the
+   edges are kept per coefficient vector and reused for every constant. *)
+module ZH = Hashtbl.Make (struct
+    type t = Z.t
+
+    let equal = Z.equal
+    let hash = Z.hash
+  end)
+
+let spaces : (_, (Z.t * bool list * Z.t) list ZH.t) Memo.t = Memo.create "consts"
+
+let explore ~key ~next ~edges start =
+  let cache =
+    if Memo.enabled `Consts
+    then Memo.find_or_build spaces key (fun () -> ZH.create 64)
+    else ZH.create 64
+  in
+  if ZH.length cache > 1_000_000 then ZH.reset cache;
+  let states = ref Set.empty in
+  let transitions = ref [] in
+  let rec lp = function
+    | [] -> ()
+    | hd :: tl when Set.mem !states hd -> lp tl
+    | hd :: tl ->
+      let t =
+        match ZH.find_opt cache hd with
+        | Some t ->
+          Memo.count "consts.reused" 1;
+          t
+        | None ->
+          let t = edges hd in
+          ZH.replace cache hd t;
+          Memo.count "consts.built" 1;
+          t
+      in
+      states := Set.add !states hd;
+      transitions := t @ !transitions;
+      lp (List.map next t @ tl)
+  in
+  lp [ start ];
+  !states, !transitions
+;;
+
+(* ------------------------------------------------------------- *)
 (* ------------------------- MSB types ------------------------- *)
 (* ------------------------------------------------------------- *)
 
@@ -234,27 +282,18 @@ module Msb = struct
     then if Z.(zero = c) then n () else z ()
     else (
       let thing = powerset term in
-      let states = ref Set.empty in
-      let transitions = ref [] in
-      let rec lp front =
-        match front with
-        | [] -> ()
-        | hd :: tl ->
-          if Set.mem !states hd
-          then lp tl
-          else begin
-            let t =
-              thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
-              |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd)
-            in
-            states := Set.add !states hd;
-            transitions := t @ !transitions;
-            lp (List.map (fun (x, _, _) -> x) t @ tl)
-          end
+      let states, transitions =
+        explore
+          ~key:(`Msb_eq, List.map snd term)
+          ~next:(fun (x, _, _) -> x)
+          ~edges:(fun hd ->
+            thing
+            |> List.filter (fun (_, sum) -> Z.((hd - sum) mod (base * gcd_) = zero))
+            |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd))
+          c
       in
-      lp [ c ];
-      let states = Set.to_list !states in
+      let transitions = ref transitions in
+      let states = Set.to_list states in
       let start = List.length states in
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
@@ -289,27 +328,18 @@ module Msb = struct
     then if Z.(zero <= c) then n () else z ()
     else
       (let thing = powerset term in
-       let states = ref Set.empty in
-       let transitions = ref [] in
-       let rec lp front =
-         match front with
-         | [] -> ()
-         | hd :: tl ->
-           if Set.mem !states hd
-           then lp tl
-           else begin
-             let t =
-               thing
-               |> List.map (fun (bits, sum) ->
-                 Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd)
-             in
-             states := Set.add !states hd;
-             transitions := t @ !transitions;
-             lp (List.map (fun (x, _, _) -> x) t @ tl)
-           end
+       let states, transitions =
+         explore
+           ~key:(`Msb_leq, List.map snd term)
+           ~next:(fun (x, _, _) -> x)
+           ~edges:(fun hd ->
+             thing
+             |> List.map (fun (bits, sum) ->
+               Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd))
+           c
        in
-       lp [ c ];
-       let states = Set.to_list !states in
+       let transitions = ref transitions in
+       let states = Set.to_list states in
        let start = List.length states in
        let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
        let idx c = Map.find states c |> Option.get in
@@ -1317,27 +1347,18 @@ module Lsb = struct
     then if Z.(zero = c) then n () else z ()
     else (
       let thing = powerset term in
-      let states = ref Set.empty in
-      let transitions = ref [] in
-      let rec lp front =
-        match front with
-        | [] -> ()
-        | hd :: tl ->
-          if Set.mem !states hd
-          then lp tl
-          else begin
-            let t =
-              thing
-              |> List.filter (fun (_, sum) -> Z.((hd - sum) mod base = zero))
-              |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base))
-            in
-            states := Set.add !states hd;
-            transitions := t @ !transitions;
-            lp (List.map (fun (_, _, x) -> x) t @ tl)
-          end
+      let states, transitions =
+        explore
+          ~key:(`Lsb_eq, List.map snd term)
+          ~next:(fun (_, _, x) -> x)
+          ~edges:(fun hd ->
+            thing
+            |> List.filter (fun (_, sum) -> Z.((hd - sum) mod base = zero))
+            |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base)))
+          c
       in
-      lp [ c ];
-      let states = Set.to_list !states in
+      let transitions = ref transitions in
+      let states = Set.to_list states in
       trace_log
         "states:[%a]"
         (Format.pp_print_list
@@ -1367,32 +1388,23 @@ module Lsb = struct
     then if Z.(zero <= c) then n () else z ()
     else (
       let thing = powerset term in
-      let states = ref Set.empty in
-      let transitions = ref [] in
-      let rec lp front =
-        match front with
-        | [] -> ()
-        | hd :: tl ->
-          if Set.mem !states hd
-          then lp tl
-          else begin
-            let t =
-              thing
-              |> List.map (fun (bits, sum) ->
-                ( hd
-                , bits
-                , match Z.((hd - sum) mod base) with
-                  | x when x = Z.one || x = Z.zero -> Z.((hd - sum) / base)
-                  | x when x = Z.minus_one -> Z.(((hd - sum) / base) - one)
-                  | _ -> failwith "Should be unreachable" ))
-            in
-            states := Set.add !states hd;
-            transitions := t @ !transitions;
-            lp (List.map (fun (_, _, x) -> x) t @ tl)
-          end
+      let states, transitions =
+        explore
+          ~key:(`Lsb_leq, List.map snd term)
+          ~next:(fun (_, _, x) -> x)
+          ~edges:(fun hd ->
+            thing
+            |> List.map (fun (bits, sum) ->
+              ( hd
+              , bits
+              , match Z.((hd - sum) mod base) with
+                | x when x = Z.one || x = Z.zero -> Z.((hd - sum) / base)
+                | x when x = Z.minus_one -> Z.(((hd - sum) / base) - one)
+                | _ -> failwith "Should be unreachable" )))
+          c
       in
-      lp [ c ];
-      let states = Set.to_list !states in
+      let transitions = ref transitions in
+      let states = Set.to_list states in
       trace_log
         "states:[%a]"
         (Format.pp_print_list
@@ -2243,3 +2255,138 @@ module LsbStrBv (B : Nfa.Base) = struct
 end
 
 module LsbString = LsbStr (Nfa.Base10)
+
+module type Rename = sig
+  type t
+
+  val length : t -> int
+  val rename_tracks : (int * int) list -> t -> t
+end
+
+(* Atoms are cached up to a renaming of tracks: the builder sees the
+   coefficients sorted and on tracks [0..k-1], and the result is moved back
+   onto the real tracks. Equations are also divided by the gcd and get a
+   fixed sign, so [2x + 4y = 6] and [-y - 2x = -3] share one entry. *)
+module Memoize (C : Type) (N : Rename with type t = C.t) =
+struct
+  include C
+
+  let atoms : (_, C.t) Memo.t = Memo.create "atoms" ~cost:N.length
+  let prims : (_, C.t) Memo.t = Memo.create "prims" ~cost:N.length
+  let atom i = Ir.var ("#" ^ string_of_int i)
+
+  (* Nonzero (track, coeff) pairs sorted by coefficient. *)
+  let sorted vars term =
+    Map.to_alist term
+    |> List.filter_map (fun (a, k) ->
+      if Z.equal k Z.zero then None else Some (Map.find_exn vars a, k))
+    |> List.sort (fun (t1, k1) (t2, k2) ->
+      let c = Z.compare k1 k2 in
+      if c <> 0 then c else compare t1 t2)
+  ;;
+
+  let synthetic coeffs =
+    let vars = List.mapi (fun i _ -> atom i, i) coeffs |> Map.of_alist_exn in
+    let term = List.mapi (fun i k -> atom i, k) coeffs |> Map.of_alist_exn in
+    vars, term
+  ;;
+
+  let gcd_of ks = List.fold_left (fun acc k -> Z.gcd acc k) Z.zero ks
+
+  (* Pick the sign whose sorted coefficient list is larger, so that an
+     equation and its negation get the same key. *)
+  let fix_sign pairs c =
+    let neg = List.map (fun (t, k) -> t, Z.neg k) pairs |> List.rev in
+    if compare (List.map snd neg) (List.map snd pairs) > 0
+    then neg, Z.neg c
+    else pairs, c
+  ;;
+
+  let memoized tag pairs c build =
+    let tracks = List.map fst pairs in
+    let coeffs = List.map snd pairs in
+    Memo.find_or_build
+      atoms
+      (tag, coeffs, c)
+      (fun () ->
+         let vars, term = synthetic coeffs in
+         build vars term c)
+      ~use:(N.rename_tracks (List.mapi (fun i t -> i, t) tracks))
+  ;;
+
+  let enabled () = Memo.enabled `Atoms && Config.config.logic = `Eia
+
+  let eq vars term c =
+    match if enabled () then sorted vars term else [] with
+    | [] -> C.eq vars term c
+    | pairs ->
+      let g = gcd_of (List.map snd pairs) in
+      if not (Z.equal (Z.erem c g) Z.zero)
+      then C.z ()
+      else (
+        let pairs = List.map (fun (t, k) -> t, Z.divexact k g) pairs in
+        let pairs, c = fix_sign pairs (Z.divexact c g) in
+        memoized `Eq pairs c C.eq)
+  ;;
+
+  let neq vars term c =
+    match if enabled () then sorted vars term else [] with
+    | [] -> C.neq vars term c
+    | pairs ->
+      let g = gcd_of (List.map snd pairs) in
+      if not (Z.equal (Z.erem c g) Z.zero)
+      then C.n ()
+      else (
+        let pairs = List.map (fun (t, k) -> t, Z.divexact k g) pairs in
+        let pairs, c = fix_sign pairs (Z.divexact c g) in
+        memoized `Neq pairs c C.neq)
+  ;;
+
+  let leq vars term c =
+    match if enabled () then sorted vars term else [] with
+    | [] -> C.leq vars term c
+    | pairs ->
+      let g = gcd_of (List.map snd pairs) in
+      let pairs = List.map (fun (t, k) -> t, Z.divexact k g) pairs in
+      memoized `Leq pairs (Z.fdiv c g) C.leq
+  ;;
+
+  let mod_eq vars term m c =
+    let m = Z.abs m in
+    match if enabled () && not (Z.equal m Z.zero) then sorted vars term else [] with
+    | [] -> C.mod_eq vars term m c
+    | pairs ->
+      memoized (`Mod m) pairs (Z.erem c m) (fun vars term c -> C.mod_eq vars term m c)
+  ;;
+
+  let prim key tracks build =
+    Memo.find_or_build
+      prims
+      key
+      build
+      ~use:(N.rename_tracks (List.mapi (fun i t -> i, t) tracks))
+  ;;
+
+  let power_of_two exp =
+    if Memo.enabled `Prims && Config.config.logic = `Eia
+    then prim `Pow2 [ exp ] (fun () -> C.power_of_two 0)
+    else C.power_of_two exp
+  ;;
+end
+
+module MemoizeNat (C : NatType) (N : Rename with type t = C.t) =
+struct
+  include Memoize (C) (N)
+
+  let div_in_pow var a c =
+    if Memo.enabled `Prims && Config.config.logic = `Eia
+    then prim (`Div_in_pow (a, c)) [ var ] (fun () -> C.div_in_pow 0 a c)
+    else C.div_in_pow var a c
+  ;;
+
+  let pow_of_log_var var exp =
+    if Memo.enabled `Prims && Config.config.logic = `Eia && var <> exp
+    then prim `Pow_of_log [ var; exp ] (fun () -> C.pow_of_log_var 0 1)
+    else C.pow_of_log_var var exp
+  ;;
+end

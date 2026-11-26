@@ -109,6 +109,7 @@ module type Type = sig
   val truncate : int -> t -> t
   val is_graph : t -> bool
   val reenumerate : (int, int) Map.t -> t -> t
+  val rename_tracks : (int * int) list -> t -> t
   val minimize : t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t

@@ -153,6 +153,7 @@ let level = ref 0
 
 module Str = Nfa.Str
 module NfaO = Nfa
+module NfaCollectionO = NfaCollection
 
 module Make
     (NfaNat : Nfa.NatType)
@@ -170,7 +171,134 @@ module Make
        val int_to_model : Z.t -> Nfa.v list
      end) =
 struct
+  (* With [ops], an operation on automata with the same contents as an
+     earlier call returns the earlier result. *)
+  let ops_table name cost = Memo.create name ~max_cost:5_000_000 ~cost
+
+  let op table key f =
+    if Memo.enabled `Ops && Config.config.logic = `Eia
+    then Memo.find_or_build table (Lazy.force key) f
+    else f ()
+  ;;
+
+  (* Timed for [-memo-stats]. *)
+  module Nfa = struct
+    include Nfa
+
+    let ops = ops_table "ops.nfa" length
+    let fp = Memo.fingerprint
+
+    let intersect a b =
+      Memo.time "nfa.intersect" (fun () ->
+        op ops (lazy (`I, fp a, fp b)) (fun () -> intersect a b))
+    ;;
+
+    let project vs a = Memo.time "nfa.project" (fun () -> project vs a)
+
+    let minimize a =
+      Memo.time "nfa.minimize" (fun () -> op ops (lazy (`M, fp a, "")) (fun () -> minimize a))
+    ;;
+
+    let minimize_strong a =
+      Memo.time "nfa.minimize_strong" (fun () ->
+        op ops (lazy (`Ms, fp a, "")) (fun () -> minimize_strong a))
+    ;;
+
+    let minimize_not_very_strong a =
+      Memo.time "nfa.minimize_nvs" (fun () ->
+        op ops (lazy (`Mn, fp a, "")) (fun () -> minimize_not_very_strong a))
+    ;;
+
+    let invert ?alpha a = Memo.time "nfa.invert" (fun () -> invert ?alpha a)
+  end
+
+  module NfaNat = struct
+    include NfaNat
+
+    let ops = ops_table "ops.nat" length
+    let fp = Memo.fingerprint
+
+    let intersect a b =
+      Memo.time "nat.intersect" (fun () ->
+        op ops (lazy (`I, fp a, fp b)) (fun () -> intersect a b))
+    ;;
+
+    let project vs a = Memo.time "nat.project" (fun () -> project vs a)
+
+    let minimize a =
+      Memo.time "nat.minimize" (fun () -> op ops (lazy (`M, fp a, "")) (fun () -> minimize a))
+    ;;
+  end
+
+  module NfaCollection = struct
+    include NfaCollectionO.Memoize (NfaCollection) (Nfa)
+
+    let eq vars term c = Memo.time "coll.eq" (fun () -> eq vars term c)
+    let neq vars term c = Memo.time "coll.neq" (fun () -> neq vars term c)
+    let leq vars term c = Memo.time "coll.leq" (fun () -> leq vars term c)
+    let mod_eq vars term m c = Memo.time "coll.mod_eq" (fun () -> mod_eq vars term m c)
+    let power_of_two v = Memo.time "coll.power_of_two" (fun () -> power_of_two v)
+  end
+
+  module NfaCollectionNat = struct
+    include NfaCollectionO.MemoizeNat (NfaCollectionNat) (NfaNat)
+
+    let eq vars term c = Memo.time "natcoll.eq" (fun () -> eq vars term c)
+    let leq vars term c = Memo.time "natcoll.leq" (fun () -> leq vars term c)
+    let div_in_pow v a c = Memo.time "natcoll.div_in_pow" (fun () -> div_in_pow v a c)
+
+    let pow_of_log_var v e =
+      Memo.time "natcoll.pow_of_log_var" (fun () -> pow_of_log_var v e)
+    ;;
+  end
+
   let is_exp = Ir.is_exp
+
+  let alpha_memo : (_, Nfa.t) Memo.t = Memo.create "alpha" ~max_cost:5_000_000 ~cost:Nfa.length
+
+  (* A name-free copy of [ir] for the alpha memo, and the names it replaced
+     ([x] became [#i]). Variables are numbered in order of first occurrence,
+     the atoms of a [Rel] sorted by coefficient first, so that most renamings
+     of a formula get the same key. [None] for anything but arithmetic. *)
+  let canon_ir ir =
+    let names = Hashtbl.create 8 in
+    let order = ref [] in
+    let name x =
+      match Hashtbl.find_opt names x with
+      | Some i -> i
+      | None ->
+        let i = Hashtbl.length names in
+        Hashtbl.add names x i;
+        order := (x, i) :: !order;
+        i
+    in
+    let atom = function
+      | Ir.Var x -> `V (name x)
+      | Ir.Pow2 x -> `P (name x)
+    in
+    let exception Skip in
+    let rec go = function
+      | Ir.True -> `True
+      | Ir.Rel (rel, term, c) ->
+        let pairs =
+          Map.to_alist term
+          |> List.sort (fun (a1, k1) (a2, k2) ->
+            let c = Z.compare k1 k2 in
+            if c <> 0 then c else compare (Ir.is_exp a1, a1) (Ir.is_exp a2, a2))
+        in
+        `Rel (rel, List.map (fun (a, k) -> atom a, k) pairs, c)
+      | Ir.Lnot ir -> `Not (go ir)
+      | Ir.Land irs -> `And (List.map go irs)
+      | Ir.Lor irs -> `Or (List.map go irs)
+      | Ir.Exists (atoms, ir) ->
+        let body = go ir in
+        `Ex (List.map atom atoms |> List.sort compare, body)
+      | _ -> raise Skip
+    in
+    match go ir with
+    | key -> Some (key, !order)
+    | exception Skip -> None
+  ;;
 
   let eval ir =
     let ir = Ir.antiprenex ir in
@@ -188,6 +316,26 @@ struct
        yield bogus [`Unsat]s; [`Sat] over the relaxation is already demoted to
        [`Unknown] by [sat_if_no_unsupp]. *)
     let rec eval pol ir =
+      if Memo.enabled `Alpha && Config.config.logic = `Eia
+      then (
+        match canon_ir ir with
+        | None -> eval_node pol ir
+        | Some (key, names) ->
+          let tracks =
+            List.concat_map
+              (fun (x, i) ->
+                 [ Ir.var x, 2 * i; Ir.pow2 x, (2 * i) + 1 ]
+                 |> List.filter_map (fun (a, c) ->
+                   Map.find vars a |> Option.map (fun t -> t, c)))
+              names
+          in
+          Memo.find_or_build
+            alpha_memo
+            (pol, key)
+            (fun () -> eval_node pol ir |> Nfa.rename_tracks tracks)
+            ~use:(Nfa.rename_tracks (List.map (fun (t, c) -> c, t) tracks)))
+      else eval_node pol ir
+    and eval_node pol ir =
       if Config.config.dump_ir
       then Format.printf "%d Running %a\n%!" !level Ir.pp_smtlib2 ir;
       level := !level + 1;
@@ -358,6 +506,8 @@ struct
       cache := Map.add_exn !cache ~key:ir ~data:v;
       v
   ;;
+
+  let eval ir = Memo.time "solver.eval" (fun () -> eval ir)
 
   let logBase n = Utils.logBase n ~base:NfaCollection.base
   let logBaseZ n = Utils.logBaseZ n ~base:NfaCollection.base
@@ -663,6 +813,10 @@ struct
             |> Seq.find_map Fun.id)
     in
     helper nfa order []
+  ;;
+
+  let proof_order return project s nfa order =
+    Memo.time "solver.proof_order" (fun () -> proof_order return project s nfa order)
   ;;
 
   let prepare_order s ir nfa order =
@@ -1189,6 +1343,8 @@ struct
         | Some model -> sat_if_no_unsupp (fun () -> Result.Ok model)
         | None -> `Unsat))
   ;;
+
+  let check_sat ir = Memo.time "solver.check_sat" (fun () -> check_sat ir)
 end
 
 module LsbStrExtra (B : Nfa.Base) = struct

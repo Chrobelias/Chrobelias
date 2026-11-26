@@ -6,6 +6,8 @@
 (library
  (name lib)
  (modules
+  Memo
+  Memo_tests
   Ast
   Env
   Config
