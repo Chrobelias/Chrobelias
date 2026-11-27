@@ -72,3 +72,16 @@ end
 module LsbString : sig
   include NatType with type t = Nfa.String.t and type v = Nfa.Str(Nfa.Base10).u
 end
+
+module type Rename = sig
+  type t
+
+  val length : t -> int
+  val rename_tracks : (int * int) list -> t -> t
+end
+
+module Memoize (C : Type) (_ : Rename with type t = C.t) :
+  Type with type t = C.t and type v = C.v
+
+module MemoizeNat (C : NatType) (_ : Rename with type t = C.t) :
+  NatType with type t = C.t and type v = C.v

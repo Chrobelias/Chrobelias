@@ -337,6 +337,12 @@ Basic options:
        ; ( "-over-nfa"
          , Arg.Unit (fun () -> config.over_nfa <- true)
          , "Overapproximate orderings inside the NFA solver\n\nDebugging:\n" )
+       ; ( "-memo"
+         , Arg.String Memo.set_layers
+         , "<l> Memo layers: comma list of atoms,consts,alpha,prims,ops | all | none" )
+       ; ( "-memo-stats"
+         , Arg.Unit (fun () -> Memo.stats_enabled := true)
+         , "Print memo hit rates and solver timers to stderr at exit" )
        ; ( "--check-model"
          , Arg.Unit (fun () -> config.check_model <- true)
          , "Calculate a model and check its correctness" )

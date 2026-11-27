@@ -650,7 +650,7 @@ module Str (B : Base) = struct
     let vec =
       Array.init len (fun i ->
         match Map.find map i with
-        | Some j -> unsafe_get vec j
+        | Some j -> get vec j
         | None -> u_null)
     in
     vec
@@ -937,6 +937,7 @@ module type Type = sig
   val truncate : int -> t -> t
   val is_graph : t -> bool
   val reenumerate : (int, int) Map.t -> t -> t
+  val rename_tracks : (int * int) list -> t -> t
   val minimize : t -> t
   val minimize_strong : t -> t
   val minimize_not_very_strong : t -> t
@@ -1335,6 +1336,14 @@ struct
     ; transitions
     ; is_dfa = nfa.is_dfa
     ; deg = Map.keys map |> List.fold_left max min_int
+    }
+  ;;
+
+  (* [pairs] maps old tracks to new ones; tracks not listed are dropped. *)
+  let rename_tracks pairs nfa =
+    let map = pairs |> List.map (fun (o, n) -> n, o) |> Map.of_alist_exn in
+    { (reenumerate map nfa) with
+      deg = 1 + List.fold_left (fun acc (_, n) -> max acc n) 0 pairs
     }
   ;;
 
