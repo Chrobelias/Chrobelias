@@ -108,13 +108,15 @@ jobs:
             const files = fs.readdirSync('sfr').sort();
             const read = (f) => fs.readFileSync(`sfr/${f}`, 'utf8');
             const results = files.filter((f) => f.startsWith('result-')).map((f) => JSON.parse(read(f)));
-            const summaries = files.filter((f) => f.startsWith('summary-')).map(read);
+            const summaries = files.filter((f) => f.startsWith('comment-')).map(read);
             const regressed = results.some((r) => r.regressed);
             const sha = context.payload.pull_request.head.sha.slice(0, 9);
             const title = regressed
               ? `## Regression in stringfuzzregex\n\nAs of ${sha}, this PR solves fewer stringfuzzregex benchmarks than its base, or gives answers the base didn't get wrong.`
               : `## No regression in stringfuzzregex\n\nAs of ${sha}, this PR solves at least as many stringfuzzregex benchmarks as its base.`;
-            const body = [marker, title, ...summaries].join('\n\n');
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            let body = [marker, title, ...summaries, `Full lists: [job summary](${run}).`].join('\n\n');
+            if (body.length > 65000) body = body.slice(0, 65000) + `\n\n… cut; see the [job summary](${run}).`;
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
             const comments = await github.paginate(github.rest.issues.listComments, {

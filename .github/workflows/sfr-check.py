@@ -106,13 +106,17 @@ def describe(r):
     return s
 
 
-def file_list(title, rows):
+def file_list(title, rows, cap=None):
+    """All the rows, or the first [cap] of them (PR comments are limited to
+    64 KB, so they get a shortened list)."""
     if not rows:
         return []
     items = [f"- `{Path(p).name}`: {b} → {h}" for p, b, h in rows]
     out = [f"**{title} ({len(rows)})**", ""]
     if len(items) <= 30:
         return out + items + [""]
+    if cap is not None:
+        return out + items[:cap] + [f"- … and {len(items) - cap} more, see the job summary", ""]
     return (
         out
         + items[:30]
@@ -179,6 +183,7 @@ def main():
     md += ["", f"{len(results)} files, {args.timeout:g} s timeout.", ""]
 
     regressed = False
+    comment = list(md)
     if len(names) == 2:
         base, head = names
         lost = [(p, describe(b[base]), describe(b[head])) for p, _, b in results
@@ -192,11 +197,19 @@ def main():
         if rechecked:
             md += [f"The {rechecked} files that differed were run again one at a time; "
                    "the lists use the second run.", ""]
-        md += file_list("New wrong answers or failed model checks", broken)
-        md += file_list("No longer solved", lost)
-        md += file_list("Newly solved", won)
+        lists = [
+            ("New wrong answers or failed model checks", broken),
+            ("No longer solved", lost),
+            ("Newly solved", won),
+        ]
+        if rechecked:
+            comment += md[-2:]
+        for title, rows in lists:
+            md += file_list(title, rows)
+            comment += file_list(title, rows, cap=30)
 
     (out / f"summary-{args.label}.md").write_text("\n".join(md))
+    (out / f"comment-{args.label}.md").write_text("\n".join(comment))
     (out / f"result-{args.label}.json").write_text(
         json.dumps({"label": args.label, "regressed": regressed, "counts": c})
     )
