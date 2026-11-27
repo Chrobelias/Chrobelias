@@ -44,32 +44,85 @@ jobs:
       #- name: Install depedencies
       #  run: opam install . --deps-only --with-test
 
-      - name: Build
-        run: opam exec -- dune build
+      - name: Check out the base branch
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          # dune skips directories starting with _, so the main build
+          # doesn't see this one.
+          path: _base
 
-      - name: Run stringfuzzregex and measure time
+      - name: Build
         run: |
-          set +e;
+          opam exec -- dune build
+          cp _build/default/bin/chro.exe /tmp/pr.exe
+
+      - name: Build the base branch
+        if: github.event_name == 'pull_request'
+        run: |
+          opam exec -- dune build --root _base bin/chro.exe
+          cp _base/_build/default/bin/chro.exe /tmp/base.exe
+
+      - name: Run stringfuzzregex
+        run: |
           # Fail instead of silently running nothing if the suite moves again.
           set -- $SUITE
           [ -e "$1" ] || { echo "No benchmarks match $SUITE"; exit 1; }
-          START_TIME=$(date +%s)
-          for i in "$@"; do
-            echo $i;
-            timeout 10s _build/default/bin/chro.exe ${{ matrix.flags }} $i --check-model;
-            [ $? -eq 124 ] && echo "timeout (10s)";
-          done 2>&1 | tee res.txt;
-          END_TIME=$(date +%s)
-          DURATION=$(($END_TIME - $START_TIME))
-          echo "Benchmarks completed in: $DURATION seconds with ${{ matrix.flags }}"
+          label=$(echo "${{ matrix.flags }}" | tr -cs 'a-z0-9' '-' | sed 's/^-//; s/-$//')
+          echo "LABEL=$label" >> "$GITHUB_ENV"
+          bins="--bin PR=/tmp/pr.exe"
+          [ -x /tmp/base.exe ] && bins="--bin base=/tmp/base.exe $bins"
+          python3 .github/workflows/sfr-check.py --flags="${{ matrix.flags }}" \
+            --label "$label" --out sfr $bins "$@"
+          cat sfr/summary-*.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Get stats
-        run: |
-          echo "StringFuzzRegex with ${{ matrix.flags }} flags";
-          echo "sat     : $(grep -c '^sat' res.txt)";
-          echo "unsat   : $(grep -c '^unsat' res.txt)";
-          echo "unknown : $(grep -c '^unknown' res.txt)";
-          echo "timeouts: $(grep -c '^timeout' res.txt)";
-          echo "errors  : $(grep -c error res.txt)";
-          echo "warnings: $(grep -c warn res.txt)";
-          echo "total   : $(grep -c '\.smt2$' res.txt)";
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfr-${{ env.LABEL }}
+          path: sfr/
+
+  # One comment per PR. It is posted when the PR solves fewer benchmarks than
+  # its base, and edited on later pushes, also when the regression is gone.
+  report:
+    needs: stringfuzzregex
+    if: >-
+      always() && github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sfr-*
+          merge-multiple: true
+          path: sfr
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- chrobelias-stringfuzzregex-regression -->';
+            if (!fs.existsSync('sfr')) return core.warning('No stringfuzzregex results');
+            const files = fs.readdirSync('sfr').sort();
+            const read = (f) => fs.readFileSync(`sfr/${f}`, 'utf8');
+            const results = files.filter((f) => f.startsWith('result-')).map((f) => JSON.parse(read(f)));
+            const summaries = files.filter((f) => f.startsWith('summary-')).map(read);
+            const regressed = results.some((r) => r.regressed);
+            const sha = context.payload.pull_request.head.sha.slice(0, 9);
+            const title = regressed
+              ? `## Regression in stringfuzzregex\n\nAs of ${sha}, this PR solves fewer stringfuzzregex benchmarks than its base, or gives answers the base didn't get wrong.`
+              : `## No regression in stringfuzzregex\n\nAs of ${sha}, this PR solves at least as many stringfuzzregex benchmarks as its base.`;
+            const body = [marker, title, ...summaries].join('\n\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            const old = comments.find((c) => c.user.type === 'Bot' && c.body.includes(marker));
+            if (old) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: old.id, body });
+            } else if (regressed) {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
