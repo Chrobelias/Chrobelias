@@ -33,7 +33,7 @@
   ppx_variants_conv
   ppx_inline_test
   (smtml
-   (>= 0.30.0))
+   (>= 0.31.0))
   ounit2
   ppx_expect
   mdx

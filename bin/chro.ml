@@ -1450,7 +1450,12 @@ let () =
     | Result.Error (`Msg msg) ->
       Format.eprintf "%s\n%!" msg;
       exit 1
-    | Ok file -> Smtml.Parse.from_file file
+    | Ok file ->
+      (try Smtml.Parse.from_file file |> Result.map Lib.Arrays.eliminate with
+       | Lib.Arrays.Unsupported msg ->
+         Format.printf "unknown\n%!";
+         Format.eprintf "(unsupported: %s)\n%!" msg;
+         exit 0)
   in
   let exec ({ prev; _ } as state) =
     let get_model ?(noprint = false) ast (rez : rez) =

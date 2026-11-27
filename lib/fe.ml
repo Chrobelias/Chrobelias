@@ -283,7 +283,7 @@ and to_eia_term orig_expr : Z.t Ast.Eia.term * Ast.t =
     let* str, phs = to_string expr in
     return (Ast.Eia.len str) phs
   (* mod *)
-  | Expr.Binop (_, Ty.Binop.Rem, lhs, rhs) ->
+  | Expr.Binop (_, (Ty.Binop.Rem | Ty.Binop.Mod), lhs, rhs) ->
     (match Expr.view rhs with
      | Expr.Val (Int d) ->
        let* lhs, phs = to_eia_term lhs in

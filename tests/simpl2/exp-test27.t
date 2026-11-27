@@ -333,8 +333,8 @@
              (bool.and
               (bool.and
                (bool.and
-                (bool.and (bool.eq (int.rem_s %r1 11) 0)
-                 (bool.eq (int.rem_s (int.add x (int.mul -1 %r1)) 29) 0))
+                (bool.and (bool.eq (int.mod %r1 11) 0)
+                 (bool.eq (int.mod (int.add x (int.mul -1 %r1)) 29) 0))
                 (int.le_s (int.mul -1 x) 0))
                (int.le_s (int.add 1 (int.mul -1 strlenx)) 0))
               (int.le_s (int.add -99 strlenx) 0))

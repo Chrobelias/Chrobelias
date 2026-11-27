@@ -111,7 +111,7 @@ end = struct
 
   let mod_ t z =
     if Z.(z > zero)
-    then Expr.binop Ty.Ty_int Ty.Binop.Rem t (constz z)
+    then Expr.binop Ty.Ty_int Ty.Binop.Mod t (constz z)
     else failwith "mod_: non-positive divisor"
   ;;
 

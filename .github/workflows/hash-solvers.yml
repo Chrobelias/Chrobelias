@@ -51,6 +51,14 @@ jobs:
       #- name: Install depedencies
       #  run: opam install . --deps-only --with-test
 
+      # The image can lag behind the opam file: install the newer packages,
+      # refreshing the package index only when needed. Keep this in sync with
+      # Chrobelias.opam. (opam install . fails here: git refuses the checkout.)
+      - name: Install dependencies missing from the image
+        run: >
+          opam install --yes 'smtml>=0.31.0' ||
+          (opam update && opam install --yes 'smtml>=0.31.0')
+
       - name: List opam packages
         run: opam list
 
