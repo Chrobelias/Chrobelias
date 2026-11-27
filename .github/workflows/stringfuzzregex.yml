@@ -12,6 +12,7 @@ on:
 
 env:
   OPAMROOT: /home/user/.opam
+  SUITE: ./benchmarks/chrobelias/QF_SLIA/stringfuzzregex-old/*.smt2
 
 jobs:
   stringfuzzregex:
@@ -49,10 +50,14 @@ jobs:
       - name: Run stringfuzzregex and measure time
         run: |
           set +e;
+          # Fail instead of silently running nothing if the suite moves again.
+          set -- $SUITE
+          [ -e "$1" ] || { echo "No benchmarks match $SUITE"; exit 1; }
           START_TIME=$(date +%s)
-          for i in ./benchmarks/chrobelias/QF_SLIA/stringfuzzregex/transformed/z3str2/*.smt2; do
+          for i in "$@"; do
             echo $i;
             timeout 10s _build/default/bin/chro.exe ${{ matrix.flags }} $i --check-model;
+            [ $? -eq 124 ] && echo "timeout (10s)";
           done 2>&1 | tee res.txt;
           END_TIME=$(date +%s)
           DURATION=$(($END_TIME - $START_TIME))
@@ -61,8 +66,10 @@ jobs:
       - name: Get stats
         run: |
           echo "StringFuzzRegex with ${{ matrix.flags }} flags";
-          echo "errors  : $(grep error res.txt | wc -l)";
-          echo "warnings: $(grep warn res.txt | wc -l)";
-          echo "timeouts: $(grep timeout res.txt | wc -l)";
-          echo "unknown : $(grep unknown res.txt | wc -l)";
-          echo "total   : $(grep chrobelias res.txt | wc -l)";
+          echo "sat     : $(grep -c '^sat' res.txt)";
+          echo "unsat   : $(grep -c '^unsat' res.txt)";
+          echo "unknown : $(grep -c '^unknown' res.txt)";
+          echo "timeouts: $(grep -c '^timeout' res.txt)";
+          echo "errors  : $(grep -c error res.txt)";
+          echo "warnings: $(grep -c warn res.txt)";
+          echo "total   : $(grep -c '\.smt2$' res.txt)";
