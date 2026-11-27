@@ -12,7 +12,8 @@ With two binaries, the files where they differ are run again one at a time,
 because unknowns and timeouts depend on the load, and the second run decides.
 
 Writes DIR/results-LABEL.tsv, DIR/summary-LABEL.md (a markdown table and the
-files that changed) and DIR/result-LABEL.json ({"regressed": ...}). A
+files that changed, also printed to stdout), DIR/comment-LABEL.md (the table
+and the number of changed files, for the PR comment) and DIR/result-LABEL.json ({"regressed": ...}). A
 regression is fewer solved files, or a wrong answer or failed model check
 that the base didn't have.
 """
@@ -106,17 +107,13 @@ def describe(r):
     return s
 
 
-def file_list(title, rows, cap=None):
-    """All the rows, or the first [cap] of them (PR comments are limited to
-    64 KB, so they get a shortened list)."""
+def file_list(title, rows):
     if not rows:
         return []
     items = [f"- `{Path(p).name}`: {b} → {h}" for p, b, h in rows]
     out = [f"**{title} ({len(rows)})**", ""]
     if len(items) <= 30:
         return out + items + [""]
-    if cap is not None:
-        return out + items[:cap] + [f"- … and {len(items) - cap} more, see the job summary", ""]
     return (
         out
         + items[:30]
@@ -202,11 +199,11 @@ def main():
             ("No longer solved", lost),
             ("Newly solved", won),
         ]
-        if rechecked:
-            comment += md[-2:]
         for title, rows in lists:
             md += file_list(title, rows)
-            comment += file_list(title, rows, cap=30)
+        # The comment only counts the files; the lists are in the CI log and
+        # the job summary.
+        comment += [f"- {title}: {len(rows)}" for title, rows in lists] + [""]
 
     (out / f"summary-{args.label}.md").write_text("\n".join(md))
     (out / f"comment-{args.label}.md").write_text("\n".join(comment))
