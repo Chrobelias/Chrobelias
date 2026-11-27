@@ -12,7 +12,7 @@ on:
 
 env:
   OPAMROOT: /home/user/.opam
-  SUITE: ./benchmarks/chrobelias/QF_SLIA/stringfuzzregex-old/*.smt2
+  SUITE: ./benchmarks/chrobelias/QF_SLIA/stringfuzz/transformed/z3str2/*.smt2
 
 jobs:
   stringfuzzregex:
