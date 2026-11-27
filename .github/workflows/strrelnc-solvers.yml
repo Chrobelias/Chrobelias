@@ -49,6 +49,13 @@ jobs:
       #- name: Install depedencies
       #  run: opam install . --deps-only --with-test
 
+      # The image can lag behind the opam file (e.g. a newer smtml): install
+      # whatever it lacks, refreshing the package index only when needed.
+      - name: Install missing dependencies
+        run: >
+          opam install . --deps-only --yes ||
+          (opam update && opam install . --deps-only --yes)
+
       - name: List opam packages
         run: opam list
 
