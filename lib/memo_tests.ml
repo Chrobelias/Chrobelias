@@ -34,7 +34,12 @@ struct
     let bad = ref 0 in
     for _ = 1 to rounds do
       let k = 1 + Random.int 3 in
-      let tracks = [ 0; 1; 2; 3; 4 ] |> List.sort (fun _ _ -> Random.int 3 - 1) in
+      let tracks =
+        [ 0; 1; 2; 3; 4 ]
+        |> List.map (fun t -> Random.bits (), t)
+        |> List.sort compare
+        |> List.map snd
+      in
       let vars =
         List.init k (fun i -> Ir.var names.(i), List.nth tracks i) |> Map.of_alist_exn
       in
@@ -65,7 +70,8 @@ struct
         then [ [] ]
         else
           List.concat_map
-            (fun rest -> List.init (hi - lo + 1) (fun v -> (names.(i), Z.of_int (lo + v)) :: rest))
+            (fun rest ->
+               List.init (hi - lo + 1) (fun v -> (names.(i), Z.of_int (lo + v)) :: rest))
             (points (i + 1))
       in
       List.iter
@@ -89,7 +95,8 @@ let%expect_test "memoized atoms agree with the direct builders" =
     (MsbCheck.run ~seed:1 ~lo:(-4) ~hi:4 ~rounds:60)
     (LsbCheck.run ~seed:2 ~lo:0 ~hi:6 ~rounds:60);
   Memo.layers := saved;
-  [%expect {|
+  [%expect
+    {|
     msb: 0
     lsb: 0
     |}]

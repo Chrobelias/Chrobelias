@@ -177,7 +177,8 @@ struct
 
   let op table key f =
     if Memo.enabled `Ops && Config.config.logic = `Eia
-    then Memo.find_or_build table (Lazy.force key) f
+    then
+      Memo.find_or_build table (Memo.time "ops.fingerprint" (fun () -> Lazy.force key)) f
     else f ()
   ;;
 
@@ -196,7 +197,8 @@ struct
     let project vs a = Memo.time "nfa.project" (fun () -> project vs a)
 
     let minimize a =
-      Memo.time "nfa.minimize" (fun () -> op ops (lazy (`M, fp a, "")) (fun () -> minimize a))
+      Memo.time "nfa.minimize" (fun () ->
+        op ops (lazy (`M, fp a, "")) (fun () -> minimize a))
     ;;
 
     let minimize_strong a =
@@ -226,7 +228,8 @@ struct
     let project vs a = Memo.time "nat.project" (fun () -> project vs a)
 
     let minimize a =
-      Memo.time "nat.minimize" (fun () -> op ops (lazy (`M, fp a, "")) (fun () -> minimize a))
+      Memo.time "nat.minimize" (fun () ->
+        op ops (lazy (`M, fp a, "")) (fun () -> minimize a))
     ;;
   end
 
@@ -254,7 +257,9 @@ struct
 
   let is_exp = Ir.is_exp
 
-  let alpha_memo : (_, Nfa.t) Memo.t = Memo.create "alpha" ~max_cost:5_000_000 ~cost:Nfa.length
+  let alpha_memo : (_, Nfa.t) Memo.t =
+    Memo.create "alpha" ~max_cost:5_000_000 ~cost:Nfa.length
+  ;;
 
   (* A name-free copy of [ir] for the alpha memo, and the names it replaced
      ([x] became [#i]). Variables are numbered in order of first occurrence,
@@ -508,7 +513,6 @@ struct
   ;;
 
   let eval ir = Memo.time "solver.eval" (fun () -> eval ir)
-
   let logBase n = Utils.logBase n ~base:NfaCollection.base
   let logBaseZ n = Utils.logBaseZ n ~base:NfaCollection.base
 

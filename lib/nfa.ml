@@ -650,7 +650,7 @@ module Str (B : Base) = struct
     let vec =
       Array.init len (fun i ->
         match Map.find map i with
-        | Some j -> unsafe_get vec j
+        | Some j -> get vec j
         | None -> u_null)
     in
     vec
@@ -1342,14 +1342,8 @@ struct
   (* [pairs] maps old tracks to new ones; tracks not listed are dropped. *)
   let rename_tracks pairs nfa =
     let map = pairs |> List.map (fun (o, n) -> n, o) |> Map.of_alist_exn in
-    let transitions =
-      nfa.transitions
-      |> Array.map (fun delta ->
-        List.map (fun (label, q') -> Label.reenumerate map label, q') delta)
-    in
-    { nfa with
-      transitions
-    ; deg = 1 + List.fold_left (fun acc (_, n) -> max acc n) 0 pairs
+    { (reenumerate map nfa) with
+      deg = 1 + List.fold_left (fun acc (_, n) -> max acc n) 0 pairs
     }
   ;;
 

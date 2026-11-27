@@ -191,13 +191,26 @@ module ZH = Hashtbl.Make (struct
 
 let spaces : (_, (Z.t * bool list * Z.t) list ZH.t) Memo.t = Memo.create "consts"
 
+(* States kept in [spaces], over all coefficient vectors. *)
+let cached_states = ref 0
+let max_cached_states = 2_000_000
+
 let explore ~key ~next ~edges start =
   let cache =
-    if Memo.enabled `Consts
-    then Memo.find_or_build spaces key (fun () -> ZH.create 64)
-    else ZH.create 64
+    if not (Memo.enabled `Consts)
+    then ZH.create 64
+    else (
+      if !cached_states > max_cached_states
+      then (
+        Memo.clear spaces;
+        cached_states := 0);
+      match Memo.find spaces key with
+      | Some cache -> cache
+      | None ->
+        let cache = ZH.create 64 in
+        Memo.add spaces key cache;
+        cache)
   in
-  if ZH.length cache > 1_000_000 then ZH.reset cache;
   let states = ref Set.empty in
   let transitions = ref [] in
   let rec lp = function
@@ -212,6 +225,7 @@ let explore ~key ~next ~edges start =
         | None ->
           let t = edges hd in
           ZH.replace cache hd t;
+          incr cached_states;
           Memo.count "consts.built" 1;
           t
       in
@@ -292,12 +306,11 @@ module Msb = struct
             |> List.map (fun (bits, sum) -> Z.(div_ (hd - sum) base), bits, hd))
           c
       in
-      let transitions = ref transitions in
       let states = Set.to_list states in
       let start = List.length states in
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
-      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) transitions in
       let transitions =
         (thing
          |> List.filter_map (fun (d, sum) ->
@@ -338,12 +351,11 @@ module Msb = struct
                Z.(gcd_ * div_ (hd - sum) (base * gcd_)), bits, hd))
            c
        in
-       let transitions = ref transitions in
        let states = Set.to_list states in
        let start = List.length states in
        let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
        let idx c = Map.find states c |> Option.get in
-       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+       let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) transitions in
        let transitions =
          (thing
           |> List.concat_map (fun (d, sum) ->
@@ -1357,7 +1369,6 @@ module Lsb = struct
             |> List.map (fun (bits, sum) -> hd, bits, Z.((hd - sum) / base)))
           c
       in
-      let transitions = ref transitions in
       let states = Set.to_list states in
       trace_log
         "states:[%a]"
@@ -1370,7 +1381,7 @@ module Lsb = struct
       let idxs c =
         Map.find states c |> Option.map (fun c -> [ c ]) |> Option.value ~default:[]
       in
-      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) transitions in
       Nfa.create_nfa
         ~transitions
         ~start:(idxs c)
@@ -1403,7 +1414,6 @@ module Lsb = struct
                 | _ -> failwith "Should be unreachable" )))
           c
       in
-      let transitions = ref transitions in
       let states = Set.to_list states in
       trace_log
         "states:[%a]"
@@ -1413,7 +1423,7 @@ module Lsb = struct
         states;
       let states = states |> List.mapi (fun i x -> x, i) |> Map.of_alist_exn in
       let idx c = Map.find states c |> Option.get in
-      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) !transitions in
+      let transitions = List.map (fun (a, b, c) -> idx a, b, idx c) transitions in
       Nfa.create_nfa
         ~transitions
         ~start:[ idx c ]
@@ -2267,8 +2277,7 @@ end
    coefficients sorted and on tracks [0..k-1], and the result is moved back
    onto the real tracks. Equations are also divided by the gcd and get a
    fixed sign, so [2x + 4y = 6] and [-y - 2x = -3] share one entry. *)
-module Memoize (C : Type) (N : Rename with type t = C.t) =
-struct
+module Memoize (C : Type) (N : Rename with type t = C.t) = struct
   include C
 
   let atoms : (_, C.t) Memo.t = Memo.create "atoms" ~cost:N.length
@@ -2297,9 +2306,7 @@ struct
      equation and its negation get the same key. *)
   let fix_sign pairs c =
     let neg = List.map (fun (t, k) -> t, Z.neg k) pairs |> List.rev in
-    if compare (List.map snd neg) (List.map snd pairs) > 0
-    then neg, Z.neg c
-    else pairs, c
+    if compare (List.map snd neg) (List.map snd pairs) > 0 then neg, Z.neg c else pairs, c
   ;;
 
   let memoized tag pairs c build =
@@ -2374,8 +2381,7 @@ struct
   ;;
 end
 
-module MemoizeNat (C : NatType) (N : Rename with type t = C.t) =
-struct
+module MemoizeNat (C : NatType) (N : Rename with type t = C.t) = struct
   include Memoize (C) (N)
 
   let div_in_pow var a c =

@@ -1,17 +1,16 @@
 (* SPDX-License-Identifier: MIT *)
 (* Copyright 2024-2026, Chrobelias. *)
 
-(* Memo tables for automaton construction. If [x = rename r x'] and the
-   builder commutes with [rename], we cache the result for [x'] and rename it
-   on every use (see [equivariant]). [-memo-stats] prints hit rates and
-   timers. *)
+(* Memo tables for automaton construction. Most layers bring the input to a
+   canonical form, cache the result for that form, and rename it back on
+   every use. [-memo-stats] prints hit rates and timers. *)
 
 type layer =
   [ `Atoms (* atoms up to a permutation of tracks *)
   | `Consts (* one state space per term, shared by all constants *)
   | `Alpha (* subformulas up to renaming of variables *)
   | `Prims (* powers of two and friends *)
-  | `Ops (* intersect/minimize/project keyed by the contents of their inputs *)
+  | `Ops (* intersect and minimize, keyed by the contents of their inputs *)
   ]
 
 let all_layers = [ `Atoms; `Consts; `Alpha; `Prims; `Ops ]
@@ -24,7 +23,7 @@ let layer_of_string = function
   | "ops" -> [ `Ops ]
   | "all" -> all_layers
   | "none" | "" -> []
-  | s -> failwith (Printf.sprintf "Unknown memo layer %S" s)
+  | s -> invalid_arg (Printf.sprintf "unknown memo layer %S" s)
 ;;
 
 let parse_layers s =
@@ -36,13 +35,27 @@ let default_layers : layer list = [ `Consts; `Ops ]
 let layers =
   ref
     (match Sys.getenv_opt "CHRO_MEMO" with
-     | Some s -> parse_layers s
-     | None -> default_layers)
+     | None -> default_layers
+     | Some s ->
+       (try parse_layers s with
+        | Invalid_argument msg ->
+          Printf.eprintf "CHRO_MEMO: %s, using the defaults\n%!" msg;
+          default_layers))
 ;;
 
-let set_layers s = layers := parse_layers s
+let set_layers s =
+  try layers := parse_layers s with
+  | Invalid_argument msg -> raise (Arg.Bad msg)
+;;
+
 let enabled (l : layer) = List.mem l !layers
-let stats_enabled = ref (Sys.getenv_opt "CHRO_MEMO_STATS" <> None)
+
+let stats_enabled =
+  ref
+    (match Sys.getenv_opt "CHRO_MEMO_STATS" with
+     | None | Some ("" | "0") -> false
+     | Some _ -> true)
+;;
 
 type timer =
   { mutable calls : int
@@ -86,22 +99,22 @@ let count name n =
     t.calls <- t.calls + n)
 ;;
 
+(* Tables with the same name (one per functor instance) share their stats.
+   The stats don't point back to the tables, so a dropped table is freed. *)
 type stats =
-  { name : string
-  ; mutable hits : int
+  { mutable hits : int
   ; mutable misses : int
   ; mutable build_time : float
   ; mutable hit_time : float
   ; mutable evictions : int
-  ; mutable size : unit -> int
+  ; mutable stored : int
   }
 
-let all_stats : stats list ref = ref []
+let all_stats : (string, stats) Hashtbl.t = Hashtbl.create 16
 
 module H = Hashtbl.Make (struct
     type t = Obj.t
 
-    (* [=] raises on the comparator closure inside a [Map.Poly.t]. *)
     let equal a b = compare a b = 0
     let hash = Hashtbl.hash_param 64 256
   end)
@@ -116,19 +129,22 @@ type ('k, 'v) t =
 
 let create ?(max_cost = 50_000_000) ?(cost = fun _ -> 1) name : ('k, 'v) t =
   let stats =
-    { name
-    ; hits = 0
-    ; misses = 0
-    ; build_time = 0.
-    ; hit_time = 0.
-    ; evictions = 0
-    ; size = (fun () -> 0)
-    }
+    match Hashtbl.find_opt all_stats name with
+    | Some s -> s
+    | None ->
+      let s =
+        { hits = 0
+        ; misses = 0
+        ; build_time = 0.
+        ; hit_time = 0.
+        ; evictions = 0
+        ; stored = 0
+        }
+      in
+      Hashtbl.replace all_stats name s;
+      s
   in
-  let tbl = H.create 64 in
-  stats.size <- (fun () -> H.length tbl);
-  all_stats := stats :: !all_stats;
-  { tbl; stats; cost; max_cost; total_cost = 0 }
+  { tbl = H.create 64; stats; cost; max_cost; total_cost = 0 }
 ;;
 
 let clear t =
@@ -137,7 +153,6 @@ let clear t =
 ;;
 
 let now () = if !stats_enabled then Unix.gettimeofday () else 0.
-
 let find (t : ('k, 'v) t) (k : 'k) = H.find_opt t.tbl (Obj.repr k)
 
 let add (t : ('k, 'v) t) (k : 'k) (v : 'v) =
@@ -149,6 +164,7 @@ let add (t : ('k, 'v) t) (k : 'k) (v : 'v) =
       clear t;
       t.stats.evictions <- t.stats.evictions + 1);
     t.total_cost <- t.total_cost + c;
+    t.stats.stored <- t.stats.stored + 1;
     H.replace t.tbl (Obj.repr k) v)
 ;;
 
@@ -169,23 +185,11 @@ let find_or_build ?(use = Fun.id) (t : ('k, 'v) t) (k : 'k) (build : unit -> 'v)
     r
 ;;
 
-(* [canon x = (x', r)] with [rename r (build x') = f x]. *)
-let equivariant
-      (t : ('k, 'v) t)
-      ~(canon : 'a -> 'k * 'r)
-      ~(build : 'k -> 'v)
-      ~(rename : 'r -> 'v -> 'w)
-      (x : 'a)
-  : 'w
-  =
-  let k, r = canon x in
-  find_or_build t k (fun () -> build k) ~use:(rename r)
-;;
-
 (* A digest of a value's contents. The same physical value is often hashed
    many times in a row (one big automaton intersected with many small ones),
-   so the last few digests are remembered by physical identity. Only valid
-   for values that are never mutated, which holds for automata. *)
+   so the last few digests are remembered by physical identity. This needs
+   automata to be immutable once built; [Nfa.truncate] isn't, so don't use it
+   on anything that went through [ops]. *)
 let recent = Array.make 16 (Obj.repr 0, "")
 let recent_pos = ref 0
 
@@ -201,7 +205,9 @@ let fingerprint (x : 'a) =
   match find 0 with
   | Some d -> d
   | None ->
-    let d = Digest.string (Marshal.to_string x [ Marshal.No_sharing; Marshal.Closures ]) in
+    let d =
+      Digest.string (Marshal.to_string x [ Marshal.No_sharing; Marshal.Closures ])
+    in
     recent.(!recent_pos) <- o, d;
     recent_pos := (!recent_pos + 1) mod Array.length recent;
     d
@@ -220,39 +226,23 @@ let report ppf =
        | `Prims -> "prims"
        | `Ops -> "ops")
      |> String.concat ",");
-  (* Tables with the same name (one per functor instance) are summed. *)
-  List.rev !all_stats
-  |> List.fold_left
-       (fun acc s ->
-          match List.find_opt (fun t -> t.name = s.name) acc with
-          | None -> acc @ [ { s with name = s.name } ]
-          | Some t ->
-            t.hits <- t.hits + s.hits;
-            t.misses <- t.misses + s.misses;
-            t.build_time <- t.build_time +. s.build_time;
-            t.hit_time <- t.hit_time +. s.hit_time;
-            t.evictions <- t.evictions + s.evictions;
-            let size = t.size in
-            t.size <- (fun () -> size () + s.size ());
-            acc)
-       []
-  |> List.iter (fun s ->
+  Hashtbl.to_seq all_stats
+  |> List.of_seq
+  |> List.sort compare
+  |> List.iter (fun (name, s) ->
     if s.hits + s.misses > 0
-    then (
-      let avg_build = if s.misses = 0 then 0. else s.build_time /. float s.misses in
-      let avg_hit = if s.hits = 0 then 0. else s.hit_time /. float s.hits in
+    then
       fprintf
         ppf
-        "memo-table %-16s hits=%d misses=%d build=%.3fs hit=%.3fs saved~%.3fs size=%d \
+        "memo-table %-16s hits=%d misses=%d build=%.3fs hit=%.3fs stored=%d \
          evictions=%d@."
-        s.name
+        name
         s.hits
         s.misses
         s.build_time
         s.hit_time
-        (float s.hits *. (avg_build -. avg_hit))
-        (s.size ())
-        s.evictions));
+        s.stored
+        s.evictions);
   Hashtbl.to_seq timers
   |> List.of_seq
   |> List.sort compare
@@ -260,6 +250,4 @@ let report ppf =
     fprintf ppf "memo-timer %-16s calls=%d total=%.3fs@." name t.calls t.total)
 ;;
 
-let () =
-  at_exit (fun () -> if !stats_enabled then report Format.err_formatter)
-;;
+let () = at_exit (fun () -> if !stats_enabled then report Format.err_formatter)
