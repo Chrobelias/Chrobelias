@@ -82,8 +82,9 @@ jobs:
           name: sfr-${{ env.LABEL }}
           path: sfr/
 
-  # One comment per PR. It is posted when the PR solves fewer benchmarks than
-  # its base, and edited on later pushes, also when the regression is gone.
+  # One comment per PR, for the default mode (-q) only. It is posted when the
+  # PR solves fewer benchmarks than its base, and edited on later pushes, also
+  # when the regression is gone.
   report:
     needs: stringfuzzregex
     if: >-
@@ -105,18 +106,20 @@ jobs:
             const fs = require('fs');
             const marker = '<!-- chrobelias-stringfuzzregex-regression -->';
             if (!fs.existsSync('sfr')) return core.warning('No stringfuzzregex results');
-            const files = fs.readdirSync('sfr').sort();
+            // Only the default mode (-q) goes into the comment; the other
+            // matrix entries are in their job summaries.
+            const label = 'q';
             const read = (f) => fs.readFileSync(`sfr/${f}`, 'utf8');
-            const results = files.filter((f) => f.startsWith('result-')).map((f) => JSON.parse(read(f)));
-            const summaries = files.filter((f) => f.startsWith('comment-')).map(read);
+            if (!fs.existsSync(`sfr/result-${label}.json`)) return core.warning(`No results for -${label}`);
+            const results = [JSON.parse(read(`result-${label}.json`))];
+            const summaries = [read(`comment-${label}.md`)];
             const regressed = results.some((r) => r.regressed);
             const sha = context.payload.pull_request.head.sha.slice(0, 9);
             const title = regressed
               ? `## Regression in stringfuzzregex\n\nAs of ${sha}, this PR solves fewer stringfuzzregex benchmarks than its base, or gives answers the base didn't get wrong.`
               : `## No regression in stringfuzzregex\n\nAs of ${sha}, this PR solves at least as many stringfuzzregex benchmarks as its base.`;
             const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            let body = [marker, title, ...summaries, `Full lists: [job summary](${run}).`].join('\n\n');
-            if (body.length > 65000) body = body.slice(0, 65000) + `\n\n… cut; see the [job summary](${run}).`;
+            const body = [marker, title, ...summaries, `The files are listed in the [CI run](${run}).`].join('\n\n');
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
             const comments = await github.paginate(github.rest.issues.listComments, {
